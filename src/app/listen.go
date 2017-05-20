@@ -4,7 +4,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/skycoin/skycoin/src/mesh/messages"
+	"github.com/skycoin/skywire/src/messages"
 )
 
 func getFullMessage(conn net.Conn) ([]byte, error) {

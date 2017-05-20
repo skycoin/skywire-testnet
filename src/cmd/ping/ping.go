@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/skycoin/skycoin/src/mesh/app"
-	"github.com/skycoin/skycoin/src/mesh/messages"
-	network "github.com/skycoin/skycoin/src/mesh/nodemanager"
+	"github.com/skycoin/skywire/src/app"
+	"github.com/skycoin/skywire/src/messages"
+	network "github.com/skycoin/skywire/src/nodemanager"
 )
 
 func main() {

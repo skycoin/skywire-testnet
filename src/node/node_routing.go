@@ -1,7 +1,7 @@
 package node
 
 import (
-	"github.com/skycoin/skycoin/src/mesh/messages"
+	"github.com/skycoin/skywire/src/messages"
 )
 
 func (self *Node) getRoute(routeId messages.RouteId) (*messages.RouteRule, error) {

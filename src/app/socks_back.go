@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/net/proxy"
 
-	"github.com/skycoin/skycoin/src/mesh/messages"
-	"github.com/skycoin/skycoin/src/mesh/proxy/go-socks5"
+	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/src/proxy/go-socks5"
 )
 
 type SocksServer struct {

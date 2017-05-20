@@ -1,8 +1,9 @@
 package node
 
 import (
-	"github.com/skycoin/skycoin/src/mesh/messages"
 	"log"
+
+	"github.com/skycoin/skywire/src/messages"
 )
 
 type ControlChannel struct {

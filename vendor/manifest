@@ -1,0 +1,155 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/corpusc/viscript/hypervisor/dbus",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "hypervisor/dbus",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/corpusc/viscript/msg",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "/msg",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/corpusc/viscript/vendor/github.com/skycoin/skycoin/src/cipher",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "vendor/github.com/skycoin/skycoin/src/cipher",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/corpusc/viscript/vendor/github.com/skycoin/skycoin/src/util",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "vendor/github.com/skycoin/skycoin/src/util",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/corpusc/viscript/vendor/github.com/skycoin/skycoin/vendor/github.com/op/go-logging",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "vendor/github.com/skycoin/skycoin/vendor/github.com/op/go-logging",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/corpusc/viscript/vendor/github.com/skycoin/skycoin/vendor/github.com/tang0th/go-chacha20/chacha",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "vendor/github.com/skycoin/skycoin/vendor/github.com/tang0th/go-chacha20/chacha",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/corpusc/viscript/vendor/github.com/skycoin/skycoin/vendor/github.com/toqueteos/webbrowser",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "vendor/github.com/skycoin/skycoin/vendor/github.com/toqueteos/webbrowser",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/corpusc/viscript/vendor/github.com/skycoin/skycoin/vendor/golang.org/x/crypto/pbkdf2",
+			"repository": "https://github.com/corpusc/viscript",
+			"vcs": "git",
+			"revision": "266e3569b9c1572870651a3210497707d1194c84",
+			"branch": "master",
+			"path": "vendor/github.com/skycoin/skycoin/vendor/golang.org/x/crypto/pbkdf2",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/songgao/water",
+			"repository": "https://github.com/songgao/water",
+			"vcs": "git",
+			"revision": "66c5b2f72cb8d40d16f342324f2bb58e11d4b93c",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/stretchr/testify/assert",
+			"repository": "https://github.com/stretchr/testify",
+			"vcs": "git",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"branch": "master",
+			"path": "/assert",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/stretchr/testify/vendor/github.com/davecgh/go-spew/spew",
+			"repository": "https://github.com/stretchr/testify",
+			"vcs": "git",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"branch": "master",
+			"path": "vendor/github.com/davecgh/go-spew/spew",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
+			"repository": "https://github.com/stretchr/testify",
+			"vcs": "git",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"branch": "master",
+			"path": "vendor/github.com/pmezard/go-difflib/difflib",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/net/context",
+			"repository": "https://go.googlesource.com/net",
+			"vcs": "git",
+			"revision": "513929065c19401a1c7b76ecd942f9f86a0c061b",
+			"branch": "master",
+			"path": "/context",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/net/proxy",
+			"repository": "https://go.googlesource.com/net",
+			"vcs": "git",
+			"revision": "513929065c19401a1c7b76ecd942f9f86a0c061b",
+			"branch": "master",
+			"path": "/proxy",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/sys/windows",
+			"repository": "https://go.googlesource.com/sys",
+			"vcs": "git",
+			"revision": "a2e06a18b0d52d8cb2010e04b372a1965d8e3439",
+			"branch": "master",
+			"path": "windows",
+			"notests": true
+		},
+		{
+			"importpath": "gopkg.in/gcfg.v1",
+			"repository": "https://gopkg.in/gcfg.v1",
+			"vcs": "git",
+			"revision": "27e4946190b4a327b539185f2b5b1f7c84730728",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "gopkg.in/warnings.v0",
+			"repository": "https://gopkg.in/warnings.v0",
+			"vcs": "git",
+			"revision": "8a331561fe74dadba6edfc59f3be66c22c3b065d",
+			"branch": "master",
+			"notests": true
+		}
+	]
+}

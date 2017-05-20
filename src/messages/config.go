@@ -2,8 +2,9 @@ package messages
 
 import (
 	"fmt"
-	"gopkg.in/gcfg.v1"
 	"time"
+
+	"gopkg.in/gcfg.v1"
 )
 
 type ConfigStruct struct {

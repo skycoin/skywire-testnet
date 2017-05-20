@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/skycoin/skycoin/src/cipher"
-	"github.com/skycoin/skycoin/src/mesh/messages"
+
+	"github.com/skycoin/skywire/src/messages"
 )
 
 //contains a list of nodes

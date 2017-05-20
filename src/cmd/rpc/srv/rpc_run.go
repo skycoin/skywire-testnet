@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/skycoin/skycoin/src/mesh/nodemanager"
+	"github.com/skycoin/skywire/src/nodemanager"
 )
 
 func main() {

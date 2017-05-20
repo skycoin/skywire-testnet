@@ -1,16 +1,17 @@
 package node
 
 import (
-	"github.com/skycoin/skycoin/src/cipher"
-	"github.com/skycoin/skycoin/src/mesh/messages"
-	"github.com/skycoin/skycoin/src/mesh/transport"
-
 	"log"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skycoin/src/cipher"
+
+	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/src/transport"
 )
 
 //A Node has a map of route rewriting rules

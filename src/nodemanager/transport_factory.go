@@ -3,7 +3,7 @@ package nodemanager
 import (
 	"fmt"
 
-	"github.com/skycoin/skycoin/src/mesh/messages"
+	"github.com/skycoin/skywire/src/messages"
 )
 
 //use to spawn transports

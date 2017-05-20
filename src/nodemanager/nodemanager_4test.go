@@ -6,8 +6,9 @@ import (
 	"strconv"
 
 	"github.com/skycoin/skycoin/src/cipher"
-	"github.com/skycoin/skycoin/src/mesh/messages"
-	"github.com/skycoin/skycoin/src/mesh/node"
+
+	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/src/node"
 )
 
 func (self *NodeManager) CreateRandomNetwork(n, startPort int) []messages.NodeInterface {

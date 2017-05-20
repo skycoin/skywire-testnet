@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/skycoin/skycoin/src/mesh/messages"
-	"github.com/skycoin/skycoin/src/mesh/node"
-	network "github.com/skycoin/skycoin/src/mesh/nodemanager"
+	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/src/node"
+	network "github.com/skycoin/skywire/src/nodemanager"
 )
 
 func TestCreateServer(t *testing.T) {

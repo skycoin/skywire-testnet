@@ -5,9 +5,10 @@ import (
 	"strconv"
 
 	"github.com/skycoin/skycoin/src/cipher"
-	"github.com/skycoin/skycoin/src/mesh/messages"
-	"github.com/skycoin/skycoin/src/mesh/node"
-	"github.com/skycoin/skycoin/src/mesh/transport"
+
+	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/src/node"
+	"github.com/skycoin/skywire/src/transport"
 )
 
 type RPCReceiver struct {

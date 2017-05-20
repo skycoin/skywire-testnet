@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/skycoin/skycoin/src/mesh/app"
-	"github.com/skycoin/skycoin/src/mesh/messages"
-	network "github.com/skycoin/skycoin/src/mesh/nodemanager"
+	"github.com/skycoin/skywire/src/app"
+	"github.com/skycoin/skywire/src/messages"
+	network "github.com/skycoin/skywire/src/nodemanager"
 )
 
 func main() {
@@ -48,8 +48,12 @@ func testSendAndReceive(n int) {
 	result := string(response)
 
 	if result == "Integration test OK." {
+		fmt.Println("\n============================")
 		fmt.Println("PASSED:", result)
+		fmt.Println("============================\n")
 	} else {
+		fmt.Println("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		fmt.Println("FAILED, wrong message:", result)
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
 	}
 }
