@@ -122,6 +122,16 @@ func (self *Node) handleNodeAppMessage(msg *messages.NodeAppMessage, appConn net
 
 func (self *Node) registerApp(msg *messages.NodeAppMessage, appConn net.Conn) error {
 
+	registerAppMsgS := msg.Payload
+	registerAppMsg := &messages.RegisterAppMessage{}
+	err := messages.Deserialze(registerAppMsgS, registerAppMsg)
+	if err != nil {
+		return err
+	}
+
+	appType := registerMessageApp.AppType
+	// send registerApp to orchestration server
+
 	appId := msg.AppId
 	appIdStr := string(appId)
 	self.lock.Lock()
@@ -129,6 +139,7 @@ func (self *Node) registerApp(msg *messages.NodeAppMessage, appConn net.Conn) er
 		self.appConns[appIdStr] = appConn
 	}
 	self.lock.Unlock()
+
 	err := self.sendResponseToApp(msg.Sequence, appId)
 	return err
 }

@@ -1,8 +1,0 @@
-make resource metrics code for:
-	app (mem is done)
-	node (mem is done)
-	nodemanager (mem is done)
-
-decide how assign weights for transports or how to directly connect nodes
-
-vendor msg packet from viscript
