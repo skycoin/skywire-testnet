@@ -47,6 +47,8 @@ const (
 	MsgConnectToAppMessage // Application -> Node
 	MsgAssignConnectionNAM // Node -> Application
 
+	MsgServiceRegistrationRequest // NodeManager -> ServiceManager
+	MsgServiceRequest             // NodeManager -> ServiceManager
 )
 
 func GetMessageType(message []byte) uint16 {
