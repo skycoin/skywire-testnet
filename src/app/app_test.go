@@ -6,14 +6,27 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/skycoin/skywire/src/apptracker"
 	"github.com/skycoin/skywire/src/messages"
 	"github.com/skycoin/skywire/src/node"
 	network "github.com/skycoin/skywire/src/nodemanager"
 )
 
+var defaultConfig = &network.NodeManagerConfig{
+	Domain:   "apps.network",
+	CtrlAddr: "127.0.0.1:5999",
+}
+
 func TestCreateServer(t *testing.T) {
 	messages.SetDebugLogLevel()
-	meshnet, _ := network.NewNetwork("apps.network", "127.0.0.1:5999")
+
+	appTrackerAddress := "127.0.0.1:14000"
+	apptracker.NewAppTracker(appTrackerAddress)
+
+	config := defaultConfig
+	config.AppTrackerAddr = appTrackerAddress
+
+	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
 	serverNode, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5000", []string{"127.0.0.1:5999"}, 4000, ""})
@@ -32,7 +45,14 @@ func TestCreateServer(t *testing.T) {
 
 func TestCreateClient(t *testing.T) {
 	messages.SetDebugLogLevel()
-	meshnet, _ := network.NewNetwork("apps.network", "127.0.0.1:5999")
+
+	appTrackerAddress := "127.0.0.1:14001"
+	apptracker.NewAppTracker(appTrackerAddress)
+
+	config := defaultConfig
+	config.AppTrackerAddr = appTrackerAddress
+
+	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
 	clientNode, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5000", []string{"127.0.0.1:5999"}, 4001, ""})
@@ -52,7 +72,13 @@ func TestCreateClient(t *testing.T) {
 func TestSendWithFindRoute(t *testing.T) {
 	messages.SetDebugLogLevel()
 
-	meshnet, _ := network.NewNetwork("apps.network", "127.0.0.1:5999")
+	appTrackerAddress := "127.0.0.1:14002"
+	apptracker.NewAppTracker(appTrackerAddress)
+
+	config := defaultConfig
+	config.AppTrackerAddr = appTrackerAddress
+
+	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
 	clientNode, serverNode := meshnet.CreateThreeRoutes(14000)
@@ -80,7 +106,13 @@ func TestSendWithFindRoute(t *testing.T) {
 func TestHandle(t *testing.T) {
 	messages.SetInfoLogLevel()
 
-	meshnet, _ := network.NewNetwork("apps.network", "127.0.0.1:5999")
+	appTrackerAddress := "127.0.0.1:14003"
+	apptracker.NewAppTracker(appTrackerAddress)
+
+	config := defaultConfig
+	config.AppTrackerAddr = appTrackerAddress
+
+	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
 	clientNode, serverNode := meshnet.CreateThreeRoutes(15000)
@@ -126,7 +158,13 @@ func TestHandle(t *testing.T) {
 func TestSocks(t *testing.T) {
 	messages.SetInfoLogLevel()
 
-	meshnet, _ := network.NewNetwork("apps.network", "127.0.0.1:5999")
+	appTrackerAddress := "127.0.0.1:14004"
+	apptracker.NewAppTracker(appTrackerAddress)
+
+	config := defaultConfig
+	config.AppTrackerAddr = appTrackerAddress
+
+	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
 	clientNode, serverNode := meshnet.CreateSequenceOfNodes(20, 16000)
@@ -151,7 +189,13 @@ func TestSocks(t *testing.T) {
 func TestVPN(t *testing.T) {
 	messages.SetInfoLogLevel()
 
-	meshnet, _ := network.NewNetwork("apps.network", "127.0.0.1:5999")
+	appTrackerAddress := "127.0.0.1:14005"
+	apptracker.NewAppTracker(appTrackerAddress)
+
+	config := defaultConfig
+	config.AppTrackerAddr = appTrackerAddress
+
+	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
 	clientNode, serverNode := meshnet.CreateSequenceOfNodes(20, 17000)

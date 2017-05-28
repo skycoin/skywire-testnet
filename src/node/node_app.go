@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -73,9 +74,10 @@ func (self *Node) sendMessageToApp(appId messages.AppId, msg []byte) error {
 	return self.sendCtrlToApp(appId, messageS)
 }
 
-func (self *Node) sendResponseToApp(sequence uint32, appId messages.AppId) error {
+func (self *Node) sendResponseToApp(sequence uint32, appId messages.AppId, misc []byte) error {
 	resp := messages.NodeAppResponse{
 		sequence,
+		misc,
 	}
 	respS := messages.Serialize(messages.MsgNodeAppResponse, resp)
 
@@ -84,7 +86,10 @@ func (self *Node) sendResponseToApp(sequence uint32, appId messages.AppId) error
 
 func (self *Node) sendCtrlToApp(appId messages.AppId, msg []byte) error {
 	appIdStr := string(appId)
-	appConn := self.appConns[appIdStr]
+	appConn, ok := self.appConns[appIdStr]
+	if !ok {
+		return messages.ERR_APP_DOESNT_EXIST
+	}
 	err := sendToAppConn(appConn, msg)
 	return err
 }
@@ -103,7 +108,6 @@ func sendToAppConn(appConn net.Conn, msg []byte) error {
 
 func (self *Node) handleNodeAppMessage(msg *messages.NodeAppMessage, appConn net.Conn) {
 
-	// maybe send ack
 	switch messages.GetMessageType(msg.Payload) {
 
 	case messages.MsgRegisterAppMessage:
@@ -124,24 +128,42 @@ func (self *Node) registerApp(msg *messages.NodeAppMessage, appConn net.Conn) er
 
 	registerAppMsgS := msg.Payload
 	registerAppMsg := &messages.RegisterAppMessage{}
-	err := messages.Deserialze(registerAppMsgS, registerAppMsg)
+	err := messages.Deserialize(registerAppMsgS, registerAppMsg)
 	if err != nil {
 		return err
 	}
 
-	appType := registerMessageApp.AppType
-	// send registerApp to orchestration server
+	appType := registerAppMsg.AppType
 
 	appId := msg.AppId
 	appIdStr := string(appId)
+
 	self.lock.Lock()
 	if _, ok := self.appConns[appIdStr]; !ok {
 		self.appConns[appIdStr] = appConn
 	}
 	self.lock.Unlock()
 
-	err := self.sendResponseToApp(msg.Sequence, appId)
-	return err
+	respS, err := self.sendRegisterAppToServer(appIdStr, appType)
+	if err != nil {
+		return err
+	}
+
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil {
+		return err
+	}
+
+	err = self.sendResponseToApp(msg.Sequence, appId, respS)
+	if err != nil {
+		return err
+	}
+
+	if !resp.Ok {
+		return errors.New(resp.Error)
+	}
+	return nil
 }
 
 func (self *Node) sendFromApp(msg *messages.NodeAppMessage) error {
@@ -161,7 +183,7 @@ func (self *Node) sendFromApp(msg *messages.NodeAppMessage) error {
 	self.lock.Unlock()
 
 	meshConn.Send(sfa.Payload)
-	err = self.sendResponseToApp(msg.Sequence, msg.AppId)
+	err = self.sendResponseToApp(msg.Sequence, msg.AppId, []byte{})
 	return err
 }
 
@@ -179,6 +201,6 @@ func (self *Node) connectApps(msg *messages.NodeAppMessage) error {
 		return err
 	}
 
-	err = self.sendResponseToApp(msg.Sequence, msg.AppId)
+	err = self.sendResponseToApp(msg.Sequence, msg.AppId, []byte{})
 	return err
 }

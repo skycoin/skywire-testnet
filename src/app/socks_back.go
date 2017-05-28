@@ -21,9 +21,10 @@ type SocksServer struct {
 func NewSocksServer(appId messages.AppId, nodeAddr string, proxyAddress string) (*SocksServer, error) {
 	socksServer := &SocksServer{}
 	socksServer.id = appId
+	socksServer.appType = "socks_server"
 	socksServer.lock = &sync.Mutex{}
 	socksServer.timeout = time.Duration(messages.GetConfig().AppTimeout)
-	socksServer.responseNodeAppChannels = make(map[uint32]chan bool)
+	socksServer.responseNodeAppChannels = make(map[uint32]chan []byte)
 	socksServer.ProxyAddress = proxyAddress
 	socksServer.targetConns = map[string]net.Conn{}
 
@@ -117,12 +118,20 @@ func (self *SocksServer) RegisterAtNode(nodeAddr string) error {
 
 	go self.listenFromNode()
 
-	registerMessage := messages.RegisterAppMessage{}
+	registerMessage := messages.RegisterAppMessage{
+		self.appType,
+	}
 
 	rmS := messages.Serialize(messages.MsgRegisterAppMessage, registerMessage)
 
-	err = self.sendToNode(rmS)
-	return err
+	respS, err := self.sendToNode(rmS)
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil || !resp.Ok {
+		return err
+	}
+
+	return nil
 }
 
 func (self *SocksServer) listenFromNode() {
@@ -175,7 +184,7 @@ func (self *SocksServer) handleIncomingFromNode(msg []byte) error {
 			panic(err)
 			return err
 		} else {
-			respChan <- true
+			respChan <- nar.Misc
 			return nil
 		}
 

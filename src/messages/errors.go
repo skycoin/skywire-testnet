@@ -35,3 +35,5 @@ var ERR_INVALID_DOMAIN_NAME = errors.New("Wrong domain name format")
 var ERR_INVALID_HOST = errors.New("Wrong host format")
 var ERR_HOST_DOESNT_EXIST = errors.New("Host doesn't exist")
 var ERR_HOST_EXISTS = errors.New("Host alredy exists")
+
+var ERR_SERVICE_EXISTS = errors.New("Service alredy exists")

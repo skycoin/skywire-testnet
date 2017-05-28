@@ -1,22 +1,29 @@
 package messages
 
-type ServiceRegistrationRequest struct {
-	ServiceInfo ServiceInfo
-	Sequence    uint32
-}
-
 type ServiceRequest struct {
-	RequestType  string // "by_name", "by_type", "all"
-	RequestParam string // type or service name, if all then equals ""
-	Sequence     uint32
+	Payload  []byte
+	Sequence uint32
 }
 
-type ServiceRegistrationResponse struct {
+type ServiceResponse struct {
+	Payload  []byte
+	Sequence uint32
+}
+
+type AppRegistrationRequest struct {
+	ServiceInfo ServiceInfo
+}
+
+type AppRegistrationResponse struct {
 	Ok    bool
 	Error string
 }
 
-type ServiceResponse struct {
-	Services []ServiceInfo
-	Error    string
+type AppListRequest struct {
+	RequestType  string // "by_name", "by_type", "all"
+	RequestParam string // type or service name, if all then equals ""
+}
+
+type AppListResponse struct {
+	Apps []ServiceInfo
 }

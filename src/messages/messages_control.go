@@ -109,6 +109,16 @@ type ConnectionOnCM struct {
 	ConnectionId ConnectionId
 }
 
+type RegisterAppCM struct {
+	ServiceInfo ServiceInfo
+	NodeId      cipher.PubKey
+}
+
+type RegisterAppCMAck struct {
+	Ok    bool
+	Error string
+}
+
 type ShutdownCM struct {
 	NodeId cipher.PubKey
 }

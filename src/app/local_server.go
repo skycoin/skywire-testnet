@@ -16,10 +16,11 @@ func NewServer(appId messages.AppId, nodeAddr string, handle func([]byte) []byte
 
 	server := &Server{}
 	server.id = appId
+	server.appType = "internal_server"
 	server.lock = &sync.Mutex{}
 	server.timeout = APP_TIMEOUT
 	server.handle = handle
-	server.responseNodeAppChannels = make(map[uint32]chan bool)
+	server.responseNodeAppChannels = make(map[uint32]chan []byte)
 
 	err := server.RegisterAtNode(nodeAddr)
 	if err != nil {
@@ -55,12 +56,24 @@ func (self *Server) RegisterAtNode(nodeAddr string) error {
 
 	go self.listenFromNode()
 
-	registerMessage := messages.RegisterAppMessage{}
+	registerMessage := messages.RegisterAppMessage{
+		self.appType,
+	}
 
 	rmS := messages.Serialize(messages.MsgRegisterAppMessage, registerMessage)
 
-	err = self.sendToNode(rmS)
-	return err
+	respS, err := self.sendToNode(rmS)
+	if err != nil {
+		return err
+	}
+
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil || !resp.Ok {
+		return err
+	}
+
+	return nil
 }
 
 func (self *Server) listenFromNode() {
@@ -113,7 +126,7 @@ func (self *Server) handleIncomingFromNode(msg []byte) error {
 			panic(err)
 			return err
 		} else {
-			respChan <- true
+			respChan <- nar.Misc
 			return nil
 		}
 

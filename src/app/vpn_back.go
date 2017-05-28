@@ -40,9 +40,10 @@ var (
 func NewVPNServer(appId messages.AppId, nodeAddr string) (*VPNServer, error) {
 	vpnServer := &VPNServer{}
 	vpnServer.id = appId
+	vpnServer.appType = "vpn_server"
 	vpnServer.lock = &sync.Mutex{}
 	vpnServer.timeout = time.Duration(messages.GetConfig().AppTimeout)
-	vpnServer.responseNodeAppChannels = make(map[uint32]chan bool)
+	vpnServer.responseNodeAppChannels = make(map[uint32]chan []byte)
 	vpnServer.meshConns = map[string]*Pipe{}
 	vpnServer.targetConns = map[string]net.Conn{}
 
@@ -251,12 +252,20 @@ func (self *VPNServer) RegisterAtNode(nodeAddr string) error {
 
 	go self.listenFromNode()
 
-	registerMessage := messages.RegisterAppMessage{}
+	registerMessage := messages.RegisterAppMessage{
+		self.appType,
+	}
 
 	rmS := messages.Serialize(messages.MsgRegisterAppMessage, registerMessage)
 
-	err = self.sendToNode(rmS)
-	return err
+	respS, err := self.sendToNode(rmS)
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil || !resp.Ok {
+		return err
+	}
+
+	return nil
 }
 
 func (self *VPNServer) listenFromNode() {
@@ -309,7 +318,7 @@ func (self *VPNServer) handleIncomingFromNode(msg []byte) error {
 			panic(err)
 			return err
 		} else {
-			respChan <- true
+			respChan <- nar.Misc
 			return nil
 		}
 

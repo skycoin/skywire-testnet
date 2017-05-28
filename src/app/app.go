@@ -12,12 +12,13 @@ import (
 type app struct {
 	ProxyAddress            string
 	id                      messages.AppId
+	appType                 string
 	nodeConn                net.Conn
 	handle                  func([]byte) []byte
 	timeout                 time.Duration
 	meshConnId              messages.ConnectionId
 	nodeAppSequence         uint32
-	responseNodeAppChannels map[uint32]chan bool
+	responseNodeAppChannels map[uint32]chan []byte
 	lock                    *sync.Mutex
 	viscriptServer          *AppViscriptServer
 }
@@ -40,7 +41,7 @@ func (self *app) Connect(appId messages.AppId, address string) error {
 
 	msgS := messages.Serialize(messages.MsgConnectToAppMessage, msg)
 
-	err := self.sendToNode(msgS)
+	_, err := self.sendToNode(msgS)
 
 	return err
 }
@@ -63,16 +64,16 @@ func (self *app) sendToMeshnet(payload []byte) error {
 
 	msgS := messages.Serialize(messages.MsgSendFromAppMessage, msg)
 
-	err := self.sendToNode(msgS)
+	_, err := self.sendToNode(msgS)
 	return err
 }
 
-func (self *app) sendToNode(payload []byte) error {
+func (self *app) sendToNode(payload []byte) ([]byte, error) {
 	if self.nodeConn == nil {
-		return nil // return error
+		return []byte{}, nil // return error
 	}
 
-	respChan := make(chan bool)
+	respChan := make(chan []byte)
 
 	sequence := self.setResponseNodeAppChannel(respChan)
 	nodeAppMessage := messages.NodeAppMessage{
@@ -86,23 +87,23 @@ func (self *app) sendToNode(payload []byte) error {
 
 	_, err := self.nodeConn.Write(sizeMessage)
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
 
 	_, err = self.nodeConn.Write(msgS)
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
 
 	select {
-	case <-respChan:
-		return nil
+	case response := <-respChan:
+		return response, nil
 	case <-time.After(self.timeout * time.Millisecond):
-		return messages.ERR_APP_TIMEOUT
+		return []byte{}, messages.ERR_APP_TIMEOUT
 	}
 }
 
-func (self *app) getResponseNodeAppChannel(sequence uint32) (chan bool, error) {
+func (self *app) getResponseNodeAppChannel(sequence uint32) (chan []byte, error) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
@@ -113,7 +114,7 @@ func (self *app) getResponseNodeAppChannel(sequence uint32) (chan bool, error) {
 	return ch, nil
 }
 
-func (self *app) setResponseNodeAppChannel(responseChannel chan bool) uint32 {
+func (self *app) setResponseNodeAppChannel(responseChannel chan []byte) uint32 {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
@@ -135,12 +136,20 @@ func (self *app) RegisterAtNode(nodeAddr string) error {
 
 	go self.listenFromNode()
 
-	registerMessage := messages.RegisterAppMessage{}
+	registerMessage := messages.RegisterAppMessage{
+		self.appType,
+	}
 
 	rmS := messages.Serialize(messages.MsgRegisterAppMessage, registerMessage)
 
-	err = self.sendToNode(rmS)
-	return err
+	respS, err := self.sendToNode(rmS)
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil || !resp.Ok {
+		return err
+	}
+
+	return nil
 }
 
 func (self *app) listenFromNode() {
@@ -196,7 +205,7 @@ func (self *app) handleIncomingFromNode(msg []byte) error {
 			panic(err)
 			return err
 		} else {
-			respChan <- true
+			respChan <- nar.Misc
 			return nil
 		}
 

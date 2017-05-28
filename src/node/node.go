@@ -32,7 +32,7 @@ type Node struct {
 	incomingFromConnections chan *messages.InRouteMessage
 	congestionChannel       chan *messages.CongestionPacket
 
-	responseChannels map[uint32]chan bool
+	responseChannels map[uint32]chan []byte
 
 	transports        map[messages.TransportId]*transport.Transport
 	transportsByNodes map[cipher.PubKey]*transport.Transport
@@ -152,7 +152,7 @@ func newNode(host string) *Node {
 	node.lock = &sync.Mutex{}
 	node.incomingControlChannel = make(chan *CM, 256)
 	node.congestionChannel = make(chan *messages.CongestionPacket, 1024)
-	node.responseChannels = make(map[uint32]chan bool)
+	node.responseChannels = make(map[uint32]chan []byte)
 	node.transports = make(map[messages.TransportId]*transport.Transport)
 	node.transportsByNodes = make(map[cipher.PubKey]*transport.Transport)
 	node.routeForwardingRules = make(map[messages.RouteId]*messages.RouteRule)
@@ -465,14 +465,14 @@ func (self *Node) register(ack *messages.RegisterNodeCMAck) {
 	go self.handleIncomingConnectionMessages() //pop them off the channel
 }
 
-func (self *Node) getResponseChannel(sequence uint32) (chan bool, bool) {
+func (self *Node) getResponseChannel(sequence uint32) (chan []byte, bool) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	responseChannel, ok := self.responseChannels[sequence]
 	return responseChannel, ok
 }
 
-func (self *Node) setResponseChannel(sequence uint32, responseChannel chan bool) {
+func (self *Node) setResponseChannel(sequence uint32, responseChannel chan []byte) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	self.responseChannels[sequence] = responseChannel

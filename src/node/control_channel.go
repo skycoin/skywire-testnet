@@ -175,7 +175,7 @@ func (c *ControlChannel) handleMessage(handledNode *Node, sequence uint32, msg [
 		responseChannel, ok := handledNode.getResponseChannel(sequence)
 		if ok {
 			handledNode.register(&ack)
-			responseChannel <- ack.Ok
+			responseChannel <- []byte{}
 		}
 		return nil
 
@@ -188,7 +188,7 @@ func (c *ControlChannel) handleMessage(handledNode *Node, sequence uint32, msg [
 
 		responseChannel, ok := handledNode.getResponseChannel(sequence)
 		if ok {
-			responseChannel <- ack.Ok
+			responseChannel <- []byte{}
 			connectResponseChannel, ok0 := handledNode.connectResponseChannels[ack.Sequence]
 			if ok0 {
 				connectResponseChannel <- true
@@ -205,7 +205,7 @@ func (c *ControlChannel) handleMessage(handledNode *Node, sequence uint32, msg [
 
 		responseChannel, ok := handledNode.getResponseChannel(sequence)
 		if ok {
-			responseChannel <- ack.Ok
+			responseChannel <- []byte{}
 			connectionResponseChannel, ok0 := handledNode.connectionResponseChannels[ack.Sequence]
 			if ok0 {
 				connectionResponseChannel <- ack.ConnectionId
@@ -226,6 +226,26 @@ func (c *ControlChannel) handleMessage(handledNode *Node, sequence uint32, msg [
 
 		return nil
 
+	case messages.MsgRegisterAppCMAck:
+		var m1 messages.RegisterAppCMAck
+		err := messages.Deserialize(msg, &m1)
+		if err != nil {
+			return err
+		}
+
+		resp := messages.AppRegistrationResponse{
+			m1.Ok,
+			m1.Error,
+		}
+
+		respS := messages.Serialize(messages.MsgAppRegistrationResponse, resp)
+
+		responseChannel, ok := handledNode.getResponseChannel(sequence)
+		if ok {
+			responseChannel <- respS
+		}
+		return nil
+
 	case messages.MsgCommonCMAck:
 		var ack messages.CommonCMAck
 		err := messages.Deserialize(msg, &ack)
@@ -235,14 +255,16 @@ func (c *ControlChannel) handleMessage(handledNode *Node, sequence uint32, msg [
 
 		responseChannel, ok := handledNode.getResponseChannel(sequence)
 		if ok {
-			responseChannel <- ack.Ok
+			responseChannel <- []byte{}
 		}
 		return nil
 
 	default:
 		log.Println("Incorrect message type:", msg)
+		handledNode.sendFalseAckToServer(sequence)
+		return messages.ERR_UNKNOWN_MESSAGE_TYPE
 	}
 
-	handledNode.sendFalseAckToServer(sequence)
-	return messages.ERR_UNKNOWN_MESSAGE_TYPE
+	panic("SOMETHING HAPPENED")
+	return nil
 }

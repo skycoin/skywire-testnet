@@ -142,12 +142,20 @@ func (self *proxyClient) RegisterAtNode(nodeAddr string) error {
 
 	go self.listenFromNode()
 
-	registerMessage := messages.RegisterAppMessage{}
+	registerMessage := messages.RegisterAppMessage{
+		self.appType,
+	}
 
 	rmS := messages.Serialize(messages.MsgRegisterAppMessage, registerMessage)
 
-	err = self.sendToNode(rmS)
-	return err
+	respS, err := self.sendToNode(rmS)
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil || !resp.Ok {
+		return err
+	}
+
+	return nil
 }
 
 func (self *proxyClient) listenFromNode() {
@@ -200,7 +208,7 @@ func (self *proxyClient) handleIncomingFromNode(msg []byte) error {
 			panic(err)
 			return err
 		} else {
-			respChan <- true
+			respChan <- nar.Misc
 			return nil
 		}
 

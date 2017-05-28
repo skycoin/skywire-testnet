@@ -13,7 +13,7 @@ import (
 	"github.com/skycoin/skywire/src/messages"
 )
 
-type MsgServer struct {
+type NodeMsgServer struct {
 	nm               *NodeManager
 	conn             *net.UDPConn
 	maxPacketSize    int
@@ -25,8 +25,8 @@ type MsgServer struct {
 	lock             *sync.Mutex
 }
 
-func newMsgServer(nm *NodeManager) (*MsgServer, error) {
-	msgSrv := &MsgServer{}
+func newNodeMsgServer(nm *NodeManager) (*NodeMsgServer, error) {
+	msgSrv := &NodeMsgServer{}
 	msgSrv.nm = nm
 
 	msgSrv.responseChannels = make(map[uint32]chan bool)
@@ -68,11 +68,11 @@ func newMsgServer(nm *NodeManager) (*MsgServer, error) {
 }
 
 // close
-func (self *MsgServer) shutdown() {
+func (self *NodeMsgServer) shutdown() {
 	self.closeChannel <- true
 }
 
-func (self *MsgServer) sendMessage(node cipher.PubKey, msg []byte) error {
+func (self *NodeMsgServer) sendMessage(node cipher.PubKey, msg []byte) error {
 
 	responseChannel := make(chan bool)
 	sequence := self.sequence
@@ -94,17 +94,17 @@ func (self *MsgServer) sendMessage(node cipher.PubKey, msg []byte) error {
 	}
 }
 
-func (self *MsgServer) sendNoWait(node cipher.PubKey, msg []byte) error {
+func (self *NodeMsgServer) sendNoWait(node cipher.PubKey, msg []byte) error {
 	err := self.send(uint32(0), node, msg)
 	return err
 }
 
-func (self *MsgServer) sendAck(sequence uint32, node cipher.PubKey, msg []byte) error {
+func (self *NodeMsgServer) sendAck(sequence uint32, node cipher.PubKey, msg []byte) error {
 	err := self.send(sequence, node, msg)
 	return err
 }
 
-func (self *MsgServer) send(sequence uint32, node cipher.PubKey, msg []byte) error {
+func (self *NodeMsgServer) send(sequence uint32, node cipher.PubKey, msg []byte) error {
 	self.lock.Lock()
 	addr := self.nodeAddrs[node]
 	self.lock.Unlock()
@@ -119,7 +119,7 @@ func (self *MsgServer) send(sequence uint32, node cipher.PubKey, msg []byte) err
 	return err
 }
 
-func (self *MsgServer) receiveLoop() {
+func (self *NodeMsgServer) receiveLoop() {
 	go_on := true
 	go func() {
 		for go_on {
@@ -150,7 +150,7 @@ func (self *MsgServer) receiveLoop() {
 	self.conn.Close()
 }
 
-func (self *MsgServer) getResponse(sequence uint32, response *messages.CommonCMAck) {
+func (self *NodeMsgServer) getResponse(sequence uint32, response *messages.CommonCMAck) {
 	self.lock.Lock()
 	responseChannel, ok := self.responseChannels[sequence]
 	self.lock.Unlock()

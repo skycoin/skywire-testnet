@@ -1,7 +1,7 @@
 package messages
 
 type ServiceInfo struct {
-	ServiceName string
-	ServiceType string
-	ServiceHost string
+	Name string
+	Type string
+	Host string
 }

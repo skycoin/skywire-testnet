@@ -91,6 +91,15 @@ func (self *NodeManager) handleControlMessage(cm *messages.InControlMessage) {
 		}
 		self.sendRegisterAck(sequence, nodeId)
 
+	case messages.MsgRegisterAppCM:
+		m1 := messages.RegisterAppCM{}
+		err := messages.Deserialize(msg, &m1)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		self.sendRegisterAppAck(sequence, &m1)
+
 	case messages.MsgCommonCMAck:
 		m1 := messages.CommonCMAck{}
 		err := messages.Deserialize(msg, &m1)
@@ -98,7 +107,7 @@ func (self *NodeManager) handleControlMessage(cm *messages.InControlMessage) {
 			log.Println(err)
 			return
 		}
-		self.msgServer.getResponse(sequence, &m1)
+		self.nodeMsgServer.getResponse(sequence, &m1)
 	}
 }
 
@@ -113,7 +122,29 @@ func (self *NodeManager) sendRegisterAck(sequence uint32, nodeId cipher.PubKey) 
 		ConnectionTimeout: config.ConnectionTimeout,
 	}
 	ackS := messages.Serialize(messages.MsgRegisterNodeCMAck, ack)
-	self.msgServer.sendAck(sequence, nodeId, ackS)
+	self.nodeMsgServer.sendAck(sequence, nodeId, ackS)
+}
+
+func (self *NodeManager) sendRegisterAppAck(sequence uint32, msg *messages.RegisterAppCM) {
+
+	serviceInfo := msg.ServiceInfo
+	nodeId := msg.NodeId
+
+	appRegistrationRequest := messages.AppRegistrationRequest{serviceInfo}
+	requestS := messages.Serialize(messages.MsgAppRegistrationRequest, appRegistrationRequest)
+
+	respS, err := self.appTrackerMsgServer.send(requestS)
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+
+	if err == nil {
+		ack := messages.RegisterAppCMAck{
+			Ok:    resp.Ok,
+			Error: resp.Error,
+		}
+		ackS := messages.Serialize(messages.MsgRegisterAppCMAck, ack)
+		self.nodeMsgServer.sendAck(sequence, nodeId, ackS)
+	}
 }
 
 func (self *NodeManager) sendConnectDirectlyAck(nodeId cipher.PubKey, sequence, connSequence uint32, ok bool) {
@@ -122,7 +153,7 @@ func (self *NodeManager) sendConnectDirectlyAck(nodeId cipher.PubKey, sequence, 
 		Ok:       ok,
 	}
 	ackS := messages.Serialize(messages.MsgConnectDirectlyCMAck, ack)
-	self.msgServer.sendAck(sequence, nodeId, ackS)
+	self.nodeMsgServer.sendAck(sequence, nodeId, ackS)
 }
 
 func (self *NodeManager) sendConnectWithRouteAck(nodeId cipher.PubKey, sequence, connSequence uint32, ok bool, connectionId messages.ConnectionId) {
@@ -132,7 +163,7 @@ func (self *NodeManager) sendConnectWithRouteAck(nodeId cipher.PubKey, sequence,
 		ConnectionId: connectionId,
 	}
 	ackS := messages.Serialize(messages.MsgConnectWithRouteCMAck, ack)
-	self.msgServer.sendAck(sequence, nodeId, ackS)
+	self.nodeMsgServer.sendAck(sequence, nodeId, ackS)
 }
 
 func (self *NodeManager) sendTrueCommonAck(sequence uint32, nodeId cipher.PubKey) {
@@ -151,5 +182,5 @@ func (self *NodeManager) sendFalseCommonAck(sequence uint32, nodeId cipher.PubKe
 
 func (self *NodeManager) sendCommonAck(sequence uint32, nodeId cipher.PubKey, ack *messages.CommonCMAck) {
 	ackS := messages.Serialize(messages.MsgCommonCMAck, ack)
-	self.msgServer.sendAck(sequence, nodeId, ackS)
+	self.nodeMsgServer.sendAck(sequence, nodeId, ackS)
 }

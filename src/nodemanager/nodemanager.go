@@ -25,40 +25,49 @@ type NodeManager struct {
 	nodesByTransport     map[messages.TransportId]cipher.PubKey
 	routeGraph           *RouteGraph
 	portDelivery         *PortDelivery
-	msgServer            *MsgServer
-	lock                 *sync.Mutex
+	nodeMsgServer        *NodeMsgServer
+	appTrackerMsgServer  *AppTrackerMsgServer
 	viscriptServer       *NMViscriptServer
 	dnsServer            *DNSServer
+	lock                 *sync.Mutex
 }
 
 var config = messages.GetConfig()
 
-func NewNetwork(domain, ctrlAddr string) (*NodeManager, error) {
-	nm, err := newNodeManager(domain, ctrlAddr)
+func NewNetwork(config *NodeManagerConfig) (*NodeManager, error) {
+	nm, err := newNodeManager(config)
 	return nm, err
 }
 
-func newNodeManager(domain, ctrlAddr string) (*NodeManager, error) {
+func newNodeManager(config *NodeManagerConfig) (*NodeManager, error) {
+
 	nm := new(NodeManager)
 
-	dnsServer, err := newDNSServer(domain)
+	dnsServer, err := newDNSServer(config.Domain)
 	if err != nil {
 		return nil, err
 	}
 	nm.dnsServer = dnsServer
 
-	nm.ctrlAddr = ctrlAddr
 	nm.nodeList = make(map[cipher.PubKey]*NodeRecord)
 	nm.transportFactoryList = []*TransportFactory{}
 	nm.routeGraph = newGraph()
 	nm.portDelivery = newPortDelivery()
 
-	msgServer, err := newMsgServer(nm)
+	nm.ctrlAddr = config.CtrlAddr
+	nodeMsgServer, err := newNodeMsgServer(nm)
 	if err != nil {
-		panic(err)
 		return nil, err
 	}
-	nm.msgServer = msgServer
+	nm.nodeMsgServer = nodeMsgServer
+
+	if config.AppTrackerAddr != "" {
+		appTrackerMsgServer, err := newAppTrackerMsgServer(nm, config.AppTrackerAddr)
+		if err != nil {
+			panic(err)
+		}
+		nm.appTrackerMsgServer = appTrackerMsgServer
+	}
 
 	nm.lock = &sync.Mutex{}
 
@@ -73,7 +82,7 @@ func (self *NodeManager) Shutdown() {
 		n.shutdown()
 	}
 
-	self.msgServer.shutdown()
+	self.nodeMsgServer.shutdown()
 
 	if self.viscriptServer != nil {
 		self.viscriptServer.Shutdown()

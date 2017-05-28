@@ -70,9 +70,9 @@ func (self *NodeManager) newNode(host, hostname string) (*NodeRecord, error) {
 	self.nodeList[id] = node
 	self.nodeIdList = append(self.nodeIdList, id)
 
-	self.msgServer.lock.Lock()
-	self.msgServer.nodeAddrs[id] = nodeAddr
-	self.msgServer.lock.Unlock()
+	self.nodeMsgServer.lock.Lock()
+	self.nodeMsgServer.nodeAddrs[id] = nodeAddr
+	self.nodeMsgServer.lock.Unlock()
 
 	return node, nil
 }
@@ -100,7 +100,7 @@ func (self *NodeRecord) getPeer() *messages.Peer {
 func (self *NodeRecord) shutdown() {
 	shutdownCM := messages.ShutdownCM{self.id}
 	shutdownCMS := messages.Serialize(messages.MsgShutdownCM, shutdownCM)
-	self.nm.msgServer.sendNoWait(self.id, shutdownCMS)
+	self.nm.nodeMsgServer.sendNoWait(self.id, shutdownCMS)
 }
 
 func (self *NodeRecord) setTransport(id, pairId messages.TransportId, tr *TransportRecord) error {
@@ -140,7 +140,7 @@ func (self *NodeRecord) getTicks() int {
 }
 
 func (self *NodeRecord) sendToNode(msg []byte) error {
-	err := self.nm.msgServer.sendMessage(self.id, msg)
+	err := self.nm.nodeMsgServer.sendMessage(self.id, msg)
 	return err
 }
 

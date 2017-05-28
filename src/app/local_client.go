@@ -19,10 +19,11 @@ func NewClient(appId messages.AppId, nodeAddr string) (*Client, error) {
 
 	client := &Client{}
 	client.id = appId
+	client.appType = "internal_client"
 	client.lock = &sync.Mutex{}
 	client.timeout = APP_TIMEOUT
 	client.responseChannels = make(map[uint32]chan messages.AppResponse)
-	client.responseNodeAppChannels = make(map[uint32]chan bool)
+	client.responseNodeAppChannels = make(map[uint32]chan []byte)
 
 	err := client.RegisterAtNode(nodeAddr)
 	if err != nil {
@@ -88,7 +89,7 @@ func (self *Client) RegisterAtNode(nodeAddr string) error {
 
 	nodeConn, err := net.Dial("tcp", nodeAddr)
 	if err != nil {
-		panic(nodeAddr)
+		panic(err)
 		return err
 	}
 
@@ -96,12 +97,20 @@ func (self *Client) RegisterAtNode(nodeAddr string) error {
 
 	go self.listenFromNode()
 
-	registerMessage := messages.RegisterAppMessage{}
+	registerMessage := messages.RegisterAppMessage{
+		self.appType,
+	}
 
 	rmS := messages.Serialize(messages.MsgRegisterAppMessage, registerMessage)
 
-	err = self.sendToNode(rmS)
-	return err
+	respS, err := self.sendToNode(rmS)
+	resp := &messages.AppRegistrationResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil || !resp.Ok {
+		return err
+	}
+
+	return nil
 }
 
 func (self *Client) listenFromNode() {
@@ -154,7 +163,7 @@ func (self *Client) handleIncomingFromNode(msg []byte) error {
 			panic(err)
 			return err
 		} else {
-			respChan <- true
+			respChan <- nar.Misc
 			return nil
 		}
 

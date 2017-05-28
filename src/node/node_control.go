@@ -82,8 +82,21 @@ func (self *Node) sendAckToServer(sequence uint32, ack *messages.CommonCMAck) er
 func (self *Node) sendRegisterNodeToServer(hostname, host string, connect bool) error {
 	msg := messages.RegisterNodeCM{hostname, host, connect}
 	msgS := messages.Serialize(messages.MsgRegisterNodeCM, msg)
-	err := self.sendMessageToServer(msgS)
+	_, err := self.sendMessageToServer(msgS)
 	return err
+}
+
+func (self *Node) sendRegisterAppToServer(appId, appType string) ([]byte, error) {
+	var host string
+	if self.hostname == "" {
+		host = self.id.Hex()
+	} else {
+		host = self.hostname
+	}
+	msg := messages.RegisterAppCM{messages.ServiceInfo{appId, appType, host}, self.id}
+	msgS := messages.Serialize(messages.MsgRegisterAppCM, msg)
+	result, err := self.sendMessageToServer(msgS)
+	return result, err
 }
 
 func (self *Node) sendConnectDirectlyToServer(nodeToId string) error {
@@ -98,7 +111,7 @@ func (self *Node) sendConnectDirectlyToServer(nodeToId string) error {
 	msg := messages.ConnectDirectlyCM{connectSequence, self.id, nodeToId}
 	msgS := messages.Serialize(messages.MsgConnectDirectlyCM, msg)
 
-	err := self.sendMessageToServer(msgS)
+	_, err := self.sendMessageToServer(msgS)
 	if err != nil {
 		return err
 	}
@@ -123,7 +136,7 @@ func (self *Node) sendConnectWithRouteToServer(nodeToId string, appIdFrom, appId
 	msg := messages.ConnectWithRouteCM{connSequence, appIdFrom, appIdTo, self.id, nodeToId}
 	msgS := messages.Serialize(messages.MsgConnectWithRouteCM, msg)
 
-	err := self.sendMessageToServer(msgS)
+	_, err := self.sendMessageToServer(msgS)
 	if err != nil {
 		return messages.ConnectionId(0), err
 	}
@@ -136,27 +149,25 @@ func (self *Node) sendConnectWithRouteToServer(nodeToId string, appIdFrom, appId
 	}
 }
 
-func (self *Node) sendMessageToServer(msg []byte) error {
+func (self *Node) sendMessageToServer(msg []byte) ([]byte, error) {
+	self.lock.Lock()
 	sequence := self.sequence
 	self.sequence++
+	self.lock.Unlock()
 
-	responseChannel := make(chan bool)
+	responseChannel := make(chan []byte)
 	self.setResponseChannel(sequence, responseChannel)
 
 	err := self.sendToServer(sequence, msg)
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
 
 	select {
-	case ok := <-responseChannel:
-		if ok {
-			return nil
-		} else {
-			return messages.ERR_REGISTER_NODE_FAILED
-		}
+	case response := <-responseChannel:
+		return response, nil
 	case <-time.After(CONTROL_TIMEOUT):
-		return messages.ERR_MSG_SRV_TIMEOUT
+		return []byte{}, messages.ERR_MSG_SRV_TIMEOUT
 	}
 }
 

@@ -8,6 +8,7 @@ type NodeAppMessage struct {
 
 type NodeAppResponse struct {
 	Sequence uint32
+	Misc     []byte
 }
 
 type SendFromAppMessage struct {
@@ -16,7 +17,7 @@ type SendFromAppMessage struct {
 }
 
 type RegisterAppMessage struct {
-	AppType uint32
+	AppType string
 }
 
 type AssignConnectionNAM struct {

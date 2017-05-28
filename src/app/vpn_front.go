@@ -27,9 +27,10 @@ func NewVPNClient(appId messages.AppId, nodeAddr string, proxyAddress string) (*
 	setLimit(16384) // set limit of simultaneously opened files to 16384
 	vpnClient := &VPNClient{}
 	vpnClient.id = appId
+	vpnClient.appType = "vpn_client"
 	vpnClient.lock = &sync.Mutex{}
 	vpnClient.timeout = time.Duration(messages.GetConfig().AppTimeout)
-	vpnClient.responseNodeAppChannels = make(map[uint32]chan bool)
+	vpnClient.responseNodeAppChannels = make(map[uint32]chan []byte)
 
 	vpnClient.connections = map[string]*net.Conn{}
 

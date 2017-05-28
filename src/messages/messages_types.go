@@ -38,6 +38,8 @@ const (
 	MsgConnectWithRouteCMAck      // NodeManager -> Node
 	MsgAssignConnectionCM         // NodeManager -> Node
 	MsgConnectionOnCM             // NodeManager -> Node
+	MsgRegisterAppCM              // Node -> NodeManager
+	MsgRegisterAppCMAck           // NodeManager -> Node
 	MsgShutdownCM                 // NodeManager -> Node
 
 	MsgNodeAppMessage      // Application -> Node
@@ -47,8 +49,12 @@ const (
 	MsgConnectToAppMessage // Application -> Node
 	MsgAssignConnectionNAM // Node -> Application
 
-	MsgServiceRegistrationRequest // NodeManager -> ServiceManager
-	MsgServiceRequest             // NodeManager -> ServiceManager
+	MsgServiceRequest          // NodeManager -> Service
+	MsgServiceResponse         // Service -> NodeManager
+	MsgAppRegistrationRequest  // NodeManager -> AppTracker
+	MsgAppRegistrationResponse // AppTracker -> NodeManager
+	MsgAppListRequest          // NodeManager -> AppTracker
+	MsgAppListResponse         // AppTracker -> NodeManager
 )
 
 func GetMessageType(message []byte) uint16 {
