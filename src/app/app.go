@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
@@ -144,12 +145,35 @@ func (self *app) RegisterAtNode(nodeAddr string) error {
 
 	respS, err := self.sendToNode(rmS)
 	resp := &messages.AppRegistrationResponse{}
+
 	err = messages.Deserialize(respS, resp)
-	if err != nil || !resp.Ok {
+	if err != nil {
 		return err
 	}
 
+	if !resp.Ok {
+		return errors.New(resp.Error)
+	}
+
 	return nil
+}
+
+func (self *app) GetAppsList(requestType, requestParam string) ([]messages.ServiceInfo, error) {
+	request := messages.AppListRequest{requestType, requestParam}
+	requestS := messages.Serialize(messages.MsgAppListRequest, request)
+
+	respS, err := self.sendToNode(requestS)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &messages.AppListResponse{}
+	err = messages.Deserialize(respS, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Apps, nil
 }
 
 func (self *app) listenFromNode() {

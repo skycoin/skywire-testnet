@@ -9,11 +9,10 @@ import (
 )
 
 type AppTrackerMsgServer struct {
-	nm            *NodeManager
-	conn          net.Conn
-	maxPacketSize int
-	closeChannel  chan bool
-	//some info about services? services need registration?
+	nm               *NodeManager
+	conn             net.Conn
+	maxPacketSize    int
+	closeChannel     chan bool
 	sequence         uint32
 	responseChannels map[uint32]chan []byte
 	timeout          time.Duration

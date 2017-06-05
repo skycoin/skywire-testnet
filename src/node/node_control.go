@@ -99,6 +99,13 @@ func (self *Node) sendRegisterAppToServer(appId, appType string) ([]byte, error)
 	return result, err
 }
 
+func (self *Node) sendAppListRequestToServer(request []byte) ([]byte, error) {
+	msg := messages.AppListRequestCM{request, self.id}
+	msgS := messages.Serialize(messages.MsgAppListRequestCM, msg)
+	result, err := self.sendMessageToServer(msgS)
+	return result, err
+}
+
 func (self *Node) sendConnectDirectlyToServer(nodeToId string) error {
 	responseChannel := make(chan bool)
 

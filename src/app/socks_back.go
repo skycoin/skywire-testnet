@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -126,9 +127,14 @@ func (self *SocksServer) RegisterAtNode(nodeAddr string) error {
 
 	respS, err := self.sendToNode(rmS)
 	resp := &messages.AppRegistrationResponse{}
+
 	err = messages.Deserialize(respS, resp)
-	if err != nil || !resp.Ok {
+	if err != nil {
 		return err
+	}
+
+	if !resp.Ok {
+		return errors.New(resp.Error)
 	}
 
 	return nil

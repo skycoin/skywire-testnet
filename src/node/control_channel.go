@@ -246,6 +246,14 @@ func (c *ControlChannel) handleMessage(handledNode *Node, sequence uint32, msg [
 		}
 		return nil
 
+	case messages.MsgAppListResponse:
+
+		responseChannel, ok := handledNode.getResponseChannel(sequence)
+		if ok {
+			responseChannel <- msg
+		}
+		return nil
+
 	case messages.MsgCommonCMAck:
 		var ack messages.CommonCMAck
 		err := messages.Deserialize(msg, &ack)

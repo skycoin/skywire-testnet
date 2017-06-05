@@ -29,3 +29,12 @@ type ConnectToAppMessage struct {
 	AppFrom AppId
 	AppTo   AppId
 }
+
+type AppListRequest struct {
+	RequestType  string // "by_name", "by_type", "all"
+	RequestParam string // type or service name, if all then equals ""
+}
+
+type AppListResponse struct {
+	Apps []ServiceInfo
+}

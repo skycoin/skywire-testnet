@@ -100,6 +100,15 @@ func (self *NodeManager) handleControlMessage(cm *messages.InControlMessage) {
 		}
 		self.sendRegisterAppAck(sequence, &m1)
 
+	case messages.MsgAppListRequestCM:
+		m1 := messages.AppListRequestCM{}
+		err := messages.Deserialize(msg, &m1)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		self.sendAppListResponse(sequence, &m1)
+
 	case messages.MsgCommonCMAck:
 		m1 := messages.CommonCMAck{}
 		err := messages.Deserialize(msg, &m1)
@@ -144,6 +153,15 @@ func (self *NodeManager) sendRegisterAppAck(sequence uint32, msg *messages.Regis
 		}
 		ackS := messages.Serialize(messages.MsgRegisterAppCMAck, ack)
 		self.nodeMsgServer.sendAck(sequence, nodeId, ackS)
+	}
+}
+
+func (self *NodeManager) sendAppListResponse(sequence uint32, appListRequest *messages.AppListRequestCM) {
+	requestS := appListRequest.Request
+	nodeId := appListRequest.NodeId
+	respS, err := self.appTrackerMsgServer.send(requestS)
+	if err == nil {
+		self.nodeMsgServer.sendAck(sequence, nodeId, respS)
 	}
 }
 

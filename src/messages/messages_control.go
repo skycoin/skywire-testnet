@@ -119,6 +119,11 @@ type RegisterAppCMAck struct {
 	Error string
 }
 
+type AppListRequestCM struct {
+	Request []byte
+	NodeId  cipher.PubKey
+}
+
 type ShutdownCM struct {
 	NodeId cipher.PubKey
 }

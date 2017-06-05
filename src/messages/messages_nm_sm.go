@@ -18,12 +18,3 @@ type AppRegistrationResponse struct {
 	Ok    bool
 	Error string
 }
-
-type AppListRequest struct {
-	RequestType  string // "by_name", "by_type", "all"
-	RequestParam string // type or service name, if all then equals ""
-}
-
-type AppListResponse struct {
-	Apps []ServiceInfo
-}

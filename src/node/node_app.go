@@ -113,6 +113,9 @@ func (self *Node) handleNodeAppMessage(msg *messages.NodeAppMessage, appConn net
 	case messages.MsgRegisterAppMessage:
 		go self.registerApp(msg, appConn)
 
+	case messages.MsgAppListRequest:
+		go self.getAppsList(msg)
+
 	case messages.MsgSendFromAppMessage:
 		go self.sendFromApp(msg)
 
@@ -164,6 +167,17 @@ func (self *Node) registerApp(msg *messages.NodeAppMessage, appConn net.Conn) er
 		return errors.New(resp.Error)
 	}
 	return nil
+}
+
+func (self *Node) getAppsList(msg *messages.NodeAppMessage) error {
+
+	respS, err := self.sendAppListRequestToServer(msg.Payload)
+	if err != nil {
+		return err
+	}
+
+	err = self.sendResponseToApp(msg.Sequence, msg.AppId, respS)
+	return err
 }
 
 func (self *Node) sendFromApp(msg *messages.NodeAppMessage) error {

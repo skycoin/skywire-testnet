@@ -80,7 +80,7 @@ func (self *AppTracker) serve() {
 
 func (self *AppTracker) handleIncomingMessage(msgS []byte) {
 
-	msg := &messages.ServiceResponse{}
+	msg := &messages.ServiceRequest{}
 	err := messages.Deserialize(msgS, msg)
 	if err != nil {
 		return
@@ -99,7 +99,7 @@ func (self *AppTracker) handleIncomingMessage(msgS []byte) {
 			self.sendAppRegistrationResponse(err, sequence)
 		}
 
-	case messages.MsgServiceRequest:
+	case messages.MsgAppListRequest:
 		m0 := &messages.AppListRequest{}
 		err := messages.Deserialize(payload, m0)
 		if err == nil {
@@ -113,15 +113,17 @@ func (self *AppTracker) sendAppRegistrationResponse(e error, sequence uint32) {
 	var eText string
 
 	isError := e != nil
-
 	if isError {
 		eText = e.Error()
 	}
+
 	resp := messages.AppRegistrationResponse{
 		!isError,
 		eText,
 	}
+
 	respS := messages.Serialize(messages.MsgAppRegistrationResponse, resp)
+
 	self.sendToOrchServer(respS, sequence)
 }
 

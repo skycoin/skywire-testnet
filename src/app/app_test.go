@@ -1,6 +1,7 @@
 package app
 
 import (
+	"log"
 	"testing"
 	"time"
 
@@ -211,4 +212,48 @@ func TestVPN(t *testing.T) {
 
 	err = client.Connect(server.Id(), "node20.apps.network")
 	assert.Nil(t, err)
+}
+
+func TestAppsRegistration(t *testing.T) {
+	messages.SetInfoLogLevel()
+
+	appTrackerAddress := "127.0.0.1:14006"
+	apptracker.NewAppTracker(appTrackerAddress)
+
+	config := defaultConfig
+	config.AppTrackerAddr = appTrackerAddress
+
+	meshnet, _ := network.NewNetwork(defaultConfig)
+	defer meshnet.Shutdown()
+
+	clientNode, serverNode := meshnet.CreateSequenceOfNodes(20, 18000)
+
+	client, err := NewVPNClient(messages.MakeAppId("vpn_client_0"), clientNode.AppTalkAddr(), "0.0.0.0:4321")
+	assert.Nil(t, err)
+	defer client.Shutdown()
+	assert.Equal(t, client.ProxyAddress, "0.0.0.0:4321")
+
+	_, err = NewVPNServer(messages.MakeAppId("vpn_client_0"), serverNode.AppTalkAddr()) // the same name, should be an error
+	assert.NotNil(t, err)
+	log.Println(err)
+
+	server, err := NewVPNServer(messages.MakeAppId("vpn_server_0"), serverNode.AppTalkAddr())
+	assert.Nil(t, err)
+	defer server.Shutdown()
+
+	apps0, err := client.GetAppsList("all", "")
+	assert.Nil(t, err)
+	assert.Len(t, apps0, 2)
+
+	apps1, err := client.GetAppsList("by_name", "vpn_client_0")
+	assert.Nil(t, err)
+	assert.Len(t, apps1, 1)
+
+	apps2, err := client.GetAppsList("by_type", "vpn_server")
+	assert.Nil(t, err)
+	assert.Len(t, apps2, 1)
+
+	apps3, err := client.GetAppsList("by_name", "non_existing_name")
+	assert.Nil(t, err)
+	assert.Len(t, apps3, 0)
 }

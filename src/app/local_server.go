@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
@@ -68,9 +69,14 @@ func (self *Server) RegisterAtNode(nodeAddr string) error {
 	}
 
 	resp := &messages.AppRegistrationResponse{}
+
 	err = messages.Deserialize(respS, resp)
-	if err != nil || !resp.Ok {
+	if err != nil {
 		return err
+	}
+
+	if !resp.Ok {
+		return errors.New(resp.Error)
 	}
 
 	return nil

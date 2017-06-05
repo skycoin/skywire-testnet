@@ -40,6 +40,7 @@ const (
 	MsgConnectionOnCM             // NodeManager -> Node
 	MsgRegisterAppCM              // Node -> NodeManager
 	MsgRegisterAppCMAck           // NodeManager -> Node
+	MsgAppListRequestCM           // Node -> NodeManager
 	MsgShutdownCM                 // NodeManager -> Node
 
 	MsgNodeAppMessage      // Application -> Node
