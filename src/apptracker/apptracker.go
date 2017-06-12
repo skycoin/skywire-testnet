@@ -10,14 +10,15 @@ import (
 )
 
 type AppTracker struct {
-	apps         []messages.ServiceInfo
-	appsByName   map[string]messages.ServiceInfo
-	appsByType   map[string][]messages.ServiceInfo
-	address      string
-	conn         net.Conn
-	opened       bool
-	closeChannel chan bool
-	lock         *sync.Mutex
+	apps           []messages.ServiceInfo
+	appsByName     map[string]messages.ServiceInfo
+	appsByType     map[string][]messages.ServiceInfo
+	address        string
+	conn           net.Conn
+	opened         bool
+	closeChannel   chan bool
+	lock           *sync.Mutex
+	viscriptServer *ATViscriptServer
 }
 
 func NewAppTracker(address string) *AppTracker {
