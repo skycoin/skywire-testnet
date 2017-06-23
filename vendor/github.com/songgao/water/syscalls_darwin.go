@@ -61,7 +61,7 @@ type sockaddrCtl struct {
 
 var sockaddrCtlSize uintptr = 32
 
-func newTUN(string) (ifce *Interface, err error) {
+func newTUN(config Config) (ifce *Interface, err error) {
 	var fd int
 	// Supposed to be socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL), but ...
 	//
@@ -122,6 +122,10 @@ func newTUN(string) (ifce *Interface, err error) {
 	}, nil
 }
 
+func newTAP(config Config) (ifce *Interface, err error) {
+	return nil, errors.New("tap interface not implemented on this platform")
+}
+
 // tunReadCloser is a hack to work around the first 4 bytes "packet
 // information" because there doesn't seem to be an IFF_NO_PI for darwin.
 type tunReadCloser struct {
@@ -151,6 +155,11 @@ func (t *tunReadCloser) Read(to []byte) (int, error) {
 }
 
 func (t *tunReadCloser) Write(from []byte) (int, error) {
+
+	if len(from) == 0 {
+		return 0, syscall.EIO
+	}
+
 	t.wMu.Lock()
 	defer t.wMu.Unlock()
 
@@ -159,7 +168,16 @@ func (t *tunReadCloser) Write(from []byte) (int, error) {
 	}
 	t.wBuf = t.wBuf[:len(from)+4]
 
-	t.wBuf[3] = 2 // Family: IP (2)
+	// Determine the IP Family for the NULL L2 Header
+	ipVer := from[0] >> 4
+	if ipVer == 4 {
+		t.wBuf[3] = syscall.AF_INET
+	} else if ipVer == 6 {
+		t.wBuf[3] = syscall.AF_INET6
+	} else {
+		return 0, errors.New("Unable to determine IP version from packet.")
+	}
+
 	copy(t.wBuf[4:], from)
 
 	n, err := t.f.Write(t.wBuf)
@@ -174,8 +192,4 @@ func (t *tunReadCloser) Close() error {
 	defer t.wMu.Unlock()
 
 	return t.f.Close()
-}
-
-func newTAP(ifName string) (ifce *Interface, err error) {
-	return nil, errors.New("tap interface not implemented on this platform")
 }
