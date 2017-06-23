@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 
-	vsmsg "github.com/corpusc/viscript/msg"
+	vsmsg "github.com/skycoin/viscript/msg"
 )
 
 type ViscriptServer struct {
