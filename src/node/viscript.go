@@ -3,7 +3,7 @@ package node
 import (
 	"log"
 
-	vsmsg "github.com/corpusc/viscript/msg"
+	vsmsg "github.com/skycoin/viscript/msg"
 
 	"github.com/skycoin/skywire/src/viscript"
 )
