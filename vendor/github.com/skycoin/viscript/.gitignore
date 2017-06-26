@@ -1,0 +1,11 @@
+*.bat
+*.xml
+.idea/
+main
+viscript
+/.vscode
+.DS_Store
+debug
+/hypervisor/process/externalp
+/Viscript
+bin
