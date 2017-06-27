@@ -1,0 +1,94 @@
+# Viscript's configuration file that contains apps and other settings
+
+apps:
+  # These apps are commented out because they don't talk to viscript
+  # skycoin:
+  #   daemon: false
+  #   path: /bin/skycoin/skycoin
+  #   default_args:
+  #     - --gui-dir=/bin/skycoin/static/
+  #   desc: Skycoin main binary
+  # skycoin-cli:
+  #   daemon: false
+  #   path: /bin/skycoin/skycoin-cli
+  #   default_args:
+  #   desc: Skycoin command line interface
+  # meshnet-server:
+  #   daemon: false
+  #   path: /bin/meshnet/meshnet-server
+  #   default_args:
+  #   desc: Meshnet nodes manager server
+  # meshnet-cli:
+  #   daemon: false
+  #   path: /bin/meshnet/meshnet-cli
+  #   default_args:
+  #   desc: Command line client for meshnet nodes manager server
+  meshnet-node:
+    daemon: true
+    desc: Run meshnet node
+    path: bin/meshnet/meshnet-run-node
+    default_args: []
+    help: |
+        [1] Host for control messages exchange.
+        [2] Alternative hostname which can be used instead of pubkey.
+        [3] True if node needs to be connected randomly, false otherwise.
+        [4] TCP port at which node will listen messages from apps.
+        [5] Hostname alias.
+        Full Example Command
+            start meshnet-node 111.222.123.44:5000 202.101.65.43:5999 true 8000 node0
+  meshnet-socks-client:
+    daemon: true
+    desc: Run meshnet socks client
+    path: bin/meshnet/meshnet-run-socks-client
+    default_args: []
+    help: |
+        [1] Text name of app, must be unique
+        [2] Node address which app will be talked with. ex 101.202.34.56:9000
+        [3] Port which socks will listen for web app incoming messages. ex 8000
+        Full Example Command
+            start meshnet-socks-client sockscli0 101.202.34.56:9000 8001
+  meshnet-socks-server:
+    daemon: true
+    desc: Run meshnet socks server
+    path: bin/meshnet/meshnet-run-socks-server
+    default_args: []
+    help: |
+        [1] Text name of app, must be unique
+        [2] Node address which app will be talked with. ex 101.202.34.56:9000
+        [3] Port which socks server will use for connecting with target host. ex 8000
+        Full Example Command
+            start meshnet-socks-server sockssrv0 101.202.34.56:9000 8001
+  meshnet-vpn-client:
+    daemon: true
+    desc: Run meshnet vpn client
+    path: bin/meshnet/meshnet-run-vpn-server
+    default_args: []
+    help: |
+        [1] Text name of app, must be unique
+        [2] Node address which app will be talked with. ex 101.202.34.56:9000
+        [3] Port which vpn will listen for web app incoming messages. ex 8000
+        Full Example Command
+            start meshnet-vpn-client vpncli0 101.202.34.56:9000 8000
+  meshnet-vpn-server:
+    daemon: true
+    desc: Run meshnet vpn server
+    path: bin/meshnet/meshnet-run-vpn-server
+    default_args: []
+    help: |
+        [1] Text name of app, must be unique.
+        [2] Node address which app will be talked with. ex 101.202.34.56:9000
+        Full Example Command
+            start meshnet-vpn-server vpnsrv0 101.202.34.56:9000
+  apptracker:
+    daemon: true
+    desc: Run apptracker
+    path: bin/meshnet/meshnet-run-apptracker.exe
+    default_args: []
+    help: |
+        [1] Host:port on which apptracker will listen for incoming messages
+
+settings:
+  verboseInput: false   # Will print key and mouse input if set to true
+  verifyParsingByPrinting: true  # Will print this file's contents
+  runHeadless: false    # Run without terminals and OpenGL front
+
