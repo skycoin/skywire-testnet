@@ -50,7 +50,10 @@ func main() {
 		LogisticsServer:  "",
 	}
 
-	meshnet, _ := nodemanager.NewNetwork(cfg)
+	meshnet, err := nodemanager.NewNetwork(cfg)
+	if err != nil {
+		panic(err)
+	}
 	defer meshnet.Shutdown()
 
 	clientNode, serverNode := meshnet.CreateSequenceOfNodes(hops+1, 15000)
