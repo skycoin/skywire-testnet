@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/skycoin/skywire/src/apptracker"
+	"github.com/skycoin/skywire/apptracker"
 )
 
 func main() {

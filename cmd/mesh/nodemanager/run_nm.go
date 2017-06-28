@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	network "github.com/skycoin/skywire/src/nodemanager"
+	network "github.com/skycoin/skywire/nodemanager"
 )
 
 func main() {

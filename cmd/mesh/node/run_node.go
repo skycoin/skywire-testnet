@@ -4,8 +4,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/skycoin/skywire/src/messages"
-	"github.com/skycoin/skywire/src/node"
+	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/skywire/node"
 )
 
 func main() {
