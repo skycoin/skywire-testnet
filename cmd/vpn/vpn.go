@@ -7,7 +7,7 @@ import (
 
 	"github.com/skycoin/skywire/app"
 	"github.com/skycoin/skywire/messages"
-	network "github.com/skycoin/skywire/nodemanager"
+	"github.com/skycoin/skywire/nodemanager"
 )
 
 func main() {
@@ -42,7 +42,15 @@ func main() {
 		return
 	}
 
-	meshnet, _ := network.NewNetwork("mesh.network", "127.0.0.1:5999")
+	cfg := &nodemanager.NodeManagerConfig{
+		Domain:           "mesh.network",
+		CtrlAddr:         "127.0.0.1:5999",
+		AppTrackerAddr:   "",
+		RouteManagerAddr: "",
+		LogisticsServer:  "",
+	}
+
+	meshnet, _ := nodemanager.NewNetwork(cfg)
 	defer meshnet.Shutdown()
 
 	clientNode, serverNode := meshnet.CreateSequenceOfNodes(hops+1, 15000)
