@@ -8,7 +8,7 @@ import (
 
 	"github.com/skycoin/skywire/app"
 	"github.com/skycoin/skywire/messages"
-	network "github.com/skycoin/skywire/nodemanager"
+	"github.com/skycoin/skywire/nodemanager"
 )
 
 func main() {
@@ -17,7 +17,19 @@ func main() {
 }
 
 func pingPong(size, pings int) {
-	meshnet, _ := network.NewNetwork("test.network", "127.0.0.1:5999")
+	cfg := &nodemanager.NodeManagerConfig{
+		Domain:           "test.network",
+		CtrlAddr:         "127.0.0.1:5999",
+		AppTrackerAddr:   "",
+		RouteManagerAddr: "",
+		LogisticsServer:  "",
+	}
+
+	meshnet, err := nodemanager.NewNetwork(cfg)
+	if err != nil {
+		panic(err)
+	}
+
 	defer meshnet.Shutdown()
 
 	nodes := meshnet.CreateRandomNetwork(size, 10000)

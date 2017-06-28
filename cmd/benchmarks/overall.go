@@ -10,7 +10,7 @@ import (
 
 	"github.com/skycoin/skywire/app"
 	"github.com/skycoin/skywire/messages"
-	network "github.com/skycoin/skywire/nodemanager"
+	"github.com/skycoin/skywire/nodemanager"
 )
 
 var config = messages.GetConfig()
@@ -95,7 +95,19 @@ func main() {
 		sizeStr += "b"
 	}
 
-	meshnet, _ := network.NewNetwork("test.network", "127.0.0.1:5999")
+	cfg := &nodemanager.NodeManagerConfig{
+		Domain:           "test.network",
+		CtrlAddr:         "127.0.0.1:5999",
+		AppTrackerAddr:   "",
+		RouteManagerAddr: "",
+		LogisticsServer:  "",
+	}
+
+	meshnet, err := nodemanager.NewNetwork(cfg)
+	if err != nil {
+		panic(err)
+	}
+
 	defer meshnet.Shutdown()
 
 	clientNode, serverNode := meshnet.CreateSequenceOfNodes(hops+1, 14000)

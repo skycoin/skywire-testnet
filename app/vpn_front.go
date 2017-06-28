@@ -39,8 +39,12 @@ func NewVPNClient(appId messages.AppId, nodeAddr string, proxyAddress string) (*
 	proxySlice := strings.Split(proxyAddress, ":")
 	proxyIP := proxySlice[0]
 
-	iface, err := water.NewTUN("")
-	if nil != err {
+	cfg := water.Config{
+		DeviceType: water.TUN,
+	}
+
+	iface, err := water.New(cfg)
+	if err != nil {
 		return nil, err
 	}
 
