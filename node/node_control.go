@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 func (self *Node) addControlChannel() messages.ChannelId {

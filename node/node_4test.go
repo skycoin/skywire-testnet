@@ -3,7 +3,7 @@ package node
 import (
 	"strconv"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 func CreateNodeList(n, startPort int) []messages.NodeInterface {

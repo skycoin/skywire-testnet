@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 type proxyServer struct {

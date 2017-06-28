@@ -3,7 +3,7 @@ package nodemanager
 import (
 	"github.com/skycoin/skycoin/src/cipher"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 func (self *NodeManager) findRoute(nodeFrom, nodeTo cipher.PubKey) (routeId, backRouteId messages.RouteId, err error) {

@@ -3,7 +3,7 @@ package nodemanager
 import (
 	"log"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 type TransportRecord struct {

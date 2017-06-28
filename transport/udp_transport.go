@@ -3,7 +3,7 @@ package transport
 import (
 	"net"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 type UDPConfig struct {

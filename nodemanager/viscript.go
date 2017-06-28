@@ -5,7 +5,7 @@ import (
 
 	vsmsg "github.com/skycoin/viscript/msg"
 
-	"github.com/skycoin/skywire/src/viscript"
+	"github.com/skycoin/skywire/viscript"
 )
 
 type NMViscriptServer struct {

@@ -10,9 +10,9 @@ import (
 	"github.com/skycoin/skycoin/src/cipher"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/skycoin/skywire/src/apptracker"
-	"github.com/skycoin/skywire/src/messages"
-	"github.com/skycoin/skywire/src/node"
+	"github.com/skycoin/skywire/apptracker"
+	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/skywire/node"
 )
 
 func TestDomainNameValidation(t *testing.T) {

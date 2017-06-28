@@ -5,7 +5,7 @@ import (
 
 	"github.com/skycoin/skycoin/src/cipher"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 func (self *NodeManager) handleControlMessage(cm *messages.InControlMessage) {

@@ -5,7 +5,7 @@ package transport
 import (
 	"github.com/skycoin/skycoin/src/cipher"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 type TransportInfo struct {

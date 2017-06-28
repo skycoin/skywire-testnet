@@ -1,8 +1,8 @@
 package node
 
 import (
-	"github.com/skycoin/skywire/src/messages"
-	"github.com/skycoin/skywire/src/transport"
+	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/skywire/transport"
 )
 
 func (self *Node) getTransport(transportId messages.TransportId) (*transport.Transport, error) {
