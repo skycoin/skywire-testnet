@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/skycoin/skywire/src/app"
-	"github.com/skycoin/skywire/src/messages"
-	network "github.com/skycoin/skywire/src/nodemanager"
+	"github.com/skycoin/skywire/app"
+	"github.com/skycoin/skywire/messages"
+	network "github.com/skycoin/skywire/nodemanager"
 )
 
 func main() {

@@ -9,9 +9,9 @@ import (
 
 	"github.com/skycoin/skycoin/src/cipher"
 
-	"github.com/skycoin/skywire/src/messages"
-	"github.com/skycoin/skywire/src/nodemanager"
-	"github.com/skycoin/skywire/src/transport"
+	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/skywire/nodemanager"
+	"github.com/skycoin/skywire/transport"
 )
 
 type rpcMessage struct {

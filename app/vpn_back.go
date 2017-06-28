@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 type VPNServer struct {

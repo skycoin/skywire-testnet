@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/skycoin/skywire/src/apptracker"
-	"github.com/skycoin/skywire/src/messages"
-	"github.com/skycoin/skywire/src/node"
-	network "github.com/skycoin/skywire/src/nodemanager"
+	"github.com/skycoin/skywire/apptracker"
+	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/skywire/node"
+	network "github.com/skycoin/skywire/nodemanager"
 )
 
 var defaultConfig = &network.NodeManagerConfig{

@@ -11,7 +11,7 @@ import (
 
 	"github.com/songgao/water"
 
-	"github.com/skycoin/skywire/src/messages"
+	"github.com/skycoin/skywire/messages"
 )
 
 type VPNClient struct {
