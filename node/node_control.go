@@ -189,8 +189,7 @@ func (self *Node) sendToServer(sequence uint32, msg []byte) error {
 		msg,
 	}
 	inControlS := messages.Serialize(messages.MsgInControlMessage, inControl)
-	_, err := self.controlConn.WriteTo(inControlS, self.serverAddrs[0])
-	return err
+	return self.controlConn.SendCustom(inControlS)
 }
 
 func (self *Node) openUDPforCM(port int) (*net.UDPConn, error) {
@@ -225,21 +224,20 @@ func (self *Node) receiveControlMessages() {
 	go_on := true
 	go func() {
 		for go_on {
-
-			buffer := make([]byte, 1024)
-
-			n, _, err := self.controlConn.ReadFrom(buffer)
-
-			if err != nil {
-				break
-			} else {
-				if n == 0 {
+			select {
+			case m, ok := <- self.controlConn.GetChanIn():
+				if !ok {
+					return
+				}
+				if m[0] != 2 {
 					continue
 				}
+				m = m[1:]
+				log.Printf("InControlMessage:%x\n", m)
 				cm := messages.InControlMessage{}
-				err := messages.Deserialize(buffer[:n], &cm)
+				err := messages.Deserialize(m, &cm)
 				if err != nil {
-					log.Println("Incorrect InControlMessage:", buffer[:n])
+					log.Printf("Incorrect InControlMessage:%x err:%v\n", m, err)
 					continue
 				}
 				go self.injectControlMessage(&cm)

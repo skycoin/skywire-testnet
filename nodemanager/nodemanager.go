@@ -10,6 +10,7 @@ import (
 	"github.com/skycoin/skycoin/src/cipher"
 
 	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/net/skycoin-messenger/factory"
 )
 
 //contains a list of nodes
@@ -91,16 +92,16 @@ func (self *NodeManager) Shutdown() {
 	time.Sleep(1 * time.Millisecond)
 }
 
-func (self *NodeManager) addNewNode(host, hostname string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
-	nodeToAdd, err := self.newNode(host, hostname)
+func (self *NodeManager) addNewNode(conn *factory.Connection, host, hostname string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
+	nodeToAdd, err := self.newNode(conn, host, hostname)
 	if err != nil {
 		return cipher.PubKey{}, err
 	}
 	return nodeToAdd.id, nil
 }
 
-func (self *NodeManager) addAndConnect(host, hostname string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
-	id, err := self.addNewNode(host, hostname)
+func (self *NodeManager) addAndConnect(conn *factory.Connection, host, hostname string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
+	id, err := self.addNewNode(conn, host, hostname)
 	if err != nil {
 		return cipher.PubKey{}, err
 	}

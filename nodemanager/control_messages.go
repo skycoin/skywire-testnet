@@ -6,9 +6,10 @@ import (
 	"github.com/skycoin/skycoin/src/cipher"
 
 	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/net/skycoin-messenger/factory"
 )
 
-func (self *NodeManager) handleControlMessage(cm *messages.InControlMessage) {
+func (self *NodeManager) handleControlMessage(conn *factory.Connection, cm *messages.InControlMessage) {
 	sequence := cm.Sequence
 	msg := cm.PayloadMessage
 
@@ -75,14 +76,14 @@ func (self *NodeManager) handleControlMessage(cm *messages.InControlMessage) {
 		connect := m1.Connect
 		var nodeId cipher.PubKey
 		if !connect {
-			id, err := self.addNewNode(host, hostname)
+			id, err := self.addNewNode(conn, host, hostname)
 			if err == nil {
 				nodeId = id
 			} else {
 				return
 			}
 		} else {
-			id, err := self.addAndConnect(host, hostname)
+			id, err := self.addAndConnect(conn, host, hostname)
 			if err == nil {
 				nodeId = id
 			} else {

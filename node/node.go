@@ -12,6 +12,7 @@ import (
 
 	"github.com/skycoin/skywire/messages"
 	"github.com/skycoin/skywire/transport"
+	"github.com/skycoin/net/skycoin-messenger/factory"
 )
 
 //A Node has a map of route rewriting rules
@@ -51,7 +52,7 @@ type Node struct {
 	host string
 	port uint32
 
-	controlConn *net.UDPConn
+	controlConn *factory.Connection
 	serverAddrs []net.Addr
 
 	congested          bool
@@ -85,7 +86,7 @@ type CM struct {
 }
 
 var (
-	CONTROL_TIMEOUT = 10000 * time.Millisecond
+	CONTROL_TIMEOUT = 10000 * time.Hour
 )
 
 func CreateNode(nodeConfig *NodeConfig) (messages.NodeInterface, error) { // public for test reasons
@@ -110,15 +111,7 @@ func createAndRegisterNode(nodeConfig *NodeConfig, connect bool) (messages.NodeI
 		return nil, messages.ERR_INCORRECT_HOST
 	}
 
-	host, portStr := hostData[0], hostData[1]
-
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return nil, err
-	}
-
-	node := newNode(host)
-
+	node := newNode(hostData[0])
 	node.appTalkPort = appTalkPort
 	node.hostname = hostname
 
@@ -126,12 +119,13 @@ func createAndRegisterNode(nodeConfig *NodeConfig, connect bool) (messages.NodeI
 		node.addServer(serverAddr)
 	}
 
-	controlConn, err := node.openUDPforCM(port)
+	factory := factory.NewMessengerFactory()
+	conn, err := factory.Connect(serverAddrs[0])
 	if err != nil {
 		panic(err)
-		return nil, err
+		return nil ,err
 	}
-	node.controlConn = controlConn
+	node.controlConn = conn
 
 	go node.receiveControlMessages()
 

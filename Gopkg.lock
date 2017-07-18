@@ -20,6 +20,18 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "a3f95b5c423586578a4e099b11a46c2479628cac"
+  version = "1.0.2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/skycoin/net"
+  packages = ["client","conn","factory","msg","server","skycoin-messenger/factory"]
+  revision = "cab7113ca9a3b2aa7201bcba3cea542160180a08"
+
+[[projects]]
   branch = "develop"
   name = "github.com/skycoin/skycoin"
   packages = ["src/cipher","src/cipher/base58","src/cipher/chacha20","src/cipher/encoder","src/cipher/ripemd160","src/cipher/secp256k1-go","src/cipher/secp256k1-go/secp256k1-go2"]
@@ -52,7 +64,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["windows","windows/registry"]
+  packages = ["unix","windows","windows/registry"]
   revision = "50298aa7a9faed39cd341ad7fd9275b1d5ddd70c"
 
 [[projects]]
@@ -70,6 +82,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5cf97900f6870265b0c3308130de8d53f51bdec4aa880dd84163b2d376cc3f0a"
+  inputs-digest = "305075d3f1c8eccbd75108e70f81a0c5d2997cee090c762f91ba5139cb01e909"
   solver-name = "gps-cdcl"
   solver-version = 1
