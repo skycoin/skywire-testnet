@@ -6,13 +6,13 @@ All the configuration is kept in `/etc/meshnet.cfg` (example in `meshnet-example
 To run socks server with, for example, 2 hops in meshnet:
 
 ```sh
-go run cmd/socks/socks.go 2
+go run cmd/demo/socks/socks.go 2
 ```
 
 To run vpn proxy server with, for example, 2 hops in meshnet:
 
 ```sh
-go run cmd/vpn/vpn.go 2
+go run cmd/demo/vpn/vpn.go 2
 ```
 
 
@@ -21,7 +21,7 @@ go run cmd/vpn/vpn.go 2
 ## Run server
 
 ```sh
-go run rpc_run.go
+go run cmd/rpc/server/rpc-server.go
 ```
 
 It will run the rpc server to accept messages on `localhost` on port which
@@ -31,8 +31,7 @@ If no such variable, it will work on port `1234`.
 ## Run client
 
 ```sh
-cd cli
-go run cli.go
+go run cmd/rpc/cli/rpc-cli.go
 ```
 
 It will run rpc client which will send message to port `1234`.
@@ -40,12 +39,12 @@ It will run rpc client which will send message to port `1234`.
 If you want another port to send messages, point it as an argument like this:
 
 ```sh
-go run cli.go 2222 # will send requests to port 2222
+go run cmd/rpc/cli/rpc-cli.go 2222 # will send requests to port 2222
 ```
 
 ## Open client web interface in browser
 
-To run client in a browser interface run `cli/cli.sh` which will open web interface on port 9999,
+To run client in a browser interface run `cmd/rpc/cli/rpc-cli.sh` which will open web interface on port 9999,
 so you can use it in your browser like http://the-url-which-the-client-is-situated-at:9999.
 This way needs [gotty](https://github.com/yudai/gotty) to be installed.
 
