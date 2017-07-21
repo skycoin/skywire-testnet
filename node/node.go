@@ -208,9 +208,9 @@ func (self *Node) AppTalkAddr() string {
 
 //move node forward on tick, process events
 func (self *Node) Tick() {
-	backChannel := make(chan bool, 32)
-	self.runCycles(backChannel)
-	<-backChannel
+	//process incoming messages
+	go self.handleCongestionMessages()      //pop them off the channel
+	go self.handleIncomingControlMessages() //pop them off the channel
 }
 
 func (self *Node) GetTicks() uint32 {
@@ -285,14 +285,6 @@ func (self *Node) injectControlMessage(msg *messages.InControlMessage) {
 	}
 	self.incomingControlChannel <- cm
 	<-respChan
-}
-
-//move node forward on tick, process events
-func (self *Node) runCycles(backChannel chan bool) {
-	//process incoming messages
-	go self.handleCongestionMessages()      //pop them off the channel
-	go self.handleIncomingControlMessages() //pop them off the channel
-	backChannel <- true
 }
 
 func (self *Node) handleIncomingTransportMessages() {
