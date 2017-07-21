@@ -25,9 +25,14 @@ func (self *Node) listenForApps() {
 			log.Println("Cannot accept client's connection")
 			return
 		}
-		defer appConn.Close()
 
 		go func() { // run listening the connection for data and sending it through the meshnet to the server
+			defer func() {
+				if e := recover(); e != nil {
+					log.Printf("appconn read loop err %v", e)
+				}
+				appConn.Close()
+			}()
 			for {
 				sizeMessage := make([]byte, 8)
 
