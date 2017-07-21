@@ -221,29 +221,24 @@ func (self *Node) addServer(serverAddrStr string) {
 }
 
 func (self *Node) receiveControlMessages() {
-	go_on := true
-	go func() {
-		for go_on {
-			select {
-			case m, ok := <- self.controlConn.GetChanIn():
-				if !ok {
-					return
-				}
-				if m[0] != 2 {
-					continue
-				}
-				m = m[1:]
-				log.Printf("InControlMessage:%x\n", m)
-				cm := messages.InControlMessage{}
-				err := messages.Deserialize(m, &cm)
-				if err != nil {
-					log.Printf("Incorrect InControlMessage:%x err:%v\n", m, err)
-					continue
-				}
-				go self.injectControlMessage(&cm)
+	for {
+		select {
+		case m, ok := <-self.controlConn.GetChanIn():
+			if !ok {
+				return
 			}
+			if m[0] != 2 {
+				continue
+			}
+			m = m[1:]
+			log.Printf("InControlMessage:%x\n", m)
+			cm := messages.InControlMessage{}
+			err := messages.Deserialize(m, &cm)
+			if err != nil {
+				log.Printf("Incorrect InControlMessage:%x err:%v\n", m, err)
+				continue
+			}
+			go self.injectControlMessage(&cm)
 		}
-	}()
-	<-self.closeControlMessagesChannel
-	go_on = false
+	}
 }

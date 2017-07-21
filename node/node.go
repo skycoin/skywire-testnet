@@ -10,9 +10,9 @@ import (
 
 	"github.com/skycoin/skycoin/src/cipher"
 
+	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skywire/messages"
 	"github.com/skycoin/skywire/transport"
-	"github.com/skycoin/net/skycoin-messenger/factory"
 )
 
 //A Node has a map of route rewriting rules
@@ -46,8 +46,7 @@ type Node struct {
 	sendInterval      time.Duration
 	connectionTimeout time.Duration
 
-	controlChannels             map[messages.ChannelId]*ControlChannel
-	closeControlMessagesChannel chan bool
+	controlChannels map[messages.ChannelId]*ControlChannel
 
 	host string
 	port uint32
@@ -123,7 +122,7 @@ func createAndRegisterNode(nodeConfig *NodeConfig, connect bool) (messages.NodeI
 	conn, err := factory.Connect(serverAddrs[0])
 	if err != nil {
 		panic(err)
-		return nil ,err
+		return nil, err
 	}
 	node.controlConn = conn
 
@@ -156,7 +155,6 @@ func newNode(host string) *Node {
 	node.connectionResponseChannels = make(map[uint32]chan messages.ConnectionId)
 	node.addZeroControlChannel()
 	node.host = host
-	node.closeControlMessagesChannel = make(chan bool)
 	node.appConns = make(map[string]net.Conn)
 	node.Tick()
 	return node
@@ -181,7 +179,6 @@ func (self *Node) Shutdown() {
 	}
 
 	self.controlConn.Close()
-	self.closeControlMessagesChannel <- true
 }
 
 func (self *Node) Dial(address string, appIdFrom, appIdTo messages.AppId) (messages.Connection, error) {

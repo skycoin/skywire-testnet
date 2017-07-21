@@ -17,7 +17,6 @@ type NodeMsgServer struct {
 	nm               *NodeManager
 	factory          *factory.MessengerFactory
 	maxPacketSize    int
-	closeChannel     chan bool
 	nodeAddrs        map[cipher.PubKey]*net.UDPAddr
 	sequence         uint32
 	responseChannels map[uint32]chan bool
@@ -44,7 +43,6 @@ func newNodeMsgServer(nm *NodeManager) (*NodeMsgServer, error) {
 	}()
 
 	msgSrv.factory = factory
-	msgSrv.closeChannel = make(chan bool)
 
 	msgSrv.nodeAddrs = make(map[cipher.PubKey]*net.UDPAddr)
 
@@ -56,7 +54,7 @@ func newNodeMsgServer(nm *NodeManager) (*NodeMsgServer, error) {
 
 // close
 func (self *NodeMsgServer) shutdown() {
-	self.closeChannel <- true
+	self.factory.Close()
 }
 
 func (self *NodeMsgServer) sendMessage(node cipher.PubKey, msg []byte) error {

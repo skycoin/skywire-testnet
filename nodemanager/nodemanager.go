@@ -5,12 +5,11 @@ package nodemanager
 import (
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/skycoin/skycoin/src/cipher"
 
-	"github.com/skycoin/skywire/messages"
 	"github.com/skycoin/net/skycoin-messenger/factory"
+	"github.com/skycoin/skywire/messages"
 )
 
 //contains a list of nodes
@@ -88,8 +87,6 @@ func (self *NodeManager) Shutdown() {
 	if self.viscriptServer != nil {
 		self.viscriptServer.Shutdown()
 	}
-
-	time.Sleep(1 * time.Millisecond)
 }
 
 func (self *NodeManager) addNewNode(conn *factory.Connection, host, hostname string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
