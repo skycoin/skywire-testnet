@@ -3,7 +3,6 @@ package nodemanager
 import (
 	"fmt"
 	"math/rand"
-	"net"
 	"testing"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 )
 
 func TestDomainNameValidation(t *testing.T) {
-	return
 	messages.SetDebugLogLevel()
 
 	config := &NodeManagerConfig{
@@ -24,41 +22,24 @@ func TestDomainNameValidation(t *testing.T) {
 	}
 
 	config.Domain = "wrong_name_without_dot"
-	_, e0 := newNodeManager(config)
+	nm0, e0 := newNodeManager(config)
 	assert.NotNil(t, e0)
+	nm0.Shutdown()
 
 	config.Domain = "ok_with_dots.but#there@are-wrong,symbols!"
-	_, e1 := newNodeManager(config)
+	nm1, e1 := newNodeManager(config)
 	assert.NotNil(t, e1)
+	nm1.Shutdown()
 
 	config.Domain = "correct0.domain_name"
 	nm, e2 := newNodeManager(config)
 	assert.Nil(t, e2)
-
-	defer nm.Shutdown()
-
 	assert.Equal(t, nm.dnsServer.domain, "correct0.domain_name")
-}
+	nm.Shutdown()
 
-func TestMessagingServer(t *testing.T) {
-	return
-	messages.SetDebugLogLevel()
-
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
-	defer nm.Shutdown()
-
-	msgSrv := nm.nodeMsgServer
-	assert.NotNil(t, msgSrv)
-
-	host := net.ParseIP("127.0.0.1")
-	port := 5999
-	msgSrvAddr := net.UDPAddr{IP: host, Port: port}
-	assert.Equal(t, msgSrvAddr.String(), msgSrv.conn.LocalAddr().String())
 }
 
 func TestRegisterNode(t *testing.T) {
-	return
-
 	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
 	defer nm.Shutdown()
 
@@ -73,7 +54,6 @@ func TestRegisterNode(t *testing.T) {
 }
 
 func TestConnectNodes(t *testing.T) {
-	return
 	fmt.Println("")
 	messages.SetDebugLogLevel()
 
@@ -103,7 +83,6 @@ func TestConnectNodes(t *testing.T) {
 }
 
 func TestNetwork(t *testing.T) {
-	return
 	fmt.Println("TestNetwork")
 	messages.SetDebugLogLevel()
 
@@ -142,7 +121,6 @@ func TestNetwork(t *testing.T) {
 }
 
 func TestBuildRoute(t *testing.T) {
-	return
 	fmt.Println("TestBuildRoute")
 	messages.SetInfoLogLevel()
 
@@ -176,7 +154,6 @@ func TestBuildRoute(t *testing.T) {
 }
 
 func TestFindRoute(t *testing.T) {
-	return
 	fmt.Println("TestFindRoute")
 	messages.SetDebugLogLevel()
 
@@ -222,7 +199,6 @@ func TestFindRoute(t *testing.T) {
 }
 
 func TestAddAndConnect2Nodes(t *testing.T) {
-	return
 	fmt.Println("TestAddAndConnect")
 	messages.SetDebugLogLevel()
 
@@ -244,7 +220,6 @@ func TestAddAndConnect2Nodes(t *testing.T) {
 }
 
 func TestRandomNetwork100Nodes(t *testing.T) {
-	return
 	fmt.Println("TestRandomNetwork100Nodes")
 	messages.SetInfoLogLevel()
 
@@ -270,7 +245,6 @@ func TestRandomNetwork100Nodes(t *testing.T) {
 }
 
 func TestSendThroughRandomNetworks(t *testing.T) {
-	return
 	fmt.Println("TestSendThroughRandomNetworks")
 	messages.SetDebugLogLevel()
 
