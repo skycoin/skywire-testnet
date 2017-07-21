@@ -103,7 +103,6 @@ func createAndRegisterNode(nodeConfig *NodeConfig, connect bool) (messages.NodeI
 	fullhost := nodeConfig.ClientAddr
 	serverAddrs := nodeConfig.ServerAddrs
 	appTalkPort := strconv.Itoa(nodeConfig.AppTalkPort)
-	hostname := nodeConfig.Hostname
 
 	hostData := strings.Split(fullhost, ":")
 	if len(hostData) != 2 {
@@ -112,7 +111,6 @@ func createAndRegisterNode(nodeConfig *NodeConfig, connect bool) (messages.NodeI
 
 	node := newNode(hostData[0])
 	node.appTalkPort = appTalkPort
-	node.hostname = hostname
 
 	for _, serverAddr := range serverAddrs {
 		node.addServer(serverAddr)
@@ -130,7 +128,7 @@ func createAndRegisterNode(nodeConfig *NodeConfig, connect bool) (messages.NodeI
 
 	go node.listenForApps()
 
-	err = node.sendRegisterNodeToServer(hostname, fullhost, connect)
+	err = node.sendRegisterNodeToServer(fullhost, connect)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +179,7 @@ func (self *Node) Shutdown() {
 	self.controlConn.Close()
 }
 
-func (self *Node) Dial(address string, appIdFrom, appIdTo messages.AppId) (messages.Connection, error) {
+func (self *Node) Dial(address cipher.PubKey, appIdFrom, appIdTo messages.AppId) (messages.Connection, error) {
 	connId, err := self.sendConnectWithRouteToServer(address, appIdFrom, appIdTo)
 	if err != nil {
 		return nil, err
@@ -196,10 +194,6 @@ func (self *Node) Dial(address string, appIdFrom, appIdTo messages.AppId) (messa
 	}
 
 	return conn, nil
-}
-
-func (self *Node) ConnectDirectly(address string) error {
-	return self.sendConnectDirectlyToServer(address)
 }
 
 func (self *Node) GetConnection(id messages.ConnectionId) messages.Connection {

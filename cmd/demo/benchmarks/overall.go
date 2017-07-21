@@ -120,7 +120,7 @@ func main() {
 		panic(err)
 	}
 
-	err = client.Connect(messages.MakeAppId("echoServer"), serverAddr.Hex()) // client dials to server
+	err = client.Connect(messages.MakeAppId("echoServer"), serverAddr) // client dials to server
 	if err != nil {
 		panic(err)
 	}

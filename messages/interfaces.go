@@ -6,7 +6,7 @@ import (
 
 type NodeInterface interface {
 	Id() cipher.PubKey
-	ConnectDirectly(string) error
+	ConnectDirectly(cipher.PubKey) error
 	AppTalkAddr() string
 	Shutdown()
 	TalkToViscript(uint32, uint32)

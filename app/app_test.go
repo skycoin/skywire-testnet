@@ -30,7 +30,7 @@ func TestCreateServer(t *testing.T) {
 	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
-	serverNode, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5000", []string{"127.0.0.1:5999"}, 4000, ""})
+	serverNode, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5000", []string{"127.0.0.1:5999"}, 4000})
 	assert.Nil(t, err)
 	defer serverNode.Shutdown()
 
@@ -56,7 +56,7 @@ func TestCreateClient(t *testing.T) {
 	meshnet, _ := network.NewNetwork(defaultConfig)
 	defer meshnet.Shutdown()
 
-	clientNode, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5000", []string{"127.0.0.1:5999"}, 4001, ""})
+	clientNode, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5000", []string{"127.0.0.1:5999"}, 4001})
 	assert.Nil(t, err)
 	defer clientNode.Shutdown()
 
@@ -94,7 +94,7 @@ func TestSendWithFindRoute(t *testing.T) {
 	assert.Nil(t, err)
 	defer client.Shutdown()
 
-	err = client.Connect(server.Id(), serverNode.Id().Hex())
+	err = client.Connect(server.Id(), serverNode.Id())
 	assert.Nil(t, err)
 
 	response, err := client.Send([]byte("test"))
@@ -133,7 +133,7 @@ func TestHandle(t *testing.T) {
 	assert.Nil(t, err)
 	defer client.Shutdown()
 
-	err = client.Connect(server.Id(), serverNode.Id().Hex())
+	err = client.Connect(server.Id(), serverNode.Id())
 	assert.Nil(t, err)
 
 	size := 100000
@@ -182,7 +182,7 @@ func TestSocks(t *testing.T) {
 
 	assert.Equal(t, server.ProxyAddress, "127.0.0.1:8001")
 
-	err = client.Connect(server.Id(), "node20.apps.network")
+	err = client.Connect(server.Id(), clientNode.Id())
 	assert.Nil(t, err)
 	time.Sleep(1 * time.Second)
 }
@@ -210,7 +210,7 @@ func TestVPN(t *testing.T) {
 	assert.Nil(t, err)
 	defer server.Shutdown()
 
-	err = client.Connect(server.Id(), "node20.apps.network")
+	err = client.Connect(server.Id(), clientNode.Id())
 	assert.Nil(t, err)
 }
 

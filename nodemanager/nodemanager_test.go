@@ -14,38 +14,13 @@ import (
 	"github.com/skycoin/skywire/node"
 )
 
-func TestDomainNameValidation(t *testing.T) {
-	messages.SetDebugLogLevel()
-
-	config := &NodeManagerConfig{
-		CtrlAddr: "127.0.0.1:5999",
-	}
-
-	config.Domain = "wrong_name_without_dot"
-	nm0, e0 := newNodeManager(config)
-	assert.NotNil(t, e0)
-	nm0.Shutdown()
-
-	config.Domain = "ok_with_dots.but#there@are-wrong,symbols!"
-	nm1, e1 := newNodeManager(config)
-	assert.NotNil(t, e1)
-	nm1.Shutdown()
-
-	config.Domain = "correct0.domain_name"
-	nm, e2 := newNodeManager(config)
-	assert.Nil(t, e2)
-	assert.Equal(t, nm.dnsServer.domain, "correct0.domain_name")
-	nm.Shutdown()
-
-}
-
 func TestRegisterNode(t *testing.T) {
 	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
 	defer nm.Shutdown()
 
 	assert.Len(t, nm.nodeList, 0)
 
-	n, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4999, ""})
+	n, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4999})
 	assert.Nil(t, err)
 	defer n.Shutdown()
 
@@ -60,11 +35,11 @@ func TestConnectNodes(t *testing.T) {
 	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
 	defer nm.Shutdown()
 
-	n0, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4990, ""})
+	n0, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4990})
 	assert.Nil(t, err)
 	defer n0.Shutdown()
 
-	n1, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 4991, "node_one"})
+	n1, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 4991})
 	assert.Nil(t, err)
 	defer n1.Shutdown()
 
@@ -205,11 +180,11 @@ func TestAddAndConnect2Nodes(t *testing.T) {
 	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
 	defer nm.Shutdown()
 
-	n0, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 3990, ""})
+	n0, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 3990})
 	assert.Nil(t, err)
 	defer n0.Shutdown()
 
-	n1, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 3991, ""})
+	n1, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 3991})
 	assert.Nil(t, err)
 	defer n1.Shutdown()
 

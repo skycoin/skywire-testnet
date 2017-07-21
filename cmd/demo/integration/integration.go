@@ -47,7 +47,7 @@ func testSendAndReceive(n int) {
 	}
 	defer client.Shutdown()
 
-	err = client.Connect(serverId, serverNode.Id().Hex()) // client dials to server
+	err = client.Connect(serverId, serverNode.Id()) // client dials to server
 	if err != nil {
 		panic(err)
 	}

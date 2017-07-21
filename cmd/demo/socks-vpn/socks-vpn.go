@@ -73,7 +73,7 @@ func main() {
 	}
 	defer socksClient.Shutdown()
 
-	err = socksClient.Connect(socksServerId, serverNode.Id().Hex())
+	err = socksClient.Connect(socksServerId, serverNode.Id())
 	if err != nil {
 		panic(err)
 	}
@@ -95,7 +95,7 @@ func main() {
 	}
 	defer vpnClient.Shutdown()
 
-	err = vpnClient.Connect(vpnServerId, serverNode.Id().Hex())
+	err = vpnClient.Connect(vpnServerId, serverNode.Id())
 	if err != nil {
 		panic(err)
 	}

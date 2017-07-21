@@ -53,7 +53,7 @@ func pingPong(size, pings int) {
 	}
 	defer client.Shutdown()
 
-	err = client.Connect(messages.MakeAppId("pong"), serverAddr.Hex()) // client dials to server
+	err = client.Connect(messages.MakeAppId("pong"), serverAddr) // client dials to server
 	if err != nil {
 		panic(err)
 	}

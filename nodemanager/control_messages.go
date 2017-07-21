@@ -22,23 +22,15 @@ func (self *NodeManager) handleControlMessage(conn *factory.Connection, cm *mess
 			return
 		}
 
-		from := m1.From
-
-		to, err := self.resolveName(m1.To)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
 		connectSequence := m1.Sequence
-		_, err = self.connectNodeToNode(from, to)
+		_, err = self.connectNodeToNode(m1.From, m1.To)
 		if err != nil {
 			log.Println(err)
-			self.sendConnectDirectlyAck(from, sequence, connectSequence, false)
+			self.sendConnectDirectlyAck(m1.From, sequence, connectSequence, false)
 			return
 		}
 
-		self.sendConnectDirectlyAck(from, sequence, connectSequence, true)
+		self.sendConnectDirectlyAck(m1.From, sequence, connectSequence, true)
 
 	case messages.MsgConnectWithRouteCM:
 		m1 := messages.ConnectWithRouteCM{}
@@ -47,22 +39,16 @@ func (self *NodeManager) handleControlMessage(conn *factory.Connection, cm *mess
 			log.Println(err)
 			return
 		}
-		from := m1.From
-		to, err := self.resolveName(m1.To)
-		if err != nil {
-			log.Println(err)
-			return
-		}
 		connSequence := m1.Sequence
 		appIdFrom := m1.AppIdFrom
 		appIdTo := m1.AppIdTo
-		connId, err := self.connectWithRoute(from, to, appIdFrom, appIdTo)
+		connId, err := self.connectWithRoute(m1.From, m1.To, appIdFrom, appIdTo)
 		if err != nil {
 			log.Println(err)
-			self.sendConnectWithRouteAck(from, sequence, connSequence, false, messages.ConnectionId(0))
+			self.sendConnectWithRouteAck(m1.From, sequence, connSequence, false, messages.ConnectionId(0))
 			return
 		}
-		self.sendConnectWithRouteAck(from, sequence, connSequence, true, connId)
+		self.sendConnectWithRouteAck(m1.From, sequence, connSequence, true, connId)
 
 	case messages.MsgRegisterNodeCM:
 		m1 := messages.RegisterNodeCM{}
@@ -72,18 +58,17 @@ func (self *NodeManager) handleControlMessage(conn *factory.Connection, cm *mess
 			return
 		}
 		host := m1.Host
-		hostname := m1.Hostname
 		connect := m1.Connect
 		var nodeId cipher.PubKey
 		if !connect {
-			id, err := self.addNewNode(conn, host, hostname)
+			id, err := self.addNewNode(conn, host)
 			if err == nil {
 				nodeId = id
 			} else {
 				return
 			}
 		} else {
-			id, err := self.addAndConnect(conn, host, hostname)
+			id, err := self.addAndConnect(conn, host)
 			if err == nil {
 				nodeId = id
 			} else {

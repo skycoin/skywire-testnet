@@ -24,7 +24,6 @@ type RemoveRouteCM struct {
 // ==================== control messages ========================
 
 type RegisterNodeCM struct {
-	Hostname string
 	Host     string
 	Connect  bool
 }
@@ -76,7 +75,7 @@ type CommonCMAck struct {
 type ConnectDirectlyCM struct {
 	Sequence uint32
 	From     cipher.PubKey
-	To       string
+	To       cipher.PubKey
 }
 
 type ConnectDirectlyCMAck struct {
@@ -89,7 +88,7 @@ type ConnectWithRouteCM struct {
 	AppIdFrom AppId
 	AppIdTo   AppId
 	From      cipher.PubKey
-	To        string
+	To        cipher.PubKey
 }
 
 type ConnectWithRouteCMAck struct {

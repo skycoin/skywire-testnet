@@ -1,5 +1,7 @@
 package messages
 
+import "github.com/skycoin/skycoin/src/cipher"
+
 type NodeAppMessage struct {
 	Sequence uint32
 	AppId    AppId
@@ -25,7 +27,7 @@ type AssignConnectionNAM struct {
 }
 
 type ConnectToAppMessage struct {
-	Address string
+	Address cipher.PubKey
 	AppFrom AppId
 	AppTo   AppId
 }
