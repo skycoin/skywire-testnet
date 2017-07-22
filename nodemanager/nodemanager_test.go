@@ -45,7 +45,7 @@ func TestConnectNodes(t *testing.T) {
 
 	assert.Len(t, nm.nodeList, 2)
 
-	err = n0.ConnectDirectly("node_one.demo.meshnet")
+	err = n0.ConnectDirectly(n1.Id())
 	assert.Nil(t, err)
 
 	assert.True(t, n0.(*node.Node).ConnectedTo(n1.Id()))
@@ -149,18 +149,18 @@ func TestFindRoute(t *testing.T) {
 		 \ /     /
 		  6_7_8_/   medium route
 	*/
-	nodes[0].ConnectDirectly(nodeList[1].Hex()) // making long route
-	nodes[1].ConnectDirectly(nodeList[2].Hex())
-	nodes[2].ConnectDirectly(nodeList[3].Hex())
-	nodes[3].ConnectDirectly(nodeList[4].Hex())
-	nodes[4].ConnectDirectly(nodeList[9].Hex())
-	nodes[0].ConnectDirectly(nodeList[5].Hex()) // making short route
-	nodes[5].ConnectDirectly(nodeList[9].Hex())
-	nodes[0].ConnectDirectly(nodeList[6].Hex()) // make medium route, then findRoute should select the short one
-	nodes[6].ConnectDirectly(nodeList[7].Hex())
-	nodes[7].ConnectDirectly(nodeList[8].Hex())
-	nodes[8].ConnectDirectly(nodeList[9].Hex())
-	nodes[5].ConnectDirectly(nodeList[6].Hex())
+	nodes[0].ConnectDirectly(nodeList[1]) // making long route
+	nodes[1].ConnectDirectly(nodeList[2])
+	nodes[2].ConnectDirectly(nodeList[3])
+	nodes[3].ConnectDirectly(nodeList[4])
+	nodes[4].ConnectDirectly(nodeList[9])
+	nodes[0].ConnectDirectly(nodeList[5]) // making short route
+	nodes[5].ConnectDirectly(nodeList[9])
+	nodes[0].ConnectDirectly(nodeList[6]) // make medium route, then findRoute should select the short one
+	nodes[6].ConnectDirectly(nodeList[7])
+	nodes[7].ConnectDirectly(nodeList[8])
+	nodes[8].ConnectDirectly(nodeList[9])
+	nodes[5].ConnectDirectly(nodeList[6])
 
 	nm.rebuildRoutes()
 
@@ -233,7 +233,7 @@ func TestSendThroughRandomNetworks(t *testing.T) {
 
 		n0 := nodes[0].(*node.Node)
 		n1 := nodes[len(nodes)-1].(*node.Node)
-		conn0, err := n0.Dial(n1.Id().Hex(), messages.AppId([]byte{}), messages.AppId([]byte{}))
+		conn0, err := n0.Dial(n1.Id(), messages.AppId([]byte{}), messages.AppId([]byte{}))
 		connId := conn0.Id()
 		if err != nil {
 			panic(err)
