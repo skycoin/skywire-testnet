@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/skycoin/src/cipher"
 )
 
 func (self *Node) addControlChannel() messages.ChannelId {
@@ -79,8 +80,8 @@ func (self *Node) sendAckToServer(sequence uint32, ack *messages.CommonCMAck) er
 	return self.sendToServer(sequence, ackS)
 }
 
-func (self *Node) sendRegisterNodeToServer(hostname, host string, connect bool) error {
-	msg := messages.RegisterNodeCM{hostname, host, connect}
+func (self *Node) sendRegisterNodeToServer(host string, connect bool) error {
+	msg := messages.RegisterNodeCM{host, connect}
 	msgS := messages.Serialize(messages.MsgRegisterNodeCM, msg)
 	_, err := self.sendMessageToServer(msgS)
 	return err
@@ -106,7 +107,7 @@ func (self *Node) sendAppListRequestToServer(request []byte) ([]byte, error) {
 	return result, err
 }
 
-func (self *Node) sendConnectDirectlyToServer(nodeToId string) error {
+func (self *Node) ConnectDirectly(nodeToId cipher.PubKey) error {
 	responseChannel := make(chan bool)
 
 	self.lock.Lock()
@@ -131,7 +132,7 @@ func (self *Node) sendConnectDirectlyToServer(nodeToId string) error {
 	}
 }
 
-func (self *Node) sendConnectWithRouteToServer(nodeToId string, appIdFrom, appIdTo messages.AppId) (messages.ConnectionId, error) {
+func (self *Node) sendConnectWithRouteToServer(nodeToId cipher.PubKey, appIdFrom, appIdTo messages.AppId) (messages.ConnectionId, error) {
 	responseChannel := make(chan messages.ConnectionId)
 
 	self.lock.Lock()
@@ -189,8 +190,7 @@ func (self *Node) sendToServer(sequence uint32, msg []byte) error {
 		msg,
 	}
 	inControlS := messages.Serialize(messages.MsgInControlMessage, inControl)
-	_, err := self.controlConn.WriteTo(inControlS, self.serverAddrs[0])
-	return err
+	return self.controlConn.SendCustom(inControlS)
 }
 
 func (self *Node) openUDPforCM(port int) (*net.UDPConn, error) {
@@ -222,30 +222,24 @@ func (self *Node) addServer(serverAddrStr string) {
 }
 
 func (self *Node) receiveControlMessages() {
-	go_on := true
-	go func() {
-		for go_on {
-
-			buffer := make([]byte, 1024)
-
-			n, _, err := self.controlConn.ReadFrom(buffer)
-
-			if err != nil {
-				break
-			} else {
-				if n == 0 {
-					continue
-				}
-				cm := messages.InControlMessage{}
-				err := messages.Deserialize(buffer[:n], &cm)
-				if err != nil {
-					log.Println("Incorrect InControlMessage:", buffer[:n])
-					continue
-				}
-				go self.injectControlMessage(&cm)
+	for {
+		select {
+		case m, ok := <-self.controlConn.GetChanIn():
+			if !ok {
+				return
 			}
+			if m[0] != 2 {
+				continue
+			}
+			m = m[1:]
+			log.Printf("InControlMessage:%x\n", m)
+			cm := messages.InControlMessage{}
+			err := messages.Deserialize(m, &cm)
+			if err != nil {
+				log.Printf("Incorrect InControlMessage:%x err:%v\n", m, err)
+				continue
+			}
+			go self.injectControlMessage(&cm)
 		}
-	}()
-	<-self.closeControlMessagesChannel
-	go_on = false
+	}
 }

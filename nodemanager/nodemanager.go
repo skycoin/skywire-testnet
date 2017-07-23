@@ -5,10 +5,10 @@ package nodemanager
 import (
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/skycoin/skycoin/src/cipher"
 
+	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skywire/messages"
 )
 
@@ -28,7 +28,6 @@ type NodeManager struct {
 	nodeMsgServer        *NodeMsgServer
 	appTrackerMsgServer  *AppTrackerMsgServer
 	viscriptServer       *NMViscriptServer
-	dnsServer            *DNSServer
 	lock                 *sync.Mutex
 }
 
@@ -40,15 +39,7 @@ func NewNetwork(config *NodeManagerConfig) (*NodeManager, error) {
 }
 
 func newNodeManager(config *NodeManagerConfig) (*NodeManager, error) {
-
 	nm := new(NodeManager)
-
-	dnsServer, err := newDNSServer(config.Domain)
-	if err != nil {
-		return nil, err
-	}
-	nm.dnsServer = dnsServer
-
 	nm.nodeList = make(map[cipher.PubKey]*NodeRecord)
 	nm.transportFactoryList = []*TransportFactory{}
 	nm.routeGraph = newGraph()
@@ -87,20 +78,18 @@ func (self *NodeManager) Shutdown() {
 	if self.viscriptServer != nil {
 		self.viscriptServer.Shutdown()
 	}
-
-	time.Sleep(1 * time.Millisecond)
 }
 
-func (self *NodeManager) addNewNode(host, hostname string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
-	nodeToAdd, err := self.newNode(host, hostname)
+func (self *NodeManager) addNewNode(conn *factory.Connection, host string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
+	nodeToAdd, err := self.newNode(conn, host)
 	if err != nil {
 		return cipher.PubKey{}, err
 	}
 	return nodeToAdd.id, nil
 }
 
-func (self *NodeManager) addAndConnect(host, hostname string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
-	id, err := self.addNewNode(host, hostname)
+func (self *NodeManager) addAndConnect(conn *factory.Connection, host string) (cipher.PubKey, error) { //**** will be called by messaging server, response will be the reply
+	id, err := self.addNewNode(conn, host)
 	if err != nil {
 		return cipher.PubKey{}, err
 	}

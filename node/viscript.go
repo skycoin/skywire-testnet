@@ -6,6 +6,7 @@ import (
 	vsmsg "github.com/skycoin/viscript/msg"
 
 	"github.com/skycoin/skywire/viscript"
+	"github.com/skycoin/skycoin/src/cipher"
 )
 
 type NodeViscriptServer struct {
@@ -46,14 +47,20 @@ func (self *NodeViscriptServer) handleUserCommand(uc *vsmsg.MessageUserCommand) 
 	case vsmsg.TypeConnectDirectly:
 		ucd := &vsmsg.MessageConnectDirectly{}
 		err := vsmsg.Deserialize(message, ucd)
+		if err != nil {
+			log.Printf("TypeConnectDirectly err %v", err)
+			return
+		}
+		address, err := cipher.PubKeyFromHex(ucd.Address)
+		if err != nil {
+			log.Printf("TypeConnectDirectly err %v", err)
+			return
+		}
+		err = self.node.ConnectDirectly(address)
 		if err == nil {
-			address := ucd.Address
-			err = self.node.ConnectDirectly(address)
-			if err != nil {
-				ack := &vsmsg.MessageConnectDirectlyAck{}
-				ackS := vsmsg.Serialize(vsmsg.TypeConnectDirectlyAck, ack)
-				self.SendAck(ackS, sequence, appId)
-			}
+			ack := &vsmsg.MessageConnectDirectlyAck{}
+			ackS := vsmsg.Serialize(vsmsg.TypeConnectDirectlyAck, ack)
+			self.SendAck(ackS, sequence, appId)
 		}
 
 	case vsmsg.TypeShutdown:

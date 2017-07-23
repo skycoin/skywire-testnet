@@ -10,6 +10,7 @@ import (
 
 	"github.com/skycoin/skycoin/src/cipher"
 
+	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skywire/messages"
 	"github.com/skycoin/skywire/transport"
 )
@@ -45,13 +46,12 @@ type Node struct {
 	sendInterval      time.Duration
 	connectionTimeout time.Duration
 
-	controlChannels             map[messages.ChannelId]*ControlChannel
-	closeControlMessagesChannel chan bool
+	controlChannels map[messages.ChannelId]*ControlChannel
 
 	host string
 	port uint32
 
-	controlConn *net.UDPConn
+	controlConn *factory.Connection
 	serverAddrs []net.Addr
 
 	congested          bool
@@ -85,7 +85,7 @@ type CM struct {
 }
 
 var (
-	CONTROL_TIMEOUT = 10000 * time.Millisecond
+	CONTROL_TIMEOUT = 10000 * time.Hour
 )
 
 func CreateNode(nodeConfig *NodeConfig) (messages.NodeInterface, error) { // public for test reasons
@@ -103,41 +103,32 @@ func createAndRegisterNode(nodeConfig *NodeConfig, connect bool) (messages.NodeI
 	fullhost := nodeConfig.ClientAddr
 	serverAddrs := nodeConfig.ServerAddrs
 	appTalkPort := strconv.Itoa(nodeConfig.AppTalkPort)
-	hostname := nodeConfig.Hostname
 
 	hostData := strings.Split(fullhost, ":")
 	if len(hostData) != 2 {
 		return nil, messages.ERR_INCORRECT_HOST
 	}
 
-	host, portStr := hostData[0], hostData[1]
-
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return nil, err
-	}
-
-	node := newNode(host)
-
+	node := newNode(hostData[0])
 	node.appTalkPort = appTalkPort
-	node.hostname = hostname
 
 	for _, serverAddr := range serverAddrs {
 		node.addServer(serverAddr)
 	}
 
-	controlConn, err := node.openUDPforCM(port)
+	factory := factory.NewMessengerFactory()
+	conn, err := factory.Connect(serverAddrs[0])
 	if err != nil {
 		panic(err)
 		return nil, err
 	}
-	node.controlConn = controlConn
+	node.controlConn = conn
 
 	go node.receiveControlMessages()
 
 	go node.listenForApps()
 
-	err = node.sendRegisterNodeToServer(hostname, fullhost, connect)
+	err = node.sendRegisterNodeToServer(fullhost, connect)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +153,6 @@ func newNode(host string) *Node {
 	node.connectionResponseChannels = make(map[uint32]chan messages.ConnectionId)
 	node.addZeroControlChannel()
 	node.host = host
-	node.closeControlMessagesChannel = make(chan bool)
 	node.appConns = make(map[string]net.Conn)
 	node.Tick()
 	return node
@@ -187,10 +177,9 @@ func (self *Node) Shutdown() {
 	}
 
 	self.controlConn.Close()
-	self.closeControlMessagesChannel <- true
 }
 
-func (self *Node) Dial(address string, appIdFrom, appIdTo messages.AppId) (messages.Connection, error) {
+func (self *Node) Dial(address cipher.PubKey, appIdFrom, appIdTo messages.AppId) (messages.Connection, error) {
 	connId, err := self.sendConnectWithRouteToServer(address, appIdFrom, appIdTo)
 	if err != nil {
 		return nil, err
@@ -207,10 +196,6 @@ func (self *Node) Dial(address string, appIdFrom, appIdTo messages.AppId) (messa
 	return conn, nil
 }
 
-func (self *Node) ConnectDirectly(address string) error {
-	return self.sendConnectDirectlyToServer(address)
-}
-
 func (self *Node) GetConnection(id messages.ConnectionId) messages.Connection {
 	self.lock.Lock()
 	defer self.lock.Unlock()
@@ -223,9 +208,9 @@ func (self *Node) AppTalkAddr() string {
 
 //move node forward on tick, process events
 func (self *Node) Tick() {
-	backChannel := make(chan bool, 32)
-	self.runCycles(backChannel)
-	<-backChannel
+	//process incoming messages
+	go self.handleCongestionMessages()      //pop them off the channel
+	go self.handleIncomingControlMessages() //pop them off the channel
 }
 
 func (self *Node) GetTicks() uint32 {
@@ -300,14 +285,6 @@ func (self *Node) injectControlMessage(msg *messages.InControlMessage) {
 	}
 	self.incomingControlChannel <- cm
 	<-respChan
-}
-
-//move node forward on tick, process events
-func (self *Node) runCycles(backChannel chan bool) {
-	//process incoming messages
-	go self.handleCongestionMessages()      //pop them off the channel
-	go self.handleIncomingControlMessages() //pop them off the channel
-	backChannel <- true
 }
 
 func (self *Node) handleIncomingTransportMessages() {

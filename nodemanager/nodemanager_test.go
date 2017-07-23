@@ -3,7 +3,6 @@ package nodemanager
 import (
 	"fmt"
 	"math/rand"
-	"net"
 	"testing"
 	"time"
 
@@ -15,56 +14,13 @@ import (
 	"github.com/skycoin/skywire/node"
 )
 
-func TestDomainNameValidation(t *testing.T) {
-	return
-	messages.SetDebugLogLevel()
-
-	config := &NodeManagerConfig{
-		CtrlAddr: "127.0.0.1:5999",
-	}
-
-	config.Domain = "wrong_name_without_dot"
-	_, e0 := newNodeManager(config)
-	assert.NotNil(t, e0)
-
-	config.Domain = "ok_with_dots.but#there@are-wrong,symbols!"
-	_, e1 := newNodeManager(config)
-	assert.NotNil(t, e1)
-
-	config.Domain = "correct0.domain_name"
-	nm, e2 := newNodeManager(config)
-	assert.Nil(t, e2)
-
-	defer nm.Shutdown()
-
-	assert.Equal(t, nm.dnsServer.domain, "correct0.domain_name")
-}
-
-func TestMessagingServer(t *testing.T) {
-	return
-	messages.SetDebugLogLevel()
-
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
-	defer nm.Shutdown()
-
-	msgSrv := nm.nodeMsgServer
-	assert.NotNil(t, msgSrv)
-
-	host := net.ParseIP("127.0.0.1")
-	port := 5999
-	msgSrvAddr := net.UDPAddr{IP: host, Port: port}
-	assert.Equal(t, msgSrvAddr.String(), msgSrv.conn.LocalAddr().String())
-}
-
 func TestRegisterNode(t *testing.T) {
-	return
-
 	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
 	defer nm.Shutdown()
 
 	assert.Len(t, nm.nodeList, 0)
 
-	n, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4999, ""})
+	n, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4999})
 	assert.Nil(t, err)
 	defer n.Shutdown()
 
@@ -73,24 +29,23 @@ func TestRegisterNode(t *testing.T) {
 }
 
 func TestConnectNodes(t *testing.T) {
-	return
 	fmt.Println("")
 	messages.SetDebugLogLevel()
 
 	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
 	defer nm.Shutdown()
 
-	n0, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4990, ""})
+	n0, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4990})
 	assert.Nil(t, err)
 	defer n0.Shutdown()
 
-	n1, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 4991, "node_one"})
+	n1, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 4991})
 	assert.Nil(t, err)
 	defer n1.Shutdown()
 
 	assert.Len(t, nm.nodeList, 2)
 
-	err = n0.ConnectDirectly("node_one.demo.meshnet")
+	err = n0.ConnectDirectly(n1.Id())
 	assert.Nil(t, err)
 
 	assert.True(t, n0.(*node.Node).ConnectedTo(n1.Id()))
@@ -103,7 +58,6 @@ func TestConnectNodes(t *testing.T) {
 }
 
 func TestNetwork(t *testing.T) {
-	return
 	fmt.Println("TestNetwork")
 	messages.SetDebugLogLevel()
 
@@ -142,7 +96,6 @@ func TestNetwork(t *testing.T) {
 }
 
 func TestBuildRoute(t *testing.T) {
-	return
 	fmt.Println("TestBuildRoute")
 	messages.SetInfoLogLevel()
 
@@ -176,7 +129,6 @@ func TestBuildRoute(t *testing.T) {
 }
 
 func TestFindRoute(t *testing.T) {
-	return
 	fmt.Println("TestFindRoute")
 	messages.SetDebugLogLevel()
 
@@ -197,18 +149,18 @@ func TestFindRoute(t *testing.T) {
 		 \ /     /
 		  6_7_8_/   medium route
 	*/
-	nodes[0].ConnectDirectly(nodeList[1].Hex()) // making long route
-	nodes[1].ConnectDirectly(nodeList[2].Hex())
-	nodes[2].ConnectDirectly(nodeList[3].Hex())
-	nodes[3].ConnectDirectly(nodeList[4].Hex())
-	nodes[4].ConnectDirectly(nodeList[9].Hex())
-	nodes[0].ConnectDirectly(nodeList[5].Hex()) // making short route
-	nodes[5].ConnectDirectly(nodeList[9].Hex())
-	nodes[0].ConnectDirectly(nodeList[6].Hex()) // make medium route, then findRoute should select the short one
-	nodes[6].ConnectDirectly(nodeList[7].Hex())
-	nodes[7].ConnectDirectly(nodeList[8].Hex())
-	nodes[8].ConnectDirectly(nodeList[9].Hex())
-	nodes[5].ConnectDirectly(nodeList[6].Hex())
+	nodes[0].ConnectDirectly(nodeList[1]) // making long route
+	nodes[1].ConnectDirectly(nodeList[2])
+	nodes[2].ConnectDirectly(nodeList[3])
+	nodes[3].ConnectDirectly(nodeList[4])
+	nodes[4].ConnectDirectly(nodeList[9])
+	nodes[0].ConnectDirectly(nodeList[5]) // making short route
+	nodes[5].ConnectDirectly(nodeList[9])
+	nodes[0].ConnectDirectly(nodeList[6]) // make medium route, then findRoute should select the short one
+	nodes[6].ConnectDirectly(nodeList[7])
+	nodes[7].ConnectDirectly(nodeList[8])
+	nodes[8].ConnectDirectly(nodeList[9])
+	nodes[5].ConnectDirectly(nodeList[6])
 
 	nm.rebuildRoutes()
 
@@ -222,18 +174,17 @@ func TestFindRoute(t *testing.T) {
 }
 
 func TestAddAndConnect2Nodes(t *testing.T) {
-	return
 	fmt.Println("TestAddAndConnect")
 	messages.SetDebugLogLevel()
 
 	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
 	defer nm.Shutdown()
 
-	n0, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 3990, ""})
+	n0, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 3990})
 	assert.Nil(t, err)
 	defer n0.Shutdown()
 
-	n1, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 3991, ""})
+	n1, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 3991})
 	assert.Nil(t, err)
 	defer n1.Shutdown()
 
@@ -244,7 +195,6 @@ func TestAddAndConnect2Nodes(t *testing.T) {
 }
 
 func TestRandomNetwork100Nodes(t *testing.T) {
-	return
 	fmt.Println("TestRandomNetwork100Nodes")
 	messages.SetInfoLogLevel()
 
@@ -270,7 +220,6 @@ func TestRandomNetwork100Nodes(t *testing.T) {
 }
 
 func TestSendThroughRandomNetworks(t *testing.T) {
-	return
 	fmt.Println("TestSendThroughRandomNetworks")
 	messages.SetDebugLogLevel()
 
@@ -284,7 +233,7 @@ func TestSendThroughRandomNetworks(t *testing.T) {
 
 		n0 := nodes[0].(*node.Node)
 		n1 := nodes[len(nodes)-1].(*node.Node)
-		conn0, err := n0.Dial(n1.Id().Hex(), messages.AppId([]byte{}), messages.AppId([]byte{}))
+		conn0, err := n0.Dial(n1.Id(), messages.AppId([]byte{}), messages.AppId([]byte{}))
 		connId := conn0.Id()
 		if err != nil {
 			panic(err)

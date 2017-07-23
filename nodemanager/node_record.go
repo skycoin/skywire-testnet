@@ -10,6 +10,7 @@ import (
 	"github.com/skycoin/skycoin/src/cipher"
 
 	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/net/skycoin-messenger/factory"
 )
 
 type NodeRecord struct {
@@ -30,9 +31,9 @@ type NodeRecord struct {
 	lock *sync.Mutex
 }
 
-func (self *NodeManager) newNode(host, hostname string) (*NodeRecord, error) {
+func (self *NodeManager) newNode(conn *factory.Connection, host string) (*NodeRecord, error) {
 	node := new(NodeRecord)
-	id := createPubKey()
+	id := conn.GetKey()
 	node.id = id
 	node.nm = self
 	node.transports = make(map[messages.TransportId]*TransportRecord)
@@ -56,13 +57,6 @@ func (self *NodeManager) newNode(host, hostname string) (*NodeRecord, error) {
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return nil, err
-	}
-
-	if hostname != "" {
-		err = self.dnsServer.register(id, hostname)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	nodeAddr := &net.UDPAddr{IP: ip, Port: port}

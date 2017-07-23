@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/skycoin/skywire/messages"
+	"github.com/skycoin/skycoin/src/cipher"
 )
 
 type app struct {
@@ -32,7 +33,7 @@ func (self *app) Id() messages.AppId {
 	return self.id
 }
 
-func (self *app) Connect(appId messages.AppId, address string) error {
+func (self *app) Connect(appId messages.AppId, address cipher.PubKey) error {
 
 	msg := messages.ConnectToAppMessage{
 		address,

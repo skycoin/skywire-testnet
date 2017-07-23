@@ -73,7 +73,7 @@ func main() {
 	}
 	defer client.Shutdown()
 
-	err = client.Connect(serverId, serverNode.Id().Hex())
+	err = client.Connect(serverId, serverNode.Id())
 	if err != nil {
 		panic(err)
 	}
