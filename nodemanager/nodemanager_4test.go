@@ -18,7 +18,7 @@ func (self *NodeManager) CreateRandomNetwork(n, startPort int) []messages.NodeIn
 	nodes := []messages.NodeInterface{}
 
 	for i := 0; i < n; i++ {
-		node, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:" + strconv.Itoa(startPort+i), []string{"127.0.0.1:5999"}, startPort + n + i})
+		node, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:" + strconv.Itoa(startPort+i), []string{self.ctrlAddr}, startPort + n + i})
 		if err != nil {
 			panic(err)
 		}
@@ -33,7 +33,7 @@ func (self *NodeManager) CreateSequenceOfNodes(n, startPort int) (messages.NodeI
 		This function creates a network with sequentially chained n nodes like 0-1-2-3-4-5-6-7-8-9 and returns the first and last node
 	*/
 
-	nodeList := node.CreateNodeList(n, startPort)
+	nodeList := node.CreateNodeList(self.ctrlAddr, n, startPort)
 	self.connectAll()
 	self.rebuildRoutes()
 	firstNode, lastNode := nodeList[0], nodeList[len(nodeList)-1]
@@ -45,7 +45,7 @@ func (self *NodeManager) CreateSequenceOfNodesAndBuildRoutes(n, startPort int) (
 		This function creates a network with sequentially chained n nodes like 0-1-2-3-4-5-6-7-8-9, builds route between the first and the last nodes in a chainand returns the addresses of them, a route from the first to the last one and a back route from the last to the first one
 	*/
 
-	node.CreateNodeList(n, startPort)
+	node.CreateNodeList(self.ctrlAddr, n, startPort)
 	self.connectAll()
 
 	nodeList := self.nodeIdList
@@ -59,7 +59,7 @@ func (self *NodeManager) CreateSequenceOfNodesAndBuildRoutes(n, startPort int) (
 }
 
 func (self *NodeManager) CreateThreeRoutes(startPort int) (messages.NodeInterface, messages.NodeInterface) {
-	nodes := node.CreateNodeList(10, startPort)
+	nodes := node.CreateNodeList(self.ctrlAddr,10, startPort)
 	nodeList := self.nodeIdList
 	/*
 		  1-2-3-4
