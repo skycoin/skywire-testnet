@@ -9,18 +9,30 @@ import (
 	"github.com/skycoin/skycoin/src/cipher"
 	"github.com/stretchr/testify/assert"
 
+	"runtime"
+
 	"github.com/skycoin/skywire/apptracker"
 	"github.com/skycoin/skywire/messages"
 	"github.com/skycoin/skywire/node"
 )
 
+func newTestNodeManager(conf *NodeManagerConfig) *NodeManager {
+	nm, err := newNodeManager(conf)
+	if err != nil {
+		panic(err)
+	}
+	runtime.Gosched()
+	return nm
+}
+
 func TestRegisterNode(t *testing.T) {
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+	nmHost := "127.0.0.1:5999"
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 	defer nm.Shutdown()
 
 	assert.Len(t, nm.nodeList, 0)
 
-	n, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4999})
+	n, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{nmHost}, 4999})
 	assert.Nil(t, err)
 	defer n.Shutdown()
 
@@ -29,17 +41,17 @@ func TestRegisterNode(t *testing.T) {
 }
 
 func TestConnectNodes(t *testing.T) {
-	fmt.Println("")
 	messages.SetDebugLogLevel()
 
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+	nmHost := "127.0.0.1:5998"
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 	defer nm.Shutdown()
 
-	n0, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 4990})
+	n0, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5992", []string{nmHost}, 4990})
 	assert.Nil(t, err)
 	defer n0.Shutdown()
 
-	n1, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 4991})
+	n1, err := node.CreateNode(&node.NodeConfig{"127.0.0.1:5993", []string{nmHost}, 4991})
 	assert.Nil(t, err)
 	defer n1.Shutdown()
 
@@ -58,15 +70,15 @@ func TestConnectNodes(t *testing.T) {
 }
 
 func TestNetwork(t *testing.T) {
-	fmt.Println("TestNetwork")
 	messages.SetDebugLogLevel()
 
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+	nmHost := "127.0.0.1:6000"
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 	defer nm.Shutdown()
 
 	q := 20
 
-	nodes := node.CreateNodeList(q, 14000)
+	nodes := node.CreateNodeList(nmHost, q, 14000)
 	assert.Len(t, nodes, q, fmt.Sprintf("Should be %d nodes", q))
 	assert.Len(t, nm.nodeIdList, q, fmt.Sprintf("Should be %d nodes", q))
 	initRoute, err := nm.connectAllAndBuildRoute()
@@ -92,20 +104,19 @@ func TestNetwork(t *testing.T) {
 
 	node.ShutdownAll(nodes)
 
-	fmt.Println("TestNetwork end")
 }
 
 func TestBuildRoute(t *testing.T) {
-	fmt.Println("TestBuildRoute")
 	messages.SetInfoLogLevel()
 
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+	nmHost := "127.0.0.1:6001"
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 	defer nm.Shutdown()
 
 	n := 100
 	m := 5
 
-	allNodes := node.CreateNodeList(n, 15000)
+	allNodes := node.CreateNodeList(nmHost, n, 15000)
 
 	nodes := []cipher.PubKey{}
 
@@ -125,17 +136,16 @@ func TestBuildRoute(t *testing.T) {
 	assert.Len(t, routes, m)
 
 	node.ShutdownAll(allNodes)
-	fmt.Println("TestBuildRoute end")
 }
 
 func TestFindRoute(t *testing.T) {
-	fmt.Println("TestFindRoute")
 	messages.SetDebugLogLevel()
 
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+	nmHost := "127.0.0.1:6002"
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 	defer nm.Shutdown()
 
-	nodes := node.CreateNodeList(10, 16000)
+	nodes := node.CreateNodeList(nmHost,10, 16000)
 
 	nodeList := []cipher.PubKey{}
 	for _, n := range nodes {
@@ -170,35 +180,33 @@ func TestFindRoute(t *testing.T) {
 	assert.Len(t, routes, 3, "Should be 3 routes")
 
 	node.ShutdownAll(nodes)
-	fmt.Println("TestFindRoute end")
 }
 
 func TestAddAndConnect2Nodes(t *testing.T) {
-	fmt.Println("TestAddAndConnect")
 	messages.SetDebugLogLevel()
 
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+	nmHost := "127.0.0.1:6003"
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 	defer nm.Shutdown()
 
-	n0, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5992", []string{"127.0.0.1:5999"}, 3990})
+	n0, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5992", []string{nmHost}, 3990})
 	assert.Nil(t, err)
 	defer n0.Shutdown()
 
-	n1, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5993", []string{"127.0.0.1:5999"}, 3991})
+	n1, err := node.CreateAndConnectNode(&node.NodeConfig{"127.0.0.1:5993", []string{nmHost}, 3991})
 	assert.Nil(t, err)
 	defer n1.Shutdown()
 
 	assert.Len(t, nm.nodeIdList, 2)
 	assert.True(t, nm.connected(n0.Id(), n1.Id()))
 
-	fmt.Println("TestAddAndConnect end")
 }
 
 func TestRandomNetwork100Nodes(t *testing.T) {
-	fmt.Println("TestRandomNetwork100Nodes")
 	messages.SetInfoLogLevel()
 
-	nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+	nmHost := "127.0.0.1:6004"
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 	defer nm.Shutdown()
 
 	n := 100
@@ -216,18 +224,17 @@ func TestRandomNetwork100Nodes(t *testing.T) {
 	assert.True(t, nm.routeExists(nodeIds[0], nodeIds[n-1]))
 
 	node.ShutdownAll(nodes)
-	fmt.Println("TestRandomNetwork100Nodes end")
 }
 
 func TestSendThroughRandomNetworks(t *testing.T) {
-	fmt.Println("TestSendThroughRandomNetworks")
 	messages.SetDebugLogLevel()
 
 	lens := []int{2, 5, 10} // sizes of different networks which will be tested
 
-	for _, n := range lens {
+	for i, n := range lens {
 
-		nm, _ := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999"})
+		nmHost := fmt.Sprintf("127.0.0.1:700%d", i)
+		nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: nmHost})
 
 		nodes := nm.CreateRandomNetwork(n, 18000)
 
@@ -251,7 +258,6 @@ func TestSendThroughRandomNetworks(t *testing.T) {
 		nm.Shutdown()
 		time.Sleep(time.Duration(n) * time.Millisecond)
 	}
-	fmt.Println("TestSendThroughRandomNetworks end")
 }
 
 func TestAppTrackerMsgServer(t *testing.T) {
@@ -260,8 +266,7 @@ func TestAppTrackerMsgServer(t *testing.T) {
 	appTracker := apptracker.NewAppTracker("127.0.0.1:9000")
 	defer appTracker.Shutdown()
 
-	nm, err := newNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:5999", AppTrackerAddr: "127.0.0.1:9000"})
-	assert.Nil(t, err)
+	nm := newTestNodeManager(&NodeManagerConfig{Domain: "demo.meshnet", CtrlAddr: "127.0.0.1:6005", AppTrackerAddr: "127.0.0.1:9000"})
 	defer nm.Shutdown()
 
 	assert.NotNil(t, nm.appTrackerMsgServer)
