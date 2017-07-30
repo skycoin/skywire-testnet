@@ -71,6 +71,9 @@ func (self *AppTrackerMsgServer) send(payload []byte) ([]byte, error) {
 
 	select {
 	case response := <-responseChannel:
+		self.lock.Lock()
+		delete(self.responseChannels, sequence)
+		self.lock.Unlock()
 		return response, nil
 	case <-time.After(self.timeout * time.Millisecond):
 		return []byte{}, messages.ERR_MSG_SRV_TIMEOUT

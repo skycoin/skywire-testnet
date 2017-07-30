@@ -173,7 +173,8 @@ func (self *Transport) sendTransportDatagramTransfer(msg *messages.OutRouteMessa
 func (self *Transport) sendPacket(msg *messages.TransportDatagramTransfer) {
 
 	ackChannel := make(chan bool, 32)
-	self.setAckChannel(msg.Sequence, ackChannel)
+	sequence := msg.Sequence
+	self.setAckChannel(sequence, ackChannel)
 
 	msgS := messages.Serialize(messages.MsgTransportDatagramTransfer, *msg)
 
@@ -191,11 +192,13 @@ func (self *Transport) sendPacket(msg *messages.TransportDatagramTransfer) {
 			if messages.IsDebug() {
 				fmt.Printf("message %d is successfully sent, attempt %d\n", msg, retransmits+1)
 			}
+			self.deleteAckChannel(sequence)
 			return
 
 		case <-time.After(time.Duration(self.timeout) * time.Millisecond):
 			retransmits++
 			if retransmits >= self.retransmitLimit {
+				self.deleteAckChannel(sequence)
 				self.errChan <- messages.ERR_TRANSPORT_TIMEOUT
 			}
 			fmt.Printf("message %d will be sent again, attempt %d\n", msg, retransmits+1)

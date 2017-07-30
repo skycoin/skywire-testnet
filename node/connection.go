@@ -89,8 +89,10 @@ func (self *Connection) Send(msg []byte) error {
 
 	select {
 	case <-ackChannel:
+		self.deleteAckChannel(sequence)
 		return nil
 	case <-time.After(time.Duration(self.timeout) * time.Millisecond):
+		self.deleteAckChannel(sequence)
 		self.errChan <- messages.ERR_CONN_TIMEOUT
 		return messages.ERR_CONN_TIMEOUT
 	}
@@ -258,6 +260,13 @@ func (self *Connection) setAckChannel(ackChannel chan bool) uint32 {
 	self.sequence++
 	self.ackChannels[sequence] = ackChannel
 	return sequence
+}
+
+func (self *Connection) deleteAckChannel(sequence uint32) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	delete(self.ackChannels, sequence)
 }
 
 func (self *Connection) getIncomingMessages(sequence uint32) (map[uint32][]byte, error) {

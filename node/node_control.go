@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skycoin/skywire/messages"
 	"github.com/skycoin/skycoin/src/cipher"
+	"github.com/skycoin/skywire/messages"
 )
 
 func (self *Node) addControlChannel() messages.ChannelId {
@@ -126,8 +126,14 @@ func (self *Node) ConnectDirectly(nodeToId cipher.PubKey) error {
 
 	select {
 	case <-responseChannel:
+		self.lock.Lock()
+		delete(self.connectResponseChannels, connectSequence)
+		self.lock.Unlock()
 		return nil
 	case <-time.After(CONTROL_TIMEOUT):
+		self.lock.Lock()
+		delete(self.connectResponseChannels, connectSequence)
+		self.lock.Unlock()
 		return messages.ERR_MSG_SRV_TIMEOUT
 	}
 }
@@ -151,8 +157,14 @@ func (self *Node) sendConnectWithRouteToServer(nodeToId cipher.PubKey, appIdFrom
 
 	select {
 	case connId := <-responseChannel:
+		self.lock.Lock()
+		delete(self.connectionResponseChannels, connSequence)
+		self.lock.Unlock()
 		return connId, nil
 	case <-time.After(CONTROL_TIMEOUT):
+		self.lock.Lock()
+		delete(self.connectionResponseChannels, connSequence)
+		self.lock.Unlock()
 		return messages.ConnectionId(0), messages.ERR_MSG_SRV_TIMEOUT
 	}
 }
@@ -173,6 +185,7 @@ func (self *Node) sendMessageToServer(msg []byte) ([]byte, error) {
 
 	select {
 	case response := <-responseChannel:
+		self.deleteResponseChannel(sequence)
 		return response, nil
 	case <-time.After(CONTROL_TIMEOUT):
 		return []byte{}, messages.ERR_MSG_SRV_TIMEOUT
