@@ -455,6 +455,12 @@ func (self *Node) setResponseChannel(sequence uint32, responseChannel chan []byt
 	self.responseChannels[sequence] = responseChannel
 }
 
+func (self *Node) deleteResponseChannel(sequence uint32) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	delete(self.responseChannels, sequence)
+}
+
 func (self *Node) setConnectionOn(connId messages.ConnectionId) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
