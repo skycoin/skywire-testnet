@@ -3,17 +3,17 @@ package main
 import (
 	"os"
 	"strconv"
-
+	"github.com/skycoin/viscript/signal"
 	"github.com/skycoin/skywire/messages"
 	"github.com/skycoin/skywire/node"
 )
 
 func main() {
 	args := os.Args
-	if len(args) < 7 {
+	if len(args) < 8 {
 		panic("not sufficient number of args")
 	}
-	nodeAddr, nmAddr, connect, appTalkPortStr, appIdStr, seqStr := args[1], args[2], args[3], args[4], args[5], args[6]
+	nodeAddr, nmAddr, connect, appTalkPortStr, appIdStr, seqStr, signalPort := args[1], args[2], args[3], args[4], args[5], args[6], args[7]
 
 	seqInt, err := strconv.Atoi(seqStr)
 	if err != nil {
@@ -49,6 +49,7 @@ func main() {
 		nodeAddr,
 		[]string{nmAddr},
 		appTalkPort,
+		"",
 	}
 
 	if need_connect {
@@ -59,6 +60,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	signal.InitSignalNode(signalPort).ListenForSignals()
 	n.TalkToViscript(sequence, appId)
 }
