@@ -49,7 +49,6 @@ func main() {
 		nodeAddr,
 		[]string{nmAddr},
 		appTalkPort,
-		"",
 	}
 
 	if need_connect {
