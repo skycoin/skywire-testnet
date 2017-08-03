@@ -29,19 +29,25 @@
   branch = "master"
   name = "github.com/skycoin/net"
   packages = ["client","conn","factory","msg","server","skycoin-messenger/factory"]
-  revision = "cab7113ca9a3b2aa7201bcba3cea542160180a08"
+  revision = "f3846fef2891dead77b47afbcfbda66a1d08fbdd"
 
 [[projects]]
-  branch = "develop"
   name = "github.com/skycoin/skycoin"
-  packages = ["src/cipher","src/cipher/base58","src/cipher/chacha20","src/cipher/encoder","src/cipher/ripemd160","src/cipher/secp256k1-go","src/cipher/secp256k1-go/secp256k1-go2"]
-  revision = "3ed8a7f74cfa1d294cfc9d2975278ce28de9c21d"
+  packages = ["src/cipher","src/cipher/base58","src/cipher/chacha20","src/cipher/encoder","src/cipher/ripemd160","src/cipher/secp256k1-go","src/cipher/secp256k1-go/secp256k1-go2","src/util/logging"]
+  revision = "dd924e1f2de8fab945e05b3245dbeabf267f2910"
+  version = "v0.19.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/skycoin/skywire"
+  packages = ["app","apptracker","messages","node","nodemanager","proxy/go-socks5","transport","viscript"]
+  revision = "75532e72ce6d96f2de957aa6be7c2da7da072cdb"
 
 [[projects]]
   branch = "master"
   name = "github.com/skycoin/viscript"
-  packages = ["hypervisor/dbus","msg"]
-  revision = "1acc4cea6d7e80b0e05d34d14cd38525249ee6a8"
+  packages = ["msg","signal","signal/msg"]
+  revision = "dbd2558c80757c96f718bcc871953f31d548fd13"
 
 [[projects]]
   branch = "master"
@@ -59,13 +65,13 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","proxy"]
-  revision = "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
+  revision = "f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows","windows/registry"]
-  revision = "50298aa7a9faed39cd341ad7fd9275b1d5ddd70c"
+  revision = "e312636bdaa2fac4f0acde9d17ab9fbad2b4ad10"
 
 [[projects]]
   name = "gopkg.in/gcfg.v1"
@@ -82,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "305075d3f1c8eccbd75108e70f81a0c5d2997cee090c762f91ba5139cb01e909"
+  inputs-digest = "eeceb19c1487123347c38e0a67b8b374deb14cc1bab61197938b5b5d16c9edd8"
   solver-name = "gps-cdcl"
   solver-version = 1

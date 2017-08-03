@@ -25,18 +25,19 @@ apps:
   #   desc: Command line client for meshnet nodes manager server
   meshnet-nm:
     daemon: true
-    desc: Run meshnet node manager
+    desc: Meshnet node manager
     path: bin/meshnet/meshnet-run-nm.exe
     default_args: []
     help: |
         [1] Domain name for using alternative node hostnames.
         [2] Host for control messages exchange.
         [3] Address of apptracker which should be run before nodemanager.
+
         Full Example Command:
             start meshnet-nm domain.network 0.0.0.0:5999 127.0.0.1:2000
   meshnet-node:
     daemon: true
-    desc: Run meshnet node
+    desc: DESCRIPTION GOES HERE
     path: bin/meshnet/meshnet-run-node.exe
     default_args: []
     help: |
@@ -45,11 +46,12 @@ apps:
         [3] True if node needs to be connected randomly, false otherwise.
         [4] TCP port at which node will listen messages from apps.
         [5] Hostname alias.
-        Full Example Command
+
+        Full Example Command:
             start meshnet-node 111.222.123.44:5000 202.101.65.43:5999 true 8000 node0
   apptracker:
     daemon: true
-    desc: Run apptracker
+    desc: DESCRIPTION GOES HERE
     path: bin/meshnet/meshnet-run-apptracker.exe
     default_args: []
     help: |

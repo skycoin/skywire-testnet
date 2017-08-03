@@ -2,11 +2,45 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="637c92db-e70b-49c6-95c5-f1b0e369a2ea" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmd/mesh/node/node.go" afterPath="$PROJECT_DIR$/cmd/mesh/node/node.go" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/task_ext_list.go" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/task_list.go" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Gopkg.lock" afterPath="$PROJECT_DIR$/Gopkg.lock" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/skycoin/.gitignore" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/skycoin/.gitignore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/skycoin/README.md" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/skycoin/README.md" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/skycoin/src/cipher/crypto.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/skycoin/src/cipher/crypto.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/.gitignore" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/.gitignore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/README.md" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/README.md" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/config-win.yaml" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/config-win.yaml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/config.yaml" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/config.yaml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/dbus.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/dbus.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/pubsub.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/pubsub.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/registry.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/registry.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/types.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/dbus/types.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/hypervisor.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/hypervisor/hypervisor.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/id.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/id.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/interfaces.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/interfaces.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/rpc.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/rpc.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/types_process.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/types_process.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/types_terminal.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/msg/types_terminal.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/package.sh" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/package.sh" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/viscript.go" afterPath="$PROJECT_DIR$/vendor/github.com/skycoin/viscript/viscript.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/net/context/context.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/net/context/context.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/net/context/withtimeout_test.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/net/context/withtimeout_test.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/per_host.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/per_host.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/proxy.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/proxy.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/proxy_test.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/proxy_test.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/socks5.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/net/proxy/socks5.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/dll_windows.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/dll_windows.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/registry/registry_test.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/registry/registry_test.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/syscall_windows.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/syscall_windows.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/zsyscall_windows.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/zsyscall_windows.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/ztypes_windows.go" afterPath="$PROJECT_DIR$/vendor/golang.org/x/sys/windows/ztypes_windows.go" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
     <ignored path="$PROJECT_DIR$/temp/" />
     <ignored path="$PROJECT_DIR$/tmp/" />
+    <ignored path="$PROJECT_DIR$/.idea/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -16,12 +50,12 @@
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="node.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/cmd/mesh/node/node.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="296">
-              <caret line="61" column="5" lean-forward="true" selection-start-line="61" selection-start-column="5" selection-end-line="61" selection-end-column="5" />
+            <state relative-caret-position="1041">
+              <caret line="61" column="5" lean-forward="false" selection-start-line="61" selection-start-column="5" selection-end-line="61" selection-end-column="5" />
               <folding>
                 <element signature="e#14#153#0" expanded="true" />
               </folding>
@@ -92,6 +126,7 @@
     </navigator>
     <panes>
       <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -160,7 +195,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -170,6 +204,7 @@
     <property name="go.sdk.automatically.set" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="HbShouldOpenHtmlAsHb" value="" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -193,34 +228,38 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1501680920336</updated>
-      <workItem from="1501680921684" duration="534000" />
+      <workItem from="1501680921684" duration="745000" />
+      <workItem from="1501681681986" duration="599000" />
+      <workItem from="1501683488715" duration="35000" />
+      <workItem from="1501683977789" duration="599000" />
+      <workItem from="1501744497821" duration="51000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="534000" />
+    <option name="totallyTimeSpent" value="2029000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="281" y="119" width="1472" height="878" extended-state="0" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug Logs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug Logs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Execute Anonymous" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32903227" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Execute Anonymous" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32903227" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
-      <window_info id="Salesforce" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Salesforce" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -235,6 +274,122 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/node.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#14#153#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="234">
+            <caret line="13" column="80" lean-forward="false" selection-start-line="13" selection-start-column="20" selection-end-line="13" selection-end-column="80" />
+            <folding />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib/go-1.7/src/github.com/skycoin/skywire/node/node_config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="36">
+          <caret line="2" column="5" lean-forward="false" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/node.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#14#153#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="234">
+            <caret line="13" column="80" lean-forward="false" selection-start-line="13" selection-start-column="20" selection-end-line="13" selection-end-column="80" />
+            <folding />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib/go-1.7/src/github.com/skycoin/skywire/node/node_config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="36">
+          <caret line="2" column="5" lean-forward="false" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/node.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#14#153#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="234">
+            <caret line="13" column="80" lean-forward="false" selection-start-line="13" selection-start-column="20" selection-end-line="13" selection-end-column="80" />
+            <folding />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib/go-1.7/src/github.com/skycoin/skywire/node/node_config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="36">
+          <caret line="2" column="5" lean-forward="false" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/node.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#14#153#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/mesh/node/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="234">
+            <caret line="13" column="80" lean-forward="false" selection-start-line="13" selection-start-column="20" selection-end-line="13" selection-end-column="80" />
+            <folding />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib/go-1.7/src/github.com/skycoin/skywire/node/node_config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="36">
+          <caret line="2" column="5" lean-forward="false" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file:///usr/lib/go-1.7/src/github.com/skycoin/skywire/node/node_config.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="36">
@@ -256,8 +411,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/cmd/mesh/node/node.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="296">
-          <caret line="61" column="5" lean-forward="true" selection-start-line="61" selection-start-column="5" selection-end-line="61" selection-end-column="5" />
+        <state relative-caret-position="1041">
+          <caret line="61" column="5" lean-forward="false" selection-start-line="61" selection-start-column="5" selection-end-line="61" selection-end-column="5" />
           <folding>
             <element signature="e#14#153#0" expanded="true" />
           </folding>

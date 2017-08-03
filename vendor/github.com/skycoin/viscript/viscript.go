@@ -3,36 +3,29 @@
 ------- NEXT THINGS TODO: -------
 
 * RPC cli:
-	add functionality to print running jobs for a given process id
-	that can be retrieved by lp or setting the process id as default
+	add functionality to print running jobs for a given task id
+	that can be retrieved by lp or setting the task id as default
 	because that already exists
 
-* ExternalProcess:
+* ExternalTask:
 	Ctrl + c - detach, delete, kill probably
 	Ctrl + z - detach and let it be running or pause it (https://repl.it/GeGn/1)?,
 	jobs - list all jobs of current terminal
 	fg <id> - send to foreground
-
-* auto-run task_ext according to os specific init
-	(doing it immediately upon first cli submission good enough?)
 
 * make current command line autoscroll horizontally
 	* make it optional (if turned off, always truncate the left)
 
 * back buffer scrolling
 	* pgup/pgdn hotkeys
-	* 1-3 lines with scrollwheel
 
-* Fix getting a resizing pointer outside of focused terminal.
-		When you click outside terminal it can land on a background
-		terminal which then pops in front.  Blocking the resize
-
-* Sideways scroll command line when it doesn't fit the dedicated space for it
+* Sideways auto-scroll command line when it doesn't fit the dedicated space for it
 		(atm, 2 lines are reserved along the bottom of a full screen)
 		* block character at end to indicate continuing on next line
 
-* make new window display on top
-		(i believe the sorting logic is only triggered by clicking right now)
+* move onUserCommand() to command_cases.go?
+
+* improve BACKSCROLL indicator line
 
 * scan and do/fix most FIXME/TODO places in the code
 
@@ -68,13 +61,13 @@ import (
 	"github.com/skycoin/viscript/app"
 	"github.com/skycoin/viscript/config"
 	"github.com/skycoin/viscript/hypervisor"
-	"github.com/skycoin/viscript/monitor"
 	"github.com/skycoin/viscript/rpc/terminalmanager"
+	"github.com/skycoin/viscript/signal"
 	"github.com/skycoin/viscript/viewport"
 )
 
 func main() {
-	app.MakeHighlyVisibleLogEntry(app.Name, 15)
+	app.MakeHighlyVisibleLogEntry(app.Name, 13)
 
 	err := config.Load("config.yaml")
 	if err != nil {
@@ -102,7 +95,7 @@ func main() {
 		rpcInstance.Serve()
 	}()
 
-	monitor.Init("0.0.0.0:7999").Run() //tcp server monitor for apps
+	signal.Init("0.0.0.0:7999").Run() //tcp server for apps
 
 	//actual start of loop
 	for viewport.CloseWindow == false {

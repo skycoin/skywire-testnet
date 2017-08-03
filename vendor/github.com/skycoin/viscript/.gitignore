@@ -6,6 +6,7 @@ viscript
 /.vscode
 .DS_Store
 debug
-/hypervisor/process/externalp
+/hypervisor/task/externalp
 /Viscript
 bin
+viscript.exe

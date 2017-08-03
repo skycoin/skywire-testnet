@@ -3,29 +3,29 @@ package msg
 const CATEGORY_Terminal uint16 = 0x0200 //flag
 
 const (
-	TypeClear           = 1 + CATEGORY_Terminal
-	TypeCommand         = 2 + CATEGORY_Terminal
-	TypeCommandLine     = 3 + CATEGORY_Terminal
-	TypePutChar         = 4 + CATEGORY_Terminal
-	TypeSetCharAt       = 5 + CATEGORY_Terminal
-	TypeSetCursor       = 6 + CATEGORY_Terminal
-	TypeTerminalIds     = 7 + CATEGORY_Terminal
-	TypeVisualInfo      = 8 + CATEGORY_Terminal
-	TypeFrameBufferSize = 9 + CATEGORY_Terminal //start of low level events
+	TypeClear            = 1 + CATEGORY_Terminal
+	TypeTokenizedCommand = 2 + CATEGORY_Terminal
+	TypeCommandPrompt    = 3 + CATEGORY_Terminal
+	TypePutChar          = 4 + CATEGORY_Terminal
+	TypeSetCharAt        = 5 + CATEGORY_Terminal
+	TypeSetCursor        = 6 + CATEGORY_Terminal
+	TypeTerminalIds      = 7 + CATEGORY_Terminal
+	TypeVisualInfo       = 8 + CATEGORY_Terminal
+	TypeFrameBufferSize  = 9 + CATEGORY_Terminal //start of low level events
 )
 
 type MessageClear struct { //this type simply signals that we need a .clear() call in terminal
 }
 
-type MessageCommand struct {
+type MessageTokenizedCommand struct {
 	Command string
 	Args    []string
 }
 
-type MessageCommandLine struct { //updates/replaces current command line on any change
+type MessageCommandPrompt struct { //updates/replaces current command prompt on any change
 	TermId       uint32
 	CommandLine  string
-	CursorOffset uint32 //from first character of command line
+	CursorOffset uint32 //from first character of command prompt
 }
 
 type MessagePutChar struct {
