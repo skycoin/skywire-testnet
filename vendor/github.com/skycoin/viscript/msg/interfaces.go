@@ -3,23 +3,25 @@ package msg
 const ChannelCapacity = 4096 // FIXME?  might only need capacity of 2?
 // .... onChar is always paired with an immediate onKey, making 2 entries at once
 
-type ProcessInterface interface {
-	GetId() ProcessId
-	GetType() ProcessType
+type TaskInterface interface {
+	GetId() TaskId
+	GetIncomingChannel() chan []byte
 	GetLabel() string
-	GetIncomingChannel() chan []byte //channel for incoming messages
-	Tick()                           //process the messages and emit messages
+	GetType() TaskType
+	Tick()
 }
 
-type ExtProcessInterface interface {
+type ExtTaskInterface interface {
+	//shared vars (with task ^^^)
+	GetId() ExtAppId
+	GetTaskInChannel() chan []byte
 	Tick()
-	Start() error
+	//unique vars
 	Attach() error
 	Detach()
-	TearDown()
-	GetId() ExtProcessId
 	GetFullCommandLine() string
-	GetProcessInChannel() chan []byte
-	GetProcessOutChannel() chan []byte
-	GetProcessExitChannel() chan struct{}
+	GetTaskOutChannel() chan []byte
+	GetTaskExitChannel() chan struct{}
+	Start() error
+	TearDown()
 }

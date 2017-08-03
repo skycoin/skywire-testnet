@@ -7,21 +7,74 @@
 	https://goreportcard.com/badge/github.com/skycoin/viscript)](
 		https://goreportcard.com/report/github.com/skycoin/viscript)
 
+
 Dependencies
 ============
 
-Dependencies are managed with [gvt](https://github.com/FiloSottile/gvt).
+Dependencies are managed with [dep](https://github.com/golang/dep).
 
-To install gvt:
+To install `dep`:
+
+```sh
+go get -u github.com/golang/dep
 ```
-$ go get -u github.com/FiloSottile/gvt
+
+`dep` vendors all dependencies into the repo.
+
+If you change the dependencies, you should update them as needed with `dep ensure`.
+
+Use `dep help` for instructions on vendoring a specific version of a dependency, or updating them.
+
+When updating or initializing, `dep` will find the latest version of a dependency that will compile.
+
+After adding a new dependency (with `dep ensure`), run `dep prune` to remove any unnecessary subpackages from the dependency.
+
+**Warning:** `dep prune` will remove necessary C files from `github.com/go-gl/glfw/v3.2/`.
+In order to preserve these, do `git checkout vendor/github.com/go-gl/glfw/v3.2/` after `dep prune`.
+
+Examples:
+
+Initialize all dependencies:
+
+```sh
+dep init
+git add Gopkg.toml Gopkg.lock vendor/
+git commit -m "dep init"
+dep prune
+git checkout vendor/github.com/go-gl/glfw/v3.2
+git add vendor/
+git commit -m "dep prune"
 ```
 
-gvt vendors all dependencies into the repo.
+Update all dependencies:
 
-If you change the dependencies, you should update them as needed with `gvt fetch`, `gvt update`, `gvt delete`, etc.
+```sh
+dep ensure -update -v
+dep prune
+git checkout vendor/github.com/go-gl/glfw/v3.2
+git add vendor/
+git commit -m "dep ensure update"
+```
 
-Refer to the [gvt documentation](https://github.com/FiloSottile/gvt) or `gvt help` for further instructions.
+Add a single dependency (latest version):
+
+```sh
+dep ensure github.com/foo/bar
+dep prune
+git checkout vendor/github.com/go-gl/glfw/v3.2
+git add vendor/
+git commit -m "dep ensure github.com/foo/bar"
+```
+
+Add a single dependency (more specific version), or downgrade an existing dependency:
+
+```sh
+dep ensure github.com/foo/bar@tag
+dep prune
+git checkout vendor/github.com/go-gl/glfw/v3.2
+git add vendor/
+git commit -m "dep ensure github.com/foo/bar@tag"
+```
 
 [//]: # (OpenGL, GLFW and other dependencies:)
 
@@ -304,8 +357,8 @@ System Level Enumerations
 - give me list of programs running on a node
 - give me a list of channels (communication channels) between nodes
 
-- deploy a process on a node
-- shutdown process on node
+- deploy a task on a node
+- shutdown task on a node
 
 - get CPU/ ram usage, etc
 
