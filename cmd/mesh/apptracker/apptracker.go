@@ -2,45 +2,26 @@ package main
 
 import (
 	"os"
-	"strconv"
+
+	"os/signal"
 
 	"github.com/skycoin/skywire/apptracker"
+	_ "github.com/skycoin/viscript/signal"
 )
 
 func main() {
 	args := os.Args
-	if len(args) < 4 {
+	if len(args) < 2 {
 		panic("not sufficient number of args")
 	}
 
 	listenAddr := args[1]
 
-	seqStr := args[2]
-	seqInt, err := strconv.Atoi(seqStr)
-	if err != nil {
-		panic(err)
-	}
-
-	if seqInt < 0 {
-		panic("negative sequence")
-	}
-	sequence := uint32(seqInt)
-
-	appIdStr := args[3]
-	appIdInt, err := strconv.Atoi(appIdStr)
-	if err != nil {
-		panic(err)
-	}
-
-	if appIdInt < 0 {
-		panic("negative sequence")
-	}
-	appId := uint32(appIdInt)
-
 	appTracker := apptracker.NewAppTracker(listenAddr)
-	if err != nil {
-		panic(err)
+	if appTracker == nil {
+		panic("appTracker == nil")
 	}
-
-	appTracker.TalkToViscript(sequence, appId)
+	osSignal := make(chan os.Signal)
+	signal.Notify(osSignal, os.Interrupt, os.Kill)
+	<-osSignal
 }

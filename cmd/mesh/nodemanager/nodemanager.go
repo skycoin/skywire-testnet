@@ -2,9 +2,11 @@ package main
 
 import (
 	"os"
-	"strconv"
+
+	"os/signal"
 
 	network "github.com/skycoin/skywire/nodemanager"
+	_ "github.com/skycoin/viscript/signal"
 )
 
 func main() {
@@ -14,28 +16,6 @@ func main() {
 	}
 
 	domainName, ctrlAddr, appTrackerAddr := args[1], args[2], args[3]
-
-	seqStr := args[4]
-	seqInt, err := strconv.Atoi(seqStr)
-	if err != nil {
-		panic(err)
-	}
-
-	if seqInt < 0 {
-		panic("negative sequence")
-	}
-	sequence := uint32(seqInt)
-
-	appIdStr := args[5]
-	appIdInt, err := strconv.Atoi(appIdStr)
-	if err != nil {
-		panic(err)
-	}
-
-	if appIdInt < 0 {
-		panic("negative sequence")
-	}
-	appId := uint32(appIdInt)
 
 	nmConfig := &network.NodeManagerConfig{
 		Domain:         domainName,
@@ -48,6 +28,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if nm == nil {
+		panic("nm == nil")
+	}
 
-	nm.TalkToViscript(sequence, appId)
+	osSignal := make(chan os.Signal)
+	signal.Notify(osSignal, os.Interrupt, os.Kill)
+	<-osSignal
 }
