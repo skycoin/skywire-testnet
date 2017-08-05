@@ -29,19 +29,19 @@
   branch = "master"
   name = "github.com/skycoin/net"
   packages = ["client","conn","factory","msg","server","skycoin-messenger/factory"]
-  revision = "cab7113ca9a3b2aa7201bcba3cea542160180a08"
+  revision = "8204ebbfa654707c95ae8e57052ad8296248373d"
 
 [[projects]]
-  branch = "develop"
   name = "github.com/skycoin/skycoin"
-  packages = ["src/cipher","src/cipher/base58","src/cipher/chacha20","src/cipher/encoder","src/cipher/ripemd160","src/cipher/secp256k1-go","src/cipher/secp256k1-go/secp256k1-go2"]
-  revision = "3ed8a7f74cfa1d294cfc9d2975278ce28de9c21d"
+  packages = ["src/cipher","src/cipher/base58","src/cipher/chacha20","src/cipher/encoder","src/cipher/ripemd160","src/cipher/secp256k1-go","src/cipher/secp256k1-go/secp256k1-go2","src/util/logging"]
+  revision = "dd924e1f2de8fab945e05b3245dbeabf267f2910"
+  version = "v0.19.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/skycoin/viscript"
-  packages = ["hypervisor/dbus","msg"]
-  revision = "1acc4cea6d7e80b0e05d34d14cd38525249ee6a8"
+  packages = ["msg","signal","signal/msg","signal/op2c","signal/op2s"]
+  revision = "c83bc04dbed2a22d89788dfc940245c2de155688"
 
 [[projects]]
   branch = "master"
@@ -82,6 +82,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "305075d3f1c8eccbd75108e70f81a0c5d2997cee090c762f91ba5139cb01e909"
+  inputs-digest = "015c2121d41689dff6ab79b9b3f547a077dfc1305d8900c43c2db5f3a07aab76"
   solver-name = "gps-cdcl"
   solver-version = 1
