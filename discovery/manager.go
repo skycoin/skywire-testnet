@@ -1,4 +1,4 @@
-package nodemanager
+package discovery
 
 import "github.com/skycoin/net/skycoin-messenger/factory"
 

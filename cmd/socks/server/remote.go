@@ -308,7 +308,7 @@ func waitSignal() {
 }
 
 func run(port, password string, auth bool) {
-	ln, err := net.Listen("tcp", ":"+port)
+	ln, err := net.Listen("tcp", "localhost:"+port)
 	if err != nil {
 		log.Printf("error listening port %v: %v\n", port, err)
 		os.Exit(1)
@@ -342,7 +342,7 @@ func runUDP(port, password string, auth bool) {
 	port_i, _ := strconv.Atoi(port)
 	log.Printf("listening udp port %v\n", port)
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{
-		IP:   net.IPv6zero,
+		IP:   net.IPv6loopback,
 		Port: port_i,
 	})
 	passwdManager.addUDP(port, password, conn)

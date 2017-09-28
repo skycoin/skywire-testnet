@@ -31,13 +31,13 @@ func New() *Node {
 	return &Node{apps:apps}
 }
 
-func (n *Node) Start(manager Addresses, address string) (err error) {
+func (n *Node) Start(discoveries Addresses, address string) (err error) {
 	err = n.apps.Listen(address)
 	if err != nil {
 		return
 	}
 
-	for _, addr := range manager {
+	for _, addr := range discoveries {
 		n.apps.ConnectWithConfig(addr, &factory.ConnConfig{
 			Reconnect:     true,
 			ReconnectWait: 10 * time.Second,
@@ -49,7 +49,7 @@ func (n *Node) Start(manager Addresses, address string) (err error) {
 							if !ok {
 								return
 							}
-							log.Debugf("manager:%x", m)
+							log.Debugf("discoveries:%x", m)
 						}
 					}
 				}()
