@@ -350,7 +350,7 @@ func enoughOptions(config *ss.Config) bool {
 		config.LocalPort != 0 && config.Password != ""
 }
 
-func appmain(config *ss.Config) {
+func appmain(listenAddr string, config *ss.Config) {
 	log.SetOutput(os.Stdout)
 
 	if strings.HasSuffix(config.Method, "-auth") {
@@ -378,5 +378,5 @@ func appmain(config *ss.Config) {
 
 	parseServerConfig(config)
 
-	run("localhost:" + strconv.Itoa(config.LocalPort))
+	run(listenAddr)
 }
