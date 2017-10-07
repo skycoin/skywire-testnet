@@ -21,14 +21,15 @@ func (addrs *Addresses) Set(addr string) error {
 }
 
 type Node struct {
-	apps   *factory.MessengerFactory
+	apps           *factory.MessengerFactory
+	seedConfigPath string
 }
 
-func New() *Node {
+func New(seedPath string) *Node {
 	apps := factory.NewMessengerFactory()
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
-	return &Node{apps:apps}
+	return &Node{apps: apps, seedConfigPath: seedPath}
 }
 
 func (n *Node) Start(discoveries Addresses, address string) (err error) {
@@ -38,9 +39,10 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 	}
 
 	for _, addr := range discoveries {
-		n.apps.ConnectWithConfig(addr, &factory.ConnConfig{
-			Reconnect:     true,
-			ReconnectWait: 10 * time.Second,
+		_, err = n.apps.ConnectWithConfig(addr, &factory.ConnConfig{
+			SeedConfigPath: n.seedConfigPath,
+			Reconnect:      true,
+			ReconnectWait:  10 * time.Second,
 			OnConnected: func(connection *factory.Connection) {
 				go func() {
 					for {
@@ -55,6 +57,10 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 				}()
 			},
 		})
+		if err != nil {
+			log.Errorf("failed to connect addr(%s) err %v", addr, err)
+			return
+		}
 	}
 
 	return
