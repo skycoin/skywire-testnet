@@ -23,10 +23,11 @@ func New(server bool, service, addr string) *App {
 	return &App{net: messengerFactory, service: service, serviceAddr: addr, server: server}
 }
 
-func (app *App) Start(addr string) {
-	app.net.ConnectWithConfig(addr, &factory.ConnConfig{
-		Reconnect:     true,
-		ReconnectWait: 10 * time.Second,
+func (app *App) Start(addr, scPath string) error {
+	_, err := app.net.ConnectWithConfig(addr, &factory.ConnConfig{
+		SeedConfigPath: scPath,
+		Reconnect:      true,
+		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
 			if app.server {
 				connection.OfferServiceWithAddress(app.serviceAddr, app.service)
@@ -37,6 +38,7 @@ func (app *App) Start(addr string) {
 		FindServiceNodesByAttributesCallback: app.FindServiceByAttributesCallback,
 		AppConnectionInitCallback:            app.AppConnectionInitCallback,
 	})
+	return err
 }
 
 func (app *App) FindServiceByAttributesCallback(resp *factory.QueryByAttrsResp) {

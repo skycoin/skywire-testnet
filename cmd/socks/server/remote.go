@@ -75,14 +75,14 @@ func getRequest(conn *ss.Conn, auth bool) (host string, ota bool, err error) {
 	// big problem.
 	switch addrType & ss.AddrMask {
 	case typeIPv4:
-		host = net.IP(buf[idIP0: idIP0+net.IPv4len]).String()
+		host = net.IP(buf[idIP0 : idIP0+net.IPv4len]).String()
 	case typeIPv6:
-		host = net.IP(buf[idIP0: idIP0+net.IPv6len]).String()
+		host = net.IP(buf[idIP0 : idIP0+net.IPv6len]).String()
 	case typeDm:
-		host = string(buf[idDm0: idDm0+int(buf[idDmLen])])
+		host = string(buf[idDm0 : idDm0+int(buf[idDmLen])])
 	}
 	// parse port
-	port := binary.BigEndian.Uint16(buf[reqEnd-2: reqEnd])
+	port := binary.BigEndian.Uint16(buf[reqEnd-2 : reqEnd])
 	host = net.JoinHostPort(host, strconv.Itoa(int(port)))
 	// if specified one time auth enabled, we should verify this
 	if auth || addrType&ss.OneTimeAuthMask > 0 {
@@ -286,7 +286,7 @@ func updatePasswd() {
 		}
 	}
 	// port password still left in the old config should be closed
-	for port, _ := range oldconfig.PortPassword {
+	for port := range oldconfig.PortPassword {
 		log.Printf("closing port %s as it's deleted\n", port)
 		passwdManager.del(port)
 	}

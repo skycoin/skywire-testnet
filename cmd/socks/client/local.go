@@ -137,13 +137,13 @@ func getRequest(conn net.Conn) (rawaddr []byte, host string, err error) {
 	if debug {
 		switch buf[idType] {
 		case typeIPv4:
-			host = net.IP(buf[idIP0: idIP0+net.IPv4len]).String()
+			host = net.IP(buf[idIP0 : idIP0+net.IPv4len]).String()
 		case typeIPv6:
-			host = net.IP(buf[idIP0: idIP0+net.IPv6len]).String()
+			host = net.IP(buf[idIP0 : idIP0+net.IPv6len]).String()
 		case typeDm:
-			host = string(buf[idDm0: idDm0+buf[idDmLen]])
+			host = string(buf[idDm0 : idDm0+buf[idDmLen]])
 		}
-		port := binary.BigEndian.Uint16(buf[reqLen-2: reqLen])
+		port := binary.BigEndian.Uint16(buf[reqLen-2 : reqLen])
 		host = net.JoinHostPort(host, strconv.Itoa(int(port)))
 	}
 

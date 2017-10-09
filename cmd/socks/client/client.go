@@ -2,26 +2,33 @@ package main
 
 import (
 	"flag"
-
+	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
 
 	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
+	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/app"
-	"net"
-	"strconv"
 )
 
 var (
 	nodeAddress   string
 	listenAddress string
+	// use fixed seed if true
+	seed bool
+	// path for seed, public key and private key
+	seedPath string
 )
 
 func parseFlags() {
 	flag.StringVar(&nodeAddress, "node-address", ":5001", "node address to connect")
 	flag.StringVar(&listenAddress, "address", ":9443", "listen address")
+	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
+	flag.StringVar(&seedPath, "seedPath", "", "path to save seed info(default:$HOME/.skywire/sc/keys.json)")
 	flag.Parse()
 }
 
@@ -55,7 +62,18 @@ func main() {
 		appmain(listenAddress, config)
 		log.Debugln("appmain")
 	}
-	a.Start(nodeAddress)
+
+	if !seed {
+		seedPath = ""
+	} else {
+		if len(seedPath) < 1 {
+			seedPath = filepath.Join(file.UserHome(), ".skywire", "sc", "keys.json")
+		}
+	}
+	err = a.Start(nodeAddress, seedPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	select {
 	case signal := <-osSignal:
