@@ -8,14 +8,21 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
+	"github.com/skycoin/net/skycoin-messenger/monitor"
+	"path/filepath"
 )
 
 var (
 	address string
+	webDir  string
+	webPort string
 )
 
 func parseFlags() {
+	var dir = "/src/github.com/skycoin/net/skycoin-messenger/monitor/web/dist"
 	flag.StringVar(&address, "address", ":5999", "address to listen on")
+	flag.StringVar(&webDir, "webDir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
+	flag.StringVar(&webPort, "webPort", ":5998", "monitor web page port")
 	flag.Parse()
 }
 
@@ -33,7 +40,8 @@ func main() {
 		log.Error(err)
 		os.Exit(1)
 	}
-
+	m := monitor.New(f, webPort)
+	m.Start(webDir)
 	select {
 	case signal := <-osSignal:
 		if signal == os.Interrupt {
@@ -41,5 +49,6 @@ func main() {
 		} else if signal == os.Kill {
 			log.Debugln("exit by signal Kill")
 		}
+		m.Close()
 	}
 }
