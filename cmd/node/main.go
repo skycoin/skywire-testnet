@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/node"
+	"github.com/skycoin/skywire/utils"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 	seed bool
 	// path for seed, public key and private key
 	seedPath string
+	webPort  string
 )
 
 func parseFlags() {
@@ -29,6 +31,7 @@ func parseFlags() {
 	flag.StringVar(&managerAddr, "manager-address", ":5998", "address of node manager")
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "node", "keys.json"), "path to save seed info")
+	flag.StringVar(&webPort, "web-port", ":6001", "monitor web page port")
 	flag.Parse()
 }
 
@@ -58,6 +61,8 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	u := utils.New(webPort, n, osSignal)
+	u.StartSrv()
 	select {
 	case signal := <-osSignal:
 		if signal == os.Interrupt {
@@ -65,5 +70,6 @@ func main() {
 		} else if signal == os.Kill {
 			log.Debugln("exit by signal Kill")
 		}
+		u.Close()
 	}
 }

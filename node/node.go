@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
+	"github.com/skycoin/skycoin/src/cipher"
 )
 
 type Addresses []string
@@ -91,4 +92,11 @@ func (n *Node) ConnectManager(managerAddr string) (err error) {
 		return
 	}
 	return
+}
+
+func (n *Node) Test(key cipher.PubKey) {
+	c,ok := n.apps.GetConnection(key)
+	if ok {
+		log.Debugf("transport %v",c.GetTransports())
+	}
 }
