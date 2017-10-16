@@ -18,7 +18,7 @@ go get ./...
 ```
 Build the web static files for monitor
 
-Please read the README.md under the `web` folder before if have any questions
+Please read the [README.md](https://github.com/skycoin/net/blob/master/skycoin-messenger/monitor/web/README.MD) under the `web` folder before if have any questions
 
 ```
 cd $GOPATH/src/github.com/skycoin/net/skycoin-messenger/monitor/web
