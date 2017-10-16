@@ -2,14 +2,12 @@ package main
 
 import (
 	"flag"
-
-	"os"
-	"os/signal"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
-	"path/filepath"
 	"github.com/skycoin/net/skycoin-messenger/monitor"
+	"os"
+	"os/signal"
+	"path/filepath"
 )
 
 var (
@@ -20,8 +18,8 @@ var (
 
 func parseFlags() {
 	var dir = "/src/github.com/skycoin/net/skycoin-messenger/monitor/web/dist"
-	flag.StringVar(&webDir, "webDir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
-	flag.StringVar(&webPort, "webPort", ":8000", "monitor web page port")
+	flag.StringVar(&webDir, "web-dir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
+	flag.StringVar(&webPort, "web-port", ":8000", "monitor web page port")
 	flag.StringVar(&address, "address", ":5998", "address to listen on")
 	flag.Parse()
 }

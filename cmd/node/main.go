@@ -13,6 +13,7 @@ import (
 
 var (
 	discoveryAddresses node.Addresses
+	connectManager     bool
 	managerAddr        string
 	address            string
 	// use fixed seed if true
@@ -24,9 +25,10 @@ var (
 func parseFlags() {
 	flag.StringVar(&address, "address", ":5000", "address to listen on")
 	flag.Var(&discoveryAddresses, "discovery-address", "addresses of discovery")
-	flag.StringVar(&managerAddr, "manager-address",":5998", "address of node manager")
+	flag.BoolVar(&connectManager, "connect-manager", false, "connect to manager if true")
+	flag.StringVar(&managerAddr, "manager-address", ":5998", "address of node manager")
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
-	flag.StringVar(&seedPath, "seedPath", filepath.Join(file.UserHome(), ".skywire", "node", "keys.json"), "path to save seed info")
+	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "node", "keys.json"), "path to save seed info")
 	flag.Parse()
 }
 
@@ -50,9 +52,11 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Debugf("listen on %s", address)
-	err = n.ConnectManager(managerAddr)
-	if err != nil {
-		log.Fatal(err)
+	if connectManager {
+		err = n.ConnectManager(managerAddr)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	select {
 	case signal := <-osSignal:

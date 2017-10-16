@@ -21,8 +21,8 @@ var (
 func parseFlags() {
 	var dir = "/src/github.com/skycoin/net/skycoin-messenger/monitor/web/dist"
 	flag.StringVar(&address, "address", ":5999", "address to listen on")
-	flag.StringVar(&webDir, "webDir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
-	flag.StringVar(&webPort, "webPort", ":8000", "monitor web page port")
+	flag.StringVar(&webDir, "web-dir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
+	flag.StringVar(&webPort, "web-port", ":8000", "monitor web page port")
 	flag.Parse()
 }
 
