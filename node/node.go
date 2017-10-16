@@ -65,3 +65,30 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 
 	return
 }
+
+func (n *Node) ConnectManager(managerAddr string) (err error) {
+	_, err = n.apps.ConnectWithConfig(managerAddr, &factory.ConnConfig{
+		SkipFactoryReg: true,
+		SeedConfigPath: n.seedConfigPath,
+		Reconnect:      true,
+		ReconnectWait:  10 * time.Second,
+		OnConnected: func(connection *factory.Connection) {
+			go func() {
+				for {
+					select {
+					case m, ok := <-connection.GetChanIn():
+						if !ok {
+							return
+						}
+						log.Debugf("discoveries:%x", m)
+					}
+				}
+			}()
+		},
+	})
+	if err != nil {
+		log.Errorf("failed to connect Manager addr(%s) err %v", managerAddr, err)
+		return
+	}
+	return
+}

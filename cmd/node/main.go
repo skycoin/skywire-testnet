@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	managerAddresses node.Addresses
-	address          string
+	discoveryAddresses node.Addresses
+	managerAddr        string
+	address            string
 	// use fixed seed if true
 	seed bool
 	// path for seed, public key and private key
@@ -22,7 +23,8 @@ var (
 
 func parseFlags() {
 	flag.StringVar(&address, "address", ":5000", "address to listen on")
-	flag.Var(&managerAddresses, "manager-address", "address of node manager")
+	flag.Var(&discoveryAddresses, "discovery-address", "address of node manager")
+	flag.StringVar(&managerAddr, "manager-address",":4999", "address of node manager")
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
 	flag.StringVar(&seedPath, "seedPath", "", "path to save seed info(default:$HOME/.skywire/node/keys.json)")
 	flag.Parse()
@@ -43,12 +45,15 @@ func main() {
 		}
 		n = node.New(seedPath)
 	}
-	err := n.Start(managerAddresses, address)
+	err := n.Start(discoveryAddresses, address)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Debugf("listen on %s", address)
-
+	err = n.ConnectManager(managerAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
 	select {
 	case signal := <-osSignal:
 		if signal == os.Interrupt {
