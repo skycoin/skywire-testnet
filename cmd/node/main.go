@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/node"
-	"github.com/skycoin/skywire/utils"
+	"github.com/skycoin/skywire/node/api"
 )
 
 var (
@@ -43,12 +43,12 @@ func main() {
 
 	var n *node.Node
 	if !seed {
-		n = node.New("")
+		n = node.New("", webPort)
 	} else {
 		if len(seedPath) < 1 {
 			seedPath = filepath.Join(file.UserHome(), ".skywire", "node", "keys.json")
 		}
-		n = node.New(seedPath)
+		n = node.New(seedPath, webPort)
 	}
 	err := n.Start(discoveryAddresses, address)
 	if err != nil {
@@ -61,8 +61,8 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	u := utils.New(webPort, n, osSignal)
-	u.StartSrv()
+	na := api.New(webPort, n, osSignal)
+	na.StartSrv()
 	select {
 	case signal := <-osSignal:
 		if signal == os.Interrupt {
@@ -70,6 +70,6 @@ func main() {
 		} else if signal == os.Kill {
 			log.Debugln("exit by signal Kill")
 		}
-		u.Close()
+		na.Close()
 	}
 }

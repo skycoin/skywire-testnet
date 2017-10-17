@@ -23,14 +23,17 @@ func (addrs *Addresses) Set(addr string) error {
 
 type Node struct {
 	apps           *factory.MessengerFactory
+	manager        *factory.MessengerFactory
 	seedConfigPath string
+	webPort        string
 }
 
-func New(seedPath string) *Node {
+func New(seedPath, webPort string) *Node {
 	apps := factory.NewMessengerFactory()
+	manager := factory.NewMessengerFactory()
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
-	return &Node{apps: apps, seedConfigPath: seedPath}
+	return &Node{apps: apps, seedConfigPath: seedPath, manager: manager, webPort: webPort}
 }
 
 func (n *Node) Start(discoveries Addresses, address string) (err error) {
@@ -68,13 +71,13 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 }
 
 func (n *Node) ConnectManager(managerAddr string) (err error) {
-	_, err = n.apps.ConnectWithConfig(managerAddr, &factory.ConnConfig{
-		SkipFactoryReg: true,
+	_, err = n.manager.ConnectWithConfig(managerAddr, &factory.ConnConfig{
 		SeedConfigPath: n.seedConfigPath,
 		Reconnect:      true,
 		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
 			go func() {
+				connection.OfferServiceWithAddress(n.webPort, "node-web")
 				for {
 					select {
 					case m, ok := <-connection.GetChanIn():
@@ -94,9 +97,12 @@ func (n *Node) ConnectManager(managerAddr string) (err error) {
 	return
 }
 
-func (n *Node) Test(key cipher.PubKey) {
-	c,ok := n.apps.GetConnection(key)
-	if ok {
-		log.Debugf("transport %v",c.GetTransports())
-	}
+func (n *Node) GetTransport() (bs []factory.FromAndTo) {
+	n.apps.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
+		for _, v := range conn.GetTransports() {
+			node, app := v.GetTransportBundle()
+			bs = append(bs, node, app)
+		}
+	})
+	return
 }
