@@ -97,11 +97,17 @@ func (n *Node) ConnectManager(managerAddr string) (err error) {
 	return
 }
 
-func (n *Node) GetTransport() (bs []factory.FromAndTo) {
+type NodeTransport struct {
+	FromNode string `json:"from_node"`
+	ToNode   string `json:"to_node"`
+	FromApp  string `json:"from_app"`
+	ToApp    string `json:"to_app"`
+}
+
+func (n *Node) GetTransport() (ts []NodeTransport) {
 	n.apps.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
 		for _, v := range conn.GetTransports() {
-			node, app := v.GetTransportBundle()
-			bs = append(bs, node, app)
+			ts = append(ts, NodeTransport{FromNode: v.FromNode.Hex(), ToNode: v.ToNode.Hex(), FromApp: v.FromApp.Hex(), ToApp: v.ToApp.Hex()})
 		}
 	})
 	return
