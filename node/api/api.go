@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skywire/node"
@@ -34,15 +35,7 @@ func (na *NodeApi) Close() error {
 }
 func (na *NodeApi) StartSrv() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/node/getTransports", func(w http.ResponseWriter, r *http.Request) {
-		js, err := json.Marshal(na.node.GetTransport())
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-	})
+	mux.HandleFunc("/node/getTransports", wrap(na.getTransports))
 	mux.HandleFunc("/node/reboot", wrap(na.runReboot))
 	mux.HandleFunc("/node/run/sshs", wrap(na.runSshs))
 	mux.HandleFunc("/node/run/sockss", wrap(na.runSockss))
@@ -54,16 +47,24 @@ func (na *NodeApi) StartSrv() {
 	}()
 	log.Debugf("http server listen on %s", na.address)
 }
+func (na *NodeApi) getTransports(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	result, err = json.Marshal(na.node.GetTransport())
+	if err != nil {
+		return
+	}
+	return
+}
 
 func wrap(fn func(w http.ResponseWriter, r *http.Request) (result []byte, err error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		var callback string = r.Form["callback"][0]
 		result, err := fn(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(result)
+		fmt.Fprintf(w, callback+"("+string(result)+")")
 	}
 }
 
