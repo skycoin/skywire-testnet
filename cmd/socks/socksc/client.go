@@ -28,7 +28,7 @@ func parseFlags() {
 	flag.StringVar(&nodeAddress, "node-address", ":5001", "node address to connect")
 	flag.StringVar(&listenAddress, "address", ":9443", "listen address")
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
-	flag.StringVar(&seedPath, "seedPath", "", "path to save seed info(default:$HOME/.skywire/sc/keys.json)")
+	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "sc", "keys.json"), "path to save seed info")
 	flag.Parse()
 }
 

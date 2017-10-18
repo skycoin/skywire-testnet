@@ -26,6 +26,7 @@ type Node struct {
 	manager        *factory.MessengerFactory
 	seedConfigPath string
 	webPort        string
+	lnAddr         string
 }
 
 func New(seedPath, webPort string) *Node {
@@ -37,6 +38,7 @@ func New(seedPath, webPort string) *Node {
 }
 
 func (n *Node) Start(discoveries Addresses, address string) (err error) {
+	n.lnAddr = address
 	err = n.apps.Listen(address)
 	if err != nil {
 		return
@@ -95,6 +97,10 @@ func (n *Node) ConnectManager(managerAddr string) (err error) {
 		return
 	}
 	return
+}
+
+func (n *Node) GetListenAddress() string {
+	return n.lnAddr
 }
 
 type NodeTransport struct {
