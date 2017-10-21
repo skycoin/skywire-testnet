@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skywire/node"
@@ -57,14 +56,13 @@ func (na *NodeApi) getTransports(w http.ResponseWriter, r *http.Request) (result
 
 func wrap(fn func(w http.ResponseWriter, r *http.Request) (result []byte, err error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-		var callback string = r.Form["callback"][0]
 		result, err := fn(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		fmt.Fprintf(w, callback+"("+string(result)+")")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(result)
 	}
 }
 
