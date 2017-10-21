@@ -72,13 +72,12 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 
 func (n *Node) ConnectManager(managerAddr string) (err error) {
 	_, err = n.apps.ConnectWithConfig(managerAddr, &factory.ConnConfig{
-		SkipFactoryReg: true,
+		Context:        map[string]string{"node-api": n.webPort},
 		SeedConfigPath: n.seedConfigPath,
 		Reconnect:      true,
 		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
 			go func() {
-				connection.OfferStaticServiceWithAddress(n.webPort, "node-api")
 				for {
 					select {
 					case m, ok := <-connection.GetChanIn():
