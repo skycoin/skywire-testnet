@@ -23,7 +23,6 @@ func (addrs *Addresses) Set(addr string) error {
 
 type Node struct {
 	apps           *factory.MessengerFactory
-	manager        *factory.MessengerFactory
 	seedConfigPath string
 	webPort        string
 	lnAddr         string
@@ -31,10 +30,9 @@ type Node struct {
 
 func New(seedPath, webPort string) *Node {
 	apps := factory.NewMessengerFactory()
-	manager := factory.NewMessengerFactory()
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
-	return &Node{apps: apps, seedConfigPath: seedPath, manager: manager, webPort: webPort}
+	return &Node{apps: apps, seedConfigPath: seedPath, webPort: webPort}
 }
 
 func (n *Node) Start(discoveries Addresses, address string) (err error) {
@@ -73,13 +71,14 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 }
 
 func (n *Node) ConnectManager(managerAddr string) (err error) {
-	_, err = n.manager.ConnectWithConfig(managerAddr, &factory.ConnConfig{
+	_, err = n.apps.ConnectWithConfig(managerAddr, &factory.ConnConfig{
+		SkipFactoryReg: true,
 		SeedConfigPath: n.seedConfigPath,
 		Reconnect:      true,
 		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
 			go func() {
-				connection.OfferServiceWithAddress(n.webPort, "node-web")
+				connection.OfferStaticServiceWithAddress(n.webPort, "node-api")
 				for {
 					select {
 					case m, ok := <-connection.GetChanIn():
