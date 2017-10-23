@@ -1,0 +1,64 @@
+app-editor {
+  display: block;
+  width: 100%;
+  height: 100%;
+  .overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 998;
+    background-color: transparent;
+  }
+  .editor-actions {
+    padding: .5em;
+    font-size: 1.2em;
+    height: 30%;
+    .fa {
+      cursor: pointer;
+      color: #636363;
+      position: relative;
+      &:hover {
+        color: #74bd98;
+      }
+      .emoji-box {
+        position: absolute;
+        z-index: 999;
+        bottom: 100%;
+        width: 32*8px;
+        background-color: #f2f5f8;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 1px 1px rgba(0, 0, 0, 0.16);
+        ul {
+          padding: .5em 0;
+          width: 100%;
+          height: 100%;
+          list-style: none;
+          li {
+            display: inline-block;
+            padding: 5px;
+            .emojione {
+              margin: 0;
+              cursor: pointer;
+              &:hover {
+                background-color: #ccc;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  .editor-window {
+    height: 70%;
+    padding: .5em;
+    outline: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-size: 1.1rem;
+    .emojione {
+      width: 1.4rem;
+      vertical-align: sub;
+    }
+  }
+}

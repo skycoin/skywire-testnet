@@ -1,0 +1,20 @@
+<div class="root">
+  <md-grid-list cols="5" rowHeight="100%">
+    <md-grid-tile colspan="1">
+      <nav class="nav">
+        <md-nav-list>
+          <img src="../assets/logo.png" alt="Sky Wire" class="nav-logo">
+          <a md-list-item md-line routerLink="/" *ngFor="let item of listitems" routerLinkActive="active">
+            <md-icon>dashboard</md-icon>
+            <span class="list-item-text">{{ item }}</span>
+          </a>
+        </md-nav-list>
+      </nav>
+    </md-grid-tile>
+    <md-grid-tile colspan="4">
+      <div class="content">
+        <router-outlet></router-outlet>
+      </div>
+    </md-grid-tile>
+  </md-grid-list>
+</div>

@@ -1,0 +1,48 @@
+alert-dialog {
+  display: block;
+  .text-center {
+    text-align: center;
+  }
+  .border-content {
+    padding-bottom: 1rem;
+    box-shadow: 0 0.1rem 0.1rem hsla(0, 0%, 59%, 0.1);
+  }
+  .alert-success {
+    background-color: #dff0d8;
+  }
+  .alert-info {
+    background-color: #d9edf7;
+  }
+  .alert-warning {
+    background-color: #faebcc;
+  }
+  .alert-danger {
+    background-color: #f2dede;
+  }
+  .alert-title {
+    margin-left: -24px;
+    margin-right: -24px;
+    margin-top: -24px;
+    margin-bottom: 12px;
+    padding: 14px 0;
+  }
+  .mat-dialog-actions {
+    padding: 6px 0;
+  }
+}
+
+.success {
+  color: #3c763d;
+}
+
+.info {
+  color: #31708f;
+}
+
+.warning {
+  color: #8a6d3b;
+}
+
+.danger {
+  color: #a94442;
+}

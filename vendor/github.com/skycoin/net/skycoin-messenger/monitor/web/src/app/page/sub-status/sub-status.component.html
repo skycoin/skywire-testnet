@@ -1,0 +1,163 @@
+<!-- <div class="text-right" *ngIf="isManager">
+  <button md-icon-button color="primary" (click)="reboot($event)">
+    <md-icon aria-label="Restart">rotate_right</md-icon>
+  </button>
+</div> -->
+<md-card>
+  <md-card-title>
+    <span>Node Status</span>
+    <small>
+      <md-icon (click)="refresh($event)">refresh</md-icon>
+    </small>
+  </md-card-title>
+  <md-card-content>
+    <div class="node-key">
+      Public Key:
+      <strong>{{key}}</strong>
+    </div>
+    <md-grid-list cols="6" rowHeight="2:1">
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Status</small>
+          <md-icon>network_check</md-icon>
+        </p>
+        <p class="status-box-item-content">Online</p>
+      </md-grid-tile>
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Type</small>
+          <md-icon>layers</md-icon>
+        </p>
+        <p class="status-box-item-content">
+          <md-chip-list>
+            <md-chip style="background-color: #6b6bff; color:#fff;">{{status?.type}}</md-chip>
+          </md-chip-list>
+        </p>
+      </md-grid-tile>
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Seen</small>
+          <md-icon>timelapse</md-icon>
+        </p>
+        <p class="status-box-item-content">{{status?.last_ack_time | timeAgo}}</p>
+      </md-grid-tile>
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Started</small>
+          <md-icon>av_timer</md-icon>
+        </p>
+        <p class="status-box-item-content">{{status?.start_time | timeAgo}}</p>
+      </md-grid-tile>
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Send</small>
+          <md-icon>arrow_upward</md-icon>
+        </p>
+        <p class="status-box-item-content">{{status?.send_bytes | byteTo}} </p>
+      </md-grid-tile>
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Recv</small>
+          <md-icon>arrow_downward</md-icon>
+        </p>
+        <p class="status-box-item-content">{{status?.recv_bytes | byteTo}}</p>
+      </md-grid-tile>
+    </md-grid-list>
+
+    <h2 class="operations-title">
+      Operations
+    </h2>
+    <md-grid-list cols="6" rowHeight="2:1">
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Shadowsocks</small>
+        </p>
+        <p class="status-box-item-content">
+          <button md-icon-button (click)="runSocketServer($event)" [ngClass]="socketColor">
+            <md-icon aria-label="Shadowsocks">near_me</md-icon>
+          </button>
+        </p>
+      </md-grid-tile>
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>SSH</small>
+        </p>
+        <p class="status-box-item-content">
+          <button md-icon-button (click)="runSSHServer($event)" [ngClass]="sshColor">
+            <md-icon aria-label="SSH">computer</md-icon>
+          </button>
+        </p>
+      </md-grid-tile>
+      <md-grid-tile>
+        <p class="status-box-item-title">
+          <small>Reboot</small>
+        </p>
+        <p class="status-box-item-content">
+          <button md-icon-button color="primary" (click)="reboot($event)">
+            <md-icon aria-label="Reboot">rotate_right</md-icon>
+          </button>
+        </p>
+      </md-grid-tile>
+    </md-grid-list>
+  </md-card-content>
+</md-card>
+
+
+<ng-container *ngIf="transports?.length > 0">
+  <h3 class="status-app-title">
+    <span>Transports</span>
+    <md-icon>compare_arrows</md-icon>
+  </h3>
+  <md-table [dataSource]="transportSource">
+    <ng-container mdColumnDef="index">
+      <md-header-cell *mdHeaderCellDef class="text-center" [style.flex]="'0 0 3rem'"> # </md-header-cell>
+      <md-cell *mdCellDef="let i = index" [style.flex]="'0 0 3rem'" class="text-center"> {{i + 1}} </md-cell>
+    </ng-container>
+    <ng-container mdColumnDef="toNode">
+      <md-header-cell *mdHeaderCellDef class="text-center"> ToNode </md-header-cell>
+      <md-cell *mdCellDef="let data" class="transport-key"> {{data.to_node}} </md-cell>
+    </ng-container>
+    <ng-container mdColumnDef="fromNode">
+      <md-header-cell *mdHeaderCellDef class="text-center"> FromNode </md-header-cell>
+      <md-cell *mdCellDef="let data" class="transport-key"> {{data.from_node}} </md-cell>
+    </ng-container>
+    <ng-container mdColumnDef="fromApp">
+      <md-header-cell *mdHeaderCellDef class="text-center"> FromApp </md-header-cell>
+      <md-cell *mdCellDef="let data" class="transport-key"> {{data.from_app}} </md-cell>
+    </ng-container>
+    <ng-container mdColumnDef="toApp">
+      <md-header-cell *mdHeaderCellDef class="text-center"> ToApp </md-header-cell>
+      <md-cell *mdCellDef="let data" class="transport-key"> {{data.to_app}} </md-cell>
+    </ng-container>
+    <md-header-row *mdHeaderRowDef="transportColumns"></md-header-row>
+    <md-row *mdRowDef="let row; columns: transportColumns;"></md-row>
+  </md-table>
+</ng-container>
+
+
+<ng-container *ngIf="status?.apps?.length > 0">
+  <h3 class="status-app-title">
+    <span>Apps</span>
+    <md-icon>apps</md-icon>
+  </h3>
+  <md-table #table [dataSource]="appSource">
+    <ng-container mdColumnDef="index">
+      <md-header-cell *mdHeaderCellDef [style.flex]="'0 0 3rem'"> # </md-header-cell>
+      <md-cell *mdCellDef="let data" [style.flex]="'0 0 3rem'"> {{data.index}} </md-cell>
+    </ng-container>
+    <ng-container mdColumnDef="key">
+      <md-header-cell *mdHeaderCellDef [style.flex]="'0 0 35rem'"> Key </md-header-cell>
+      <md-cell *mdCellDef="let data" [style.flex]="'0 0 35rem'"> {{data.key}} </md-cell>
+    </ng-container>
+    <ng-container mdColumnDef="app">
+      <md-header-cell *mdHeaderCellDef> Apps </md-header-cell>
+      <md-cell *mdCellDef="let data">
+        <md-chip-list>
+          <md-chip class="chip-success" *ngFor="let app of data?.attributes">{{app}}</md-chip>
+        </md-chip-list>
+      </md-cell>
+    </ng-container>
+    <md-header-row *mdHeaderRowDef="displayedColumns"></md-header-row>
+    <md-row *mdRowDef="let row; columns: displayedColumns;"></md-row>
+  </md-table>
+</ng-container>
