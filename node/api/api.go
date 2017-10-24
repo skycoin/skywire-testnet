@@ -87,7 +87,7 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 	}
 	na.sshsCxt, na.sshsCancel = context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(na.sshsCxt, "sshs", "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(na.sshsCxt, "./sshs", "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -105,7 +105,7 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 	}
 	na.sockssCxt, na.sockssCancel = context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(na.sshsCxt, "sockss", "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(na.sshsCxt, "./sockss", "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return

@@ -55,14 +55,15 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Debugf("listen on %s", address)
+	var na *api.NodeApi
 	if connectManager {
 		err = n.ConnectManager(managerAddr)
 		if err != nil {
 			log.Fatal(err)
 		}
+		na = api.New(webPort, n, osSignal)
+		na.StartSrv()
 	}
-	na := api.New(webPort, n, osSignal)
-	na.StartSrv()
 	select {
 	case signal := <-osSignal:
 		if signal == os.Interrupt {
@@ -70,6 +71,8 @@ func main() {
 		} else if signal == os.Kill {
 			log.Debugln("exit by signal Kill")
 		}
-		na.Close()
+		if na != nil {
+			na.Close()
+		}
 	}
 }
