@@ -13,6 +13,7 @@ type App struct {
 	service     string
 	serviceAddr string
 	server      bool
+	allowNodes  []string
 
 	AppConnectionInitCallback func(resp *factory.AppConnResp)
 }
@@ -30,9 +31,7 @@ func (app *App) Start(addr, scPath string) error {
 		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
 			if app.server {
-				connection.OfferServiceWithAddress(app.serviceAddr, app.service)
-			} else {
-				connection.FindServiceNodesByAttributes(app.service)
+				connection.OfferPrivateServiceWithAddress(app.serviceAddr, app.allowNodes, app.service)
 			}
 		},
 		FindServiceNodesByAttributesCallback: app.FindServiceByAttributesCallback,
@@ -62,4 +61,23 @@ func (app *App) FindServiceByAttributesCallback(resp *factory.QueryByAttrsResp) 
 		}
 		break
 	}
+}
+
+func (app *App) SetAllowNodes(nodes []string) {
+	app.allowNodes = nodes
+}
+
+func (app *App) ConnectTo(nodeKeyHex, appKeyHex string) (err error) {
+	nodeKey, err := cipher.PubKeyFromHex(nodeKeyHex)
+	if err != nil {
+		return
+	}
+	appKey, err := cipher.PubKeyFromHex(appKeyHex)
+	if err != nil {
+		return
+	}
+	app.net.ForEachConn(func(connection *factory.Connection) {
+		connection.BuildAppConnection(nodeKey, appKey)
+	})
+	return
 }
