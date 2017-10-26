@@ -116,3 +116,19 @@ func (n *Node) GetTransport() (ts []NodeTransport) {
 	})
 	return
 }
+
+type NodeApp struct {
+	Key        string   `json:"key"`
+	Attributes []string `json:"attributes"`
+	AllowNodes []string `json:"allow_nodes"`
+}
+
+func (n *Node) GetApps() (apps []NodeApp) {
+	n.apps.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
+		ns := conn.GetServices()
+		for _, v := range ns.Services {
+			apps = append(apps, NodeApp{Key: v.Key.Hex(), Attributes: v.Attributes, AllowNodes: v.AllowNodes})
+		}
+	})
+	return
+}

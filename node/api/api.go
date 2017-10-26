@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 )
 
@@ -22,6 +23,10 @@ type NodeApi struct {
 	sshsCancel   context.CancelFunc
 	sockssCxt    context.Context
 	sockssCancel context.CancelFunc
+	sshcCxt      context.Context
+	sshcCancel   context.CancelFunc
+	sockscCxt    context.Context
+	sockscCancel context.CancelFunc
 	sync.RWMutex
 }
 
@@ -35,8 +40,10 @@ func (na *NodeApi) Close() error {
 func (na *NodeApi) StartSrv() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/node/getTransports", wrap(na.getTransports))
+	mux.HandleFunc("/node/getApps", wrap(na.getApps))
 	mux.HandleFunc("/node/reboot", wrap(na.runReboot))
 	mux.HandleFunc("/node/run/sshs", wrap(na.runSshs))
+	mux.HandleFunc("/node/run/sshc", wrap(na.runSshc))
 	mux.HandleFunc("/node/run/sockss", wrap(na.runSockss))
 	na.srv.Handler = cors.Default().Handler(mux)
 	go func() {
@@ -48,6 +55,14 @@ func (na *NodeApi) StartSrv() {
 }
 func (na *NodeApi) getTransports(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	result, err = json.Marshal(na.node.GetTransport())
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (na *NodeApi) getApps(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	result, err = json.Marshal(na.node.GetApps())
 	if err != nil {
 		return
 	}
@@ -80,14 +95,62 @@ func (na *NodeApi) runReboot(w http.ResponseWriter, r *http.Request) (result []b
 	return
 }
 
+func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	na.Lock()
+	toNode := r.FormValue("toNode")
+	toApp := r.FormValue("toApp")
+	if na.sshcCancel != nil {
+		na.sshcCancel()
+	}
+	na.sshcCxt, na.sshcCancel = context.WithCancel(context.Background())
+	cmd := exec.CommandContext(na.sshsCxt, "./sshc", "-node-key", toNode, "-app-key", toApp)
+	err = cmd.Start()
+	if err != nil {
+		return
+	}
+
+	na.Unlock()
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	na.Lock()
+	if na.sockscCancel != nil {
+		na.sockscCancel()
+	}
+	na.sockscCxt, na.sockscCancel = context.WithCancel(context.Background())
+
+	cmd := exec.CommandContext(na.sshsCxt, "./socksc", "-node-address", na.node.GetListenAddress())
+	err = cmd.Start()
+	if err != nil {
+		return
+	}
+
+	na.Unlock()
+	result = []byte("true")
+	return
+}
+
 func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	na.Lock()
 	if na.sshsCancel != nil {
 		na.sshsCancel()
 	}
 	na.sshsCxt, na.sshsCancel = context.WithCancel(context.Background())
-
-	cmd := exec.CommandContext(na.sshsCxt, "./sshs", "-node-address", na.node.GetListenAddress())
+	var arr []string
+	data := r.FormValue("data")
+	if data != "" {
+		strings.Split(data, ",")
+	}
+	args := make([]string, 0, len(arr))
+	args = append(args, "-node-address")
+	args = append(args, na.node.GetListenAddress())
+	for _, v := range arr {
+		args = append(args, "-node-key")
+		args = append(args, v)
+	}
+	cmd := exec.CommandContext(na.sshsCxt, "./sshs", args...)
 	err = cmd.Start()
 	if err != nil {
 		return
