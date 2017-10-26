@@ -49,7 +49,7 @@ func main() {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(false, "socks", "")
+	a := app.New(app.Client, "socks", "")
 	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) {
 		config := &ss.Config{
 			Password:   "123456",

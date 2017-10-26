@@ -12,16 +12,24 @@ type App struct {
 	net         *factory.MessengerFactory
 	service     string
 	serviceAddr string
-	server      bool
+	appType     Type
 	allowNodes  []string
 
 	AppConnectionInitCallback func(resp *factory.AppConnResp)
 }
 
-func New(server bool, service, addr string) *App {
+type Type int
+
+const (
+	Client Type = iota
+	Public
+	Private
+)
+
+func New(appType Type, service, addr string) *App {
 	messengerFactory := factory.NewMessengerFactory()
 	messengerFactory.SetLoggerLevel(factory.DebugLevel)
-	return &App{net: messengerFactory, service: service, serviceAddr: addr, server: server}
+	return &App{net: messengerFactory, service: service, serviceAddr: addr, appType: appType}
 }
 
 func (app *App) Start(addr, scPath string) error {
@@ -30,7 +38,10 @@ func (app *App) Start(addr, scPath string) error {
 		Reconnect:      true,
 		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
-			if app.server {
+			switch app.appType {
+			case Public:
+				connection.OfferServiceWithAddress(app.serviceAddr, app.service)
+			case Private:
 				connection.OfferPrivateServiceWithAddress(app.serviceAddr, app.allowNodes, app.service)
 			}
 		},

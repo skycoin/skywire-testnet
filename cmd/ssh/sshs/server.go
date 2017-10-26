@@ -46,7 +46,7 @@ func main() {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(true, "ssh", ":22")
+	a := app.New(app.Private, "ssh", ":22")
 	a.SetAllowNodes(nodeKeys)
 	if !seed {
 		seedPath = ""

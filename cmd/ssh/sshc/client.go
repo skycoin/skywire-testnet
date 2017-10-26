@@ -38,10 +38,14 @@ func parseFlags() {
 func main() {
 	parseFlags()
 
+	if len(nodeKey) != 66 || len(appKey) != 66 {
+		log.Fatalf("invalid node-key(%s) or app-key(%s)", nodeKey, appKey)
+	}
+
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(false, "ssh", "")
+	a := app.New(app.Client, "ssh", "")
 	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) {
 		log.Infof("please ssh to %s", net.JoinHostPort(resp.Host, strconv.Itoa(resp.Port)))
 	}

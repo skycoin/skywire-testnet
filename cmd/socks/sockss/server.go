@@ -41,7 +41,7 @@ func main() {
 	}
 	ss.SetDebug(true)
 	appmain()
-	a := app.New(true, "socks", ":"+strconv.Itoa(serverPort))
+	a := app.New(app.Public, "socks", ":"+strconv.Itoa(serverPort))
 
 	if !seed {
 		seedPath = ""
