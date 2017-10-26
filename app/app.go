@@ -41,6 +41,8 @@ func (app *App) Start(addr, scPath string) error {
 			switch app.appType {
 			case Public:
 				connection.OfferServiceWithAddress(app.serviceAddr, app.service)
+			case Client:
+				fallthrough
 			case Private:
 				connection.OfferPrivateServiceWithAddress(app.serviceAddr, app.allowNodes, app.service)
 			}

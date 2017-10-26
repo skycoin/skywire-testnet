@@ -45,8 +45,11 @@ func main() {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(app.Client, "ssh", "")
+	a := app.New(app.Client, "sshc", "")
 	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) {
+		if resp.Failed {
+			log.Fatal(resp.Msg)
+		}
 		log.Infof("please ssh to %s", net.JoinHostPort(resp.Host, strconv.Itoa(resp.Port)))
 	}
 	if !seed {
