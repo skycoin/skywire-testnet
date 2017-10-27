@@ -50,7 +50,7 @@ func main() {
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
 	a := app.New(app.Client, "socks", "")
-	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) {
+	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) *factory.AppFeedback {
 		config := &ss.Config{
 			Password:   "123456",
 			LocalPort:  port,
@@ -61,6 +61,9 @@ func main() {
 		ss.SetDebug(true)
 		appmain(listenAddress, config)
 		log.Debugln("appmain")
+		return &factory.AppFeedback{
+			Port: port,
+		}
 	}
 
 	if !seed {

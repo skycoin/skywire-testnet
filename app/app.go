@@ -15,7 +15,7 @@ type App struct {
 	appType     Type
 	allowNodes  []string
 
-	AppConnectionInitCallback func(resp *factory.AppConnResp)
+	AppConnectionInitCallback func(resp *factory.AppConnResp) *factory.AppFeedback
 }
 
 type Type int

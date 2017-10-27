@@ -46,11 +46,13 @@ func main() {
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
 	a := app.New(app.Client, "sshc", "")
-	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) {
-		if resp.Failed {
-			log.Fatal(resp.Msg)
-		}
+	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) *factory.AppFeedback {
 		log.Infof("please ssh to %s", net.JoinHostPort(resp.Host, strconv.Itoa(resp.Port)))
+		return &factory.AppFeedback{
+			Port:   resp.Port,
+			Failed: resp.Failed,
+			Msg:    resp.Msg,
+		}
 	}
 	if !seed {
 		seedPath = ""
