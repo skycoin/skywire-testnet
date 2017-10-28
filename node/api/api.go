@@ -39,7 +39,7 @@ func (na *NodeApi) Close() error {
 }
 func (na *NodeApi) StartSrv() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/node/getTransports", wrap(na.getTransports))
+	mux.HandleFunc("/node/getInfo", wrap(na.getInfo))
 	mux.HandleFunc("/node/getApps", wrap(na.getApps))
 	mux.HandleFunc("/node/reboot", wrap(na.runReboot))
 	mux.HandleFunc("/node/run/sshs", wrap(na.runSshs))
@@ -53,8 +53,8 @@ func (na *NodeApi) StartSrv() {
 	}()
 	log.Debugf("http server listen on %s", na.address)
 }
-func (na *NodeApi) getTransports(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	result, err = json.Marshal(na.node.GetTransport())
+func (na *NodeApi) getInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	result, err = json.Marshal(na.node.GetNodeInfo())
 	if err != nil {
 		return
 	}
