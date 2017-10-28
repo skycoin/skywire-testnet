@@ -23,6 +23,7 @@ func (addrs *Addresses) Set(addr string) error {
 
 type Node struct {
 	apps           *factory.MessengerFactory
+	manager        *factory.MessengerFactory
 	seedConfigPath string
 	webPort        string
 	lnAddr         string
@@ -32,7 +33,13 @@ func New(seedPath, webPort string) *Node {
 	apps := factory.NewMessengerFactory()
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
-	return &Node{apps: apps, seedConfigPath: seedPath, webPort: webPort}
+	m := factory.NewMessengerFactory()
+	return &Node{
+		apps:           apps,
+		manager:        m,
+		seedConfigPath: seedPath,
+		webPort:        webPort,
+	}
 }
 
 func (n *Node) Start(discoveries Addresses, address string) (err error) {
@@ -71,7 +78,7 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 }
 
 func (n *Node) ConnectManager(managerAddr string) (err error) {
-	_, err = n.apps.ConnectWithConfig(managerAddr, &factory.ConnConfig{
+	_, err = n.manager.ConnectWithConfig(managerAddr, &factory.ConnConfig{
 		Context:        map[string]string{"node-api": n.webPort},
 		SeedConfigPath: n.seedConfigPath,
 		Reconnect:      true,
