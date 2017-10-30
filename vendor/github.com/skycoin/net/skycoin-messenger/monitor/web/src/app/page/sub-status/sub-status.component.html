@@ -1,163 +1,309 @@
-<!-- <div class="text-right" *ngIf="isManager">
-  <button md-icon-button color="primary" (click)="reboot($event)">
-    <md-icon aria-label="Restart">rotate_right</md-icon>
-  </button>
-</div> -->
-<md-card>
-  <md-card-title>
+<mat-card>
+  <mat-card-title>
     <span>Node Status</span>
-    <small>
-      <md-icon (click)="refresh($event)">refresh</md-icon>
-    </small>
-  </md-card-title>
-  <md-card-content>
+    <mat-icon (click)="refresh($event)">refresh</mat-icon>
+  </mat-card-title>
+  <mat-card-content>
     <div class="node-key">
-      Public Key:
-      <strong>{{key}}</strong>
+      <p> Public Key:
+        <strong>{{key}}</strong>
+      </p>
+      <p>Address:
+        <span style="color: red">{{status?.addr}}</span>
+      </p>
     </div>
-    <md-grid-list cols="6" rowHeight="2:1">
-      <md-grid-tile>
+
+    <mat-grid-list cols="6" rowHeight="2:1">
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Status</small>
-          <md-icon>network_check</md-icon>
+          <mat-icon>network_check</mat-icon>
         </p>
         <p class="status-box-item-content">Online</p>
-      </md-grid-tile>
-      <md-grid-tile>
+      </mat-grid-tile>
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Type</small>
-          <md-icon>layers</md-icon>
+          <mat-icon>layers</mat-icon>
         </p>
         <p class="status-box-item-content">
-          <md-chip-list>
-            <md-chip style="background-color: #6b6bff; color:#fff;">{{status?.type}}</md-chip>
-          </md-chip-list>
+          <mat-chip-list>
+            <mat-chip style="background-color: #6b6bff; color:#fff;">{{status?.type}}</mat-chip>
+          </mat-chip-list>
         </p>
-      </md-grid-tile>
-      <md-grid-tile>
+      </mat-grid-tile>
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Seen</small>
-          <md-icon>timelapse</md-icon>
+          <mat-icon>timelapse</mat-icon>
         </p>
         <p class="status-box-item-content">{{status?.last_ack_time | timeAgo}}</p>
-      </md-grid-tile>
-      <md-grid-tile>
+      </mat-grid-tile>
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Started</small>
-          <md-icon>av_timer</md-icon>
+          <mat-icon>av_timer</mat-icon>
         </p>
         <p class="status-box-item-content">{{status?.start_time | timeAgo}}</p>
-      </md-grid-tile>
-      <md-grid-tile>
+      </mat-grid-tile>
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Send</small>
-          <md-icon>arrow_upward</md-icon>
+          <mat-icon>arrow_upward</mat-icon>
         </p>
         <p class="status-box-item-content">{{status?.send_bytes | byteTo}} </p>
-      </md-grid-tile>
-      <md-grid-tile>
+      </mat-grid-tile>
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Recv</small>
-          <md-icon>arrow_downward</md-icon>
+          <mat-icon>arrow_downward</mat-icon>
         </p>
         <p class="status-box-item-content">{{status?.recv_bytes | byteTo}}</p>
-      </md-grid-tile>
-    </md-grid-list>
-
-    <h2 class="operations-title">
-      Operations
-    </h2>
-    <md-grid-list cols="6" rowHeight="2:1">
-      <md-grid-tile>
+      </mat-grid-tile>
+    </mat-grid-list>
+  </mat-card-content>
+</mat-card>
+<mat-card *ngIf="isManager">
+  <mat-card-title>
+    <span>Operations</span>
+  </mat-card-title>
+  <mat-card-content>
+    <mat-grid-list cols="6" rowHeight="2:1">
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Shadowsocks</small>
+          <!-- <mat-icon (click)="openSettings($event,socksSettings,'Socks')" class="icon-pointer">more_vert</mat-icon> -->
         </p>
         <p class="status-box-item-content">
-          <button md-icon-button (click)="runSocketServer($event)" [ngClass]="socketColor">
-            <md-icon aria-label="Shadowsocks">near_me</md-icon>
+          <button mat-icon-button (click)="runSocketServer($event)" [ngClass]="socketColor">
+            <mat-icon aria-label="Shadowsocks">near_me</mat-icon>
           </button>
         </p>
-      </md-grid-tile>
-      <md-grid-tile>
+      </mat-grid-tile>
+      <mat-grid-tile>
         <p class="status-box-item-title">
-          <small>SSH</small>
+          <small style="margin-left: 1.5rem;">SSH</small>
+          <mat-icon (click)="openSettings($event,sshSettings,'SSH')" class="icon-pointer">more_vert</mat-icon>
         </p>
         <p class="status-box-item-content">
-          <button md-icon-button (click)="runSSHServer($event)" [ngClass]="sshColor">
-            <md-icon aria-label="SSH">computer</md-icon>
+          <button mat-icon-button (click)="runSSHServer($event)" [ngClass]="sshColor">
+            <mat-icon aria-label="SSH">computer</mat-icon>
           </button>
         </p>
-      </md-grid-tile>
-      <md-grid-tile>
+      </mat-grid-tile>
+      <mat-grid-tile>
+        <p class="status-box-item-title">
+          <small>Check Update</small>
+        </p>
+        <p class="status-box-item-content">
+          <button mat-icon-button color="primary" (click)="checkUpdate($event)">
+            <mat-icon aria-label="check_update">file_download</mat-icon>
+          </button>
+        </p>
+      </mat-grid-tile>
+      <mat-grid-tile>
         <p class="status-box-item-title">
           <small>Reboot</small>
         </p>
         <p class="status-box-item-content">
-          <button md-icon-button color="primary" (click)="reboot($event)">
-            <md-icon aria-label="Reboot">rotate_right</md-icon>
+          <button mat-icon-button color="primary" (click)="reboot($event)">
+            <mat-icon aria-label="Reboot">rotate_right</mat-icon>
           </button>
         </p>
-      </md-grid-tile>
-    </md-grid-list>
-  </md-card-content>
-</md-card>
+      </mat-grid-tile>
+    </mat-grid-list>
+    <mat-grid-list cols="6" rowHeight="2:1">
+      <mat-grid-tile>
+        <p class="status-box-item-title">
+          <small>Shadowsocks Client</small>
+        </p>
+        <p class="status-box-item-content">
+          <button mat-icon-button [ngClass]="socketClientColor">
+            <mat-icon aria-label="Shadowsocks">near_me</mat-icon>
+          </button>
+        </p>
+      </mat-grid-tile>
+      <mat-grid-tile>
+        <p class="status-box-item-title">
+          <small>SSH Client</small>
+        </p>
+        <p class="status-box-item-content">
+          <button mat-icon-button [ngClass]="sshClientColor">
+            <mat-icon aria-label="SSH" (click)="inputKeys($event,sshClientDialog)">computer</mat-icon>
+          </button>
+        </p>
+        <div>
+          <p>
+            {{getClientPort('sshc')}}
+          </p>
+        </div>
+      </mat-grid-tile>
+    </mat-grid-list>
+  </mat-card-content>
+</mat-card>
 
-
-<ng-container *ngIf="transports?.length > 0">
+<div *ngIf="transportSource">
   <h3 class="status-app-title">
     <span>Transports</span>
-    <md-icon>compare_arrows</md-icon>
+    <mat-icon>compare_arrows</mat-icon>
   </h3>
-  <md-table [dataSource]="transportSource">
-    <ng-container mdColumnDef="index">
-      <md-header-cell *mdHeaderCellDef class="text-center" [style.flex]="'0 0 3rem'"> # </md-header-cell>
-      <md-cell *mdCellDef="let i = index" [style.flex]="'0 0 3rem'" class="text-center"> {{i + 1}} </md-cell>
+  <mat-table [dataSource]="transportSource">
+    <ng-container matColumnDef="index">
+      <mat-header-cell *matHeaderCellDef class="text-center" [style.flex]="'0 0 3rem'"> # </mat-header-cell>
+      <mat-cell *matCellDef="let i = index" [style.flex]="'0 0 3rem'" class="text-center"> {{i + 1}} </mat-cell>
     </ng-container>
-    <ng-container mdColumnDef="toNode">
-      <md-header-cell *mdHeaderCellDef class="text-center"> ToNode </md-header-cell>
-      <md-cell *mdCellDef="let data" class="transport-key"> {{data.to_node}} </md-cell>
+    <ng-container matColumnDef="toNode">
+      <mat-header-cell *matHeaderCellDef class="text-center"> To Node </mat-header-cell>
+      <mat-cell *matCellDef="let data" class="transport-key"> {{data.to_node}} </mat-cell>
     </ng-container>
-    <ng-container mdColumnDef="fromNode">
-      <md-header-cell *mdHeaderCellDef class="text-center"> FromNode </md-header-cell>
-      <md-cell *mdCellDef="let data" class="transport-key"> {{data.from_node}} </md-cell>
+    <ng-container matColumnDef="fromNode">
+      <mat-header-cell *matHeaderCellDef class="text-center"> From Node </mat-header-cell>
+      <mat-cell *matCellDef="let data" class="transport-key"> {{data.from_node}} </mat-cell>
     </ng-container>
-    <ng-container mdColumnDef="fromApp">
-      <md-header-cell *mdHeaderCellDef class="text-center"> FromApp </md-header-cell>
-      <md-cell *mdCellDef="let data" class="transport-key"> {{data.from_app}} </md-cell>
+    <ng-container matColumnDef="fromApp">
+      <mat-header-cell *matHeaderCellDef class="text-center"> From App </mat-header-cell>
+      <mat-cell *matCellDef="let data" class="transport-key"> {{data.from_app}} </mat-cell>
     </ng-container>
-    <ng-container mdColumnDef="toApp">
-      <md-header-cell *mdHeaderCellDef class="text-center"> ToApp </md-header-cell>
-      <md-cell *mdCellDef="let data" class="transport-key"> {{data.to_app}} </md-cell>
+    <ng-container matColumnDef="toApp">
+      <mat-header-cell *matHeaderCellDef class="text-center"> To App </mat-header-cell>
+      <mat-cell *matCellDef="let data" class="transport-key"> {{data.to_app}} </mat-cell>
     </ng-container>
-    <md-header-row *mdHeaderRowDef="transportColumns"></md-header-row>
-    <md-row *mdRowDef="let row; columns: transportColumns;"></md-row>
-  </md-table>
-</ng-container>
+    <mat-header-row *matHeaderRowDef="transportColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: transportColumns;"></mat-row>
+  </mat-table>
+</div>
 
 
-<ng-container *ngIf="status?.apps?.length > 0">
+<div *ngIf="appSource">
   <h3 class="status-app-title">
     <span>Apps</span>
-    <md-icon>apps</md-icon>
+    <mat-icon>apps</mat-icon>
   </h3>
-  <md-table #table [dataSource]="appSource">
-    <ng-container mdColumnDef="index">
-      <md-header-cell *mdHeaderCellDef [style.flex]="'0 0 3rem'"> # </md-header-cell>
-      <md-cell *mdCellDef="let data" [style.flex]="'0 0 3rem'"> {{data.index}} </md-cell>
+  <mat-table #table [dataSource]="appSource">
+    <ng-container matColumnDef="index">
+      <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 3rem'"> # </mat-header-cell>
+      <mat-cell *matCellDef="let i = index" [style.flex]="'0 0 3rem'"> {{i + 1}} </mat-cell>
     </ng-container>
-    <ng-container mdColumnDef="key">
-      <md-header-cell *mdHeaderCellDef [style.flex]="'0 0 35rem'"> Key </md-header-cell>
-      <md-cell *mdCellDef="let data" [style.flex]="'0 0 35rem'"> {{data.key}} </md-cell>
+    <ng-container matColumnDef="key">
+      <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 35rem'"> Key </mat-header-cell>
+      <mat-cell *matCellDef="let data" [style.flex]="'0 0 35rem'"> {{data.key}} </mat-cell>
     </ng-container>
-    <ng-container mdColumnDef="app">
-      <md-header-cell *mdHeaderCellDef> Apps </md-header-cell>
-      <md-cell *mdCellDef="let data">
-        <md-chip-list>
-          <md-chip class="chip-success" *ngFor="let app of data?.attributes">{{app}}</md-chip>
-        </md-chip-list>
-      </md-cell>
+    <ng-container matColumnDef="app">
+      <mat-header-cell *matHeaderCellDef> Apps </mat-header-cell>
+      <mat-cell *matCellDef="let data">
+        <mat-chip-list>
+          <mat-chip class="chip-success" *ngFor="let app of data?.attributes">{{app}}</mat-chip>
+        </mat-chip-list>
+      </mat-cell>
     </ng-container>
-    <md-header-row *mdHeaderRowDef="displayedColumns"></md-header-row>
-    <md-row *mdRowDef="let row; columns: displayedColumns;"></md-row>
-  </md-table>
-</ng-container>
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+  </mat-table>
+</div>
+
+<ng-template #sshSettings>
+  <h1 mat-dialog-title>
+    <span>SSH Settings</span>
+    <mat-icon>settings</mat-icon>
+  </h1>
+  <div mat-dialog-content class="setting-dialog">
+    <div class="dialog-form">
+      <mat-form-field>
+        <textarea matInput placeholder="Input Public keys" rows="5" [(ngModel)]="sshTextarea" name="sshTextarea" ngDefaultControl></textarea>
+        <mat-hint align="start" class="hint-text">Multiple public keys are separated by commas</mat-hint>
+      </mat-form-field>
+      <p class="text-right">
+        <button mat-raised-button color="primary" (click)="setSSH($event)">save</button>
+      </p>
+    </div>
+
+    <h3>Allow Nodes</h3>
+    <mat-table #table [dataSource]="sshSource">
+      <ng-container matColumnDef="index">
+        <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 3rem'"> # </mat-header-cell>
+        <mat-cell *matCellDef="let i = index;" [style.flex]="'0 0 3rem'"> {{i+1}} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="key">
+        <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 30rem'"> Key </mat-header-cell>
+        <mat-cell *matCellDef="let data" [style.flex]="'0 0 30rem'"> {{data}} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="del">
+        <mat-header-cell *matHeaderCellDef></mat-header-cell>
+        <mat-cell *matCellDef="let i = index;" class="text-right">
+          <mat-icon class="del" color="primary" (click)="delAllowNode($event,i)">delete_forever</mat-icon>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="sshColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: sshColumns;"></mat-row>
+    </mat-table>
+  </div>
+</ng-template>
+<ng-template #socksSettings>
+  <h1 mat-dialog-title>
+    <span>Socks Settings</span>
+    <mat-icon>settings</mat-icon>
+  </h1>
+  <div mat-dialog-content class="setting-dialog">
+    <div class="dialog-form">
+      <mat-form-field>
+        <textarea matInput placeholder="Input Public keys" rows="5"></textarea>
+        <mat-hint align="start" class="hint-text">Multiple public keys are separated by commas</mat-hint>
+      </mat-form-field>
+      <p class="text-right">
+        <button mat-raised-button color="primary">save</button>
+      </p>
+    </div>
+    <mat-table #table [dataSource]="sshSource">
+      <ng-container matColumnDef="index">
+        <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 3rem'"> # </mat-header-cell>
+        <mat-cell *matCellDef="let i = index;" [style.flex]="'0 0 3rem'"> {{i+1}} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="key">
+        <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 30rem'"> Key </mat-header-cell>
+        <mat-cell *matCellDef="let data" [style.flex]="'0 0 30rem'"> {{data.key}} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="del">
+        <mat-header-cell *matHeaderCellDef></mat-header-cell>
+        <mat-cell *matCellDef="let data" class="text-right">
+          <mat-icon class="del" color="primary">delete_forever</mat-icon>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="sshColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: sshColumns;"></mat-row>
+    </mat-table>
+  </div>
+</ng-template>
+
+<ng-template #sshClientDialog>
+  <h1 mat-dialog-title>
+    <span>SSH Service keys</span>
+    <mat-icon>network_locked </mat-icon>
+  </h1>
+  <div mat-dialog-content class="setting-dialog">
+    <form [formGroup]="sshClientForm">
+      <mat-form-field>
+        <input matInput placeholder="Input Node Key" formControlName="nodeKey">
+      </mat-form-field>
+      <mat-form-field>
+        <input matInput placeholder="Input App Key" formControlName="appKey">
+      </mat-form-field>
+    </form>
+    <p class="text-right">
+      <button mat-raised-button color="primary" [disabled]="!sshClientForm.valid" (click)="connectSSH($event)">Connect</button>
+    </p>
+  </div>
+</ng-template>
+
+<ng-template #alert>
+  <h1 mat-dialog-title class="text-center">
+    <span>Information</span>
+    <!-- <mat-icon>file_download</mat-icon> -->
+  </h1>
+  <div mat-dialog-content class="text-center">
+    <p>{{alertMsg}}</p>
+    <!-- <p class="text-center">
+      <button mat-raised-button color="primary" tabindex="-1" mat-dialog-close>Close</button>
+    </p> -->
+  </div>
+
+</ng-template>

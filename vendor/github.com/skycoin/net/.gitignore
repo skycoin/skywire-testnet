@@ -18,3 +18,5 @@ net
 skycoin-messenger/dist
 push.sh
 restart.sh
+skycoin-messenger/monitor/web/dist-manager
+package-lock.json

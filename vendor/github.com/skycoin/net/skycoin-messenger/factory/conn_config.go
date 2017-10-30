@@ -30,7 +30,7 @@ type ConnConfig struct {
 
 	FindServiceNodesByAttributesCallback func(resp *QueryByAttrsResp)
 
-	AppConnectionInitCallback func(resp *AppConnResp)
+	AppConnectionInitCallback func(resp *AppConnResp) *AppFeedback
 
 	// call after connected to server
 	OnConnected func(connection *Connection)

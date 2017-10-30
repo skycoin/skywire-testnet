@@ -13,4 +13,5 @@ else
 fi
 
 install
+rm -rf dist-dicovery
 build

@@ -13,13 +13,13 @@ inMac() {
 }
 inLinux() {
     # Check if curl is installed.
-    if ! dpkg -s npm > /dev/null ; then
-        echo "npm is not installed."
+    if ! type "npm" > /dev/null ; then
+        echo "you can exec './linux_env.sh'"
         exit 1
     fi
 
     # Check if jq is installed.
-    if ! dpkg -s ng > /dev/null ; then
+    if ! type "ng" > /dev/null ; then
         echo "ng is not installed."
         exit 1
     fi

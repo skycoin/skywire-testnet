@@ -100,12 +100,22 @@
   @extend .bg-primary;
   @extend .monitor-chip-text;
 }
-
+.icon-pointer {
+  cursor: pointer;
+}
 
 snack-bar-container {
   .mat-simple-snackbar {
     .mat-simple-snackbar-action {
       color: #ffeda8;
     }
+  }
+}
+
+.alert {
+  .mat-dialog-container {
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+    border: 1px solid #ccc;
+    border-radius: .25rem;
   }
 }

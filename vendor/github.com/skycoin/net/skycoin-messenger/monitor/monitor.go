@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"time"
 )
 
 type Conn struct {
@@ -47,14 +48,23 @@ type Monitor struct {
 	factory *factory.MessengerFactory
 	address string
 	srv     *http.Server
+
+	code    string
+	version string
 }
 
-func New(f *factory.MessengerFactory, addr string) *Monitor {
-	return &Monitor{factory: f, address: addr, srv: &http.Server{Addr: addr}}
+func New(f *factory.MessengerFactory, addr, code, version string) *Monitor {
+	return &Monitor{
+		factory: f,
+		address: addr,
+		srv:     &http.Server{Addr: addr},
+		code:    code,
+		version: version,
+	}
 }
 
 func (m *Monitor) Close() error {
-	return m.srv.Shutdown(nil)
+	return m.srv.Close()
 }
 func (m *Monitor) Start(webDir string) {
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
@@ -91,9 +101,12 @@ func requestNode(w http.ResponseWriter, r *http.Request) (result []byte, err err
 		return
 	}
 	addr := r.FormValue("addr")
-	res, err := http.Get(addr)
+	res, err := http.PostForm(addr, r.PostForm)
 	if err != nil {
-		return result, err, res.StatusCode
+		if res != nil {
+			return result, err, res.StatusCode
+		}
+		return result, err, 404
 	}
 	defer res.Body.Close()
 	result, err = ioutil.ReadAll(res.Body)
@@ -106,12 +119,13 @@ func requestNode(w http.ResponseWriter, r *http.Request) (result []byte, err err
 func (m *Monitor) getAllNode(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
 	cs := make([]Conn, 0)
 	m.factory.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
+		now := time.Now().Unix()
 		content := Conn{
 			Key:         key.Hex(),
 			SendBytes:   conn.GetSentBytes(),
 			RecvBytes:   conn.GetReceivedBytes(),
-			StartTime:   conn.GetConnectTime(),
-			LastAckTime: conn.GetLastTime()}
+			StartTime:   now - conn.GetConnectTime(),
+			LastAckTime: now - conn.GetLastTime()}
 		if conn.IsTCP() {
 			content.Type = "TCP"
 		} else {
@@ -144,11 +158,12 @@ func (m *Monitor) getNode(w http.ResponseWriter, r *http.Request) (result []byte
 		err = errors.New("No connection is found")
 		return
 	}
+	now := time.Now().Unix()
 	nodeService := NodeServices{
 		SendBytes:   c.GetSentBytes(),
 		RecvBytes:   c.GetReceivedBytes(),
-		StartTime:   c.GetConnectTime(),
-		LastAckTime: c.GetLastTime()}
+		StartTime:   now - c.GetConnectTime(),
+		LastAckTime: now - c.GetLastTime()}
 	if c.IsTCP() {
 		nodeService.Type = "TCP"
 	} else {

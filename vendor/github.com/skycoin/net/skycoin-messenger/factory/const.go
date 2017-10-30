@@ -45,6 +45,7 @@ const (
 	OP_FORWARD_NODE_CONN_RESP
 	OP_BUILD_APP_CONN_OK
 	OP_APP_CONN_ACK
+	OP_APP_FEEDBACK
 
 	// reg with key steps
 	OP_REG_KEY

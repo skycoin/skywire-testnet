@@ -1,0 +1,14 @@
+<h1 mat-dialog-title class="text-center">
+  <span>Update Node</span>
+  <mat-icon>file_download</mat-icon>
+</h1>
+<div mat-dialog-content class="text-center">
+  <p *ngIf="!progressValue">{{updateStatus}}</p>
+  <p *ngIf="progressValue">{{progressValue}}%</p>
+  <mat-progress-bar class="example-margin" [value]="progressValue" *ngIf="progressValue">
+  </mat-progress-bar>
+</div>
+<div mat-dialog-actions class="text-center">
+  <button mat-raised-button color="primary" tabindex="-1" [disabled]="progressValue > 0 || !hasUpdate" (click)="startDownload($event)">Download</button>
+  <button mat-raised-button tabindex="-1" mat-dialog-close [disabled]="progressValue >0 && progressValue < 100">Close</button>
+</div>

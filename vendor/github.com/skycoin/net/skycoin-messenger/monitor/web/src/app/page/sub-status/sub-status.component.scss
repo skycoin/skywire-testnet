@@ -63,3 +63,19 @@ app-sub-status {
     }
   }
 }
+
+.setting-dialog {
+  margin: 1rem 0;
+  .del {
+    cursor: pointer;
+  }
+  .mat-form-field {
+    width: 100%;
+    textarea {
+      // resize: none;
+    }
+    .hint-text {
+      color: rgb(255, 123, 0);
+    }
+  }
+}

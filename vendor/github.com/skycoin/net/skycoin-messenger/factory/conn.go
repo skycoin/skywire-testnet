@@ -35,6 +35,11 @@ type Connection struct {
 	connectTime int64
 
 	skipFactoryReg bool
+
+	appMessages      []PriorityMsg
+	appMessagesPty   int
+	appMessagesMutex sync.Mutex
+	appFeedback      atomic.Value
 	// callbacks
 
 	// call after received response for FindServiceNodesByKeys
@@ -44,7 +49,7 @@ type Connection struct {
 	findServiceNodesByAttributesCallback func(resp *QueryByAttrsResp)
 
 	// call after received response for BuildAppConnection
-	appConnectionInitCallback func(resp *AppConnResp)
+	appConnectionInitCallback func(resp *AppConnResp) *AppFeedback
 }
 
 // Used by factory to spawn connections for server side
@@ -212,6 +217,18 @@ func (c *Connection) OfferServiceWithAddress(address string, attrs ...string) er
 }
 
 // register a service to discovery
+func (c *Connection) OfferPrivateServiceWithAddress(address string, allowNodes []string, attrs ...string) error {
+	return c.UpdateServices(&NodeServices{
+		Services: []*Service{{
+			Key:               c.GetKey(),
+			Attributes:        attrs,
+			Address:           address,
+			HideFromDiscovery: true,
+			AllowNodes:        allowNodes,
+		}}})
+}
+
+// register a service to discovery
 func (c *Connection) OfferStaticServiceWithAddress(address string, attrs ...string) error {
 	ns := &NodeServices{Services: []*Service{{Key: c.GetKey(), Attributes: attrs, Address: address}}}
 	c.factory.discoveryRegister(c, ns)
@@ -355,16 +372,18 @@ func (c *Connection) writeOP(op byte, object interface{}) error {
 
 func (c *Connection) setTransport(to cipher.PubKey, tr *transport) {
 	c.appTransportsMutex.Lock()
-	defer c.appTransportsMutex.Unlock()
-
-	c.appTransports[to] = tr
+	if tr == nil {
+		delete(c.appTransports, to)
+	} else {
+		c.appTransports[to] = tr
+	}
+	c.appTransportsMutex.Unlock()
 }
 
 func (c *Connection) getTransport(to cipher.PubKey) (tr *transport, ok bool) {
 	c.appTransportsMutex.RLock()
-	defer c.appTransportsMutex.RUnlock()
-
 	tr, ok = c.appTransports[to]
+	c.appTransportsMutex.RUnlock()
 	return
 }
 
@@ -402,4 +421,36 @@ func (c *Connection) StoreContext(key, value interface{}) {
 
 func (c *Connection) LoadContext(key interface{}) (value interface{}, ok bool) {
 	return c.context.Load(key)
+}
+
+func (c *Connection) PutMessage(v PriorityMsg) bool {
+	c.appMessagesMutex.Lock()
+	if c.appMessagesPty > v.Priority {
+		c.appMessagesMutex.Unlock()
+		return false
+	}
+	c.appMessages = append(c.appMessages, v)
+	c.appMessagesPty = v.Priority
+	c.appMessagesMutex.Unlock()
+	return true
+}
+
+func (c *Connection) GetMessages() []PriorityMsg {
+	c.appMessagesMutex.Lock()
+	if len(c.appMessages) < 1 {
+		c.appMessagesMutex.Unlock()
+		return nil
+	}
+	result := c.appMessages
+	c.appMessages = nil
+	c.appMessagesMutex.Unlock()
+	return result
+}
+
+func (c *Connection) GetAppFeedback() *AppFeedback {
+	v, ok := c.appFeedback.Load().(*AppFeedback)
+	if !ok {
+		return nil
+	}
+	return v
 }

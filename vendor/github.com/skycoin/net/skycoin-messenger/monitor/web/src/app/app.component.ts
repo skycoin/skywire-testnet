@@ -6,8 +6,7 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  listitems = ['Dashboard'];
+  listitems = [{ text: 'Dashboard', link: '/', icon: 'dashboard' }];
   option = { selected: true };
-  constructor() {
-  }
+  constructor() { }
 }

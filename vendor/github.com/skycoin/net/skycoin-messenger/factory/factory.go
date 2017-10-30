@@ -1,23 +1,16 @@
 package factory
 
 import (
-	"sync"
-
 	"encoding/json"
-
-	"time"
-
 	"errors"
-
-	"io/ioutil"
-
-	"os"
-
 	"fmt"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/factory"
 	"github.com/skycoin/skycoin/src/cipher"
+	"io/ioutil"
+	"os"
+	"sync"
+	"time"
 )
 
 type MessengerFactory struct {
@@ -325,6 +318,9 @@ func (f *MessengerFactory) connectUDPWithConfig(address string, config *ConnConf
 		return nil, err
 	}
 	conn = newUDPClientConnection(c, f)
+	if config != nil && config.Creator != nil {
+		conn.factory = config.Creator
+	}
 	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "transport"))
 	if config != nil {
 		if config.OnConnected != nil {
