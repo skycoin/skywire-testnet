@@ -35,8 +35,9 @@ func New(addr string, node *node.Node, signal chan os.Signal) *NodeApi {
 }
 
 func (na *NodeApi) Close() error {
-	return na.srv.Shutdown(nil)
+	return na.srv.Close()
 }
+
 func (na *NodeApi) StartSrv() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/node/getInfo", wrap(na.getInfo))
@@ -47,12 +48,13 @@ func (na *NodeApi) StartSrv() {
 	mux.HandleFunc("/node/run/sockss", wrap(na.runSockss))
 	na.srv.Handler = cors.Default().Handler(mux)
 	go func() {
+		log.Debugf("http server listening on %s", na.address)
 		if err := na.srv.ListenAndServe(); err != nil {
-			log.Printf("http server: ListenAndServe() error: %s", err)
+			log.Errorf("http server: ListenAndServe() error: %s", err)
 		}
 	}()
-	log.Debugf("http server listen on %s", na.address)
 }
+
 func (na *NodeApi) getInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	result, err = json.Marshal(na.node.GetNodeInfo())
 	if err != nil {
