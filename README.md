@@ -1,3 +1,5 @@
+![skywire logo](https://user-images.githubusercontent.com/26845312/32426764-3495e3d8-c282-11e7-8fe8-8e60e90cb906.png)
+
 Skywire
 =======
 
