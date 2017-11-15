@@ -61,6 +61,8 @@ func (na *NodeApi) StartSrv() {
 	mux.HandleFunc("/node/run/sshs", wrap(na.runSshs))
 	mux.HandleFunc("/node/run/sshc", wrap(na.runSshc))
 	mux.HandleFunc("/node/run/sockss", wrap(na.runSockss))
+	mux.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
+	mux.HandleFunc("/node/run/update", wrap(na.update))
 	na.srv.Handler = cors.Default().Handler(mux)
 	go func() {
 		log.Debugf("http server listening on %s", na.address)
@@ -192,6 +194,21 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 	}
 
 	na.Unlock()
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	branch := r.FormValue("branch")
+	cmd := exec.Command("update-skywire", branch)
+	err = cmd.Start()
+	if err != nil {
+		return
+	}
+	err = cmd.Wait()
+	if err != nil {
+		return
+	}
 	result = []byte("true")
 	return
 }

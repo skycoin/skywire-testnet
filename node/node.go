@@ -120,12 +120,17 @@ type NodeInfo struct {
 	Transports   []NodeTransport         `json:"transports"`
 	Messages     [][]factory.PriorityMsg `json:"messages"`
 	AppFeedbacks []FeedBackItem          `json:"app_feedbacks"`
+	Version      string                  `json:"version"`
+	Tag          string                  `json:"tag"`
 }
 
 type FeedBackItem struct {
 	Key       string               `json:"key"`
 	Feedbacks *factory.AppFeedback `json:"feedbacks"`
 }
+
+var version = "0.0.1"
+var tag = "dev"
 
 func (n *Node) GetNodeInfo() (ni NodeInfo) {
 	var ts []NodeTransport
@@ -138,7 +143,7 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 			afs = append(afs, FeedBackItem{Key: key.Hex(), Feedbacks: conn.GetAppFeedback()})
 		}
 	})
-	ni = NodeInfo{Transports: ts, Messages: msgs, AppFeedbacks: afs}
+	ni = NodeInfo{Transports: ts, Messages: msgs, AppFeedbacks: afs, Version: version, Tag: tag}
 	return
 }
 
