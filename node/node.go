@@ -137,11 +137,11 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 	var msgs [][]factory.PriorityMsg
 	var afs []FeedBackItem
 	n.apps.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
-		for _, v := range conn.GetTransports() {
+		conn.ForEachTransport(func(v *factory.Transport) {
 			ts = append(ts, NodeTransport{FromNode: v.FromNode.Hex(), ToNode: v.ToNode.Hex(), FromApp: v.FromApp.Hex(), ToApp: v.ToApp.Hex()})
 			msgs = append(msgs, conn.GetMessages())
 			afs = append(afs, FeedBackItem{Key: key.Hex(), Feedbacks: conn.GetAppFeedback()})
-		}
+		})
 	})
 	ni = NodeInfo{Transports: ts, Messages: msgs, AppFeedbacks: afs, Version: version, Tag: tag}
 	return
