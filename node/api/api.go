@@ -135,12 +135,14 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 
 func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	na.Lock()
+	toNode := r.FormValue("toNode")
+	toApp := r.FormValue("toApp")
 	if na.sockscCancel != nil {
 		na.sockscCancel()
 	}
 	na.sockscCxt, na.sockscCancel = context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(na.sockscCxt, "./socksc", "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(na.sockscCxt, "./socksc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
