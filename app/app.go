@@ -1,7 +1,8 @@
 package app
 
 import (
-	"time"
+	"fmt"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
@@ -13,9 +14,20 @@ type App struct {
 	service     string
 	serviceAddr string
 	appType     Type
-	allowNodes  []string
+	allowNodes  NodeKeys
 
 	AppConnectionInitCallback func(resp *factory.AppConnResp) *factory.AppFeedback
+}
+
+type NodeKeys []string
+
+func (keys *NodeKeys) String() string {
+	return fmt.Sprintf("%v", []string(*keys))
+}
+
+func (keys *NodeKeys) Set(key string) error {
+	*keys = append(*keys, key)
+	return nil
 }
 
 type Type int
@@ -35,8 +47,6 @@ func New(appType Type, service, addr string) *App {
 func (app *App) Start(addr, scPath string) error {
 	_, err := app.net.ConnectWithConfig(addr, &factory.ConnConfig{
 		SeedConfigPath: scPath,
-		Reconnect:      true,
-		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
 			switch app.appType {
 			case Public:
@@ -46,6 +56,10 @@ func (app *App) Start(addr, scPath string) error {
 			case Private:
 				connection.OfferPrivateServiceWithAddress(app.serviceAddr, app.allowNodes, app.service)
 			}
+		},
+		OnDisconnected: func(connection *factory.Connection) {
+			log.Debug("exit on disconnected")
+			os.Exit(1)
 		},
 		FindServiceNodesByAttributesCallback: app.FindServiceByAttributesCallback,
 		AppConnectionInitCallback:            app.AppConnectionInitCallback,
@@ -76,7 +90,7 @@ func (app *App) FindServiceByAttributesCallback(resp *factory.QueryByAttrsResp) 
 	}
 }
 
-func (app *App) SetAllowNodes(nodes []string) {
+func (app *App) SetAllowNodes(nodes NodeKeys) {
 	app.allowNodes = nodes
 }
 

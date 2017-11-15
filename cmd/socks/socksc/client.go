@@ -22,6 +22,10 @@ var (
 	seed bool
 	// path for seed, public key and private key
 	seedPath string
+	// connect to node
+	nodeKey string
+	// connect to app
+	appKey string
 )
 
 func parseFlags() {
@@ -29,6 +33,8 @@ func parseFlags() {
 	flag.StringVar(&listenAddress, "address", ":9443", "listen address")
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "sc", "keys.json"), "path to save seed info")
+	flag.StringVar(&nodeKey, "node-key", "", "connect to node key")
+	flag.StringVar(&appKey, "app-key", "", "connect to app key")
 	flag.Parse()
 }
 
@@ -49,7 +55,7 @@ func main() {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(app.Client, "socks", "")
+	a := app.New(app.Client, "socksc", "")
 	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) *factory.AppFeedback {
 		config := &ss.Config{
 			Password:   "123456",
@@ -74,6 +80,11 @@ func main() {
 		}
 	}
 	err = a.Start(nodeAddress, seedPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = a.ConnectTo(nodeKey, appKey)
 	if err != nil {
 		log.Fatal(err)
 	}

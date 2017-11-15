@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/app"
@@ -18,19 +17,8 @@ var (
 	// path for seed, public key and private key
 	seedPath string
 	// allow node public keys to connect
-	nodeKeys NodeKeys
+	nodeKeys app.NodeKeys
 )
-
-type NodeKeys []string
-
-func (keys *NodeKeys) String() string {
-	return fmt.Sprintf("%v", []string(*keys))
-}
-
-func (keys *NodeKeys) Set(key string) error {
-	*keys = append(*keys, key)
-	return nil
-}
 
 func parseFlags() {
 	flag.StringVar(&nodeAddress, "node-address", ":5000", "node address to connect")

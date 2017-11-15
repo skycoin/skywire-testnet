@@ -20,6 +20,8 @@ var (
 	seed bool
 	// path for seed, public key and private key
 	seedPath string
+	// allow node public keys to connect
+	nodeKeys app.NodeKeys
 )
 
 func parseFlags() {
@@ -27,6 +29,7 @@ func parseFlags() {
 	flag.IntVar(&serverPort, "p", 28443, "server port")
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "ss", "keys.json"), "path to save seed info")
+	flag.Var(&nodeKeys, "node-key", "allow node public keys to connect")
 	flag.Parse()
 }
 
@@ -41,7 +44,8 @@ func main() {
 	}
 	ss.SetDebug(true)
 	appmain()
-	a := app.New(app.Public, "socks", ":"+strconv.Itoa(serverPort))
+	a := app.New(app.Public, "sockss", ":"+strconv.Itoa(serverPort))
+	a.SetAllowNodes(nodeKeys)
 
 	if !seed {
 		seedPath = ""

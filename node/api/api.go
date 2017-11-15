@@ -35,6 +35,21 @@ func New(addr string, node *node.Node, signal chan os.Signal) *NodeApi {
 }
 
 func (na *NodeApi) Close() error {
+	na.RLock()
+	defer na.RUnlock()
+
+	if na.sshsCancel != nil {
+		na.sshsCancel()
+	}
+	if na.sshcCancel != nil {
+		na.sshcCancel()
+	}
+	if na.sockssCancel != nil {
+		na.sockssCancel()
+	}
+	if na.sockscCancel != nil {
+		na.sockscCancel()
+	}
 	return na.srv.Close()
 }
 
@@ -143,9 +158,9 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 	var arr []string
 	data := r.FormValue("data")
 	if data != "" {
-		strings.Split(data, ",")
+		arr = strings.Split(data, ",")
 	}
-	args := make([]string, 0, len(arr))
+	args := make([]string, 0, len(arr)+2)
 	args = append(args, "-node-address")
 	args = append(args, na.node.GetListenAddress())
 	for _, v := range arr {
