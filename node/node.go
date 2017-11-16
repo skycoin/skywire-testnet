@@ -109,11 +109,12 @@ func (n *Node) GetListenAddress() string {
 }
 
 type NodeTransport struct {
-	FromNode    string `json:"from_node"`
-	ToNode      string `json:"to_node"`
-	FromApp     string `json:"from_app"`
-	ToApp       string `json:"to_app"`
-	ServingPort string `json:"serving_port"`
+	FromNode   string `json:"from_node"`
+	ToNode     string `json:"to_node"`
+	FromApp    string `json:"from_app"`
+	ToApp      string `json:"to_app"`
+	UploadBW   uint   `json:"upload_bandwidth"`
+	DownloadBW uint   `json:"download_bandwidth"`
 }
 
 type NodeInfo struct {
@@ -138,7 +139,14 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 	var afs []FeedBackItem
 	n.apps.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
 		conn.ForEachTransport(func(v *factory.Transport) {
-			ts = append(ts, NodeTransport{FromNode: v.FromNode.Hex(), ToNode: v.ToNode.Hex(), FromApp: v.FromApp.Hex(), ToApp: v.ToApp.Hex()})
+			ts = append(ts, NodeTransport{
+				FromNode:   v.FromNode.Hex(),
+				ToNode:     v.ToNode.Hex(),
+				FromApp:    v.FromApp.Hex(),
+				ToApp:      v.ToApp.Hex(),
+				UploadBW:   v.GetUploadBandwidth(),
+				DownloadBW: v.GetDownloadBandwidth(),
+			})
 			msgs = append(msgs, conn.GetMessages())
 			afs = append(afs, FeedBackItem{Key: key.Hex(), Feedbacks: conn.GetAppFeedback()})
 		})

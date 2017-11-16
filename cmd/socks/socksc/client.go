@@ -63,12 +63,13 @@ func main() {
 			ServerPort: resp.Port,
 			Server:     resp.Host,
 		}
-		log.Debugf("%#v", config)
+		log.Debugf("%#v", resp)
 		ss.SetDebug(true)
-		appmain(listenAddress, config)
-		log.Debugln("appmain")
+		go appmain(listenAddress, config)
 		return &factory.AppFeedback{
-			Port: port,
+			Port:   port,
+			Failed: resp.Failed,
+			Msg:    resp.Msg,
 		}
 	}
 
