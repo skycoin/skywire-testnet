@@ -12,25 +12,18 @@ import (
 )
 
 var (
-	discoveryAddresses node.Addresses
-	connectManager     bool
-	managerAddr        string
-	address            string
-	// use fixed seed if true
-	seed bool
-	// path for seed, public key and private key
-	seedPath string
-	webPort  string
+	config api.Config
 )
 
 func parseFlags() {
-	flag.StringVar(&address, "address", ":5000", "address to listen on")
-	flag.Var(&discoveryAddresses, "discovery-address", "addresses of discovery")
-	flag.BoolVar(&connectManager, "connect-manager", true, "connect to manager if true")
-	flag.StringVar(&managerAddr, "manager-address", ":5998", "address of node manager")
-	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
-	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "node", "keys.json"), "path to save seed info")
-	flag.StringVar(&webPort, "web-port", ":6001", "monitor web page port")
+	flag.StringVar(&config.Address, "address", ":5000", "address to listen on")
+	flag.Var(&config.DiscoveryAddresses, "discovery-address", "addresses of discovery")
+	flag.BoolVar(&config.ConnectManager, "connect-manager", true, "connect to manager if true")
+	flag.StringVar(&config.ManagerAddr, "manager-address", ":5998", "address of node manager")
+	flag.StringVar(&config.ManagerWeb, "manager-web", ":8000", "address of node manager")
+	flag.BoolVar(&config.Seed, "seed", true, "use fixed seed to connect if true")
+	flag.StringVar(&config.SeedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "node", "keys.json"), "path to save seed info")
+	flag.StringVar(&config.WebPort, "web-port", ":6001", "monitor web page port")
 	flag.Parse()
 }
 
@@ -41,26 +34,26 @@ func main() {
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
 	var n *node.Node
-	if !seed {
-		n = node.New("", webPort)
+	if !config.Seed {
+		n = node.New("", config.WebPort)
 	} else {
-		if len(seedPath) < 1 {
-			seedPath = filepath.Join(file.UserHome(), ".skywire", "node", "keys.json")
+		if len(config.SeedPath) < 1 {
+			config.SeedPath = filepath.Join(file.UserHome(), ".skywire", "node", "keys.json")
 		}
-		n = node.New(seedPath, webPort)
+		n = node.New(config.SeedPath, config.WebPort)
 	}
-	err := n.Start(discoveryAddresses, address)
+	err := n.Start(config.DiscoveryAddresses, config.Address)
 	if err != nil {
 		log.Error(err)
 	}
-	log.Debugf("listen on %s", address)
+	log.Debugf("listen on %s", config.Address)
 	var na *api.NodeApi
-	if connectManager {
-		err = n.ConnectManager(managerAddr)
+	if config.ConnectManager {
+		err = n.ConnectManager(config.ManagerAddr)
 		if err != nil {
 			log.Error(err)
 		}
-		na = api.New(webPort, n, osSignal)
+		na = api.New(config.WebPort, n, config, osSignal)
 		na.StartSrv()
 	}
 	select {

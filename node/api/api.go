@@ -11,11 +11,17 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
+	"fmt"
+	"io/ioutil"
+	"net/url"
+	"regexp"
 )
 
 type NodeApi struct {
 	address  string
 	node     *node.Node
+	config   Config
 	osSignal chan os.Signal
 	srv      *http.Server
 
@@ -30,8 +36,8 @@ type NodeApi struct {
 	sync.RWMutex
 }
 
-func New(addr string, node *node.Node, signal chan os.Signal) *NodeApi {
-	return &NodeApi{address: addr, node: node, osSignal: signal, srv: &http.Server{Addr: addr}}
+func New(addr string, node *node.Node, config Config, signal chan os.Signal) *NodeApi {
+	return &NodeApi{address: addr, node: node, config: config, osSignal: signal, srv: &http.Server{Addr: addr}}
 }
 
 func (na *NodeApi) Close() error {
@@ -55,6 +61,7 @@ func (na *NodeApi) Close() error {
 
 func (na *NodeApi) StartSrv() {
 	mux := http.NewServeMux()
+	na.getConfig()
 	mux.HandleFunc("/node/getInfo", wrap(na.getInfo))
 	mux.HandleFunc("/node/getApps", wrap(na.getApps))
 	mux.HandleFunc("/node/reboot", wrap(na.runReboot))
@@ -63,6 +70,7 @@ func (na *NodeApi) StartSrv() {
 	mux.HandleFunc("/node/run/sockss", wrap(na.runSockss))
 	mux.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
 	mux.HandleFunc("/node/run/update", wrap(na.update))
+	mux.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
 	na.srv.Handler = cors.Default().Handler(mux)
 	go func() {
 		log.Debugf("http server listening on %s", na.address)
@@ -212,5 +220,94 @@ func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte
 		return
 	}
 	result = []byte("true")
+	return
+}
+
+type Config struct {
+	DiscoveryAddresses node.Addresses
+	ConnectManager     bool
+	ManagerAddr        string
+	ManagerWeb         string
+	Address            string
+	Seed               bool
+	SeedPath           string
+	WebPort            string
+}
+
+var URLMatch = `(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d):\d{1,5}`
+
+func (na *NodeApi) updateNode(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	na.getConfig()
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) getConfig() {
+	if len(na.node.Pk) < 1 {
+		return
+	}
+	var managerUrl = na.config.ManagerWeb
+	matched, err := regexp.MatchString(URLMatch, managerUrl)
+	if err != nil || !matched {
+		managerUrl = fmt.Sprintf("127.0.0.1%s", managerUrl)
+	}
+	res, err := http.PostForm(fmt.Sprintf("http://%s/conn/getNodeConfig", managerUrl), url.Values{"key": {na.node.Pk}})
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Errorf("read config err: %v", err)
+		return
+	}
+	if body != nil && string(body) != "null" {
+		var config *Config
+		err = json.Unmarshal(body, &config)
+		if err != nil {
+			log.Errorf("Unmarshal json err: %v", err)
+			return
+		}
+		if len(na.config.DiscoveryAddresses) == len(config.DiscoveryAddresses) {
+			for i, v := range na.config.DiscoveryAddresses {
+				if v != config.DiscoveryAddresses[i] {
+					na.config.DiscoveryAddresses = config.DiscoveryAddresses
+					na.restart()
+					return
+				}
+			}
+		}
+	}
+
+}
+
+func (na *NodeApi) restart() (err error) {
+	args := make([]string, 0, len(na.config.DiscoveryAddresses))
+	for _, v := range na.config.DiscoveryAddresses {
+		args = append(args, "-discovery-address")
+		args = append(args, v)
+	}
+	args = append(args, "-manager-address", na.config.ManagerAddr)
+	args = append(args, "-address", na.config.Address)
+	args = append(args, "-seed-path", na.config.SeedPath)
+	args = append(args, "-web-port", na.config.WebPort)
+	cxt, cf := context.WithCancel(context.Background())
+	go na.srv.Shutdown(cxt)
+	na.node.Close()
+	time.Sleep(1000 * time.Millisecond)
+	cmd := exec.Command(os.Getenv("GOPATH")+"/bin/node", args...)
+	err = cmd.Start()
+	if err != nil {
+		return
+	}
+	err = cmd.Process.Release()
+	if err != nil {
+		return
+	}
+	go func() {
+		time.Sleep(1000 * time.Millisecond)
+		cf()
+		os.Exit(0)
+	}()
 	return
 }

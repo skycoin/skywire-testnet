@@ -31,6 +31,7 @@ type Node struct {
 
 	discoveries   Addresses
 	onDiscoveries sync.Map
+	Pk            string
 }
 
 func New(seedPath, webPort string) *Node {
@@ -44,6 +45,11 @@ func New(seedPath, webPort string) *Node {
 		seedConfigPath: seedPath,
 		webPort:        webPort,
 	}
+}
+
+func (n *Node) Close() {
+	n.apps.Close()
+	n.manager.Close()
 }
 
 func (n *Node) Start(discoveries Addresses, address string) (err error) {
@@ -104,6 +110,7 @@ func (n *Node) ConnectManager(managerAddr string) (err error) {
 		Reconnect:      true,
 		ReconnectWait:  10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
+			n.Pk = connection.GetKey().Hex()
 			go func() {
 				for {
 					select {
