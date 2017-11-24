@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"sync"
 
 	"time"
 
@@ -27,6 +28,9 @@ type Node struct {
 	seedConfigPath string
 	webPort        string
 	lnAddr         string
+
+	discoveries   Addresses
+	onDiscoveries sync.Map
 }
 
 func New(seedPath, webPort string) *Node {
@@ -43,35 +47,51 @@ func New(seedPath, webPort string) *Node {
 }
 
 func (n *Node) Start(discoveries Addresses, address string) (err error) {
+	n.discoveries = discoveries
 	n.lnAddr = address
 	err = n.apps.Listen(address)
 	if err != nil {
-		return
+		go func() {
+			for {
+				err := n.apps.Listen(address)
+				if err != nil {
+					time.Sleep(1000 * time.Millisecond)
+					log.Errorf("failed to listen addr(%s) err %v", address, err)
+				}
+			}
+		}()
 	}
 
 	for _, addr := range discoveries {
-		_, err = n.apps.ConnectWithConfig(addr, &factory.ConnConfig{
-			SeedConfigPath: n.seedConfigPath,
-			Reconnect:      true,
-			ReconnectWait:  10 * time.Second,
-			OnConnected: func(connection *factory.Connection) {
-				go func() {
-					for {
-						select {
-						case m, ok := <-connection.GetChanIn():
-							if !ok {
-								return
+		func(addr string) {
+			n.onDiscoveries.Store(addr, false)
+			_, err := n.apps.ConnectWithConfig(addr, &factory.ConnConfig{
+				SeedConfigPath: n.seedConfigPath,
+				Reconnect:      true,
+				ReconnectWait:  10 * time.Second,
+				OnConnected: func(connection *factory.Connection) {
+					go func() {
+						for {
+							select {
+							case m, ok := <-connection.GetChanIn():
+								if !ok {
+									return
+								}
+								log.Debugf("discoveries:%x", m)
 							}
-							log.Debugf("discoveries:%x", m)
 						}
-					}
-				}()
-			},
-		})
-		if err != nil {
-			log.Errorf("failed to connect addr(%s) err %v", addr, err)
-			return
-		}
+					}()
+
+					n.onDiscoveries.Store(addr, true)
+				},
+				OnDisconnected: func(connection *factory.Connection) {
+					n.onDiscoveries.Store(addr, false)
+				},
+			})
+			if err != nil {
+				log.Errorf("failed to connect addr(%s) err %v", addr, err)
+			}
+		}(addr)
 	}
 
 	return
@@ -118,6 +138,7 @@ type NodeTransport struct {
 }
 
 type NodeInfo struct {
+	Discoveries  map[string]bool         `json:"discoveries"`
 	Transports   []NodeTransport         `json:"transports"`
 	Messages     [][]factory.PriorityMsg `json:"messages"`
 	AppFeedbacks []FeedBackItem          `json:"app_feedbacks"`
@@ -151,7 +172,27 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 			afs = append(afs, FeedBackItem{Key: key.Hex(), Feedbacks: conn.GetAppFeedback()})
 		})
 	})
-	ni = NodeInfo{Transports: ts, Messages: msgs, AppFeedbacks: afs, Version: version, Tag: tag}
+	d := make(map[string]bool)
+	n.onDiscoveries.Range(func(key, value interface{}) bool {
+		k, ok := key.(string)
+		if !ok {
+			return true
+		}
+		v, ok := value.(bool)
+		if !ok {
+			return true
+		}
+		d[k] = v
+		return true
+	})
+	ni = NodeInfo{
+		Discoveries:  d,
+		Transports:   ts,
+		Messages:     msgs,
+		AppFeedbacks: afs,
+		Version:      version,
+		Tag:          tag,
+	}
 	return
 }
 

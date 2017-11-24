@@ -51,7 +51,7 @@ func main() {
 	}
 	err := n.Start(discoveryAddresses, address)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	}
 	log.Debugf("listen on %s", address)
 	var na *api.NodeApi
