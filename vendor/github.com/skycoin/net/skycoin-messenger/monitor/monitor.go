@@ -22,7 +22,6 @@ type Conn struct {
 }
 type NodeServices struct {
 	Type        string `json:"type"`
-	Apps        []App  `json:"apps"`
 	Addr        string `json:"addr"`
 	SendBytes   uint64 `json:"send_bytes"`
 	RecvBytes   uint64 `json:"recv_bytes"`
@@ -168,13 +167,6 @@ func (m *Monitor) getNode(w http.ResponseWriter, r *http.Request) (result []byte
 		nodeService.Type = "TCP"
 	} else {
 		nodeService.Type = "UDP"
-	}
-	ns := c.GetServices()
-	if ns != nil {
-		for i, v := range ns.Services {
-			app := App{Index: i + 1, Key: v.Key.Hex(), Attributes: v.Attributes}
-			nodeService.Apps = append(nodeService.Apps, app)
-		}
 	}
 	v, ok := c.LoadContext("node-api")
 	if ok {

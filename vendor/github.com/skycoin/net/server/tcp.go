@@ -27,7 +27,7 @@ func NewServerTCPConn(c *net.TCPConn) *ServerTCPConn {
 func (c *ServerTCPConn) ReadLoop() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			c.CTXLogger.Debug(e)
+			c.GetContextLogger().Debug(e)
 			err = fmt.Errorf("readloop panic err:%v", e)
 		}
 		if err != nil {
@@ -78,10 +78,10 @@ func (c *ServerTCPConn) ReadLoop() (err error) {
 
 			seq := binary.BigEndian.Uint32(header[msg.MSG_TYPE_END:msg.MSG_SEQ_END])
 			c.Ack(seq)
-			c.CTXLogger.Debugf("c.In <- m.Body %x", m.Body)
+			//c.GetContextLogger().Debugf("c.In <- m.Body %x", m.Body)
 			c.In <- m.Body
 		default:
-			c.CTXLogger.Debugf("not implemented msg type %d", t)
+			c.GetContextLogger().Debugf("not implemented msg type %d", t)
 			return fmt.Errorf("not implemented msg type %d", msg_t)
 		}
 

@@ -53,7 +53,7 @@
   branch = "master"
   name = "github.com/skycoin/net"
   packages = ["client","conn","factory","msg","server","skycoin-messenger/factory","skycoin-messenger/monitor"]
-  revision = "9d5901e812e8164dc16d7e37e11f71e81f0c8178"
+  revision = "144c0b0b20c5952bcfed2f36e71ed416e0218be2"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"

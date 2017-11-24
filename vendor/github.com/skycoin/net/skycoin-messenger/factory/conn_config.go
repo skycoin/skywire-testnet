@@ -34,6 +34,8 @@ type ConnConfig struct {
 
 	// call after connected to server
 	OnConnected func(connection *Connection)
+	// call after disconnected
+	OnDisconnected func(connection *Connection)
 }
 
 type SeedConfig struct {

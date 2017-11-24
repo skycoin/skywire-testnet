@@ -287,6 +287,12 @@ func (f *MessengerFactory) ConnectWithConfig(address string, config *ConnConfig)
 		if config.OnConnected != nil {
 			config.OnConnected(conn)
 		}
+		if config.OnDisconnected != nil {
+			go func() {
+				conn.WaitForDisconnected()
+				config.OnDisconnected(conn)
+			}()
+		}
 		if config.Reconnect {
 			go func() {
 				conn.WaitForDisconnected()

@@ -3,19 +3,19 @@ package factory
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	cn "github.com/skycoin/net/conn"
+	"github.com/skycoin/skycoin/src/cipher"
 	"io"
 	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
-
-	log "github.com/sirupsen/logrus"
-	cn "github.com/skycoin/net/conn"
-	"github.com/skycoin/skycoin/src/cipher"
 	"time"
 )
 
-type transport struct {
+type Transport struct {
 	creator *MessengerFactory
 	// node
 	factory *MessengerFactory
@@ -23,6 +23,8 @@ type transport struct {
 	conn *Connection
 	// app
 	appNet net.Listener
+	// is this client side transport
+	clientSide bool
 
 	FromNode, ToNode cipher.PubKey
 	FromApp, ToApp   cipher.PubKey
@@ -31,26 +33,46 @@ type transport struct {
 	conns      map[uint32]net.Conn
 	connsMutex sync.RWMutex
 
-	timeoutTimer *time.Timer
+	timeoutTimer  *time.Timer
+	appConnHolder *Connection
+
+	uploadBW   bandwidth
+	downloadBW bandwidth
 
 	fieldsMutex sync.RWMutex
 }
 
-func NewTransport(creator *MessengerFactory, fromNode, toNode, fromApp, toApp cipher.PubKey) *transport {
-	t := &transport{
-		creator:  creator,
-		FromNode: fromNode,
-		ToNode:   toNode,
-		FromApp:  fromApp,
-		ToApp:    toApp,
-		factory:  NewMessengerFactory(),
-		conns:    make(map[uint32]net.Conn),
+func NewTransport(creator *MessengerFactory, appConn *Connection, fromNode, toNode, fromApp, toApp cipher.PubKey) *Transport {
+	if appConn == nil {
+		panic("appConn can not be nil")
+	}
+	cs := false
+	if appConn.GetKey() == fromApp {
+		cs = true
+	} else if appConn.GetKey() != toApp {
+		panic("invalid appConn value")
+	}
+	t := &Transport{
+		creator:       creator,
+		appConnHolder: appConn,
+		FromNode:      fromNode,
+		ToNode:        toNode,
+		FromApp:       fromApp,
+		ToApp:         toApp,
+		clientSide:    cs,
+		factory:       NewMessengerFactory(),
+		conns:         make(map[uint32]net.Conn),
 	}
 	return t
 }
 
+func (t *Transport) String() string {
+	return fmt.Sprintf("transport From App%s Node%s To Node%s App%s",
+		t.FromApp.Hex(), t.FromNode.Hex(), t.ToNode.Hex(), t.ToApp.Hex())
+}
+
 // Listen and connect to node manager
-func (t *transport) ListenAndConnect(address string) (conn *Connection, err error) {
+func (t *Transport) ListenAndConnect(address string) (conn *Connection, err error) {
 	conn, err = t.factory.connectUDPWithConfig(address, &ConnConfig{
 		Creator: t.creator,
 	})
@@ -58,7 +80,7 @@ func (t *transport) ListenAndConnect(address string) (conn *Connection, err erro
 }
 
 // Connect to node A and server app
-func (t *transport) Connect(address, appAddress string) (err error) {
+func (t *Transport) Connect(address, appAddress string) (err error) {
 	conn, err := t.factory.connectUDPWithConfig(address, &ConnConfig{
 		OnConnected: func(connection *Connection) {
 			connection.writeOP(OP_BUILD_APP_CONN_OK,
@@ -97,7 +119,8 @@ func (t *transport) Connect(address, appAddress string) (err error) {
 	return
 }
 
-func (t *transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) net.Conn) {
+// Read from node, write to app
+func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) net.Conn) {
 	defer func() {
 		t.Close()
 	}()
@@ -109,6 +132,7 @@ func (t *transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 				log.Debugf("node conn read err %v", err)
 				return
 			}
+			t.downloadBW.add(len(m))
 			id := binary.BigEndian.Uint32(m[PKG_HEADER_ID_BEGIN:PKG_HEADER_ID_END])
 			appConn := getAppConn(id)
 			if appConn == nil {
@@ -135,7 +159,8 @@ func (t *transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 	}
 }
 
-func (t *transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, create bool) {
+// Read from app, write to node
+func (t *Transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, create bool) {
 	buf := make([]byte, cn.MAX_UDP_PACKAGE_SIZE-100)
 	binary.BigEndian.PutUint32(buf[PKG_HEADER_ID_BEGIN:PKG_HEADER_ID_END], id)
 	defer func() {
@@ -180,11 +205,12 @@ func (t *transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, c
 		}
 		pkg := make([]byte, PKG_HEADER_END+n)
 		copy(pkg, buf[:PKG_HEADER_END+n])
+		t.uploadBW.add(len(pkg))
 		conn.GetChanOut() <- pkg
 	}
 }
 
-func (t *transport) setUDPConn(conn *Connection) {
+func (t *Transport) setUDPConn(conn *Connection) {
 	t.fieldsMutex.Lock()
 	t.conn = conn
 	t.fieldsMutex.Unlock()
@@ -207,7 +233,7 @@ func getAppPort() (port int) {
 	return
 }
 
-func (t *transport) ListenForApp(fn func(port int)) (err error) {
+func (t *Transport) ListenForApp(fn func(port int)) (err error) {
 	t.fieldsMutex.Lock()
 	defer t.fieldsMutex.Unlock()
 	if t.appNet != nil {
@@ -255,7 +281,7 @@ const (
 	OP_SHUTDOWN
 )
 
-func (t *transport) accept() {
+func (t *Transport) accept() {
 	t.fieldsMutex.RLock()
 	tConn := t.conn
 	t.fieldsMutex.RUnlock()
@@ -280,7 +306,7 @@ func (t *transport) accept() {
 	}
 }
 
-func (t *transport) Close() {
+func (t *Transport) Close() {
 	t.fieldsMutex.Lock()
 	defer t.fieldsMutex.Unlock()
 
@@ -306,6 +332,24 @@ func (t *transport) Close() {
 	}
 	t.factory.Close()
 	t.factory = nil
+
+	if t.clientSide {
+		t.appConnHolder.setTransport(t.ToApp, nil)
+	} else {
+		t.appConnHolder.setTransport(t.FromApp, nil)
+	}
+	t.appConnHolder.SetAppFeedback(&AppFeedback{
+		App:    t.ToApp,
+		Failed: true,
+		Msg:    PriorityMsg{Priority: TransportClosed, Msg: "transport closed", Type: Failed},
+	})
+}
+
+func (t *Transport) IsClientSide() bool {
+	t.fieldsMutex.RLock()
+	defer t.fieldsMutex.RUnlock()
+
+	return t.clientSide
 }
 
 func writeAll(conn io.Writer, m []byte) error {
@@ -319,14 +363,14 @@ func writeAll(conn io.Writer, m []byte) error {
 	return nil
 }
 
-func (t *transport) GetServingPort() int {
+func (t *Transport) GetServingPort() int {
 	t.fieldsMutex.RLock()
 	port := t.servingPort
 	t.fieldsMutex.RUnlock()
 	return port
 }
 
-func (t *transport) SetupTimeout(key cipher.PubKey, conn *Connection) {
+func (t *Transport) SetupTimeout() {
 	t.fieldsMutex.Lock()
 	if t.timeoutTimer != nil {
 		if !t.timeoutTimer.Stop() {
@@ -334,18 +378,17 @@ func (t *transport) SetupTimeout(key cipher.PubKey, conn *Connection) {
 		}
 	}
 	t.timeoutTimer = time.AfterFunc(30*time.Second, func() {
-		t.Close()
-		conn.setTransport(key, nil)
-		conn.PutMessage(PriorityMsg{
-			Type:     FAILED,
+		t.appConnHolder.PutMessage(PriorityMsg{
+			Type:     Failed,
 			Msg:      "Timeout",
-			Priority: 100,
+			Priority: Timeout,
 		})
+		t.Close()
 	})
 	t.fieldsMutex.Unlock()
 }
 
-func (t *transport) StopTimeout() {
+func (t *Transport) StopTimeout() {
 	t.fieldsMutex.Lock()
 	if t.timeoutTimer != nil {
 		if !t.timeoutTimer.Stop() {
@@ -354,4 +397,41 @@ func (t *transport) StopTimeout() {
 	}
 	t.timeoutTimer = nil
 	t.fieldsMutex.Unlock()
+}
+
+type bandwidth struct {
+	bytes     uint
+	lastBytes uint
+	sec       int64
+	sync.RWMutex
+}
+
+func (b *bandwidth) add(s int) {
+	b.Lock()
+	now := time.Now().Unix()
+	if b.sec != now {
+		b.sec = now
+		b.lastBytes = b.bytes
+		b.bytes = uint(s)
+		b.Unlock()
+		return
+	}
+	b.bytes += uint(s)
+	b.Unlock()
+}
+
+// Bandwidth bytes/sec
+func (b *bandwidth) get() (r uint) {
+	b.RLock()
+	r = b.lastBytes
+	b.RUnlock()
+	return
+}
+
+func (t *Transport) GetUploadBandwidth() uint {
+	return t.uploadBW.get()
+}
+
+func (t *Transport) GetDownloadBandwidth() uint {
+	return t.downloadBW.get()
 }

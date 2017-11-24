@@ -11,3 +11,14 @@ const (
 	UDP_PING_TICK_PERIOD = 10
 	UDP_GC_PERIOD        = 90
 )
+
+const (
+	highGain  = 2.885
+	drainGain = 1 / highGain
+)
+
+var (
+	pacingGain = [...]float64{
+		1.25, 0.75, 1, 1, 1, 1, 1, 1,
+	}
+)

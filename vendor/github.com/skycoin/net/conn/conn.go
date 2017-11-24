@@ -45,7 +45,7 @@ type ConnCommonFields struct {
 
 	lastReadTime int64
 
-	sentBytes uint64
+	sentBytes     uint64
 	receivedBytes uint64
 
 	Status int // STATUS_CONNECTING, STATUS_CONNECTED, STATUS_ERROR
@@ -57,17 +57,18 @@ type ConnCommonFields struct {
 	FieldsMutex sync.RWMutex
 	WriteMutex  sync.Mutex
 
-	CTXLogger *log.Entry
+	ctxLogger atomic.Value
 }
 
 func NewConnCommonFileds() ConnCommonFields {
 	entry := log.WithField("ctxId", atomic.AddUint32(&ctxId, 1))
-	return ConnCommonFields{
+	fields := ConnCommonFields{
 		lastReadTime: time.Now().Unix(),
-		CTXLogger:    entry,
 		In:           make(chan []byte, 1),
 		Out:          make(chan []byte, 1),
 	}
+	fields.ctxLogger.Store(entry)
+	return fields
 }
 
 func (c *ConnCommonFields) SetStatusToConnected() {
@@ -81,7 +82,7 @@ func (c *ConnCommonFields) SetStatusToError(err error) {
 	c.Status = STATUS_ERROR
 	c.Err = err
 	c.FieldsMutex.Unlock()
-	c.CTXLogger.Debugf("SetStatusToError %v", err)
+	c.GetContextLogger().Debugf("SetStatusToError %v", err)
 }
 
 func (c *ConnCommonFields) UpdateLastAck(s uint32) {
@@ -94,15 +95,19 @@ func (c *ConnCommonFields) UpdateLastAck(s uint32) {
 }
 
 func (c *ConnCommonFields) GetContextLogger() *log.Entry {
-	c.FieldsMutex.RLock()
-	defer c.FieldsMutex.RUnlock()
-	return c.CTXLogger
+	return c.ctxLogger.Load().(*log.Entry)
 }
 
 func (c *ConnCommonFields) SetContextLogger(l *log.Entry) {
-	c.FieldsMutex.Lock()
-	c.CTXLogger = l
-	c.FieldsMutex.Unlock()
+	c.ctxLogger.Store(l)
+}
+
+func (c *ConnCommonFields) GetChanOut() chan<- []byte {
+	return c.Out
+}
+
+func (c *ConnCommonFields) GetChanIn() <-chan []byte {
+	return c.In
 }
 
 func (c *ConnCommonFields) Close() {
@@ -115,9 +120,7 @@ func (c *ConnCommonFields) Close() {
 	c.closed = true
 
 	close(c.In)
-	c.In = nil
 	close(c.Out)
-	c.Out = nil
 }
 
 func (c *ConnCommonFields) IsClosed() bool {

@@ -25,7 +25,7 @@ type TCPConn struct {
 func (c *TCPConn) ReadLoop() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			c.CTXLogger.Debug(e)
+			c.GetContextLogger().Debug(e)
 			err = fmt.Errorf("readloop panic err:%v", e)
 		}
 		if err != nil {
@@ -69,10 +69,10 @@ func (c *TCPConn) ReadLoop() (err error) {
 
 			seq := binary.BigEndian.Uint32(header[msg.MSG_SEQ_BEGIN:msg.MSG_SEQ_END])
 			c.Ack(seq)
-			c.CTXLogger.Debugf("c.In <- m.Body %x", m.Body)
+			//c.GetContextLogger().Debugf("c.In <- m.Body %x", m.Body)
 			c.In <- m.Body
 		default:
-			c.CTXLogger.Debugf("not implemented msg type %d", t)
+			c.GetContextLogger().Debugf("not implemented msg type %d", t)
 			return fmt.Errorf("not implemented msg type %d", msg_t)
 		}
 		c.UpdateLastTime()
@@ -89,13 +89,13 @@ func (c *TCPConn) WriteLoop() (err error) {
 		select {
 		case m, ok := <-c.Out:
 			if !ok {
-				c.CTXLogger.Debug("conn closed")
+				c.GetContextLogger().Debug("conn closed")
 				return nil
 			}
-			c.CTXLogger.Debugf("msg Out %x", m)
+			c.GetContextLogger().Debugf("msg Out %x", m)
 			err := c.Write(m)
 			if err != nil {
-				c.CTXLogger.Debugf("write msg is failed %v", err)
+				c.GetContextLogger().Debugf("write msg is failed %v", err)
 				return err
 			}
 		}
@@ -123,7 +123,7 @@ func (c *TCPConn) Write(bytes []byte) error {
 }
 
 func (c *TCPConn) WriteBytes(bytes []byte) error {
-	c.CTXLogger.Debugf("write %x", bytes)
+	//c.GetContextLogger().Debugf("write %x", bytes)
 	c.WriteMutex.Lock()
 	defer c.WriteMutex.Unlock()
 	for index := 0; index != len(bytes); {
@@ -146,14 +146,6 @@ func (c *TCPConn) Ack(seq uint32) error {
 
 func (c *TCPConn) Ping() error {
 	return c.WriteBytes(msg.GenPingMsg())
-}
-
-func (c *TCPConn) GetChanOut() chan<- []byte {
-	return c.Out
-}
-
-func (c *TCPConn) GetChanIn() <-chan []byte {
-	return c.In
 }
 
 func (c *TCPConn) UpdateLastTime() {

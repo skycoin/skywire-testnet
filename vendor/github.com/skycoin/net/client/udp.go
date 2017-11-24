@@ -23,7 +23,7 @@ func NewClientUDPConn(c *net.UDPConn, addr *net.UDPAddr) *ClientUDPConn {
 func (c *ClientUDPConn) ReadLoop() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			c.CTXLogger.Debug(e)
+			c.GetContextLogger().Debug(e)
 			err = fmt.Errorf("readloop panic err:%v", e)
 		}
 		if err != nil {
@@ -50,26 +50,27 @@ func (c *ClientUDPConn) ReadLoop() (err error) {
 		switch t {
 		case msg.TYPE_PONG:
 		case msg.TYPE_ACK:
-			seq := binary.BigEndian.Uint32(m[msg.MSG_SEQ_BEGIN:msg.MSG_SEQ_END])
-			err = c.DelMsg(seq)
+			err = c.RecvAck(m)
 			if err != nil {
 				return err
 			}
 		case msg.TYPE_NORMAL:
 			seq := binary.BigEndian.Uint32(m[msg.MSG_SEQ_BEGIN:msg.MSG_SEQ_END])
+			ok, ms := c.Push(seq, m[msg.MSG_HEADER_END:])
 			err := c.Ack(seq)
 			if err != nil {
 				return err
 			}
-			if ok, ms := c.Push(seq, m[msg.MSG_HEADER_END:]); ok {
+			if ok {
 				for _, m := range ms {
 					c.In <- m
 				}
 			}
 		default:
-			c.CTXLogger.Debugf("not implemented msg type %d", t)
+			c.GetContextLogger().Debugf("not implemented msg type %d", t)
 			return fmt.Errorf("not implemented msg type %d", t)
 		}
+		c.UpdateLastTime()
 	}
 }
 

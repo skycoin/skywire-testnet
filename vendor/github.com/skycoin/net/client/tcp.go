@@ -38,13 +38,13 @@ func (c *ClientTCPConn) WriteLoop() (err error) {
 			}
 		case m, ok := <-c.Out:
 			if !ok {
-				c.CTXLogger.Debug("conn closed")
+				c.GetContextLogger().Debug("conn closed")
 				return nil
 			}
-			c.CTXLogger.Debugf("msg Out %x", m)
+			//c.GetContextLogger().Debugf("msg Out %x", m)
 			err := c.Write(m)
 			if err != nil {
-				c.CTXLogger.Debugf("write msg is failed %v", err)
+				c.GetContextLogger().Debugf("write msg is failed %v", err)
 				return err
 			}
 		}
