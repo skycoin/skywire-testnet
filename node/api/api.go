@@ -59,6 +59,8 @@ func (na *NodeApi) Close() error {
 	return na.srv.Close()
 }
 
+var env = ""
+
 func (na *NodeApi) StartSrv() {
 	mux := http.NewServeMux()
 	na.getConfig()
@@ -130,7 +132,7 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 		na.sshcCancel()
 	}
 	na.sshcCxt, na.sshcCancel = context.WithCancel(context.Background())
-	cmd := exec.CommandContext(na.sshcCxt, "./sshc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(na.sshcCxt, "sshc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -150,7 +152,7 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 	}
 	na.sockscCxt, na.sockscCancel = context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(na.sockscCxt, "./socksc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(na.sockscCxt, "socksc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -179,7 +181,7 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 		args = append(args, "-node-key")
 		args = append(args, v)
 	}
-	cmd := exec.CommandContext(na.sshsCxt, "./sshs", args...)
+	cmd := exec.CommandContext(na.sshsCxt, "sshs", args...)
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -197,7 +199,7 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 	}
 	na.sockssCxt, na.sockssCancel = context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(na.sockssCxt, "./sockss", "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(na.sockssCxt, "sockss", "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -251,6 +253,7 @@ func (na *NodeApi) getConfig() {
 	if err != nil || !matched {
 		managerUrl = fmt.Sprintf("127.0.0.1%s", managerUrl)
 	}
+	log.Errorf("url: %s", managerUrl)
 	res, err := http.PostForm(fmt.Sprintf("http://%s/conn/getNodeConfig", managerUrl), url.Values{"key": {na.node.Pk}})
 	if err != nil {
 		return
@@ -261,6 +264,7 @@ func (na *NodeApi) getConfig() {
 		log.Errorf("read config err: %v", err)
 		return
 	}
+	log.Errorf("body: %s", body)
 	if body != nil && string(body) != "null" {
 		var config *Config
 		err = json.Unmarshal(body, &config)
@@ -291,23 +295,29 @@ func (na *NodeApi) restart() (err error) {
 	args = append(args, "-address", na.config.Address)
 	args = append(args, "-seed-path", na.config.SeedPath)
 	args = append(args, "-web-port", na.config.WebPort)
+	log.Errorf("start closing...: %s", args)
 	cxt, cf := context.WithCancel(context.Background())
 	go na.srv.Shutdown(cxt)
+	go func() {
+		time.Sleep(3000 * time.Millisecond)
+		log.Errorf("closed end...")
+		cf()
+		os.Exit(0)
+	}()
 	na.node.Close()
 	time.Sleep(1000 * time.Millisecond)
-	cmd := exec.Command(os.Getenv("GOPATH")+"/bin/node", args...)
+	cmd := exec.Command("node", args...)
+	log.Errorf("exec restart...")
 	err = cmd.Start()
 	if err != nil {
+		log.Errorf("cmd start err: %v",err)
 		return
 	}
 	err = cmd.Process.Release()
 	if err != nil {
+		log.Errorf("cmd release err: %v",err)
 		return
 	}
-	go func() {
-		time.Sleep(1000 * time.Millisecond)
-		cf()
-		os.Exit(0)
-	}()
+	log.Errorf("exec restart end...")
 	return
 }
