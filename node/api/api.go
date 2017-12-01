@@ -126,6 +126,7 @@ func (na *NodeApi) runReboot(w http.ResponseWriter, r *http.Request) (result []b
 
 func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	na.Lock()
+	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
 	if na.sshcCancel != nil {
@@ -138,13 +139,14 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 		return
 	}
 
-	na.Unlock()
 	result = []byte("true")
 	return
 }
 
 func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	na.Lock()
+	defer na.Unlock()
+
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
 	if na.sockscCancel != nil {
@@ -158,20 +160,20 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 		return
 	}
 
-	na.Unlock()
 	result = []byte("true")
 	return
 }
 
 func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	na.Lock()
+	defer na.Unlock()
 	if na.sshsCancel != nil {
 		na.sshsCancel()
 	}
 	na.sshsCxt, na.sshsCancel = context.WithCancel(context.Background())
 	var arr []string
 	data := r.FormValue("data")
-	if data != "" {
+	if len(data) > 1 {
 		arr = strings.Split(data, ",")
 	}
 	args := make([]string, 0, len(arr)+2)
@@ -187,13 +189,13 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 		return
 	}
 
-	na.Unlock()
 	result = []byte("true")
 	return
 }
 
 func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	na.Lock()
+	defer na.Unlock()
 	if na.sockssCancel != nil {
 		na.sockssCancel()
 	}
@@ -205,19 +207,14 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 		return
 	}
 
-	na.Unlock()
 	result = []byte("true")
 	return
 }
 
 func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	branch := r.FormValue("branch")
-	cmd := exec.Command("update-skywire", branch)
+	cmd := exec.Command("./update-skywire", branch)
 	err = cmd.Start()
-	if err != nil {
-		return
-	}
-	err = cmd.Wait()
 	if err != nil {
 		return
 	}
