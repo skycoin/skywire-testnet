@@ -3,19 +3,18 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"github.com/rs/cors"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skywire/node"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
-	"fmt"
-	"io/ioutil"
-	"net/url"
-	"regexp"
 )
 
 type NodeApi struct {
@@ -62,18 +61,17 @@ func (na *NodeApi) Close() error {
 var env = ""
 
 func (na *NodeApi) StartSrv() {
-	mux := http.NewServeMux()
 	na.getConfig()
-	mux.HandleFunc("/node/getInfo", wrap(na.getInfo))
-	mux.HandleFunc("/node/getApps", wrap(na.getApps))
-	mux.HandleFunc("/node/reboot", wrap(na.runReboot))
-	mux.HandleFunc("/node/run/sshs", wrap(na.runSshs))
-	mux.HandleFunc("/node/run/sshc", wrap(na.runSshc))
-	mux.HandleFunc("/node/run/sockss", wrap(na.runSockss))
-	mux.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
-	mux.HandleFunc("/node/run/update", wrap(na.update))
-	mux.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
-	na.srv.Handler = cors.Default().Handler(mux)
+	http.HandleFunc("/node/getInfo", wrap(na.getInfo))
+	http.HandleFunc("/node/getApps", wrap(na.getApps))
+	http.HandleFunc("/node/reboot", wrap(na.runReboot))
+	http.HandleFunc("/node/run/sshs", wrap(na.runSshs))
+	http.HandleFunc("/node/run/sshc", wrap(na.runSshc))
+	http.HandleFunc("/node/run/sockss", wrap(na.runSockss))
+	http.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
+	http.HandleFunc("/node/run/update", wrap(na.update))
+	http.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
+	na.srv.Handler = http.DefaultServeMux
 	go func() {
 		log.Debugf("http server listening on %s", na.address)
 		if err := na.srv.ListenAndServe(); err != nil {
@@ -310,12 +308,12 @@ func (na *NodeApi) restart() (err error) {
 	log.Errorf("exec restart...")
 	err = cmd.Start()
 	if err != nil {
-		log.Errorf("cmd start err: %v",err)
+		log.Errorf("cmd start err: %v", err)
 		return
 	}
 	err = cmd.Process.Release()
 	if err != nil {
-		log.Errorf("cmd release err: %v",err)
+		log.Errorf("cmd release err: %v", err)
 		return
 	}
 	log.Errorf("exec restart end...")
