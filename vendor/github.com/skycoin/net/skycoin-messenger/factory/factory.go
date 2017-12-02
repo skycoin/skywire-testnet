@@ -56,7 +56,10 @@ func (f *MessengerFactory) Listen(address string) (err error) {
 
 func (f *MessengerFactory) acceptedUDPCallback(connection *factory.Connection) {
 	var err error
-	conn := newConnection(connection, f)
+	conn, ok := connection.RealObject.(*Connection)
+	if !ok {
+		conn = newUDPServerConnection(connection, f)
+	}
 	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "messenger"))
 	defer func() {
 		if e := recover(); e != nil {
@@ -94,6 +97,7 @@ func (f *MessengerFactory) callbackLoop(conn *Connection) (err error) {
 			opn := m[MSG_OP_BEGIN]
 			op := getOP(int(opn))
 			if op == nil {
+				conn.GetContextLogger().Debugf("op not found %x", m)
 				continue
 			}
 			var rb []byte
@@ -323,10 +327,46 @@ func (f *MessengerFactory) connectUDPWithConfig(address string, config *ConnConf
 	if err != nil {
 		return nil, err
 	}
+	if c == nil {
+		panic("c == nil")
+	}
 	conn = newUDPClientConnection(c, f)
 	if config != nil && config.Creator != nil {
 		conn.factory = config.Creator
 	}
+	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "transport"))
+	if config != nil {
+		if config.OnConnected != nil {
+			config.OnConnected(conn)
+		}
+	}
+	return
+}
+
+func (f *MessengerFactory) acceptUDPWithConfig(address string, config *ConnConfig) (conn *Connection, err error) {
+	f.fieldsMutex.Lock()
+	if f.udp == nil {
+		ff := factory.NewUDPFactory()
+		if config != nil && config.Creator != nil {
+			ff.AcceptedCallback = config.Creator.acceptedUDPCallback
+		}
+		err = ff.Listen(":0")
+		if err != nil {
+			f.fieldsMutex.Unlock()
+			return
+		}
+		f.udp = ff
+	}
+	f.fieldsMutex.Unlock()
+	c, err := f.udp.ConnectAfterListen(address)
+	if err != nil {
+		return nil, err
+	}
+	if c == nil {
+		return nil, nil
+	}
+	conn = newUDPServerConnection(c, f)
+	go f.udp.AcceptedCallback(c)
 	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "transport"))
 	if config != nil {
 		if config.OnConnected != nil {

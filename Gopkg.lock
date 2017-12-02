@@ -32,12 +32,6 @@
   version = "v0.8.0"
 
 [[projects]]
-  name = "github.com/rs/cors"
-  packages = ["."]
-  revision = "7af7a1e09ba336d2ea14b1ce73bf693c6837dbf6"
-  version = "v1.2"
-
-[[projects]]
   name = "github.com/shadowsocks/shadowsocks-go"
   packages = ["shadowsocks"]
   revision = "97a5c71f80ba5f5b3e549f14a619fe557ff4f3c9"
@@ -53,7 +47,7 @@
   branch = "master"
   name = "github.com/skycoin/net"
   packages = ["client","conn","factory","msg","server","skycoin-messenger/factory","skycoin-messenger/monitor"]
-  revision = "144c0b0b20c5952bcfed2f36e71ed416e0218be2"
+  revision = "7bd07a20ab33768c99c67ff9865c929d77840161"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"
@@ -76,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c1fefb38ce9204aed36091394ad21486810a9460123283ef325d2d5c8b2b6466"
+  inputs-digest = "197e3d774ec02fb66b950b162a050d7aa0b0eb704fcbdd98b68327fe61f500cb"
   solver-name = "gps-cdcl"
   solver-version = 1

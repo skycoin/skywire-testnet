@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -50,6 +51,9 @@ type Monitor struct {
 
 	code    string
 	version string
+
+	configs      map[string]*Config
+	configsMutex sync.RWMutex
 }
 
 func New(f *factory.MessengerFactory, addr, code, version string) *Monitor {
@@ -59,6 +63,7 @@ func New(f *factory.MessengerFactory, addr, code, version string) *Monitor {
 		srv:     &http.Server{Addr: addr},
 		code:    code,
 		version: version,
+		configs: make(map[string]*Config),
 	}
 }
 
@@ -69,6 +74,8 @@ func (m *Monitor) Start(webDir string) {
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
 	http.HandleFunc("/conn/getAll", bundle(m.getAllNode))
 	http.HandleFunc("/conn/getNode", bundle(m.getNode))
+	http.HandleFunc("/conn/setNodeConfig", bundle(m.setNodeConfig))
+	http.HandleFunc("/conn/getNodeConfig", bundle(m.getNodeConfig))
 	http.HandleFunc("/node", bundle(requestNode))
 	go func() {
 		if err := m.srv.ListenAndServe(); err != nil {
@@ -191,5 +198,42 @@ func (m *Monitor) getNode(w http.ResponseWriter, r *http.Request) (result []byte
 		code = SERVER_ERROR
 		return
 	}
+	return
+}
+
+type Config struct {
+	DiscoveryAddresses []string
+}
+
+func (m *Monitor) setNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if r.Method != "POST" {
+		code = BAD_REQUEST
+		err = errors.New("please use post method")
+		return
+	}
+	key := r.FormValue("key")
+	data := []byte(r.FormValue("data"))
+	var config *Config
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		return
+	}
+	m.configsMutex.Lock()
+	m.configs[key] = config
+	m.configsMutex.Unlock()
+	result = []byte("true")
+	return
+}
+
+func (m *Monitor) getNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if r.Method != "POST" {
+		code = BAD_REQUEST
+		err = errors.New("please use post method")
+		return
+	}
+	key := r.FormValue("key")
+	m.configsMutex.Lock()
+	defer m.configsMutex.Unlock()
+	result, err = json.Marshal(m.configs[key])
 	return
 }

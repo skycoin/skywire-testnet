@@ -35,6 +35,10 @@ type Connection interface {
 	GetSentBytes() uint64
 	// Get received bytes count
 	GetReceivedBytes() uint64
+
+	NewPendingChannel() (channel int)
+	DeletePendingChannel(channel int)
+	WriteToChannel(channel int, bytes []byte) (err error)
 }
 
 type ConnCommonFields struct {
@@ -64,7 +68,7 @@ func NewConnCommonFileds() ConnCommonFields {
 	entry := log.WithField("ctxId", atomic.AddUint32(&ctxId, 1))
 	fields := ConnCommonFields{
 		lastReadTime: time.Now().Unix(),
-		In:           make(chan []byte, 1),
+		In:           make(chan []byte, 128),
 		Out:          make(chan []byte, 1),
 	}
 	fields.ctxLogger.Store(entry)
@@ -79,6 +83,10 @@ func (c *ConnCommonFields) SetStatusToConnected() {
 
 func (c *ConnCommonFields) SetStatusToError(err error) {
 	c.FieldsMutex.Lock()
+	if c.Status == STATUS_ERROR {
+		c.FieldsMutex.Unlock()
+		return
+	}
 	c.Status = STATUS_ERROR
 	c.Err = err
 	c.FieldsMutex.Unlock()
@@ -151,4 +159,16 @@ func (c *ConnCommonFields) GetReceivedBytes() uint64 {
 
 func (c *ConnCommonFields) AddReceivedBytes(n int) {
 	atomic.AddUint64(&c.receivedBytes, uint64(n))
+}
+
+func (c *ConnCommonFields) NewPendingChannel() (channel int) {
+	panic("not implemented")
+}
+
+func (c *ConnCommonFields) DeletePendingChannel(channel int) {
+	panic("not implemented")
+}
+
+func (c *ConnCommonFields) WriteToChannel(channel int, bytes []byte) (err error) {
+	panic("not implemented")
 }

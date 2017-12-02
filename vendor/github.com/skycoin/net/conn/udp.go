@@ -110,9 +110,12 @@ func (c *UDPConn) writeLoopWithPing() (err error) {
 		select {
 		case <-ticker.C:
 			nowUnix := time.Now().Unix()
-			if nowUnix-c.GetLastTime() >= UDP_GC_PERIOD {
+			lastTime := c.GetLastTime()
+			if nowUnix-lastTime >= UDP_GC_PERIOD {
 				c.Close()
 				return errors.New("timeout")
+			} else if nowUnix-lastTime < UDP_PING_TICK_PERIOD {
+				continue
 			}
 			err := c.Ping()
 			if err != nil {
@@ -133,24 +136,30 @@ func (c *UDPConn) writeLoopWithPing() (err error) {
 }
 
 func (c *UDPConn) Write(bytes []byte) (err error) {
-	s := c.GetNextSeq()
-	m := msg.NewUDP(msg.TYPE_NORMAL, s, bytes)
-	c.AddMsg(s, m)
-	ok := c.addBytesInFlight(m)
+	err = c.WriteToChannel(0, bytes)
+	return
+}
+
+func (c *UDPConn) WriteToChannel(channel int, bytes []byte) (err error) {
+	m := msg.NewUDPWithoutSeq(msg.TYPE_NORMAL, bytes)
+	ok := c.addToPendingChannel(channel, m)
+	c.GetContextLogger().Debugf("bif %d, ok %t", c.ca.getBytesInFlight(), ok)
 	if !ok {
 		return nil
 	}
-	c.GetContextLogger().Debugf("new msg seq %d", m.Seq)
+	m.SetSeq(c.GetNextSeq())
+	c.GetContextLogger().Debugf("new msg seq %d", m.GetSeq())
 	err = c.WriteBytes(m.PkgBytes())
 	c.transmitted(m)
 	return
 }
 
 func (c *UDPConn) transmitted(m *msg.UDPMessage) {
+	c.AddMsg(m.GetSeq(), m)
 	m.Transmitted()
 	m.SetRTO(c.getRTO(), func() (err error) {
 		c.AddRTOResendCount()
-		err = c.WriteBytes(m.PkgBytes())
+		err = c.resendMsg(m)
 		if err != nil {
 			c.SetStatusToError(err)
 			c.Close()
@@ -161,7 +170,7 @@ func (c *UDPConn) transmitted(m *msg.UDPMessage) {
 }
 
 func (c *UDPConn) resendMsg(m *msg.UDPMessage) (err error) {
-	if !c.UDPPendingMap.exists(m.Seq) {
+	if !c.UDPPendingMap.exists(m.GetSeq()) {
 		return
 	}
 	c.GetContextLogger().Debugf("resendMsg %s", m)
@@ -169,17 +178,17 @@ func (c *UDPConn) resendMsg(m *msg.UDPMessage) (err error) {
 	return
 }
 
-func (c *UDPConn) writePendingMsgs() error {
+func (c *UDPConn) writePendingMsgs(s int) error {
 	for {
-		m := c.ca.popMessage()
+		c.GetContextLogger().Debugf("popMessage bif %d, s %d", c.ca.getBytesInFlight(), s)
+		m := c.ca.popMessage(s)
+		s = 0
+		c.GetContextLogger().Debugf("popMessage bif %d, m %v", c.ca.getBytesInFlight(), m)
 		if m == nil {
 			return nil
 		}
-		ok := c.addBytesInFlight(m)
-		if !ok {
-			return nil
-		}
-		c.GetContextLogger().Debugf("new msg seq %d", m.Seq)
+		m.SetSeq(c.GetNextSeq())
+		c.GetContextLogger().Debugf("new msg seq %d", m.GetSeq())
 		err := c.WriteBytes(m.PkgBytes())
 		if err != nil {
 			return err
@@ -194,6 +203,7 @@ func (c *UDPConn) WriteBytes(bytes []byte) error {
 	c.WriteMutex.Lock()
 	defer c.WriteMutex.Unlock()
 	n, err := c.UdpConn.WriteToUDP(bytes, c.addr)
+	c.GetContextLogger().Debugf("write out %x", bytes)
 	if err == nil && n != l {
 		return errors.New("nothing was written")
 	}
@@ -203,11 +213,23 @@ func (c *UDPConn) WriteBytes(bytes []byte) error {
 func (c *UDPConn) Ack(seq uint32) error {
 	nSeq := c.getNextAckSeq()
 	c.GetContextLogger().Debugf("ack %d, next %d", seq, nSeq)
-	p := make([]byte, msg.ACK_HEADER_SIZE+msg.PKG_HEADER_SIZE)
+	var missing []uint32
+	var ml int
+	if seq > nSeq+1 {
+		missing = c.getMissingSeqs(nSeq+1, seq)
+		c.GetContextLogger().Debugf("missing %v", missing)
+		ml = len(missing)
+	}
+	p := make([]byte, msg.ACK_HEADER_SIZE+msg.PKG_HEADER_SIZE+4*ml)
 	m := p[msg.PKG_HEADER_SIZE:]
 	m[msg.ACK_TYPE_BEGIN] = msg.TYPE_ACK
 	binary.BigEndian.PutUint32(m[msg.ACK_SEQ_BEGIN:], seq)
 	binary.BigEndian.PutUint32(m[msg.ACK_NEXT_SEQ_BEGIN:], nSeq)
+
+	for i, v := range missing {
+		binary.BigEndian.PutUint32(m[msg.ACK_NEXT_SEQ_END+i*4:], v)
+	}
+
 	checksum := crc32.ChecksumIEEE(m)
 	binary.BigEndian.PutUint32(p[msg.PKG_CRC32_BEGIN:], checksum)
 	return c.WriteBytes(p)
@@ -222,15 +244,35 @@ func (c *UDPConn) RecvAck(m []byte) (err error) {
 	n, ok := c.getMinUnAckSeq()
 
 	c.GetContextLogger().Debugf("recv ack %d, next %d, min unack %t %d", seq, ns, ok, n)
-	if ok {
-		for ; ns > n+1; n++ {
-			c.GetContextLogger().Debugf("ignore ack %d", n)
-			err = c.delMsg(n, true)
-			if err != nil {
-				return
+	for ok && ns > n+1 && n != seq {
+		c.GetContextLogger().Debugf("ignore ack %d", n)
+		err = c.delMsg(n, true)
+		if err != nil {
+			return
+		}
+		n, ok = c.getMinUnAckSeq()
+	}
+
+	if seq > ns+1 {
+		i := msg.ACK_NEXT_SEQ_END
+		mm := make(map[uint32]struct{})
+		for len(m)-i >= 4 {
+			v := binary.BigEndian.Uint32(m[i:])
+			mm[v] = struct{}{}
+			i = i + 4
+		}
+		c.GetContextLogger().Debugf("recover ack [%d-%d) missing %v", ns+1, seq, mm)
+
+		for j := ns + 1; j < seq; j++ {
+			if _, ok := mm[j]; !ok {
+				err = c.delMsg(j, true)
+				if err != nil {
+					return
+				}
 			}
 		}
 	}
+
 	err = c.delMsg(seq, false)
 	return
 }
@@ -282,6 +324,9 @@ func (c *UDPConn) getRTO() (rto time.Duration) {
 
 func (c *UDPConn) setRTO(rto time.Duration) {
 	c.GetContextLogger().Debugf("setRTO %d", rto)
+	if rto < 200*time.Millisecond {
+		rto = 200 * time.Millisecond
+	}
 	c.FieldsMutex.Lock()
 	c.rto = rto
 	c.FieldsMutex.Unlock()
@@ -294,12 +339,12 @@ func (c *UDPConn) AddMsg(k uint32, v *msg.UDPMessage) {
 func (c *UDPConn) delMsg(seq uint32, ignore bool) error {
 	ok, um, msgs := c.DelMsgAndGetLossMsgs(seq, c.ca.getCwnd()/MAX_UDP_PACKAGE_SIZE/3)
 	if ok {
+		s := um.PkgBytesLen()
 		c.AddAckCount()
-		if !ignore {
-			c.updateRTT(um.GetRTT())
-			c.updateDeliveryRate(um)
-		}
-		c.subBytesInFlight(um.TotalSize())
+		//if !ignore {
+		//	c.updateRTT(um.GetRTT())
+		//	c.updateDeliveryRate(um)
+		//}
 		if len(msgs) > 1 {
 			c.GetContextLogger().Debugf("resend loss msgs %v", msgs)
 			for _, msg := range msgs {
@@ -313,11 +358,12 @@ func (c *UDPConn) delMsg(seq uint32, ignore bool) error {
 			}
 		}
 		c.UpdateLastAck(seq)
+		return c.writePendingMsgs(s)
 	} else if !ignore {
 		c.GetContextLogger().Debugf("over ack %s", c)
 		c.AddOverAckCount()
 	}
-	return c.writePendingMsgs()
+	return nil
 }
 
 func (c *UDPConn) AddLossResendCount() {
@@ -525,7 +571,7 @@ func (c *UDPConn) updateDeliveryRate(m *msg.UDPMessage) {
 		//c.cwnd = cwnd
 	} else if c.ca.mode == drain {
 		pcwnd := uint32(max * rtt)
-		if c.ca.bytesInFlight < int(pcwnd) {
+		if c.ca.bif < int(pcwnd) {
 			c.ca.mode = probeBW
 			c.ca.pacingGain = 1
 			cwnd = pcwnd
@@ -542,12 +588,32 @@ type ca struct {
 	rateSamples   *rateSampler
 	cwnd          uint32
 	mode
-	pacingGain    float64
-	fullCnt       uint
-	bytesInFlight int
+	pacingGain float64
+	fullCnt    uint
 
-	buff *btree.BTree
+	bif        int
+	bifMtx     sync.RWMutex
+	bifPdId    int
+	bifPdChans map[int]*pdChan
+
 	sync.RWMutex
+}
+
+type pdChan struct {
+	pd    *btree.BTree
+	seq   uint32
+	mtx   sync.Mutex
+	cond  *sync.Cond
+	maxPd int
+}
+
+func newPdChan(max int) *pdChan {
+	pd := &pdChan{
+		pd:    btree.New(2),
+		maxPd: max,
+	}
+	pd.cond = sync.NewCond(&pd.mtx)
+	return pd
 }
 
 func newCA() *ca {
@@ -556,8 +622,10 @@ func newCA() *ca {
 		rateSamples: newRateSampler(16),
 		pacingGain:  highGain,
 		cwnd:        20480,
+		bifPdChans:  make(map[int]*pdChan),
 	}
-	c.buff = btree.New(2)
+
+	c.bifPdChans[c.bifPdId] = newPdChan(1000)
 	return c
 }
 
@@ -582,50 +650,102 @@ func (ca *ca) getSentTime() (d time.Time) {
 	return
 }
 
-func (ca *ca) addBytesInFlight(m *msg.UDPMessage) (ok bool) {
-	bytes := m.PkgBytes()
-	ca.Lock()
-	defer ca.Unlock()
+func (ca *ca) newPendingChannel() (channel int) {
+	ca.bifMtx.Lock()
+	defer ca.bifMtx.Unlock()
 
-	min := ca.buff.Min()
-	if (min != nil && min.Less(m)) || int(ca.cwnd) < ca.bytesInFlight+len(bytes) {
-		ca.buff.ReplaceOrInsert(m)
-		return
-	}
-	ca.bytesInFlight += len(bytes)
-	ok = true
+	ca.bifPdId++
+	channel = ca.bifPdId
+	ca.bifPdChans[channel] = newPdChan(100)
 	return
 }
 
-func (ca *ca) subBytesInFlight(s int) {
-	ca.Lock()
-	if ca.bytesInFlight < s {
-		panic("subBytesInFlight ca.bytesInFlight < s")
-	}
-	ca.bytesInFlight -= s
-	ca.Unlock()
+func (ca *ca) deletePendingChannel(channel int) {
+	ca.bifMtx.Lock()
+	defer ca.bifMtx.Unlock()
+
+	delete(ca.bifPdChans, channel)
 }
 
-func (ca *ca) popMessage() (m *msg.UDPMessage) {
-	ca.Lock()
-	defer ca.Unlock()
+func (c *UDPConn) DeletePendingChannel(channel int) {
+	c.ca.deletePendingChannel(channel)
+}
 
-	if ca.buff.Len() < 1 {
+func (c *UDPConn) NewPendingChannel() (channel int) {
+	return c.ca.newPendingChannel()
+}
+
+func (ca *ca) addToPendingChannel(channel int, m *msg.UDPMessage) bool {
+	ca.bifMtx.RLock()
+	ch, ok := ca.bifPdChans[channel]
+	ca.bifMtx.RUnlock()
+	if !ok {
+		panic(fmt.Errorf("no channel %d", channel))
+	}
+
+	ch.mtx.Lock()
+	if ch.pd.Len()+1 > ch.maxPd && channel != 0 {
+		ch.cond.Wait()
+	}
+	ch.seq++
+	m.SetSeq(ch.seq)
+	min := ch.pd.Min()
+	if (min != nil && min.Less(m)) || int(ca.cwnd) < ca.bif+m.PkgBytesLen() {
+		ch.pd.ReplaceOrInsert(m)
+		ch.mtx.Unlock()
+		return false
+	}
+	ch.mtx.Unlock()
+
+	ca.bifMtx.Lock()
+	ca.bif += m.PkgBytesLen()
+	ca.bifMtx.Unlock()
+	return true
+}
+
+func (ca *ca) popMessage(s int) (m *msg.UDPMessage) {
+	ca.bifMtx.Lock()
+	if ca.bif < s {
+		panic(fmt.Errorf("popMessage ca.bif(%d) < s(%d)", ca.bif, s))
+	}
+	ca.bif -= s
+	ca.bifMtx.Unlock()
+
+	for _, v := range ca.bifPdChans {
+		v.mtx.Lock()
+		pd := v.pd
+		if pd.Len() < 1 {
+			v.mtx.Unlock()
+			continue
+		}
+		element := pd.Min()
+		if element == nil {
+			v.mtx.Unlock()
+			continue
+		}
+		m = element.(*msg.UDPMessage)
+
+		if int(ca.cwnd) < ca.bif+m.PkgBytesLen() {
+			m = nil
+			v.mtx.Unlock()
+			continue
+		}
+		pd.DeleteMin()
+		v.mtx.Unlock()
+		v.cond.Broadcast()
+
+		ca.bifMtx.Lock()
+		ca.bif += m.PkgBytesLen()
+		ca.bifMtx.Unlock()
 		return
 	}
-	element := ca.buff.Min()
-	if element == nil {
-		return
-	}
-	ca.buff.DeleteMin()
-	m = element.(*msg.UDPMessage)
 	return
 }
 
 func (ca *ca) getBytesInFlight() (r int) {
-	ca.RLock()
-	r = ca.bytesInFlight
-	ca.RUnlock()
+	ca.bifMtx.RLock()
+	r = ca.bif
+	ca.bifMtx.RUnlock()
 	return
 }
 

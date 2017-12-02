@@ -39,6 +39,8 @@ type Transport struct {
 	uploadBW   bandwidth
 	downloadBW bandwidth
 
+	connAcked bool
+
 	fieldsMutex sync.RWMutex
 }
 
@@ -77,6 +79,34 @@ func (t *Transport) ListenAndConnect(address string) (conn *Connection, err erro
 		Creator: t.creator,
 	})
 	return
+}
+
+// Connect to node B
+func (t *Transport) connect(address string) (err error) {
+	t.fieldsMutex.Lock()
+	if t.connAcked {
+		t.fieldsMutex.Unlock()
+		return
+	}
+	t.connAcked = true
+	t.fieldsMutex.Unlock()
+	_, err = t.factory.acceptUDPWithConfig(address, &ConnConfig{
+		OnConnected: func(connection *Connection) {
+			//connection.writeOP(OP_APP_CONN_ACK|RESP_PREFIX, &connAck{
+			//	FromApp: t.FromApp,
+			//	App:     t.ToApp,
+			//})
+			connection.writeOP(OP_BUILD_APP_CONN_OK|RESP_PREFIX, &nop{})
+		},
+		Creator: t.creator,
+	})
+	return
+}
+
+func (t *Transport) connAck() {
+	t.fieldsMutex.Lock()
+	t.connAcked = true
+	t.fieldsMutex.Unlock()
 }
 
 // Connect to node A and server app
@@ -129,9 +159,10 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 		select {
 		case m, ok := <-conn.GetChanIn():
 			if !ok {
-				log.Debugf("node conn read err %v", err)
+				conn.GetContextLogger().Debugf("node conn read err %v", err)
 				return
 			}
+			conn.GetContextLogger().Debugf("get chan in %x", m)
 			t.downloadBW.add(len(m))
 			id := binary.BigEndian.Uint32(m[PKG_HEADER_ID_BEGIN:PKG_HEADER_ID_END])
 			appConn := getAppConn(id)
@@ -152,7 +183,7 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 			}
 			err = writeAll(appConn, body)
 			if err != nil {
-				log.Debugf("app conn write err %v", err)
+				conn.GetContextLogger().Debugf("app conn write err %v", err)
 				continue
 			}
 		}
@@ -163,6 +194,8 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 func (t *Transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, create bool) {
 	buf := make([]byte, cn.MAX_UDP_PACKAGE_SIZE-100)
 	binary.BigEndian.PutUint32(buf[PKG_HEADER_ID_BEGIN:PKG_HEADER_ID_END], id)
+	channel := conn.NewPendingChannel()
+	defer conn.DeletePendingChannel(channel)
 	defer func() {
 		if e := recover(); e != nil {
 			conn.GetContextLogger().Debugf("close app conn %d, err %v", id, e)
@@ -180,7 +213,7 @@ func (t *Transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, c
 							conn.GetContextLogger().Debugf("close app conn %d, err %v", id, e)
 						}
 					}()
-					conn.GetChanOut() <- buf[:PKG_HEADER_END]
+					conn.WriteToChannel(channel, buf[:PKG_HEADER_END])
 				}()
 			}
 			if create {
@@ -195,7 +228,7 @@ func (t *Transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, c
 		}
 	}()
 	if create {
-		conn.GetChanOut() <- buf[:PKG_HEADER_END]
+		conn.WriteToChannel(channel, buf[:PKG_HEADER_END])
 	}
 	for {
 		n, err := appConn.Read(buf[PKG_HEADER_END:])
@@ -205,8 +238,9 @@ func (t *Transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, c
 		}
 		pkg := make([]byte, PKG_HEADER_END+n)
 		copy(pkg, buf[:PKG_HEADER_END+n])
+		conn.GetContextLogger().Debugf("app conn in %x", pkg)
 		t.uploadBW.add(len(pkg))
-		conn.GetChanOut() <- pkg
+		conn.WriteToChannel(channel, pkg)
 	}
 }
 
@@ -422,7 +456,13 @@ func (b *bandwidth) add(s int) {
 
 // Bandwidth bytes/sec
 func (b *bandwidth) get() (r uint) {
+	now := time.Now().Unix()
 	b.RLock()
+	if now != b.sec {
+		r = 0
+		b.RUnlock()
+		return
+	}
 	r = b.lastBytes
 	b.RUnlock()
 	return

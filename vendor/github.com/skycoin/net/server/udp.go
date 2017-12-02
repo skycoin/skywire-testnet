@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"time"
 
 	"hash/crc32"
 
@@ -35,9 +36,16 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 		}
 		c.Close()
 	}()
+	var lst = time.Time{}
+	var at = time.Time{}
+	var nt = time.Time{}
 	for {
 		maxBuf := make([]byte, conn.MAX_UDP_PACKAGE_SIZE)
 		n, addr, err := c.UdpConn.ReadFromUDP(maxBuf)
+		if !lst.IsZero() {
+			c.GetContextLogger().Debugf("read udp d %s", time.Now().Sub(lst))
+		}
+		lst = time.Now()
 		if err != nil {
 			if e, ok := err.(net.Error); ok {
 				if e.Timeout() {
@@ -62,6 +70,7 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 		t := m[msg.MSG_TYPE_BEGIN]
 		switch t {
 		case msg.TYPE_ACK:
+			at = time.Now()
 			func() {
 				var err error
 				defer func() {
@@ -76,6 +85,7 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 				}()
 				err = cc.RecvAck(m)
 			}()
+			c.GetContextLogger().Debugf("process ack d %s", time.Now().Sub(at))
 		case msg.TYPE_PONG:
 		case msg.TYPE_PING:
 			func() {
@@ -100,6 +110,7 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 				cc.GetContextLogger().Debugf("pong")
 			}()
 		case msg.TYPE_NORMAL:
+			nt = time.Now()
 			func() {
 				var err error
 				defer func() {
@@ -127,6 +138,7 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 					}
 				}
 			}()
+			c.GetContextLogger().Debugf("process normal d %s", time.Now().Sub(nt))
 		default:
 			cc.GetContextLogger().Debugf("not implemented msg type %d", t)
 			cc.SetStatusToError(fmt.Errorf("not implemented msg type %d", t))

@@ -23,7 +23,7 @@ type Interface interface {
 
 type Message struct {
 	Type uint8
-	Seq  uint32
+	seq  uint32
 	Len  uint32
 	Body []byte
 
@@ -40,7 +40,7 @@ type Message struct {
 func NewByHeader(header []byte) *Message {
 	m := &Message{}
 	m.Type = uint8(header[0])
-	m.Seq = binary.BigEndian.Uint32(header[MSG_SEQ_BEGIN:MSG_SEQ_END])
+	m.seq = binary.BigEndian.Uint32(header[MSG_SEQ_BEGIN:MSG_SEQ_END])
 	m.Len = binary.BigEndian.Uint32(header[MSG_LEN_BEGIN:MSG_LEN_END])
 	if m.Len > MAX_MESSAGE_SIZE {
 		panic(fmt.Errorf("msg len(%d) >  max len(%d)", m.Len, MAX_MESSAGE_SIZE))
@@ -52,11 +52,15 @@ func NewByHeader(header []byte) *Message {
 }
 
 func New(t uint8, seq uint32, bytes []byte) *Message {
-	return &Message{Type: t, Seq: seq, Len: uint32(len(bytes)), Body: bytes}
+	return &Message{Type: t, seq: seq, Len: uint32(len(bytes)), Body: bytes}
+}
+
+func NewWithoutSeq(t uint8, bytes []byte) *Message {
+	return &Message{Type: t, Len: uint32(len(bytes)), Body: bytes}
 }
 
 func (msg *Message) String() string {
-	return fmt.Sprintf("Msg Type:%d, Seq:%d, Len:%d, Status:%x", msg.Type, msg.Seq, msg.Len, msg.Status())
+	return fmt.Sprintf("Msg Type:%d, Seq:%d, Len:%d, Status:%x", msg.Type, msg.GetSeq(), msg.Len, msg.Status())
 }
 
 func (msg *Message) Status() (s int) {
@@ -64,6 +68,14 @@ func (msg *Message) Status() (s int) {
 	s = msg.status
 	msg.RUnlock()
 	return
+}
+
+func (msg *Message) SetSeq(seq uint32) {
+	atomic.StoreUint32(&msg.seq, seq)
+}
+
+func (msg *Message) GetSeq() uint32 {
+	return atomic.LoadUint32(&msg.seq)
 }
 
 func (msg *Message) GetHashId() cipher.SHA256 {
@@ -80,7 +92,7 @@ func (msg *Message) Bytes() (result []byte) {
 
 	result = make([]byte, MSG_HEADER_SIZE+msg.Len)
 	result[0] = byte(msg.Type)
-	binary.BigEndian.PutUint32(result[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.Seq)
+	binary.BigEndian.PutUint32(result[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.GetSeq())
 	binary.BigEndian.PutUint32(result[MSG_LEN_BEGIN:MSG_LEN_END], msg.Len)
 	copy(result[MSG_HEADER_END:], msg.Body)
 	msg.Lock()
@@ -100,7 +112,7 @@ func (msg *Message) PkgBytes() (result []byte) {
 	result = make([]byte, PKG_HEADER_SIZE+MSG_HEADER_SIZE+msg.Len)
 	m := result[PKG_HEADER_SIZE:]
 	m[0] = byte(msg.Type)
-	binary.BigEndian.PutUint32(m[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.Seq)
+	binary.BigEndian.PutUint32(m[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.GetSeq())
 	binary.BigEndian.PutUint32(m[MSG_LEN_BEGIN:MSG_LEN_END], msg.Len)
 	copy(m[MSG_HEADER_END:], msg.Body)
 	checksum := crc32.ChecksumIEEE(m)
@@ -111,10 +123,14 @@ func (msg *Message) PkgBytes() (result []byte) {
 	return
 }
 
+func (msg *Message) PkgBytesLen() int {
+	return int(PKG_HEADER_SIZE + MSG_HEADER_SIZE + msg.Len)
+}
+
 func (msg *Message) HeaderBytes() []byte {
 	result := make([]byte, MSG_HEADER_SIZE)
 	result[0] = byte(msg.Type)
-	binary.BigEndian.PutUint32(result[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.Seq)
+	binary.BigEndian.PutUint32(result[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.GetSeq())
 	binary.BigEndian.PutUint32(result[MSG_LEN_BEGIN:MSG_LEN_END], msg.Len)
 	return result
 }
@@ -154,6 +170,7 @@ type UDPMessage struct {
 	*Message
 
 	miss        uint32
+	resendCnt   uint32
 	resendTimer *time.Timer
 
 	delivered     uint64
@@ -165,6 +182,12 @@ type UDPMessage struct {
 func NewUDP(t uint8, seq uint32, bytes []byte) *UDPMessage {
 	return &UDPMessage{
 		Message: New(t, seq, bytes),
+	}
+}
+
+func NewUDPWithoutSeq(t uint8, bytes []byte) *UDPMessage {
+	return &UDPMessage{
+		Message: NewWithoutSeq(t, bytes),
 	}
 }
 
@@ -186,12 +209,13 @@ func (msg *UDPMessage) UpdateState(delivered uint64, deliveredTime, sentTime tim
 
 func (msg *UDPMessage) SetRTO(rto time.Duration, fn func() error) {
 	msg.Lock()
-	msg.resendTimer = time.AfterFunc(rto, func() {
+	msg.resendTimer = time.AfterFunc(rto*time.Duration((msg.resendCnt)*3/2+1), func() {
 		msg.Lock()
 		if msg.status&MSG_STATUS_ACKED > 0 {
 			msg.Unlock()
 			return
 		}
+		msg.resendCnt++
 		msg.Unlock()
 		msg.ResetMiss()
 		err := fn()
@@ -242,5 +266,5 @@ func (msg *UDPMessage) GetTransmittedTime() time.Time {
 }
 
 func (msg *UDPMessage) Less(b btree.Item) bool {
-	return msg.Seq < b.(*UDPMessage).Seq
+	return msg.GetSeq() < b.(*UDPMessage).GetSeq()
 }

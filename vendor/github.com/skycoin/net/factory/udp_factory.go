@@ -16,13 +16,13 @@ type UDPFactory struct {
 	FactoryCommonFields
 
 	udpConnMapMutex sync.RWMutex
-	udpConnMap      map[string]*conn.UDPConn
+	udpConnMap      map[string]*Connection
 
 	stopGC chan bool
 }
 
 func NewUDPFactory() *UDPFactory {
-	udpFactory := &UDPFactory{stopGC: make(chan bool), FactoryCommonFields: NewFactoryCommonFields(), udpConnMap: make(map[string]*conn.UDPConn)}
+	udpFactory := &UDPFactory{stopGC: make(chan bool), FactoryCommonFields: NewFactoryCommonFields(), udpConnMap: make(map[string]*Connection)}
 	go udpFactory.GC()
 	return udpFactory
 }
@@ -58,33 +58,30 @@ func (factory *UDPFactory) Close() error {
 }
 
 func (factory *UDPFactory) createConn(c *net.UDPConn, addr *net.UDPAddr) *conn.UDPConn {
-	factory.udpConnMapMutex.RLock()
+	factory.udpConnMapMutex.Lock()
 	if cc, ok := factory.udpConnMap[addr.String()]; ok {
-		factory.udpConnMapMutex.RUnlock()
-		return cc
+		factory.udpConnMapMutex.Unlock()
+		return cc.Connection.(*conn.UDPConn)
 	}
-	factory.udpConnMapMutex.RUnlock()
 
 	udpConn := conn.NewUDPConn(c, addr)
-	factory.udpConnMapMutex.Lock()
-	factory.udpConnMap[addr.String()] = udpConn
-	factory.udpConnMapMutex.Unlock()
-
 	udpConn.SetStatusToConnected()
 	connection := &Connection{Connection: udpConn, factory: factory}
-	connection.SetContextLogger(connection.GetContextLogger().WithField("type", "udp"))
+	factory.udpConnMap[addr.String()] = connection
+	factory.udpConnMapMutex.Unlock()
+
+	connection.SetContextLogger(connection.GetContextLogger().WithField("type", "udp").WithField("addr", addr.String()))
 	factory.AddAcceptedConn(connection)
 	go factory.AcceptedCallback(connection)
 	return udpConn
 }
 
-func (factory *UDPFactory) createConnAfterListen(addr *net.UDPAddr) *conn.UDPConn {
-	factory.udpConnMapMutex.RLock()
+func (factory *UDPFactory) createConnAfterListen(addr *net.UDPAddr) (*Connection, bool) {
+	factory.udpConnMapMutex.Lock()
 	if cc, ok := factory.udpConnMap[addr.String()]; ok {
-		factory.udpConnMapMutex.RUnlock()
-		return cc
+		factory.udpConnMapMutex.Unlock()
+		return cc, false
 	}
-	factory.udpConnMapMutex.RUnlock()
 
 	factory.fieldsMutex.Lock()
 	ln := factory.listener
@@ -92,10 +89,12 @@ func (factory *UDPFactory) createConnAfterListen(addr *net.UDPAddr) *conn.UDPCon
 
 	udpConn := conn.NewUDPConn(ln, addr)
 	udpConn.SendPing = true
-	factory.udpConnMapMutex.Lock()
-	factory.udpConnMap[addr.String()] = udpConn
+	udpConn.SetStatusToConnected()
+	connection := &Connection{Connection: udpConn, factory: factory}
+	factory.udpConnMap[addr.String()] = connection
 	factory.udpConnMapMutex.Unlock()
-	return udpConn
+	factory.AddAcceptedConn(connection)
+	return connection, true
 }
 
 func (factory *UDPFactory) GC() {
@@ -149,11 +148,11 @@ func (factory *UDPFactory) ConnectAfterListen(address string) (conn *Connection,
 	if err != nil {
 		return
 	}
-	cn := factory.createConnAfterListen(ra)
-	cn.SetStatusToConnected()
-	conn = &Connection{Connection: cn, factory: factory}
-	conn.SetContextLogger(conn.GetContextLogger().WithField("type", "udpe"))
-	factory.AddAcceptedConn(conn)
+	conn, create := factory.createConnAfterListen(ra)
+	if !create {
+		return nil, nil
+	}
+	conn.SetContextLogger(conn.GetContextLogger().WithField("type", "udpe").WithField("addr", address))
 	return
 }
 

@@ -39,7 +39,7 @@ type Connection struct {
 
 	appMessages      []PriorityMsg
 	appMessagesPty   Priority
-	appMessagesMutex sync.Mutex
+	appMessagesMutex sync.RWMutex
 	appFeedback      atomic.Value
 	// callbacks
 
@@ -96,6 +96,18 @@ func newUDPClientConnection(c *factory.Connection, factory *MessengerFactory) *C
 	go func() {
 		connection.preprocessor()
 	}()
+	return connection
+}
+
+// Used by factory to spawn connections for udp server side
+func newUDPServerConnection(c *factory.Connection, factory *MessengerFactory) *Connection {
+	connection := &Connection{
+		Connection:   c,
+		factory:      factory,
+		disconnected: make(chan struct{}),
+	}
+	c.RealObject = connection
+	connection.keySetCond = sync.NewCond(connection.fieldsMutex.RLocker())
 	return connection
 }
 
@@ -275,7 +287,7 @@ OUTER:
 			if !ok {
 				return
 			}
-			//c.GetContextLogger().Debugf("read %x", m)
+			c.GetContextLogger().Debugf("preprocessor read %x", m)
 			if len(m) < MSG_HEADER_END {
 				return
 			}
@@ -292,6 +304,7 @@ OUTER:
 						}
 					}
 					err = r.Run(c)
+					c.GetContextLogger().Debugf("execute op %#v err %v", r, err)
 					if err != nil {
 						if err == ErrDetach {
 							err = nil
@@ -370,6 +383,7 @@ func (c *Connection) writeOP(op byte, object interface{}) error {
 	if err != nil {
 		return err
 	}
+	c.GetContextLogger().Debugf("writeOP %#v", object)
 	return c.writeOPBytes(op, js)
 }
 
@@ -439,15 +453,10 @@ func (c *Connection) PutMessage(v PriorityMsg) bool {
 	return true
 }
 
-func (c *Connection) GetMessages() []PriorityMsg {
-	c.appMessagesMutex.Lock()
-	if len(c.appMessages) < 1 {
-		c.appMessagesMutex.Unlock()
-		return nil
-	}
-	result := c.appMessages
-	c.appMessages = nil
-	c.appMessagesMutex.Unlock()
+func (c *Connection) GetMessages() (result []PriorityMsg) {
+	c.appMessagesMutex.RLock()
+	result = c.appMessages
+	c.appMessagesMutex.RUnlock()
 	return result
 }
 
