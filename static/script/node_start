@@ -6,6 +6,7 @@ GOEXEC_DIR=/usr/local/go
 TMP_DIR=/tmp/skywire-pids
 Need_Kill=no
 
+export HOME=/root
 if [[ ! -d ${TMP_DIR} ]]; then
 	  mkdir -p ${TMP_DIR}
 fi

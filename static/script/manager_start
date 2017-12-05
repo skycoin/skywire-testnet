@@ -8,6 +8,7 @@ TMP_DIR=/tmp/skywire-pids
 Need_Kill=no
 Web_Dir=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/skywire-manager
 
+export HOME=/root
 if [[ ! -d ${TMP_DIR} ]]; then
 	mkdir -p ${TMP_DIR}
 fi
