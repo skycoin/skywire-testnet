@@ -25,8 +25,7 @@ type Connection struct {
 	servicesMap map[cipher.PubKey]*Service
 	fieldsMutex sync.RWMutex
 
-	in           chan []byte
-	disconnected chan struct{}
+	in chan []byte
 
 	proxyConnections map[uint32]*Connection
 
@@ -58,7 +57,6 @@ func newConnection(c *factory.Connection, factory *MessengerFactory) *Connection
 	connection := &Connection{
 		Connection:    c,
 		factory:       factory,
-		disconnected:  make(chan struct{}),
 		appTransports: make(map[cipher.PubKey]*Transport),
 	}
 	c.RealObject = connection
@@ -72,7 +70,6 @@ func newClientConnection(c *factory.Connection, factory *MessengerFactory) *Conn
 		Connection:       c,
 		factory:          factory,
 		in:               make(chan []byte),
-		disconnected:     make(chan struct{}),
 		proxyConnections: make(map[uint32]*Connection),
 		appTransports:    make(map[cipher.PubKey]*Transport),
 	}
@@ -102,9 +99,8 @@ func newUDPClientConnection(c *factory.Connection, factory *MessengerFactory) *C
 // Used by factory to spawn connections for udp server side
 func newUDPServerConnection(c *factory.Connection, factory *MessengerFactory) *Connection {
 	connection := &Connection{
-		Connection:   c,
-		factory:      factory,
-		disconnected: make(chan struct{}),
+		Connection: c,
+		factory:    factory,
 	}
 	c.RealObject = connection
 	connection.keySetCond = sync.NewCond(connection.fieldsMutex.RLocker())
@@ -125,10 +121,6 @@ func (c *Connection) removeProxyConnection(seq uint32) (conn *Connection, ok boo
 	}
 	c.fieldsMutex.Unlock()
 	return
-}
-
-func (c *Connection) WaitForDisconnected() {
-	<-c.disconnected
 }
 
 func (c *Connection) SetKey(key cipher.PubKey) {
@@ -354,9 +346,6 @@ func (c *Connection) Close() {
 	}
 	if c.in != nil {
 		close(c.in)
-	}
-	if c.disconnected != nil {
-		close(c.disconnected)
 	}
 
 	c.appTransportsMutex.RLock()

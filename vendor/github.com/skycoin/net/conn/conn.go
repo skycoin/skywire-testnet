@@ -39,6 +39,8 @@ type Connection interface {
 	NewPendingChannel() (channel int)
 	DeletePendingChannel(channel int)
 	WriteToChannel(channel int, bytes []byte) (err error)
+
+	WaitForDisconnected()
 }
 
 type ConnCommonFields struct {
@@ -55,11 +57,12 @@ type ConnCommonFields struct {
 	Status int // STATUS_CONNECTING, STATUS_CONNECTED, STATUS_ERROR
 	Err    error
 
-	In          chan []byte
-	Out         chan []byte
-	closed      bool
-	FieldsMutex sync.RWMutex
-	WriteMutex  sync.Mutex
+	In           chan []byte
+	Out          chan []byte
+	closed       bool
+	FieldsMutex  sync.RWMutex
+	WriteMutex   sync.Mutex
+	disconnected chan struct{}
 
 	ctxLogger atomic.Value
 }
@@ -70,6 +73,7 @@ func NewConnCommonFileds() ConnCommonFields {
 		lastReadTime: time.Now().Unix(),
 		In:           make(chan []byte, 128),
 		Out:          make(chan []byte, 1),
+		disconnected: make(chan struct{}),
 	}
 	fields.ctxLogger.Store(entry)
 	return fields
@@ -129,12 +133,17 @@ func (c *ConnCommonFields) Close() {
 
 	close(c.In)
 	close(c.Out)
+	close(c.disconnected)
 }
 
 func (c *ConnCommonFields) IsClosed() bool {
 	c.FieldsMutex.RLock()
 	defer c.FieldsMutex.RUnlock()
 	return c.closed
+}
+
+func (c *ConnCommonFields) WaitForDisconnected() {
+	<-c.disconnected
 }
 
 func (c *ConnCommonFields) GetLastTime() int64 {

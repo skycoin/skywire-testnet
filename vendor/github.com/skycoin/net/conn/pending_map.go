@@ -183,6 +183,7 @@ func (m *UDPPendingMap) DelMsgAndGetLossMsgs(k uint32, resend uint32) (ok bool, 
 type streamQueue struct {
 	ackedSeq uint32
 	msgs     *btree.BTree
+	mutex    sync.RWMutex
 }
 
 func newStreamQueue() *streamQueue {
@@ -204,6 +205,8 @@ func (q *streamQueue) Push(k uint32, m []byte) (ok bool, msgs [][]byte) {
 	defer func() {
 		logrus.Debugf("streamQueue push k %d return %t, len %d", k, ok, len(msgs))
 	}()
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	if k <= q.ackedSeq {
 		return
 	}
@@ -249,15 +252,23 @@ func (q *streamQueue) push(k uint32, m []byte) {
 	})
 }
 
-func (q *streamQueue) getAckedSeq() uint32 {
-	return q.ackedSeq
+func (q *streamQueue) getAckedSeq() (s uint32) {
+	q.mutex.RLock()
+	s = q.ackedSeq
+	q.mutex.RUnlock()
+	return
 }
 
-func (q *streamQueue) getNextAckSeq() uint32 {
-	return q.ackedSeq + 1
+func (q *streamQueue) getNextAckSeq() (s uint32) {
+	q.mutex.RLock()
+	s = q.ackedSeq + 1
+	q.mutex.RUnlock()
+	return
 }
 
 func (q *streamQueue) getMissingSeqs(start, end uint32) (seqs []uint32) {
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
 	e := make(map[uint32]struct{})
 	q.msgs.AscendRange(packet{seq: start}, packet{seq: end}, func(i btree.Item) bool {
 		p, ok := i.(packet)

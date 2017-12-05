@@ -3,13 +3,11 @@ package server
 import (
 	"encoding/binary"
 	"fmt"
-	"net"
-	"time"
-
-	"hash/crc32"
-
 	"github.com/skycoin/net/conn"
 	"github.com/skycoin/net/msg"
+	"hash/crc32"
+	"net"
+	"time"
 )
 
 type ServerUDPConn struct {
@@ -37,11 +35,14 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 		c.Close()
 	}()
 	var lst = time.Time{}
+	var rt = time.Time{}
 	var at = time.Time{}
 	var nt = time.Time{}
 	for {
 		maxBuf := make([]byte, conn.MAX_UDP_PACKAGE_SIZE)
+		rt = time.Now()
 		n, addr, err := c.UdpConn.ReadFromUDP(maxBuf)
+		c.GetContextLogger().Debugf("process read udp d %s", time.Now().Sub(rt))
 		if !lst.IsZero() {
 			c.GetContextLogger().Debugf("read udp d %s", time.Now().Sub(lst))
 		}

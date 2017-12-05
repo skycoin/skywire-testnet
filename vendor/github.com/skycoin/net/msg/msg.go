@@ -176,7 +176,6 @@ type UDPMessage struct {
 	delivered     uint64
 	deliveredTime time.Time
 	sentTime      time.Time
-	isAppLimited  int
 }
 
 func NewUDP(t uint8, seq uint32, bytes []byte) *UDPMessage {
@@ -198,12 +197,11 @@ func (msg *UDPMessage) Transmitted() {
 	msg.Unlock()
 }
 
-func (msg *UDPMessage) UpdateState(delivered uint64, deliveredTime, sentTime time.Time, isAppLimited int) {
+func (msg *UDPMessage) UpdateState(delivered uint64, deliveredTime, sentTime time.Time) {
 	msg.Lock()
 	msg.delivered = delivered
 	msg.deliveredTime = deliveredTime
 	msg.sentTime = sentTime
-	msg.isAppLimited = isAppLimited
 	msg.Unlock()
 }
 

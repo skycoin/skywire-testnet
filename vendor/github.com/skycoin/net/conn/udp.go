@@ -34,6 +34,12 @@ type UDPConn struct {
 	ackCount        uint32
 	overAckCount    uint32
 
+	lastAck     uint32
+	lastCnt     uint32
+	lastCnted   uint32
+	lastAckCond *sync.Cond
+	lastAckMtx  sync.Mutex
+
 	// congestion algorithm
 	*ca
 }
@@ -58,6 +64,8 @@ func NewUDPConn(c *net.UDPConn, addr *net.UDPAddr) *UDPConn {
 
 		ca: newCA(),
 	}
+	conn.lastAckCond = sync.NewCond(&conn.lastAckMtx)
+	go conn.ackLoop()
 	return conn
 }
 
@@ -135,6 +143,43 @@ func (c *UDPConn) writeLoopWithPing() (err error) {
 	}
 }
 
+func (c *UDPConn) ackLoop() (err error) {
+	t := time.NewTimer(5 * time.Millisecond)
+	defer func() {
+		if !t.Stop() {
+			<-t.C
+		}
+		if err != nil {
+			c.SetStatusToError(err)
+		}
+	}()
+
+	for {
+		select {
+		case <-t.C:
+			la := atomic.LoadUint32(&c.lastAck)
+			lt := atomic.LoadUint32(&c.lastCnt)
+			if lt != c.lastCnted {
+				err = c.ack(la)
+				if err != nil {
+					return
+				}
+				c.lastCnted = lt
+			} else {
+				if !t.Stop() {
+					<-t.C
+				}
+				c.lastAckMtx.Lock()
+				c.lastAckCond.Wait()
+				c.lastAckMtx.Unlock()
+				t.Reset(5 * time.Millisecond)
+			}
+		case <-c.disconnected:
+			return
+		}
+	}
+}
+
 func (c *UDPConn) Write(bytes []byte) (err error) {
 	err = c.WriteToChannel(0, bytes)
 	return
@@ -155,7 +200,9 @@ func (c *UDPConn) WriteToChannel(channel int, bytes []byte) (err error) {
 }
 
 func (c *UDPConn) transmitted(m *msg.UDPMessage) {
-	c.AddMsg(m.GetSeq(), m)
+	seq := m.GetSeq()
+	c.ca.checkAppLimited(seq)
+	c.addMsg(seq, m)
 	m.Transmitted()
 	m.SetRTO(c.getRTO(), func() (err error) {
 		c.AddRTOResendCount()
@@ -166,7 +213,7 @@ func (c *UDPConn) transmitted(m *msg.UDPMessage) {
 		}
 		return
 	})
-	m.UpdateState(c.getDelivered(), c.getDeliveredTime(), c.getSentTime(), c.getAppLimited())
+	m.UpdateState(c.getDelivered(), c.getDeliveredTime(), c.getSentTime())
 }
 
 func (c *UDPConn) resendMsg(m *msg.UDPMessage) (err error) {
@@ -211,6 +258,13 @@ func (c *UDPConn) WriteBytes(bytes []byte) error {
 }
 
 func (c *UDPConn) Ack(seq uint32) error {
+	atomic.StoreUint32(&c.lastAck, seq)
+	atomic.AddUint32(&c.lastCnt, 1)
+	c.lastAckCond.Broadcast()
+	return nil
+}
+
+func (c *UDPConn) ack(seq uint32) error {
 	nSeq := c.getNextAckSeq()
 	c.GetContextLogger().Debugf("ack %d, next %d", seq, nSeq)
 	var missing []uint32
@@ -241,16 +295,18 @@ func (c *UDPConn) RecvAck(m []byte) (err error) {
 	}
 	seq := binary.BigEndian.Uint32(m[msg.ACK_SEQ_BEGIN:msg.ACK_SEQ_END])
 	ns := binary.BigEndian.Uint32(m[msg.ACK_NEXT_SEQ_BEGIN:msg.ACK_NEXT_SEQ_END])
-	n, ok := c.getMinUnAckSeq()
 
-	c.GetContextLogger().Debugf("recv ack %d, next %d, min unack %t %d", seq, ns, ok, n)
-	for ok && ns > n+1 && n != seq {
+	c.GetContextLogger().Debugf("recv ack %d, next %d", seq, ns)
+	err = c.delMsg(seq, false)
+	if err != nil {
+		return
+	}
+	for n, ok := c.getMinUnAckSeq(); ok && ns > n; n, ok = c.getMinUnAckSeq() {
 		c.GetContextLogger().Debugf("ignore ack %d", n)
 		err = c.delMsg(n, true)
 		if err != nil {
 			return
 		}
-		n, ok = c.getMinUnAckSeq()
 	}
 
 	if seq > ns+1 {
@@ -273,7 +329,6 @@ func (c *UDPConn) RecvAck(m []byte) (err error) {
 		}
 	}
 
-	err = c.delMsg(seq, false)
 	return
 }
 
@@ -324,27 +379,26 @@ func (c *UDPConn) getRTO() (rto time.Duration) {
 
 func (c *UDPConn) setRTO(rto time.Duration) {
 	c.GetContextLogger().Debugf("setRTO %d", rto)
-	if rto < 200*time.Millisecond {
-		rto = 200 * time.Millisecond
+	if rto < 100*time.Millisecond {
+		rto = 100 * time.Millisecond
 	}
 	c.FieldsMutex.Lock()
 	c.rto = rto
 	c.FieldsMutex.Unlock()
 }
 
-func (c *UDPConn) AddMsg(k uint32, v *msg.UDPMessage) {
+func (c *UDPConn) addMsg(k uint32, v *msg.UDPMessage) {
 	c.UDPPendingMap.AddMsg(k, v)
 }
 
 func (c *UDPConn) delMsg(seq uint32, ignore bool) error {
-	ok, um, msgs := c.DelMsgAndGetLossMsgs(seq, c.ca.getCwnd()/MAX_UDP_PACKAGE_SIZE/3)
+	ok, um, msgs := c.DelMsgAndGetLossMsgs(seq, 3)
 	if ok {
-		s := um.PkgBytesLen()
 		c.AddAckCount()
-		//if !ignore {
-		//	c.updateRTT(um.GetRTT())
-		//	c.updateDeliveryRate(um)
-		//}
+		if !ignore {
+			c.updateRTT(um.GetRTT())
+		}
+		c.updateDeliveryRate(um)
 		if len(msgs) > 1 {
 			c.GetContextLogger().Debugf("resend loss msgs %v", msgs)
 			for _, msg := range msgs {
@@ -358,7 +412,7 @@ func (c *UDPConn) delMsg(seq uint32, ignore bool) error {
 			}
 		}
 		c.UpdateLastAck(seq)
-		return c.writePendingMsgs(s)
+		return c.writePendingMsgs(um.PkgBytesLen())
 	} else if !ignore {
 		c.GetContextLogger().Debugf("over ack %s", c)
 		c.AddOverAckCount()
@@ -461,7 +515,7 @@ func (c *UDPConn) updateRTT(t time.Duration) {
 			if !ok {
 				continue
 			}
-			c.setRTO(t * 2)
+			c.setRTO(t * 3)
 		}
 		break
 	}
@@ -530,6 +584,8 @@ func (c *UDPConn) updateDeliveryRate(m *msg.UDPMessage) {
 		return
 	}
 
+	c.tryToCancelAppLimited(m.GetSeq())
+
 	sd := c.sentTime.Sub(m.GetSentTime()) / time.Millisecond
 	ad := c.deliveredTime.Sub(m.GetDeliveredTime()) / time.Millisecond
 	interval := ad
@@ -551,6 +607,9 @@ func (c *UDPConn) updateDeliveryRate(m *msg.UDPMessage) {
 		return
 	}
 
+	if c.isAppLimited() {
+		return
+	}
 	max := uint64(c.rateSamples.push(drate))
 	hm := c.rateSamples.getMax()
 	if hm <= 0 {
@@ -590,11 +649,15 @@ type ca struct {
 	mode
 	pacingGain float64
 	fullCnt    uint
+	pendingCnt int32
 
 	bif        int
 	bifMtx     sync.RWMutex
 	bifPdId    int
 	bifPdChans map[int]*pdChan
+
+	appLimited   bool
+	endOfLimited uint32
 
 	sync.RWMutex
 }
@@ -691,6 +754,7 @@ func (ca *ca) addToPendingChannel(channel int, m *msg.UDPMessage) bool {
 	m.SetSeq(ch.seq)
 	min := ch.pd.Min()
 	if (min != nil && min.Less(m)) || int(ca.cwnd) < ca.bif+m.PkgBytesLen() {
+		atomic.AddInt32(&ca.pendingCnt, 1)
 		ch.pd.ReplaceOrInsert(m)
 		ch.mtx.Unlock()
 		return false
@@ -733,6 +797,7 @@ func (ca *ca) popMessage(s int) (m *msg.UDPMessage) {
 		pd.DeleteMin()
 		v.mtx.Unlock()
 		v.cond.Broadcast()
+		atomic.AddInt32(&ca.pendingCnt, -1)
 
 		ca.bifMtx.Lock()
 		ca.bif += m.PkgBytesLen()
@@ -763,9 +828,27 @@ func (ca *ca) setCwnd(cwnd uint32) {
 	ca.cwnd = cwnd
 }
 
-func (ca *ca) getAppLimited() (r int) {
-	ca.RLock()
-	r = 1
-	ca.RUnlock()
+func (ca *ca) checkAppLimited(seq uint32) {
+	pd := atomic.LoadInt32(&ca.pendingCnt)
+	if pd == 0 {
+		ca.setAppLimited(seq)
+	}
+}
+
+func (ca *ca) tryToCancelAppLimited(seq uint32) {
+	if ca.appLimited && seq > ca.endOfLimited {
+		ca.appLimited = false
+	}
+}
+
+func (ca *ca) setAppLimited(seq uint32) {
+	ca.Lock()
+	ca.appLimited = true
+	ca.endOfLimited = seq
+	ca.Unlock()
+}
+
+func (ca *ca) isAppLimited() (r bool) {
+	r = ca.appLimited
 	return
 }
