@@ -6,7 +6,7 @@ GOEXEC_DIR=/usr/local/go
 GOBIN_DIR=/usr/local/skywire-go
 TMP_DIR=/tmp/skywire-pids
 Need_Kill=no
-Web_Dir=/usr/local/skywire-static/skywire-manager
+Web_Dir=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/skywire-manager
 
 if [[ ! -d ${TMP_DIR} ]]; then
 	mkdir -p ${TMP_DIR}
