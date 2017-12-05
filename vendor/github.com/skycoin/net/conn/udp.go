@@ -144,11 +144,9 @@ func (c *UDPConn) writeLoopWithPing() (err error) {
 }
 
 func (c *UDPConn) ackLoop() (err error) {
-	t := time.NewTimer(5 * time.Millisecond)
+	t := time.NewTicker(2 * time.Millisecond)
 	defer func() {
-		if !t.Stop() {
-			<-t.C
-		}
+		t.Stop()
 		if err != nil {
 			c.SetStatusToError(err)
 		}
@@ -166,13 +164,11 @@ func (c *UDPConn) ackLoop() (err error) {
 				}
 				c.lastCnted = lt
 			} else {
-				if !t.Stop() {
-					<-t.C
-				}
+				t.Stop()
 				c.lastAckMtx.Lock()
 				c.lastAckCond.Wait()
 				c.lastAckMtx.Unlock()
-				t.Reset(5 * time.Millisecond)
+				t = time.NewTicker(2 * time.Millisecond)
 			}
 		case <-c.disconnected:
 			return
