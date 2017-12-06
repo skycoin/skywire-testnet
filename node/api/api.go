@@ -260,7 +260,6 @@ func (na *NodeApi) getConfig() {
 	if err != nil || !matched {
 		managerUrl = fmt.Sprintf("127.0.0.1%s", managerUrl)
 	}
-	log.Errorf("url: %s", managerUrl)
 	res, err := http.PostForm(fmt.Sprintf("http://%s/conn/getNodeConfig", managerUrl), url.Values{"key": {na.node.Pk}})
 	if err != nil {
 		return
@@ -271,7 +270,6 @@ func (na *NodeApi) getConfig() {
 		log.Errorf("read config err: %v", err)
 		return
 	}
-	log.Errorf("body: %s", body)
 	if body != nil && string(body) != "null" {
 		var config *Config
 		err = json.Unmarshal(body, &config)

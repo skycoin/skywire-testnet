@@ -156,9 +156,9 @@ type NodeInfo struct {
 }
 
 type FeedBackItem struct {
-	Key            string               `json:"key"`
-	Feedbacks      *factory.AppFeedback `json:"feedbacks"`
-	UnreadMessages int                  `json:"unread"`
+	Key            string `json:"key"`
+	Port           int    `json:"port"`
+	UnreadMessages int    `json:"unread"`
 }
 
 var version = "0.0.1"
@@ -181,7 +181,7 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 			})
 			afs = append(afs, FeedBackItem{
 				Key:            key.Hex(),
-				Feedbacks:      conn.GetAppFeedback(),
+				Port:           conn.GetAppFeedback().Port,
 				UnreadMessages: conn.CheckMessages(),
 			})
 		})
