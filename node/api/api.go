@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/cipher"
 	"github.com/skycoin/skywire/node"
 	"io/ioutil"
 	"net/http"
@@ -58,11 +59,10 @@ func (na *NodeApi) Close() error {
 	return na.srv.Close()
 }
 
-var env = ""
-
 func (na *NodeApi) StartSrv() {
 	na.getConfig()
 	http.HandleFunc("/node/getInfo", wrap(na.getInfo))
+	http.HandleFunc("/node/getMsg", wrap(na.getMsg))
 	http.HandleFunc("/node/getApps", wrap(na.getApps))
 	http.HandleFunc("/node/reboot", wrap(na.runReboot))
 	http.HandleFunc("/node/run/sshs", wrap(na.runSshs))
@@ -82,6 +82,18 @@ func (na *NodeApi) StartSrv() {
 
 func (na *NodeApi) getInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	result, err = json.Marshal(na.node.GetNodeInfo())
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (na *NodeApi) getMsg(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	k, err := cipher.PubKeyFromHex(r.FormValue("key"))
+	if err != nil {
+		return
+	}
+	result, err = json.Marshal(na.node.GetMessages(k))
 	if err != nil {
 		return
 	}

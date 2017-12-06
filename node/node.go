@@ -148,17 +148,17 @@ type NodeTransport struct {
 }
 
 type NodeInfo struct {
-	Discoveries  map[string]bool         `json:"discoveries"`
-	Transports   []NodeTransport         `json:"transports"`
-	Messages     [][]factory.PriorityMsg `json:"messages"`
-	AppFeedbacks []FeedBackItem          `json:"app_feedbacks"`
-	Version      string                  `json:"version"`
-	Tag          string                  `json:"tag"`
+	Discoveries  map[string]bool `json:"discoveries"`
+	Transports   []NodeTransport `json:"transports"`
+	AppFeedbacks []FeedBackItem  `json:"app_feedbacks"`
+	Version      string          `json:"version"`
+	Tag          string          `json:"tag"`
 }
 
 type FeedBackItem struct {
-	Key       string               `json:"key"`
-	Feedbacks *factory.AppFeedback `json:"feedbacks"`
+	Key            string               `json:"key"`
+	Feedbacks      *factory.AppFeedback `json:"feedbacks"`
+	UnreadMessages int                  `json:"unread"`
 }
 
 var version = "0.0.1"
@@ -166,7 +166,6 @@ var tag = "dev"
 
 func (n *Node) GetNodeInfo() (ni NodeInfo) {
 	var ts []NodeTransport
-	var msgs [][]factory.PriorityMsg
 	var afs []FeedBackItem
 	n.apps.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
 		conn.ForEachTransport(func(v *factory.Transport) {
@@ -180,8 +179,11 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 				UploadTotal:   v.GetUploadTotal(),
 				DownloadTotal: v.GetDownloadTotal(),
 			})
-			msgs = append(msgs, conn.GetMessages())
-			afs = append(afs, FeedBackItem{Key: key.Hex(), Feedbacks: conn.GetAppFeedback()})
+			afs = append(afs, FeedBackItem{
+				Key:            key.Hex(),
+				Feedbacks:      conn.GetAppFeedback(),
+				UnreadMessages: conn.CheckMessages(),
+			})
 		})
 	})
 	d := make(map[string]bool)
@@ -200,12 +202,19 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 	ni = NodeInfo{
 		Discoveries:  d,
 		Transports:   ts,
-		Messages:     msgs,
 		AppFeedbacks: afs,
 		Version:      version,
 		Tag:          tag,
 	}
 	return
+}
+
+func (n *Node) GetMessages(key cipher.PubKey) []factory.PriorityMsg {
+	c, ok := n.apps.GetConnection(key)
+	if ok {
+		return c.GetMessages()
+	}
+	return nil
 }
 
 type NodeApp struct {
