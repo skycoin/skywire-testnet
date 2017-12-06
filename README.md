@@ -7,23 +7,31 @@
 * git
 
 * setup $GOPATH env (for example: /go)
-
-### Install
+  https://github.com/golang/go/wiki/SettingGOPATH
+## Install 
+### Unix systems
 
 ```
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
 git clone -b dev https://github.com/skycoin/skywire.git
-go get ./...
 ```
-Build the web static files for monitor
 
-Please read the [README.md](https://github.com/skycoin/net/blob/master/skycoin-messenger/monitor/web/README.MD) under the `web` folder before if have any questions
+Build the binaries for skywire
+```
+cd $GOPATH/src/github.com/skycoin/skywire/cmd
+go install ./...
+```
 
+### Windows
+
+Right click on "Git Bash Here" in the folder
 ```
-cd $GOPATH/src/github.com/skycoin/net/skycoin-messenger/monitor/web
-./build.sh
+mkdir.exe -p $GOPATH/src/github.com/skycoin
+cd $GOPATH/src/github.com/skycoin
+git clone https://github.com/skycoin/skywire.git
 ```
+
 Build the binaries for skywire
 ```
 cd $GOPATH/src/github.com/skycoin/skywire/cmd
@@ -32,50 +40,35 @@ go install ./...
 
 Binaries will be built to $GOPATH/bin
 
-### Run after boot
-* $GOPATH/bin/manager on every skywire
 
-  manager manages skywire nodes and provide a website for skywire user to control nodes.
+## Run SkyWire
 
-  arguments:
-
+### Unix systems
 ```
-Usage of ./manager:
-  -address string
-    	address to listen on (default ":5998")
-  -web-dir string
-    	monitor web page (default "/go/src/github.com/skycoin/net/skycoin-messenger/monitor/web/dist")
-  -web-port string
-    	monitor web page port (default ":8000")
+cd $GOPATH/bin
+./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
 ```
 
-```
-./manager 
-```
-
-* $GOPATH/bin/node on every pi in skywire
-
-  node transports the internet traffic for apps
-
-  arguments:
+Open a new command window
 
 ```
-Usage of ./node:
-  -address string
-    	address to listen on (default ":5000")
-  -connect-manager
-    	connect to manager if true
-  -discovery-address value
-    	addresses of discovery
-  -manager-address string
-    	address of node manager (default ":5998")
-  -seed
-    	use fixed seed to connect if true (default true)
-  -seed-path string
-    	path to save seed info (default "/root/.skywire/node/keys.json")
+cd $GOPATH/bin
+./node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address www.yiqishare.com:5999 -address :5000 -web-port :6001 
 ```
+### Windows
 
 ```
-./node -connect-manager -manager-address 192.168.1.1:5998 -discovery-address messenger.skycoin.net:5999
+cd $GOPATH/bin
+./manager.exe -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
 ```
+
+Open a new command window
+
+```
+cd $GOPATH/bin
+./node.exe -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address www.yiqishare.com:5999 -address :5000 -web-port :6001 
+```
+Use the browser to open http://127.0.0.1:8000
+
+
 
