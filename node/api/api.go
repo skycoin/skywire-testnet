@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/pkg/errors"
 )
 
 type NodeApi struct {
@@ -139,6 +140,10 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
+	if len(toNode) <= 0 || len(toApp) <= 0 {
+		err = errors.New("Node Key or App key Can not be empty")
+		return
+	}
 	if na.sshcCancel != nil {
 		na.sshcCancel()
 	}
@@ -156,9 +161,12 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	na.Lock()
 	defer na.Unlock()
-
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
+	if len(toNode) <= 0 || len(toApp) <= 0 {
+		err = errors.New("Node Key or App key Can not be empty")
+		return
+	}
 	if na.sockscCancel != nil {
 		na.sockscCancel()
 	}
@@ -300,7 +308,6 @@ func (na *NodeApi) restart() (err error) {
 	args = append(args, "-address", na.config.Address)
 	args = append(args, "-seed-path", na.config.SeedPath)
 	args = append(args, "-web-port", na.config.WebPort)
-	log.Errorf("start closing...: %s", args)
 	cxt, cf := context.WithCancel(context.Background())
 	go na.srv.Shutdown(cxt)
 	go func() {
