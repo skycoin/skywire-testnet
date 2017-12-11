@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/cipher"
 	"github.com/skycoin/skywire/node"
@@ -16,7 +17,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/pkg/errors"
 )
 
 type NodeApi struct {

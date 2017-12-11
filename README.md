@@ -1,3 +1,11 @@
+![skywire logo](https://user-images.githubusercontent.com/26845312/32426764-3495e3d8-c282-11e7-8fe8-8e60e90cb906.png)
+
+# Skywire
+
+[Blog]: https://blog.skycoin.net/tags/skywire/	"Skywire Blog"
+
+Still under heavy development.
+
 ### Requirements
 
 * golang 1.9+
@@ -14,7 +22,7 @@
 ```
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
-git clone -b dev https://github.com/skycoin/skywire.git
+git clone https://github.com/skycoin/skywire.git
 ```
 
 Build the binaries for skywire
@@ -41,7 +49,7 @@ go install ./...
 Binaries will be built to $GOPATH/bin
 
 
-## Run SkyWire
+## Run Skywire
 
 ### Unix systems
 ```
@@ -53,7 +61,7 @@ Open a new command window
 
 ```
 cd $GOPATH/bin
-./node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address www.yiqishare.com:5999 -address :5000 -web-port :6001 
+./node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address messenger.skycoin.net:5999 -address :5000 -web-port :6001
 ```
 ### Windows
 
@@ -66,7 +74,7 @@ Open a new command window
 
 ```
 cd $GOPATH/bin
-./node.exe -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address www.yiqishare.com:5999 -address :5000 -web-port :6001 
+./node.exe -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address messenger.skycoin.net:5999 -address :5000 -web-port :6001
 ```
 Use the browser to open http://127.0.0.1:8000
 
