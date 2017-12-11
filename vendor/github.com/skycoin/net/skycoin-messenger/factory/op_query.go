@@ -64,7 +64,7 @@ func (query *query) Execute(f *MessengerFactory, conn *Connection) (r resp, err 
 
 type QueryResp struct {
 	Seq    uint32
-	Result map[string][]string
+	Result []*ServiceInfo
 }
 
 func (resp *QueryResp) Run(conn *Connection) (err error) {

@@ -47,7 +47,7 @@
   branch = "master"
   name = "github.com/skycoin/net"
   packages = ["client","conn","factory","msg","server","skycoin-messenger/factory","skycoin-messenger/monitor"]
-  revision = "dcf49660b4dba65818c9623c1c67f2b4e4d1d485"
+  revision = "afefeb5eb5323036d4da5cfab5805c9e5e2ac288"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"
@@ -70,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "197e3d774ec02fb66b950b162a050d7aa0b0eb704fcbdd98b68327fe61f500cb"
+  inputs-digest = "32bdf55f97778236052ef12311474bf12edc4a0658054809a16a206c8b6eea4c"
   solver-name = "gps-cdcl"
   solver-version = 1

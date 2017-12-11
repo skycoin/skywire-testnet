@@ -437,6 +437,7 @@ type bandwidth struct {
 	bytes     uint
 	lastBytes uint
 	sec       int64
+	total     uint
 	sync.RWMutex
 }
 
@@ -445,6 +446,7 @@ func (b *bandwidth) add(s int) {
 	now := time.Now().Unix()
 	if b.sec != now {
 		b.sec = now
+		b.total += b.lastBytes
 		b.lastBytes = b.bytes
 		b.bytes = uint(s)
 		b.Unlock()
@@ -468,10 +470,25 @@ func (b *bandwidth) get() (r uint) {
 	return
 }
 
+func (b *bandwidth) getTotal() (r uint) {
+	b.RLock()
+	r = b.total + b.lastBytes + b.bytes
+	b.RUnlock()
+	return
+}
+
 func (t *Transport) GetUploadBandwidth() uint {
 	return t.uploadBW.get()
 }
 
 func (t *Transport) GetDownloadBandwidth() uint {
 	return t.downloadBW.get()
+}
+
+func (t *Transport) GetUploadTotal() uint {
+	return t.uploadBW.getTotal()
+}
+
+func (t *Transport) GetDownloadTotal() uint {
+	return t.downloadBW.getTotal()
 }

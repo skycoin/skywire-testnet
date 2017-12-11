@@ -170,35 +170,62 @@ func (sd *serviceDiscovery) find(key cipher.PubKey) []cipher.PubKey {
 	return keys
 }
 
+// pubkey and address info of the node
+type NodeInfo struct {
+	// node key
+	PubKey cipher.PubKey
+	// node address
+	Address string
+}
+
+// info of nodes for the service key
+type ServiceInfo struct {
+	// service key
+	PubKey cipher.PubKey
+	// nodes for the service key
+	Nodes []*NodeInfo
+}
+
 // internal method without lock - find service address of nodes by subscription key
-func (sd *serviceDiscovery) _findServiceAddress(key cipher.PubKey, exclude cipher.PubKey) []string {
+func (sd *serviceDiscovery) _findServiceAddress(key cipher.PubKey, exclude cipher.PubKey) []*NodeInfo {
 	m, ok := sd.subscription2Subscriber[key]
 	if !ok {
 		return nil
 	}
 
-	result := make([]string, 0, len(m.Nodes))
+	result := make([]*NodeInfo, 0, len(m.Nodes))
 	for k, v := range m.Nodes {
 		if k == exclude {
 			continue
 		}
-		result = append(result, v.ServiceAddress)
+		result = append(result, &NodeInfo{
+			PubKey:  k,
+			Address: v.ServiceAddress,
+		})
 	}
 	return result
 }
 
 // find service address of nodes by subscription key
-func (sd *serviceDiscovery) findServiceAddresses(keys []cipher.PubKey, exclude cipher.PubKey) (result map[string][]string) {
+func (sd *serviceDiscovery) findServiceAddresses(keys []cipher.PubKey, exclude cipher.PubKey) (result []*ServiceInfo) {
 	if len(keys) < 1 {
 		return nil
 	}
+	result = make([]*ServiceInfo, len(keys))
+	check := make(map[cipher.PubKey]struct{}, len(keys))
+
 	sd.subscription2SubscriberMutex.RLock()
 	defer sd.subscription2SubscriberMutex.RUnlock()
 
-	result = make(map[string][]string, len(keys))
-
 	for _, k := range keys {
-		result[k.Hex()] = sd._findServiceAddress(k, exclude)
+		if _, ok := check[k]; ok {
+			continue
+		}
+		result = append(result, &ServiceInfo{
+			PubKey: k,
+			Nodes:  sd._findServiceAddress(k, exclude),
+		})
+		check[k] = struct{}{}
 	}
 	return
 }

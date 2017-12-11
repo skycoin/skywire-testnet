@@ -36,10 +36,11 @@ type Connection struct {
 
 	skipFactoryReg bool
 
-	appMessages      []PriorityMsg
-	appMessagesPty   Priority
-	appMessagesMutex sync.RWMutex
-	appFeedback      atomic.Value
+	appMessages        []PriorityMsg
+	appMessagesPty     Priority
+	appMessagesReadCnt int
+	appMessagesMutex   sync.RWMutex
+	appFeedback        atomic.Value
 	// callbacks
 
 	// call after received response for FindServiceNodesByKeys
@@ -436,15 +437,26 @@ func (c *Connection) PutMessage(v PriorityMsg) bool {
 		c.appMessagesMutex.Unlock()
 		return false
 	}
+	v.Time = time.Now().Unix()
 	c.appMessages = append(c.appMessages, v)
 	c.appMessagesPty = v.Priority
 	c.appMessagesMutex.Unlock()
 	return true
 }
 
+// Get messages
 func (c *Connection) GetMessages() (result []PriorityMsg) {
-	c.appMessagesMutex.RLock()
+	c.appMessagesMutex.Lock()
 	result = c.appMessages
+	c.appMessagesReadCnt = len(result)
+	c.appMessagesMutex.Unlock()
+	return result
+}
+
+// Return unread messages count
+func (c *Connection) CheckMessages() (result int) {
+	c.appMessagesMutex.RLock()
+	result = len(c.appMessages) - c.appMessagesReadCnt
 	c.appMessagesMutex.RUnlock()
 	return result
 }

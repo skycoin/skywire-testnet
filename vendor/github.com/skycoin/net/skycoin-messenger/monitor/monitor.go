@@ -11,6 +11,11 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"os"
+	"sort"
+	"path/filepath"
+	"github.com/skycoin/skycoin/src/util/file"
+	"strconv"
 )
 
 type Conn struct {
@@ -76,6 +81,10 @@ func (m *Monitor) Start(webDir string) {
 	http.HandleFunc("/conn/getNode", bundle(m.getNode))
 	http.HandleFunc("/conn/setNodeConfig", bundle(m.setNodeConfig))
 	http.HandleFunc("/conn/getNodeConfig", bundle(m.getNodeConfig))
+	http.HandleFunc("/conn/saveClientConnection", bundle(m.SaveClientConnection))
+	http.HandleFunc("/conn/removeClientConnection", bundle(m.RemoveClientConnection))
+	http.HandleFunc("/conn/editClientConnection", bundle(m.EditClientConnection))
+	http.HandleFunc("/conn/getClientConnection", bundle(m.GetClientConnection))
 	http.HandleFunc("/node", bundle(requestNode))
 	go func() {
 		if err := m.srv.ListenAndServe(); err != nil {
@@ -236,4 +245,164 @@ func (m *Monitor) getNodeConfig(w http.ResponseWriter, r *http.Request) (result 
 	defer m.configsMutex.Unlock()
 	result, err = json.Marshal(m.configs[key])
 	return
+}
+
+type ClientConnection struct {
+	Label   string `json:"label"`
+	NodeKey string `json:"nodeKey"`
+	AppKey  string `json:"appKey"`
+	Count   int    `json:"count"`
+}
+type clientConnectionSlice []ClientConnection
+
+func (c clientConnectionSlice) Len() int           { return len(c) }
+func (c clientConnectionSlice) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c clientConnectionSlice) Less(i, j int) bool { return c[i].Count > c[j].Count }
+func (c clientConnectionSlice) Exist(rf ClientConnection) bool {
+	for k, v := range c {
+		if v.AppKey == rf.AppKey && v.NodeKey == rf.NodeKey {
+			c[k].Count++
+			return true
+		}
+	}
+	return false
+}
+
+var sshClient = filepath.Join(file.UserHome(), ".skywire", "manager", "sshClient.json")
+var socketClient = filepath.Join(file.UserHome(), ".skywire", "manager", "socketClient.json")
+var clientLimit = 5
+
+func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	data := r.FormValue("data")
+	path := r.FormValue("client")
+	config := ClientConnection{}
+	err = json.Unmarshal([]byte(data), &config)
+	if err != nil {
+		return
+	}
+	switch path {
+	case "ssh":
+		path = sshClient
+		break
+	case "socket":
+		path = socketClient
+	}
+	cfs, err := readConfig(path)
+	if err != nil && !os.IsNotExist(err) {
+		return
+	}
+	size := len(cfs)
+	isExist := false
+	if size == clientLimit {
+		isExist = cfs.Exist(config)
+		if !isExist {
+			cfs[4] = config
+		}
+	} else if size > 0 && size < clientLimit {
+		isExist = cfs.Exist(config)
+		if !isExist {
+			cfs = append(cfs, config)
+		}
+	} else {
+		cfs = append(cfs, config)
+	}
+	sort.Sort(cfs)
+	err = saveClientFile(cfs, path)
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+}
+
+func (m *Monitor) GetClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	client := r.FormValue("client")
+	switch client {
+	case "ssh":
+		client = sshClient
+		break
+	case "socket":
+		client = socketClient
+	}
+	cf, err := readConfig(client)
+	result, err = json.Marshal(cf)
+	return
+}
+
+func (m *Monitor) RemoveClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	path := r.FormValue("client")
+	index, err := strconv.Atoi(r.FormValue("index"))
+	if err != nil {
+		return
+	}
+	path = getFilePath(path)
+	cfs, err := readConfig(path)
+	if err != nil && !os.IsNotExist(err) {
+		return
+	}
+	cfs = append(cfs[:index], cfs[index+1:]...)
+	err = saveClientFile(cfs, path)
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+}
+
+func (m *Monitor) EditClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	path := r.FormValue("client")
+	label := r.FormValue("label")
+	index, err := strconv.Atoi(r.FormValue("index"))
+	if err != nil {
+		return
+	}
+	path = getFilePath(path)
+	cfs, err := readConfig(path)
+	if err != nil && !os.IsNotExist(err) {
+		return
+	}
+	cfs[index].Label = label
+	err = saveClientFile(cfs, path)
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+}
+
+func readConfig(path string) (cfs clientConnectionSlice, err error) {
+	fb, err := ioutil.ReadFile(path)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(fb, &cfs)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func saveClientFile(data interface{}, path string) (err error) {
+	d, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+	dir := filepath.Dir(path)
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		return
+	}
+	err = ioutil.WriteFile(path, d, 0600)
+	return
+}
+
+func getFilePath(client string) string {
+	switch client {
+	case "ssh":
+		client = sshClient
+		break
+	case "socket":
+		client = socketClient
+	}
+	return client
 }
