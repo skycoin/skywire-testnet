@@ -22,7 +22,7 @@ Still under heavy development.
 ```
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
-git clone https://github.com/skycoin/skywire.git
+git clone -b dev https://github.com/skycoin/skywire.git
 ```
 
 Build the binaries for skywire
@@ -37,7 +37,7 @@ Right click on "Git Bash Here" in the folder
 ```
 mkdir.exe -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
-git clone https://github.com/skycoin/skywire.git
+git clone -b dev https://github.com/skycoin/skywire.git
 ```
 
 Build the binaries for skywire
