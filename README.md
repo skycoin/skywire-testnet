@@ -2,9 +2,11 @@
 
 # Skywire
 
-[Blog]: https://blog.skycoin.net/tags/skywire/	"Skywire Blog"
+Here is our [Blog ](https://blog.skycoin.net/tags/skywire/) about Skywire.
 
-Still under heavy development.
+Skywire is still under heavy development. 
+
+![9461512959241_ pic](https://user-images.githubusercontent.com/1639632/33813339-fdcefb4e-de5d-11e7-867b-06b7d3f79be2.jpg)
 
 ### Requirements
 
@@ -22,7 +24,7 @@ Still under heavy development.
 ```
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
-git clone -b dev https://github.com/skycoin/skywire.git
+git clone https://github.com/skycoin/skywire.git
 ```
 
 Build the binaries for skywire
