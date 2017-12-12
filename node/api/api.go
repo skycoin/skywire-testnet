@@ -46,6 +46,9 @@ type shell struct {
 	cmdCancel context.CancelFunc
 	input     io.WriteCloser
 	output    io.ReadCloser
+	outChan   chan []byte
+	timer     *time.Timer
+	closed    bool
 	sync.Mutex
 }
 
@@ -371,12 +374,17 @@ func (na *NodeApi) getShellOutput(w http.ResponseWriter, r *http.Request) (resul
 		result = []byte("false")
 		return
 	}
-	result = make([]byte, 1024)
-	n, err := na.output.Read(result)
-	if err != nil {
-		return
+	select {
+	case r, ok := <-na.shell.outChan:
+		if !ok {
+			result = []byte("false")
+			return
+		}
+		result = r
+	default:
+		result = []byte{}
 	}
-	result = result[:n]
+	na.shell.resetTimer(true)
 	return
 }
 
@@ -395,7 +403,41 @@ func (na *NodeApi) runCmd(w http.ResponseWriter, r *http.Request) (result []byte
 		return
 	}
 	result = []byte("true")
+
+	na.shell.resetTimer(true)
 	return
+}
+
+func (s *shell) resetTimer(start bool) {
+	if s.timer != nil {
+		s.timer.Stop()
+	}
+	if !start {
+		return
+	}
+	s.timer = time.AfterFunc(2*time.Minute, func() {
+		s.Lock()
+		defer s.Unlock()
+		s.close()
+	})
+}
+
+func (s *shell) close() {
+	if s.closed {
+		return
+	}
+	s.closed = true
+	s.resetTimer(false)
+	s.cmdCancel()
+	close(s.outChan)
+	go s.cmd.Wait()
+	s.cmdCxt = nil
+	s.cmdCancel = nil
+	s.cmd = nil
+	s.input = nil
+	s.output = nil
+	s.outChan = nil
+	s.timer = nil
 }
 
 func (na *NodeApi) runShell(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
@@ -403,14 +445,12 @@ func (na *NodeApi) runShell(w http.ResponseWriter, r *http.Request) (result []by
 	defer na.shell.Unlock()
 
 	if na.cmdCancel != nil {
-		na.cmdCancel()
-		c := na.cmd
-		go func() {
-			log.Debugf("shell wait return %v", c.Wait())
-		}()
+		na.shell.close()
 	}
+	na.shell.closed = false
 	na.cmdCxt, na.cmdCancel = context.WithCancel(context.Background())
 	na.shell.cmd = exec.CommandContext(na.cmdCxt, "/bin/bash")
+	na.shell.outChan = make(chan []byte, 1)
 	na.shell.input, err = na.shell.cmd.StdinPipe()
 	if err != nil {
 		return
@@ -419,6 +459,24 @@ func (na *NodeApi) runShell(w http.ResponseWriter, r *http.Request) (result []by
 	if err != nil {
 		return
 	}
+	go func(output io.ReadCloser) {
+		defer func() {
+			if e := recover(); e != nil {
+				return
+			}
+		}()
+		for {
+			result := make([]byte, 1024*4)
+			n, err := output.Read(result)
+			if err != nil {
+				return
+			}
+			na.shell.outChan <- result[:n]
+		}
+	}(na.shell.output)
+
+	na.shell.resetTimer(true)
+
 	err = na.shell.cmd.Start()
 	if err != nil {
 		return
