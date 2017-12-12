@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"io"
 )
 
 type NodeApi struct {
@@ -60,7 +61,25 @@ func (na *NodeApi) Close() error {
 	return na.srv.Close()
 }
 
+var shellCmd = exec.Command("bash")
+var stdOut io.ReadCloser
+var stdIn io.WriteCloser
+
 func (na *NodeApi) StartSrv() {
+	var err error
+	stdIn,err = shellCmd.StdinPipe()
+	if err != nil {
+		return
+	}
+	stdOut, err = shellCmd.StdoutPipe()
+	if err != nil {
+		return
+	}
+	go func() {
+		if err = shellCmd.Run(); err != nil {
+			return
+		}
+	}()
 	na.getConfig()
 	http.HandleFunc("/node/getInfo", wrap(na.getInfo))
 	http.HandleFunc("/node/getMsg", wrap(na.getMsg))
@@ -72,6 +91,8 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
 	http.HandleFunc("/node/run/update", wrap(na.update))
 	http.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
+	http.HandleFunc("/node/run/shell", wrap(na.shell))
+	http.HandleFunc("/node/run/getShell", wrap(na.getShell))
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
 		log.Debugf("http server listening on %s", na.address)
@@ -116,7 +137,9 @@ func wrap(fn func(w http.ResponseWriter, r *http.Request) (result []byte, err er
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
+		if len(w.Header().Get("Content-Type")) <= 0 {
+			w.Header().Set("Content-Type", "application/json")
+		}
 		w.Write(result)
 	}
 }
@@ -332,4 +355,54 @@ func (na *NodeApi) restart() (err error) {
 	}
 	log.Errorf("exec restart end...")
 	return
+}
+func (na *NodeApi) getShell(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	arr := make([]byte, 1024*2)
+	n, err := stdOut.Read(arr)
+	if err != nil {
+		return
+	}
+	result = arr[:n]
+	return
+}
+
+func (na *NodeApi) shell(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+
+	strs := r.FormValue("command")
+	_, err = io.WriteString(os.Stdin, fmt.Sprintf(" %s\n", strs))
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+	//if na.shellCxt == nil || na.shellCancel == nil {
+	//	na.shellCxt, na.shellCancel = context.WithCancel(context.Background())
+	//}
+	//w.Header().Set("Content-Type", "text/plain")
+	//strs := r.FormValue("command")
+	//var cmdStrs []string
+	//err = json.Unmarshal([]byte(strs), &cmdStrs)
+	//if err != nil {
+	//	return
+	//}
+	//args := cmdStrs[1:]
+	//
+	//cmd := exec.CommandContext(na.shellCxt, cmdStrs[0], args...)
+	////stdin, err := cmd.StdinPipe()
+	////if err != nil {
+	////	return
+	////}
+	//stdout, err := cmd.StdoutPipe()
+	//if err != nil {
+	//	return
+	//}
+	//
+	//if err != nil {
+	//	return
+	//}
+	//if err = cmd.Start(); err != nil {
+	//	return
+	//}
+	//result, err = ioutil.ReadAll(stdout)
+	//return
 }
