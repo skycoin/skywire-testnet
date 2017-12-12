@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/cipher"
 	"github.com/skycoin/skywire/node"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -17,7 +18,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"io"
 )
 
 type NodeApi struct {
@@ -36,6 +36,17 @@ type NodeApi struct {
 	sockscCxt    context.Context
 	sockscCancel context.CancelFunc
 	sync.RWMutex
+
+	shell
+}
+
+type shell struct {
+	cmd       *exec.Cmd
+	cmdCxt    context.Context
+	cmdCancel context.CancelFunc
+	input     io.WriteCloser
+	output    io.ReadCloser
+	sync.Mutex
 }
 
 func New(addr string, node *node.Node, config Config, signal chan os.Signal) *NodeApi {
@@ -61,25 +72,7 @@ func (na *NodeApi) Close() error {
 	return na.srv.Close()
 }
 
-var shellCmd = exec.Command("bash")
-var stdOut io.ReadCloser
-var stdIn io.WriteCloser
-
 func (na *NodeApi) StartSrv() {
-	var err error
-	stdIn,err = shellCmd.StdinPipe()
-	if err != nil {
-		return
-	}
-	stdOut, err = shellCmd.StdoutPipe()
-	if err != nil {
-		return
-	}
-	go func() {
-		if err = shellCmd.Run(); err != nil {
-			return
-		}
-	}()
 	na.getConfig()
 	http.HandleFunc("/node/getInfo", wrap(na.getInfo))
 	http.HandleFunc("/node/getMsg", wrap(na.getMsg))
@@ -91,8 +84,9 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
 	http.HandleFunc("/node/run/update", wrap(na.update))
 	http.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
-	http.HandleFunc("/node/run/shell", wrap(na.shell))
-	http.HandleFunc("/node/run/getShell", wrap(na.getShell))
+	http.HandleFunc("/node/run/runShell", wrap(na.runShell))
+	http.HandleFunc("/node/run/runCmd", wrap(na.runCmd))
+	http.HandleFunc("/node/run/getShellOutput", wrap(na.getShellOutput))
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
 		log.Debugf("http server listening on %s", na.address)
@@ -176,6 +170,9 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 	if err != nil {
 		return
 	}
+	go func() {
+		cmd.Wait()
+	}()
 
 	result = []byte("true")
 	return
@@ -200,6 +197,9 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 	if err != nil {
 		return
 	}
+	go func() {
+		cmd.Wait()
+	}()
 
 	result = []byte("true")
 	return
@@ -229,6 +229,9 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 	if err != nil {
 		return
 	}
+	go func() {
+		cmd.Wait()
+	}()
 
 	result = []byte("true")
 	return
@@ -247,6 +250,9 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 	if err != nil {
 		return
 	}
+	go func() {
+		cmd.Wait()
+	}()
 
 	result = []byte("true")
 	return
@@ -356,53 +362,67 @@ func (na *NodeApi) restart() (err error) {
 	log.Errorf("exec restart end...")
 	return
 }
-func (na *NodeApi) getShell(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	arr := make([]byte, 1024*2)
-	n, err := stdOut.Read(arr)
+
+func (na *NodeApi) getShellOutput(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	na.shell.Lock()
+	defer na.shell.Unlock()
+
+	if na.output == nil {
+		result = []byte("false")
+		return
+	}
+	result = make([]byte, 1024)
+	n, err := na.output.Read(result)
 	if err != nil {
 		return
 	}
-	result = arr[:n]
+	result = result[:n]
 	return
 }
 
-func (na *NodeApi) shell(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+func (na *NodeApi) runCmd(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	na.shell.Lock()
+	defer na.shell.Unlock()
 
-	strs := r.FormValue("command")
-	_, err = io.WriteString(os.Stdin, fmt.Sprintf(" %s\n", strs))
+	if na.input == nil {
+		result = []byte("false")
+		return
+	}
+
+	cmd := r.FormValue("command")
+	_, err = io.WriteString(na.input, fmt.Sprintf("%s\n", cmd))
 	if err != nil {
 		return
 	}
 	result = []byte("true")
 	return
-	//if na.shellCxt == nil || na.shellCancel == nil {
-	//	na.shellCxt, na.shellCancel = context.WithCancel(context.Background())
-	//}
-	//w.Header().Set("Content-Type", "text/plain")
-	//strs := r.FormValue("command")
-	//var cmdStrs []string
-	//err = json.Unmarshal([]byte(strs), &cmdStrs)
-	//if err != nil {
-	//	return
-	//}
-	//args := cmdStrs[1:]
-	//
-	//cmd := exec.CommandContext(na.shellCxt, cmdStrs[0], args...)
-	////stdin, err := cmd.StdinPipe()
-	////if err != nil {
-	////	return
-	////}
-	//stdout, err := cmd.StdoutPipe()
-	//if err != nil {
-	//	return
-	//}
-	//
-	//if err != nil {
-	//	return
-	//}
-	//if err = cmd.Start(); err != nil {
-	//	return
-	//}
-	//result, err = ioutil.ReadAll(stdout)
-	//return
+}
+
+func (na *NodeApi) runShell(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	na.shell.Lock()
+	defer na.shell.Unlock()
+
+	if na.cmdCancel != nil {
+		na.cmdCancel()
+		c := na.cmd
+		go func() {
+			log.Debugf("shell wait return %v", c.Wait())
+		}()
+	}
+	na.cmdCxt, na.cmdCancel = context.WithCancel(context.Background())
+	na.shell.cmd = exec.CommandContext(na.cmdCxt, "/bin/bash")
+	na.shell.input, err = na.shell.cmd.StdinPipe()
+	if err != nil {
+		return
+	}
+	na.shell.output, err = na.shell.cmd.StdoutPipe()
+	if err != nil {
+		return
+	}
+	err = na.shell.cmd.Start()
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
 }
