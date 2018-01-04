@@ -32,6 +32,9 @@ type Node struct {
 	discoveries   Addresses
 	onDiscoveries sync.Map
 	Pk            string
+
+	srs      []*SearchResult
+	srsMutex sync.Mutex
 }
 
 func New(seedPath, webPort string) *Node {
@@ -93,6 +96,7 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 				OnDisconnected: func(connection *factory.Connection) {
 					n.onDiscoveries.Store(addr, false)
 				},
+				FindServiceNodesByAttributesCallback: n.searchResultCallback,
 			})
 			if err != nil {
 				log.Errorf("failed to connect addr(%s) err %v", addr, err)
@@ -235,5 +239,39 @@ func (n *Node) GetApps() (apps []NodeApp) {
 			apps = append(apps, NodeApp{Key: v.Key.Hex(), Attributes: v.Attributes, AllowNodes: v.AllowNodes})
 		}
 	})
+	return
+}
+
+type SearchResult struct {
+	Result map[string][]cipher.PubKey
+	Seq    uint32
+}
+
+func (n *Node) Search(attr string) (seqs []uint32) {
+	n.apps.ForEachConn(func(connection *factory.Connection) {
+		s, err := connection.FindServiceNodesWithSeqByAttributes(attr)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		seqs = append(seqs, s)
+	})
+	return
+}
+
+func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
+	n.srsMutex.Lock()
+	n.srs = append(n.srs, &SearchResult{
+		Seq:    resp.Seq,
+		Result: resp.Result,
+	})
+	n.srsMutex.Unlock()
+}
+
+func (n *Node) GetSearchResult() (result []*SearchResult) {
+	n.srsMutex.Lock()
+	result = n.srs
+	n.srs = nil
+	n.srsMutex.Unlock()
 	return
 }

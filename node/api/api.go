@@ -484,3 +484,25 @@ func (na *NodeApi) runShell(w http.ResponseWriter, r *http.Request) (result []by
 	result = []byte("true")
 	return
 }
+
+func (na *NodeApi) search(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	key := r.FormValue("key")
+	if len(key) <= 0 {
+		err = errors.New("invalid key")
+	}
+
+	seqs := na.node.Search(key)
+
+	result, err = json.Marshal(seqs)
+	return
+}
+
+func (na *NodeApi) getSearchResult(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	srs := na.node.GetSearchResult()
+	if err != nil {
+		return
+	}
+
+	result, err = json.Marshal(srs)
+	return
+}
