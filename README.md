@@ -116,3 +116,11 @@ docker run -ti --rm \
       -address :5000 \
       -web-port :6001
 ```
+
+### Docker Compose
+
+```
+docker-compose up
+```
+
+Open [http://localhost:8000](http://localhost:8000).
