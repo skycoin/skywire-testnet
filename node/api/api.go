@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/kr/pty"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/cipher"
@@ -20,6 +18,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/gorilla/websocket"
+	"github.com/kr/pty"
+	"syscall"
+	"unsafe"
 )
 
 type NodeApi struct {
@@ -555,16 +557,49 @@ func (na *NodeApi) handleXtermsocket(w http.ResponseWriter, r *http.Request) {
 			conn.Close()
 		}()
 		for {
+
 			_, reader, err := conn.NextReader()
 			if err != nil {
 				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("System error: %s", err.Error())))
 				return
 			}
-			copied, err := io.Copy(tty, reader)
+			dataTypeBuf := make([]byte, 1)
+			_, err = reader.Read(dataTypeBuf)
 			if err != nil {
-				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error after copying %d bytes", copied)))
+				conn.WriteMessage(websocket.TextMessage, []byte("Unable to read message type from reader"))
+				return
 			}
+			log.Debugf("data type: %s", dataTypeBuf[0])
+			switch dataTypeBuf[0] {
+			case 0:
+				copied, err := io.Copy(tty, reader)
+				if err != nil {
+					conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error after copying %d bytes", copied)))
+				}
+			case 1:
+				decoder := json.NewDecoder(reader)
+				resizeMessage := windowSize{}
+				err := decoder.Decode(&resizeMessage)
+				if err != nil {
+					conn.WriteMessage(websocket.TextMessage, []byte("Error decoding resize message: "+err.Error()))
+					continue
+				}
+				_, _, errno := syscall.Syscall(
+					syscall.SYS_IOCTL,
+					tty.Fd(),
+					syscall.TIOCSWINSZ,
+					uintptr(unsafe.Pointer(&resizeMessage)),
+				)
+				if errno != 0 {
+					conn.WriteMessage(websocket.TextMessage, []byte("Unable to resize terminal: "+err.Error()))
+				}
+			}
+
 		}
 	}()
+}
 
+type windowSize struct {
+	Rows uint16 `json:"rows"`
+	Cols uint16 `json:"cols"`
 }
