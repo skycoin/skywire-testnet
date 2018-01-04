@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
+	"github.com/kr/pty"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/cipher"
@@ -90,6 +92,7 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/runShell", wrap(na.runShell))
 	http.HandleFunc("/node/run/runCmd", wrap(na.runCmd))
 	http.HandleFunc("/node/run/getShellOutput", wrap(na.getShellOutput))
+	http.HandleFunc("/node/run/term", na.handleXtermsocket)
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
 		log.Debugf("http server listening on %s", na.address)
@@ -505,4 +508,63 @@ func (na *NodeApi) getSearchResult(w http.ResponseWriter, r *http.Request) (resu
 
 	result, err = json.Marshal(srs)
 	return
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+func (na *NodeApi) handleXtermsocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Errorf("ws error: %s", err.Error())
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		return
+	}
+	cmd := exec.Command("/bin/bash")
+	cmd.Env = append(os.Environ(), "TERM=xterm")
+	tty, err := pty.Start(cmd)
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		return
+	}
+	go func() {
+		defer func() {
+			cmd.Process.Kill()
+			cmd.Process.Wait()
+			tty.Close()
+			conn.Close()
+		}()
+		for {
+			buf := make([]byte, 1024)
+			read, err := tty.Read(buf)
+			if err != nil {
+				conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+				return
+			}
+			conn.WriteMessage(websocket.BinaryMessage, buf[:read])
+		}
+	}()
+
+	go func() {
+		defer func() {
+			cmd.Process.Kill()
+			cmd.Process.Wait()
+			tty.Close()
+			conn.Close()
+		}()
+		for {
+			_, reader, err := conn.NextReader()
+			if err != nil {
+				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("System error: %s", err.Error())))
+				return
+			}
+			copied, err := io.Copy(tty, reader)
+			if err != nil {
+				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error after copying %d bytes", copied)))
+			}
+		}
+	}()
+
 }
