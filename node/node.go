@@ -243,8 +243,13 @@ func (n *Node) GetApps() (apps []NodeApp) {
 }
 
 type SearchResult struct {
-	Result map[string][]cipher.PubKey
-	Seq    uint32
+	Result SearchResultInfo `json:"result"`
+	Seq    uint32           `json:"seq"`
+}
+
+type SearchResultInfo struct {
+	NodeKey string   `json:"node_key"`
+	Apps    []string `json:"apps"`
 }
 
 func (n *Node) Search(attr string) (seqs []uint32) {
@@ -261,9 +266,18 @@ func (n *Node) Search(attr string) (seqs []uint32) {
 
 func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	n.srsMutex.Lock()
+	result := SearchResultInfo{}
+	for k, v := range resp.Result {
+		var pks []string
+		for _, v1 := range v {
+			pks = append(pks, v1.Hex())
+		}
+		result.NodeKey = k
+		result.Apps = pks
+	}
 	n.srs = append(n.srs, &SearchResult{
 		Seq:    resp.Seq,
-		Result: resp.Result,
+		Result: result,
 	})
 	n.srsMutex.Unlock()
 }

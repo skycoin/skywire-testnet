@@ -94,6 +94,8 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/runShell", wrap(na.runShell))
 	http.HandleFunc("/node/run/runCmd", wrap(na.runCmd))
 	http.HandleFunc("/node/run/getShellOutput", wrap(na.getShellOutput))
+	http.HandleFunc("/node/run/searchServices", wrap(na.search))
+	http.HandleFunc("/node/run/getSearchServicesResult", wrap(na.getSearchResult))
 	http.HandleFunc("/node/run/term", na.handleXtermsocket)
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
