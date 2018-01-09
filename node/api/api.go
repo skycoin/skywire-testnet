@@ -81,6 +81,10 @@ func (na *NodeApi) Close() error {
 
 func (na *NodeApi) StartSrv() {
 	na.getConfig()
+	err := na.afterLaunch()
+	if err != nil {
+		log.Errorf("after launch error: %s", err)
+	}
 	http.HandleFunc("/node/getInfo", wrap(na.getInfo))
 	http.HandleFunc("/node/getMsg", wrap(na.getMsg))
 	http.HandleFunc("/node/getApps", wrap(na.getApps))
@@ -96,6 +100,8 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/getShellOutput", wrap(na.getShellOutput))
 	http.HandleFunc("/node/run/searchServices", wrap(na.search))
 	http.HandleFunc("/node/run/getSearchServicesResult", wrap(na.getSearchResult))
+	http.HandleFunc("/node/run/getAutoStartConfig", wrap(na.getAutoStartConfig))
+	http.HandleFunc("/node/run/setAutoStartConfig", wrap(na.setAutoStartConfig))
 	http.HandleFunc("/node/run/term", na.handleXtermsocket)
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
@@ -216,17 +222,23 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 }
 
 func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	var arr []string
+	data := r.FormValue("data")
+	if len(data) > 1 {
+		arr = strings.Split(data, ",")
+	}
+	na.startSshs(arr)
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) startSshs(arr []string) (err error) {
 	na.Lock()
 	defer na.Unlock()
 	if na.sshsCancel != nil {
 		na.sshsCancel()
 	}
 	na.sshsCxt, na.sshsCancel = context.WithCancel(context.Background())
-	var arr []string
-	data := r.FormValue("data")
-	if len(data) > 1 {
-		arr = strings.Split(data, ",")
-	}
 	args := make([]string, 0, len(arr)+2)
 	args = append(args, "-node-address")
 	args = append(args, na.node.GetListenAddress())
@@ -242,12 +254,19 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 	go func() {
 		cmd.Wait()
 	}()
-
-	result = []byte("true")
 	return
 }
 
 func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	err = na.startSockss()
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) startSockss() (err error) {
 	na.Lock()
 	defer na.Unlock()
 	if na.sockssCancel != nil {
@@ -264,7 +283,6 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 		cmd.Wait()
 	}()
 
-	result = []byte("true")
 	return
 }
 
@@ -287,6 +305,7 @@ type Config struct {
 	Address            string
 	Seed               bool
 	SeedPath           string
+	AutoStartPath         string
 	WebPort            string
 }
 
@@ -604,4 +623,66 @@ func (na *NodeApi) handleXtermsocket(w http.ResponseWriter, r *http.Request) {
 type windowSize struct {
 	Rows uint16 `json:"rows"`
 	Cols uint16 `json:"cols"`
+}
+
+func (na *NodeApi) afterLaunch() error {
+	lc, err := na.node.ReadAutoStartConfig()
+	if err != nil {
+		if os.IsNotExist(err) {
+			lc = na.node.NewAutoStartConfig()
+			err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Errorf("read launch config err:", err)
+			return err
+		}
+	}
+	if lc.SocksServer {
+		err = na.startSockss()
+		if err != nil {
+			return err
+		}
+	}
+	if lc.SshServer {
+		err = na.startSshs(nil)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	lc, err := na.node.ReadAutoStartConfig()
+	if err != nil {
+		if os.IsNotExist(err) {
+			lc = na.node.NewAutoStartConfig()
+			err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+			if err != nil {
+				return
+			}
+		} else {
+			log.Errorf("read launch config err:", err)
+			return
+		}
+	}
+	result, err = json.Marshal(lc)
+	return
+}
+
+func (na *NodeApi) setAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	data := r.FormValue("data")
+	var lc = &node.AutoStartConfig{}
+	err = json.Unmarshal([]byte(data), lc)
+	if err != nil {
+		return
+	}
+	err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
 }
