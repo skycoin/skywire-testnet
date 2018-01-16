@@ -31,7 +31,6 @@ type Node struct {
 
 	discoveries   Addresses
 	onDiscoveries sync.Map
-	Pk            string
 
 	srs      []*SearchResult
 	srsMutex sync.Mutex
@@ -41,13 +40,19 @@ func New(seedPath, webPort string) *Node {
 	apps := factory.NewMessengerFactory()
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
+	apps.SetDefaultSeedConfigPath(seedPath)
 	m := factory.NewMessengerFactory()
+	m.SetDefaultSeedConfigPath(seedPath)
 	return &Node{
 		apps:           apps,
 		manager:        m,
 		seedConfigPath: seedPath,
 		webPort:        webPort,
 	}
+}
+
+func (n *Node) GetManager() *factory.MessengerFactory {
+	return n.manager
 }
 
 func (n *Node) Close() {
@@ -74,10 +79,9 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 	for _, addr := range discoveries {
 		func(addr string) {
 			n.onDiscoveries.Store(addr, false)
-			_, err := n.apps.ConnectWithConfig(addr, &factory.ConnConfig{
-				SeedConfigPath: n.seedConfigPath,
-				Reconnect:      true,
-				ReconnectWait:  10 * time.Second,
+			err := n.apps.ConnectWithConfig(addr, &factory.ConnConfig{
+				Reconnect:     true,
+				ReconnectWait: 10 * time.Second,
 				OnConnected: func(connection *factory.Connection) {
 					go func() {
 						for {
@@ -108,13 +112,11 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 }
 
 func (n *Node) ConnectManager(managerAddr string) (err error) {
-	_, err = n.manager.ConnectWithConfig(managerAddr, &factory.ConnConfig{
-		Context:        map[string]string{"node-api": n.webPort},
-		SeedConfigPath: n.seedConfigPath,
-		Reconnect:      true,
-		ReconnectWait:  10 * time.Second,
+	err = n.manager.ConnectWithConfig(managerAddr, &factory.ConnConfig{
+		Context:       map[string]string{"node-api": n.webPort},
+		Reconnect:     true,
+		ReconnectWait: 10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
-			n.Pk = connection.GetKey().Hex()
 			go func() {
 				for {
 					select {

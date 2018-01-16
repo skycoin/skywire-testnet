@@ -295,15 +295,15 @@ func (na *NodeApi) updateNode(w http.ResponseWriter, r *http.Request) (result []
 }
 
 func (na *NodeApi) getConfig() {
-	if len(na.node.Pk) < 1 {
-		return
-	}
 	var managerUrl = na.config.ManagerWeb
 	matched, err := regexp.MatchString(URLMatch, managerUrl)
 	if err != nil || !matched {
 		managerUrl = fmt.Sprintf("127.0.0.1%s", managerUrl)
 	}
-	res, err := http.PostForm(fmt.Sprintf("http://%s/conn/getNodeConfig", managerUrl), url.Values{"key": {na.node.Pk}})
+	res, err := http.PostForm(fmt.Sprintf("http://%s/conn/getNodeConfig", managerUrl),
+		url.Values{
+			"key": {na.node.GetManager().GetDefaultSeedConfig().PublicKey},
+		})
 	if err != nil {
 		return
 	}

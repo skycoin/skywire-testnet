@@ -45,7 +45,7 @@ func New(appType Type, service, addr string) *App {
 }
 
 func (app *App) Start(addr, scPath string) error {
-	_, err := app.net.ConnectWithConfig(addr, &factory.ConnConfig{
+	err := app.net.ConnectWithConfig(addr, &factory.ConnConfig{
 		SeedConfigPath: scPath,
 		OnConnected: func(connection *factory.Connection) {
 			switch app.appType {
