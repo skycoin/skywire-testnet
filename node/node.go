@@ -9,6 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
+	"io/ioutil"
+	"encoding/json"
+	"path/filepath"
+	"os"
 )
 
 type Addresses []string
@@ -23,11 +27,12 @@ func (addrs *Addresses) Set(addr string) error {
 }
 
 type Node struct {
-	apps           *factory.MessengerFactory
-	manager        *factory.MessengerFactory
-	seedConfigPath string
-	webPort        string
-	lnAddr         string
+	apps             *factory.MessengerFactory
+	manager          *factory.MessengerFactory
+	seedConfigPath   string
+	launchConfigPath string
+	webPort          string
+	lnAddr           string
 
 	discoveries   Addresses
 	onDiscoveries sync.Map
@@ -36,7 +41,7 @@ type Node struct {
 	srsMutex sync.Mutex
 }
 
-func New(seedPath, webPort string) *Node {
+func New(seedPath, launchConfigPath, webPort string) *Node {
 	apps := factory.NewMessengerFactory()
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
@@ -44,10 +49,11 @@ func New(seedPath, webPort string) *Node {
 	m := factory.NewMessengerFactory()
 	m.SetDefaultSeedConfigPath(seedPath)
 	return &Node{
-		apps:           apps,
-		manager:        m,
-		seedConfigPath: seedPath,
-		webPort:        webPort,
+		apps:             apps,
+		manager:          m,
+		seedConfigPath:   seedPath,
+		launchConfigPath: launchConfigPath,
+		webPort:          webPort,
 	}
 }
 
@@ -245,8 +251,13 @@ func (n *Node) GetApps() (apps []NodeApp) {
 }
 
 type SearchResult struct {
-	Result map[string][]cipher.PubKey
-	Seq    uint32
+	Result SearchResultInfo `json:"result"`
+	Seq    uint32           `json:"seq"`
+}
+
+type SearchResultInfo struct {
+	NodeKey string   `json:"node_key"`
+	Apps    []string `json:"apps"`
 }
 
 func (n *Node) Search(attr string) (seqs []uint32) {
@@ -263,9 +274,19 @@ func (n *Node) Search(attr string) (seqs []uint32) {
 
 func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	n.srsMutex.Lock()
+	result := SearchResultInfo{}
+	for k, v := range resp.Result {
+		var pks []string
+		for _, v1 := range v {
+			pks = append(pks, v1.Hex())
+		}
+		result.NodeKey = k
+		result.Apps = pks
+	}
+	log.Infof("test search call back: %s", resp)
 	n.srs = append(n.srs, &SearchResult{
 		Seq:    resp.Seq,
-		Result: resp.Result,
+		Result: result,
 	})
 	n.srsMutex.Unlock()
 }
@@ -275,5 +296,39 @@ func (n *Node) GetSearchResult() (result []*SearchResult) {
 	result = n.srs
 	n.srs = nil
 	n.srsMutex.Unlock()
+	return
+}
+
+type AutoStartConfig struct {
+	SocksServer bool `json:"socks_server"`
+	SshServer   bool `json:"ssh_server"`
+}
+
+func (n *Node) NewAutoStartConfig() *AutoStartConfig {
+	sc := &AutoStartConfig{SocksServer: true, SshServer: false}
+	return sc
+}
+
+func (n *Node) ReadAutoStartConfig() (lc *AutoStartConfig, err error) {
+	fb, err := ioutil.ReadFile(n.launchConfigPath)
+	if err != nil {
+		return
+	}
+	lc = &AutoStartConfig{}
+	err = json.Unmarshal(fb, lc)
+	return
+}
+
+func (n *Node) WriteAutoStartConfig(lc *AutoStartConfig, path string) (err error) {
+	d, err := json.Marshal(lc)
+	if err != nil {
+		return
+	}
+	dir := filepath.Dir(path)
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		return
+	}
+	err = ioutil.WriteFile(path, d, 0600)
 	return
 }

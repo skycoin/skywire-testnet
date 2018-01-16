@@ -24,6 +24,7 @@ func parseFlags() {
 	flag.BoolVar(&config.Seed, "seed", true, "use fixed seed to connect if true")
 	flag.StringVar(&config.SeedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "node", "keys.json"), "path to save seed info")
 	flag.StringVar(&config.WebPort, "web-port", ":6001", "monitor web page port")
+	flag.StringVar(&config.AutoStartPath, "auto-start-path", filepath.Join(file.UserHome(), ".skywire", "node", "autoStart.json"), "path to save launch info")
 	flag.Parse()
 }
 
@@ -35,12 +36,12 @@ func main() {
 
 	var n *node.Node
 	if !config.Seed {
-		n = node.New("", config.WebPort)
+		n = node.New("", config.AutoStartPath, config.WebPort)
 	} else {
 		if len(config.SeedPath) < 1 {
 			config.SeedPath = filepath.Join(file.UserHome(), ".skywire", "node", "keys.json")
 		}
-		n = node.New(config.SeedPath, config.WebPort)
+		n = node.New(config.SeedPath, config.AutoStartPath, config.WebPort)
 	}
 	err := n.Start(config.DiscoveryAddresses, config.Address)
 	if err != nil {
