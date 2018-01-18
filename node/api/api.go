@@ -31,17 +31,23 @@ type NodeApi struct {
 	osSignal chan os.Signal
 	srv      *http.Server
 
-	sshsCxt      context.Context
-	sshsCancel   context.CancelFunc
-	sockssCxt    context.Context
-	sockssCancel context.CancelFunc
-	sshcCxt      context.Context
-	sshcCancel   context.CancelFunc
-	sockscCxt    context.Context
-	sockscCancel context.CancelFunc
+	apps map[string]*appCxt
+	//sshsCxt      context.Context
+	//sshsCancel   context.CancelFunc
+	//sockssCxt    context.Context
+	//sockssCancel context.CancelFunc
+	//sshcCxt      context.Context
+	//sshcCancel   context.CancelFunc
+	//sockscCxt    context.Context
+	//sockscCancel context.CancelFunc
 	sync.RWMutex
 
 	shell
+}
+
+type appCxt struct {
+	cxt    context.Context
+	cancel context.CancelFunc
 }
 
 type shell struct {
@@ -57,24 +63,25 @@ type shell struct {
 }
 
 func New(addr string, node *node.Node, config Config, signal chan os.Signal) *NodeApi {
-	return &NodeApi{address: addr, node: node, config: config, osSignal: signal, srv: &http.Server{Addr: addr}}
+
+	return &NodeApi{
+		address:  addr,
+		node:     node,
+		config:   config,
+		osSignal: signal,
+		srv:      &http.Server{Addr: addr},
+		apps:     make(map[string]*appCxt),
+	}
 }
 
 func (na *NodeApi) Close() error {
 	na.RLock()
 	defer na.RUnlock()
 
-	if na.sshsCancel != nil {
-		na.sshsCancel()
-	}
-	if na.sshcCancel != nil {
-		na.sshcCancel()
-	}
-	if na.sockssCancel != nil {
-		na.sockssCancel()
-	}
-	if na.sockscCancel != nil {
-		na.sockscCancel()
+	for _, v := range na.apps {
+		if v != nil {
+			v.cancel()
+		}
 	}
 	return na.srv.Close()
 }
@@ -102,6 +109,7 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/getSearchServicesResult", wrap(na.getSearchResult))
 	http.HandleFunc("/node/run/getAutoStartConfig", wrap(na.getAutoStartConfig))
 	http.HandleFunc("/node/run/setAutoStartConfig", wrap(na.setAutoStartConfig))
+	http.HandleFunc("/node/run/closeApp", wrap(na.closeApp))
 	http.HandleFunc("/node/run/term", na.handleXtermsocket)
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
@@ -110,6 +118,20 @@ func (na *NodeApi) StartSrv() {
 			log.Errorf("http server: ListenAndServe() error: %s", err)
 		}
 	}()
+}
+
+func (na *NodeApi) closeApp(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	key := r.FormValue("key")
+	na.RLock()
+	defer na.RUnlock()
+	v, ok := na.apps[key]
+	if ok {
+		if v != nil {
+			v.cancel()
+		}
+	}
+	result = []byte("true")
+	return
 }
 
 func (na *NodeApi) getInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
@@ -177,11 +199,16 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 		err = errors.New("Node Key or App key Can not be empty")
 		return
 	}
-	if na.sshcCancel != nil {
-		na.sshcCancel()
+	key := "sshc"
+	if na.apps[key] != nil {
+		na.apps[key].cancel()
 	}
-	na.sshcCxt, na.sshcCancel = context.WithCancel(context.Background())
-	cmd := exec.CommandContext(na.sshcCxt, "./sshc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
+	cxt, cancel := context.WithCancel(context.Background())
+	na.apps[key] = &appCxt{
+		cxt:    cxt,
+		cancel: cancel,
+	}
+	cmd := exec.CommandContext(na.apps[key].cxt, "./sshc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -203,12 +230,16 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 		err = errors.New("Node Key or App key Can not be empty")
 		return
 	}
-	if na.sockscCancel != nil {
-		na.sockscCancel()
+	key := "socksc"
+	if na.apps[key] != nil {
+		na.apps[key].cancel()
 	}
-	na.sockscCxt, na.sockscCancel = context.WithCancel(context.Background())
-
-	cmd := exec.CommandContext(na.sockscCxt, "./socksc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
+	cxt, cancel := context.WithCancel(context.Background())
+	na.apps[key] = &appCxt{
+		cxt:    cxt,
+		cancel: cancel,
+	}
+	cmd := exec.CommandContext(na.apps[key].cxt, "./socksc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -235,10 +266,15 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 func (na *NodeApi) startSshs(arr []string) (err error) {
 	na.Lock()
 	defer na.Unlock()
-	if na.sshsCancel != nil {
-		na.sshsCancel()
+	key := "sshs"
+	if na.apps[key] != nil {
+		na.apps[key].cancel()
 	}
-	na.sshsCxt, na.sshsCancel = context.WithCancel(context.Background())
+	cxt, cancel := context.WithCancel(context.Background())
+	na.apps[key] = &appCxt{
+		cxt:    cxt,
+		cancel: cancel,
+	}
 	args := make([]string, 0, len(arr)+2)
 	args = append(args, "-node-address")
 	args = append(args, na.node.GetListenAddress())
@@ -246,7 +282,7 @@ func (na *NodeApi) startSshs(arr []string) (err error) {
 		args = append(args, "-node-key")
 		args = append(args, v)
 	}
-	cmd := exec.CommandContext(na.sshsCxt, "./sshs", args...)
+	cmd := exec.CommandContext(na.apps[key].cxt, "./sshs", args...)
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -269,12 +305,16 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 func (na *NodeApi) startSockss() (err error) {
 	na.Lock()
 	defer na.Unlock()
-	if na.sockssCancel != nil {
-		na.sockssCancel()
+	key := "sockss"
+	if na.apps[key] != nil {
+		na.apps[key].cancel()
 	}
-	na.sockssCxt, na.sockssCancel = context.WithCancel(context.Background())
-
-	cmd := exec.CommandContext(na.sockssCxt, "./sockss", "-node-address", na.node.GetListenAddress())
+	cxt, cancel := context.WithCancel(context.Background())
+	na.apps[key] = &appCxt{
+		cxt:    cxt,
+		cancel: cancel,
+	}
+	cmd := exec.CommandContext(na.apps[key].cxt, "./sockss", "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -305,7 +345,7 @@ type Config struct {
 	Address            string
 	Seed               bool
 	SeedPath           string
-	AutoStartPath         string
+	AutoStartPath      string
 	WebPort            string
 }
 
