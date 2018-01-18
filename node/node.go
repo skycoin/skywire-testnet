@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/pkg/errors"
 )
 
 type Addresses []string
@@ -279,6 +278,7 @@ func (n *Node) Search(attr string) (seqs []uint32) {
 
 func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	n.srsMutex.Lock()
+	log.Infof("search call back: %#v", resp)
 	var result = make(map[string][]string)
 	for k, v := range resp.Result {
 		var apps = make([]string, 0, len(v))
@@ -333,15 +333,5 @@ func (n *Node) WriteAutoStartConfig(lc *AutoStartConfig, path string) (err error
 		return
 	}
 	err = ioutil.WriteFile(path, d, 0600)
-	return
-}
-
-func (n *Node) CloseApp(key cipher.PubKey) (err error) {
-	c, ok := n.apps.GetConnection(key)
-	if !ok {
-		err = errors.New("no found app")
-		return
-	}
-	c.Connection.Close()
 	return
 }
