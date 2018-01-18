@@ -102,6 +102,7 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/getSearchServicesResult", wrap(na.getSearchResult))
 	http.HandleFunc("/node/run/getAutoStartConfig", wrap(na.getAutoStartConfig))
 	http.HandleFunc("/node/run/setAutoStartConfig", wrap(na.setAutoStartConfig))
+	http.HandleFunc("/node/run/closeApp", wrap(na.closeApp))
 	http.HandleFunc("/node/run/term", na.handleXtermsocket)
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
@@ -110,6 +111,20 @@ func (na *NodeApi) StartSrv() {
 			log.Errorf("http server: ListenAndServe() error: %s", err)
 		}
 	}()
+}
+
+func (na *NodeApi) closeApp(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	k := r.FormValue("key")
+	key, err := cipher.PubKeyFromHex(k)
+	if err != nil {
+		return
+	}
+	err = na.node.CloseApp(key)
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
 }
 
 func (na *NodeApi) getInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
@@ -273,7 +288,6 @@ func (na *NodeApi) startSockss() (err error) {
 		na.sockssCancel()
 	}
 	na.sockssCxt, na.sockssCancel = context.WithCancel(context.Background())
-
 	cmd := exec.CommandContext(na.sockssCxt, "./sockss", "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
@@ -305,7 +319,7 @@ type Config struct {
 	Address            string
 	Seed               bool
 	SeedPath           string
-	AutoStartPath         string
+	AutoStartPath      string
 	WebPort            string
 }
 

@@ -42,7 +42,7 @@ func main() {
 		log.Error(err)
 		os.Exit(1)
 	}
-	m := monitor.New(f, webPort, "", "")
+	m := monitor.New(f, address, webPort, "", "")
 	m.Start(webDir)
 	select {
 	case signal := <-osSignal:

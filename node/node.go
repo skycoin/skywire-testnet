@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/pkg/errors"
 )
 
 type Addresses []string
@@ -255,8 +256,8 @@ func (n *Node) GetApps() (apps []NodeApp) {
 }
 
 type SearchResult struct {
-	Result SearchResultInfo `json:"result"`
-	Seq    uint32           `json:"seq"`
+	Result map[string][]string `json:"result"`
+	Seq    uint32              `json:"seq"`
 }
 
 type SearchResultInfo struct {
@@ -278,16 +279,14 @@ func (n *Node) Search(attr string) (seqs []uint32) {
 
 func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	n.srsMutex.Lock()
-	result := SearchResultInfo{}
+	var result = make(map[string][]string)
 	for k, v := range resp.Result {
-		var pks []string
+		var apps = make([]string, 0, len(v))
 		for _, v1 := range v {
-			pks = append(pks, v1.Hex())
+			apps = append(apps, v1.Hex())
 		}
-		result.NodeKey = k
-		result.Apps = pks
+		result[k] = apps
 	}
-	log.Infof("test search call back: %s", resp)
 	n.srs = append(n.srs, &SearchResult{
 		Seq:    resp.Seq,
 		Result: result,
@@ -334,5 +333,15 @@ func (n *Node) WriteAutoStartConfig(lc *AutoStartConfig, path string) (err error
 		return
 	}
 	err = ioutil.WriteFile(path, d, 0600)
+	return
+}
+
+func (n *Node) CloseApp(key cipher.PubKey) (err error) {
+	c, ok := n.apps.GetConnection(key)
+	if !ok {
+		err = errors.New("no found app")
+		return
+	}
+	c.Connection.Close()
 	return
 }
