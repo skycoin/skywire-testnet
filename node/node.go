@@ -202,7 +202,7 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 		})
 		feedback := conn.GetAppFeedback()
 		port := 0
-		if feedback != nil {
+		if feedback != nil  && !feedback.Failed{
 			port = feedback.Port
 		}
 		afs = append(afs, FeedBackItem{
