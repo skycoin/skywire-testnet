@@ -247,8 +247,16 @@ type NodeApp struct {
 func (n *Node) GetApps() (apps []NodeApp) {
 	n.apps.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
 		ns := conn.GetServices()
+		if ns == nil || len(ns.Services) == 0 {
+			return
+		}
 		for _, v := range ns.Services {
-			apps = append(apps, NodeApp{Key: v.Key.Hex(), Attributes: v.Attributes, AllowNodes: v.AllowNodes})
+			apps = append(apps, NodeApp{
+				Key: v.Key.Hex(),
+				Attributes:
+				v.Attributes,
+				AllowNodes: v.AllowNodes,
+			})
 		}
 	})
 	return

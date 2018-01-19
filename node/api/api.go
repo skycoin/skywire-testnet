@@ -122,6 +122,10 @@ func (na *NodeApi) StartSrv() {
 
 func (na *NodeApi) closeApp(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	key := r.FormValue("key")
+	if len(key) == 0 {
+		err =errors.New("Key is Empty!")
+		return
+	}
 	na.RLock()
 	defer na.RUnlock()
 	v, ok := na.apps[key]
@@ -195,8 +199,12 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
-	if len(toNode) <= 0 || len(toApp) <= 0 {
-		err = errors.New("Node Key or App key Can not be empty")
+	if len(toNode) == 0 || len(toNode) < 66{
+		err = errors.New("Node Key at least 66 characters.")
+		return
+	}
+	if len(toApp) == 0 || len(toApp) < 66{
+		err = errors.New("App Key at least 66 characters.")
 		return
 	}
 	key := "sshc"
@@ -226,8 +234,12 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
-	if len(toNode) <= 0 || len(toApp) <= 0 {
-		err = errors.New("Node Key or App key Can not be empty")
+	if len(toNode) == 0 || len(toNode) < 66{
+		err = errors.New("Node Key at least 66 characters.")
+		return
+	}
+	if len(toApp) == 0 || len(toApp) < 66{
+		err = errors.New("App Key at least 66 characters.")
 		return
 	}
 	key := "socksc"
@@ -327,8 +339,7 @@ func (na *NodeApi) startSockss() (err error) {
 }
 
 func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	branch := r.FormValue("branch")
-	cmd := exec.Command("./update-skywire", branch)
+	cmd := exec.Command("./update-skywire")
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -553,8 +564,9 @@ func (na *NodeApi) runShell(w http.ResponseWriter, r *http.Request) (result []by
 
 func (na *NodeApi) search(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	key := r.FormValue("key")
-	if len(key) <= 0 {
+	if len(key) == 0 {
 		err = errors.New("invalid key")
+		return
 	}
 
 	seqs := na.node.Search(key)
