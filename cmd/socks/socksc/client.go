@@ -57,6 +57,13 @@ func main() {
 
 	a := app.New(app.Client, "socksc", "")
 	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) *factory.AppFeedback {
+		if resp.Failed {
+			return &factory.AppFeedback{
+				Port:   port,
+				Failed: resp.Failed,
+				Msg:    resp.Msg,
+			}
+		}
 		config := &ss.Config{
 			Password:   "123456",
 			LocalPort:  port,
