@@ -199,18 +199,19 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 				UploadTotal:   v.GetUploadTotal(),
 				DownloadTotal: v.GetDownloadTotal(),
 			})
-			feedback := conn.GetAppFeedback()
-			port := 0
-			if feedback != nil {
-				port = feedback.Port
-			}
-			afs = append(afs, FeedBackItem{
-				Key:            key.Hex(),
-				Port:           port,
-				UnreadMessages: conn.CheckMessages(),
-			})
+		})
+		feedback := conn.GetAppFeedback()
+		port := 0
+		if feedback != nil {
+			port = feedback.Port
+		}
+		afs = append(afs, FeedBackItem{
+			Key:            key.Hex(),
+			Port:           port,
+			UnreadMessages: conn.CheckMessages(),
 		})
 	})
+
 	d := make(map[string]bool)
 	n.onDiscoveries.Range(func(key, value interface{}) bool {
 		k, ok := key.(string)
