@@ -1,9 +1,16 @@
 package factory
 
 import (
+	"crypto/aes"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/skycoin/net/conn"
 	"github.com/skycoin/net/factory"
 	"github.com/skycoin/skycoin/src/cipher"
+	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +25,7 @@ type Connection struct {
 	keySetCond *sync.Cond
 	keySet     bool
 	secKey     cipher.SecKey
+	targetKey  cipher.PubKey
 
 	context sync.Map
 
@@ -51,6 +59,10 @@ type Connection struct {
 
 	// call after received response for BuildAppConnection
 	appConnectionInitCallback func(resp *AppConnResp) *AppFeedback
+
+	onConnected    func(connection *Connection)
+	onDisconnected func(connection *Connection)
+	reconnect      func()
 }
 
 // Used by factory to spawn connections for server side
@@ -130,12 +142,16 @@ func (c *Connection) SetKey(key cipher.PubKey) {
 	c.keySet = true
 	c.fieldsMutex.Unlock()
 	c.keySetCond.Broadcast()
+	if c.onConnected != nil {
+		c.onConnected(c)
+	}
 }
 
-func (c *Connection) IsKeySet() bool {
-	c.fieldsMutex.Lock()
-	defer c.fieldsMutex.Unlock()
-	return c.keySet
+func (c *Connection) IsKeySet() (b bool) {
+	c.fieldsMutex.RLock()
+	b = c.keySet
+	c.fieldsMutex.RUnlock()
+	return
 }
 
 func (c *Connection) GetKey() cipher.PubKey {
@@ -156,6 +172,19 @@ func (c *Connection) SetSecKey(key cipher.SecKey) {
 func (c *Connection) GetSecKey() (key cipher.SecKey) {
 	c.fieldsMutex.RLock()
 	key = c.secKey
+	c.fieldsMutex.RUnlock()
+	return
+}
+
+func (c *Connection) SetTargetKey(key cipher.PubKey) {
+	c.fieldsMutex.Lock()
+	c.targetKey = key
+	c.fieldsMutex.Unlock()
+}
+
+func (c *Connection) GetTargetKey() (key cipher.PubKey) {
+	c.fieldsMutex.RLock()
+	key = c.targetKey
 	c.fieldsMutex.RUnlock()
 	return
 }
@@ -196,20 +225,109 @@ func (c *Connection) Reg() error {
 }
 
 func (c *Connection) RegWithKey(key cipher.PubKey, context map[string]string) error {
-	return c.writeOP(OP_REG_KEY, &regWithKey{PublicKey: key, Context: context})
+	c.StoreContext(publicKey, key)
+	return c.writeOPReq(OP_REG_KEY, &regWithKey{PublicKey: key, Context: context, Version: RegWithKeyAndEncryptionVersion})
+}
+
+func (c *Connection) RegWithKeys(key, target cipher.PubKey, context map[string]string) error {
+	c.StoreContext(publicKey, key)
+	c.SetTargetKey(target)
+	return c.writeOPReq(OP_REG_KEY, &regWithKey{PublicKey: key, Context: context, Version: RegWithKeyAndEncryptionVersion})
 }
 
 // register services to discovery
-func (c *Connection) UpdateServices(ns *NodeServices) error {
+func (c *Connection) UpdateServices(ns *NodeServices) (err error) {
+	if ns != nil && !checkNodeServices(ns) {
+		err = fmt.Errorf("invalid NodeServices %#v", ns)
+		return
+	}
 	c.setServices(ns)
 	if ns == nil {
 		ns = &NodeServices{}
 	}
-	err := c.writeOP(OP_OFFER_SERVICE, ns)
+	err = c.writeOP(OP_OFFER_SERVICE, ns)
 	if err != nil {
 		return err
 	}
-	return nil
+	return
+}
+
+func checkAttrs(attrs []string) bool {
+	if len(attrs) > 3 {
+		return false
+	}
+	for _, v := range attrs {
+		if len(v) > 50 {
+			return false
+		}
+	}
+	return true
+}
+
+func checkAddress(addr string) (valid bool) {
+	host, p, err := net.SplitHostPort(addr)
+	if err != nil {
+		return
+	}
+	if len(host) != 0 && net.ParseIP(host) == nil {
+		return
+	}
+	port, err := strconv.Atoi(p)
+	if err != nil {
+		return
+	}
+	if 0 > port || port > 65535 {
+		return
+	}
+	valid = true
+	return
+}
+
+func checkPubKeyHex(key string) (valid bool) {
+	bytes, err := hex.DecodeString(key)
+	if err != nil {
+		return
+	}
+	if len(bytes) != 33 {
+		return
+	}
+	valid = true
+	return
+}
+
+func checkNodeServices(ns *NodeServices) (valid bool) {
+	if ns == nil {
+		return
+	}
+	if len(ns.ServiceAddress) > 0 {
+		valid = checkAddress(ns.ServiceAddress)
+		if !valid {
+			return
+		}
+	}
+	for _, s := range ns.Services {
+		valid = checkAttrs(s.Attributes)
+		if !valid {
+			return
+		}
+		if len(s.Address) > 0 {
+			valid = checkAddress(s.Address)
+			if !valid {
+				return
+			}
+		}
+		if s.Key == EMPATY_PUBLIC_KEY {
+			return false
+		}
+		for _, k := range s.AllowNodes {
+			valid = checkPubKeyHex(k)
+			if !valid {
+				return
+			}
+		}
+	}
+	valid = true
+	return
 }
 
 // register a service to discovery
@@ -235,15 +353,26 @@ func (c *Connection) OfferPrivateServiceWithAddress(address string, allowNodes [
 }
 
 // register a service to discovery
-func (c *Connection) OfferStaticServiceWithAddress(address string, attrs ...string) error {
+func (c *Connection) OfferStaticServiceWithAddress(address string, attrs ...string) (err error) {
 	ns := &NodeServices{Services: []*Service{{Key: c.GetKey(), Attributes: attrs, Address: address}}}
-	c.factory.discoveryRegister(c, ns)
+	err = c.factory.discoveryRegister(c, ns)
+	if err != nil {
+		return
+	}
 	return c.UpdateServices(ns)
 }
 
 // find services by attributes
 func (c *Connection) FindServiceNodesByAttributes(attrs ...string) error {
 	return c.writeOP(OP_QUERY_BY_ATTRS, newQueryByAttrs(attrs))
+}
+
+// find services by attributes
+func (c *Connection) FindServiceNodesWithSeqByAttributes(attrs ...string) (seq uint32, err error) {
+	q := newQueryByAttrs(attrs)
+	seq = q.Seq
+	err = c.writeOP(OP_QUERY_BY_ATTRS, q)
+	return
 }
 
 // find services nodes by service public keys
@@ -332,6 +461,12 @@ func (c *Connection) GetChanIn() <-chan []byte {
 }
 
 func (c *Connection) Close() {
+	if c.reconnect != nil {
+		go c.reconnect()
+	}
+	if c.onDisconnected != nil {
+		c.onDisconnected(c)
+	}
 	c.keySetCond.Broadcast()
 	c.fieldsMutex.Lock()
 	defer c.fieldsMutex.Unlock()
@@ -361,6 +496,21 @@ func (c *Connection) Close() {
 	c.Connection.Close()
 }
 
+func (c *Connection) WaitForKey() (err error) {
+	ok := make(chan struct{})
+	go func() {
+		c.GetKey()
+		close(ok)
+	}()
+	select {
+	case <-time.After(15 * time.Second):
+		c.Close()
+		err = errors.New("reg timeout")
+	case <-ok:
+	}
+	return err
+}
+
 func (c *Connection) writeOPBytes(op byte, body []byte) error {
 	data := make([]byte, MSG_HEADER_END+len(body))
 	data[MSG_OP_BEGIN] = op
@@ -375,6 +525,30 @@ func (c *Connection) writeOP(op byte, object interface{}) error {
 	}
 	c.GetContextLogger().Debugf("writeOP %#v", object)
 	return c.writeOPBytes(op, js)
+}
+
+func (c *Connection) writeOPReq(op byte, object interface{}) error {
+	body, err := json.Marshal(object)
+	if err != nil {
+		return err
+	}
+	c.GetContextLogger().Debugf("writeOP %#v", object)
+	data := make([]byte, MSG_HEADER_END+len(body))
+	data[MSG_OP_BEGIN] = op
+	copy(data[MSG_HEADER_END:], body)
+	return c.WriteReq(data)
+}
+
+func (c *Connection) writeOPResp(op byte, object interface{}) error {
+	body, err := json.Marshal(object)
+	if err != nil {
+		return err
+	}
+	c.GetContextLogger().Debugf("writeOP %#v", object)
+	data := make([]byte, MSG_HEADER_END+len(body))
+	data[MSG_OP_BEGIN] = op
+	copy(data[MSG_HEADER_END:], body)
+	return c.WriteResp(data)
 }
 
 func (c *Connection) setTransport(to cipher.PubKey, tr *Transport) {
@@ -471,4 +645,25 @@ func (c *Connection) GetAppFeedback() *AppFeedback {
 		return nil
 	}
 	return v
+}
+
+func (c *Connection) SetCrypto(pk cipher.PubKey, sk cipher.SecKey, target cipher.PubKey, iv []byte) (err error) {
+	c.fieldsMutex.Lock()
+	defer c.fieldsMutex.Unlock()
+	if c.Connection.GetCrypto() != nil {
+		return
+	}
+	crypto := conn.NewCrypto(pk, sk)
+	err = crypto.SetTargetKey(target)
+	if err != nil {
+		return
+	}
+	if len(iv) == aes.BlockSize {
+		err = crypto.Init(iv)
+		if err != nil {
+			return
+		}
+	}
+	c.Connection.SetCrypto(crypto)
+	return
 }

@@ -1,5 +1,7 @@
 package factory
 
+import "github.com/skycoin/skycoin/src/cipher"
+
 const (
 	MSG_OP_SIZE         = 1
 	MSG_PUBLIC_KEY_SIZE = 33
@@ -55,3 +57,5 @@ const (
 )
 
 const RESP_PREFIX = 0x80
+
+var EMPATY_PUBLIC_KEY = cipher.PubKey{}

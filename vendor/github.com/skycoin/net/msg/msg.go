@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/google/btree"
-	"hash/crc32"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -102,9 +101,6 @@ func (msg *Message) Bytes() (result []byte) {
 }
 
 func (msg *Message) PkgBytes() (result []byte) {
-	msg.RLock()
-	result = msg.cache
-	msg.RUnlock()
 	if len(result) > 0 {
 		return
 	}
@@ -115,11 +111,23 @@ func (msg *Message) PkgBytes() (result []byte) {
 	binary.BigEndian.PutUint32(m[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.GetSeq())
 	binary.BigEndian.PutUint32(m[MSG_LEN_BEGIN:MSG_LEN_END], msg.Len)
 	copy(m[MSG_HEADER_END:], msg.Body)
-	checksum := crc32.ChecksumIEEE(m)
-	binary.BigEndian.PutUint32(result[PKG_CRC32_BEGIN:], checksum)
+
 	msg.Lock()
 	msg.cache = result
 	msg.Unlock()
+	return
+}
+
+func (msg *Message) SetCache(result []byte) {
+	msg.Lock()
+	msg.cache = result
+	msg.Unlock()
+}
+
+func (msg *Message) GetCache() (result []byte) {
+	msg.RLock()
+	result = msg.cache
+	msg.RUnlock()
 	return
 }
 
@@ -151,6 +159,20 @@ func (msg *Message) Transmitted() {
 	msg.Unlock()
 }
 
+func (msg *Message) IsTransmitted() (r bool) {
+	msg.RLock()
+	r = msg.status&MSG_STATUS_TRANSMITTED > 0
+	msg.RUnlock()
+	return
+}
+
+func (msg *UDPMessage) IsAcked() (r bool) {
+	msg.RLock()
+	r = msg.status&MSG_STATUS_ACKED > 0
+	msg.RUnlock()
+	return
+}
+
 func (msg *Message) Acked() {
 	msg.Lock()
 	msg.status |= MSG_STATUS_ACKED
@@ -176,6 +198,9 @@ type UDPMessage struct {
 	delivered     uint64
 	deliveredTime time.Time
 	sentTime      time.Time
+
+	channel    int64
+	channelSeq uint32
 }
 
 func NewUDP(t uint8, seq uint32, bytes []byte) *UDPMessage {
@@ -190,13 +215,6 @@ func NewUDPWithoutSeq(t uint8, bytes []byte) *UDPMessage {
 	}
 }
 
-func (msg *UDPMessage) Transmitted() {
-	msg.Lock()
-	msg.status |= MSG_STATUS_TRANSMITTED
-	msg.transmittedAt = time.Now()
-	msg.Unlock()
-}
-
 func (msg *UDPMessage) UpdateState(delivered uint64, deliveredTime, sentTime time.Time) {
 	msg.Lock()
 	msg.delivered = delivered
@@ -205,7 +223,7 @@ func (msg *UDPMessage) UpdateState(delivered uint64, deliveredTime, sentTime tim
 	msg.Unlock()
 }
 
-func (msg *UDPMessage) SetRTO(rto time.Duration, fn func() error) {
+func (msg *UDPMessage) SetRTO(rto time.Duration, fn func(m *UDPMessage) error) {
 	msg.Lock()
 	msg.resendTimer = time.AfterFunc(rto*time.Duration((msg.resendCnt)*3/2+1), func() {
 		msg.Lock()
@@ -215,13 +233,16 @@ func (msg *UDPMessage) SetRTO(rto time.Duration, fn func() error) {
 		}
 		msg.resendCnt++
 		msg.Unlock()
-		msg.ResetMiss()
-		err := fn()
-		if err == nil {
-			msg.SetRTO(rto, fn)
-		}
+		fn(msg)
 	})
 	msg.Unlock()
+}
+
+func (msg *UDPMessage) GetResendCount() (c uint32) {
+	msg.RLock()
+	c = msg.resendCnt
+	msg.RUnlock()
+	return
 }
 
 func (msg *UDPMessage) Acked() {
@@ -264,5 +285,30 @@ func (msg *UDPMessage) GetTransmittedTime() time.Time {
 }
 
 func (msg *UDPMessage) Less(b btree.Item) bool {
-	return msg.GetSeq() < b.(*UDPMessage).GetSeq()
+	if msg.IsTransmitted() {
+		return atomic.LoadUint32(&msg.seq) < atomic.LoadUint32(&b.(*UDPMessage).seq)
+	}
+	return atomic.LoadUint32(&msg.channelSeq) < atomic.LoadUint32(&b.(*UDPMessage).channelSeq)
+}
+
+func (msg *UDPMessage) SetChannelSeq(channel int, seq uint32) {
+	atomic.StoreInt64(&msg.channel, int64(channel))
+	atomic.StoreUint32(&msg.channelSeq, seq)
+}
+
+func (msg *UDPMessage) GetChannel() int {
+	return int(atomic.LoadInt64(&msg.channel))
+}
+
+func (msg *UDPMessage) Loss() {
+	msg.Lock()
+	msg.status |= MSG_STATUS_LOSS
+	msg.Unlock()
+}
+
+func (msg *UDPMessage) IsLoss() (r bool) {
+	msg.RLock()
+	r = msg.status&MSG_STATUS_LOSS > 0
+	msg.RUnlock()
+	return
 }

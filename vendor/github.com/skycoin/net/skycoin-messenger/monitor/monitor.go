@@ -2,21 +2,40 @@ package monitor
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
+	"github.com/skycoin/skycoin/src/util/file"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
 	"sync"
 	"time"
-	"os"
-	"sort"
-	"path/filepath"
-	"github.com/skycoin/skycoin/src/util/file"
-	"strconv"
+	"github.com/astaxie/beego/session"
 )
+
+var globalSessions *session.Manager
+
+func init() {
+	sessionConfig := &session.ManagerConfig{
+		CookieName:      "SWSId",
+		EnableSetCookie: true,
+		Gclifetime:      3600,
+		Maxlifetime:     3600,
+		Secure:          false,
+		CookieLifeTime:  3600,
+		ProviderConfig:  "./tmp",
+	}
+	globalSessions, _ = session.NewManager("memory", sessionConfig)
+	go globalSessions.GC()
+}
 
 type Conn struct {
 	Key         string `json:"key"`
@@ -50,9 +69,10 @@ var (
 )
 
 type Monitor struct {
-	factory *factory.MessengerFactory
-	address string
-	srv     *http.Server
+	factory       *factory.MessengerFactory
+	serverAddress string
+	address       string
+	srv           *http.Server
 
 	code    string
 	version string
@@ -61,14 +81,15 @@ type Monitor struct {
 	configsMutex sync.RWMutex
 }
 
-func New(f *factory.MessengerFactory, addr, code, version string) *Monitor {
+func New(f *factory.MessengerFactory, serverAddress, webAddr, code, version string) *Monitor {
 	return &Monitor{
-		factory: f,
-		address: addr,
-		srv:     &http.Server{Addr: addr},
-		code:    code,
-		version: version,
-		configs: make(map[string]*Config),
+		factory:       f,
+		serverAddress: serverAddress,
+		address:       webAddr,
+		srv:           &http.Server{Addr: webAddr},
+		code:          code,
+		version:       version,
+		configs:       make(map[string]*Config),
 	}
 }
 
@@ -78,6 +99,7 @@ func (m *Monitor) Close() error {
 func (m *Monitor) Start(webDir string) {
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
 	http.HandleFunc("/conn/getAll", bundle(m.getAllNode))
+	http.HandleFunc("/conn/getServerInfo", bundle(m.getServerInfo))
 	http.HandleFunc("/conn/getNode", bundle(m.getNode))
 	http.HandleFunc("/conn/setNodeConfig", bundle(m.setNodeConfig))
 	http.HandleFunc("/conn/getNodeConfig", bundle(m.getNodeConfig))
@@ -85,7 +107,11 @@ func (m *Monitor) Start(webDir string) {
 	http.HandleFunc("/conn/removeClientConnection", bundle(m.RemoveClientConnection))
 	http.HandleFunc("/conn/editClientConnection", bundle(m.EditClientConnection))
 	http.HandleFunc("/conn/getClientConnection", bundle(m.GetClientConnection))
+	http.HandleFunc("/login", bundle(m.Login))
+	http.HandleFunc("/checkLogin", bundle(m.checkLogin))
+	http.HandleFunc("/updatePass", bundle(m.UpdatePass))
 	http.HandleFunc("/node", bundle(requestNode))
+	http.HandleFunc("/term", m.handleNodeTerm)
 	go func() {
 		if err := m.srv.ListenAndServe(); err != nil {
 			log.Printf("http server: ListenAndServe() error: %s", err)
@@ -116,6 +142,10 @@ func requestNode(w http.ResponseWriter, r *http.Request) (result []byte, err err
 		return
 	}
 	addr := r.FormValue("addr")
+	if len(addr) == 0 {
+		err = errors.New("Node Address is Empty")
+		return
+	}
 	res, err := http.PostForm(addr, r.PostForm)
 	if err != nil {
 		if res != nil {
@@ -126,6 +156,7 @@ func requestNode(w http.ResponseWriter, r *http.Request) (result []byte, err err
 	defer res.Body.Close()
 	result, err = ioutil.ReadAll(res.Body)
 	if err != nil {
+		log.Debugf("node error: %s", err.Error())
 		return result, err, SERVER_ERROR
 	}
 	return
@@ -157,6 +188,9 @@ func (m *Monitor) getAllNode(w http.ResponseWriter, r *http.Request) (result []b
 }
 
 func (m *Monitor) getNode(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
 	if r.Method != "POST" {
 		code = BAD_REQUEST
 		err = errors.New("please use post method")
@@ -215,13 +249,20 @@ type Config struct {
 }
 
 func (m *Monitor) setNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
 	if r.Method != "POST" {
 		code = BAD_REQUEST
 		err = errors.New("please use post method")
 		return
 	}
 	key := r.FormValue("key")
-	data := []byte(r.FormValue("data"))
+	if len(key) != 66 {
+		err = errors.New("Key at least 66 characters")
+		return
+	}
+ 	data := []byte(r.FormValue("data"))
 	var config *Config
 	err = json.Unmarshal(data, &config)
 	if err != nil {
@@ -235,12 +276,19 @@ func (m *Monitor) setNodeConfig(w http.ResponseWriter, r *http.Request) (result 
 }
 
 func (m *Monitor) getNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
 	if r.Method != "POST" {
 		code = BAD_REQUEST
 		err = errors.New("please use post method")
 		return
 	}
 	key := r.FormValue("key")
+	if len(key) != 66 {
+		err = errors.New("Key at least 66 characters")
+		return
+	}
 	m.configsMutex.Lock()
 	defer m.configsMutex.Unlock()
 	result, err = json.Marshal(m.configs[key])
@@ -273,6 +321,9 @@ var socketClient = filepath.Join(file.UserHome(), ".skywire", "manager", "socket
 var clientLimit = 5
 
 func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
 	data := r.FormValue("data")
 	path := r.FormValue("client")
 	config := ClientConnection{}
@@ -286,6 +337,12 @@ func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (
 		break
 	case "socket":
 		path = socketClient
+	default:
+		path = ""
+	}
+	if len(path) == 0 {
+		err = errors.New("The correct type cannot be found")
+		return
 	}
 	cfs, err := readConfig(path)
 	if err != nil && !os.IsNotExist(err) {
@@ -316,6 +373,9 @@ func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (
 }
 
 func (m *Monitor) GetClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
 	client := r.FormValue("client")
 	switch client {
 	case "ssh":
@@ -323,6 +383,12 @@ func (m *Monitor) GetClientConnection(w http.ResponseWriter, r *http.Request) (r
 		break
 	case "socket":
 		client = socketClient
+	default:
+		client = ""
+	}
+	if len(client) == 0 {
+		err = errors.New("No connection found")
+		return
 	}
 	cf, err := readConfig(client)
 	result, err = json.Marshal(cf)
@@ -330,12 +396,19 @@ func (m *Monitor) GetClientConnection(w http.ResponseWriter, r *http.Request) (r
 }
 
 func (m *Monitor) RemoveClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
 	path := r.FormValue("client")
 	index, err := strconv.Atoi(r.FormValue("index"))
 	if err != nil {
 		return
 	}
 	path = getFilePath(path)
+	if len(path) == 0 {
+		err = errors.New("There is no path to this type")
+		return
+	}
 	cfs, err := readConfig(path)
 	if err != nil && !os.IsNotExist(err) {
 		return
@@ -350,6 +423,9 @@ func (m *Monitor) RemoveClientConnection(w http.ResponseWriter, r *http.Request)
 }
 
 func (m *Monitor) EditClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
 	path := r.FormValue("client")
 	label := r.FormValue("label")
 	index, err := strconv.Atoi(r.FormValue("index"))
@@ -357,6 +433,10 @@ func (m *Monitor) EditClientConnection(w http.ResponseWriter, r *http.Request) (
 		return
 	}
 	path = getFilePath(path)
+	if len(path) == 0 {
+		err = errors.New("There is no path to this type")
+		return
+	}
 	cfs, err := readConfig(path)
 	if err != nil && !os.IsNotExist(err) {
 		return
@@ -403,6 +483,208 @@ func getFilePath(client string) string {
 		break
 	case "socket":
 		client = socketClient
+	default:
+		client = ""
 	}
+
 	return client
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+func (m *Monitor) handleNodeTerm(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query()["token"][0]
+	if len(token) == 0 {
+		http.Error(w, "Token is Empty", http.StatusBadRequest)
+		return
+	}
+	if !verifyWs(w, r, token) {
+		return
+	}
+	url := r.URL.Query()["url"][0]
+	if len(url) == 0 {
+		http.Error(w, "Url is Empty", http.StatusBadRequest)
+		return
+	}
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		return true
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Errorf("ws error: %s", err.Error())
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		return
+	}
+	c, _, err := websocket.DefaultDialer.Dial(string(url), nil)
+	if err != nil {
+		log.Errorf("node connection error: %s", err.Error())
+		conn.WriteMessage(websocket.BinaryMessage, []byte(fmt.Sprintf("node connection error: %s", err.Error())))
+		return
+	}
+	go func() {
+		defer func() {
+			conn.Close()
+			c.Close()
+		}()
+		for {
+			messageType, p, err := c.ReadMessage()
+			if err != nil {
+				return
+			}
+			conn.WriteMessage(messageType, p)
+		}
+	}()
+	go func() {
+		defer func() {
+			conn.Close()
+			c.Close()
+		}()
+		for {
+			messageType, p, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			c.WriteMessage(messageType, p)
+		}
+	}()
+}
+
+var userPath = filepath.Join(file.UserHome(), ".skywire", "manager", "user.json")
+
+func (m *Monitor) checkLogin(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		result = []byte("false")
+		return
+	}
+	sess, _ := globalSessions.SessionStart(w, r)
+	defer sess.SessionRelease(w)
+	result = []byte(sess.SessionID())
+	return
+}
+
+func (m *Monitor) Login(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	sess, _ := globalSessions.SessionStart(w, r)
+	defer sess.SessionRelease(w)
+	pass := r.FormValue("pass")
+	if len(pass) < 4 || len(pass) > 20 {
+		result = []byte("false")
+		return
+	}
+	err = checkPass(pass)
+	if err != nil {
+		result = []byte("false")
+		return
+	}
+	err = sess.Set("user", sess.SessionID())
+	if err != nil {
+		return
+	}
+	err = sess.Set("pass", getBcrypt(sess.SessionID()))
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+}
+func (m *Monitor) UpdatePass(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r) {
+		return
+	}
+	oldPass := r.FormValue("oldPass")
+	newPass := r.FormValue("newPass")
+	if len(oldPass) < 4 || len(oldPass) > 20 {
+		result = []byte("false")
+		return
+	}
+	if len(newPass) < 4 || len(newPass) > 20 {
+		result = []byte("false")
+		return
+	}
+	err = checkPass(oldPass)
+	if err != nil {
+		return
+	}
+	data, err := json.Marshal(&User{Pass: getBcrypt(newPass)})
+	if err != nil {
+		return
+	}
+	err = WriteConfig(data, userPath)
+	if err != nil {
+		return
+	}
+	globalSessions.SessionDestroy(w, r)
+	result = []byte("true")
+	return
+}
+
+func verifyWs(w http.ResponseWriter, r *http.Request, token string) bool {
+	sess, _ := globalSessions.GetSessionStore(token)
+	defer sess.SessionRelease(w)
+	pass := sess.Get("user")
+	if pass == nil {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	hash := sess.Get("pass")
+	if pass == nil {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	hashStr, ok := hash.(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	passStr, ok := pass.(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	return matchPassword(hashStr, passStr)
+}
+
+func verifyLogin(w http.ResponseWriter, r *http.Request) bool {
+	sess, _ := globalSessions.SessionStart(w, r)
+	defer sess.SessionRelease(w)
+	pass := sess.Get("user")
+	if pass == nil {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	hash := sess.Get("pass")
+	if pass == nil {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	hashStr, ok := hash.(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	passStr, ok := pass.(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	return matchPassword(hashStr, passStr)
+}
+
+func (m *Monitor) getServerInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	sc := m.factory.GetDefaultSeedConfig()
+	if sc == nil {
+		return
+	}
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		return
+	}
+	_, port, err := net.SplitHostPort(m.serverAddress)
+	if err != nil {
+		return
+	}
+	result = []byte(fmt.Sprintf("%s:%s-%s", host, port, sc.PublicKey))
+	return
 }

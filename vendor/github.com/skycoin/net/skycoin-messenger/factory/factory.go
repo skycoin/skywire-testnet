@@ -8,7 +8,6 @@ import (
 	"github.com/skycoin/net/factory"
 	"github.com/skycoin/skycoin/src/cipher"
 	"io/ioutil"
-	"os"
 	"sync"
 	"time"
 )
@@ -16,6 +15,7 @@ import (
 type MessengerFactory struct {
 	factory             factory.Factory
 	udp                 *factory.UDPFactory
+	udpMutex            sync.Mutex
 	regConnections      map[cipher.PubKey]*Connection
 	regConnectionsMutex sync.RWMutex
 
@@ -25,6 +25,12 @@ type MessengerFactory struct {
 	// will deliver the services data to server if true
 	Proxy bool
 	serviceDiscovery
+
+	defaultSeedConfig *SeedConfig
+
+	Parent *MessengerFactory
+	// on accepted callback
+	OnAcceptedUDPCallback func(connection *Connection)
 
 	fieldsMutex sync.RWMutex
 }
@@ -61,15 +67,18 @@ func (f *MessengerFactory) acceptedUDPCallback(connection *factory.Connection) {
 		conn = newUDPServerConnection(connection, f)
 	}
 	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "messenger"))
-	defer func() {
-		if e := recover(); e != nil {
-			conn.GetContextLogger().Errorf("acceptedUDPCallback recover err %v", e)
-		}
-		if err != nil {
-			conn.GetContextLogger().Errorf("acceptedUDPCallback err %v", err)
-		}
-		conn.Close()
-	}()
+	//defer func() {
+	//	if e := recover(); e != nil {
+	//		conn.GetContextLogger().Errorf("acceptedUDPCallback recover err %v", e)
+	//	}
+	//	if err != nil {
+	//		conn.GetContextLogger().Errorf("acceptedUDPCallback err %v", err)
+	//	}
+	//	conn.Close()
+	//}()
+	if f.OnAcceptedUDPCallback != nil {
+		f.OnAcceptedUDPCallback(conn)
+	}
 	err = f.callbackLoop(conn)
 	if err == ErrDetach {
 		err = nil
@@ -204,11 +213,60 @@ func (f *MessengerFactory) unregister(key cipher.PubKey, connection *Connection)
 	}
 }
 
-func (f *MessengerFactory) Connect(address string) (conn *Connection, err error) {
+func (f *MessengerFactory) Connect(address string) (err error) {
 	return f.ConnectWithConfig(address, nil)
 }
 
-func (f *MessengerFactory) ConnectWithConfig(address string, config *ConnConfig) (conn *Connection, err error) {
+func (f *MessengerFactory) loadSeedConfig(config *ConnConfig) (key cipher.PubKey, secKey cipher.SecKey, err error) {
+	var sc *SeedConfig
+	if config.SeedConfig != nil {
+		sc = config.SeedConfig
+		err = sc.parse()
+		if err != nil {
+			return
+		}
+	} else if len(config.SeedConfigPath) > 0 {
+		sc, err = ReadOrCreateSeedConfig(config.SeedConfigPath)
+	} else {
+		sc = f.GetDefaultSeedConfig()
+
+	}
+	if sc == nil {
+		err = fmt.Errorf("failed to load seed config %#v", config)
+		return
+	}
+	key = sc.publicKey
+	secKey = sc.secKey
+	return
+}
+
+func (f *MessengerFactory) SetDefaultSeedConfigPath(path string) error {
+	sc, err := ReadOrCreateSeedConfig(path)
+	if err != nil {
+		return err
+	}
+	f.fieldsMutex.Lock()
+	f.defaultSeedConfig = sc
+	f.fieldsMutex.Unlock()
+	return nil
+}
+
+func (f *MessengerFactory) SetDefaultSeedConfig(sc *SeedConfig) error {
+	f.fieldsMutex.Lock()
+	f.defaultSeedConfig = sc
+	f.fieldsMutex.Unlock()
+	return nil
+}
+
+func (f *MessengerFactory) GetDefaultSeedConfig() (sc *SeedConfig) {
+	f.fieldsMutex.RLock()
+	sc = f.defaultSeedConfig
+	f.fieldsMutex.RUnlock()
+	return
+}
+
+func (f *MessengerFactory) ConnectWithConfig(address string, config *ConnConfig) (err error) {
+	var conn *Connection
 	defer func() {
 		if err != nil && conn != nil {
 			conn.Close()
@@ -228,99 +286,73 @@ func (f *MessengerFactory) ConnectWithConfig(address string, config *ConnConfig)
 				f.ConnectWithConfig(address, config)
 			}()
 		}
-		return nil, err
+		return err
 	}
 	conn = newClientConnection(c, f)
 	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "messenger"))
 	if config != nil {
+		conn.onConnected = config.OnConnected
+		conn.onDisconnected = config.OnDisconnected
+		conn.findServiceNodesByKeysCallback = config.FindServiceNodesByKeysCallback
+		conn.findServiceNodesByAttributesCallback = config.FindServiceNodesByAttributesCallback
+		conn.appConnectionInitCallback = config.AppConnectionInitCallback
+		if config.Reconnect {
+			conn.reconnect = func() {
+				time.Sleep(config.ReconnectWait)
+				f.ConnectWithConfig(address, config)
+			}
+		}
 		if len(config.Context) > 0 {
 			for k, v := range config.Context {
 				conn.StoreContext(k, v)
 			}
 		}
-		var sc *SeedConfig
-		if config.SeedConfig != nil {
-			sc = config.SeedConfig
-		} else if len(config.SeedConfigPath) > 0 {
-			sc, err = ReadSeedConfig(config.SeedConfigPath)
-			if err != nil {
-				if os.IsNotExist(err) {
-					sc = NewSeedConfig()
-					err = WriteSeedConfig(sc, config.SeedConfigPath)
-					if err != nil {
-						err = fmt.Errorf("failed to write seed config  %v", err)
-						return
-					}
-				} else {
-					err = fmt.Errorf("failed to read seed config %v", err)
-					return
-				}
+		var key cipher.PubKey
+		var secKey cipher.SecKey
+		key, secKey, err = f.loadSeedConfig(config)
+		if err == nil {
+			conn.SetSecKey(secKey)
+			if config.TargetKey != EMPATY_PUBLIC_KEY {
+				err = conn.RegWithKeys(key, config.TargetKey, config.Context)
+			} else {
+				err = conn.RegWithKey(key, config.Context)
 			}
-		}
-		if sc != nil {
-			func() {
-				defer func() {
-					if e := recover(); e != nil {
-						err = errors.New("invalid seed config file")
-					}
-				}()
-				var k cipher.PubKey
-				k, err = cipher.PubKeyFromHex(sc.PublicKey)
-				if err != nil {
-					return
-				}
-				var sk cipher.SecKey
-				sk, err = cipher.SecKeyFromHex(sc.SecKey)
-				if err != nil {
-					return
-				}
-				conn.SetSecKey(sk)
-				err = conn.RegWithKey(k, config.Context)
-			}()
 		} else {
+			conn.GetContextLogger().Error(err)
 			err = conn.Reg()
 		}
 	} else {
 		err = conn.Reg()
 	}
 
-	if config != nil {
-		conn.findServiceNodesByKeysCallback = config.FindServiceNodesByKeysCallback
-		conn.findServiceNodesByAttributesCallback = config.FindServiceNodesByAttributesCallback
-		conn.appConnectionInitCallback = config.AppConnectionInitCallback
-		if config.OnConnected != nil {
-			config.OnConnected(conn)
-		}
-		if config.OnDisconnected != nil {
-			go func() {
-				conn.WaitForDisconnected()
-				config.OnDisconnected(conn)
-			}()
-		}
-		if config.Reconnect {
-			go func() {
-				conn.WaitForDisconnected()
-				time.Sleep(config.ReconnectWait)
-				f.ConnectWithConfig(address, config)
-			}()
-		}
+	if err != nil {
+		return
 	}
+	err = conn.WaitForKey()
 	return
 }
 
-func (f *MessengerFactory) connectUDPWithConfig(address string, config *ConnConfig) (conn *Connection, err error) {
+func (f *MessengerFactory) listenForUDP() (err error) {
 	f.fieldsMutex.Lock()
 	if f.udp == nil {
 		ff := factory.NewUDPFactory()
-		if config != nil && config.Creator != nil {
-			ff.AcceptedCallback = config.Creator.acceptedUDPCallback
-		}
+		ff.AcceptedCallback = f.acceptedUDPCallback
 		err = ff.Listen(":0")
 		if err != nil {
 			f.fieldsMutex.Unlock()
 			return
 		}
 		f.udp = ff
+	}
+	f.fieldsMutex.Unlock()
+	return
+}
+
+func (f *MessengerFactory) connectUDPWithConfig(address string, config *ConnConfig) (connection *Connection, err error) {
+	f.fieldsMutex.Lock()
+	if f.udp == nil {
+		err = errors.New("udp is nil")
+		return
 	}
 	f.fieldsMutex.Unlock()
 	c, err := f.udp.ConnectAfterListen(address)
@@ -330,32 +362,35 @@ func (f *MessengerFactory) connectUDPWithConfig(address string, config *ConnConf
 	if c == nil {
 		panic("c == nil")
 	}
-	conn = newUDPClientConnection(c, f)
-	if config != nil && config.Creator != nil {
-		conn.factory = config.Creator
-	}
-	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "transport"))
+	connection = newUDPClientConnection(c, f)
+	connection.SetContextLogger(connection.GetContextLogger().WithField("app", "transport"))
 	if config != nil {
-		if config.OnConnected != nil {
-			config.OnConnected(conn)
+		if config.Creator != nil {
+			connection.factory = config.Creator
+		}
+		if config.UseCrypto == RegWithKeyAndEncryptionVersion {
+			var key cipher.PubKey
+			var secKey cipher.SecKey
+			key, secKey, err = f.loadSeedConfig(config)
+			if err == nil {
+				connection.SetSecKey(secKey)
+				if config.TargetKey != EMPATY_PUBLIC_KEY {
+					err = connection.RegWithKeys(key, config.TargetKey, config.Context)
+				} else {
+					err = connection.RegWithKey(key, config.Context)
+				}
+				err = connection.WaitForKey()
+			}
 		}
 	}
 	return
 }
 
-func (f *MessengerFactory) acceptUDPWithConfig(address string, config *ConnConfig) (conn *Connection, err error) {
+func (f *MessengerFactory) acceptUDPWithConfig(address string, config *ConnConfig) (connection *Connection, err error) {
 	f.fieldsMutex.Lock()
 	if f.udp == nil {
-		ff := factory.NewUDPFactory()
-		if config != nil && config.Creator != nil {
-			ff.AcceptedCallback = config.Creator.acceptedUDPCallback
-		}
-		err = ff.Listen(":0")
-		if err != nil {
-			f.fieldsMutex.Unlock()
-			return
-		}
-		f.udp = ff
+		err = errors.New("udp is nil")
+		return
 	}
 	f.fieldsMutex.Unlock()
 	c, err := f.udp.ConnectAfterListen(address)
@@ -365,14 +400,9 @@ func (f *MessengerFactory) acceptUDPWithConfig(address string, config *ConnConfi
 	if c == nil {
 		return nil, nil
 	}
-	conn = newUDPServerConnection(c, f)
+	connection = newUDPServerConnection(c, f)
 	go f.udp.AcceptedCallback(c)
-	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "transport"))
-	if config != nil {
-		if config.OnConnected != nil {
-			config.OnConnected(conn)
-		}
-	}
+	connection.SetContextLogger(connection.GetContextLogger().WithField("app", "transport"))
 	return
 }
 
@@ -402,11 +432,18 @@ func (f *MessengerFactory) ForEachConn(fn func(connection *Connection)) {
 		if !ok {
 			return
 		}
+		if !c.IsKeySet() {
+			c.GetKey()
+		}
 		fn(c)
 	})
 }
 
-func (f *MessengerFactory) discoveryRegister(conn *Connection, ns *NodeServices) {
+func (f *MessengerFactory) discoveryRegister(conn *Connection, ns *NodeServices) (err error) {
+	if ns != nil && !checkNodeServices(ns) {
+		err = fmt.Errorf("invalid NodeServices %#v", ns)
+		return
+	}
 	f.serviceDiscovery.register(conn, ns)
 	if f.Proxy {
 		nodeServices := f.pack()
@@ -414,6 +451,7 @@ func (f *MessengerFactory) discoveryRegister(conn *Connection, ns *NodeServices)
 			connection.UpdateServices(nodeServices)
 		})
 	}
+	return
 }
 
 func (f *MessengerFactory) discoveryUnregister(conn *Connection) {

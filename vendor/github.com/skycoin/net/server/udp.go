@@ -25,10 +25,10 @@ func NewServerUDPConn(c *net.UDPConn) *ServerUDPConn {
 
 func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *conn.UDPConn) (err error) {
 	defer func() {
-		if e := recover(); e != nil {
-			c.GetContextLogger().Debug(e)
-			err = fmt.Errorf("readloop panic err:%v", e)
-		}
+		//if e := recover(); e != nil {
+		//	c.GetContextLogger().Debug(e)
+		//	err = fmt.Errorf("readloop panic err:%v", e)
+		//}
 		if err != nil {
 			c.SetStatusToError(err)
 		}
@@ -39,7 +39,7 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 	var at = time.Time{}
 	var nt = time.Time{}
 	for {
-		maxBuf := make([]byte, conn.MAX_UDP_PACKAGE_SIZE)
+		maxBuf := make([]byte, conn.MTU)
 		rt = time.Now()
 		n, addr, err := c.UdpConn.ReadFromUDP(maxBuf)
 		c.GetContextLogger().Debugf("process read udp d %s", time.Now().Sub(rt))
@@ -60,13 +60,13 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 		}
 		c.AddReceivedBytes(n)
 		maxBuf = maxBuf[:n]
+		cc := fn(c.UdpConn, addr)
 		m := maxBuf[msg.PKG_HEADER_SIZE:]
 		checksum := binary.BigEndian.Uint32(maxBuf[msg.PKG_CRC32_BEGIN:])
 		if checksum != crc32.ChecksumIEEE(m) {
 			c.GetContextLogger().Infof("checksum !=")
 			continue
 		}
-		cc := fn(c.UdpConn, addr)
 
 		t := m[msg.MSG_TYPE_BEGIN]
 		switch t {
@@ -104,39 +104,29 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 				m[msg.PING_MSG_TYPE_BEGIN] = msg.TYPE_PONG
 				checksum := crc32.ChecksumIEEE(m)
 				binary.BigEndian.PutUint32(maxBuf[msg.PKG_CRC32_BEGIN:], checksum)
-				err = cc.WriteBytes(maxBuf)
+				err = cc.WriteExt(maxBuf)
 				if err != nil {
 					return
 				}
 				cc.GetContextLogger().Debugf("pong")
 			}()
-		case msg.TYPE_NORMAL:
+		case msg.TYPE_NORMAL, msg.TYPE_FEC, msg.TYPE_REQ, msg.TYPE_RESP:
 			nt = time.Now()
 			func() {
 				var err error
-				defer func() {
-					if e := recover(); e != nil {
-						cc.GetContextLogger().Debug(e)
-						err = fmt.Errorf("readloop panic err:%v", e)
-					}
-					if err != nil {
-						cc.SetStatusToError(err)
-						cc.Close()
-					}
-				}()
-				seq := binary.BigEndian.Uint32(m[msg.MSG_SEQ_BEGIN:msg.MSG_SEQ_END])
-
-				ok, ms := cc.Push(seq, m[msg.MSG_HEADER_END:])
-				err = cc.Ack(seq)
+				//defer func() {
+				//	if e := recover(); e != nil {
+				//		cc.GetContextLogger().Debug(e)
+				//		err = fmt.Errorf("readloop panic err:%v", e)
+				//	}
+				//	if err != nil {
+				//		cc.SetStatusToError(err)
+				//		cc.Close()
+				//	}
+				//}()
+				err = cc.Process(t, m)
 				if err != nil {
 					return
-				}
-				if ok {
-					for _, m := range ms {
-						cc.GetContextLogger().Debugf("msg in")
-						cc.In <- m
-						cc.GetContextLogger().Debugf("msg out")
-					}
 				}
 			}()
 			c.GetContextLogger().Debugf("process normal d %s", time.Now().Sub(nt))

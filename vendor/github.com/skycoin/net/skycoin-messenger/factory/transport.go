@@ -65,7 +65,13 @@ func NewTransport(creator *MessengerFactory, appConn *Connection, fromNode, toNo
 		factory:       NewMessengerFactory(),
 		conns:         make(map[uint32]net.Conn),
 	}
+	t.factory.Parent = creator
+	t.factory.SetDefaultSeedConfig(creator.GetDefaultSeedConfig())
 	return t
+}
+
+func (t *Transport) SetOnAcceptedUDPCallback(fn func(connection *Connection)) {
+	t.factory.OnAcceptedUDPCallback = fn
 }
 
 func (t *Transport) String() string {
@@ -74,15 +80,21 @@ func (t *Transport) String() string {
 }
 
 // Listen and connect to node manager
-func (t *Transport) ListenAndConnect(address string) (conn *Connection, err error) {
+func (t *Transport) ListenAndConnect(address string, key cipher.PubKey) (conn *Connection, err error) {
+	err = t.factory.listenForUDP()
+	if err != nil {
+		return
+	}
 	conn, err = t.factory.connectUDPWithConfig(address, &ConnConfig{
-		Creator: t.creator,
+		Creator:   t.creator,
+		UseCrypto: RegWithKeyAndEncryptionVersion,
+		TargetKey: key,
 	})
 	return
 }
 
 // Connect to node B
-func (t *Transport) connect(address string) (err error) {
+func (t *Transport) clientSideConnect(address string, sc *SeedConfig, iv []byte) (err error) {
 	t.fieldsMutex.Lock()
 	if t.connAcked {
 		t.fieldsMutex.Unlock()
@@ -90,16 +102,17 @@ func (t *Transport) connect(address string) (err error) {
 	}
 	t.connAcked = true
 	t.fieldsMutex.Unlock()
-	_, err = t.factory.acceptUDPWithConfig(address, &ConnConfig{
-		OnConnected: func(connection *Connection) {
-			//connection.writeOP(OP_APP_CONN_ACK|RESP_PREFIX, &connAck{
-			//	FromApp: t.FromApp,
-			//	App:     t.ToApp,
-			//})
-			connection.writeOP(OP_BUILD_APP_CONN_OK|RESP_PREFIX, &nop{})
-		},
+	conn, err := t.factory.acceptUDPWithConfig(address, &ConnConfig{
 		Creator: t.creator,
 	})
+	if err != nil {
+		return
+	}
+	err = conn.SetCrypto(sc.publicKey, sc.secKey, t.ToNode, iv)
+	if err != nil {
+		return
+	}
+	err = conn.writeOP(OP_BUILD_APP_CONN_OK|RESP_PREFIX, &nop{})
 	return
 }
 
@@ -110,19 +123,24 @@ func (t *Transport) connAck() {
 }
 
 // Connect to node A and server app
-func (t *Transport) Connect(address, appAddress string) (err error) {
+func (t *Transport) serverSiceConnect(address, appAddress string, sc *SeedConfig, iv []byte) (err error) {
 	conn, err := t.factory.connectUDPWithConfig(address, &ConnConfig{
-		OnConnected: func(connection *Connection) {
-			connection.writeOP(OP_BUILD_APP_CONN_OK,
-				&buildConnResp{
-					FromNode: t.FromNode,
-					Node:     t.ToNode,
-					FromApp:  t.FromApp,
-					App:      t.ToApp,
-				})
-		},
 		Creator: t.creator,
 	})
+	if err != nil {
+		return
+	}
+	err = conn.SetCrypto(sc.publicKey, sc.secKey, t.FromNode, iv)
+	if err != nil {
+		return
+	}
+	err = conn.writeOP(OP_BUILD_APP_CONN_OK,
+		&buildConnResp{
+			FromNode: t.FromNode,
+			Node:     t.ToNode,
+			FromApp:  t.FromApp,
+			App:      t.ToApp,
+		})
 	if err != nil {
 		return
 	}
@@ -177,10 +195,10 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 				appConn.Close()
 				continue
 			}
-			body := m[PKG_HEADER_END:]
-			if len(body) < 1 {
+			if len(m) <= PKG_HEADER_END {
 				continue
 			}
+			body := m[PKG_HEADER_END:]
 			err = writeAll(appConn, body)
 			if err != nil {
 				conn.GetContextLogger().Debugf("app conn write err %v", err)
@@ -348,6 +366,9 @@ func (t *Transport) Close() {
 		return
 	}
 
+	if t.timeoutTimer != nil {
+		t.timeoutTimer.Stop()
+	}
 	t.connsMutex.RLock()
 	for _, v := range t.conns {
 		if v == nil {
@@ -407,9 +428,7 @@ func (t *Transport) GetServingPort() int {
 func (t *Transport) SetupTimeout() {
 	t.fieldsMutex.Lock()
 	if t.timeoutTimer != nil {
-		if !t.timeoutTimer.Stop() {
-			<-t.timeoutTimer.C
-		}
+		t.timeoutTimer.Stop()
 	}
 	t.timeoutTimer = time.AfterFunc(30*time.Second, func() {
 		t.appConnHolder.PutMessage(PriorityMsg{
@@ -425,9 +444,7 @@ func (t *Transport) SetupTimeout() {
 func (t *Transport) StopTimeout() {
 	t.fieldsMutex.Lock()
 	if t.timeoutTimer != nil {
-		if !t.timeoutTimer.Stop() {
-			<-t.timeoutTimer.C
-		}
+		t.timeoutTimer.Stop()
 	}
 	t.timeoutTimer = nil
 	t.fieldsMutex.Unlock()

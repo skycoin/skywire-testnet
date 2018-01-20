@@ -17,7 +17,7 @@ const (
 )
 
 type TCPConn struct {
-	ConnCommonFields
+	*ConnCommonFields
 	*PendingMap
 	TcpConn net.Conn
 }
@@ -34,7 +34,7 @@ func (c *TCPConn) ReadLoop() (err error) {
 		c.Close()
 	}()
 	header := make([]byte, msg.MSG_HEADER_SIZE)
-	reader := bufio.NewReader(c.TcpConn)
+	reader := bufio.NewReader(NewCryptoReader(c.TcpConn, c))
 
 	for {
 		t, err := reader.Peek(msg.MSG_TYPE_SIZE)
@@ -55,6 +55,24 @@ func (c *TCPConn) ReadLoop() (err error) {
 			n := msg.PING_MSG_HEADER_END
 			reader.Discard(n)
 			c.AddReceivedBytes(n)
+		case msg.TYPE_REQ, msg.TYPE_RESP:
+			err = c.ReadBytes(reader, header, msg.MSG_HEADER_SIZE)
+			if err != nil {
+				return err
+			}
+
+			m := msg.NewByHeader(header)
+			err = c.ReadBytes(reader, m.Body, int(m.Len))
+			if err != nil {
+				return err
+			}
+			if c.DirectlyHistoryLen() > 0 {
+				seq := c.RemoveDirectlyHistory()
+				c.DelMsg(seq)
+				c.UpdateLastAck(seq)
+			}
+
+			c.In <- m.Body
 		case msg.TYPE_NORMAL:
 			err = c.ReadBytes(reader, header, msg.MSG_HEADER_SIZE)
 			if err != nil {
@@ -122,8 +140,22 @@ func (c *TCPConn) Write(bytes []byte) error {
 	return c.WriteBytes(m.Bytes())
 }
 
-func (c *TCPConn) WriteBytes(bytes []byte) error {
-	//c.GetContextLogger().Debugf("write %x", bytes)
+func (c *TCPConn) WriteReq(bytes []byte) error {
+	s := atomic.AddUint32(&c.seq, 1)
+	m := msg.New(msg.TYPE_REQ, s, bytes)
+	c.AddMsg(s, m)
+	c.AddDirectlyHistory(s)
+	return c.writeDirectly(m.Bytes())
+}
+
+func (c *TCPConn) WriteResp(bytes []byte) error {
+	s := atomic.AddUint32(&c.seq, 1)
+	m := msg.New(msg.TYPE_RESP, s, bytes)
+	c.AddMsg(s, m)
+	return c.WriteBytes(m.Bytes())
+}
+
+func (c *TCPConn) writeDirectly(bytes []byte) (err error) {
 	c.WriteMutex.Lock()
 	defer c.WriteMutex.Unlock()
 	for index := 0; index != len(bytes); {
@@ -134,7 +166,19 @@ func (c *TCPConn) WriteBytes(bytes []byte) error {
 		index += n
 		c.AddSentBytes(n)
 	}
-	return nil
+	return
+}
+
+func (c *TCPConn) WriteBytes(bytes []byte) (err error) {
+	crypto := c.GetCrypto()
+	if crypto != nil {
+		err = crypto.Encrypt(bytes)
+		if err != nil {
+			return
+		}
+	}
+	err = c.writeDirectly(bytes)
+	return
 }
 
 func (c *TCPConn) Ack(seq uint32) error {

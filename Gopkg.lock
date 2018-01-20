@@ -8,10 +8,40 @@
   revision = "e3b1f968fc6397b51d963fee8ec8711a47bc0ce8"
 
 [[projects]]
+  name = "github.com/astaxie/beego"
+  packages = ["session","utils"]
+  revision = "bf5c5626ab429e66d88602e1ab1ab5fbf4629a01"
+  version = "v1.9.2"
+
+[[projects]]
   branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
   revision = "316fb6d3f031ae8f4d457c6c5186b9e3ded70435"
+
+[[projects]]
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
+  version = "v1.2.0"
+
+[[projects]]
+  name = "github.com/klauspost/cpuid"
+  packages = ["."]
+  revision = "ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da"
+  version = "v1.1"
+
+[[projects]]
+  name = "github.com/klauspost/reedsolomon"
+  packages = ["."]
+  revision = "6bb6130ff6a76a904c1841707d65603aec9cc288"
+  version = "v1.6"
+
+[[projects]]
+  name = "github.com/kr/pty"
+  packages = ["."]
+  revision = "282ce0e5322c82529687d609ee670fac7c7d917c"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/op/go-logging"
@@ -47,7 +77,7 @@
   branch = "master"
   name = "github.com/skycoin/net"
   packages = ["client","conn","factory","msg","server","skycoin-messenger/factory","skycoin-messenger/monitor"]
-  revision = "afefeb5eb5323036d4da5cfab5805c9e5e2ac288"
+  revision = "ac22f49dbff531608caba4a02493d3d146439271"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"
@@ -58,7 +88,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["blowfish","cast5","pbkdf2","salsa20/salsa","ssh/terminal"]
+  packages = ["bcrypt","blowfish","cast5","pbkdf2","salsa20/salsa","ssh/terminal"]
   revision = "edd5e9b0879d13ee6970a50153d85b8fec9f7686"
 
 [[projects]]
@@ -70,6 +100,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "32bdf55f97778236052ef12311474bf12edc4a0658054809a16a206c8b6eea4c"
+  inputs-digest = "5eb8a52451a9122edb36a3f9c056295f59e94679b4ab1d2d143f048d63075b08"
   solver-name = "gps-cdcl"
   solver-version = 1

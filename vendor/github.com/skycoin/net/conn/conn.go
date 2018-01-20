@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"container/list"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -41,6 +42,16 @@ type Connection interface {
 	WriteToChannel(channel int, bytes []byte) (err error)
 
 	WaitForDisconnected()
+
+	WriteReq(bytes []byte) (err error)
+	WriteResp(bytes []byte) (err error)
+
+	SetCrypto(crypto *Crypto)
+	GetCrypto() *Crypto
+
+	AddDirectlyHistory(seq uint32)
+	RemoveDirectlyHistory() (seq uint32)
+	DirectlyHistoryLen() (len int)
 }
 
 type ConnCommonFields struct {
@@ -65,16 +76,25 @@ type ConnCommonFields struct {
 	disconnected chan struct{}
 
 	ctxLogger atomic.Value
+
+	crypto      atomic.Value
+	cryptoMutex sync.Mutex
+	cryptoCond  *sync.Cond
+
+	directlyHistory      *list.List
+	directlyHistoryMutex sync.Mutex
 }
 
-func NewConnCommonFileds() ConnCommonFields {
+func NewConnCommonFileds() *ConnCommonFields {
 	entry := log.WithField("ctxId", atomic.AddUint32(&ctxId, 1))
-	fields := ConnCommonFields{
-		lastReadTime: time.Now().Unix(),
-		In:           make(chan []byte, 128),
-		Out:          make(chan []byte, 1),
-		disconnected: make(chan struct{}),
+	fields := &ConnCommonFields{
+		lastReadTime:    time.Now().Unix(),
+		In:              make(chan []byte, 128),
+		Out:             make(chan []byte, 1),
+		disconnected:    make(chan struct{}),
+		directlyHistory: list.New(),
 	}
+	fields.cryptoCond = sync.NewCond(&fields.cryptoMutex)
 	fields.ctxLogger.Store(entry)
 	return fields
 }
@@ -131,6 +151,8 @@ func (c *ConnCommonFields) Close() {
 	}
 	c.closed = true
 
+	c.cryptoCond.Broadcast()
+
 	close(c.In)
 	close(c.Out)
 	close(c.disconnected)
@@ -180,4 +202,47 @@ func (c *ConnCommonFields) DeletePendingChannel(channel int) {
 
 func (c *ConnCommonFields) WriteToChannel(channel int, bytes []byte) (err error) {
 	panic("not implemented")
+}
+
+func (c *ConnCommonFields) SetCrypto(crypto *Crypto) {
+	c.crypto.Store(crypto)
+	c.cryptoCond.Broadcast()
+}
+
+func (c *ConnCommonFields) GetCrypto() *Crypto {
+	x := c.crypto.Load()
+	if x == nil {
+		return nil
+	}
+	return x.(*Crypto)
+}
+
+func (c *ConnCommonFields) MustGetCrypto() *Crypto {
+	var v interface{}
+	for v = c.crypto.Load(); v == nil; v = c.crypto.Load() {
+		c.cryptoMutex.Lock()
+		c.cryptoCond.Wait()
+		c.cryptoMutex.Unlock()
+	}
+	return v.(*Crypto)
+}
+
+func (c *ConnCommonFields) AddDirectlyHistory(seq uint32) {
+	c.directlyHistoryMutex.Lock()
+	c.directlyHistory.PushBack(seq)
+	c.directlyHistoryMutex.Unlock()
+}
+
+func (c *ConnCommonFields) DirectlyHistoryLen() (len int) {
+	c.directlyHistoryMutex.Lock()
+	len = c.directlyHistory.Len()
+	c.directlyHistoryMutex.Unlock()
+	return
+}
+
+func (c *ConnCommonFields) RemoveDirectlyHistory() (seq uint32) {
+	c.directlyHistoryMutex.Lock()
+	seq = c.directlyHistory.Remove(c.directlyHistory.Front()).(uint32)
+	c.directlyHistoryMutex.Unlock()
+	return
 }

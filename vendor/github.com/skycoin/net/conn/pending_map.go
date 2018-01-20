@@ -2,7 +2,6 @@ package conn
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"math/big"
 	"sync"
 	"time"
@@ -146,7 +145,7 @@ func (m *UDPPendingMap) exists(k uint32) (ok bool) {
 	return
 }
 
-func (m *UDPPendingMap) DelMsgAndGetLossMsgs(k uint32, resend uint32) (ok bool, um *msg.UDPMessage, loss []*msg.UDPMessage) {
+func (m *UDPPendingMap) DelMsgAndGetLossMsgs(k uint32) (ok bool, um *msg.UDPMessage, loss []*msg.UDPMessage) {
 	m.Lock()
 	v, ok := m.Pending[k]
 	if !ok {
@@ -157,132 +156,27 @@ func (m *UDPPendingMap) DelMsgAndGetLossMsgs(k uint32, resend uint32) (ok bool, 
 	um.Acked()
 	delete(m.Pending, k)
 
+	m.seqs.Delete(seq(k))
 	m.seqs.AscendLessThan(seq(k), func(i btree.Item) bool {
 		v, ok := m.Pending[uint32(i.(seq))]
 		if ok {
 			v, ok := v.(*msg.UDPMessage)
 			if ok {
-				if v.AddMiss() >= resend {
-					v.ResetMiss()
+				miss := v.AddMiss()
+				x := miss / QUICK_LOST_THRESH
+				y := miss % QUICK_LOST_THRESH
+				if x > 0 && x < QUICK_LOST_RESEND_COUNT && y == 0 {
 					loss = append(loss, v)
 				}
 			}
 		}
 		return true
 	})
-	m.seqs.Delete(seq(k))
 	m.Unlock()
 
 	m.ackedMessagesMutex.Lock()
 	m.ackedMessages[k] = um
 	m.ackedMessagesMutex.Unlock()
 
-	return
-}
-
-type streamQueue struct {
-	ackedSeq uint32
-	msgs     *btree.BTree
-	mutex    sync.RWMutex
-}
-
-func newStreamQueue() *streamQueue {
-	return &streamQueue{
-		msgs: btree.New(2),
-	}
-}
-
-type packet struct {
-	seq  uint32
-	data []byte
-}
-
-func (a packet) Less(b btree.Item) bool {
-	return a.seq < b.(packet).seq
-}
-
-func (q *streamQueue) Push(k uint32, m []byte) (ok bool, msgs [][]byte) {
-	defer func() {
-		logrus.Debugf("streamQueue push k %d return %t, len %d", k, ok, len(msgs))
-	}()
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
-	if k <= q.ackedSeq {
-		return
-	}
-	if k == q.ackedSeq+1 {
-		ok = true
-		if q.msgs.Len() < 1 {
-			msgs = [][]byte{m}
-			q.ackedSeq = k
-			return
-		}
-		q.push(k, m)
-		msgs = q.pop()
-		return
-	}
-	q.push(k, m)
-	return
-}
-
-func (q *streamQueue) pop() (msgs [][]byte) {
-	for i := q.ackedSeq + 1; ; i++ {
-		min, ok := q.msgs.Min().(packet)
-		if !ok {
-			break
-		}
-		if min.seq == i {
-			msgs = append(msgs, min.data)
-			q.msgs.DeleteMin()
-			q.ackedSeq = i
-		} else {
-			break
-		}
-	}
-	if len(msgs) < 1 {
-		panic("streamQueue pop return 0 msg")
-	}
-	return
-}
-
-func (q *streamQueue) push(k uint32, m []byte) {
-	q.msgs.ReplaceOrInsert(packet{
-		seq:  k,
-		data: m,
-	})
-}
-
-func (q *streamQueue) getAckedSeq() (s uint32) {
-	q.mutex.RLock()
-	s = q.ackedSeq
-	q.mutex.RUnlock()
-	return
-}
-
-func (q *streamQueue) getNextAckSeq() (s uint32) {
-	q.mutex.RLock()
-	s = q.ackedSeq + 1
-	q.mutex.RUnlock()
-	return
-}
-
-func (q *streamQueue) getMissingSeqs(start, end uint32) (seqs []uint32) {
-	q.mutex.RLock()
-	defer q.mutex.RUnlock()
-	e := make(map[uint32]struct{})
-	q.msgs.AscendRange(packet{seq: start}, packet{seq: end}, func(i btree.Item) bool {
-		p, ok := i.(packet)
-		if !ok {
-			return true
-		}
-		e[p.seq] = struct{}{}
-		return true
-	})
-
-	for i := start; i < end; i++ {
-		if _, ok := e[i]; !ok {
-			seqs = append(seqs, i)
-		}
-	}
 	return
 }

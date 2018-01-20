@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"sync"
+	"fmt"
 )
 
 func init() {
@@ -24,6 +25,10 @@ func (offer *offer) UnmarshalJSON(data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	if !checkNodeServices(ss) {
+		err = fmt.Errorf("invalid NodeServices %#v", ss)
+		return
+	}
 	offer.Services = ss
 	return
 }
@@ -42,6 +47,6 @@ func (offer *offer) Execute(f *MessengerFactory, conn *Connection) (r resp, err 
 		}
 		offer.Services.ServiceAddress = net.JoinHostPort(host, port)
 	}
-	f.discoveryRegister(conn, offer.Services)
+	err = f.discoveryRegister(conn, offer.Services)
 	return
 }

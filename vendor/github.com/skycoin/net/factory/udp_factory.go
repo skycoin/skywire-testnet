@@ -66,7 +66,7 @@ func (factory *UDPFactory) createConn(c *net.UDPConn, addr *net.UDPAddr) *conn.U
 
 	udpConn := conn.NewUDPConn(c, addr)
 	udpConn.SetStatusToConnected()
-	connection := &Connection{Connection: udpConn, factory: factory}
+	connection := newConnection(udpConn, factory)
 	factory.udpConnMap[addr.String()] = connection
 	factory.udpConnMapMutex.Unlock()
 
@@ -90,7 +90,7 @@ func (factory *UDPFactory) createConnAfterListen(addr *net.UDPAddr) (*Connection
 	udpConn := conn.NewUDPConn(ln, addr)
 	udpConn.SendPing = true
 	udpConn.SetStatusToConnected()
-	connection := &Connection{Connection: udpConn, factory: factory}
+	connection := newConnection(udpConn, factory)
 	factory.udpConnMap[addr.String()] = connection
 	factory.udpConnMapMutex.Unlock()
 	factory.AddAcceptedConn(connection)
@@ -105,7 +105,7 @@ func (factory *UDPFactory) GC() {
 			return
 		case <-ticker.C:
 			nowUnix := time.Now().Unix()
-			closed := []string{}
+			var closed []string
 			factory.udpConnMapMutex.RLock()
 			for k, udp := range factory.udpConnMap {
 				if nowUnix-udp.GetLastTime() >= conn.UDP_GC_PERIOD {
@@ -137,7 +137,7 @@ func (factory *UDPFactory) Connect(address string) (conn *Connection, err error)
 	}
 	cn := client.NewClientUDPConn(udp, addr)
 	cn.SetStatusToConnected()
-	conn = &Connection{Connection: cn, factory: factory}
+	conn = newConnection(cn, factory)
 	conn.SetContextLogger(conn.GetContextLogger().WithField("type", "udp"))
 	factory.AddConn(conn)
 	return

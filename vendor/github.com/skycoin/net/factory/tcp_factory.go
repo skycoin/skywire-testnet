@@ -54,7 +54,7 @@ func (factory *TCPFactory) Close() error {
 func (factory *TCPFactory) createConn(c *net.TCPConn) *Connection {
 	tcpConn := server.NewServerTCPConn(c)
 	tcpConn.SetStatusToConnected()
-	conn := &Connection{Connection: tcpConn, factory: factory}
+	conn := newConnection(tcpConn, factory)
 	conn.SetContextLogger(conn.GetContextLogger().WithField("type", "tcp"))
 	factory.AddAcceptedConn(conn)
 	go factory.AcceptedCallback(conn)
@@ -68,7 +68,7 @@ func (factory *TCPFactory) Connect(address string) (conn *Connection, err error)
 	}
 	cn := client.NewClientTCPConn(c)
 	cn.SetStatusToConnected()
-	conn = &Connection{Connection: cn, factory: factory}
+	conn = newConnection(cn, factory)
 	conn.SetContextLogger(conn.GetContextLogger().WithField("type", "tcp"))
 	factory.AddConn(conn)
 	return
