@@ -60,7 +60,7 @@ cd $GOPATH/bin
 ## 使用 Skywire 管理页面连接App
 
 ### 连接可用App (当前可用App: Shadowsocks)
-浏览器打开 "http://127.0.0.1:8000",点击已经启动的Node进入Node信息页,找到Shadowsocks Client并点击"Enter the key for node and app"处输入Node Key和App Key,也可以点击"Search services"进行搜索可用APP
+浏览器打开 "http://127.0.0.1:8000" ,点击已经启动的Node进入Node信息页,找到Shadowsocks Client并点击"Enter the key for node and app"处输入Node Key和 App Key,也可以点击"Search services"进行搜索**可用APP**
 
 ### 使用
 默认正常启动后,App会显示**可用端口** (如:9443)
@@ -71,8 +71,7 @@ cd $GOPATH/bin
 打开Firefox浏览器,地址栏输入"https://addons.mozilla.org/zh-CN/firefox/addon/foxyproxy-standard/", 点击"添加到 Firefox"按钮按照提示进行安装
 
 #### 配置 FoxyProxy Standard
-安装完成后,Firefox浏览地址栏输入"about:addons"进入插件页面,找到"FoxyProxy Standard"并点击首选项进入配置页面<br>
-选择"Use Enabled Proxies By Patterns and Priority"启用FoxyProxy<br>
+安装完成后,Firefox浏览地址栏输入"about:addons"进入插件页面,找到"FoxyProxy Standard"并点击首选项进入配置页面<br>选择"Use Enabled Proxies By Patterns and Priority"启用FoxyProxy<br>
 点击"Add"进行添加配置,
 ```
 Proxy Type: SOCKS5
