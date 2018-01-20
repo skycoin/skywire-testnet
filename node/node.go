@@ -178,6 +178,7 @@ type NodeInfo struct {
 type FeedBackItem struct {
 	Key            string `json:"key"`
 	Port           int    `json:"port"`
+	Failed         bool   `json:"failed"`
 	UnreadMessages int    `json:"unread"`
 }
 
@@ -201,15 +202,14 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 			})
 		})
 		feedback := conn.GetAppFeedback()
-		port := 0
-		if feedback != nil  && !feedback.Failed{
-			port = feedback.Port
+		if feedback != nil{
+			afs = append(afs, FeedBackItem{
+				Key:            key.Hex(),
+				Port:           feedback.Port,
+				Failed:         feedback.Failed,
+				UnreadMessages: conn.CheckMessages(),
+			})
 		}
-		afs = append(afs, FeedBackItem{
-			Key:            key.Hex(),
-			Port:           port,
-			UnreadMessages: conn.CheckMessages(),
-		})
 	})
 
 	d := make(map[string]bool)
