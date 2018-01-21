@@ -6,8 +6,11 @@
 Here is our [Blog ](https://blog.skycoin.net/tags/skywire/) about Skywire.
 
 Skywire is still under heavy development. 
+Skywire还在努力开发当中，如果没有太多技术背景，请等待年后发布的版本。
 
-![9461512959241_ pic](https://user-images.githubusercontent.com/1639632/33813339-fdcefb4e-de5d-11e7-867b-06b7d3f79be2.jpg)
+
+
+![2018-01-21 10 44 06](https://user-images.githubusercontent.com/1639632/35190261-1ce870e6-fe98-11e7-8018-05f3c10f699a.png)
 
 ### Requirements
 
@@ -50,3 +53,47 @@ cd $GOPATH/bin
 ```
 Use the browser to open http://127.0.0.1:8000
 
+### Docker
+
+```
+docker build -t skycoin/skywire .
+```
+
+#### Start the manager
+
+```
+docker run -ti --rm \
+  --name=skywire-manager \
+  -p 5998:5998 \
+  -p 8000:8000 \
+  skycoin/skywire
+```
+
+Open [http://localhost:8000](http://localhost:8000).
+
+#### Start a node and connect it to the manager
+
+```
+docker volume create skywire-data
+docker run -ti --rm \
+  --name=skywire-node \
+  -v skywire-data:/root/.skywire \
+  --link skywire-manager \
+  -p 5000:5000 \
+  -p 6001:6001 \
+  skycoin/skywire \
+    node \
+      -connect-manager \
+      -manager-address skywire-manager:5998 \
+      -manager-web skywire-manager:8000 \
+      -address :5000 \
+      -web-port :6001
+```
+
+### Docker Compose
+
+```
+docker-compose up
+```
+
+Open [http://localhost:8000](http://localhost:8000).

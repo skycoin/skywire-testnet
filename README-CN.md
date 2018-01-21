@@ -79,3 +79,9 @@ IP address, DNS name, server name: 127.0.0.1
 Port: 可用端口
 ```
 最后点击"Save"
+
+
+
+#欢迎加入微信群
+
+![2018-01-21 10 56 33](https://user-images.githubusercontent.com/1639632/35190343-ccc1f2ca-fe99-11e7-85c3-a71a0f10d375.png)
