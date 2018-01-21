@@ -262,7 +262,7 @@ func (m *Monitor) setNodeConfig(w http.ResponseWriter, r *http.Request) (result 
 		err = errors.New("Key at least 66 characters")
 		return
 	}
- 	data := []byte(r.FormValue("data"))
+	data := []byte(r.FormValue("data"))
 	var config *Config
 	err = json.Unmarshal(data, &config)
 	if err != nil {
@@ -675,14 +675,17 @@ func verifyLogin(w http.ResponseWriter, r *http.Request) bool {
 func (m *Monitor) getServerInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
 	sc := m.factory.GetDefaultSeedConfig()
 	if sc == nil {
+		err = errors.New("Unable to get configuration")
 		return
 	}
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
+		err = errors.New("Unable to get host")
 		return
 	}
 	_, port, err := net.SplitHostPort(m.serverAddress)
 	if err != nil {
+		err = errors.New("Unable to get port")
 		return
 	}
 	result = []byte(fmt.Sprintf("%s:%s-%s", host, port, sc.PublicKey))
