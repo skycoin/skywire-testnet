@@ -25,9 +25,7 @@ Skywire当前还处于开发阶段,可以浏览我们的[博客](https://blog.sk
 
 <a name="install-skywire"></a>
 
-## 安装 Skywire
-
-### Linux/Mac Unix系统
+## 安装 Skywire (Linux/Mac Unix系统)
 
 ### 打开终端命令行
 ```

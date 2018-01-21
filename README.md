@@ -12,7 +12,7 @@ Skywire还在努力开发当中，如果没有太多技术背景，请等待年�
 
 ![2018-01-21 10 44 06](https://user-images.githubusercontent.com/1639632/35190261-1ce870e6-fe98-11e7-8018-05f3c10f699a.png)
 
-## 目录
+## Table of Contents
 * [Requirements](#requirements)
 * [Install](#install)
 * [Run Skywire](#run-skywire)
