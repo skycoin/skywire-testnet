@@ -6,7 +6,6 @@
 Here is our [Blog ](https://blog.skycoin.net/tags/skywire/) about Skywire.
 
 Skywire is still under heavy development. 
-Skywire还在努力开发当中，如果没有太多技术背景，请等待年后发布的版本。
 
 
 

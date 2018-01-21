@@ -1,7 +1,7 @@
 ![skywire logo](https://user-images.githubusercontent.com/26845312/32426764-3495e3d8-c282-11e7-8fe8-8e60e90cb906.png)
 
 # Skywire
-Skywire当前还处于开发阶段,可以浏览我们的[博客](https://blog.skycoin.net/tags/skywire/)了解更多关于Skywire的消息
+Skywire当前还处于开发阶段，如果没有太多技术背景，请等待年后发布的版本。也可以浏览我们的[博客](https://blog.skycoin.net/tags/skywire/)了解更多关于Skywire的消息
 
 ## 目录
 * [运行环境](#requirements)
