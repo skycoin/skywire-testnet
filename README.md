@@ -75,6 +75,7 @@ docker run -ti --rm \
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
+The default login password for Skywire manager is **1234**.
 
 ### Start a node and connect it to the manager
 
