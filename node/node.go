@@ -109,7 +109,7 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 						}
 					}
 				}()
-
+				n.apps.ResyncToDiscovery(connection)
 				n.onDiscoveries.Store(addr, true)
 			},
 			OnDisconnected: func(connection *factory.Connection) {
@@ -202,7 +202,7 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 			})
 		})
 		feedback := conn.GetAppFeedback()
-		if feedback != nil{
+		if feedback != nil {
 			afs = append(afs, FeedBackItem{
 				Key:            key.Hex(),
 				Port:           feedback.Port,
@@ -257,9 +257,8 @@ func (n *Node) GetApps() (apps []NodeApp) {
 		}
 		for _, v := range ns.Services {
 			apps = append(apps, NodeApp{
-				Key: v.Key.Hex(),
-				Attributes:
-				v.Attributes,
+				Key:        v.Key.Hex(),
+				Attributes: v.Attributes,
 				AllowNodes: v.AllowNodes,
 			})
 		}
