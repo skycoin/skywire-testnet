@@ -5,10 +5,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/net/skycoin-messenger/monitor"
+	"github.com/skycoin/skycoin/src/util/file"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"github.com/skycoin/skycoin/src/util/file"
 )
 
 var (
@@ -37,6 +37,7 @@ func main() {
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
 	f := factory.NewMessengerFactory()
+	defer f.Close()
 	f.SetDefaultSeedConfigPath(seedPath)
 	f.SetLoggerLevel(factory.DebugLevel)
 	err := f.Listen(address)
@@ -47,6 +48,7 @@ func main() {
 	}
 	m := monitor.New(f, address, webPort, code, version)
 	m.Start(webDir)
+	defer m.Close()
 	select {
 	case signal := <-osSignal:
 		if signal == os.Interrupt {
@@ -54,6 +56,5 @@ func main() {
 		} else if signal == os.Kill {
 			log.Debugln("exit by signal Kill")
 		}
-		m.Close()
 	}
 }

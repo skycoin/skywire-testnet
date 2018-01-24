@@ -6,6 +6,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/node"
 	"github.com/skycoin/skywire/node/api"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -47,6 +48,7 @@ func main() {
 	if err != nil {
 		log.Error(err)
 	}
+	defer n.Close()
 	log.Debugf("listen on %s", config.Address)
 	var na *api.NodeApi
 	if config.ConnectManager {
@@ -56,6 +58,7 @@ func main() {
 		}
 		na = api.New(config.WebPort, n, config, osSignal)
 		na.StartSrv()
+		defer na.Close()
 	}
 	select {
 	case signal := <-osSignal:
@@ -63,9 +66,6 @@ func main() {
 			log.Debugln("exit by signal Interrupt")
 		} else if signal == os.Kill {
 			log.Debugln("exit by signal Kill")
-		}
-		if na != nil {
-			na.Close()
 		}
 	}
 }
