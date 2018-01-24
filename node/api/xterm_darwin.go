@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"syscall"
 	"unsafe"
+	log "github.com/sirupsen/logrus"
 )
 
 func xterm(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +60,7 @@ func xterm(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			dataTypeBuf := make([]byte, 1)
+			log.Infof("dataTypeBuf: %v", dataTypeBuf)
 			_, err = reader.Read(dataTypeBuf)
 			if err != nil {
 				conn.WriteMessage(websocket.TextMessage, []byte("Unable to read message type from reader"))

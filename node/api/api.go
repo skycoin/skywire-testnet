@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 	"github.com/gorilla/websocket"
+	"runtime"
 )
 
 type NodeApi struct {
@@ -29,14 +30,6 @@ type NodeApi struct {
 	srv      *http.Server
 
 	apps map[string]*appCxt
-	//sshsCxt      context.Context
-	//sshsCancel   context.CancelFunc
-	//sockssCxt    context.Context
-	//sockssCancel context.CancelFunc
-	//sshcCxt      context.Context
-	//sshcCancel   context.CancelFunc
-	//sockscCxt    context.Context
-	//sockscCancel context.CancelFunc
 	sync.RWMutex
 
 	shell
@@ -179,7 +172,20 @@ func wrap(fn func(w http.ResponseWriter, r *http.Request) (result []byte, err er
 }
 
 func (na *NodeApi) runReboot(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	cmd := exec.Command("reboot")
+	var cmd *exec.Cmd
+	osName := runtime.GOOS
+	switch osName {
+	case "linux":
+		cmd = exec.Command("reboot")
+	case "windows":
+		cmd = exec.Command("cmd", "/C", "shutdown", "-r", "-t", "0")
+	case "darwin":
+		cmd = nil
+	}
+	if cmd == nil {
+		result = []byte("darwin system os unsupported")
+		return
+	}
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -637,33 +643,46 @@ type windowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
-func (na *NodeApi) afterLaunch() error {
+func (na *NodeApi) afterLaunch() (err error) {
 	lc, err := na.node.ReadAutoStartConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
 			lc = na.node.NewAutoStartConfig()
 			err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
 			if err != nil {
-				return err
+				return
 			}
 		} else {
-			log.Errorf("read launch config err:", err)
-			return err
+			err = errors.New("read launch config")
+			return
 		}
 	}
-	if lc.SocksServer {
+	if lc["sockss"] == "true" {
 		err = na.startSockss()
 		if err != nil {
-			return err
+			return
 		}
 	}
-	if lc.SshServer {
+	if lc["sshs"] == "true" {
 		err = na.startSshs(nil)
 		if err != nil {
-			return err
+			return
 		}
 	}
-	return nil
+
+	if lc["socksc"] == "true" {
+		err = na.startSocksc(lc["socksc_conf_nodeKey"], lc["socksc_conf_appKey"])
+		if err != nil {
+			return
+		}
+	}
+	if lc["sshc"] == "true" {
+		err = na.startSshc(lc["sshc_conf_nodeKey"], lc["sshc_conf_appKey"])
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
@@ -686,8 +705,8 @@ func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (r
 
 func (na *NodeApi) setAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	data := r.FormValue("data")
-	var lc = &node.AutoStartConfig{}
-	err = json.Unmarshal([]byte(data), lc)
+	var lc = make(map[string]string)
+	err = json.Unmarshal([]byte(data), &lc)
 	if err != nil {
 		return
 	}

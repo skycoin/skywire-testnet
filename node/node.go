@@ -202,7 +202,7 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 			})
 		})
 		feedback := conn.GetAppFeedback()
-		if feedback != nil{
+		if feedback != nil {
 			afs = append(afs, FeedBackItem{
 				Key:            key.Hex(),
 				Port:           feedback.Port,
@@ -320,22 +320,31 @@ type AutoStartConfig struct {
 	SshServer   bool `json:"ssh_server"`
 }
 
-func (n *Node) NewAutoStartConfig() *AutoStartConfig {
-	sc := &AutoStartConfig{SocksServer: true, SshServer: false}
+func (n *Node) NewAutoStartConfig() map[string]string {
+	sc := make(map[string]string)
+	sc["sshs"] = "false"
+	sc["sshc"] = "false"
+	sc["sshc_conf"] = ""
+	sc["sshc_conf_nodeKey"] = ""
+	sc["sshc_conf_appKey"] = ""
+	sc["sockss"] = "true"
+	sc["socksc"] = "false"
+	sc["socksc_conf"] = ""
+	sc["socksc_conf_nodeKey"] = ""
+	sc["socksc_conf_appKey"] = ""
 	return sc
 }
 
-func (n *Node) ReadAutoStartConfig() (lc *AutoStartConfig, err error) {
+func (n *Node) ReadAutoStartConfig() (lc map[string]string, err error) {
 	fb, err := ioutil.ReadFile(n.launchConfigPath)
 	if err != nil {
 		return
 	}
-	lc = &AutoStartConfig{}
-	err = json.Unmarshal(fb, lc)
+	err = json.Unmarshal(fb, &lc)
 	return
 }
 
-func (n *Node) WriteAutoStartConfig(lc *AutoStartConfig, path string) (err error) {
+func (n *Node) WriteAutoStartConfig(lc map[string]string, path string) (err error) {
 	d, err := json.Marshal(lc)
 	if err != nil {
 		return
