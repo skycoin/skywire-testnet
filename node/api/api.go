@@ -19,9 +19,6 @@ import (
 	"sync"
 	"time"
 	"github.com/gorilla/websocket"
-	"github.com/kr/pty"
-	"syscall"
-	"unsafe"
 )
 
 type NodeApi struct {
@@ -187,10 +184,9 @@ func (na *NodeApi) runReboot(w http.ResponseWriter, r *http.Request) (result []b
 	if err != nil {
 		return
 	}
-	err = cmd.Wait()
-	if err != nil {
-		return
-	}
+	go func() {
+		cmd.Wait()
+	}()
 	result = []byte("true")
 	return
 }
@@ -200,6 +196,15 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
+	err = na.startSshc(toNode, toApp)
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) startSshc(toNode string, toApp string) (err error) {
 	if len(toNode) == 0 || len(toNode) < 66 {
 		err = errors.New("Node Key at least 66 characters.")
 		return
@@ -231,8 +236,6 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 		cmd.Wait()
 		close(isOk)
 	}()
-
-	result = []byte("true")
 	return
 }
 
@@ -241,6 +244,15 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
+	err = na.startSocksc(toNode, toApp)
+	if err != nil {
+		return
+	}
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) startSocksc(toNode string, toApp string) (err error) {
 	if len(toNode) == 0 || len(toNode) < 66 {
 		err = errors.New("Node Key at least 66 characters.")
 		return
@@ -272,8 +284,6 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 		cmd.Wait()
 		close(isOk)
 	}()
-
-	result = []byte("true")
 	return
 }
 
@@ -283,7 +293,10 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 	if len(data) > 1 {
 		arr = strings.Split(data, ",")
 	}
-	na.startSshs(arr)
+	err = na.startSshs(arr)
+	if err != nil {
+		return
+	}
 	result = []byte("true")
 	return
 }
@@ -616,85 +629,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (na *NodeApi) handleXtermsocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Errorf("ws error: %s", err.Error())
-		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
-		return
-	}
-	cmd := exec.Command("/bin/bash")
-	cmd.Env = append(os.Environ(), "TERM=xterm")
-	tty, err := pty.Start(cmd)
-	if err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
-		return
-	}
-	go func() {
-		defer func() {
-			cmd.Process.Kill()
-			cmd.Process.Wait()
-			tty.Close()
-			conn.Close()
-		}()
-		for {
-			buf := make([]byte, 1024)
-			read, err := tty.Read(buf)
-			if err != nil {
-				conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
-				return
-			}
-			conn.WriteMessage(websocket.BinaryMessage, buf[:read])
-		}
-	}()
-
-	go func() {
-		defer func() {
-			cmd.Process.Kill()
-			cmd.Process.Wait()
-			tty.Close()
-			conn.Close()
-		}()
-		for {
-
-			_, reader, err := conn.NextReader()
-			if err != nil {
-				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("System error: %s", err.Error())))
-				return
-			}
-			dataTypeBuf := make([]byte, 1)
-			_, err = reader.Read(dataTypeBuf)
-			if err != nil {
-				conn.WriteMessage(websocket.TextMessage, []byte("Unable to read message type from reader"))
-				return
-			}
-			log.Debugf("data type: %s", dataTypeBuf[0])
-			switch dataTypeBuf[0] {
-			case 0:
-				copied, err := io.Copy(tty, reader)
-				if err != nil {
-					conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error after copying %d bytes", copied)))
-				}
-			case 1:
-				decoder := json.NewDecoder(reader)
-				resizeMessage := windowSize{}
-				err := decoder.Decode(&resizeMessage)
-				if err != nil {
-					conn.WriteMessage(websocket.TextMessage, []byte("Error decoding resize message: "+err.Error()))
-					continue
-				}
-				_, _, errno := syscall.Syscall(
-					syscall.SYS_IOCTL,
-					tty.Fd(),
-					syscall.TIOCSWINSZ,
-					uintptr(unsafe.Pointer(&resizeMessage)),
-				)
-				if errno != 0 {
-					conn.WriteMessage(websocket.TextMessage, []byte("Unable to resize terminal: "+err.Error()))
-				}
-			}
-
-		}
-	}()
+	xterm(w, r)
 }
 
 type windowSize struct {
