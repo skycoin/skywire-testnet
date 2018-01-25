@@ -645,54 +645,54 @@ type windowSize struct {
 
 var autoVersion = 1
 
-func (na *NodeApi) afterLaunch() (error) {
+func (na *NodeApi) afterLaunch() (err error) {
 	lc, err := na.node.ReadAutoStartConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
 			lc = na.node.NewAutoStartConfig()
 			err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
 			if err != nil {
-				return err
+				return
 			}
 		} else {
-			lc, err = na.adaptOldConfig()
-			if err != nil {
-				return err
-			}
+			return
 		}
 	}
 	if lc.Version != autoVersion {
-		lc, err = na.adaptOldConfig()
-		if err != nil {
-			return err
+		switch lc.Version {
+		case 0:
+			lc, err = na.adaptOldConfig()
+			if err != nil {
+				return
+			}
 		}
 	}
 	if lc.Sockss {
 		err = na.startSockss()
 		if err != nil {
-			return err
+			return
 		}
 	}
 	if lc.Sshs {
 		err = na.startSshs(nil)
 		if err != nil {
-			return err
+			return
 		}
 	}
 
 	if lc.Socksc {
 		err = na.startSocksc(lc.SockscConfNodeKey, lc.SockscConfAppKey)
 		if err != nil {
-			return err
+			return
 		}
 	}
 	if lc.Sshc {
 		err = na.startSshc(lc.SshcConfNodeKey, lc.SshcConfAppKey)
 		if err != nil {
-			return err
+			return
 		}
 	}
-	return nil
+	return
 }
 
 func (na *NodeApi) adaptOldConfig() (lc node.AutoStartConfig, err error) {
