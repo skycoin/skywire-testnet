@@ -314,27 +314,35 @@ func (n *Node) GetSearchResult() (result []*SearchResult) {
 	return
 }
 
+
 type AutoStartConfig struct {
+	Sshs              bool   `json:"sshs"`
+	Sshc              bool   `json:"sshc"`
+	SshcConfNodeKey   string `json:"sshc_conf_nodeKey"`
+	SshcConfAppKey    string `json:"sshc_conf_appKey"`
+	Sockss            bool   `json:"sockss"`
+	Socksc            bool   `json:"socksc"`
+	SockscConfNodeKey string `json:"socksc_conf_nodeKey"`
+	SockscConfAppKey  string `json:"socksc_conf_appKey"`
+	Version           int    `json:"version"`
+}
+type OldAutoStartConfig struct {
 	SocksServer bool `json:"socks_server"`
 	SshServer   bool `json:"ssh_server"`
 }
 
-func (n *Node) NewAutoStartConfig() map[string]string {
-	sc := make(map[string]string)
-	sc["sshs"] = "false"
-	sc["sshc"] = "false"
-	sc["sshc_conf"] = ""
-	sc["sshc_conf_nodeKey"] = ""
-	sc["sshc_conf_appKey"] = ""
-	sc["sockss"] = "true"
-	sc["socksc"] = "false"
-	sc["socksc_conf"] = ""
-	sc["socksc_conf_nodeKey"] = ""
-	sc["socksc_conf_appKey"] = ""
+func (n *Node) NewAutoStartConfig() AutoStartConfig {
+	sc := AutoStartConfig{
+		Sshs:    false,
+		Sshc:    false,
+		Sockss:  true,
+		Socksc:  false,
+		Version: 1,
+	}
 	return sc
 }
 
-func (n *Node) ReadAutoStartConfig() (lc map[string]string, err error) {
+func (n *Node) ReadAutoStartConfig() (lc AutoStartConfig, err error) {
 	fb, err := ioutil.ReadFile(n.launchConfigPath)
 	if err != nil {
 		return
@@ -343,7 +351,16 @@ func (n *Node) ReadAutoStartConfig() (lc map[string]string, err error) {
 	return
 }
 
-func (n *Node) WriteAutoStartConfig(lc map[string]string, path string) (err error) {
+func (n *Node) ReadOldAutoStartConfig() (lc OldAutoStartConfig, err error) {
+	fb, err := ioutil.ReadFile(n.launchConfigPath)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(fb, &lc)
+	return
+}
+
+func (n *Node) WriteAutoStartConfig(lc AutoStartConfig, path string) (err error) {
 	d, err := json.Marshal(lc)
 	if err != nil {
 		return

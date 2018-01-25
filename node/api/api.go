@@ -643,44 +643,74 @@ type windowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
-func (na *NodeApi) afterLaunch() (err error) {
+var autoVersion = 1
+
+func (na *NodeApi) afterLaunch() (error) {
 	lc, err := na.node.ReadAutoStartConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
 			lc = na.node.NewAutoStartConfig()
 			err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
 			if err != nil {
-				return
+				return err
 			}
 		} else {
-			err = errors.New("read launch config")
-			return
+			lc, err = na.adaptOldConfig()
+			if err != nil {
+				return err
+			}
 		}
 	}
-	if lc["sockss"] == "true" {
+	if lc.Version != autoVersion {
+		lc, err = na.adaptOldConfig()
+		if err != nil {
+			return err
+		}
+	}
+	if lc.Sockss {
 		err = na.startSockss()
 		if err != nil {
-			return
+			return err
 		}
 	}
-	if lc["sshs"] == "true" {
+	if lc.Sshs {
 		err = na.startSshs(nil)
 		if err != nil {
-			return
+			return err
 		}
 	}
 
-	if lc["socksc"] == "true" {
-		err = na.startSocksc(lc["socksc_conf_nodeKey"], lc["socksc_conf_appKey"])
+	if lc.Socksc {
+		err = na.startSocksc(lc.SockscConfNodeKey, lc.SockscConfAppKey)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	if lc["sshc"] == "true" {
-		err = na.startSshc(lc["sshc_conf_nodeKey"], lc["sshc_conf_appKey"])
+	if lc.Sshc {
+		err = na.startSshc(lc.SshcConfNodeKey, lc.SshcConfAppKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (na *NodeApi) adaptOldConfig() (lc node.AutoStartConfig, err error) {
+	olc, err := na.node.ReadOldAutoStartConfig()
+	if os.IsNotExist(err) {
+		lc = na.node.NewAutoStartConfig()
+		err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
 		if err != nil {
 			return
 		}
+		return
+	}
+	lc = na.node.NewAutoStartConfig()
+	lc.Sockss = olc.SocksServer
+	lc.Sshs = olc.SshServer
+	err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+	if err != nil {
+		return
 	}
 	return
 }
@@ -705,7 +735,7 @@ func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (r
 
 func (na *NodeApi) setAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	data := r.FormValue("data")
-	var lc = make(map[string]string)
+	var lc = node.AutoStartConfig{}
 	err = json.Unmarshal([]byte(data), &lc)
 	if err != nil {
 		return
