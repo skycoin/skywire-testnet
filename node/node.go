@@ -314,6 +314,10 @@ func (n *Node) GetSearchResult() (result []*SearchResult) {
 	return
 }
 
+type AutoStartFile struct {
+	Config  map[string]AutoStartConfig `json:"config"`
+	Version int                        `json:"version"`
+}
 
 type AutoStartConfig struct {
 	Sshs              bool   `json:"sshs"`
@@ -326,9 +330,27 @@ type AutoStartConfig struct {
 	SockscConfAppKey  string `json:"socksc_conf_appKey"`
 	Version           int    `json:"version"`
 }
+type Old1AutoStartConfig struct {
+	Sshs              bool   `json:"sshs"`
+	Sshc              bool   `json:"sshc"`
+	SshcConfNodeKey   string `json:"sshc_conf_nodeKey"`
+	SshcConfAppKey    string `json:"sshc_conf_appKey"`
+	Sockss            bool   `json:"sockss"`
+	Socksc            bool   `json:"socksc"`
+	SockscConfNodeKey string `json:"socksc_conf_nodeKey"`
+	SockscConfAppKey  string `json:"socksc_conf_appKey"`
+}
 type OldAutoStartConfig struct {
 	SocksServer bool `json:"socks_server"`
 	SshServer   bool `json:"ssh_server"`
+}
+
+func (n *Node) NewAutoStartFile() AutoStartFile {
+	sc := AutoStartFile{
+		Config:  make(map[string]AutoStartConfig),
+		Version: 2,
+	}
+	return sc
 }
 
 func (n *Node) NewAutoStartConfig() AutoStartConfig {
@@ -337,17 +359,16 @@ func (n *Node) NewAutoStartConfig() AutoStartConfig {
 		Sshc:    false,
 		Sockss:  true,
 		Socksc:  false,
-		Version: 1,
 	}
 	return sc
 }
 
-func (n *Node) ReadAutoStartConfig() (lc AutoStartConfig, err error) {
+func (n *Node) ReadAutoStartConfig() (f AutoStartFile, err error) {
 	fb, err := ioutil.ReadFile(n.launchConfigPath)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(fb, &lc)
+	err = json.Unmarshal(fb, &f)
 	return
 }
 
@@ -359,9 +380,17 @@ func (n *Node) ReadOldAutoStartConfig() (lc OldAutoStartConfig, err error) {
 	err = json.Unmarshal(fb, &lc)
 	return
 }
+func (n *Node) ReadOld1AutoStartConfig() (lc Old1AutoStartConfig, err error) {
+	fb, err := ioutil.ReadFile(n.launchConfigPath)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(fb, &lc)
+	return
+}
 
-func (n *Node) WriteAutoStartConfig(lc AutoStartConfig, path string) (err error) {
-	d, err := json.Marshal(lc)
+func (n *Node) WriteAutoStartConfig(f AutoStartFile, path string) (err error) {
+	d, err := json.Marshal(f)
 	if err != nil {
 		return
 	}
@@ -371,5 +400,19 @@ func (n *Node) WriteAutoStartConfig(lc AutoStartConfig, path string) (err error)
 		return
 	}
 	err = ioutil.WriteFile(path, d, 0600)
+	return
+}
+
+func (n *Node) GetNodeKey() (key string, err error) {
+	info := factory.SeedConfig{}
+	fb, err := ioutil.ReadFile(n.seedConfigPath)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(fb, &info)
+	if err != nil {
+		return
+	}
+	key = info.PublicKey
 	return
 }

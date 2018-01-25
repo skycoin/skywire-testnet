@@ -643,14 +643,20 @@ type windowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
-var autoVersion = 1
+var autoVersion = 2
 
 func (na *NodeApi) afterLaunch() (err error) {
-	lc, err := na.node.ReadAutoStartConfig()
+	key, err := na.node.GetNodeKey()
+	if err != nil {
+		return
+	}
+	f, err := na.node.ReadAutoStartConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
-			lc = na.node.NewAutoStartConfig()
-			err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+			f = na.node.NewAutoStartFile()
+			asc := na.node.NewAutoStartConfig()
+			f.Config[key] = asc
+			err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
 			if err != nil {
 				return
 			}
@@ -658,36 +664,49 @@ func (na *NodeApi) afterLaunch() (err error) {
 			return
 		}
 	}
-	if lc.Version != autoVersion {
-		switch lc.Version {
+	if f.Version != autoVersion {
+		switch f.Version {
 		case 0:
-			lc, err = na.adaptOldConfig()
+			f, err = na.adaptOldConfig(key)
 			if err != nil {
 				return
 			}
+		case 1:
+			lc, err := na.node.ReadOld1AutoStartConfig()
+			if err != nil {
+				return err
+			}
+			f, err = na.adaptOld1Config(lc, key)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	if lc.Sockss {
+	conf, ok := f.Config[key]
+	if !ok {
+		return
+	}
+	if conf.Sockss {
 		err = na.startSockss()
 		if err != nil {
 			return
 		}
 	}
-	if lc.Sshs {
+	if conf.Sshs {
 		err = na.startSshs(nil)
 		if err != nil {
 			return
 		}
 	}
 
-	if lc.Socksc {
-		err = na.startSocksc(lc.SockscConfNodeKey, lc.SockscConfAppKey)
+	if conf.Socksc {
+		err = na.startSocksc(conf.SockscConfNodeKey, conf.SockscConfAppKey)
 		if err != nil {
 			return
 		}
 	}
-	if lc.Sshc {
-		err = na.startSshc(lc.SshcConfNodeKey, lc.SshcConfAppKey)
+	if conf.Sshc {
+		err = na.startSshc(conf.SshcConfNodeKey, conf.SshcConfAppKey)
 		if err != nil {
 			return
 		}
@@ -695,20 +714,43 @@ func (na *NodeApi) afterLaunch() (err error) {
 	return
 }
 
-func (na *NodeApi) adaptOldConfig() (lc node.AutoStartConfig, err error) {
+func (na *NodeApi) adaptOldConfig(key string) (f node.AutoStartFile, err error) {
 	olc, err := na.node.ReadOldAutoStartConfig()
 	if os.IsNotExist(err) {
-		lc = na.node.NewAutoStartConfig()
-		err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+		f = na.node.NewAutoStartFile()
+		asc := na.node.NewAutoStartConfig()
+		f.Config[key] = asc
+		err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
 		if err != nil {
 			return
 		}
+	}
+	asc := na.node.NewAutoStartConfig()
+	asc.Sockss = olc.SocksServer
+	asc.Sshs = olc.SshServer
+	f.Config = make(map[string]node.AutoStartConfig)
+	f.Config[key] = asc
+	err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
+	if err != nil {
 		return
 	}
-	lc = na.node.NewAutoStartConfig()
-	lc.Sockss = olc.SocksServer
-	lc.Sshs = olc.SshServer
-	err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+	return
+}
+
+func (na *NodeApi) adaptOld1Config(lc node.Old1AutoStartConfig, key string) (f node.AutoStartFile, err error) {
+	f = na.node.NewAutoStartFile()
+	asc := node.AutoStartConfig{
+		Sshs:              lc.Sshs,
+		Sshc:              lc.Sshc,
+		SshcConfNodeKey:   lc.SshcConfNodeKey,
+		SshcConfAppKey:    lc.SshcConfAppKey,
+		Sockss:            lc.Sockss,
+		Socksc:            lc.Socksc,
+		SockscConfNodeKey: lc.SockscConfNodeKey,
+		SockscConfAppKey:  lc.SockscConfAppKey,
+	}
+	f.Config[key] = asc
+	err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
 	if err != nil {
 		return
 	}
@@ -716,11 +758,14 @@ func (na *NodeApi) adaptOldConfig() (lc node.AutoStartConfig, err error) {
 }
 
 func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	lc, err := na.node.ReadAutoStartConfig()
+	key := r.FormValue("key")
+	f, err := na.node.ReadAutoStartConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
-			lc = na.node.NewAutoStartConfig()
-			err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+			f = na.node.NewAutoStartFile()
+			asc := na.node.NewAutoStartConfig()
+			f.Config[key] = asc
+			err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
 			if err != nil {
 				return
 			}
@@ -729,18 +774,35 @@ func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (r
 			return
 		}
 	}
-	result, err = json.Marshal(lc)
+	result, err = json.Marshal(f.Config[key])
 	return
 }
 
 func (na *NodeApi) setAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	data := r.FormValue("data")
-	var lc = node.AutoStartConfig{}
-	err = json.Unmarshal([]byte(data), &lc)
+	key := r.FormValue("key")
+	var asc = node.AutoStartConfig{}
+	err = json.Unmarshal([]byte(data), &asc)
 	if err != nil {
 		return
 	}
-	err = na.node.WriteAutoStartConfig(lc, na.config.AutoStartPath)
+	f, err := na.node.ReadAutoStartConfig()
+	if err != nil {
+		if os.IsNotExist(err) {
+			f = na.node.NewAutoStartFile()
+			asc := na.node.NewAutoStartConfig()
+			f.Config[key] = asc
+			err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
+			if err != nil {
+				return
+			}
+		} else {
+			log.Errorf("read launch config err:", err)
+			return
+		}
+	}
+	f.Config[key] = asc
+	err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
 	if err != nil {
 		return
 	}
