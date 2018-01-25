@@ -78,8 +78,11 @@ func (na *NodeApi) Close() error {
 }
 
 func (na *NodeApi) StartSrv() {
-	na.getConfig()
-	err := na.afterLaunch()
+	err := na.getConfig()
+	if err != nil {
+		log.Errorf("after launch error: %s", err)
+	}
+	err = na.afterLaunch()
 	if err != nil {
 		log.Errorf("after launch error: %s", err)
 	}
@@ -412,7 +415,7 @@ func (na *NodeApi) updateNode(w http.ResponseWriter, r *http.Request) (result []
 	return
 }
 
-func (na *NodeApi) getConfig() {
+func (na *NodeApi) getConfig() (err error) {
 	var managerUrl = na.config.ManagerWeb
 	matched, err := regexp.MatchString(URLMatch, managerUrl)
 	if err != nil || !matched {
@@ -438,17 +441,14 @@ func (na *NodeApi) getConfig() {
 			log.Errorf("Unmarshal json err: %v", err)
 			return
 		}
-		if len(na.config.DiscoveryAddresses) == len(config.DiscoveryAddresses) {
-			for i, v := range na.config.DiscoveryAddresses {
-				if v != config.DiscoveryAddresses[i] {
-					na.config.DiscoveryAddresses = config.DiscoveryAddresses
-					na.restart()
-					return
-				}
-			}
+		log.Infof("config.DiscoveryAddresses: %v", config.DiscoveryAddresses)
+		na.config.DiscoveryAddresses = config.DiscoveryAddresses
+		err = na.restart()
+		if err != nil {
+			return
 		}
 	}
-
+	return
 }
 
 func (na *NodeApi) restart() (err error) {
