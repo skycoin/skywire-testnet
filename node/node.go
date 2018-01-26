@@ -328,7 +328,6 @@ type AutoStartConfig struct {
 	Socksc            bool   `json:"socksc"`
 	SockscConfNodeKey string `json:"socksc_conf_nodeKey"`
 	SockscConfAppKey  string `json:"socksc_conf_appKey"`
-	Version           int    `json:"version"`
 }
 type Old1AutoStartConfig struct {
 	Sshs              bool   `json:"sshs"`
