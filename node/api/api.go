@@ -654,12 +654,7 @@ func (na *NodeApi) afterLaunch() (err error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			f = na.node.NewAutoStartFile()
-			asc := na.node.NewAutoStartConfig()
-			f.Config[key] = asc
-			err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
-			if err != nil {
-				return
-			}
+
 		} else {
 			return
 		}
@@ -684,7 +679,12 @@ func (na *NodeApi) afterLaunch() (err error) {
 	}
 	conf, ok := f.Config[key]
 	if !ok {
-		return
+		conf = na.node.NewAutoStartConfig()
+		f.Config[key] = conf
+		err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
+		if err != nil {
+			return
+		}
 	}
 	if conf.Sockss {
 		err = na.startSockss()
