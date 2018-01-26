@@ -650,6 +650,10 @@ func (na *NodeApi) afterLaunch() (err error) {
 	if err != nil {
 		return
 	}
+	if len(key) < 66 {
+		err = errors.New("Key at least 66 characters.")
+		return
+	}
 	f, err := na.node.ReadAutoStartConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -759,6 +763,10 @@ func (na *NodeApi) adaptOld1Config(lc node.Old1AutoStartConfig, key string) (f n
 
 func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	key := r.FormValue("key")
+	if len(key) < 66 {
+		err = errors.New("Key at least 66 characters.")
+		return
+	}
 	f, err := na.node.ReadAutoStartConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -781,6 +789,10 @@ func (na *NodeApi) getAutoStartConfig(w http.ResponseWriter, r *http.Request) (r
 func (na *NodeApi) setAutoStartConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	data := r.FormValue("data")
 	key := r.FormValue("key")
+	if len(key) < 66 {
+		err = errors.New("Key at least 66 characters.")
+		return
+	}
 	var asc = node.AutoStartConfig{}
 	err = json.Unmarshal([]byte(data), &asc)
 	if err != nil {
