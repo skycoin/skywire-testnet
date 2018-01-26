@@ -734,6 +734,7 @@ func (na *NodeApi) adaptOldConfig(key string) (f node.AutoStartFile, err error) 
 	asc.Sshs = olc.SshServer
 	f.Config = make(map[string]node.AutoStartConfig)
 	f.Config[key] = asc
+	f.Version = autoVersion
 	err = na.node.WriteAutoStartConfig(f, na.config.AutoStartPath)
 	if err != nil {
 		return
