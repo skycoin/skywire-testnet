@@ -226,13 +226,13 @@ func (c *Connection) Reg() error {
 
 func (c *Connection) RegWithKey(key cipher.PubKey, context map[string]string) error {
 	c.StoreContext(publicKey, key)
-	return c.writeOPReq(OP_REG_KEY, &regWithKey{PublicKey: key, Context: context, Version: RegWithKeyAndEncryptionVersion})
+	return c.writeOPSyn(OP_REG_KEY, &regWithKey{PublicKey: key, Context: context, Version: RegWithKeyAndEncryptionVersion})
 }
 
 func (c *Connection) RegWithKeys(key, target cipher.PubKey, context map[string]string) error {
 	c.StoreContext(publicKey, key)
 	c.SetTargetKey(target)
-	return c.writeOPReq(OP_REG_KEY, &regWithKey{PublicKey: key, Context: context, Version: RegWithKeyAndEncryptionVersion})
+	return c.writeOPSyn(OP_REG_KEY, &regWithKey{PublicKey: key, Context: context, Version: RegWithKeyAndEncryptionVersion})
 }
 
 // register services to discovery
@@ -394,8 +394,10 @@ func (c *Connection) SendCustom(msg []byte) error {
 
 func (c *Connection) preprocessor() (err error) {
 	defer func() {
-		if e := recover(); e != nil {
-			c.GetContextLogger().Debugf("panic in preprocessor %v", e)
+		if !conn.DEV {
+			if e := recover(); e != nil {
+				c.GetContextLogger().Debugf("panic in preprocessor %v", e)
+			}
 		}
 		if err != nil {
 			c.GetContextLogger().Debugf("preprocessor err %v", err)
@@ -409,7 +411,9 @@ OUTER:
 			if !ok {
 				return
 			}
-			c.GetContextLogger().Debugf("preprocessor read %x", m)
+			if conn.DEBUG_DATA_HEX {
+				c.GetContextLogger().Debugf("preprocessor read %x", m)
+			}
 			if len(m) < MSG_HEADER_END {
 				return
 			}
@@ -527,7 +531,7 @@ func (c *Connection) writeOP(op byte, object interface{}) error {
 	return c.writeOPBytes(op, js)
 }
 
-func (c *Connection) writeOPReq(op byte, object interface{}) error {
+func (c *Connection) writeOPSyn(op byte, object interface{}) error {
 	body, err := json.Marshal(object)
 	if err != nil {
 		return err
@@ -536,19 +540,7 @@ func (c *Connection) writeOPReq(op byte, object interface{}) error {
 	data := make([]byte, MSG_HEADER_END+len(body))
 	data[MSG_OP_BEGIN] = op
 	copy(data[MSG_HEADER_END:], body)
-	return c.WriteReq(data)
-}
-
-func (c *Connection) writeOPResp(op byte, object interface{}) error {
-	body, err := json.Marshal(object)
-	if err != nil {
-		return err
-	}
-	c.GetContextLogger().Debugf("writeOP %#v", object)
-	data := make([]byte, MSG_HEADER_END+len(body))
-	data[MSG_OP_BEGIN] = op
-	copy(data[MSG_HEADER_END:], body)
-	return c.WriteResp(data)
+	return c.WriteSyn(data)
 }
 
 func (c *Connection) setTransport(to cipher.PubKey, tr *Transport) {

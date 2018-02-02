@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/google/btree"
+	"github.com/skycoin/net/util"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,7 +18,6 @@ type Interface interface {
 	Transmitted()
 	Acked()
 	GetRTT() time.Duration
-	PkgBytes() []byte
 }
 
 type Message struct {
@@ -100,41 +100,6 @@ func (msg *Message) Bytes() (result []byte) {
 	return result
 }
 
-func (msg *Message) PkgBytes() (result []byte) {
-	if len(result) > 0 {
-		return
-	}
-
-	result = make([]byte, PKG_HEADER_SIZE+MSG_HEADER_SIZE+msg.Len)
-	m := result[PKG_HEADER_SIZE:]
-	m[0] = byte(msg.Type)
-	binary.BigEndian.PutUint32(m[MSG_SEQ_BEGIN:MSG_SEQ_END], msg.GetSeq())
-	binary.BigEndian.PutUint32(m[MSG_LEN_BEGIN:MSG_LEN_END], msg.Len)
-	copy(m[MSG_HEADER_END:], msg.Body)
-
-	msg.Lock()
-	msg.cache = result
-	msg.Unlock()
-	return
-}
-
-func (msg *Message) SetCache(result []byte) {
-	msg.Lock()
-	msg.cache = result
-	msg.Unlock()
-}
-
-func (msg *Message) GetCache() (result []byte) {
-	msg.RLock()
-	result = msg.cache
-	msg.RUnlock()
-	return
-}
-
-func (msg *Message) PkgBytesLen() int {
-	return int(PKG_HEADER_SIZE + MSG_HEADER_SIZE + msg.Len)
-}
-
 func (msg *Message) HeaderBytes() []byte {
 	result := make([]byte, MSG_HEADER_SIZE)
 	result[0] = byte(msg.Type)
@@ -204,14 +169,24 @@ type UDPMessage struct {
 }
 
 func NewUDP(t uint8, seq uint32, bytes []byte) *UDPMessage {
+	if len(bytes) > util.FixedMtuPool.Size {
+		panic("invalid UDPMessage body size")
+	}
+	b := util.FixedMtuPool.Get()
+	l := copy(b, bytes)
 	return &UDPMessage{
-		Message: New(t, seq, bytes),
+		Message: New(t, seq, b[:l]),
 	}
 }
 
 func NewUDPWithoutSeq(t uint8, bytes []byte) *UDPMessage {
+	if len(bytes) > util.FixedMtuPool.Size {
+		panic("invalid UDPMessage body size")
+	}
+	b := util.FixedMtuPool.Get()
+	l := copy(b, bytes)
 	return &UDPMessage{
-		Message: NewWithoutSeq(t, bytes),
+		Message: NewWithoutSeq(t, b[:l]),
 	}
 }
 
@@ -250,6 +225,23 @@ func (msg *UDPMessage) Acked() {
 	msg.status |= MSG_STATUS_ACKED
 	msg.ackedAt = time.Now()
 	msg.rtt = msg.ackedAt.Sub(msg.transmittedAt)
+	if msg.resendTimer != nil {
+		msg.resendTimer.Stop()
+	}
+	if msg.cache != nil {
+		util.FixedMtuPool.Put(msg.cache)
+		msg.cache = nil
+	}
+	if msg.Body != nil {
+		util.FixedMtuPool.Put(msg.Body)
+		msg.Body = nil
+	}
+	msg.Unlock()
+}
+
+func (msg *UDPMessage) Cancel() {
+	msg.Lock()
+	msg.status |= MSG_STATUS_CANCEL
 	if msg.resendTimer != nil {
 		msg.resendTimer.Stop()
 	}
@@ -311,4 +303,44 @@ func (msg *UDPMessage) IsLoss() (r bool) {
 	r = msg.status&MSG_STATUS_LOSS > 0
 	msg.RUnlock()
 	return
+}
+
+func (msg *UDPMessage) PkgBytes() (result []byte) {
+	msg.RLock()
+	result = msg.cache
+	msg.RUnlock()
+
+	if len(result) > 0 {
+		return
+	}
+
+	result = util.FixedMtuPool.Get()
+	result = result[:PKG_HEADER_SIZE+UDP_HEADER_SIZE+msg.Len]
+	m := result[PKG_HEADER_SIZE:]
+	m[0] = byte(msg.Type)
+	binary.BigEndian.PutUint32(m[UDP_SEQ_BEGIN:], msg.GetSeq())
+	binary.BigEndian.PutUint32(m[UDP_LEN_BEGIN:], msg.Len)
+	copy(m[UDP_HEADER_END:], msg.Body)
+
+	msg.Lock()
+	msg.cache = result
+	msg.Unlock()
+	return
+}
+
+func (msg *UDPMessage) SetCache(result []byte) {
+	msg.Lock()
+	msg.cache = result
+	msg.Unlock()
+}
+
+func (msg *UDPMessage) GetCache() (result []byte) {
+	msg.RLock()
+	result = msg.cache
+	msg.RUnlock()
+	return
+}
+
+func (msg *UDPMessage) PkgBytesLen() int {
+	return int(PKG_HEADER_SIZE + UDP_HEADER_SIZE + msg.Len)
 }

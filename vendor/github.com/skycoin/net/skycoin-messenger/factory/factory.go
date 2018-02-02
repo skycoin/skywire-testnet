@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/net/conn"
 	"github.com/skycoin/net/factory"
 	"github.com/skycoin/skycoin/src/cipher"
 	"io/ioutil"
@@ -62,27 +63,29 @@ func (f *MessengerFactory) Listen(address string) (err error) {
 
 func (f *MessengerFactory) acceptedUDPCallback(connection *factory.Connection) {
 	var err error
-	conn, ok := connection.RealObject.(*Connection)
+	c, ok := connection.RealObject.(*Connection)
 	if !ok {
-		conn = newUDPServerConnection(connection, f)
+		c = newUDPServerConnection(connection, f)
 	}
-	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "messenger"))
-	//defer func() {
-	//	if e := recover(); e != nil {
-	//		conn.GetContextLogger().Errorf("acceptedUDPCallback recover err %v", e)
-	//	}
-	//	if err != nil {
-	//		conn.GetContextLogger().Errorf("acceptedUDPCallback err %v", err)
-	//	}
-	//	conn.Close()
-	//}()
+	c.SetContextLogger(c.GetContextLogger().WithField("app", "messenger"))
+	if !conn.DEV {
+		defer func() {
+			if e := recover(); e != nil {
+				c.GetContextLogger().Errorf("acceptedUDPCallback recover err %v", e)
+			}
+			if err != nil {
+				c.GetContextLogger().Errorf("acceptedUDPCallback err %v", err)
+			}
+			c.Close()
+		}()
+	}
 	if f.OnAcceptedUDPCallback != nil {
-		f.OnAcceptedUDPCallback(conn)
+		f.OnAcceptedUDPCallback(c)
 	}
-	err = f.callbackLoop(conn)
+	err = f.callbackLoop(c)
 	if err == ErrDetach {
 		err = nil
-		conn.WaitForDisconnected()
+		c.WaitForDisconnected()
 	}
 }
 
@@ -148,19 +151,21 @@ func (f *MessengerFactory) callbackLoop(conn *Connection) (err error) {
 
 func (f *MessengerFactory) acceptedCallback(connection *factory.Connection) {
 	var err error
-	conn := newConnection(connection, f)
-	conn.SetContextLogger(conn.GetContextLogger().WithField("app", "messenger"))
-	defer func() {
-		if e := recover(); e != nil {
-			conn.GetContextLogger().Errorf("acceptedCallback recover err %v", e)
-		}
-		if err != nil {
-			conn.GetContextLogger().Errorf("acceptedCallback err %v", err)
-		}
-		f.discoveryUnregister(conn)
-		conn.Close()
-	}()
-	err = f.callbackLoop(conn)
+	c := newConnection(connection, f)
+	c.SetContextLogger(c.GetContextLogger().WithField("app", "messenger"))
+	if !conn.DEV {
+		defer func() {
+			if e := recover(); e != nil {
+				c.GetContextLogger().Errorf("acceptedCallback recover err %v", e)
+			}
+			if err != nil {
+				c.GetContextLogger().Errorf("acceptedCallback err %v", err)
+			}
+			f.discoveryUnregister(c)
+			c.Close()
+		}()
+	}
+	err = f.callbackLoop(c)
 }
 
 func (f *MessengerFactory) register(key cipher.PubKey, connection *Connection) {
@@ -448,8 +453,26 @@ func (f *MessengerFactory) discoveryRegister(conn *Connection, ns *NodeServices)
 	if f.Proxy {
 		nodeServices := f.pack()
 		f.ForEachConn(func(connection *Connection) {
-			connection.UpdateServices(nodeServices)
+			err := connection.UpdateServices(nodeServices)
+			if err != nil {
+				connection.GetContextLogger().Errorf("discoveryRegister err %v", err)
+			}
 		})
+	}
+	return
+}
+
+func (f *MessengerFactory) ResyncToDiscovery(connection *Connection) (err error) {
+	if !f.Proxy {
+		return
+	}
+	nodeServices := f.pack()
+	if nodeServices == nil {
+		return
+	}
+	err = connection.UpdateServices(nodeServices)
+	if err != nil {
+		connection.GetContextLogger().Errorf("ResyncToDiscovery err %v", err)
 	}
 	return
 }

@@ -335,7 +335,10 @@ func (req *forwardNodeConnResp) Run(conn *Connection) (err error) {
 		return
 	}
 	if len(req.Address) > 0 {
-		err = tr.clientSideConnect(req.Address, conn.factory.GetDefaultSeedConfig(), req.Num)
+		e := tr.clientSideConnect(req.Address, conn.factory.GetDefaultSeedConfig(), req.Num)
+		if e != nil {
+			conn.GetContextLogger().Debugf("forwardNodeConnResp clientSideConnect %v", e)
+		}
 	}
 	return
 }

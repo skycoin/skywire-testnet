@@ -276,9 +276,6 @@ func (m *Monitor) setNodeConfig(w http.ResponseWriter, r *http.Request) (result 
 }
 
 func (m *Monitor) getNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
-		return
-	}
 	if r.Method != "POST" {
 		code = BAD_REQUEST
 		err = errors.New("please use post method")
@@ -296,10 +293,10 @@ func (m *Monitor) getNodeConfig(w http.ResponseWriter, r *http.Request) (result 
 }
 
 type ClientConnection struct {
-	Label   string `json:"label"`
-	NodeKey string `json:"nodeKey"`
-	AppKey  string `json:"appKey"`
-	Count   int    `json:"count"`
+	Label     string `json:"label"`
+	NodeKey   string `json:"nodeKey"`
+	AppKey    string `json:"appKey"`
+	Count     int    `json:"count"`
 }
 type clientConnectionSlice []ClientConnection
 
@@ -316,8 +313,7 @@ func (c clientConnectionSlice) Exist(rf ClientConnection) bool {
 	return false
 }
 
-var sshClient = filepath.Join(file.UserHome(), ".skywire", "manager", "sshClient.json")
-var socketClient = filepath.Join(file.UserHome(), ".skywire", "manager", "socketClient.json")
+var clientPath = filepath.Join(file.UserHome(), ".skywire", "manager", "clients.json")
 var clientLimit = 5
 
 func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
@@ -325,46 +321,38 @@ func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (
 		return
 	}
 	data := r.FormValue("data")
-	path := r.FormValue("client")
+	client := r.FormValue("client")
 	config := ClientConnection{}
 	err = json.Unmarshal([]byte(data), &config)
 	if err != nil {
 		return
 	}
-	switch path {
-	case "ssh":
-		path = sshClient
-		break
-	case "socket":
-		path = socketClient
-	default:
-		path = ""
-	}
-	if len(path) == 0 {
-		err = errors.New("The correct type cannot be found")
+	cfs, err := readConfig()
+	if err != nil {
 		return
 	}
-	cfs, err := readConfig(path)
-	if err != nil && !os.IsNotExist(err) {
-		return
+	if cfs == nil {
+		cfs = make(map[string]clientConnectionSlice)
 	}
-	size := len(cfs)
+	cf := cfs[client]
+	size := len(cf)
 	isExist := false
 	if size == clientLimit {
-		isExist = cfs.Exist(config)
+		isExist = cf.Exist(config)
 		if !isExist {
-			cfs[4] = config
+			cf[4] = config
 		}
 	} else if size > 0 && size < clientLimit {
-		isExist = cfs.Exist(config)
+		isExist = cf.Exist(config)
 		if !isExist {
-			cfs = append(cfs, config)
+			cf = append(cf, config)
 		}
 	} else {
-		cfs = append(cfs, config)
+		cf = append(cf, config)
 	}
-	sort.Sort(cfs)
-	err = saveClientFile(cfs, path)
+	sort.Sort(cf)
+	cfs[client] = cf
+	err = saveClientFile(cfs)
 	if err != nil {
 		return
 	}
@@ -377,21 +365,8 @@ func (m *Monitor) GetClientConnection(w http.ResponseWriter, r *http.Request) (r
 		return
 	}
 	client := r.FormValue("client")
-	switch client {
-	case "ssh":
-		client = sshClient
-		break
-	case "socket":
-		client = socketClient
-	default:
-		client = ""
-	}
-	if len(client) == 0 {
-		err = errors.New("No connection found")
-		return
-	}
-	cf, err := readConfig(client)
-	result, err = json.Marshal(cf)
+	cfs, err := readConfig()
+	result, err = json.Marshal(cfs[client])
 	return
 }
 
@@ -399,22 +374,23 @@ func (m *Monitor) RemoveClientConnection(w http.ResponseWriter, r *http.Request)
 	if !verifyLogin(w, r) {
 		return
 	}
-	path := r.FormValue("client")
+	client := r.FormValue("client")
 	index, err := strconv.Atoi(r.FormValue("index"))
 	if err != nil {
 		return
 	}
-	path = getFilePath(path)
-	if len(path) == 0 {
-		err = errors.New("There is no path to this type")
-		return
-	}
-	cfs, err := readConfig(path)
+	cfs, err := readConfig()
 	if err != nil && !os.IsNotExist(err) {
 		return
 	}
-	cfs = append(cfs[:index], cfs[index+1:]...)
-	err = saveClientFile(cfs, path)
+	cf, ok := cfs[client]
+	if !ok {
+		errors.New("System Error")
+		return
+	}
+	cf = append(cf[:index], cf[index+1:]...)
+	cfs[client] = cf
+	err = saveClientFile(cfs)
 	if err != nil {
 		return
 	}
@@ -426,23 +402,25 @@ func (m *Monitor) EditClientConnection(w http.ResponseWriter, r *http.Request) (
 	if !verifyLogin(w, r) {
 		return
 	}
-	path := r.FormValue("client")
+	client := r.FormValue("client")
 	label := r.FormValue("label")
 	index, err := strconv.Atoi(r.FormValue("index"))
 	if err != nil {
 		return
 	}
-	path = getFilePath(path)
-	if len(path) == 0 {
-		err = errors.New("There is no path to this type")
-		return
-	}
-	cfs, err := readConfig(path)
+
+	cfs, err := readConfig()
 	if err != nil && !os.IsNotExist(err) {
 		return
 	}
-	cfs[index].Label = label
-	err = saveClientFile(cfs, path)
+	cf, ok := cfs[client]
+	if !ok {
+		errors.New("System Error")
+		return
+	}
+	cf[index].Label = label
+	cfs[client] = cf
+	err = saveClientFile(cfs)
 	if err != nil {
 		return
 	}
@@ -450,11 +428,19 @@ func (m *Monitor) EditClientConnection(w http.ResponseWriter, r *http.Request) (
 	return
 }
 
-func readConfig(path string) (cfs clientConnectionSlice, err error) {
-	fb, err := ioutil.ReadFile(path)
+func readConfig() (cfs map[string]clientConnectionSlice, err error) {
+	fb, err := ioutil.ReadFile(clientPath)
 	if err != nil {
-		return
+		if os.IsNotExist(err) {
+			cfs = nil
+			err = nil
+			saveClientFile(cfs)
+			return
+		} else {
+			return
+		}
 	}
+	cfs = make(map[string]clientConnectionSlice)
 	err = json.Unmarshal(fb, &cfs)
 	if err != nil {
 		return
@@ -462,32 +448,18 @@ func readConfig(path string) (cfs clientConnectionSlice, err error) {
 	return
 }
 
-func saveClientFile(data interface{}, path string) (err error) {
+func saveClientFile(data interface{}) (err error) {
 	d, err := json.Marshal(data)
 	if err != nil {
 		return
 	}
-	dir := filepath.Dir(path)
+	dir := filepath.Dir(clientPath)
 	err = os.MkdirAll(dir, 0700)
 	if err != nil {
 		return
 	}
-	err = ioutil.WriteFile(path, d, 0600)
+	err = ioutil.WriteFile(clientPath, d, 0600)
 	return
-}
-
-func getFilePath(client string) string {
-	switch client {
-	case "ssh":
-		client = sshClient
-		break
-	case "socket":
-		client = socketClient
-	default:
-		client = ""
-	}
-
-	return client
 }
 
 var upgrader = websocket.Upgrader{

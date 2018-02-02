@@ -12,17 +12,22 @@ import (
 
 type UDPFactory struct {
 	listener *net.UDPConn
+	server   *server.ServerUDPConn
 
 	FactoryCommonFields
 
 	udpConnMapMutex sync.RWMutex
 	udpConnMap      map[string]*Connection
 
-	stopGC chan bool
+	stopGC chan struct{}
 }
 
 func NewUDPFactory() *UDPFactory {
-	udpFactory := &UDPFactory{stopGC: make(chan bool), FactoryCommonFields: NewFactoryCommonFields(), udpConnMap: make(map[string]*Connection)}
+	udpFactory := &UDPFactory{
+		stopGC:              make(chan struct{}),
+		FactoryCommonFields: NewFactoryCommonFields(),
+		udpConnMap:          make(map[string]*Connection),
+	}
 	go udpFactory.GC()
 	return udpFactory
 }
@@ -38,23 +43,30 @@ func (factory *UDPFactory) Listen(address string) error {
 	}
 	factory.fieldsMutex.Lock()
 	factory.listener = udp
+	factory.server = server.NewServerUDPConn(udp)
 	factory.fieldsMutex.Unlock()
 	go func() {
-		udpc := server.NewServerUDPConn(udp)
-		udpc.ReadLoop(factory.createConn)
+		factory.server.ReadLoop(factory.createConn)
 	}()
 	return nil
 }
 
 func (factory *UDPFactory) Close() error {
-	factory.stopGC <- true
-	factory.FactoryCommonFields.Close()
 	factory.fieldsMutex.RLock()
 	defer factory.fieldsMutex.RUnlock()
-	if factory.listener == nil {
+	if factory.server == nil {
 		return nil
 	}
-	return factory.listener.Close()
+	close(factory.stopGC)
+	factory.acceptedConnectionsMutex.RLock()
+	for k := range factory.acceptedConnections {
+		k.Close()
+	}
+	factory.acceptedConnectionsMutex.RUnlock()
+	factory.FactoryCommonFields.Close()
+	factory.server.Close()
+	factory.server = nil
+	return nil
 }
 
 func (factory *UDPFactory) createConn(c *net.UDPConn, addr *net.UDPAddr) *conn.UDPConn {

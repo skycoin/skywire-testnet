@@ -121,7 +121,7 @@ func (reg *regWithKey) Execute(f *MessengerFactory, conn *Connection) (r resp, e
 			return
 		}
 
-		err = conn.writeOPReq(OP_REG_KEY|RESP_PREFIX,
+		err = conn.writeOPSyn(OP_REG_KEY|RESP_PREFIX,
 			resp)
 		return
 	}
@@ -160,7 +160,7 @@ func (resp *regWithKeyResp) Run(conn *Connection) (err error) {
 			return
 		}
 		sig := cipher.SignHash(resp.Hash, conn.GetSecKey())
-		err = conn.writeOPResp(OP_REG_SIG, &regCheckSig{
+		err = conn.writeOP(OP_REG_SIG, &regCheckSig{
 			Sig:     sig,
 			Version: resp.Version,
 		})

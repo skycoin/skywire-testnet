@@ -2,7 +2,6 @@ package conn
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -18,7 +17,6 @@ const (
 
 type TCPConn struct {
 	*ConnCommonFields
-	*PendingMap
 	TcpConn net.Conn
 }
 
@@ -43,19 +41,11 @@ func (c *TCPConn) ReadLoop() (err error) {
 		}
 		msg_t := t[msg.MSG_TYPE_BEGIN]
 		switch msg_t {
-		case msg.TYPE_ACK:
-			err = c.ReadBytes(reader, header[:msg.MSG_SEQ_END], msg.MSG_SEQ_END)
-			if err != nil {
-				return err
-			}
-			seq := binary.BigEndian.Uint32(header[msg.MSG_SEQ_BEGIN:msg.MSG_SEQ_END])
-			c.DelMsg(seq)
-			c.UpdateLastAck(seq)
 		case msg.TYPE_PONG:
 			n := msg.PING_MSG_HEADER_END
 			reader.Discard(n)
 			c.AddReceivedBytes(n)
-		case msg.TYPE_REQ, msg.TYPE_RESP:
+		case msg.TYPE_SYN, msg.TYPE_NORMAL:
 			err = c.ReadBytes(reader, header, msg.MSG_HEADER_SIZE)
 			if err != nil {
 				return err
@@ -66,28 +56,6 @@ func (c *TCPConn) ReadLoop() (err error) {
 			if err != nil {
 				return err
 			}
-			if c.DirectlyHistoryLen() > 0 {
-				seq := c.RemoveDirectlyHistory()
-				c.DelMsg(seq)
-				c.UpdateLastAck(seq)
-			}
-
-			c.In <- m.Body
-		case msg.TYPE_NORMAL:
-			err = c.ReadBytes(reader, header, msg.MSG_HEADER_SIZE)
-			if err != nil {
-				return err
-			}
-
-			m := msg.NewByHeader(header)
-			err = c.ReadBytes(reader, m.Body, int(m.Len))
-			if err != nil {
-				return err
-			}
-
-			seq := binary.BigEndian.Uint32(header[msg.MSG_SEQ_BEGIN:msg.MSG_SEQ_END])
-			c.Ack(seq)
-			//c.GetContextLogger().Debugf("c.In <- m.Body %x", m.Body)
 			c.In <- m.Body
 		default:
 			c.GetContextLogger().Debugf("not implemented msg type %d", t)
@@ -136,23 +104,13 @@ func (c *TCPConn) ReadBytes(r io.Reader, buf []byte, min int) (err error) {
 func (c *TCPConn) Write(bytes []byte) error {
 	s := atomic.AddUint32(&c.seq, 1)
 	m := msg.New(msg.TYPE_NORMAL, s, bytes)
-	c.AddMsg(s, m)
 	return c.WriteBytes(m.Bytes())
 }
 
-func (c *TCPConn) WriteReq(bytes []byte) error {
+func (c *TCPConn) WriteSyn(bytes []byte) error {
 	s := atomic.AddUint32(&c.seq, 1)
-	m := msg.New(msg.TYPE_REQ, s, bytes)
-	c.AddMsg(s, m)
-	c.AddDirectlyHistory(s)
+	m := msg.New(msg.TYPE_SYN, s, bytes)
 	return c.writeDirectly(m.Bytes())
-}
-
-func (c *TCPConn) WriteResp(bytes []byte) error {
-	s := atomic.AddUint32(&c.seq, 1)
-	m := msg.New(msg.TYPE_RESP, s, bytes)
-	c.AddMsg(s, m)
-	return c.WriteBytes(m.Bytes())
 }
 
 func (c *TCPConn) writeDirectly(bytes []byte) (err error) {
@@ -179,13 +137,6 @@ func (c *TCPConn) WriteBytes(bytes []byte) (err error) {
 	}
 	err = c.writeDirectly(bytes)
 	return
-}
-
-func (c *TCPConn) Ack(seq uint32) error {
-	resp := make([]byte, msg.MSG_SEQ_END)
-	resp[msg.MSG_TYPE_BEGIN] = msg.TYPE_ACK
-	binary.BigEndian.PutUint32(resp[msg.MSG_SEQ_BEGIN:], seq)
-	return c.WriteBytes(resp)
 }
 
 func (c *TCPConn) Ping() error {

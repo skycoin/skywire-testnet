@@ -43,15 +43,10 @@ type Connection interface {
 
 	WaitForDisconnected()
 
-	WriteReq(bytes []byte) (err error)
-	WriteResp(bytes []byte) (err error)
+	WriteSyn(bytes []byte) (err error)
 
 	SetCrypto(crypto *Crypto)
 	GetCrypto() *Crypto
-
-	AddDirectlyHistory(seq uint32)
-	RemoveDirectlyHistory() (seq uint32)
-	DirectlyHistoryLen() (len int)
 }
 
 type ConnCommonFields struct {
@@ -66,7 +61,7 @@ type ConnCommonFields struct {
 	receivedBytes uint64
 
 	Status int // STATUS_CONNECTING, STATUS_CONNECTED, STATUS_ERROR
-	Err    error
+	err    error
 
 	In           chan []byte
 	Out          chan []byte
@@ -112,9 +107,20 @@ func (c *ConnCommonFields) SetStatusToError(err error) {
 		return
 	}
 	c.Status = STATUS_ERROR
-	c.Err = err
+	c.err = err
 	c.FieldsMutex.Unlock()
 	c.GetContextLogger().Debugf("SetStatusToError %v", err)
+}
+
+func (c *ConnCommonFields) GetStatusError() (err error) {
+	c.FieldsMutex.Lock()
+	if c.Status != STATUS_ERROR {
+		c.FieldsMutex.Unlock()
+		return
+	}
+	err = c.err
+	c.FieldsMutex.Unlock()
+	return
 }
 
 func (c *ConnCommonFields) UpdateLastAck(s uint32) {
@@ -225,24 +231,4 @@ func (c *ConnCommonFields) MustGetCrypto() *Crypto {
 		c.cryptoMutex.Unlock()
 	}
 	return v.(*Crypto)
-}
-
-func (c *ConnCommonFields) AddDirectlyHistory(seq uint32) {
-	c.directlyHistoryMutex.Lock()
-	c.directlyHistory.PushBack(seq)
-	c.directlyHistoryMutex.Unlock()
-}
-
-func (c *ConnCommonFields) DirectlyHistoryLen() (len int) {
-	c.directlyHistoryMutex.Lock()
-	len = c.directlyHistory.Len()
-	c.directlyHistoryMutex.Unlock()
-	return
-}
-
-func (c *ConnCommonFields) RemoveDirectlyHistory() (seq uint32) {
-	c.directlyHistoryMutex.Lock()
-	seq = c.directlyHistory.Remove(c.directlyHistory.Front()).(uint32)
-	c.directlyHistoryMutex.Unlock()
-	return
 }
