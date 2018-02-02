@@ -3,6 +3,7 @@ package conn
 import (
 	"errors"
 	"github.com/klauspost/reedsolomon"
+	"github.com/skycoin/net/util"
 )
 
 type fecDecoder struct {
@@ -78,7 +79,7 @@ func (fec *fecDecoder) decode(seq uint32, data []byte) (g *group, err error) {
 			g.dataCount++
 			g.dataRecv[index] = true
 		}
-		g.datas[index] = make([]byte, 1500)
+		g.datas[index] = util.FixedMtuPool.Get()
 		g.datas[index] = g.datas[index][:sz]
 		copy(g.datas[index], data)
 	} else {
@@ -95,6 +96,8 @@ func (fec *fecDecoder) decode(seq uint32, data []byte) (g *group, err error) {
 			if v == nil {
 				continue
 			}
+			s := len(v)
+			util.XorBytes(v[s:g.maxSize], v[s:g.maxSize], v[s:g.maxSize])
 			cache[k] = v[:g.maxSize]
 		}
 		if err = fec.codec.ReconstructData(cache); err == nil {
@@ -108,6 +111,15 @@ OK:
 	if fec.lowestGroup == gindex {
 		for {
 			fec.lowestGroup++
+			group := fec.groups[gindex]
+			if group != nil {
+				for _, v := range group.datas {
+					if len(v) > 0 {
+						util.FixedMtuPool.Put(v)
+					}
+				}
+			}
+
 			delete(fec.groups, gindex)
 			if len(fec.groups) < 1 {
 				break
@@ -119,6 +131,11 @@ OK:
 			}
 		}
 	} else {
+		for _, v := range fec.groups[gindex].datas {
+			if len(v) > 0 {
+				util.FixedMtuPool.Put(v)
+			}
+		}
 		fec.groups[gindex] = nil
 	}
 
@@ -172,8 +189,8 @@ func (fec *fecEncoder) encode(data []byte) (datas [][]byte, err error) {
 	if fec.count == fec.dataShards {
 		for i := 0; i < fec.dataShards; i++ {
 			shard := fec.cache[i]
-			slen := len(shard)
-			xorBytes(shard[slen:fec.maxSize], shard[slen:fec.maxSize], shard[slen:fec.maxSize])
+			s := len(shard)
+			util.XorBytes(shard[s:fec.maxSize], shard[s:fec.maxSize], shard[s:fec.maxSize])
 		}
 
 		c := fec.tmpCache

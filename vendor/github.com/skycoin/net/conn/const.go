@@ -1,6 +1,14 @@
 package conn
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+const (
+	DEV            = false
+	DEBUG_DATA_HEX = false
+)
 
 const (
 	STATUS_CONNECTING = iota
@@ -10,13 +18,14 @@ const (
 
 const (
 	TCP_PINGTICK_PERIOD  = 60
-	UDP_PING_TICK_PERIOD = 10
-	UDP_GC_PERIOD        = 90
+	UDP_PING_TICK_PERIOD = 5
+	UDP_GC_PERIOD        = 30
 )
 
 const (
+	QUICK_LOST_ENABLE       = false
 	QUICK_LOST_THRESH       = 3
-	QUICK_LOST_RESEND_COUNT = 2
+	QUICK_LOST_RESEND_COUNT = 1
 
 	MTU = 1500
 
@@ -60,3 +69,5 @@ const (
 	drain
 	probeBW
 )
+
+var ErrFin = errors.New("eof")

@@ -17,30 +17,33 @@ type ClientUDPConn struct {
 func NewClientUDPConn(c *net.UDPConn, addr *net.UDPAddr) *ClientUDPConn {
 	uc := conn.NewUDPConn(c, addr)
 	uc.SendPing = true
+	uc.UnsharedUdpConn = true
 	return &ClientUDPConn{UDPConn: uc}
 }
 
 func (c *ClientUDPConn) ReadLoop() (err error) {
 	defer func() {
-		if e := recover(); e != nil {
-			c.GetContextLogger().Debug(e)
-			err = fmt.Errorf("readloop panic err:%v", e)
+		if !conn.DEV {
+			if e := recover(); e != nil {
+				c.GetContextLogger().Debug(e)
+				err = fmt.Errorf("readloop panic err:%v", e)
+			}
 		}
 		if err != nil {
 			c.SetStatusToError(err)
 		}
 		c.Close()
 	}()
+	maxBuf := make([]byte, conn.MTU)
 	for {
-		maxBuf := make([]byte, conn.MTU)
 		n, err := c.UdpConn.Read(maxBuf)
 		if err != nil {
 			return err
 		}
 		c.AddReceivedBytes(n)
-		maxBuf = maxBuf[:n]
-		m := maxBuf[msg.PKG_HEADER_SIZE:]
-		checksum := binary.BigEndian.Uint32(maxBuf[msg.PKG_CRC32_BEGIN:])
+		pkg := maxBuf[:n]
+		m := pkg[msg.PKG_HEADER_SIZE:]
+		checksum := binary.BigEndian.Uint32(pkg[msg.PKG_CRC32_BEGIN:])
 		if checksum != crc32.ChecksumIEEE(m) {
 			c.GetContextLogger().Infof("checksum !=")
 			continue
@@ -54,24 +57,18 @@ func (c *ClientUDPConn) ReadLoop() (err error) {
 			if err != nil {
 				return err
 			}
-		case msg.TYPE_NORMAL, msg.TYPE_FEC, msg.TYPE_REQ, msg.TYPE_RESP:
+		case msg.TYPE_NORMAL, msg.TYPE_FEC, msg.TYPE_SYN:
 			err = c.Process(t, m)
 			if err != nil {
 				return err
 			}
+		case msg.TYPE_FIN:
+			err = conn.ErrFin
+			break
 		default:
 			c.GetContextLogger().Debugf("not implemented msg type %d", t)
 			return fmt.Errorf("not implemented msg type %d", t)
 		}
 		c.UpdateLastTime()
 	}
-}
-
-func (c *ClientUDPConn) Close() {
-	c.FieldsMutex.RLock()
-	if c.UdpConn != nil {
-		c.UdpConn.Close()
-	}
-	c.FieldsMutex.RUnlock()
-	c.ConnCommonFields.Close()
 }

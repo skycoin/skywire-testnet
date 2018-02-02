@@ -16,7 +16,6 @@ func NewClientTCPConn(c net.Conn) *ClientTCPConn {
 		TCPConn: conn.TCPConn{
 			TcpConn:          c,
 			ConnCommonFields: conn.NewConnCommonFileds(),
-			PendingMap:       conn.NewPendingMap(),
 		},
 	}
 }

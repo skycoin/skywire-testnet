@@ -108,6 +108,10 @@ func (t *Transport) clientSideConnect(address string, sc *SeedConfig, iv []byte)
 	if err != nil {
 		return
 	}
+	if conn == nil {
+		err = errors.New("clientSideConnect acceptUDPWithConfig return nil conn")
+		return
+	}
 	err = conn.SetCrypto(sc.publicKey, sc.secKey, t.ToNode, iv)
 	if err != nil {
 		return
@@ -180,7 +184,9 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 				conn.GetContextLogger().Debugf("node conn read err %v", err)
 				return
 			}
-			conn.GetContextLogger().Debugf("get chan in %x", m)
+			if cn.DEBUG_DATA_HEX {
+				conn.GetContextLogger().Debugf("get chan in %x", m)
+			}
 			t.downloadBW.add(len(m))
 			id := binary.BigEndian.Uint32(m[PKG_HEADER_ID_BEGIN:PKG_HEADER_ID_END])
 			appConn := getAppConn(id)
@@ -202,6 +208,10 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 			err = writeAll(appConn, body)
 			if err != nil {
 				conn.GetContextLogger().Debugf("app conn write err %v", err)
+				t.connsMutex.Lock()
+				t.conns[id] = nil
+				t.connsMutex.Unlock()
+				appConn.Close()
 				continue
 			}
 		}
@@ -254,9 +264,10 @@ func (t *Transport) appReadLoop(id uint32, appConn net.Conn, conn *Connection, c
 			log.Debugf("app conn read err %v, %d", err, n)
 			return
 		}
-		pkg := make([]byte, PKG_HEADER_END+n)
-		copy(pkg, buf[:PKG_HEADER_END+n])
-		conn.GetContextLogger().Debugf("app conn in %x", pkg)
+		pkg := buf[:PKG_HEADER_END+n]
+		if cn.DEBUG_DATA_HEX {
+			conn.GetContextLogger().Debugf("app conn in %x", pkg)
+		}
 		t.uploadBW.add(len(pkg))
 		conn.WriteToChannel(channel, pkg)
 	}

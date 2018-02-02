@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"net"
 
@@ -19,7 +18,6 @@ func NewServerTCPConn(c *net.TCPConn) *ServerTCPConn {
 		TCPConn: conn.TCPConn{
 			TcpConn:          c,
 			ConnCommonFields: conn.NewConnCommonFileds(),
-			PendingMap:       conn.NewPendingMap(),
 		},
 	}
 }
@@ -46,14 +44,6 @@ func (c *ServerTCPConn) ReadLoop() (err error) {
 		}
 		msg_t := t[msg.MSG_TYPE_BEGIN]
 		switch msg_t {
-		case msg.TYPE_ACK:
-			err = c.ReadBytes(reader, header[:msg.MSG_SEQ_END], msg.MSG_SEQ_END)
-			if err != nil {
-				return err
-			}
-			seq := binary.BigEndian.Uint32(header[msg.MSG_SEQ_BEGIN:msg.MSG_SEQ_END])
-			c.DelMsg(seq)
-			c.UpdateLastAck(seq)
 		case msg.TYPE_PING:
 			err = c.ReadBytes(reader, pingHeader, msg.PING_MSG_HEADER_SIZE)
 			if err != nil {
@@ -64,7 +54,7 @@ func (c *ServerTCPConn) ReadLoop() (err error) {
 			if err != nil {
 				return err
 			}
-		case msg.TYPE_REQ:
+		case msg.TYPE_SYN, msg.TYPE_NORMAL:
 			err = c.ReadBytes(reader, header, msg.MSG_HEADER_SIZE)
 			if err != nil {
 				return err
@@ -75,39 +65,6 @@ func (c *ServerTCPConn) ReadLoop() (err error) {
 			if err != nil {
 				return err
 			}
-			c.In <- m.Body
-		case msg.TYPE_RESP:
-			err = c.ReadBytes(reader, header, msg.MSG_HEADER_SIZE)
-			if err != nil {
-				return err
-			}
-
-			m := msg.NewByHeader(header)
-			err = c.ReadBytes(reader, m.Body, int(m.Len))
-			if err != nil {
-				return err
-			}
-			if c.DirectlyHistoryLen() > 0 {
-				seq := c.RemoveDirectlyHistory()
-				c.DelMsg(seq)
-				c.UpdateLastAck(seq)
-			}
-			c.In <- m.Body
-		case msg.TYPE_NORMAL:
-			err = c.ReadBytes(reader, header, msg.MSG_HEADER_SIZE)
-			if err != nil {
-				return err
-			}
-
-			m := msg.NewByHeader(header)
-			err = c.ReadBytes(reader, m.Body, int(m.Len))
-			if err != nil {
-				return err
-			}
-
-			seq := binary.BigEndian.Uint32(header[msg.MSG_TYPE_END:msg.MSG_SEQ_END])
-			c.Ack(seq)
-			//c.GetContextLogger().Debugf("c.In <- m.Body %x", m.Body)
 			c.In <- m.Body
 		default:
 			c.GetContextLogger().Debugf("not implemented msg type %d", t)
