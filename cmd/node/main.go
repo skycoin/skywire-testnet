@@ -6,7 +6,6 @@ import (
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/node"
 	"github.com/skycoin/skywire/node/api"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
