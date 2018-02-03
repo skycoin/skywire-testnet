@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/cipher"
@@ -15,11 +16,10 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
-	"github.com/gorilla/websocket"
-	"runtime"
 )
 
 type NodeApi struct {
@@ -38,7 +38,13 @@ type NodeApi struct {
 type appCxt struct {
 	cxt    context.Context
 	cancel context.CancelFunc
-	ok     chan interface{}
+	ok     chan struct{}
+}
+
+func (cxt *appCxt) shutdown() {
+	cxt.cancel()
+	<-cxt.ok
+	time.Sleep(3 * time.Second)
 }
 
 type shell struct {
@@ -225,11 +231,10 @@ func (na *NodeApi) startSshc(toNode string, toApp string) (err error) {
 	key := "sshc"
 	app := na.apps[key]
 	if app != nil {
-		app.cancel()
-		<-app.ok
+		app.shutdown()
 	}
 	cxt, cancel := context.WithCancel(context.Background())
-	isOk := make(chan interface{})
+	isOk := make(chan struct{})
 	app = &appCxt{
 		cxt:    cxt,
 		cancel: cancel,
@@ -273,11 +278,10 @@ func (na *NodeApi) startSocksc(toNode string, toApp string) (err error) {
 	key := "socksc"
 	app := na.apps[key]
 	if app != nil {
-		app.cancel()
-		<-app.ok
+		app.shutdown()
 	}
 	cxt, cancel := context.WithCancel(context.Background())
-	isOk := make(chan interface{})
+	isOk := make(chan struct{})
 	app = &appCxt{
 		cxt:    cxt,
 		cancel: cancel,
@@ -316,11 +320,10 @@ func (na *NodeApi) startSshs(arr []string) (err error) {
 	key := "sshs"
 	app := na.apps[key]
 	if app != nil {
-		app.cancel()
-		<-app.ok
+		app.shutdown()
 	}
 	cxt, cancel := context.WithCancel(context.Background())
-	isOk := make(chan interface{})
+	isOk := make(chan struct{})
 	app = &appCxt{
 		cxt:    cxt,
 		cancel: cancel,
@@ -361,11 +364,10 @@ func (na *NodeApi) startSockss() (err error) {
 	key := "sockss"
 	app := na.apps[key]
 	if app != nil {
-		app.cancel()
-		<-app.ok
+		app.shutdown()
 	}
 	cxt, cancel := context.WithCancel(context.Background())
-	isOk := make(chan interface{})
+	isOk := make(chan struct{})
 	app = &appCxt{
 		cxt:    cxt,
 		cancel: cancel,
