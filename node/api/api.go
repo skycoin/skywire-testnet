@@ -80,7 +80,7 @@ func (na *NodeApi) Close() error {
 func (na *NodeApi) StartSrv() {
 	err := na.getConfig()
 	if err != nil {
-		log.Errorf("after launch error: %s", err)
+		log.Errorf("get config error: %s", err)
 	}
 	err = na.afterLaunch()
 	if err != nil {
