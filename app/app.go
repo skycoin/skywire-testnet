@@ -69,25 +69,6 @@ func (app *App) Start(addr, scPath string) error {
 
 func (app *App) FindServiceByAttributesCallback(resp *factory.QueryByAttrsResp) {
 	log.Debugf("findServiceByAttributesCallback resp %#v", resp)
-	if len(resp.Result) < 1 {
-		return
-	}
-	for k, v := range resp.Result {
-		log.Debugf("node %x %v", k, v)
-	}
-	for k, v := range resp.Result {
-		node, err := cipher.PubKeyFromHex(k)
-		if err != nil {
-			log.Debugf("node key string invalid %s", k)
-			continue
-		}
-		for _, a := range v {
-			app.net.ForEachConn(func(connection *factory.Connection) {
-				connection.BuildAppConnection(node, a)
-			})
-		}
-		break
-	}
 }
 
 func (app *App) SetAllowNodes(nodes NodeKeys) {
