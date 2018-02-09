@@ -267,13 +267,14 @@ func (n *Node) GetApps() (apps []NodeApp) {
 }
 
 type SearchResult struct {
-	Result map[string][]string `json:"result"`
-	Seq    uint32              `json:"seq"`
+	Result []SearchResultApp `json:"result"`
+	Seq    uint32            `json:"seq"`
 }
 
-type SearchResultInfo struct {
-	NodeKey string   `json:"node_key"`
-	Apps    []string `json:"apps"`
+type SearchResultApp struct {
+	NodeKey  string `json:"node_key"`
+	AppKey   string `json:"app_key"`
+	Location string `json:"location"`
 }
 
 func (n *Node) Search(attr string) (seqs []uint32) {
@@ -290,19 +291,22 @@ func (n *Node) Search(attr string) (seqs []uint32) {
 
 func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	n.srsMutex.Lock()
-	log.Infof("search call back: %#v", resp)
-	var result = make(map[string][]string)
-	for k, v := range resp.Result {
-		var apps = make([]string, 0, len(v))
-		for _, v1 := range v {
-			apps = append(apps, v1.Hex())
+	if resp != nil && resp.Result != nil {
+		var apps = make([]SearchResultApp, 0)
+		for _, v := range resp.Result.Nodes {
+			for _, app := range v.Apps {
+				apps = append(apps, SearchResultApp{
+					NodeKey:  v.Node.Hex(),
+					AppKey:   app.Hex(),
+					Location: v.Location,
+				})
+			}
 		}
-		result[k] = apps
+		n.srs = append(n.srs, &SearchResult{
+			Seq:    resp.Seq,
+			Result: apps,
+		})
 	}
-	n.srs = append(n.srs, &SearchResult{
-		Seq:    resp.Seq,
-		Result: result,
-	})
 	n.srsMutex.Unlock()
 }
 
@@ -354,10 +358,10 @@ func (n *Node) NewAutoStartFile() AutoStartFile {
 
 func (n *Node) NewAutoStartConfig() AutoStartConfig {
 	sc := AutoStartConfig{
-		Sshs:    false,
-		Sshc:    false,
-		Sockss:  true,
-		Socksc:  false,
+		Sshs:   false,
+		Sshc:   false,
+		Sockss: true,
+		Socksc: false,
 	}
 	return sc
 }

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/skycoin/net/skycoin-messenger/factory"
 )
 
 type NodeApi struct {
@@ -92,6 +93,7 @@ func (na *NodeApi) StartSrv() {
 	if err != nil {
 		log.Errorf("after launch error: %s", err)
 	}
+	http.HandleFunc("/node/getSig", wrap(na.getSig))
 	http.HandleFunc("/node/getInfo", wrap(na.getInfo))
 	http.HandleFunc("/node/getMsg", wrap(na.getMsg))
 	http.HandleFunc("/node/getApps", wrap(na.getApps))
@@ -120,18 +122,42 @@ func (na *NodeApi) StartSrv() {
 	}()
 }
 
+type Sig struct {
+	Sig string `json:"sig"`
+}
+
+func (na *NodeApi) getSig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	data := r.FormValue("data")
+	if len(data) == 0 {
+		err = errors.New("Hash is Empty!")
+		return
+	}
+	hash := cipher.SumSHA256([]byte(data))
+	sc, err := factory.ReadSeedConfig(na.config.SeedPath)
+	if err != nil {
+		return
+	}
+	secKey := cipher.MustSecKeyFromHex(sc.SecKey)
+	sig := &Sig{
+		Sig: cipher.SignHash(hash, secKey).Hex(),
+	}
+	result, err = json.Marshal(sig)
+	return
+}
+
 func (na *NodeApi) closeApp(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	key := r.FormValue("key")
 	if len(key) == 0 {
 		err = errors.New("Key is Empty!")
 		return
 	}
-	na.RLock()
-	defer na.RUnlock()
+	na.Lock()
+	defer na.Unlock()
 	v, ok := na.apps[key]
 	if ok {
 		if v != nil {
 			v.cancel()
+			delete(na.apps, key)
 		}
 	}
 	result = []byte("true")
