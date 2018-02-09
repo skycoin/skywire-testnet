@@ -454,6 +454,10 @@ func (na *NodeApi) getConfig() (err error) {
 			"key": {na.node.GetManager().GetDefaultSeedConfig().PublicKey},
 		})
 	if err != nil {
+		log.Errorf("get node config: %v", err)
+		return
+	}
+	if res.Status != "200" {
 		return
 	}
 	defer res.Body.Close()
@@ -467,6 +471,7 @@ func (na *NodeApi) getConfig() (err error) {
 		err = json.Unmarshal(body, &config)
 		if err != nil {
 			log.Errorf("Unmarshal json err: %v", err)
+			log.Errorf(" body: %s", string(body))
 			return
 		}
 		log.Infof("config.DiscoveryAddresses: %v", config.DiscoveryAddresses)
