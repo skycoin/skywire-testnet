@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"github.com/skycoin/net/util"
 )
 
 var (
@@ -16,6 +17,8 @@ var (
 	webDir   string
 	webPort  string
 	seedPath string
+
+	ipDBPath string
 )
 
 func parseFlags() {
@@ -24,11 +27,24 @@ func parseFlags() {
 	flag.StringVar(&webDir, "web-dir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
 	flag.StringVar(&webPort, "web-port", ":8000", "monitor web page port")
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "discovery", "keys.json"), "path to save seed info")
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	flag.StringVar(&ipDBPath, "ipdb-path", filepath.Join(dir, "ip.db"), "ip db file path")
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+
+	var err error
+
+	err = util.IPLocator.Init(ipDBPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer util.IPLocator.Close()
 
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
@@ -37,7 +53,7 @@ func main() {
 	defer f.Close()
 	f.SetDefaultSeedConfigPath(seedPath)
 	f.SetLoggerLevel(factory.DebugLevel)
-	err := f.Listen(address)
+	err = f.Listen(address)
 	log.Debugf("listen on %s", address)
 	if err != nil {
 		log.Error(err)
