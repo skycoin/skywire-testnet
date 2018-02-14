@@ -15,7 +15,7 @@ Skywire is still under heavy development.
 * [Requirements](#requirements)
 * [Install](#install)
 * [Run Skywire](#run-skywire)
-* [Docker](#run-skywire)
+* [Docker](#docker)
 
 ### Requirements
 
