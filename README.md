@@ -1,6 +1,7 @@
 ![skywire logo](https://user-images.githubusercontent.com/26845312/32426764-3495e3d8-c282-11e7-8fe8-8e60e90cb906.png)
 
 # [中文文档](README-CN.md)
+# [Spanish Document](README-ES.md)
 # Skywire
 
 Here is our [Blog ](https://blog.skycoin.net/tags/skywire/) about Skywire.
