@@ -3,13 +3,12 @@ package main
 import (
 	"flag"
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/net/skycoin-messenger/factory"
-	"github.com/skycoin/net/skycoin-messenger/monitor"
+	"github.com/skycoin/net/util"
 	"github.com/skycoin/skycoin/src/util/file"
+	"github.com/skycoin/skywire/discovery"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"github.com/skycoin/net/util"
 )
 
 var (
@@ -49,19 +48,14 @@ func main() {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	f := factory.NewMessengerFactory()
-	defer f.Close()
-	f.SetDefaultSeedConfigPath(seedPath)
-	f.SetLoggerLevel(factory.DebugLevel)
-	err = f.Listen(address)
-	log.Debugf("listen on %s", address)
+	d := discovery.New(seedPath, address, webPort, webDir)
+	err = d.Start()
 	if err != nil {
-		log.Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
-	m := monitor.New(f, address, webPort, "", "")
-	m.Start(webDir)
-	defer m.Close()
+	log.Debugf("listen on %s", address)
+	defer d.Close()
+
 	select {
 	case signal := <-osSignal:
 		if signal == os.Interrupt {
