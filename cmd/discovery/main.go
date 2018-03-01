@@ -4,6 +4,7 @@ import (
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/util"
+	"github.com/skycoin/net/util/producer"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/discovery"
 	"os"
@@ -18,6 +19,7 @@ var (
 	seedPath string
 
 	ipDBPath string
+	confPath string
 )
 
 func parseFlags() {
@@ -31,6 +33,7 @@ func parseFlags() {
 		log.Fatal(err)
 	}
 	flag.StringVar(&ipDBPath, "ipdb-path", filepath.Join(dir, "ip.db"), "ip db file path")
+	flag.StringVar(&confPath, "conf-path", filepath.Join(file.UserHome(), ".skywire", "discovery", "conf.json"), "config file path")
 	flag.Parse()
 }
 
@@ -44,7 +47,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer util.IPLocator.Close()
-
+	err = producer.Init(confPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
