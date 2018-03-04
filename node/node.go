@@ -119,8 +119,8 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 		})
 		if err != nil {
 			log.Errorf("failed to connect addr(%s) err %v", addr, err)
+			return err
 		}
-		return err
 	}
 	return
 }
