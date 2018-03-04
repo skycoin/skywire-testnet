@@ -43,13 +43,17 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 	var nt = time.Time{}
 	maxBuf := make([]byte, conn.MTU)
 	for {
-		rt = time.Now()
-		n, addr, err := c.UdpConn.ReadFromUDP(maxBuf)
-		c.GetContextLogger().Debugf("process read udp d %s", time.Now().Sub(rt))
-		if !lst.IsZero() {
-			c.GetContextLogger().Debugf("read udp d %s", time.Now().Sub(lst))
+		if conn.DEV {
+			if !lst.IsZero() {
+				c.GetContextLogger().Debugf("process udp d %s", time.Now().Sub(lst))
+			}
+			rt = time.Now()
 		}
-		lst = time.Now()
+		n, addr, err := c.UdpConn.ReadFromUDP(maxBuf)
+		if conn.DEV {
+			c.GetContextLogger().Debugf("process read udp d %s", time.Now().Sub(rt))
+			lst = time.Now()
+		}
 		if err != nil {
 			if e, ok := err.(net.Error); ok {
 				if e.Timeout() {
@@ -78,11 +82,15 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 		t := m[msg.MSG_TYPE_BEGIN]
 		switch t {
 		case msg.TYPE_ACK:
-			at = time.Now()
+			if conn.DEV {
+				at = time.Now()
+			}
 			wrapForClient(cc, func() error {
 				return cc.RecvAck(m)
 			})
-			c.GetContextLogger().Debugf("process ack d %s", time.Now().Sub(at))
+			if conn.DEV {
+				c.GetContextLogger().Debugf("process ack d %s", time.Now().Sub(at))
+			}
 		case msg.TYPE_PONG:
 		case msg.TYPE_PING:
 			wrapForClient(cc, func() error {
@@ -93,13 +101,18 @@ func (c *ServerUDPConn) ReadLoop(fn func(c *net.UDPConn, addr *net.UDPAddr) *con
 				return cc.WriteExt(pkg)
 			})
 		case msg.TYPE_NORMAL, msg.TYPE_FEC, msg.TYPE_SYN:
-			nt = time.Now()
+			if conn.DEV {
+				nt = time.Now()
+			}
 			wrapForClient(cc, func() error {
 				return cc.Process(t, m)
 			})
-			c.GetContextLogger().Debugf("process normal d %s", time.Now().Sub(nt))
+			if conn.DEV {
+				c.GetContextLogger().Debugf("process normal d %s", time.Now().Sub(nt))
+			}
 		case msg.TYPE_FIN:
 			wrapForClient(cc, func() error {
+				cc.GetContextLogger().Debug("process fin")
 				return conn.ErrFin
 			})
 		default:

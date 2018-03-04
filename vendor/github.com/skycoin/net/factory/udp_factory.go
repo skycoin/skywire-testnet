@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"errors"
+	"fmt"
+	"github.com/skycoin/net/msg"
 	"net"
 	"sync"
 	"time"
@@ -20,6 +23,9 @@ type UDPFactory struct {
 	udpConnMap      map[string]*Connection
 
 	stopGC chan struct{}
+
+	BeforeReadOnConn func(m *msg.UDPMessage)
+	BeforeSendOnConn func(m *msg.UDPMessage)
 }
 
 func NewUDPFactory() *UDPFactory {
@@ -77,18 +83,23 @@ func (factory *UDPFactory) createConn(c *net.UDPConn, addr *net.UDPAddr) *conn.U
 	}
 
 	udpConn := conn.NewUDPConn(c, addr)
+	udpConn.BeforeRead = factory.BeforeReadOnConn
+	udpConn.BeforeSend = factory.BeforeSendOnConn
 	udpConn.SetStatusToConnected()
 	connection := newConnection(udpConn, factory)
 	factory.udpConnMap[addr.String()] = connection
 	factory.udpConnMapMutex.Unlock()
 
-	connection.SetContextLogger(connection.GetContextLogger().WithField("type", "udp").WithField("addr", addr.String()))
+	connection.SetContextLogger(connection.GetContextLogger().WithField("type", "udp").
+		WithField("addr", addr.String()).
+		WithField("udp_factory", fmt.Sprintf("%p", factory)).
+		WithField("dir", "in"))
 	factory.AddAcceptedConn(connection)
 	go factory.AcceptedCallback(connection)
 	return udpConn
 }
 
-func (factory *UDPFactory) createConnAfterListen(addr *net.UDPAddr) (*Connection, bool) {
+func (factory *UDPFactory) createConnAfterListen(addr *net.UDPAddr, skipBeforeCallbacks bool) (*Connection, bool) {
 	factory.udpConnMapMutex.Lock()
 	if cc, ok := factory.udpConnMap[addr.String()]; ok {
 		factory.udpConnMapMutex.Unlock()
@@ -100,6 +111,10 @@ func (factory *UDPFactory) createConnAfterListen(addr *net.UDPAddr) (*Connection
 	factory.fieldsMutex.Unlock()
 
 	udpConn := conn.NewUDPConn(ln, addr)
+	if !skipBeforeCallbacks {
+		udpConn.BeforeRead = factory.BeforeReadOnConn
+		udpConn.BeforeSend = factory.BeforeSendOnConn
+	}
 	udpConn.SendPing = true
 	udpConn.SetStatusToConnected()
 	connection := newConnection(udpConn, factory)
@@ -121,6 +136,7 @@ func (factory *UDPFactory) GC() {
 			factory.udpConnMapMutex.RLock()
 			for k, udp := range factory.udpConnMap {
 				if nowUnix-udp.GetLastTime() >= conn.UDP_GC_PERIOD {
+					udp.SetStatusToError(errors.New("udp gc timeout"))
 					udp.Close()
 					closed = append(closed, k)
 				}
@@ -150,21 +166,27 @@ func (factory *UDPFactory) Connect(address string) (conn *Connection, err error)
 	cn := client.NewClientUDPConn(udp, addr)
 	cn.SetStatusToConnected()
 	conn = newConnection(cn, factory)
-	conn.SetContextLogger(conn.GetContextLogger().WithField("type", "udp"))
+	conn.SetContextLogger(conn.GetContextLogger().
+		WithField("type", "udp").
+		WithField("udp_factory", fmt.Sprintf("%p", factory)).
+		WithField("dir", "out"))
 	factory.AddConn(conn)
 	return
 }
 
-func (factory *UDPFactory) ConnectAfterListen(address string) (conn *Connection, err error) {
+func (factory *UDPFactory) ConnectAfterListen(address string, skipBeforeCallbacks bool) (conn *Connection, err error) {
 	ra, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
 		return
 	}
-	conn, create := factory.createConnAfterListen(ra)
+	conn, create := factory.createConnAfterListen(ra, skipBeforeCallbacks)
 	if !create {
 		return nil, nil
 	}
-	conn.SetContextLogger(conn.GetContextLogger().WithField("type", "udpe").WithField("addr", address))
+	conn.SetContextLogger(conn.GetContextLogger().
+		WithField("type", "udpe").
+		WithField("udp_factory", fmt.Sprintf("%p", factory)).
+		WithField("addr", address))
 	return
 }
 

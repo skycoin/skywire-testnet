@@ -53,6 +53,10 @@ type UDPConn struct {
 	*fecDecoder
 
 	closed bool
+
+	// callbacks
+	BeforeSend func(m *msg.UDPMessage)
+	BeforeRead func(m *msg.UDPMessage)
 }
 
 const (
@@ -276,6 +280,9 @@ func (c *UDPConn) writePendingMsgs() (err error) {
 		tx := !m.IsTransmitted()
 		if tx {
 			m.SetSeq(c.GetNextSeq())
+			if c.BeforeSend != nil {
+				c.BeforeSend(m)
+			}
 			c.GetContextLogger().Debugf("new msg seq %d", m.GetSeq())
 		} else {
 			c.GetContextLogger().Debugf("resend msg seq %d", m.GetSeq())
@@ -440,6 +447,9 @@ func (c *UDPConn) process(t byte, seq uint32, m []byte) (err error) {
 					return
 				}
 			}
+			if c.BeforeRead != nil {
+				c.BeforeRead(m)
+			}
 			c.In <- m.Body
 		}
 	}
@@ -571,7 +581,7 @@ func (c *UDPConn) GetNextSeq() uint32 {
 	return atomic.AddUint32(&c.seq, 1)
 }
 
-func (c *UDPConn) IsClose() (r bool) {
+func (c *UDPConn) IsClosed() (r bool) {
 	c.FieldsMutex.RLock()
 	r = c.closed
 	c.FieldsMutex.RUnlock()
@@ -581,6 +591,7 @@ func (c *UDPConn) IsClose() (r bool) {
 func (c *UDPConn) Close() {
 	c.FieldsMutex.Lock()
 	if c.closed {
+		c.FieldsMutex.Unlock()
 		return
 	}
 	c.closed = true
@@ -1144,8 +1155,8 @@ func (ca *ca) isCwndFull() (r bool) {
 func (ca *ca) setCwnd(cwnd uint32) {
 	if cwnd < 4 {
 		cwnd = 4
-	} else if cwnd > 200 {
-		cwnd = 200
+	} else if cwnd > MAX_CWND {
+		cwnd = MAX_CWND
 	}
 
 	ca.cwndMtx.Lock()

@@ -53,6 +53,9 @@ const (
 	OP_REG_KEY
 	OP_REG_SIG
 
+	// POW
+	OP_POW
+
 	OP_SIZE
 )
 

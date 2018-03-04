@@ -18,8 +18,8 @@ const (
 
 const (
 	TCP_PINGTICK_PERIOD  = 60
-	UDP_PING_TICK_PERIOD = 5
-	UDP_GC_PERIOD        = 30
+	UDP_PING_TICK_PERIOD = 20
+	UDP_GC_PERIOD        = 90
 )
 
 const (
@@ -30,6 +30,8 @@ const (
 	MTU = 1500
 
 	MIN_RTO = 50 * time.Millisecond
+
+	MAX_CWND = 300
 )
 
 const (
@@ -70,4 +72,4 @@ const (
 	probeBW
 )
 
-var ErrFin = errors.New("eof")
+var ErrFin = errors.New("fin")

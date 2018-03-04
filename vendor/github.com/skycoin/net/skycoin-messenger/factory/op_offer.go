@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync"
 	"fmt"
+	"github.com/skycoin/net/util"
 )
 
 func init() {
@@ -34,18 +35,21 @@ func (offer *offer) UnmarshalJSON(data []byte) (err error) {
 }
 
 func (offer *offer) Execute(f *MessengerFactory, conn *Connection) (r resp, err error) {
+	remoteAddr := conn.GetRemoteAddr().String()
+	host, _, err := net.SplitHostPort(remoteAddr)
 	if len(offer.Services.ServiceAddress) > 0 {
-		var host, port string
+		var port string
 		_, port, err = net.SplitHostPort(offer.Services.ServiceAddress)
 		if err != nil {
 			return
 		}
-		remote := conn.GetRemoteAddr().String()
-		host, _, err = net.SplitHostPort(remote)
 		if err != nil {
 			return
 		}
 		offer.Services.ServiceAddress = net.JoinHostPort(host, port)
+	}
+	if util.IPLocator.IsOK() {
+		offer.Services.Location = util.IPLocator.LookupLocation(host)
 	}
 	err = f.discoveryRegister(conn, offer.Services)
 	return

@@ -40,6 +40,9 @@ type Connection struct {
 	appTransports      map[cipher.PubKey]*Transport
 	appTransportsMutex sync.RWMutex
 
+	CreatedByTransport *Transport
+	transportPair      *transportPair
+
 	connectTime int64
 
 	skipFactoryReg bool
@@ -429,8 +432,9 @@ OUTER:
 							return
 						}
 					}
+					c.GetContextLogger().Debugf("executing op %#v", r)
 					err = r.Run(c)
-					c.GetContextLogger().Debugf("execute op %#v err %v", r, err)
+					c.GetContextLogger().Debugf("executed op %#v err %v", r, err)
 					if err != nil {
 						if err == ErrDetach {
 							err = nil
@@ -465,12 +469,6 @@ func (c *Connection) GetChanIn() <-chan []byte {
 }
 
 func (c *Connection) Close() {
-	if c.reconnect != nil {
-		go c.reconnect()
-	}
-	if c.onDisconnected != nil {
-		c.onDisconnected(c)
-	}
 	c.keySetCond.Broadcast()
 	c.fieldsMutex.Lock()
 	defer c.fieldsMutex.Unlock()
@@ -478,6 +476,12 @@ func (c *Connection) Close() {
 		return
 	}
 	c.closed = true
+	if c.reconnect != nil {
+		go c.reconnect()
+	}
+	if c.onDisconnected != nil {
+		c.onDisconnected(c)
+	}
 	if c.keySet {
 		if !c.skipFactoryReg {
 			c.factory.unregister(c.key, c)
@@ -488,14 +492,17 @@ func (c *Connection) Close() {
 		close(c.in)
 	}
 
-	c.appTransportsMutex.RLock()
-	defer c.appTransportsMutex.RUnlock()
+	if c.transportPair != nil {
+		c.transportPair.close()
+	}
 
+	c.appTransportsMutex.RLock()
 	if len(c.appTransports) > 0 {
 		for _, v := range c.appTransports {
 			v.Close()
 		}
 	}
+	c.appTransportsMutex.RUnlock()
 
 	c.Connection.Close()
 }
@@ -507,9 +514,10 @@ func (c *Connection) WaitForKey() (err error) {
 		close(ok)
 	}()
 	select {
-	case <-time.After(15 * time.Second):
-		c.Close()
+	case <-time.After(10 * time.Second):
 		err = errors.New("reg timeout")
+		c.SetStatusToError(err)
+		c.Close()
 	case <-ok:
 	}
 	return err
@@ -543,19 +551,38 @@ func (c *Connection) writeOPSyn(op byte, object interface{}) error {
 	return c.WriteSyn(data)
 }
 
-func (c *Connection) setTransport(to cipher.PubKey, tr *Transport) {
+// Set transport if key is not exists. Delete the transport of the key if tr is nil
+func (c *Connection) setTransportIfNotExists(key cipher.PubKey, tr *Transport) (exists bool) {
 	c.appTransportsMutex.Lock()
 	if tr == nil {
-		delete(c.appTransports, to)
+		delete(c.appTransports, key)
 	} else {
-		c.appTransports[to] = tr
+		_, exists = c.appTransports[key]
+		if !exists {
+			c.appTransports[key] = tr
+		}
 	}
 	c.appTransportsMutex.Unlock()
+	return
 }
 
-func (c *Connection) getTransport(to cipher.PubKey) (tr *Transport, ok bool) {
+func (c *Connection) deleteTransport(key cipher.PubKey) {
+	c.appTransportsMutex.Lock()
+	delete(c.appTransports, key)
+	c.appTransportsMutex.Unlock()
+	return
+}
+
+func (c *Connection) setTransport(key cipher.PubKey, tr *Transport) {
+	c.appTransportsMutex.Lock()
+	c.appTransports[key] = tr
+	c.appTransportsMutex.Unlock()
+	return
+}
+
+func (c *Connection) getTransport(key cipher.PubKey) (tr *Transport, ok bool) {
 	c.appTransportsMutex.RLock()
-	tr, ok = c.appTransports[to]
+	tr, ok = c.appTransports[key]
 	c.appTransportsMutex.RUnlock()
 	return
 }
@@ -657,5 +684,18 @@ func (c *Connection) SetCrypto(pk cipher.PubKey, sk cipher.SecKey, target cipher
 		}
 	}
 	c.Connection.SetCrypto(crypto)
+	return
+}
+
+func (c *Connection) SetTransportPair(pair *transportPair) {
+	c.fieldsMutex.Lock()
+	c.transportPair = pair
+	c.fieldsMutex.Unlock()
+}
+
+func (c *Connection) GetTransportPair() (pair *transportPair) {
+	c.fieldsMutex.RLock()
+	pair = c.transportPair
+	c.fieldsMutex.RUnlock()
 	return
 }

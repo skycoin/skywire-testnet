@@ -14,6 +14,18 @@
   version = "v1.9.2"
 
 [[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/sdkrand","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/xml/xmlutil","service/sqs","service/sts"]
+  revision = "aace5875a5c3b85a3902c6d72b9caed301d64cce"
+  version = "v1.13.8"
+
+[[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
+  version = "v1.32.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
@@ -24,6 +36,11 @@
   packages = ["."]
   revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
   version = "v1.2.0"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/klauspost/cpuid"
@@ -48,6 +65,12 @@
   packages = ["."]
   revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
   version = "v1"
+
+[[projects]]
+  name = "github.com/oschwald/maxminddb-golang"
+  packages = ["."]
+  revision = "c5bec84d1963260297932a1b7a1753c8420717a7"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -76,8 +99,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/skycoin/net"
-  packages = ["client","conn","factory","msg","server","skycoin-messenger/factory","skycoin-messenger/monitor","util"]
-  revision = "4bcee2eb0c36a33dd22757247c83ab7e78c50834"
+  packages = ["client","conn","factory","msg","server","skycoin-messenger/factory","skycoin-messenger/monitor","util","util/producer"]
+  revision = "cf999f6e3f7656ab00fe220ee9608429d5259aee"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"

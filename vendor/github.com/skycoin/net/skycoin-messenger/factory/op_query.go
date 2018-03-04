@@ -102,7 +102,7 @@ func (query *queryByAttrs) Execute(f *MessengerFactory, conn *Connection) (r res
 }
 
 type QueryByAttrsResp struct {
-	Result map[string][]cipher.PubKey
+	Result *AttrNodesInfo
 	Seq    uint32
 }
 

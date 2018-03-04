@@ -194,7 +194,11 @@ func (reg *regCheckSig) Execute(f *MessengerFactory, conn *Connection) (r resp, 
 		err = errors.New("public key invalid")
 		return
 	}
-	if reg.Version == RegWithKeyAndEncryptionVersion && conn.GetCrypto() != nil {
+	if reg.Version == RegWithKeyAndEncryptionVersion {
+		if conn.GetCrypto() == nil {
+			err = errors.New("regCheckSig conn crypto is nil")
+			return
+		}
 		n, ok := conn.context.Load(randomBytes)
 		if !ok {
 			err = errors.New("hash not found")

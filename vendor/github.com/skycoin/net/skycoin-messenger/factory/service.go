@@ -9,14 +9,15 @@ import (
 type Service struct {
 	Key               cipher.PubKey
 	Attributes        []string `json:",omitempty"`
-	Address           string
-	HideFromDiscovery bool
-	AllowNodes        []string
+	Address           string   `json:",omitempty"`
+	HideFromDiscovery bool     `json:",omitempty"`
+	AllowNodes        []string `json:",omitempty"`
 }
 
 type NodeServices struct {
 	Services       []*Service
-	ServiceAddress string
+	ServiceAddress string `json:",omitempty"`
+	Location       string `json:",omitempty"`
 }
 
 type ServiceNodes struct {
@@ -230,9 +231,19 @@ func (sd *serviceDiscovery) findServiceAddresses(keys []cipher.PubKey, exclude c
 	return
 }
 
+type AttrNodesInfo struct {
+	Nodes []*AttrNodeInfo
+}
+
+type AttrNodeInfo struct {
+	Node     cipher.PubKey
+	Apps     []cipher.PubKey
+	Location string
+}
+
 // find public keys of nodes by subscription attrs
 // return intersect map of node key => sub keys
-func (sd *serviceDiscovery) findByAttributes(attrs ...string) map[string][]cipher.PubKey {
+func (sd *serviceDiscovery) findByAttributes(attrs ...string) (result *AttrNodesInfo) {
 	if len(attrs) < 1 {
 		return nil
 	}
@@ -249,17 +260,28 @@ func (sd *serviceDiscovery) findByAttributes(attrs ...string) map[string][]ciphe
 	}
 
 	keys := intersectKeys(maps)
-	nodes := make(map[string][]cipher.PubKey)
+	nodes := make(map[cipher.PubKey]*AttrNodeInfo)
+	result = &AttrNodesInfo{}
 	for _, key := range keys {
 		m, ok := sd.subscription2Subscriber[key]
 		if !ok {
 			continue
 		}
-		for k := range m.Nodes {
-			nodes[k.Hex()] = append(nodes[k.Hex()], key)
+		for k, v := range m.Nodes {
+			var info *AttrNodeInfo
+			info, ok := nodes[k]
+			if !ok {
+				info = &AttrNodeInfo{
+					Node:     k,
+					Location: v.Location,
+				}
+				nodes[k] = info
+				result.Nodes = append(result.Nodes, info)
+			}
+			info.Apps = append(info.Apps, key)
 		}
 	}
-	return nodes
+	return
 }
 
 func mapKeys(m map[cipher.PubKey]struct{}) (keys []cipher.PubKey) {

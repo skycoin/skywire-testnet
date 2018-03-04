@@ -47,6 +47,8 @@ type Connection interface {
 
 	SetCrypto(crypto *Crypto)
 	GetCrypto() *Crypto
+
+	SetStatusToError(err error)
 }
 
 type ConnCommonFields struct {
@@ -113,13 +115,13 @@ func (c *ConnCommonFields) SetStatusToError(err error) {
 }
 
 func (c *ConnCommonFields) GetStatusError() (err error) {
-	c.FieldsMutex.Lock()
+	c.FieldsMutex.RLock()
 	if c.Status != STATUS_ERROR {
-		c.FieldsMutex.Unlock()
+		c.FieldsMutex.RUnlock()
 		return
 	}
 	err = c.err
-	c.FieldsMutex.Unlock()
+	c.FieldsMutex.RUnlock()
 	return
 }
 
