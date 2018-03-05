@@ -83,12 +83,13 @@ func (p *transportPair) close() {
 }
 
 func (p *transportPair) submitTicket(ticket *workTicket) (ok uint, err error) {
+	clone := *ticket
 	p.ticketsMutex.Lock()
 	defer p.ticketsMutex.Unlock()
 
 	if len(ticket.Codes) > 0 {
 		if p.lastTicket == nil {
-			p.lastTicket = ticket
+			p.lastTicket = &clone
 			return
 		}
 		t := p.lastTicket
@@ -105,7 +106,7 @@ func (p *transportPair) submitTicket(ticket *workTicket) (ok uint, err error) {
 
 	t, o := p.tickets[ticket.Seq]
 	if !o {
-		p.tickets[ticket.Seq] = ticket
+		p.tickets[ticket.Seq] = &clone
 		return
 	}
 	delete(p.tickets, ticket.Seq)

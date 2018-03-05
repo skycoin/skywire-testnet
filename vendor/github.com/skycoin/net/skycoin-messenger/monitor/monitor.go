@@ -28,7 +28,7 @@ func init() {
 		CookieName:      "SWSId",
 		EnableSetCookie: true,
 		Gclifetime:      3600,
-		Maxlifetime:     3600,
+		Maxlifetime:     86400,
 		Secure:          false,
 		CookieLifeTime:  3600,
 		ProviderConfig:  "./tmp",

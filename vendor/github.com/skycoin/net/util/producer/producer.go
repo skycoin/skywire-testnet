@@ -78,9 +78,6 @@ func Send(body *MqBody) (err error) {
 		MessageBody: aws.String(string(b)),
 		QueueUrl:    aws.String(conf.QueueURL),
 	})
-	if err != nil {
-		return
-	}
 	return
 }
 

@@ -9,13 +9,42 @@
 
 [[projects]]
   name = "github.com/astaxie/beego"
-  packages = ["session","utils"]
+  packages = [
+    "session",
+    "utils"
+  ]
   revision = "bf5c5626ab429e66d88602e1ab1ab5fbf4629a01"
   version = "v1.9.2"
 
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
-  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/sdkrand","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/xml/xmlutil","service/sqs","service/sts"]
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/corehandlers",
+    "aws/credentials",
+    "aws/credentials/ec2rolecreds",
+    "aws/credentials/endpointcreds",
+    "aws/credentials/stscreds",
+    "aws/defaults",
+    "aws/ec2metadata",
+    "aws/endpoints",
+    "aws/request",
+    "aws/session",
+    "aws/signer/v4",
+    "internal/sdkrand",
+    "internal/shareddefaults",
+    "private/protocol",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/xml/xmlutil",
+    "service/sqs",
+    "service/sts"
+  ]
   revision = "aace5875a5c3b85a3902c6d72b9caed301d64cce"
   version = "v1.13.8"
 
@@ -99,30 +128,60 @@
 [[projects]]
   branch = "master"
   name = "github.com/skycoin/net"
-  packages = ["client","conn","factory","msg","server","skycoin-messenger/factory","skycoin-messenger/monitor","util","util/producer"]
-  revision = "cf999f6e3f7656ab00fe220ee9608429d5259aee"
+  packages = [
+    "client",
+    "conn",
+    "factory",
+    "msg",
+    "server",
+    "skycoin-messenger/factory",
+    "skycoin-messenger/monitor",
+    "util",
+    "util/producer"
+  ]
+  revision = "115377f420ef7f97da222839ce96a2937c0d76c1"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"
-  packages = ["src/cipher","src/cipher/base58","src/cipher/chacha20","src/cipher/go-bip39","src/cipher/ripemd160","src/cipher/secp256k1-go","src/cipher/secp256k1-go/secp256k1-go2","src/util/file","src/util/logging"]
+  packages = [
+    "src/cipher",
+    "src/cipher/base58",
+    "src/cipher/chacha20",
+    "src/cipher/go-bip39",
+    "src/cipher/ripemd160",
+    "src/cipher/secp256k1-go",
+    "src/cipher/secp256k1-go/secp256k1-go2",
+    "src/util/file",
+    "src/util/logging"
+  ]
   revision = "b200e2c40ebbce316ae2f40e68d9dd7ff907da33"
   version = "v0.20.3"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["bcrypt","blowfish","cast5","pbkdf2","salsa20/salsa","ssh/terminal"]
+  packages = [
+    "bcrypt",
+    "blowfish",
+    "cast5",
+    "pbkdf2",
+    "salsa20/salsa",
+    "ssh/terminal"
+  ]
   revision = "edd5e9b0879d13ee6970a50153d85b8fec9f7686"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "8dbc5d05d6edcc104950cc299a1ce6641235bc86"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5eb8a52451a9122edb36a3f9c056295f59e94679b4ab1d2d143f048d63075b08"
+  inputs-digest = "ce0185a8692c21cc401d2385cca70c96ee254b6dccb8b9f700def621f4cda260"
   solver-name = "gps-cdcl"
   solver-version = 1
