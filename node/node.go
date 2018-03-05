@@ -82,46 +82,51 @@ func (n *Node) Start(discoveries Addresses, address string) (err error) {
 	}
 
 	for _, addr := range discoveries {
-		n.onDiscoveries.Store(addr, false)
-		split := strings.Split(addr, "-")
-		if len(split) != 2 {
-			err = fmt.Errorf("discovery address %s is not valid", addr)
-			return err
-		}
-		tk, err := cipher.PubKeyFromHex(split[1])
-		if err != nil {
-			err = fmt.Errorf("discovery address %s is not valid", addr)
-			return err
-		}
-		err = n.apps.ConnectWithConfig(split[0], &factory.ConnConfig{
-			TargetKey:     tk,
-			Reconnect:     true,
-			ReconnectWait: 10 * time.Second,
-			OnConnected: func(connection *factory.Connection) {
-				go func() {
-					for {
-						select {
-						case m, ok := <-connection.GetChanIn():
-							if !ok {
-								return
-							}
-							log.Debugf("discoveries:%x", m)
-						}
-					}
-				}()
-				n.apps.ResyncToDiscovery(connection)
-				n.onDiscoveries.Store(addr, true)
-			},
-			OnDisconnected: func(connection *factory.Connection) {
-				n.onDiscoveries.Store(addr, false)
-			},
-			FindServiceNodesByAttributesCallback: n.searchResultCallback,
-		})
+		err = n.connectDiscovery(addr)
 		if err != nil {
 			log.Errorf("failed to connect addr(%s) err %v", addr, err)
 			return err
 		}
 	}
+	return
+}
+
+func (n *Node) connectDiscovery(addr string) (err error) {
+	n.onDiscoveries.Store(addr, false)
+	split := strings.Split(addr, "-")
+	if len(split) != 2 {
+		err = fmt.Errorf("discovery address %s is not valid", addr)
+		return
+	}
+	tk, err := cipher.PubKeyFromHex(split[1])
+	if err != nil {
+		err = fmt.Errorf("discovery address %s is not valid", addr)
+		return
+	}
+	err = n.apps.ConnectWithConfig(split[0], &factory.ConnConfig{
+		TargetKey:     tk,
+		Reconnect:     true,
+		ReconnectWait: 10 * time.Second,
+		OnConnected: func(connection *factory.Connection) {
+			go func() {
+				for {
+					select {
+					case m, ok := <-connection.GetChanIn():
+						if !ok {
+							return
+						}
+						log.Debugf("discoveries:%x", m)
+					}
+				}
+			}()
+			n.apps.ResyncToDiscovery(connection)
+			n.onDiscoveries.Store(addr, true)
+		},
+		OnDisconnected: func(connection *factory.Connection) {
+			n.onDiscoveries.Store(addr, false)
+		},
+		FindServiceNodesByAttributesCallback: n.searchResultCallback,
+	})
 	return
 }
 
