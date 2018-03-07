@@ -17,6 +17,7 @@ func New(seedPath, address, webAddress, webDir string) *Discovery {
 	m := factory.NewMessengerFactory()
 	m.SetDefaultSeedConfigPath(seedPath)
 	m.SetLoggerLevel(factory.DebugLevel)
+	m.SetAppVersion(Version)
 	mon := monitor.New(m, address, webAddress, "", "")
 	return &Discovery{
 		messenger: m,

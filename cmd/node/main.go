@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/node"
@@ -14,6 +15,8 @@ import (
 var (
 	config   node.Config
 	confPath string
+
+	version bool
 )
 
 func parseFlags() {
@@ -27,11 +30,16 @@ func parseFlags() {
 	flag.StringVar(&config.WebPort, "web-port", ":6001", "monitor web page port")
 	flag.StringVar(&config.AutoStartPath, "auto-start-path", filepath.Join(file.UserHome(), ".skywire", "node", "autoStart.json"), "path to save launch info")
 	flag.StringVar(&confPath, "conf", filepath.Join(file.UserHome(), ".skywire", "node", "conf.json"), "node default config")
+	flag.BoolVar(&version, "v", false, "print current version")
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+	if version {
+		fmt.Println(node.Version)
+		return
+	}
 
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)

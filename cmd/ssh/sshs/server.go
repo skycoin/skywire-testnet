@@ -2,12 +2,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/app"
 	"os"
 	"os/signal"
 	"path/filepath"
+)
+
+const (
+	Version = "1.0.0"
 )
 
 var (
@@ -18,6 +23,8 @@ var (
 	seedPath string
 	// allow node public keys to connect
 	nodeKeys app.NodeKeys
+
+	version bool
 )
 
 func parseFlags() {
@@ -25,16 +32,21 @@ func parseFlags() {
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "sshs", "keys.json"), "path to save seed info")
 	flag.Var(&nodeKeys, "node-key", "allow node public keys to connect")
+	flag.BoolVar(&version, "v", false, "print current version")
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+	if version {
+		fmt.Println(Version)
+		return
+	}
 
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(app.Private, "sshs", ":22")
+	a := app.NewServer(app.Private, "sshs", ":22", Version)
 	a.SetAllowNodes(nodeKeys)
 	if !seed {
 		seedPath = ""

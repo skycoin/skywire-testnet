@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -15,6 +16,10 @@ import (
 	"github.com/skycoin/skywire/app"
 )
 
+const (
+	Version = "1.0.0"
+)
+
 var (
 	nodeAddress   string
 	listenAddress string
@@ -26,6 +31,8 @@ var (
 	nodeKey string
 	// connect to app
 	appKey string
+
+	version bool
 )
 
 func parseFlags() {
@@ -35,11 +42,16 @@ func parseFlags() {
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "sc", "keys.json"), "path to save seed info")
 	flag.StringVar(&nodeKey, "node-key", "", "connect to node key")
 	flag.StringVar(&appKey, "app-key", "", "connect to app key")
+	flag.BoolVar(&version, "v", false, "print current version")
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+	if version {
+		fmt.Println(Version)
+		return
+	}
 
 	_, p, err := net.SplitHostPort(listenAddress)
 	if err != nil {
@@ -55,7 +67,7 @@ func main() {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(app.Client, "socksc", "")
+	a := app.NewClient(app.Client, "socksc", Version)
 	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) *factory.AppFeedback {
 		if resp.Failed {
 			return &factory.AppFeedback{

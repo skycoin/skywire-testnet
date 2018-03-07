@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -13,6 +14,10 @@ import (
 	"github.com/skycoin/skywire/app"
 )
 
+const (
+	Version = "1.0.0"
+)
+
 var (
 	nodeAddress string
 	serverPort  int
@@ -22,6 +27,8 @@ var (
 	seedPath string
 	// allow node public keys to connect
 	nodeKeys app.NodeKeys
+
+	version bool
 )
 
 func parseFlags() {
@@ -30,11 +37,16 @@ func parseFlags() {
 	flag.BoolVar(&seed, "seed", true, "use fixed seed to connect if true")
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "ss", "keys.json"), "path to save seed info")
 	flag.Var(&nodeKeys, "node-key", "allow node public keys to connect")
+	flag.BoolVar(&version, "v", false, "print current version")
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+	if version {
+		fmt.Println(Version)
+		return
+	}
 
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
@@ -44,7 +56,7 @@ func main() {
 	}
 	ss.SetDebug(true)
 	appmain()
-	a := app.New(app.Public, "sockss", ":"+strconv.Itoa(serverPort))
+	a := app.NewServer(app.Public, "sockss", ":"+strconv.Itoa(serverPort), Version)
 	a.SetAllowNodes(nodeKeys)
 
 	if !seed {

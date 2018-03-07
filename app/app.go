@@ -15,6 +15,7 @@ type App struct {
 	serviceAddr string
 	appType     Type
 	allowNodes  NodeKeys
+	Version     string
 
 	AppConnectionInitCallback func(resp *factory.AppConnResp) *factory.AppFeedback
 }
@@ -38,10 +39,27 @@ const (
 	Private
 )
 
-func New(appType Type, service, addr string) *App {
+func NewServer(appType Type, service, addr, version string) *App {
 	messengerFactory := factory.NewMessengerFactory()
 	messengerFactory.SetLoggerLevel(factory.DebugLevel)
-	return &App{net: messengerFactory, service: service, serviceAddr: addr, appType: appType}
+	return &App{
+		net:         messengerFactory,
+		service:     service,
+		serviceAddr: addr,
+		appType:     appType,
+		Version:     version,
+	}
+}
+
+func NewClient(appType Type, service, version string) *App {
+	messengerFactory := factory.NewMessengerFactory()
+	messengerFactory.SetLoggerLevel(factory.DebugLevel)
+	return &App{
+		net:     messengerFactory,
+		service: service,
+		appType: appType,
+		Version: version,
+	}
 }
 
 func (app *App) Start(addr, scPath string) error {
@@ -50,11 +68,11 @@ func (app *App) Start(addr, scPath string) error {
 		OnConnected: func(connection *factory.Connection) {
 			switch app.appType {
 			case Public:
-				connection.OfferServiceWithAddress(app.serviceAddr, app.service)
+				connection.OfferServiceWithAddress(app.serviceAddr, app.Version, app.service)
 			case Client:
 				fallthrough
 			case Private:
-				connection.OfferPrivateServiceWithAddress(app.serviceAddr, app.allowNodes, app.service)
+				connection.OfferPrivateServiceWithAddress(app.serviceAddr, app.Version, app.allowNodes, app.service)
 			}
 		},
 		OnDisconnected: func(connection *factory.Connection) {
