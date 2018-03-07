@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+cd ${GOPATH}/src/github.com/skycoin/skywire
+[ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | \
+sed 's/\// /g') | cut -f1) ] && echo "false" || echo "true"

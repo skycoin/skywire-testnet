@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
 
-echo "test exec start" > /tmp/tmp2.txt
-
-#cd ${GOPATH}/src/github.com/skycoin/skywire/cmd
-#go install ./...
+cd ${GOPATH}/src/github.com/skycoin/skywire/cmd
+go install ./...

@@ -103,6 +103,7 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/sockss", wrap(na.runSockss))
 	http.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
 	http.HandleFunc("/node/run/update", wrap(na.update))
+	http.HandleFunc("/node/run/checkUpdate", wrap(na.checkUpdate))
 	http.HandleFunc("/node/run/updateProcess", wrap(na.updateProcess))
 	http.HandleFunc("/node/run/setNodeConfig", wrap(na.setNodeConfig))
 	http.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
@@ -415,31 +416,49 @@ func (na *NodeApi) startSockss() (err error) {
 	return
 }
 
-var updated = "true"
+var scriptPath = "/src/github.com/skycoin/skywire/static/script/"
+
+func (na *NodeApi) checkUpdate(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	var cmd *exec.Cmd
+	var gopath = os.Getenv("GOPATH")
+	osName := runtime.GOOS
+	if osName == "windows" {
+		cmd = exec.Command("cmd", "/C", filepath.Join(gopath, fmt.Sprintf("%s%s", scriptPath, "win/check.bat")))
+	} else {
+		cmd = exec.Command(filepath.Join(gopath, fmt.Sprintf("%s%s", scriptPath, "unix/check")))
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return
+	}
+	result = out
+	return
+}
+
+var upgradeProgress = "true"
 
 func (na *NodeApi) updateProcess(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	result = []byte(updated)
+	result = []byte(upgradeProgress)
 	return
 }
 
 func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	var cmd *exec.Cmd
-	var dir = "/src/github.com/skycoin/skywire/static/script/"
 	var gopath = os.Getenv("GOPATH")
 	osName := runtime.GOOS
 	if osName == "windows" {
-		cmd = exec.Command("cmd", "/C", filepath.Join(gopath, fmt.Sprintf("%s%s", dir, "win/update-skywire.bat")))
+		cmd = exec.Command("cmd", "/C", filepath.Join(gopath, fmt.Sprintf("%s%s", scriptPath, "win/update-skywire.bat")))
 	} else {
-		cmd = exec.Command(filepath.Join(gopath, fmt.Sprintf("%s%s", dir, "unix/update-skywire")))
+		cmd = exec.Command(filepath.Join(gopath, fmt.Sprintf("%s%s", scriptPath, "unix/update-skywire")))
 	}
-	updated = "false"
+	upgradeProgress = "false"
 	err = cmd.Start()
 	if err != nil {
 		return
 	}
 	go func() {
 		cmd.Wait()
-		updated = "true"
+		upgradeProgress = "true"
 	}()
 	result = []byte("true")
 	return
@@ -478,7 +497,6 @@ func (na *NodeApi) updateNode(w http.ResponseWriter, r *http.Request) (result []
 	result = []byte("true")
 	return
 }
-
 
 func (na *NodeApi) restart() (err error) {
 	conf, err := node.GetNodeDefaultConfig(na.confPath)
