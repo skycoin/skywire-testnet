@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/util"
 	"github.com/skycoin/net/util/producer"
@@ -20,6 +21,8 @@ var (
 
 	ipDBPath string
 	confPath string
+
+	version bool
 )
 
 func parseFlags() {
@@ -34,14 +37,18 @@ func parseFlags() {
 	}
 	flag.StringVar(&ipDBPath, "ipdb-path", filepath.Join(dir, "ip.db"), "ip db file path")
 	flag.StringVar(&confPath, "conf-path", filepath.Join(file.UserHome(), ".skywire", "discovery", "conf.json"), "config file path")
+	flag.BoolVar(&version, "v", false, "print current version")
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+	if version {
+		fmt.Println(discovery.Version)
+		return
+	}
 
 	var err error
-
 	err = util.IPLocator.Init(ipDBPath)
 	if err != nil {
 		log.Fatal(err)

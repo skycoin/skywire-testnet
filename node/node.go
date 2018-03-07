@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/skycoin/skywire/cmd"
 )
 
 type Addresses []string
@@ -63,8 +62,10 @@ func New(seedPath, launchConfigPath, webPort string) *Node {
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
 	apps.SetDefaultSeedConfigPath(seedPath)
+	apps.SetAppVersion(Version)
 	m := factory.NewMessengerFactory()
 	m.SetDefaultSeedConfigPath(seedPath)
+	m.SetAppVersion(Version)
 	return &Node{
 		apps:             apps,
 		manager:          m,
@@ -205,9 +206,6 @@ type FeedBackItem struct {
 	UnreadMessages int    `json:"unread"`
 }
 
-var version = cmd.NODE_VERSION
-var tag = cmd.NODE_TAG
-
 func (n *Node) GetNodeInfo() (ni NodeInfo) {
 	var ts []NodeTransport
 	var afs []FeedBackItem
@@ -252,8 +250,8 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 		Discoveries:  d,
 		Transports:   ts,
 		AppFeedbacks: afs,
-		Version:      version,
-		Tag:          tag,
+		Version:      Version,
+		Tag:          Tag,
 	}
 	return
 }
@@ -295,9 +293,11 @@ type SearchResult struct {
 }
 
 type SearchResultApp struct {
-	NodeKey  string `json:"node_key"`
-	AppKey   string `json:"app_key"`
-	Location string `json:"location"`
+	NodeKey     string   `json:"node_key"`
+	AppKey      string   `json:"app_key"`
+	Location    string   `json:"location"`
+	Version     string   `json:"version"`
+	NodeVersion []string `json:"node_version"`
 }
 
 func (n *Node) Search(attr string) (seqs []uint32) {
@@ -319,9 +319,11 @@ func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 		for _, v := range resp.Result.Nodes {
 			for _, app := range v.Apps {
 				apps = append(apps, SearchResultApp{
-					NodeKey:  v.Node.Hex(),
-					AppKey:   app.Hex(),
-					Location: v.Location,
+					NodeKey:     v.Node.Hex(),
+					AppKey:      app.Key.Hex(),
+					Location:    v.Location,
+					Version:     app.Version,
+					NodeVersion: v.Version,
 				})
 			}
 		}

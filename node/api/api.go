@@ -479,7 +479,6 @@ func (na *NodeApi) updateNode(w http.ResponseWriter, r *http.Request) (result []
 	return
 }
 
-
 func (na *NodeApi) restart() (err error) {
 	conf, err := node.GetNodeDefaultConfig(na.confPath)
 	if err != nil {

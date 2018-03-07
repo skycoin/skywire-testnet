@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -14,6 +15,10 @@ import (
 	"github.com/skycoin/skywire/app"
 )
 
+const (
+	Version = "1.0.0"
+)
+
 var (
 	nodeAddress string
 	// use fixed seed if true
@@ -24,6 +29,8 @@ var (
 	nodeKey string
 	// connect to app
 	appKey string
+
+	version bool
 )
 
 func parseFlags() {
@@ -32,11 +39,16 @@ func parseFlags() {
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "sshc", "keys.json"), "path to save seed info")
 	flag.StringVar(&nodeKey, "node-key", "", "connect to node key")
 	flag.StringVar(&appKey, "app-key", "", "connect to app key")
+	flag.BoolVar(&version, "v", false, "print current version")
 	flag.Parse()
 }
 
 func main() {
 	parseFlags()
+	if version {
+		fmt.Println(Version)
+		return
+	}
 
 	if len(nodeKey) != 66 || len(appKey) != 66 {
 		log.Fatalf("invalid node-key(%s) or app-key(%s)", nodeKey, appKey)
@@ -45,7 +57,7 @@ func main() {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
-	a := app.New(app.Client, "sshc", "")
+	a := app.NewClient(app.Client, "sshc", Version)
 	a.AppConnectionInitCallback = func(resp *factory.AppConnResp) *factory.AppFeedback {
 		log.Infof("please ssh to %s", net.JoinHostPort(resp.Host, strconv.Itoa(resp.Port)))
 		return &factory.AppFeedback{
