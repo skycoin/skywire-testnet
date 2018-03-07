@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"github.com/skycoin/skywire/cmd"
 )
 
 var (
@@ -22,7 +23,7 @@ var (
 )
 
 func parseFlags() {
-	var dir = "/src/github.com/skycoin/net/skycoin-messenger/monitor/web/dist-manager"
+	var dir = "/src/github.com/skycoin/net/skycoin-messenger/monitor/web/skywire-manager"
 	flag.StringVar(&webDir, "web-dir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
 	flag.StringVar(&webPort, "web-port", ":8000", "monitor web page port")
 	flag.StringVar(&address, "address", ":5998", "address to listen on")
@@ -46,7 +47,7 @@ func main() {
 		log.Error(err)
 		os.Exit(1)
 	}
-	m := monitor.New(f, address, webPort, code, version)
+	m := monitor.New(f, address, webPort, cmd.MANAGER_TAG, cmd.MANAGER_VERSION)
 	m.Start(webDir)
 	defer m.Close()
 	select {

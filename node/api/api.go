@@ -7,26 +7,25 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
 	"github.com/skycoin/skywire/node"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
-	"github.com/skycoin/net/skycoin-messenger/factory"
 )
 
 type NodeApi struct {
 	address  string
 	node     *node.Node
-	config   Config
+	config   *node.Config
+	confPath string
 	osSignal chan os.Signal
 	srv      *http.Server
 
@@ -60,12 +59,13 @@ type shell struct {
 	sync.Mutex
 }
 
-func New(addr string, node *node.Node, config Config, signal chan os.Signal) *NodeApi {
+func New(addr string, node *node.Node, config *node.Config, confPath string, signal chan os.Signal) *NodeApi {
 
 	return &NodeApi{
 		address:  addr,
 		node:     node,
 		config:   config,
+		confPath: confPath,
 		osSignal: signal,
 		srv:      &http.Server{Addr: addr},
 		apps:     make(map[string]*appCxt),
@@ -85,11 +85,11 @@ func (na *NodeApi) Close() error {
 }
 
 func (na *NodeApi) StartSrv() {
-	err := na.getConfig()
-	if err != nil {
-		log.Errorf("get config error: %s", err)
-	}
-	err = na.afterLaunch()
+	//err := na.getConfig()
+	//if err != nil {
+	//	log.Errorf("get config error: %s", err)
+	//}
+	err := na.afterLaunch()
 	if err != nil {
 		log.Errorf("after launch error: %s", err)
 	}
@@ -103,6 +103,8 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/sockss", wrap(na.runSockss))
 	http.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
 	http.HandleFunc("/node/run/update", wrap(na.update))
+	http.HandleFunc("/node/run/updateProcess", wrap(na.updateProcess))
+	http.HandleFunc("/node/run/setNodeConfig", wrap(na.setNodeConfig))
 	http.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
 	http.HandleFunc("/node/run/runShell", wrap(na.runShell))
 	http.HandleFunc("/node/run/runCmd", wrap(na.runCmd))
@@ -413,79 +415,77 @@ func (na *NodeApi) startSockss() (err error) {
 	return
 }
 
+var updated = "true"
+
+func (na *NodeApi) updateProcess(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	result = []byte(updated)
+	return
+}
+
 func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	cmd := exec.Command("./update-skywire")
+	var cmd *exec.Cmd
+	var dir = "/src/github.com/skycoin/skywire/static/script/"
+	var gopath = os.Getenv("GOPATH")
+	osName := runtime.GOOS
+	if osName == "windows" {
+		cmd = exec.Command("cmd", "/C", filepath.Join(gopath, fmt.Sprintf("%s%s", dir, "win/update-skywire.bat")))
+	} else {
+		cmd = exec.Command(filepath.Join(gopath, fmt.Sprintf("%s%s", dir, "unix/update-skywire")))
+	}
+	updated = "false"
 	err = cmd.Start()
+	if err != nil {
+		return
+	}
+	go func() {
+		cmd.Wait()
+		updated = "true"
+	}()
+	result = []byte("true")
+	return
+}
+
+func (na *NodeApi) setNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
+	key := r.FormValue("key")
+	if len(key) != 66 {
+		err = errors.New("invalid key")
+		return
+	}
+	data := r.FormValue("data")
+	conf := &node.Config{}
+	err = json.Unmarshal([]byte(data), conf)
+	if err != nil {
+		return
+	}
+	cfs := &node.NodeConfigs{}
+	err = node.LoadConfig(cfs, na.confPath)
+	if err != nil {
+		return
+	}
+	cfs.Configs[key] = conf
+	err = node.WriteConfig(cfs, na.confPath)
 	if err != nil {
 		return
 	}
 	result = []byte("true")
 	return
-}
-
-type Config struct {
-	DiscoveryAddresses node.Addresses
-	ConnectManager     bool
-	ManagerAddr        string
-	ManagerWeb         string
-	Address            string
-	Seed               bool
-	SeedPath           string
-	AutoStartPath      string
-	WebPort            string
 }
 
 var URLMatch = `(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d)\.(25[0-5]|2[0-4]\d|[0-1]\d{2}|[1-9]?\d):\d{1,5}`
 
 func (na *NodeApi) updateNode(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	na.getConfig()
+	na.restart()
 	result = []byte("true")
 	return
 }
 
-func (na *NodeApi) getConfig() (err error) {
-	var managerUrl = na.config.ManagerWeb
-	matched, err := regexp.MatchString(URLMatch, managerUrl)
-	if err != nil || !matched {
-		managerUrl = fmt.Sprintf("127.0.0.1%s", managerUrl)
-	}
-	res, err := http.PostForm(fmt.Sprintf("http://%s/conn/getNodeConfig", managerUrl),
-		url.Values{
-			"key": {na.node.GetManager().GetDefaultSeedConfig().PublicKey},
-		})
-	if err != nil {
-		log.Errorf("get node config: %v", err)
-		return
-	}
-	if res.Status != "200" {
-		return
-	}
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Errorf("read config err: %v", err)
-		return
-	}
-	if body != nil && string(body) != "null" {
-		var config *Config
-		err = json.Unmarshal(body, &config)
-		if err != nil {
-			log.Errorf("Unmarshal json err: %v", err)
-			log.Errorf(" body: %s", string(body))
-			return
-		}
-		log.Infof("config.DiscoveryAddresses: %v", config.DiscoveryAddresses)
-		na.config.DiscoveryAddresses = config.DiscoveryAddresses
-		err = na.restart()
-		if err != nil {
-			return
-		}
-	}
-	return
-}
 
 func (na *NodeApi) restart() (err error) {
-	args := make([]string, 0, len(na.config.DiscoveryAddresses))
+	conf, err := node.GetNodeDefaultConfig(na.confPath)
+	if err != nil {
+		return
+	}
+	args := make([]string, 0, len(conf.DiscoveryAddresses))
 	for _, v := range na.config.DiscoveryAddresses {
 		args = append(args, "-discovery-address")
 		args = append(args, v)
@@ -494,18 +494,11 @@ func (na *NodeApi) restart() (err error) {
 	args = append(args, "-address", na.config.Address)
 	args = append(args, "-seed-path", na.config.SeedPath)
 	args = append(args, "-web-port", na.config.WebPort)
-	cxt, cf := context.WithCancel(context.Background())
-	go na.srv.Shutdown(cxt)
-	go func() {
-		time.Sleep(3000 * time.Millisecond)
-		log.Errorf("closed end...")
-		cf()
-		os.Exit(0)
-	}()
+	args = append(args, "-conf", na.confPath)
+	na.srv.Close()
 	na.node.Close()
 	time.Sleep(1000 * time.Millisecond)
-	cmd := exec.Command("node", args...)
-	log.Errorf("exec restart...")
+	cmd := exec.Command("./node", args...)
 	err = cmd.Start()
 	if err != nil {
 		log.Errorf("cmd start err: %v", err)
@@ -516,7 +509,10 @@ func (na *NodeApi) restart() (err error) {
 		log.Errorf("cmd release err: %v", err)
 		return
 	}
-	log.Errorf("exec restart end...")
+	go func() {
+		time.Sleep(3000 * time.Millisecond)
+		os.Exit(0)
+	}()
 	return
 }
 

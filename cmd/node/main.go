@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	config api.Config
+	config   node.Config
+	confPath string
 )
 
 func parseFlags() {
@@ -25,6 +26,7 @@ func parseFlags() {
 	flag.StringVar(&config.SeedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "node", "keys.json"), "path to save seed info")
 	flag.StringVar(&config.WebPort, "web-port", ":6001", "monitor web page port")
 	flag.StringVar(&config.AutoStartPath, "auto-start-path", filepath.Join(file.UserHome(), ".skywire", "node", "autoStart.json"), "path to save launch info")
+	flag.StringVar(&confPath, "conf", filepath.Join(file.UserHome(), ".skywire", "node", "conf.json"), "node default config")
 	flag.Parse()
 }
 
@@ -33,7 +35,6 @@ func main() {
 
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
-
 	var n *node.Node
 	if !config.Seed {
 		n = node.New("", config.AutoStartPath, config.WebPort)
@@ -43,9 +44,35 @@ func main() {
 		}
 		n = node.New(config.SeedPath, config.AutoStartPath, config.WebPort)
 	}
-	err := n.Start(config.DiscoveryAddresses, config.Address)
-	if err != nil {
-		log.Error(err)
+	var err error
+	if len(config.DiscoveryAddresses) == 0 {
+		cfs := &node.NodeConfigs{}
+		err = node.LoadConfig(cfs, confPath)
+		if err != nil {
+			log.Error(err)
+		}
+		key, err := n.GetNodeKey()
+		if err != nil {
+			log.Error(err)
+		}
+		conf, ok := cfs.Configs[key]
+		if !ok {
+			conf = node.NewNodeConf()
+			if cfs.Configs == nil {
+				cfs.Configs = make(map[string]*node.Config)
+			}
+			cfs.Configs[key] = conf
+			node.WriteConfig(&cfs, confPath)
+		}
+		err = n.Start(conf.DiscoveryAddresses, config.Address)
+		if err != nil {
+			log.Error(err)
+		}
+	} else {
+		err = n.Start(config.DiscoveryAddresses, config.Address)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 	defer n.Close()
 	log.Debugf("listen on %s", config.Address)
@@ -55,7 +82,7 @@ func main() {
 		if err != nil {
 			log.Error(err)
 		}
-		na = api.New(config.WebPort, n, config, osSignal)
+		na = api.New(config.WebPort, n, &config, confPath, osSignal)
 		na.StartSrv()
 		defer na.Close()
 	}

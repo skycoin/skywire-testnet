@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/skycoin/skywire/cmd"
 )
 
 type Addresses []string
@@ -38,6 +39,23 @@ type Node struct {
 
 	srs      []*SearchResult
 	srsMutex sync.Mutex
+}
+
+type Config struct {
+	DiscoveryAddresses Addresses `json:"discovery_addresses"`
+	ConnectManager     bool      `json:"connect_manager"`
+	ManagerAddr        string    `json:"manager_addr"`
+	ManagerWeb         string    `json:"manager_web"`
+	Address            string    `json:"address"`
+	Seed               bool      `json:"seed"`
+	SeedPath           string    `json:"seed_path"`
+	AutoStartPath      string    `json:"auto_start_path"`
+	WebPort            string    `json:"web_port"`
+}
+
+type NodeConfigs struct {
+	Configs map[string]*Config `json:"configs"`
+	Version int                `json:"version"`
 }
 
 func New(seedPath, launchConfigPath, webPort string) *Node {
@@ -182,8 +200,8 @@ type FeedBackItem struct {
 	UnreadMessages int    `json:"unread"`
 }
 
-var version = "0.0.1"
-var tag = "dev"
+var version = cmd.NODE_VERSION
+var tag = cmd.NODE_TAG
 
 func (n *Node) GetNodeInfo() (ni NodeInfo) {
 	var ts []NodeTransport
@@ -418,4 +436,59 @@ func (n *Node) GetNodeKey() (key string, err error) {
 	}
 	key = info.PublicKey
 	return
+}
+
+func LoadConfig(conf interface{}, filename string) (err error) {
+	fb, err := ioutil.ReadFile(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			conf := &NodeConfigs{
+				Configs: make(map[string]*Config),
+				Version: 1,
+			}
+			err = WriteConfig(conf, filename)
+			if err != nil {
+				return
+			}
+			return
+		}
+		return
+	}
+	err = json.Unmarshal(fb, &conf)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func WriteConfig(conf interface{}, path string) (err error) {
+	d, err := json.Marshal(conf)
+	if err != nil {
+		return
+	}
+	dir := filepath.Dir(path)
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		return
+	}
+	err = ioutil.WriteFile(path, d, 0600)
+	return
+}
+
+func GetNodeDefaultConfig(path string) (conf *Config, err error) {
+	conf = &Config{}
+	err = LoadConfig(conf, path)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func NewNodeConf() *Config {
+	var addr Addresses
+	addr.Set("13.113.87.139:5999-03264365136a1587f1df42aad0339a3c16d4ffa621d5b1892ceae3ab646482c00a")
+	addr.Set("18.219.138.23:5999-029aa3b3adc1b3454304696aa8dd22bef3f59af07f75f948383fad365fe29b4053")
+	return &Config{
+		DiscoveryAddresses: addr,
+	}
 }

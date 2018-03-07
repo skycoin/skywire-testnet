@@ -1,0 +1,13 @@
+#!/bin/bash
+
+MANAGER_PID="manager.pid"
+NODE_PID="node.pid"
+
+echo "Updating SkyWire..."
+cd ${GOPATH}/src/github.com/skycoin/skywire
+git reset --hard
+git clean -f -d
+git pull origin master
+
+exec ${GOPATH}/src/github.com/skycoin/skywire/static/script/unix/start
+
