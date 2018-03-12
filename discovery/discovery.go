@@ -1,8 +1,13 @@
 package discovery
 
 import (
+	"github.com/gogap/logrus_mate"
+	_ "github.com/gogap/logrus_mate/hooks/file"
+	"github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/net/skycoin-messenger/monitor"
+	"io/ioutil"
+	"os"
 )
 
 type Discovery struct {
@@ -14,6 +19,21 @@ type Discovery struct {
 }
 
 func New(seedPath, address, webAddress, webDir string) *Discovery {
+	if _, e := os.Stat(logFilePath); os.IsNotExist(e) {
+		e := ioutil.WriteFile(logFilePath, []byte(logConf), 0660)
+		if e != nil {
+			logrus.Fatal(e)
+			return nil
+		}
+	}
+	mate, err := logrus_mate.NewLogrusMate(
+		logrus_mate.ConfigFile(logFilePath),
+	)
+	if err != nil {
+		logrus.Fatal(err)
+		return nil
+	}
+	mate.Hijack(logrus.StandardLogger(), "discovery")
 	m := factory.NewMessengerFactory()
 	m.SetDefaultSeedConfigPath(seedPath)
 	m.SetLoggerLevel(factory.DebugLevel)
