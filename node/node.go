@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -197,6 +198,7 @@ type NodeInfo struct {
 	AppFeedbacks []FeedBackItem  `json:"app_feedbacks"`
 	Version      string          `json:"version"`
 	Tag          string          `json:"tag"`
+	Os           string          `json:"os"`
 }
 
 type FeedBackItem struct {
@@ -252,6 +254,7 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 		AppFeedbacks: afs,
 		Version:      Version,
 		Tag:          Tag,
+		Os:           runtime.GOOS,
 	}
 	return
 }
@@ -317,12 +320,13 @@ func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	if resp != nil && resp.Result != nil {
 		var apps = make([]SearchResultApp, 0)
 		for _, v := range resp.Result.Nodes {
+			log.Infof("search result: %v", v)
 			for _, app := range v.Apps {
 				apps = append(apps, SearchResultApp{
 					NodeKey:     v.Node.Hex(),
-					AppKey:      app.Key.Hex(),
+					AppKey:      app.Hex(),
 					Location:    v.Location,
-					Version:     app.Version,
+					Version:     "",
 					NodeVersion: v.Version,
 				})
 			}
