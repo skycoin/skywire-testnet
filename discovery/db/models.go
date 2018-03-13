@@ -4,7 +4,6 @@ import (
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
 	"time"
-	"github.com/sirupsen/logrus"
 )
 
 type Node struct {
