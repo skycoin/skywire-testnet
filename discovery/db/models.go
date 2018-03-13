@@ -134,19 +134,27 @@ func FindResultByAttrs(attr ...string) (result *factory.AttrNodesInfo) {
 		}
 		ati, ok := atis[v.Service.Key]
 		if ok {
-			ati.Apps = append(ati.Apps, &factory.AttrAppInfo{})
+			ati.AppInfos = append(ati.AppInfos, &factory.AttrAppInfo{})
 			atis[v.Service.Key] = ati
 		} else {
-			apps := make([]*factory.AttrAppInfo, 0)
-			apps = append(apps, &factory.AttrAppInfo{
+
+			appinfos := make([]*factory.AttrAppInfo, 0)
+			appinfos = append(appinfos, &factory.AttrAppInfo{
 				Key:     appKey,
 				Version: v.Service.Version,
 			})
+			apps := make([]cipher.PubKey, 0)
+			appsKey, err := cipher.PubKeyFromHex(v.Service.Key)
+			if err != nil {
+				continue
+			}
+			apps = append(apps, appsKey)
 			info := &factory.AttrNodeInfo{
 				Node:     nodeKey,
+				Apps:     apps,
 				Location: v.Node.Location,
 				Version:  v.Node.Version,
-				Apps:     apps,
+				AppInfos: appinfos,
 			}
 			atis[v.Service.Key] = info
 		}
