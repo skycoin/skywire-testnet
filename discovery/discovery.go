@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/net/skycoin-messenger/monitor"
+	"github.com/skycoin/skywire/discovery/db"
 	"io/ioutil"
 	"os"
 )
@@ -38,6 +39,10 @@ func New(seedPath, address, webAddress, webDir string) *Discovery {
 	m.SetDefaultSeedConfigPath(seedPath)
 	m.SetLoggerLevel(factory.DebugLevel)
 	m.SetAppVersion(Version)
+	m.RegisterService = db.RegisterService
+	m.UnRegisterService = db.UnRegisterService
+	m.FindByAttributes = db.FindResultByAttrs
+	m.FindServiceAddresses = db.FindServiceAddresses
 	mon := monitor.New(m, address, webAddress, "", "")
 	return &Discovery{
 		messenger: m,
@@ -49,11 +54,14 @@ func New(seedPath, address, webAddress, webDir string) *Discovery {
 }
 
 func (d *Discovery) Start() (err error) {
+	err = db.Init()
+	if err != nil {
+		return
+	}
 	err = d.messenger.Listen(d.address)
 	if err != nil {
 		return
 	}
-
 	d.monitor.Start(d.webDir)
 	return
 }
