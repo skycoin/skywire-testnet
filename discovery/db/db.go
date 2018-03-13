@@ -9,7 +9,7 @@ import (
 var engine *xorm.Engine
 
 func Init() (err error) {
-	engine, err = xorm.NewEngine("sqlite3", "")
+	engine, err = xorm.NewEngine("sqlite3", " ")
 	if err != nil {
 		return
 	}
