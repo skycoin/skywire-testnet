@@ -21,10 +21,6 @@ func Init() (err error) {
 		return
 	}
 	err = createTables()
-	//if err != nil {
-	//	return
-	//}
-	//engine.Sync2(new(Node), new(Service), new(Attributes))
 	return
 }
 
@@ -36,6 +32,7 @@ func createTables() (err error) {
 		service_address CHAR (50),
 		location        CHAR (100),
 		version         TEXT,
+		priority		INTEGER,
 		created         DATETIME,
 		updated         DATETIME
 	);`

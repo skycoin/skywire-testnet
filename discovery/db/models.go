@@ -4,6 +4,7 @@ import (
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
 	"time"
+	"github.com/sirupsen/logrus"
 )
 
 type Node struct {
@@ -12,6 +13,7 @@ type Node struct {
 	ServiceAddress string
 	Location       string
 	Version        []string
+	Priority       int
 	Created        time.Time `xorm:"created"`
 	Updated        time.Time `xorm:"updated"`
 }
@@ -117,7 +119,7 @@ func FindResultByAttrs(attr ...string) (result *factory.AttrNodesInfo) {
 	sas := make([]NodeDetail, 0)
 	err := engine.Join("INNER", "service", "service.node_id = node.id").
 		Join("INNER", "attributes", "attributes.service_id = service.id").
-		In("attributes.name", attr).Find(&sas)
+		In("attributes.name", attr).Desc("node.priority").Find(&sas)
 	if err != nil {
 		return
 	}
@@ -161,6 +163,66 @@ func FindResultByAttrs(attr ...string) (result *factory.AttrNodesInfo) {
 	}
 	result = &factory.AttrNodesInfo{
 		Nodes: make([]*factory.AttrNodeInfo, 0),
+	}
+	for _, v := range atis {
+		result.Nodes = append(result.Nodes, v)
+	}
+	return
+}
+
+func FindResultByAttrsAndPaging(pages, limit int, attr ...string) (result *factory.AttrNodesInfo) {
+	sas := make([]NodeDetail, 0)
+	err := engine.Join("INNER", "service", "service.node_id = node.id").
+		Join("INNER", "attributes", "attributes.service_id = service.id").
+		In("attributes.name", attr).Limit(limit, (pages-1)*limit).Desc("node.priority").Find(&sas)
+	if err != nil {
+		return
+	}
+	atis := make(map[string]*factory.AttrNodeInfo)
+	for _, v := range sas {
+		nodeKey, err := cipher.PubKeyFromHex(v.Node.Key)
+		if err != nil {
+			continue
+		}
+		appKey, err := cipher.PubKeyFromHex(v.Service.Key)
+		if err != nil {
+			continue
+		}
+		ati, ok := atis[v.Service.Key]
+		if ok {
+			ati.AppInfos = append(ati.AppInfos, &factory.AttrAppInfo{})
+			atis[v.Service.Key] = ati
+		} else {
+			appinfos := make([]*factory.AttrAppInfo, 0)
+			appinfos = append(appinfos, &factory.AttrAppInfo{
+				Key:     appKey,
+				Version: v.Service.Version,
+			})
+			apps := make([]cipher.PubKey, 0)
+			appsKey, err := cipher.PubKeyFromHex(v.Service.Key)
+			if err != nil {
+				continue
+			}
+			apps = append(apps, appsKey)
+			info := &factory.AttrNodeInfo{
+				Node:     nodeKey,
+				Apps:     apps,
+				Location: v.Node.Location,
+				Version:  v.Node.Version,
+				AppInfos: appinfos,
+			}
+			atis[v.Service.Key] = info
+		}
+	}
+	count, err := engine.Join("INNER", "service", "service.node_id = node.id").
+		Join("INNER", "attributes", "attributes.service_id = service.id").
+		In("attributes.name", attr).Count(new(Node))
+	if err != nil {
+		return
+	}
+	result = &factory.AttrNodesInfo{
+		Nodes: make([]*factory.AttrNodeInfo, 0),
+		Count: count,
 	}
 	for _, v := range atis {
 		result.Nodes = append(result.Nodes, v)
