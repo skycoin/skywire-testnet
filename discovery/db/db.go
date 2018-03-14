@@ -9,7 +9,7 @@ import (
 var engine *xorm.Engine
 
 func Init() (err error) {
-	engine, err = xorm.NewEngine("sqlite3", "")
+	engine, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
 		return
 	}
@@ -21,10 +21,7 @@ func Init() (err error) {
 		return
 	}
 	err = createTables()
-	//if err != nil {
-	//	return
-	//}
-	//engine.Sync2(new(Node), new(Service), new(Attributes))
+	//engine.Sync2(new(Node),new(Service),new(Attributes))
 	return
 }
 
@@ -36,6 +33,7 @@ func createTables() (err error) {
 		service_address CHAR (50),
 		location        CHAR (100),
 		version         TEXT,
+		priority		INTEGER,
 		created         DATETIME,
 		updated         DATETIME
 	);`

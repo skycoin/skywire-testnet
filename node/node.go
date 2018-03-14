@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -197,6 +198,7 @@ type NodeInfo struct {
 	AppFeedbacks []FeedBackItem  `json:"app_feedbacks"`
 	Version      string          `json:"version"`
 	Tag          string          `json:"tag"`
+	Os           string          `json:"os"`
 }
 
 type FeedBackItem struct {
@@ -252,6 +254,7 @@ func (n *Node) GetNodeInfo() (ni NodeInfo) {
 		AppFeedbacks: afs,
 		Version:      Version,
 		Tag:          Tag,
+		Os:           runtime.GOOS,
 	}
 	return
 }
@@ -290,6 +293,7 @@ func (n *Node) GetApps() (apps []NodeApp) {
 type SearchResult struct {
 	Result []SearchResultApp `json:"result"`
 	Seq    uint32            `json:"seq"`
+	Count  int64             `json:"count"`
 }
 
 type SearchResultApp struct {
@@ -300,9 +304,9 @@ type SearchResultApp struct {
 	NodeVersion []string `json:"node_version"`
 }
 
-func (n *Node) Search(attr string) (seqs []uint32) {
+func (n *Node) Search(pages, limit int, attr string) (seqs []uint32) {
 	n.apps.ForEachConn(func(connection *factory.Connection) {
-		s, err := connection.FindServiceNodesWithSeqByAttributes(attr)
+		s, err := connection.FindServiceNodesWithSeqByAttributesAndPaging(pages, limit, attr)
 		if err != nil {
 			log.Error(err)
 			return
@@ -317,12 +321,13 @@ func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	if resp != nil && resp.Result != nil {
 		var apps = make([]SearchResultApp, 0)
 		for _, v := range resp.Result.Nodes {
-			for _, app := range v.Apps {
+			log.Infof("search result: %v", v)
+			for k, app := range v.Apps {
 				apps = append(apps, SearchResultApp{
 					NodeKey:     v.Node.Hex(),
-					AppKey:      app.Key.Hex(),
+					AppKey:      app.Hex(),
 					Location:    v.Location,
-					Version:     app.Version,
+					Version:     v.AppInfos[k].Version,
 					NodeVersion: v.Version,
 				})
 			}
@@ -330,6 +335,7 @@ func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 		n.srs = append(n.srs, &SearchResult{
 			Seq:    resp.Seq,
 			Result: apps,
+			Count:  resp.Result.Count,
 		})
 	}
 	n.srsMutex.Unlock()

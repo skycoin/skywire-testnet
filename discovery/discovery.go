@@ -42,6 +42,7 @@ func New(seedPath, address, webAddress, webDir string) *Discovery {
 	m.RegisterService = db.RegisterService
 	m.UnRegisterService = db.UnRegisterService
 	m.FindByAttributes = db.FindResultByAttrs
+	m.FindByAttributesAndPaging = db.FindResultByAttrsAndPaging
 	m.FindServiceAddresses = db.FindServiceAddresses
 	mon := monitor.New(m, address, webAddress, "", "")
 	return &Discovery{

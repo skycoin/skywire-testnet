@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"strconv"
 )
 
 type NodeApi struct {
@@ -659,9 +660,17 @@ func (na *NodeApi) search(w http.ResponseWriter, r *http.Request) (result []byte
 		err = errors.New("invalid key")
 		return
 	}
-
-	seqs := na.node.Search(key)
-
+	p := r.FormValue("pages")
+	pages,err := strconv.Atoi(p)
+	if err != nil {
+		return
+	}
+	l := r.FormValue("limit")
+	limit,err := strconv.Atoi(l)
+	if err != nil {
+		return
+	}
+	seqs := na.node.Search(pages,limit,key)
 	result, err = json.Marshal(seqs)
 	return
 }
