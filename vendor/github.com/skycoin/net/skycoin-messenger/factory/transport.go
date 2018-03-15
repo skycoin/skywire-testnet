@@ -98,8 +98,10 @@ func (p *transportPair) submitTicket(ticket *workTicket) (ok uint, err error) {
 	if p.lastCheckedTime.IsZero() {
 		p.lastCheckedTime = time.Now()
 	} else if time.Now().Sub(p.lastCheckedTime) > 30*time.Second {
-		err = errors.New("too many uncheck tickets")
-		return
+		if len(p.tickets) > 10 {
+			err = errors.New("too many uncheck tickets")
+			return
+		}
 	}
 
 	if len(ticket.Codes) > 0 {
