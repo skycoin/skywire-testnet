@@ -93,7 +93,7 @@ func (app *App) SetAllowNodes(nodes NodeKeys) {
 	app.allowNodes = nodes
 }
 
-func (app *App) ConnectTo(nodeKeyHex, appKeyHex string) (err error) {
+func (app *App) ConnectTo(nodeKeyHex, appKeyHex, discoveryKeyHex string) (err error) {
 	nodeKey, err := cipher.PubKeyFromHex(nodeKeyHex)
 	if err != nil {
 		return
@@ -102,8 +102,16 @@ func (app *App) ConnectTo(nodeKeyHex, appKeyHex string) (err error) {
 	if err != nil {
 		return
 	}
+
+	discoveryKey := cipher.PubKey{}
+	if len(discoveryKeyHex) != 0 {
+		discoveryKey, err = cipher.PubKeyFromHex(discoveryKeyHex)
+		if err != nil {
+			return
+		}
+	}
 	app.net.ForEachConn(func(connection *factory.Connection) {
-		connection.BuildAppConnection(nodeKey, appKey)
+		connection.BuildAppConnection(nodeKey, appKey, discoveryKey)
 	})
 	return
 }

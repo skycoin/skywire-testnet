@@ -304,8 +304,11 @@ type SearchResultApp struct {
 	NodeVersion []string `json:"node_version"`
 }
 
-func (n *Node) Search(pages, limit int, attr string) (seqs []uint32) {
+func (n *Node) Search(pages, limit int, discoveryKey cipher.PubKey, attr string) (seqs []uint32) {
 	n.apps.ForEachConn(func(connection *factory.Connection) {
+		if connection.GetTargetKey() != discoveryKey {
+			return
+		}
 		s, err := connection.FindServiceNodesWithSeqByAttributesAndPaging(pages, limit, attr)
 		if err != nil {
 			log.Error(err)
@@ -321,7 +324,6 @@ func (n *Node) searchResultCallback(resp *factory.QueryByAttrsResp) {
 	if resp != nil && resp.Result != nil {
 		var apps = make([]SearchResultApp, 0)
 		for _, v := range resp.Result.Nodes {
-			log.Infof("search result: %v", v)
 			for k, app := range v.Apps {
 				apps = append(apps, SearchResultApp{
 					NodeKey:     v.Node.Hex(),
@@ -355,14 +357,16 @@ type AutoStartFile struct {
 }
 
 type AutoStartConfig struct {
-	Sshs              bool   `json:"sshs"`
-	Sshc              bool   `json:"sshc"`
-	SshcConfNodeKey   string `json:"sshc_conf_nodeKey"`
-	SshcConfAppKey    string `json:"sshc_conf_appKey"`
-	Sockss            bool   `json:"sockss"`
-	Socksc            bool   `json:"socksc"`
-	SockscConfNodeKey string `json:"socksc_conf_nodeKey"`
-	SockscConfAppKey  string `json:"socksc_conf_appKey"`
+	Sshs                bool   `json:"sshs"`
+	Sshc                bool   `json:"sshc"`
+	SshcConfNodeKey     string `json:"sshc_conf_nodeKey"`
+	SshcConfAppKey      string `json:"sshc_conf_appKey"`
+	SshcConfDiscovery   string `json:"sshc_conf_discovery"`
+	Sockss              bool   `json:"sockss"`
+	Socksc              bool   `json:"socksc"`
+	SockscConfNodeKey   string `json:"socksc_conf_nodeKey"`
+	SockscConfAppKey    string `json:"socksc_conf_appKey"`
+	SockscConfDiscovery string `json:"socksc_conf_discovery"`
 }
 type Old1AutoStartConfig struct {
 	Sshs              bool   `json:"sshs"`

@@ -47,7 +47,42 @@ func (a *Attributes) TableName() string {
 }
 
 func UnRegisterService(key cipher.PubKey) (err error) {
+	sess := engine.NewSession()
+	defer sess.Close()
+	err = sess.Begin()
+	if err != nil {
+		return
+	}
+	node := &Node{}
+	_, err = engine.Where("key = ?", key.Hex()).Get(node)
+	if err != nil {
+		sess.Rollback()
+		return
+	}
+	services := make([]Service, 0)
+	err = engine.Where("node_id = ?", node.Id).Find(&services)
+	if err != nil {
+		sess.Rollback()
+		return
+	}
 	_, err = engine.Where("key = ?", key.Hex()).Delete(&Node{})
+	if err != nil {
+		sess.Rollback()
+		return
+	}
+	_, err = engine.Where("node_id = ?", node.Id).Delete(&Service{})
+	if err != nil {
+		sess.Rollback()
+		return
+	}
+	for _, v := range services {
+		_, err = engine.Where("service_id == ?", v.Id).Delete(&Attributes{})
+		if err != nil {
+			sess.Rollback()
+			return err
+		}
+	}
+	sess.Commit()
 	return
 }
 
@@ -63,18 +98,36 @@ func RegisterService(key cipher.PubKey, ns *factory.NodeServices) (err error) {
 	if err != nil {
 		return
 	}
+	exist, err := engine.Where("key = ?", key.Hex()).Exist(&Node{})
+	if err != nil {
+		return
+	}
 	node := &Node{
 		Key:            key.Hex(),
 		ServiceAddress: ns.ServiceAddress,
 		Location:       ns.Location,
 		Version:        ns.Version,
 	}
-	_, err = engine.Insert(node)
-	if err != nil {
-		sess.Rollback()
-		return
+	if exist {
+		_, err = engine.Where("key = ?", key.Hex()).Update(node)
+		if err != nil {
+			sess.Rollback()
+			return
+		}
+	} else {
+		_, err = engine.Insert(node)
+		if err != nil {
+			sess.Rollback()
+			return
+		}
 	}
 	for _, v := range ns.Services {
+		tmpService := &Service{}
+		ok, err := engine.Where("key = ?", v.Key.Hex()).Get(tmpService)
+		if err != nil {
+			sess.Rollback()
+			return err
+		}
 		service := &Service{
 			Key:               v.Key.Hex(),
 			Address:           v.Address,
@@ -83,10 +136,23 @@ func RegisterService(key cipher.PubKey, ns *factory.NodeServices) (err error) {
 			Version:           v.Version,
 			NodeId:            node.Id,
 		}
-		_, err = engine.Insert(service)
-		if err != nil {
-			sess.Rollback()
-			return
+		if ok {
+			_, err = engine.Where("key = ?", v.Key.Hex()).Update(service)
+			if err != nil {
+				sess.Rollback()
+				return err
+			}
+			_,err = engine.Where("service_id == ?",service.Id).Delete(&Attributes{})
+			if err != nil {
+				sess.Rollback()
+				return err
+			}
+		} else {
+			_, err = engine.Insert(service)
+			if err != nil {
+				sess.Rollback()
+				return err
+			}
 		}
 		for _, attr := range v.Attributes {
 			_, err = engine.Insert(&Attributes{
@@ -95,7 +161,7 @@ func RegisterService(key cipher.PubKey, ns *factory.NodeServices) (err error) {
 			})
 			if err != nil {
 				sess.Rollback()
-				return
+				return err
 			}
 		}
 
