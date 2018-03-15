@@ -48,7 +48,6 @@ type Connection struct {
 	skipFactoryReg bool
 
 	appMessages        []PriorityMsg
-	appMessagesPty     Priority
 	appMessagesReadCnt int
 	appMessagesMutex   sync.RWMutex
 	appFeedback        atomic.Value
@@ -240,9 +239,12 @@ func (c *Connection) RegWithKeys(key, target cipher.PubKey, context map[string]s
 
 // register services to discovery
 func (c *Connection) UpdateServices(ns *NodeServices) (err error) {
-	if ns != nil && !checkNodeServices(ns) {
-		err = fmt.Errorf("invalid NodeServices %#v", ns)
-		return
+	if ns != nil {
+		if !checkNodeServices(ns) {
+			err = fmt.Errorf("invalid NodeServices %#v", ns)
+			return
+		}
+		ns.Version = []string{c.factory.GetAppVersion(), VERSION, conn.VERSION}
 	}
 	c.setServices(ns)
 	if ns == nil {
@@ -339,12 +341,17 @@ func (c *Connection) OfferService(attrs ...string) error {
 }
 
 // register a service to discovery
-func (c *Connection) OfferServiceWithAddress(address string, attrs ...string) error {
-	return c.UpdateServices(&NodeServices{Services: []*Service{{Key: c.GetKey(), Attributes: attrs, Address: address}}})
+func (c *Connection) OfferServiceWithAddress(address, version string, attrs ...string) error {
+	return c.UpdateServices(&NodeServices{
+		Services: []*Service{{Key: c.GetKey(),
+			Attributes: attrs,
+			Address:    address,
+			Version:    version,
+		}}})
 }
 
 // register a service to discovery
-func (c *Connection) OfferPrivateServiceWithAddress(address string, allowNodes []string, attrs ...string) error {
+func (c *Connection) OfferPrivateServiceWithAddress(address, version string, allowNodes []string, attrs ...string) error {
 	return c.UpdateServices(&NodeServices{
 		Services: []*Service{{
 			Key:               c.GetKey(),
@@ -352,17 +359,8 @@ func (c *Connection) OfferPrivateServiceWithAddress(address string, allowNodes [
 			Address:           address,
 			HideFromDiscovery: true,
 			AllowNodes:        allowNodes,
+			Version:           version,
 		}}})
-}
-
-// register a service to discovery
-func (c *Connection) OfferStaticServiceWithAddress(address string, attrs ...string) (err error) {
-	ns := &NodeServices{Services: []*Service{{Key: c.GetKey(), Attributes: attrs, Address: address}}}
-	err = c.factory.discoveryRegister(c, ns)
-	if err != nil {
-		return
-	}
-	return c.UpdateServices(ns)
 }
 
 // find services by attributes
@@ -378,13 +376,21 @@ func (c *Connection) FindServiceNodesWithSeqByAttributes(attrs ...string) (seq u
 	return
 }
 
+// find services by attributes
+func (c *Connection) FindServiceNodesWithSeqByAttributesAndPaging(pages, limit int, attrs ...string) (seq uint32, err error) {
+	q := newQueryByAttrsAndPage(pages, limit, attrs)
+	seq = q.Seq
+	err = c.writeOP(OP_QUERY_BY_ATTRS, q)
+	return
+}
+
 // find services nodes by service public keys
 func (c *Connection) FindServiceNodesByKeys(keys []cipher.PubKey) error {
 	return c.writeOP(OP_QUERY_SERVICE_NODES, newQuery(keys))
 }
 
-func (c *Connection) BuildAppConnection(node, app cipher.PubKey) error {
-	return c.writeOP(OP_BUILD_APP_CONN, &appConn{Node: node, App: app})
+func (c *Connection) BuildAppConnection(node, app, discovery cipher.PubKey) error {
+	return c.writeOP(OP_BUILD_APP_CONN, &appConn{Node: node, App: app, Discovery: discovery})
 }
 
 func (c *Connection) Send(to cipher.PubKey, msg []byte) error {
@@ -624,17 +630,11 @@ func (c *Connection) LoadContext(key interface{}) (value interface{}, ok bool) {
 	return c.context.Load(key)
 }
 
-func (c *Connection) PutMessage(v PriorityMsg) bool {
+func (c *Connection) PutMessage(v PriorityMsg) {
 	c.appMessagesMutex.Lock()
-	if c.appMessagesPty > v.Priority {
-		c.appMessagesMutex.Unlock()
-		return false
-	}
 	v.Time = time.Now().Unix()
 	c.appMessages = append(c.appMessages, v)
-	c.appMessagesPty = v.Priority
 	c.appMessagesMutex.Unlock()
-	return true
 }
 
 // Get messages

@@ -63,6 +63,8 @@ type transportPair struct {
 	lastTicket                             *workTicket
 	ticketsMutex                           sync.Mutex
 	timeoutTimer                           *time.Timer
+	closed                                 bool
+	lastCheckedTime                        time.Time
 	fieldsMutex                            sync.RWMutex
 }
 
@@ -78,17 +80,33 @@ func (p *transportPair) ok() {
 }
 
 func (p *transportPair) close() {
+	p.fieldsMutex.Lock()
+	if p.closed {
+		p.fieldsMutex.Unlock()
+		return
+	}
+	p.closed = true
+	p.fieldsMutex.Unlock()
 	keys := p.fromApp.Hex() + p.fromNode.Hex() + p.toNode.Hex() + p.toApp.Hex()
 	globalTransportPairManagerInstance.del(keys)
 }
 
 func (p *transportPair) submitTicket(ticket *workTicket) (ok uint, err error) {
-	clone := *ticket
 	p.ticketsMutex.Lock()
 	defer p.ticketsMutex.Unlock()
 
+	if p.lastCheckedTime.IsZero() {
+		p.lastCheckedTime = time.Now()
+	} else if time.Now().Sub(p.lastCheckedTime) > 30*time.Second {
+		if len(p.tickets) > 10 {
+			err = errors.New("too many uncheck tickets")
+			return
+		}
+	}
+
 	if len(ticket.Codes) > 0 {
 		if p.lastTicket == nil {
+			clone := *ticket
 			p.lastTicket = &clone
 			return
 		}
@@ -106,6 +124,7 @@ func (p *transportPair) submitTicket(ticket *workTicket) (ok uint, err error) {
 
 	t, o := p.tickets[ticket.Seq]
 	if !o {
+		clone := *ticket
 		p.tickets[ticket.Seq] = &clone
 		return
 	}
@@ -115,6 +134,7 @@ func (p *transportPair) submitTicket(ticket *workTicket) (ok uint, err error) {
 		return
 	}
 	ok = msgsEveryTicket
+	p.lastCheckedTime = time.Now()
 	return
 }
 
@@ -186,11 +206,11 @@ func (m *transportPairManager) create(fromApp, fromNode, toNode, toApp cipher.Pu
 		fromNode: fromNode,
 		toNode:   toNode,
 		toApp:    toApp,
-		timeoutTimer: time.AfterFunc(120*time.Second, func() {
-			m.del(keys)
-		}),
-		tickets: make(map[uint32]*workTicket),
+		tickets:  make(map[uint32]*workTicket),
 	}
+	p.timeoutTimer = time.AfterFunc(120*time.Second, func() {
+		p.close()
+	})
 	m.pairs[keys] = p
 	m.pairsMutex.Unlock()
 	return
@@ -347,6 +367,13 @@ func (t *Transport) connAck() {
 	t.fieldsMutex.Unlock()
 }
 
+func (t *Transport) isConnAck() (is bool) {
+	t.fieldsMutex.RLock()
+	is = t.connAcked
+	t.fieldsMutex.RUnlock()
+	return
+}
+
 // Connect to node A and server app
 func (t *Transport) serverSiceConnect(address, appAddress string, sc *SeedConfig, iv []byte) (err error) {
 	conn, err := t.factory.connectUDPWithConfig(address, &ConnConfig{})
@@ -435,6 +462,9 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 				appConn.Close()
 				continue
 			}
+		case <-t.discoveryConn.GetDisconnectedChan():
+			conn.GetContextLogger().Debugf("transport discovery conn closed")
+			return
 		}
 	}
 }
