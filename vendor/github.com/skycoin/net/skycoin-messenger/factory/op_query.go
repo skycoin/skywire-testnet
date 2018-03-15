@@ -81,16 +81,34 @@ func (resp *QueryResp) Run(conn *Connection) (err error) {
 type queryByAttrs struct {
 	Attrs []string
 	Seq   uint32
+	Pages int
+	Limit int
 }
 
 func newQueryByAttrs(attrs []string) *queryByAttrs {
-	q := &queryByAttrs{Attrs: attrs, Seq: atomic.AddUint32(&querySeq, 1)}
+	q := &queryByAttrs{
+		Attrs: attrs,
+		Seq:   atomic.AddUint32(&querySeq, 1),
+	}
+	return q
+}
+
+func newQueryByAttrsAndPage(pages, limit int, attrs []string) *queryByAttrs {
+	q := &queryByAttrs{
+		Attrs: attrs,
+		Pages: pages,
+		Limit: limit,
+		Seq:   atomic.AddUint32(&querySeq, 1),
+	}
 	return q
 }
 
 func (query *queryByAttrs) Execute(f *MessengerFactory, conn *Connection) (r resp, err error) {
+	if query.Limit == 0 {
+		query.Limit = 5
+	}
 	if !f.Proxy {
-		r = &QueryByAttrsResp{Seq: query.Seq, Result: f.findByAttributes(query.Attrs...)}
+		r = &QueryByAttrsResp{Seq: query.Seq, Result: f.FindByAttributesAndPaging(query.Pages, query.Limit, query.Attrs...)}
 		return
 	}
 	f.ForEachConn(func(connection *Connection) {

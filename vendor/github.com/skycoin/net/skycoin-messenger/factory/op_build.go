@@ -64,8 +64,9 @@ func init() {
 }
 
 type appConn struct {
-	Node cipher.PubKey
-	App  cipher.PubKey
+	Node      cipher.PubKey
+	App       cipher.PubKey
+	Discovery cipher.PubKey
 }
 
 // run on node A
@@ -74,7 +75,17 @@ func (req *appConn) Execute(f *MessengerFactory, conn *Connection) (r resp, err 
 		return
 	}
 
+	sent := make(map[string]struct{})
 	f.ForEachConn(func(connection *Connection) {
+		discoveryKey := connection.GetTargetKey()
+		if discoveryKey != req.Discovery && req.Discovery != EMPATY_PUBLIC_KEY {
+			return
+		}
+		_, ok := sent[discoveryKey.Hex()]
+		if ok {
+			return
+		}
+		sent[discoveryKey.Hex()] = struct{}{}
 		fromNode := connection.GetKey()
 		fromApp := conn.GetKey()
 		iv := make([]byte, aes.BlockSize)
@@ -97,7 +108,7 @@ func (req *appConn) Execute(f *MessengerFactory, conn *Connection) (r resp, err 
 			}
 		})
 		conn.GetContextLogger().Debugf("app conn create transport to %s", connection.GetRemoteAddr().String())
-		c, err := tr.ListenAndConnect(connection.GetRemoteAddr().String(), connection.GetTargetKey())
+		c, err := tr.ListenAndConnect(connection.GetRemoteAddr().String(), discoveryKey)
 		if err != nil {
 			conn.GetContextLogger().Debugf("transport err %v", err)
 			return
@@ -111,7 +122,7 @@ func (req *appConn) Execute(f *MessengerFactory, conn *Connection) (r resp, err 
 		}
 		c.writeOP(OP_FORWARD_NODE_CONN, nodeConn)
 		tr.SetupTimeout()
-		conn.setTransport(connection.GetTargetKey(), tr)
+		conn.setTransport(discoveryKey, tr)
 	})
 	return
 }
@@ -129,8 +140,8 @@ const (
 	Building
 	NotFound
 	NotAllowed
-	Timeout
 	Connected
+	Timeout
 	TransportClosed
 )
 
@@ -201,13 +212,14 @@ func (req *buildConnResp) Execute(f *MessengerFactory, conn *Connection) (r resp
 		err = fmt.Errorf("buildConnResp tr %x not found", req.App)
 		return
 	}
+	tr.setUDPConn(conn)
+	tr.connAck()
 	exists := appConn.setTransportIfNotExists(req.App, tr)
 	if exists {
 		tr.Close()
 		conn.GetContextLogger().Debugf("buildConnResp transport exists")
 		return
 	}
-	tr.setUDPConn(conn)
 	fnOK := func(port int) {
 		msg := fmt.Sprintf("Connected app %x", req.App)
 		priorityMsg := PriorityMsg{Priority: Connected, Msg: msg}
@@ -223,7 +235,6 @@ func (req *buildConnResp) Execute(f *MessengerFactory, conn *Connection) (r resp
 		err = fmt.Errorf("ListenForApp err %v", err)
 		return
 	}
-	tr.connAck()
 	err = conn.writeOP(OP_APP_CONN_ACK|RESP_PREFIX, &connAck{
 		FromApp: req.FromApp,
 		App:     req.App,
@@ -340,11 +351,11 @@ func (req *forwardNodeConnResp) Run(conn *Connection) (err error) {
 		return
 	}
 	appConn.deleteTransport(conn.GetTargetKey())
-	ok = appConn.PutMessage(req.Msg)
-	if !ok {
-		conn.GetContextLogger().Debugf("forwardNodeConnResp put message !ok %v", req)
+	if tr.isConnAck() {
 		return
 	}
+	req.Msg.Msg = "Discovery(" + conn.GetTargetKey().Hex() + "): " + req.Msg.Msg
+	appConn.PutMessage(req.Msg)
 	if req.Failed {
 		appConn.writeOP(OP_BUILD_APP_CONN|RESP_PREFIX, &AppConnResp{
 			App:    req.App,

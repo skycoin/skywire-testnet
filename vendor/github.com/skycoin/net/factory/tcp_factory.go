@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/sirupsen/logrus"
 	"net"
 
 	"github.com/skycoin/net/client"
@@ -33,6 +34,7 @@ func (factory *TCPFactory) Listen(address string) error {
 		for {
 			c, err := ln.AcceptTCP()
 			if err != nil {
+				logrus.Errorf("AcceptTCP err %v", err)
 				return
 			}
 			factory.createConn(c)

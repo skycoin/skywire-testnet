@@ -42,6 +42,7 @@ type Connection interface {
 	WriteToChannel(channel int, bytes []byte) (err error)
 
 	WaitForDisconnected()
+	GetDisconnectedChan() <-chan struct{}
 
 	WriteSyn(bytes []byte) (err error)
 
@@ -174,6 +175,10 @@ func (c *ConnCommonFields) IsClosed() bool {
 
 func (c *ConnCommonFields) WaitForDisconnected() {
 	<-c.disconnected
+}
+
+func (c *ConnCommonFields) GetDisconnectedChan() <-chan struct{} {
+	return c.disconnected
 }
 
 func (c *ConnCommonFields) GetLastTime() int64 {

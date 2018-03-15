@@ -21,9 +21,6 @@ type MessengerFactory struct {
 	regConnections      map[cipher.PubKey]*Connection
 	regConnectionsMutex sync.RWMutex
 
-	// custom msg callback
-	CustomMsgHandler func(*Connection, []byte)
-
 	// will deliver the services data to server if true
 	Proxy bool
 	serviceDiscovery
@@ -31,10 +28,16 @@ type MessengerFactory struct {
 	defaultSeedConfig *SeedConfig
 
 	Parent *MessengerFactory
-	// on accepted callback
-	OnAcceptedUDPCallback func(connection *Connection)
+
+	appVersion string
 
 	fieldsMutex sync.RWMutex
+
+	// custom msg callback
+	CustomMsgHandler func(*Connection, []byte)
+
+	// on accepted callback
+	OnAcceptedUDPCallback func(connection *Connection)
 
 	BeforeReadOnConn func(m *msg.UDPMessage)
 	BeforeSendOnConn func(m *msg.UDPMessage)
@@ -295,8 +298,8 @@ func (f *MessengerFactory) ConnectWithConfig(address string, config *ConnConfig)
 		tcpFactory := factory.NewTCPFactory()
 		f.factory = tcpFactory
 	}
-	f.fieldsMutex.Unlock()
 	c, err := f.factory.Connect(address)
+	f.fieldsMutex.Unlock()
 	if err != nil {
 		if config != nil && config.Reconnect {
 			go func() {
@@ -478,8 +481,8 @@ func (f *MessengerFactory) discoveryRegister(conn *Connection, ns *NodeServices)
 		err = fmt.Errorf("invalid NodeServices %#v", ns)
 		return
 	}
-	f.serviceDiscovery.register(conn, ns)
 	if f.Proxy {
+		f.serviceDiscovery.register(conn, ns)
 		nodeServices := f.pack()
 		f.ForEachConn(func(connection *Connection) {
 			err := connection.UpdateServices(nodeServices)
@@ -487,6 +490,8 @@ func (f *MessengerFactory) discoveryRegister(conn *Connection, ns *NodeServices)
 				connection.GetContextLogger().Errorf("discoveryRegister err %v", err)
 			}
 		})
+	} else {
+		f.serviceDiscovery.discoveryRegister(conn, ns)
 	}
 	return
 }
@@ -507,12 +512,14 @@ func (f *MessengerFactory) ResyncToDiscovery(connection *Connection) (err error)
 }
 
 func (f *MessengerFactory) discoveryUnregister(conn *Connection) {
-	f.serviceDiscovery.unregister(conn)
 	if f.Proxy {
+		f.serviceDiscovery.unregister(conn)
 		nodeServices := f.pack()
 		f.ForEachConn(func(connection *Connection) {
 			connection.UpdateServices(nodeServices)
 		})
+	} else {
+		f.serviceDiscovery.unDiscoveryregister(conn)
 	}
 }
 
@@ -545,4 +552,17 @@ type Level log.Level
 
 func (f *MessengerFactory) SetLoggerLevel(level Level) {
 	log.SetLevel(log.Level(level))
+}
+
+func (f *MessengerFactory) SetAppVersion(v string) {
+	f.fieldsMutex.Lock()
+	f.appVersion = v
+	f.fieldsMutex.Unlock()
+}
+
+func (f *MessengerFactory) GetAppVersion() (v string) {
+	f.fieldsMutex.RLock()
+	v = f.appVersion
+	f.fieldsMutex.RUnlock()
+	return
 }

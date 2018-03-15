@@ -56,6 +56,24 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/go-xorm/builder"
+  packages = ["."]
+  revision = "488224409dd8aa2ce7a5baf8d10d55764a913738"
+
+[[projects]]
+  name = "github.com/go-xorm/core"
+  packages = ["."]
+  revision = "da1adaf7a28ca792961721a34e6e04945200c890"
+  version = "v0.5.7"
+
+[[projects]]
+  name = "github.com/go-xorm/xorm"
+  packages = ["."]
+  revision = "1933dd69e294c0a26c0266637067f24dbb25770c"
+  version = "v0.6.4"
+
+[[projects]]
+  branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
   revision = "316fb6d3f031ae8f4d457c6c5186b9e3ded70435"
@@ -88,6 +106,12 @@
   packages = ["."]
   revision = "282ce0e5322c82529687d609ee670fac7c7d917c"
   version = "v1.1.1"
+
+[[projects]]
+  name = "github.com/mattn/go-sqlite3"
+  packages = ["."]
+  revision = "6c771bb9887719704b210e87e934f08be014bdb1"
+  version = "v1.6.0"
 
 [[projects]]
   name = "github.com/op/go-logging"
@@ -139,7 +163,7 @@
     "util",
     "util/producer"
   ]
-  revision = "115377f420ef7f97da222839ce96a2937c0d76c1"
+  revision = "5b840a66486b236a64688bacbf93c0b6cfcdd4c5"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"
@@ -182,6 +206,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ce0185a8692c21cc401d2385cca70c96ee254b6dccb8b9f700def621f4cda260"
+  inputs-digest = "bd4f8a809ca7bab4dc7caa869f748a9ad9abf0c5bba2556a88f260c1d787117a"
   solver-name = "gps-cdcl"
   solver-version = 1
