@@ -21,7 +21,7 @@ func NewClientTCPConn(c net.Conn) *ClientTCPConn {
 }
 
 func (c *ClientTCPConn) WriteLoop() (err error) {
-	ticker := time.NewTicker(time.Second * conn.TCP_PINGTICK_PERIOD)
+	ticker := time.NewTicker(time.Second * conn.TCP_PING_TICK_PERIOD)
 	defer func() {
 		ticker.Stop()
 		if err != nil {

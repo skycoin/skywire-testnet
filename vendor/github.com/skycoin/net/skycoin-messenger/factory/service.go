@@ -1,9 +1,8 @@
 package factory
 
 import (
-	"sync"
-
 	"github.com/skycoin/skycoin/src/cipher"
+	"sync"
 )
 
 type Service struct {
@@ -12,56 +11,67 @@ type Service struct {
 	Address           string   `json:",omitempty"`
 	HideFromDiscovery bool     `json:",omitempty"`
 	AllowNodes        []string `json:",omitempty"`
+	Version           string   `json:",omitempty"`
 }
 
 type NodeServices struct {
-	Services       []*Service
+	// Services that node provides
+	Services []*Service
+	// Used for node extra service listen address
 	ServiceAddress string `json:",omitempty"`
-	Location       string `json:",omitempty"`
-}
-
-type ServiceNodes struct {
-	Service *Service
-	Nodes   map[cipher.PubKey]*NodeServices
+	// Node location
+	Location string `json:",omitempty"`
+	// Node version info
+	Version []string `json:",omitempty"`
 }
 
 type serviceDiscovery struct {
-	subscription2Subscriber      map[cipher.PubKey]*ServiceNodes
+	subscription2Subscriber      map[cipher.PubKey]*NodeServices
 	subscription2SubscriberMutex sync.RWMutex
 
-	// attribute => subscription key
-	attribute2Keys map[string]map[cipher.PubKey]struct{}
-	key2Attributes map[cipher.PubKey]map[string]struct{}
+	RegisterService         func(key cipher.PubKey, ns *NodeServices) (err error)
+	UnRegisterService       func(key cipher.PubKey) (err error)
+	FindServiceAddresses    func(keys []cipher.PubKey, exclude cipher.PubKey) (result []*ServiceInfo)
+	FindByAttributes        func(attrs ...string) (result *AttrNodesInfo)
+	FindByAttributesAndPaging func(page, limit int, attrs ...string) (result *AttrNodesInfo)
 }
 
 func newServiceDiscovery() serviceDiscovery {
 	return serviceDiscovery{
-		subscription2Subscriber: make(map[cipher.PubKey]*ServiceNodes),
-		attribute2Keys:          make(map[string]map[cipher.PubKey]struct{}),
-		key2Attributes:          make(map[cipher.PubKey]map[string]struct{}),
+		subscription2Subscriber: make(map[cipher.PubKey]*NodeServices),
 	}
 }
 
 func (sd *serviceDiscovery) pack() *NodeServices {
 	sd.subscription2SubscriberMutex.RLock()
 	defer sd.subscription2SubscriberMutex.RUnlock()
-	if len(sd.key2Attributes) < 1 {
+	if len(sd.subscription2Subscriber) < 1 {
 		return nil
 	}
-	ss := make([]*Service, 0, len(sd.key2Attributes))
-	for k, v := range sd.key2Attributes {
-		attrs := make([]string, 0, len(v))
-		for attr := range v {
-			attrs = append(attrs, attr)
+	var ss []*Service
+	for _, value := range sd.subscription2Subscriber {
+		for _, service := range value.Services {
+			ss = append(ss, service)
 		}
-		s := &Service{Key: k, Attributes: attrs}
-		ss = append(ss, s)
 	}
-	ns := &NodeServices{Services: ss}
+	ns := &NodeServices{
+		Services: ss,
+	}
 	return ns
 }
 
 func (sd *serviceDiscovery) register(conn *Connection, ns *NodeServices) {
+	if !conn.IsKeySet() {
+		return
+	}
+	filter := make(map[cipher.PubKey]*Service)
+	for _, service := range ns.Services {
+		filter[service.Key] = service
+	}
+	ns.Services = make([]*Service, 0, len(filter))
+	for _, s := range filter {
+		ns.Services = append(ns.Services, s)
+	}
 	if len(ns.Services) < 1 {
 		sd.subscription2SubscriberMutex.Lock()
 		sd._unregister(conn)
@@ -70,105 +80,70 @@ func (sd *serviceDiscovery) register(conn *Connection, ns *NodeServices) {
 		return
 	}
 	sd.subscription2SubscriberMutex.Lock()
-	defer sd.subscription2SubscriberMutex.Unlock()
 	sd._unregister(conn)
-
-	for _, service := range ns.Services {
-		nodes, ok := sd.subscription2Subscriber[service.Key]
-		if !ok {
-			nodes = &ServiceNodes{Nodes: make(map[cipher.PubKey]*NodeServices), Service: service}
-			nodes.Nodes[conn.GetKey()] = ns
-			sd.subscription2Subscriber[service.Key] = nodes
-		} else {
-			nodes.Nodes[conn.GetKey()] = ns
-		}
-
-		for _, attr := range service.Attributes {
-			am, ok := sd.attribute2Keys[attr]
-			if !ok {
-				am = make(map[cipher.PubKey]struct{})
-				am[service.Key] = struct{}{}
-				sd.attribute2Keys[attr] = am
-			} else {
-				am[service.Key] = struct{}{}
-			}
-
-			if service.HideFromDiscovery {
-				continue
-			}
-			km, ok := sd.key2Attributes[service.Key]
-			if !ok {
-				km = make(map[string]struct{})
-				km[attr] = struct{}{}
-				sd.key2Attributes[service.Key] = km
-			} else {
-				km[attr] = struct{}{}
-			}
-		}
-	}
+	sd.subscription2Subscriber[conn.GetKey()] = ns
 	conn.setServices(ns)
+	sd.subscription2SubscriberMutex.Unlock()
 }
 
-func (sd *serviceDiscovery) _unregister(conn *Connection) {
-	ns := conn.GetServices()
-	if ns == nil {
+func (sd *serviceDiscovery) discoveryRegister(conn *Connection, ns *NodeServices) {
+	if !conn.IsKeySet() {
 		return
 	}
+	filter := make(map[cipher.PubKey]*Service)
 	for _, service := range ns.Services {
-		m, ok := sd.subscription2Subscriber[service.Key]
-		if !ok {
-			continue
-		}
-		delete(m.Nodes, conn.GetKey())
-		// no one subscribes to service.Key
-		if len(m.Nodes) < 1 {
-			delete(sd.subscription2Subscriber, service.Key)
+		filter[service.Key] = service
+	}
+	ns.Services = make([]*Service, 0, len(filter))
+	for _, s := range filter {
+		ns.Services = append(ns.Services, s)
+	}
+	if len(ns.Services) < 1 {
+		sd.subscription2SubscriberMutex.Lock()
+		sd._unregister(conn)
+		sd.subscription2SubscriberMutex.Unlock()
+		conn.setServices(nil)
+		return
+	}
+	sd.subscription2SubscriberMutex.Lock()
+	sd._discoveryUnregister(conn)
+	err := sd.registerService(conn.GetKey(), ns)
+	if err != nil {
+		conn.GetContextLogger().Errorf("set service: %s", err)
+	}
+	conn.setServices(ns)
+	sd.subscription2SubscriberMutex.Unlock()
+}
 
-			for _, attr := range service.Attributes {
-				am, ok := sd.attribute2Keys[attr]
-				if !ok {
-					continue
-				}
-				delete(am, service.Key)
-				if len(am) < 1 {
-					delete(sd.attribute2Keys, attr)
-				}
-			}
-			if service.HideFromDiscovery {
-				continue
-			}
-			_, ok = sd.key2Attributes[service.Key]
-			if !ok {
-				continue
-			}
-			delete(sd.key2Attributes, service.Key)
-		}
+func (sd *serviceDiscovery) _discoveryUnregister(conn *Connection) {
+	ns := conn.GetServices()
+	if ns == nil || !conn.IsKeySet() {
+		return
+	}
+	err := sd.unRegisterService(conn.GetKey())
+	if err != nil {
+		conn.GetContextLogger().Errorf("unRegister service: %s", err)
 	}
 	conn.setServices(nil)
 }
 
-func (sd *serviceDiscovery) unregister(conn *Connection) {
-	sd.subscription2SubscriberMutex.Lock()
-	defer sd.subscription2SubscriberMutex.Unlock()
-
-	sd._unregister(conn)
+func (sd *serviceDiscovery) _unregister(conn *Connection) {
+	ns := conn.GetServices()
+	if ns == nil || !conn.IsKeySet() {
+		return
+	}
+	delete(sd.subscription2Subscriber, conn.GetKey())
+	conn.setServices(nil)
 }
 
-// find public keys of nodes by subscription key
-func (sd *serviceDiscovery) find(key cipher.PubKey) []cipher.PubKey {
-	sd.subscription2SubscriberMutex.RLock()
-	defer sd.subscription2SubscriberMutex.RUnlock()
+func (sd *serviceDiscovery) unDiscoveryregister(conn *Connection) {
+	sd._discoveryUnregister(conn)
+}
 
-	m, ok := sd.subscription2Subscriber[key]
-	if !ok {
-		return nil
-	}
-
-	keys := make([]cipher.PubKey, 0, len(m.Nodes))
-	for k := range m.Nodes {
-		keys = append(keys, k)
-	}
-	return keys
+func (sd *serviceDiscovery) unregister(conn *Connection) {
+	sd.subscription2SubscriberMutex.Lock()
+	sd._unregister(conn)
+	sd.subscription2SubscriberMutex.Unlock()
 }
 
 // pubkey and address info of the node
@@ -187,149 +162,60 @@ type ServiceInfo struct {
 	Nodes []*NodeInfo
 }
 
-// internal method without lock - find service address of nodes by subscription key
-func (sd *serviceDiscovery) _findServiceAddress(key cipher.PubKey, exclude cipher.PubKey) []*NodeInfo {
-	m, ok := sd.subscription2Subscriber[key]
-	if !ok {
-		return nil
-	}
-
-	result := make([]*NodeInfo, 0, len(m.Nodes))
-	for k, v := range m.Nodes {
-		if k == exclude {
-			continue
-		}
-		result = append(result, &NodeInfo{
-			PubKey:  k,
-			Address: v.ServiceAddress,
-		})
-	}
-	return result
-}
-
 // find service address of nodes by subscription key
+// keys is app keys
+// exclude is node key
 func (sd *serviceDiscovery) findServiceAddresses(keys []cipher.PubKey, exclude cipher.PubKey) (result []*ServiceInfo) {
-	if len(keys) < 1 {
-		return nil
-	}
-	result = make([]*ServiceInfo, len(keys))
-	check := make(map[cipher.PubKey]struct{}, len(keys))
-
-	sd.subscription2SubscriberMutex.RLock()
-	defer sd.subscription2SubscriberMutex.RUnlock()
-
-	for _, k := range keys {
-		if _, ok := check[k]; ok {
-			continue
-		}
-		result = append(result, &ServiceInfo{
-			PubKey: k,
-			Nodes:  sd._findServiceAddress(k, exclude),
-		})
-		check[k] = struct{}{}
+	if sd.FindServiceAddresses != nil {
+		return sd.FindServiceAddresses(keys, exclude)
 	}
 	return
 }
 
 type AttrNodesInfo struct {
 	Nodes []*AttrNodeInfo
+	Count int64
 }
 
 type AttrNodeInfo struct {
 	Node     cipher.PubKey
 	Apps     []cipher.PubKey
 	Location string
+	Version  []string
+	AppInfos []*AttrAppInfo
+}
+
+type AttrAppInfo struct {
+	Key     cipher.PubKey
+	Version string
 }
 
 // find public keys of nodes by subscription attrs
 // return intersect map of node key => sub keys
 func (sd *serviceDiscovery) findByAttributes(attrs ...string) (result *AttrNodesInfo) {
-	if len(attrs) < 1 {
-		return nil
-	}
-	sd.subscription2SubscriberMutex.RLock()
-	defer sd.subscription2SubscriberMutex.RUnlock()
-
-	var maps []map[cipher.PubKey]struct{}
-	for _, attr := range attrs {
-		m, ok := sd.attribute2Keys[attr]
-		if !ok {
-			return nil
-		}
-		maps = append(maps, m)
-	}
-
-	keys := intersectKeys(maps)
-	nodes := make(map[cipher.PubKey]*AttrNodeInfo)
-	result = &AttrNodesInfo{}
-	for _, key := range keys {
-		m, ok := sd.subscription2Subscriber[key]
-		if !ok {
-			continue
-		}
-		for k, v := range m.Nodes {
-			var info *AttrNodeInfo
-			info, ok := nodes[k]
-			if !ok {
-				info = &AttrNodeInfo{
-					Node:     k,
-					Location: v.Location,
-				}
-				nodes[k] = info
-				result.Nodes = append(result.Nodes, info)
-			}
-			info.Apps = append(info.Apps, key)
-		}
+	if sd.FindByAttributes != nil {
+		return sd.FindByAttributes(attrs...)
 	}
 	return
 }
 
-func mapKeys(m map[cipher.PubKey]struct{}) (keys []cipher.PubKey) {
-	if len(m) < 1 {
-		return
-	}
-	keys = make([]cipher.PubKey, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
+func (sd *serviceDiscovery) findByAttributesAndPaging(page, limit int, attrs ...string) (result *AttrNodesInfo) {
+	if sd.FindByAttributes != nil {
+		return sd.FindByAttributesAndPaging(page, limit, attrs...)
 	}
 	return
 }
 
-func intersectKeys(maps []map[cipher.PubKey]struct{}) (keys []cipher.PubKey) {
-	if len(maps) < 1 {
-		return
+func (sd *serviceDiscovery) registerService(key cipher.PubKey, ns *NodeServices) (err error) {
+	if sd.RegisterService != nil {
+		return sd.RegisterService(key, ns)
 	}
-	m := maps[0]
-	keys = make([]cipher.PubKey, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	if len(maps) == 1 {
-		return
-	}
-
-	var result []cipher.PubKey
-	for _, key := range keys {
-		if isKeyInMaps(key, maps[1:]) {
-			result = append(result, key)
-		}
-	}
-	return result
+	return
 }
 
-func isKeyInMaps(key cipher.PubKey, maps []map[cipher.PubKey]struct{}) bool {
-	for _, m := range maps {
-		if _, ok := m[key]; !ok {
-			return false
-		}
+func (sd *serviceDiscovery) unRegisterService(key cipher.PubKey) (err error) {
+	if sd.UnRegisterService != nil {
+		return sd.UnRegisterService(key)
 	}
-	return true
-}
-
-func (sd *serviceDiscovery) RangeServiceToServiceNodesMap(fn func(key cipher.PubKey, value *ServiceNodes)) {
-	sd.subscription2SubscriberMutex.RLock()
-	for k, v := range sd.subscription2Subscriber {
-		fn(k, v)
-	}
-	sd.subscription2SubscriberMutex.RUnlock()
+	return
 }

@@ -2,6 +2,8 @@ package factory
 
 import "github.com/skycoin/skycoin/src/cipher"
 
+const VERSION = "0.1.0"
+
 const (
 	MSG_OP_SIZE         = 1
 	MSG_PUBLIC_KEY_SIZE = 33
