@@ -49,6 +49,15 @@
   version = "v1.13.8"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/go-akka/configuration"
+  packages = [
+    ".",
+    "hocon"
+  ]
+  revision = "707b1bd6c6d158154a56065a9ad8ee5e7903a73b"
+
+[[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
   revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
@@ -71,6 +80,22 @@
   packages = ["."]
   revision = "1933dd69e294c0a26c0266637067f24dbb25770c"
   version = "v0.6.4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gogap/config"
+  packages = ["."]
+  revision = "5deddaf84331f9b7ee459bc0ee6ea50cbfe69ed6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gogap/logrus_mate"
+  packages = [
+    ".",
+    "hooks/file",
+    "hooks/utils/caller"
+  ]
+  revision = "d007f270e2d66f12a09738791835fa1c64a1989a"
 
 [[projects]]
   branch = "master"
@@ -118,6 +143,12 @@
   packages = ["."]
   revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
   version = "v1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/orcaman/concurrent-map"
+  packages = ["."]
+  revision = "df96f262a3121a116e9600730f60dc34866a6c21"
 
 [[projects]]
   name = "github.com/oschwald/maxminddb-golang"
@@ -206,6 +237,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bd4f8a809ca7bab4dc7caa869f748a9ad9abf0c5bba2556a88f260c1d787117a"
+  inputs-digest = "fa91defa2ee9b43de2cfcdb911dd7e328374a3e20a0e3d5d2ee73e8058b4dee5"
   solver-name = "gps-cdcl"
   solver-version = 1
