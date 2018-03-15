@@ -4,12 +4,20 @@ import (
 	"github.com/go-xorm/xorm"
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 var engine *xorm.Engine
+var dbName = "skywire-discovery.db"
 
 func Init() (err error) {
-	engine, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
+	if _, err = os.Stat(dbName); err == nil {
+		err = os.Remove(dbName)
+		if err != nil {
+			return
+		}
+	}
+	engine, err = xorm.NewEngine("sqlite3", dbName)
 	if err != nil {
 		return
 	}
