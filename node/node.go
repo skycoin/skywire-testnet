@@ -22,6 +22,11 @@ func (addrs *Addresses) String() string {
 }
 
 func (addrs *Addresses) Set(addr string) error {
+	for _, value := range *addrs {
+		if value == addr {
+			return nil
+		}
+	}
 	*addrs = append(*addrs, addr)
 	return nil
 }
