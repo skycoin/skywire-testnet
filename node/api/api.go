@@ -16,10 +16,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"strconv"
 )
 
 type NodeApi struct {
@@ -241,7 +241,8 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
-	err = na.startSshc(toNode, toApp)
+	discoveryKey := r.FormValue("discoveryKey")
+	err = na.startSshc(toNode, toApp, discoveryKey)
 	if err != nil {
 		return
 	}
@@ -249,7 +250,7 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 	return
 }
 
-func (na *NodeApi) startSshc(toNode string, toApp string) (err error) {
+func (na *NodeApi) startSshc(toNode, toApp, disvoerveryKey string) (err error) {
 	if len(toNode) == 0 || len(toNode) < 66 {
 		err = errors.New("Node Key at least 66 characters.")
 		return
@@ -271,7 +272,8 @@ func (na *NodeApi) startSshc(toNode string, toApp string) (err error) {
 		ok:     isOk,
 	}
 	na.apps[key] = app
-	cmd := exec.CommandContext(app.cxt, "./sshc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(app.cxt, "./sshc", "-node-key",
+		toNode, "-app-key", toApp, "-discovery-key", disvoerveryKey, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -288,7 +290,8 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 	defer na.Unlock()
 	toNode := r.FormValue("toNode")
 	toApp := r.FormValue("toApp")
-	err = na.startSocksc(toNode, toApp)
+	discoveryKey := r.FormValue("discoveryKey")
+	err = na.startSocksc(toNode, toApp, discoveryKey)
 	if err != nil {
 		return
 	}
@@ -296,7 +299,7 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 	return
 }
 
-func (na *NodeApi) startSocksc(toNode string, toApp string) (err error) {
+func (na *NodeApi) startSocksc(toNode, toApp, disvoerveryKey string) (err error) {
 	if len(toNode) == 0 || len(toNode) < 66 {
 		err = errors.New("Node Key at least 66 characters.")
 		return
@@ -318,7 +321,8 @@ func (na *NodeApi) startSocksc(toNode string, toApp string) (err error) {
 		ok:     isOk,
 	}
 	na.apps[key] = app
-	cmd := exec.CommandContext(app.cxt, "./socksc", "-node-key", toNode, "-app-key", toApp, "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(app.cxt, "./socksc", "-node-key",
+		toNode, "-app-key", toApp, "-discovery-key", disvoerveryKey, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -661,16 +665,24 @@ func (na *NodeApi) search(w http.ResponseWriter, r *http.Request) (result []byte
 		return
 	}
 	p := r.FormValue("pages")
-	pages,err := strconv.Atoi(p)
+	pages, err := strconv.Atoi(p)
 	if err != nil {
 		return
 	}
 	l := r.FormValue("limit")
-	limit,err := strconv.Atoi(l)
+	limit, err := strconv.Atoi(l)
 	if err != nil {
 		return
 	}
-	seqs := na.node.Search(pages,limit,key)
+	discoveryKeyHex := r.FormValue("discoveryKey")
+	if len(discoveryKeyHex) == 0 {
+		return
+	}
+	discovery, err := cipher.PubKeyFromHex(discoveryKeyHex)
+	if err != nil {
+		return
+	}
+	seqs := na.node.Search(pages, limit, discovery, key)
 	result, err = json.Marshal(seqs)
 	return
 }
@@ -760,13 +772,13 @@ func (na *NodeApi) afterLaunch() (err error) {
 	}
 
 	if conf.Socksc {
-		err = na.startSocksc(conf.SockscConfNodeKey, conf.SockscConfAppKey)
+		err = na.startSocksc(conf.SockscConfNodeKey, conf.SockscConfAppKey, conf.SockscConfDiscovery)
 		if err != nil {
 			return
 		}
 	}
 	if conf.Sshc {
-		err = na.startSshc(conf.SshcConfNodeKey, conf.SshcConfAppKey)
+		err = na.startSshc(conf.SshcConfNodeKey, conf.SshcConfAppKey, conf.SshcConfDiscovery)
 		if err != nil {
 			return
 		}

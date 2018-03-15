@@ -32,6 +32,8 @@ var (
 	// connect to app
 	appKey string
 
+	discoveryKey string
+
 	version bool
 )
 
@@ -42,6 +44,7 @@ func parseFlags() {
 	flag.StringVar(&seedPath, "seed-path", filepath.Join(file.UserHome(), ".skywire", "sc", "keys.json"), "path to save seed info")
 	flag.StringVar(&nodeKey, "node-key", "", "connect to node key")
 	flag.StringVar(&appKey, "app-key", "", "connect to app key")
+	flag.StringVar(&discoveryKey, "discovery-key", "", "connect to discovery key")
 	flag.BoolVar(&version, "v", false, "print current version")
 	flag.Parse()
 }
@@ -104,7 +107,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = a.ConnectTo(nodeKey, appKey)
+	err = a.ConnectTo(nodeKey, appKey, discoveryKey)
 	if err != nil {
 		log.Fatal(err)
 	}
