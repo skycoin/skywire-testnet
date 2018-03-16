@@ -194,7 +194,7 @@
     "util",
     "util/producer"
   ]
-  revision = "6e2e71d2b05200980a814ad51d40c2e0763c1f74"
+  revision = "5960c11bddeb9631c927beddde03ae876c02576b"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"

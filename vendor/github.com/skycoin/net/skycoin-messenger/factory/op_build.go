@@ -187,7 +187,7 @@ type AppFeedback struct {
 
 func (req *AppFeedback) Execute(f *MessengerFactory, conn *Connection) (r resp, err error) {
 	conn.GetContextLogger().Debugf("recv %#v", req)
-	conn.appFeedback.Store(req)
+	conn.SetAppFeedback(req)
 	tr, ok := conn.getTransport(req.App)
 	if !ok {
 		conn.GetContextLogger().Debugf("AppFeedback tr %x not found", req.App)
