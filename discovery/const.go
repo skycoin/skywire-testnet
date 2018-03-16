@@ -24,17 +24,13 @@ discovery {
         }
 
         hooks {
-                expander {
-
-                }
-
                 file {
                     filename = "discovery.log"
                     daily = true
                     rotate = true
+					level = 3
+					max-days = 7
                 }
-
-       
         }
 }
 `

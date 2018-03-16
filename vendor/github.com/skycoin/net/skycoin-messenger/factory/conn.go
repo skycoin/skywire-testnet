@@ -50,7 +50,8 @@ type Connection struct {
 	appMessages        []PriorityMsg
 	appMessagesReadCnt int
 	appMessagesMutex   sync.RWMutex
-	appFeedback        atomic.Value
+	appFeedback        *AppFeedback
+	appFeedbackMutex   sync.RWMutex
 	// callbacks
 
 	// call after received response for FindServiceNodesByKeys
@@ -655,15 +656,18 @@ func (c *Connection) CheckMessages() (result int) {
 }
 
 func (c *Connection) SetAppFeedback(fb *AppFeedback) {
-	c.appFeedback.Store(fb)
+	c.appFeedbackMutex.Lock()
+	if c.appFeedback == nil || !fb.Failed {
+		c.appFeedback = fb
+	}
+	c.appFeedbackMutex.Unlock()
 }
 
-func (c *Connection) GetAppFeedback() *AppFeedback {
-	v, ok := c.appFeedback.Load().(*AppFeedback)
-	if !ok {
-		return nil
-	}
-	return v
+func (c *Connection) GetAppFeedback() (v *AppFeedback) {
+	c.appFeedbackMutex.RLock()
+	v = c.appFeedback
+	c.appFeedbackMutex.RUnlock()
+	return
 }
 
 func (c *Connection) SetCrypto(pk cipher.PubKey, sk cipher.SecKey, target cipher.PubKey, iv []byte) (err error) {
