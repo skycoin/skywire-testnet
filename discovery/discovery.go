@@ -36,6 +36,7 @@ func New(seedPath, address, webAddress, webDir string) *Discovery {
 	}
 	mate.Hijack(logrus.StandardLogger(), "discovery")
 	m := factory.NewMessengerFactory()
+	m.DisableLogger()
 	m.SetDefaultSeedConfigPath(seedPath)
 	m.SetAppVersion(Version)
 	m.RegisterService = db.RegisterService
