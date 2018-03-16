@@ -1,4 +1,21 @@
 #!/usr/bin/env bash
 
+NODE_EXEC_FILE=${GOPATH}/bin/node
+
+getMd5(){
+   if hash md5 2>/dev/null; then
+        echo $(md5 ${NODE_EXEC_FILE})
+    else
+        echo $(md5sum ${NODE_EXEC_FILE})
+    fi
+}
+OLDNODE=$(getMd5)
 cd ${GOPATH}/src/github.com/skycoin/skywire/cmd
 go install ./...
+NEWNODE=$(getMd5)
+
+if [ "$OLDNODE" = "$NEWNODE" ]; then
+  echo false
+else
+  echo true
+fi
