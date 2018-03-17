@@ -505,6 +505,7 @@ func (na *NodeApi) restart() (err error) {
 	args = append(args, "-seed-path", na.config.SeedPath)
 	args = append(args, "-web-port", na.config.WebPort)
 	args = append(args, "-conf", na.confPath)
+	na.Close()
 	na.srv.Close()
 	na.node.Close()
 	time.Sleep(1000 * time.Millisecond)
@@ -746,12 +747,14 @@ func (na *NodeApi) afterLaunch() (err error) {
 		}
 	}
 	if conf.Sockss {
+		log.Infof("start sockss...")
 		err = na.startSockss()
 		if err != nil {
 			return
 		}
 	}
 	if conf.Sshs {
+		log.Infof("start sshs...")
 		err = na.startSshs(nil)
 		if err != nil {
 			return
