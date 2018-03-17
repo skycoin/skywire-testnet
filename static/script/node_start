@@ -7,6 +7,7 @@ TMP_DIR=/tmp/skywire-pids
 Need_Kill=no
 
 export HOME=/root
+export GOPATH=${GOBIN_DIR}
 if [[ ! -d ${TMP_DIR} ]]; then
 	  mkdir -p ${TMP_DIR}
 fi
