@@ -5,6 +5,7 @@ set remoteHead=remoteHead.txt
 set remoteResult=remoteCommit.txt
 
 cd %GOPATH%\src\github.com\skycoin\skywire
+call git checkout master
 call git rev-parse HEAD > %localCode%
 set /p local=<%localCode%
 del %localCode%

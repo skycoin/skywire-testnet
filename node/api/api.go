@@ -105,7 +105,6 @@ func (na *NodeApi) StartSrv() {
 	http.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
 	http.HandleFunc("/node/run/update", wrap(na.update))
 	http.HandleFunc("/node/run/checkUpdate", wrap(na.checkUpdate))
-	http.HandleFunc("/node/run/updateProcess", wrap(na.updateProcess))
 	http.HandleFunc("/node/run/setNodeConfig", wrap(na.setNodeConfig))
 	http.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
 	http.HandleFunc("/node/run/runShell", wrap(na.runShell))
@@ -440,13 +439,6 @@ func (na *NodeApi) checkUpdate(w http.ResponseWriter, r *http.Request) (result [
 	return
 }
 
-var upgradeProgress = "true"
-
-func (na *NodeApi) updateProcess(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
-	result = []byte(upgradeProgress)
-	return
-}
-
 func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	var cmd *exec.Cmd
 	var gopath = os.Getenv("GOPATH")
@@ -456,16 +448,11 @@ func (na *NodeApi) update(w http.ResponseWriter, r *http.Request) (result []byte
 	} else {
 		cmd = exec.Command(filepath.Join(gopath, fmt.Sprintf("%s%s", scriptPath, "unix/update-skywire")))
 	}
-	upgradeProgress = "false"
-	err = cmd.Start()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return
 	}
-	go func() {
-		cmd.Wait()
-		upgradeProgress = "true"
-	}()
-	result = []byte("true")
+	result = out
 	return
 }
 
@@ -518,6 +505,7 @@ func (na *NodeApi) restart() (err error) {
 	args = append(args, "-seed-path", na.config.SeedPath)
 	args = append(args, "-web-port", na.config.WebPort)
 	args = append(args, "-conf", na.confPath)
+	na.Close()
 	na.srv.Close()
 	na.node.Close()
 	time.Sleep(1000 * time.Millisecond)
@@ -759,12 +747,14 @@ func (na *NodeApi) afterLaunch() (err error) {
 		}
 	}
 	if conf.Sockss {
+		log.Infof("start sockss...")
 		err = na.startSockss()
 		if err != nil {
 			return
 		}
 	}
 	if conf.Sshs {
+		log.Infof("start sshs...")
 		err = na.startSshs(nil)
 		if err != nil {
 			return
