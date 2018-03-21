@@ -657,7 +657,7 @@ func (c *Connection) CheckMessages() (result int) {
 
 func (c *Connection) SetAppFeedback(fb *AppFeedback) {
 	c.appFeedbackMutex.Lock()
-	if c.appFeedback == nil || !fb.Failed {
+	if c.appFeedback == nil || fb.Discovery == c.appFeedback.Discovery {
 		c.appFeedback = fb
 	}
 	c.appFeedbackMutex.Unlock()

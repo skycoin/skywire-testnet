@@ -153,11 +153,12 @@ type PriorityMsg struct {
 }
 
 type AppConnResp struct {
-	App    cipher.PubKey
-	Host   string `json:",omitempty"`
-	Port   int
-	Failed bool
-	Msg    PriorityMsg
+	Discovery cipher.PubKey
+	App       cipher.PubKey
+	Host      string `json:",omitempty"`
+	Port      int
+	Failed    bool
+	Msg       PriorityMsg
 }
 
 // run on app
@@ -172,12 +173,14 @@ func (req *AppConnResp) Run(conn *Connection) (err error) {
 		req.Host = host
 		fb := conn.appConnectionInitCallback(req)
 		fb.App = req.App
+		fb.Discovery = req.Discovery
 		err = conn.writeOP(OP_APP_FEEDBACK, fb)
 	}
 	return
 }
 
 type AppFeedback struct {
+	Discovery cipher.PubKey
 	// to app
 	App    cipher.PubKey
 	Port   int         `json:"port"`
@@ -221,13 +224,15 @@ func (req *buildConnResp) Execute(f *MessengerFactory, conn *Connection) (r resp
 		return
 	}
 	fnOK := func(port int) {
-		msg := fmt.Sprintf("Connected app %x", req.App)
+		msg := fmt.Sprintf("Discovery(%s): Connected app %x",
+			tr.getDiscoveryKey().Hex(), req.App)
 		priorityMsg := PriorityMsg{Priority: Connected, Msg: msg}
 		appConn.PutMessage(priorityMsg)
 		appConn.writeOP(OP_BUILD_APP_CONN|RESP_PREFIX, &AppConnResp{
-			App:  req.App,
-			Port: port,
-			Msg:  priorityMsg,
+			Discovery: tr.getDiscoveryKey(),
+			App:       req.App,
+			Port:      port,
+			Msg:       priorityMsg,
 		})
 	}
 	err = tr.ListenForApp(fnOK)
@@ -358,9 +363,10 @@ func (req *forwardNodeConnResp) Run(conn *Connection) (err error) {
 	appConn.PutMessage(req.Msg)
 	if req.Failed {
 		appConn.writeOP(OP_BUILD_APP_CONN|RESP_PREFIX, &AppConnResp{
-			App:    req.App,
-			Failed: req.Failed,
-			Msg:    req.Msg,
+			Discovery: conn.GetTargetKey(),
+			App:       req.App,
+			Failed:    req.Failed,
+			Msg:       req.Msg,
 		})
 		tr.Close()
 		return

@@ -419,6 +419,13 @@ func (t *Transport) serverSiceConnect(address, appAddress string, sc *SeedConfig
 	return
 }
 
+func (t *Transport) getDiscoveryDisconntedChan() <-chan struct{} {
+	if t.discoveryConn == nil {
+		return nil
+	}
+	return t.discoveryConn.GetDisconnectedChan()
+}
+
 // Read from node, write to app
 func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) net.Conn) {
 	defer func() {
@@ -462,7 +469,7 @@ func (t *Transport) nodeReadLoop(conn *Connection, getAppConn func(id uint32) ne
 				appConn.Close()
 				continue
 			}
-		case <-t.discoveryConn.GetDisconnectedChan():
+		case <-t.getDiscoveryDisconntedChan():
 			conn.GetContextLogger().Debugf("transport discovery conn closed")
 			return
 		}
@@ -620,6 +627,13 @@ func (t *Transport) accept() {
 	}
 }
 
+func (t *Transport) getDiscoveryKey() cipher.PubKey {
+	if t.discoveryConn == nil {
+		return EMPATY_PUBLIC_KEY
+	}
+	return t.discoveryConn.GetTargetKey()
+}
+
 func (t *Transport) Close() {
 	t.fieldsMutex.Lock()
 	defer t.fieldsMutex.Unlock()
@@ -637,12 +651,17 @@ func (t *Transport) Close() {
 	}
 	tr, ok := t.appConnHolder.getTransport(key)
 	if !ok || tr == t {
-		msg := PriorityMsg{Priority: TransportClosed, Msg: "Transport closed", Type: Failed}
+		msg := PriorityMsg{
+			Priority: TransportClosed,
+			Msg:      fmt.Sprintf("Discovery(%s): Transport closed", t.getDiscoveryKey().Hex()),
+			Type:     Failed,
+		}
 		t.appConnHolder.PutMessage(msg)
 		t.appConnHolder.SetAppFeedback(&AppFeedback{
-			App:    key,
-			Failed: true,
-			Msg:    msg,
+			Discovery: t.getDiscoveryKey(),
+			App:       key,
+			Failed:    true,
+			Msg:       msg,
 		})
 		t.appConnHolder.deleteTransport(key)
 	}
