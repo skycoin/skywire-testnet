@@ -30,6 +30,8 @@ type NodeApi struct {
 	osSignal chan os.Signal
 	srv      *http.Server
 
+	token string
+
 	apps map[string]*appCxt
 	sync.RWMutex
 
@@ -60,10 +62,11 @@ type shell struct {
 	sync.Mutex
 }
 
-func New(addr string, node *node.Node, config *node.Config, confPath string, signal chan os.Signal) *NodeApi {
+func New(addr, token string, node *node.Node, config *node.Config, confPath string, signal chan os.Signal) *NodeApi {
 
 	return &NodeApi{
 		address:  addr,
+		token:    token,
 		node:     node,
 		config:   config,
 		confPath: confPath,
@@ -94,27 +97,27 @@ func (na *NodeApi) StartSrv() {
 	if err != nil {
 		log.Errorf("after launch error: %s", err)
 	}
-	http.HandleFunc("/node/getSig", wrap(na.getSig))
-	http.HandleFunc("/node/getInfo", wrap(na.getInfo))
-	http.HandleFunc("/node/getMsg", wrap(na.getMsg))
-	http.HandleFunc("/node/getApps", wrap(na.getApps))
-	http.HandleFunc("/node/reboot", wrap(na.runReboot))
-	http.HandleFunc("/node/run/sshs", wrap(na.runSshs))
-	http.HandleFunc("/node/run/sshc", wrap(na.runSshc))
-	http.HandleFunc("/node/run/sockss", wrap(na.runSockss))
-	http.HandleFunc("/node/run/socksc", wrap(na.runSocksc))
-	http.HandleFunc("/node/run/update", wrap(na.update))
-	http.HandleFunc("/node/run/checkUpdate", wrap(na.checkUpdate))
-	http.HandleFunc("/node/run/setNodeConfig", wrap(na.setNodeConfig))
-	http.HandleFunc("/node/run/updateNode", wrap(na.updateNode))
-	http.HandleFunc("/node/run/runShell", wrap(na.runShell))
-	http.HandleFunc("/node/run/runCmd", wrap(na.runCmd))
-	http.HandleFunc("/node/run/getShellOutput", wrap(na.getShellOutput))
-	http.HandleFunc("/node/run/searchServices", wrap(na.search))
-	http.HandleFunc("/node/run/getSearchServicesResult", wrap(na.getSearchResult))
-	http.HandleFunc("/node/run/getAutoStartConfig", wrap(na.getAutoStartConfig))
-	http.HandleFunc("/node/run/setAutoStartConfig", wrap(na.setAutoStartConfig))
-	http.HandleFunc("/node/run/closeApp", wrap(na.closeApp))
+	http.HandleFunc("/node/getSig", na.wrap(na.getSig))
+	http.HandleFunc("/node/getInfo", na.wrap(na.getInfo))
+	http.HandleFunc("/node/getMsg", na.wrap(na.getMsg))
+	http.HandleFunc("/node/getApps", na.wrap(na.getApps))
+	http.HandleFunc("/node/reboot", na.wrap(na.runReboot))
+	http.HandleFunc("/node/run/sshs", na.wrap(na.runSshs))
+	http.HandleFunc("/node/run/sshc", na.wrap(na.runSshc))
+	http.HandleFunc("/node/run/sockss", na.wrap(na.runSockss))
+	http.HandleFunc("/node/run/socksc", na.wrap(na.runSocksc))
+	http.HandleFunc("/node/run/update", na.wrap(na.update))
+	http.HandleFunc("/node/run/checkUpdate", na.wrap(na.checkUpdate))
+	http.HandleFunc("/node/run/setNodeConfig", na.wrap(na.setNodeConfig))
+	http.HandleFunc("/node/run/updateNode", na.wrap(na.updateNode))
+	http.HandleFunc("/node/run/runShell", na.wrap(na.runShell))
+	http.HandleFunc("/node/run/runCmd", na.wrap(na.runCmd))
+	http.HandleFunc("/node/run/getShellOutput", na.wrap(na.getShellOutput))
+	http.HandleFunc("/node/run/searchServices", na.wrap(na.search))
+	http.HandleFunc("/node/run/getSearchServicesResult", na.wrap(na.getSearchResult))
+	http.HandleFunc("/node/run/getAutoStartConfig", na.wrap(na.getAutoStartConfig))
+	http.HandleFunc("/node/run/setAutoStartConfig", na.wrap(na.setAutoStartConfig))
+	http.HandleFunc("/node/run/closeApp", na.wrap(na.closeApp))
 	http.HandleFunc("/node/run/term", na.handleXtermsocket)
 	na.srv.Handler = http.DefaultServeMux
 	go func() {
@@ -195,8 +198,12 @@ func (na *NodeApi) getApps(w http.ResponseWriter, r *http.Request) (result []byt
 	return
 }
 
-func wrap(fn func(w http.ResponseWriter, r *http.Request) (result []byte, err error)) func(w http.ResponseWriter, r *http.Request) {
+func (na *NodeApi) wrap(fn func(w http.ResponseWriter, r *http.Request) (result []byte, err error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.FormValue("token")
+		if token != na.token {
+			return
+		}
 		result, err := fn(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -691,6 +698,10 @@ var upgrader = websocket.Upgrader{
 }
 
 func (na *NodeApi) handleXtermsocket(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("manager-token")
+	if token != na.token {
+		return
+	}
 	xterm(w, r)
 }
 
