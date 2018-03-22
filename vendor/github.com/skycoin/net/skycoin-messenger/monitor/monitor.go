@@ -3,6 +3,7 @@ package monitor
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/astaxie/beego/session"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -18,7 +19,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	"github.com/astaxie/beego/session"
 )
 
 var globalSessions *session.Manager
@@ -77,6 +77,8 @@ type Monitor struct {
 	tag     string
 	version string
 
+	token string
+
 	configs      map[string]*Config
 	configsMutex sync.RWMutex
 }
@@ -89,6 +91,7 @@ func New(f *factory.MessengerFactory, serverAddress, webAddr, tag, version strin
 		srv:           &http.Server{Addr: webAddr},
 		tag:           tag,
 		version:       version,
+		token:         getRandomString(32),
 		configs:       make(map[string]*Config),
 	}
 }
@@ -110,9 +113,10 @@ func (m *Monitor) Start(webDir string) {
 	http.HandleFunc("/login", bundle(m.Login))
 	http.HandleFunc("/checkLogin", bundle(m.checkLogin))
 	http.HandleFunc("/updatePass", bundle(m.UpdatePass))
-	http.HandleFunc("/req", bundle(req))
+	http.HandleFunc("/req", bundle(m.req))
 	http.HandleFunc("/term", m.handleNodeTerm)
 	http.HandleFunc("/getPort", bundle(m.getPort))
+	http.HandleFunc("/getToken", bundle(m.getToken))
 	go func() {
 		if err := m.srv.ListenAndServe(); err != nil {
 			log.Printf("http server: ListenAndServe() error: %s", err)
@@ -137,6 +141,9 @@ func bundle(fn func(w http.ResponseWriter, r *http.Request) (result []byte, err 
 }
 
 func (m *Monitor) getPort(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r, false) {
+		return
+	}
 	_, port, err := net.SplitHostPort(m.address)
 	if err != nil {
 		return
@@ -145,7 +152,15 @@ func (m *Monitor) getPort(w http.ResponseWriter, r *http.Request) (result []byte
 	return
 }
 
-func req(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+func (m *Monitor) getToken(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	result = []byte(m.token)
+	return
+}
+
+func (m *Monitor) req(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r, false) {
+		return
+	}
 	if r.Method != "POST" {
 		code = BAD_REQUEST
 		err = errors.New("please use post method")
@@ -156,6 +171,7 @@ func req(w http.ResponseWriter, r *http.Request) (result []byte, err error, code
 		err = errors.New("Node Address is Empty")
 		return
 	}
+	r.PostForm.Add("token", m.token)
 	var res *http.Response
 	method := r.FormValue("method")
 	switch method {
@@ -185,6 +201,9 @@ func req(w http.ResponseWriter, r *http.Request) (result []byte, err error, code
 }
 
 func (m *Monitor) getAllNode(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r, false) {
+		return
+	}
 	cs := make([]Conn, 0)
 	m.factory.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
 		now := time.Now().Unix()
@@ -210,7 +229,7 @@ func (m *Monitor) getAllNode(w http.ResponseWriter, r *http.Request) (result []b
 }
 
 func (m *Monitor) getNode(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, false) {
 		return
 	}
 	if r.Method != "POST" {
@@ -271,7 +290,7 @@ type Config struct {
 }
 
 func (m *Monitor) setNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, false) {
 		return
 	}
 	if r.Method != "POST" {
@@ -298,6 +317,9 @@ func (m *Monitor) setNodeConfig(w http.ResponseWriter, r *http.Request) (result 
 }
 
 func (m *Monitor) getNodeConfig(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+	if !verifyLogin(w, r, false) {
+		return
+	}
 	if r.Method != "POST" {
 		code = BAD_REQUEST
 		err = errors.New("please use post method")
@@ -347,7 +369,7 @@ var clientPath = filepath.Join(file.UserHome(), ".skywire", "manager", "clients.
 var clientLimit = 5
 
 func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, false) {
 		return
 	}
 	data := r.FormValue("data")
@@ -391,7 +413,7 @@ func (m *Monitor) SaveClientConnection(w http.ResponseWriter, r *http.Request) (
 }
 
 func (m *Monitor) GetClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, false) {
 		return
 	}
 	client := r.FormValue("client")
@@ -401,7 +423,7 @@ func (m *Monitor) GetClientConnection(w http.ResponseWriter, r *http.Request) (r
 }
 
 func (m *Monitor) RemoveClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, false) {
 		return
 	}
 	client := r.FormValue("client")
@@ -429,7 +451,7 @@ func (m *Monitor) RemoveClientConnection(w http.ResponseWriter, r *http.Request)
 }
 
 func (m *Monitor) EditClientConnection(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, false) {
 		return
 	}
 	client := r.FormValue("client")
@@ -520,7 +542,9 @@ func (m *Monitor) handleNodeTerm(w http.ResponseWriter, r *http.Request) {
 		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 		return
 	}
-	c, _, err := websocket.DefaultDialer.Dial(string(url), nil)
+	header := http.Header{}
+	header.Add("manager-token", m.token)
+	c, _, err := websocket.DefaultDialer.Dial(string(url), header)
 	if err != nil {
 		log.Errorf("node connection error: %s", err.Error())
 		conn.WriteMessage(websocket.BinaryMessage, []byte(fmt.Sprintf("node connection error: %s", err.Error())))
@@ -557,7 +581,7 @@ func (m *Monitor) handleNodeTerm(w http.ResponseWriter, r *http.Request) {
 var userPath = filepath.Join(file.UserHome(), ".skywire", "manager", "user.json")
 
 func (m *Monitor) checkLogin(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, false) {
 		result = []byte("false")
 		return
 	}
@@ -592,29 +616,31 @@ func (m *Monitor) Login(w http.ResponseWriter, r *http.Request) (result []byte, 
 	return
 }
 func (m *Monitor) UpdatePass(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r) {
+	if !verifyLogin(w, r, true) {
 		return
 	}
 	oldPass := r.FormValue("oldPass")
 	newPass := r.FormValue("newPass")
 	if len(oldPass) < 4 || len(oldPass) > 20 {
-		result = []byte("false")
+		result = []byte("Old password length is 4~20.")
 		return
 	}
 	if len(newPass) < 4 || len(newPass) > 20 {
-		result = []byte("false")
+		result = []byte("New password length is 4~20.")
+		return
+	}
+	if newPass == "1234" {
+		result = []byte("Please do not change the default password.")
 		return
 	}
 	err = checkPass(oldPass)
 	if err != nil {
+		result = []byte("The original password is wrong, please confirm again and try again.")
 		return
 	}
-	data, err := json.Marshal(&User{Pass: getBcrypt(newPass)})
+	err = WriteConfig(&User{Pass: getBcrypt(newPass)}, userPath)
 	if err != nil {
-		return
-	}
-	err = WriteConfig(data, userPath)
-	if err != nil {
+		result = []byte("The server is busy. Please try again later.")
 		return
 	}
 	globalSessions.SessionDestroy(w, r)
@@ -648,7 +674,8 @@ func verifyWs(w http.ResponseWriter, r *http.Request, token string) bool {
 	return matchPassword(hashStr, passStr)
 }
 
-func verifyLogin(w http.ResponseWriter, r *http.Request) bool {
+func verifyLogin(w http.ResponseWriter, r *http.Request, checkDefaultPass bool) bool {
+
 	sess, _ := globalSessions.SessionStart(w, r)
 	defer sess.SessionRelease(w)
 	pass := sess.Get("user")
@@ -671,7 +698,15 @@ func verifyLogin(w http.ResponseWriter, r *http.Request) bool {
 		http.Error(w, "Unauthorized", http.StatusFound)
 		return false
 	}
-	return matchPassword(hashStr, passStr)
+	if !matchPassword(hashStr, passStr) {
+		http.Error(w, "Unauthorized", http.StatusFound)
+		return false
+	}
+	if !checkDefaultPass && isDefaultPass() {
+		http.Error(w, "Forced change password", http.StatusTemporaryRedirect)
+		return false
+	}
+	return true
 }
 
 func (m *Monitor) getServerInfo(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
@@ -693,3 +728,8 @@ func (m *Monitor) getServerInfo(w http.ResponseWriter, r *http.Request) (result 
 	result = []byte(fmt.Sprintf("%s:%s-%s", host, port, sc.PublicKey))
 	return
 }
+
+//func (m *Monitor) checkDefaultPass(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
+//
+//	return
+//}

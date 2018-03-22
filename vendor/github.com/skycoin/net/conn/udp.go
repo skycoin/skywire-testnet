@@ -14,10 +14,6 @@ import (
 	"time"
 )
 
-const (
-	MAX_UDP_PACKAGE_SIZE = 1200
-)
-
 type UDPConn struct {
 	*ConnCommonFields
 	*UDPPendingMap
@@ -345,8 +341,10 @@ func (c *UDPConn) fillAckInfo(m []byte) {
 	if seq > nSeq+1 {
 		acked := c.GetAckedSeqs(nSeq+1, seq)
 		binary.BigEndian.PutUint32(m[msg.UDP_ACK_ACKED_SEQ_BEGIN:], acked)
+		c.GetContextLogger().Debugf("fill ack %d, next %d, acked %d", seq, nSeq, acked)
 	} else {
 		binary.BigEndian.PutUint32(m[msg.UDP_ACK_ACKED_SEQ_BEGIN:], 0)
+		c.GetContextLogger().Debugf("fill ack %d, next %d, acked %d", seq, nSeq, 0)
 	}
 }
 
@@ -510,6 +508,7 @@ func (c *UDPConn) ack(seq uint32) error {
 	if seq > nSeq+1 {
 		acked := c.GetAckedSeqs(nSeq+1, seq)
 		binary.BigEndian.PutUint32(m[msg.ACK_ACKED_SEQ_BEGIN:msg.ACK_ACKED_SEQ_END], acked)
+		c.GetContextLogger().Debugf("ack %d, next %d, acked %d", seq, nSeq, acked)
 	}
 	checksum := crc32.ChecksumIEEE(m)
 	binary.BigEndian.PutUint32(p[msg.PKG_CRC32_BEGIN:], checksum)

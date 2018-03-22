@@ -1,17 +1,22 @@
 package monitor
 
 import (
-	"io/ioutil"
 	"encoding/json"
-	"path/filepath"
-	"os"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"time"
+	"encoding/hex"
+	"math/rand"
 )
 
 type User struct {
 	Pass string
 }
+
+var user *User
 
 func readUserConfig(path string) (user *User, err error) {
 	fb, err := ioutil.ReadFile(path)
@@ -23,7 +28,11 @@ func readUserConfig(path string) (user *User, err error) {
 	return
 }
 
-func WriteConfig(data []byte, path string) (err error) {
+func WriteConfig(user *User, path string) (err error) {
+	data, err := json.Marshal(user)
+	if err != nil {
+		return
+	}
 	dir := filepath.Dir(path)
 	err = os.MkdirAll(dir, 0700)
 	if err != nil {
@@ -34,16 +43,11 @@ func WriteConfig(data []byte, path string) (err error) {
 }
 
 func checkPass(pass string) (err error) {
-	user, err := readUserConfig(userPath)
+	user, err = readUserConfig(userPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			user = &User{Pass: getBcrypt("1234")}
-			data := []byte("")
-			data, err = json.Marshal(user)
-			if err != nil {
-				return
-			}
-			err = WriteConfig(data, userPath)
+			err = WriteConfig(user, userPath)
 			if err != nil {
 				return
 			}
@@ -71,4 +75,18 @@ func matchPassword(hash, password string) bool {
 		return true
 	}
 	return false
+}
+
+func isDefaultPass() bool {
+	if user == nil {
+		user, _ = readUserConfig(userPath)
+	}
+	return matchPassword(user.Pass, "1234")
+}
+
+func getRandomString(len int) string {
+	bytes := make([]byte, len)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r.Read(bytes)
+	return hex.EncodeToString(bytes)
 }
