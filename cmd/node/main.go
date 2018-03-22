@@ -7,9 +7,12 @@ import (
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/node"
 	"github.com/skycoin/skywire/node/api"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 )
 
 var (
@@ -90,7 +93,22 @@ func main() {
 		if err != nil {
 			log.Error(err)
 		}
-		na = api.New(config.WebPort, n, &config, confPath, osSignal)
+		var tokenUrl string
+		if len(strings.Split(config.ManagerWeb, ":")) == 1 {
+			tokenUrl = fmt.Sprintf("http://127.0.0.1%s/getToken", config.ManagerWeb)
+		} else {
+			tokenUrl = fmt.Sprintf("http://%s/getToken", config.ManagerWeb)
+		}
+		resp, err := http.Get(tokenUrl)
+		if err != nil {
+			log.Error(err)
+		}
+		defer resp.Body.Close()
+		token, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Error(err)
+		}
+		na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
 		na.StartSrv()
 		defer na.Close()
 	}
