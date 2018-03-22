@@ -34,6 +34,8 @@ const (
 	MIN_RTO = 50 * time.Millisecond
 
 	MAX_CWND = 300
+
+	MAX_UDP_PACKAGE_SIZE = 1200
 )
 
 const (
