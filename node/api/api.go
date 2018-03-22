@@ -202,6 +202,7 @@ func (na *NodeApi) wrap(fn func(w http.ResponseWriter, r *http.Request) (result 
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.FormValue("token")
 		if token != na.token {
+			w.Write([]byte("manager token is null"))
 			return
 		}
 		result, err := fn(w, r)
