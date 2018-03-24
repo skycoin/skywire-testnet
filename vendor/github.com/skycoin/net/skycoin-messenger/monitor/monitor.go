@@ -201,9 +201,6 @@ func (m *Monitor) req(w http.ResponseWriter, r *http.Request) (result []byte, er
 }
 
 func (m *Monitor) getAllNode(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-	if !verifyLogin(w, r, false) {
-		return
-	}
 	cs := make([]Conn, 0)
 	m.factory.ForEachAcceptedConnection(func(key cipher.PubKey, conn *factory.Connection) {
 		now := time.Now().Unix()
@@ -728,8 +725,3 @@ func (m *Monitor) getServerInfo(w http.ResponseWriter, r *http.Request) (result 
 	result = []byte(fmt.Sprintf("%s:%s-%s", host, port, sc.PublicKey))
 	return
 }
-
-//func (m *Monitor) checkDefaultPass(w http.ResponseWriter, r *http.Request) (result []byte, err error, code int) {
-//
-//	return
-//}

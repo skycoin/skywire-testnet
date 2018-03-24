@@ -1172,7 +1172,7 @@ func (ca *ca) setPacingRate(rate uint64) {
 }
 
 func (ca *ca) calcPacingTime(len int) (d time.Duration) {
-	d = time.Duration(uint64(len*1000000000) / ca.getPacingRate())
+	d = time.Duration(uint64(len)*1000000000 / ca.getPacingRate())
 	r := time.Now().Add(d)
 	logrus.Debugf("calcPacingTime %s", d)
 	ca.nextPacingTime = r

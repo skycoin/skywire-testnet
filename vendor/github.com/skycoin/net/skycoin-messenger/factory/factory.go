@@ -519,7 +519,7 @@ func (f *MessengerFactory) discoveryUnregister(conn *Connection) {
 			connection.UpdateServices(nodeServices)
 		})
 	} else {
-		f.serviceDiscovery.unDiscoveryregister(conn)
+		f.serviceDiscovery.discoveryUnregister(conn)
 	}
 }
 

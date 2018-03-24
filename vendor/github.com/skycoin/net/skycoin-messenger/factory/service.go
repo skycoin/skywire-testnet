@@ -29,10 +29,10 @@ type serviceDiscovery struct {
 	subscription2Subscriber      map[cipher.PubKey]*NodeServices
 	subscription2SubscriberMutex sync.RWMutex
 
-	RegisterService         func(key cipher.PubKey, ns *NodeServices) (err error)
-	UnRegisterService       func(key cipher.PubKey) (err error)
-	FindServiceAddresses    func(keys []cipher.PubKey, exclude cipher.PubKey) (result []*ServiceInfo)
-	FindByAttributes        func(attrs ...string) (result *AttrNodesInfo)
+	RegisterService           func(key cipher.PubKey, ns *NodeServices) (err error)
+	UnRegisterService         func(key cipher.PubKey) (err error)
+	FindServiceAddresses      func(keys []cipher.PubKey, exclude cipher.PubKey) (result []*ServiceInfo)
+	FindByAttributes          func(attrs ...string) (result *AttrNodesInfo)
 	FindByAttributesAndPaging func(page, limit int, attrs ...string) (result *AttrNodesInfo)
 }
 
@@ -72,18 +72,16 @@ func (sd *serviceDiscovery) register(conn *Connection, ns *NodeServices) {
 	for _, s := range filter {
 		ns.Services = append(ns.Services, s)
 	}
+	sd.subscription2SubscriberMutex.Lock()
+	defer sd.subscription2SubscriberMutex.Unlock()
 	if len(ns.Services) < 1 {
-		sd.subscription2SubscriberMutex.Lock()
 		sd._unregister(conn)
-		sd.subscription2SubscriberMutex.Unlock()
 		conn.setServices(nil)
 		return
 	}
-	sd.subscription2SubscriberMutex.Lock()
 	sd._unregister(conn)
 	sd.subscription2Subscriber[conn.GetKey()] = ns
 	conn.setServices(ns)
-	sd.subscription2SubscriberMutex.Unlock()
 }
 
 func (sd *serviceDiscovery) discoveryRegister(conn *Connection, ns *NodeServices) {
@@ -99,32 +97,16 @@ func (sd *serviceDiscovery) discoveryRegister(conn *Connection, ns *NodeServices
 		ns.Services = append(ns.Services, s)
 	}
 	if len(ns.Services) < 1 {
-		sd.subscription2SubscriberMutex.Lock()
-		sd._unregister(conn)
-		sd.subscription2SubscriberMutex.Unlock()
+		sd.discoveryUnregister(conn)
 		conn.setServices(nil)
 		return
 	}
-	sd.subscription2SubscriberMutex.Lock()
-	sd._discoveryUnregister(conn)
+	sd.discoveryUnregister(conn)
 	err := sd.registerService(conn.GetKey(), ns)
 	if err != nil {
 		conn.GetContextLogger().Errorf("set service: %s", err)
 	}
 	conn.setServices(ns)
-	sd.subscription2SubscriberMutex.Unlock()
-}
-
-func (sd *serviceDiscovery) _discoveryUnregister(conn *Connection) {
-	ns := conn.GetServices()
-	if ns == nil || !conn.IsKeySet() {
-		return
-	}
-	err := sd.unRegisterService(conn.GetKey())
-	if err != nil {
-		conn.GetContextLogger().Errorf("unRegister service: %s", err)
-	}
-	conn.setServices(nil)
 }
 
 func (sd *serviceDiscovery) _unregister(conn *Connection) {
@@ -136,14 +118,22 @@ func (sd *serviceDiscovery) _unregister(conn *Connection) {
 	conn.setServices(nil)
 }
 
-func (sd *serviceDiscovery) unDiscoveryregister(conn *Connection) {
-	sd._discoveryUnregister(conn)
+func (sd *serviceDiscovery) discoveryUnregister(conn *Connection) {
+	ns := conn.GetServices()
+	if ns == nil || !conn.IsKeySet() {
+		return
+	}
+	err := sd.unRegisterService(conn.GetKey())
+	if err != nil {
+		conn.GetContextLogger().Errorf("unRegister service: %s", err)
+	}
+	conn.setServices(nil)
 }
 
 func (sd *serviceDiscovery) unregister(conn *Connection) {
 	sd.subscription2SubscriberMutex.Lock()
+	defer sd.subscription2SubscriberMutex.Unlock()
 	sd._unregister(conn)
-	sd.subscription2SubscriberMutex.Unlock()
 }
 
 // pubkey and address info of the node
