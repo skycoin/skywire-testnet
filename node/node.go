@@ -67,7 +67,11 @@ func New(seedPath, launchConfigPath, webPort string) *Node {
 	apps := factory.NewMessengerFactory()
 	apps.SetLoggerLevel(factory.DebugLevel)
 	apps.Proxy = true
-	apps.SetDefaultSeedConfigPath(seedPath)
+	err := apps.SetDefaultSeedConfigPath(seedPath)
+	if err != nil {
+		log.Errorf("set Default Seed Config Path err: %s",err)
+		os.Exit(1)
+	}
 	apps.SetAppVersion(Version)
 	m := factory.NewMessengerFactory()
 	m.SetDefaultSeedConfigPath(seedPath)
