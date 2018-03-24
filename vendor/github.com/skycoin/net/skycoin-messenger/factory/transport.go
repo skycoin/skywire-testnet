@@ -650,7 +650,7 @@ func (t *Transport) Close() {
 		key = t.FromApp
 	}
 	tr, ok := t.appConnHolder.getTransport(key)
-	if !ok || tr == t {
+	if !ok || !t.clientSide || tr == t {
 		msg := PriorityMsg{
 			Priority: TransportClosed,
 			Msg:      fmt.Sprintf("Discovery(%s): Transport closed", t.getDiscoveryKey().Hex()),

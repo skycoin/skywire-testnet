@@ -224,8 +224,8 @@ func (req *buildConnResp) Execute(f *MessengerFactory, conn *Connection) (r resp
 		return
 	}
 	fnOK := func(port int) {
-		msg := fmt.Sprintf("Discovery(%s): Connected app %x",
-			tr.getDiscoveryKey().Hex(), req.App)
+		msg := fmt.Sprintf("Discovery(%x): Connected app %x",
+			tr.getDiscoveryKey(), req.App)
 		priorityMsg := PriorityMsg{Priority: Connected, Msg: msg}
 		appConn.PutMessage(priorityMsg)
 		appConn.writeOP(OP_BUILD_APP_CONN|RESP_PREFIX, &AppConnResp{
@@ -352,14 +352,13 @@ func (req *forwardNodeConnResp) Run(conn *Connection) (err error) {
 	}
 	tr, ok := appConn.getTransport(conn.GetTargetKey())
 	if !ok {
-		conn.GetContextLogger().Debugf("forwardNodeConnResp tr %s not found", req.App.Hex())
+		conn.GetContextLogger().Debugf("forwardNodeConnResp tr %x not found", req.App)
 		return
 	}
 	appConn.deleteTransport(conn.GetTargetKey())
 	if tr.isConnAck() {
 		return
 	}
-	req.Msg.Msg = "Discovery(" + conn.GetTargetKey().Hex() + "): " + req.Msg.Msg
 	appConn.PutMessage(req.Msg)
 	if req.Failed {
 		appConn.writeOP(OP_BUILD_APP_CONN|RESP_PREFIX, &AppConnResp{
@@ -451,12 +450,23 @@ func (req *buildConn) Run(conn *Connection) (err error) {
 	if err != nil {
 		return
 	}
+	msg := PriorityMsg{
+		Priority: Building,
+		Msg: fmt.Sprintf("Discovery(%x): Building connection from node %x app %x to node %x app %x",
+			conn.GetTargetKey(),
+			req.FromNode,
+			req.FromApp,
+			req.Node,
+			req.App,
+		),
+	}
+	appConn.PutMessage(msg)
 	err = connection.writeOP(OP_FORWARD_NODE_CONN_RESP, &forwardNodeConnResp{
 		Node:     req.Node,
 		App:      req.App,
 		FromApp:  req.FromApp,
 		FromNode: req.FromNode,
-		Msg:      PriorityMsg{Priority: Building, Msg: "Building connection"},
+		Msg:      msg,
 		Num:      req.Num,
 	})
 	if err != nil {
@@ -473,13 +483,20 @@ type connAck struct {
 
 // run on node b from node a udp
 func (req *connAck) Run(conn *Connection) (err error) {
-	conn.GetContextLogger().Debugf("recv conn ack %s", req.App.Hex())
+	conn.GetContextLogger().Debugf("recv conn ack %x", req.App)
 	tr := conn.CreatedByTransport
 	if tr == nil {
 		err = fmt.Errorf("tr %x not exists", tr)
 		return
 	}
+	tr.appConnHolder.setTransportIfNotExists(req.FromApp, tr)
 	tr.StopTimeout()
+	msg := PriorityMsg{
+		Priority: Connected,
+		Msg: fmt.Sprintf("Discovery(%x): Connected by app %x",
+			tr.getDiscoveryKey(), req.FromApp),
+	}
+	tr.appConnHolder.PutMessage(msg)
 	err = ErrDetach
 	return
 }
