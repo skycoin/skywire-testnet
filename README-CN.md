@@ -64,7 +64,7 @@ cd $GOPATH/bin
 
 ```
 cd $GOPATH/bin
-./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
+nohup ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
 ```
 
 `注意：不要同时执行以上两个命令，只需要选择其中一种方式即可`
@@ -91,9 +91,9 @@ nohup ./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0
 `提示:127.0.0.1:5998 和 127.0.0.1:8000为配置参数，请以你Skywire Manager的IP和端口设置为准`
 
 #### 关闭Skywire Manager 和 Skywire Node
-如果使用一直不关闭terminal窗口方式启动Skywire Manager和Node，请在Manager和Node各自terminal上按下Ctrl + c 结束
+1) 如果使用一直不关闭terminal窗口方式启动Skywire Manager和Node，请在Manager和Node各自terminal上按下Ctrl + c 结束
 
-使用关闭terminal保持运行方式，请输入
+2) 使用关闭terminal保持运行方式，请输入:
 
 ##### 关闭Skywire Manager
 ```
@@ -114,8 +114,6 @@ pkill -F node.pid
 ## 打开 Skywire 管理页面
 
 浏览器打开 "http://127.0.0.1:8000"<br>打开管理页面需要登录,默认密码:**1234**(可以修改)
-
-### 使用 Skywire 管理页面连接App
 
 ### Conect to node
 
@@ -157,7 +155,49 @@ Port: 可用端口
 #### SSH Client
 要求输入Node Key 和 App Key，连接成功后会在按钮下会显示端口(Port)，如：30001，最后使用任意SSH远程连接工具连接上
 
+## Docker
 
+```
+docker build -t skycoin/skywire .
+```
+
+### 启动Skywire Manager
+
+```
+docker run -ti --rm \
+  --name=skywire-manager \
+  -p 5998:5998 \
+  -p 8000:8000 \
+  skycoin/skywire
+```
+
+浏览器打开 [http://localhost:8000](http://localhost:8000).
+默认密码是: **1234**.
+
+### 启动Skywire Node
+
+```
+docker volume create skywire-data
+docker run -ti --rm \
+  --name=skywire-node \
+  -v skywire-data:/root/.skywire \
+  --link skywire-manager \
+  -p 5000:5000 \
+  -p 6001:6001 \
+  skycoin/skywire \
+    node \
+      -connect-manager \
+      -manager-address skywire-manager:5998 \
+      -manager-web skywire-manager:8000 \
+      -address :5000 \
+      -web-port :6001
+```
+
+### Docker Compose
+
+```
+docker-compose up
+```
 
 <a name="wechat"></a>
 
