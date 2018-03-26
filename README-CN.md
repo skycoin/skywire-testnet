@@ -58,7 +58,7 @@ go install ./...
 cd $GOPATH/bin
 ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
 ```
-<font color="red">提示:如果使用以上命令运行,您将不可以关闭当前窗口,否则将会关闭 Skywire Manger。</font>
+`提示:如果使用以上命令运行,您将不可以关闭当前窗口,否则将会关闭 Skywire Manger。`
 
 如果你需要关闭当前窗口,并继续运行 Skywire Manager，可以使用：
 
@@ -67,7 +67,7 @@ cd $GOPATH/bin
 ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
 ```
 
-<font color="red">注意：不要同时执行以上两个命令，只需要选择其中一种方式即可</font>
+`注意：不要同时执行以上两个命令，只需要选择其中一种方式即可`
 
 
 #### 运行 Skywire Node
@@ -79,6 +79,8 @@ cd $GOPATH/bin
 ./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000
 ```
 
+`提示:如果使用以上命令运行,您将不可以关闭当前窗口,否则将会关闭 Skywire Node。`
+
 如果你需要关闭当前窗口,并继续运行 Skywire Node，可以使用：
 
 ```
@@ -86,7 +88,7 @@ cd $GOPATH/bin
 nohup ./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 > /dev/null 2>&1 & echo $! > node.pid
 ```
 
-<font color="red">提示:127.0.0.1:5998 和 127.0.0.1:8000为配置参数，请以你Skywire Manager的IP和端口设置为准</font>
+`提示:127.0.0.1:5998 和 127.0.0.1:8000为配置参数，请以你Skywire Manager的IP和端口设置为准`
 
 #### 关闭Skywire Manager 和 Skywire Node
 如果使用一直不关闭terminal窗口方式启动Skywire Manager和Node，请在Manager和Node各自terminal上按下Ctrl + c 结束
@@ -104,7 +106,7 @@ pkill -F manager.pid
 cd $GOPATH/bin
 pkill -F node.pid
 ```
-<font color="red">提示：Windows系统请打开任务管理，并查找manager和node进程进行关闭</font>
+`提示：Windows系统请打开任务管理，并查找manager和node进程进行关闭`
 
 
 <a name="open-skywire-manager"></a>
@@ -150,7 +152,7 @@ Port: 可用端口
 #### SSH
 开启此服务后会生成应用公钥，根据节点公钥与此应用公钥，可在任意运行 Skywire 的机器 中远程管理本节点。
 
-<font color="red">注意：不要随意开启SSH，并将Node Key 和 App Key 展示给陌生人</font>
+`注意：不要随意开启SSH，并将Node Key 和 App Key 展示给陌生人`
 
 #### SSH Client
 要求输入Node Key 和 App Key，连接成功后会在按钮下会显示端口(Port)，如：30001，最后使用任意SSH远程连接工具连接上
