@@ -1,3 +1,5 @@
+// +build cgo
+
 // Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
@@ -7,7 +9,8 @@ package sqlite3
 
 /*
 #cgo CFLAGS: -std=gnu99
-#cgo CFLAGS: -DSQLITE_ENABLE_RTREE -DSQLITE_THREADSAFE=1
+#cgo CFLAGS: -DSQLITE_ENABLE_RTREE -DSQLITE_THREADSAFE=1 -DHAVE_USLEEP=1
+#cgo linux CFLAGS: -DHAVE_PREAD64=1 -DHAVE_PWRITE64=1
 #cgo CFLAGS: -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS -DSQLITE_ENABLE_FTS4_UNICODE61
 #cgo CFLAGS: -DSQLITE_TRACE_SIZE_LIMIT=15
 #cgo CFLAGS: -DSQLITE_DISABLE_INTRINSIC
@@ -1121,18 +1124,20 @@ func (s *SQLiteStmt) query(ctx context.Context, args []namedValue) (driver.Rows,
 		done:     make(chan struct{}),
 	}
 
-	go func(db *C.sqlite3) {
-		select {
-		case <-ctx.Done():
+	if ctxdone := ctx.Done(); ctxdone != nil {
+		go func(db *C.sqlite3) {
 			select {
+			case <-ctxdone:
+				select {
+				case <-rows.done:
+				default:
+					C.sqlite3_interrupt(db)
+					rows.Close()
+				}
 			case <-rows.done:
-			default:
-				C.sqlite3_interrupt(db)
-				rows.Close()
 			}
-		case <-rows.done:
-		}
-	}(s.c.db)
+		}(s.c.db)
+	}
 
 	return rows, nil
 }
@@ -1166,19 +1171,21 @@ func (s *SQLiteStmt) exec(ctx context.Context, args []namedValue) (driver.Result
 		return nil, err
 	}
 
-	done := make(chan struct{})
-	defer close(done)
-	go func(db *C.sqlite3) {
-		select {
-		case <-done:
-		case <-ctx.Done():
+	if ctxdone := ctx.Done(); ctxdone != nil {
+		done := make(chan struct{})
+		defer close(done)
+		go func(db *C.sqlite3) {
 			select {
 			case <-done:
-			default:
-				C.sqlite3_interrupt(db)
+			case <-ctxdone:
+				select {
+				case <-done:
+				default:
+					C.sqlite3_interrupt(db)
+				}
 			}
-		}
-	}(s.c.db)
+		}(s.c.db)
+	}
 
 	var rowid, changes C.longlong
 	rv := C._sqlite3_step(s.s, &rowid, &changes)
