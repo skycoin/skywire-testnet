@@ -415,7 +415,7 @@ func (na *NodeApi) startSockss() (err error) {
 		ok:     isOk,
 	}
 	na.apps[key] = app
-	cmd := exec.CommandContext(app.cxt, "./sockss", "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(app.cxt, "sockss", "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
