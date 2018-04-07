@@ -30,6 +30,7 @@ USER skywire
 
 # copy binaries and assets
 COPY --from=build-go /go/bin/* /usr/bin/
+COPY --from=build-go /go/bin/sockss .
 COPY --from=build-node /home/node/net/skycoin-messenger/monitor/web/dist-manager /usr/local/skycoin/net/skycoin-messenger/monitor/web/dist-manager
 
 VOLUME $DATA_DIR
