@@ -17,7 +17,7 @@ Skywire is still under heavy development.
 * [Install](#install)
 * [Run Skywire](#run-skywire)
 * [Docker](#docker)
-* [Images](#images)
+* [System Images Download address](#images)
 
 ### Requirements
 
@@ -191,7 +191,7 @@ Open [http://localhost:8000](http://localhost:8000).
 
 Note: this image can only be run at [Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html).The images have been installed on the Skywire operating environment.
 
-### Ip presetted image
+### IP presetted system images
 
 Manager image package contains Skywire Manager and a Skywire Node, other Node image package only launch a Node.Because the router takes up 192.168.0.1 by default, the Manager goes to the Node7 image from 192.168.0.2~192.168.0.9.
 
@@ -211,7 +211,7 @@ Manager image package contains Skywire Manager and a Skywire Node, other Node im
 
 8) [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz)
 
-### Manually set the IP image
+### Manually set IP system images
 
 `Node: This image only contains the basic environment of Skywire, and it needs to set IP, etc., suitable for use by relevant knowledge people.`
 

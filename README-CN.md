@@ -9,7 +9,7 @@ Skywire当前还处于开发阶段，如果没有太多技术背景，请等待�
 * [运行 Skywire](#run-skywire)
 * [打开 Skywire 管理页面](#open-skywire-manager)
 * [使用 Skywire App](#use-skywire-app)
-* [镜像下载地址](#images)
+* [系统镜像下载地址](#images)
 
 <a name="requirements"></a>
 
@@ -193,15 +193,15 @@ docker run -ti --rm \
 docker-compose up
 ```
 
-## 镜像下载地址
+## 系统镜像下载地址
 
 <a name="images"></a>
 
-注意:该镜像暂时只可以在[Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html)运行,以下镜像均已安装好Skywire运行环境
+注意:该系统镜像暂时只可以在[Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html)运行,以下镜像均已安装好Skywire运行环境
 
-### 预设置IP镜像
+### 预设置IP系统镜像
 
-Manager镜像包包含Skywire Manager和一个Skywire Node,其它Node镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7镜像从192.168.0.2~192.168.0.9为止
+Manager系统镜像包包含Skywire Manager和一个Skywire Node,其它Node系统镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7系统镜像从192.168.0.2~192.168.0.9为止
 
 1) [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)
 
@@ -219,8 +219,8 @@ Manager镜像包包含Skywire Manager和一个Skywire Node,其它Node镜像包�
 
 8) [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz)
 
-### 手动配置IP镜像
+### 手动配置IP系统镜像
 
-`这镜像只包含运行Skywire的基本环境,需要设置IP等,适合具有相关知识人士使用`
+`这个系统镜像只包含运行Skywire的基本环境,需要设置IP等,适合具有相关知识人士使用`
 
 [Pure Image](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_pure.tar.gz)
