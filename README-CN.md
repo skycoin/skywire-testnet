@@ -201,7 +201,7 @@ docker-compose up
 
 ### 预设置IP系统镜像
 
-注意:Manager系统镜像包包含Skywire Manager和一个Skywire Node,其它Node系统镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7系统镜像从192.168.0.2~192.168.0.9为止
+注意:Manager系统镜像包包含Skywire Manager和一个Skywire Node,其它Node系统镜像包只启动一个Node
 
 1) 下载 [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)  (IP:192.168.0.2)
 
