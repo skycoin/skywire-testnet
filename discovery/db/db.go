@@ -29,7 +29,6 @@ func Init() (err error) {
 		return
 	}
 	err = createTables()
-	//engine.Sync2(new(Node),new(Service),new(Attributes))
 	return
 }
 

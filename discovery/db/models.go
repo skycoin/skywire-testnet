@@ -4,6 +4,7 @@ import (
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
 	"time"
+	"github.com/sirupsen/logrus"
 )
 
 type Node struct {
@@ -142,7 +143,7 @@ func RegisterService(key cipher.PubKey, ns *factory.NodeServices) (err error) {
 				sess.Rollback()
 				return err
 			}
-			_,err = engine.Where("service_id == ?",service.Id).Delete(&Attributes{})
+			_, err = engine.Where("service_id == ?", service.Id).Delete(&Attributes{})
 			if err != nil {
 				sess.Rollback()
 				return err
@@ -295,21 +296,18 @@ func FindResultByAttrsAndPaging(pages, limit int, attr ...string) (result *facto
 	return
 }
 
-type NodeAndService struct {
-	Node    `xorm:"extends"`
-	Service `xorm:"extends"`
-}
-
 func FindServiceAddresses(keys []cipher.PubKey, exclude cipher.PubKey) (result []*factory.ServiceInfo) {
-	appKeys := make([]string, len(keys))
+	appKeys := make([]string, 0)
 	for _, v := range keys {
 		appKeys = append(appKeys, v.Hex())
 	}
 	excludeNodeKey := exclude.Hex()
-	ns := make([]NodeAndService, 0)
+	ns := make([]NodeDetail, 0)
 	err := engine.Join("INNER", "service", "service.node_id = node.id").
-		Where("node.key != ?", excludeNodeKey).In("service.key", appKeys).Find(&ns)
+		Where("node.key != ?", excludeNodeKey).
+		In("service.key", appKeys).Find(&ns)
 	if err != nil {
+		logrus.Errorf("err: %s", err)
 		return
 	}
 	ss := make(map[string][]*factory.NodeInfo)
