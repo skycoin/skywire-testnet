@@ -9,7 +9,7 @@ Skywire当前还处于开发阶段，如果没有太多技术背景，请等待�
 * [运行 Skywire](#run-skywire)
 * [打开 Skywire 管理页面](#open-skywire-manager)
 * [使用 Skywire App](#use-skywire-app)
-* [系统镜像下载地址](#images)
+* [系统镜像下载链接](#images)
 
 <a name="requirements"></a>
 
@@ -197,30 +197,30 @@ docker-compose up
 
 <a name="images"></a>
 
-注意:该系统镜像暂时只可以在[Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html)运行,以下镜像均已安装好Skywire运行环境
+注意:该系统镜像暂时只可以在[Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html)运行
 
 ### 预设置IP系统镜像
 
-Manager系统镜像包包含Skywire Manager和一个Skywire Node,其它Node系统镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7系统镜像从192.168.0.2~192.168.0.9为止
+注意:Manager系统镜像包包含Skywire Manager和一个Skywire Node,其它Node系统镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7系统镜像从192.168.0.2~192.168.0.9为止
 
-1) [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)
+1) 下载 [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)  (IP:192.168.0.2)
 
-2) [Node1](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node1.tar.gz)
+2) 下载 [Node1](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node1.tar.gz)  (IP:192.168.0.3)
 
-3) [Node2](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node2.tar.gz)
+3) 下载 [Node2](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node2.tar.gz)  (IP:192.168.0.4)
 
-4) [Node3](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node3.tar.gz)
+4) 下载 [Node3](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node3.tar.gz)  (IP:192.168.0.5)
 
-5) [Node4](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node4.tar.gz)
+5) 下载 [Node4](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node4.tar.gz)  (IP:192.168.0.6)
 
-6) [Node5](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node5.tar.gz)
+6) 下载 [Node5](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node5.tar.gz)  (IP:192.168.0.7)
 
-7) [Node6](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node6.tar.gz)
+7) 下载 [Node6](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node6.tar.gz)  (IP:192.168.0.8)
 
-8) [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz)
+8) 下载 [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz)  (IP:192.168.0.9)
 
 ### 手动配置IP系统镜像
 
-`这个系统镜像只包含运行Skywire的基本环境,需要设置IP等,适合具有相关知识人士使用`
+`注意:这个系统镜像只包含运行Skywire的基本环境,需要设置IP等`
 
-[Pure Image](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_pure.tar.gz)
+下载[Pure Image](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_pure.tar.gz)
