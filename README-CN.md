@@ -197,11 +197,11 @@ docker-compose up
 
 <a name="images"></a>
 
-`注意:该镜像暂时只可以在[Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html)运行,以下镜像均已安装好Skywire运行环境`
+注意:该镜像暂时只可以在[Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html)运行,以下镜像均已安装好Skywire运行环境
 
 ### 已设置IP镜像
 
-`Manager镜像包包含Skywire Manager和一个Skywire Node,其它Node镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7镜像从192.168.0.2~192.168.0.9为止`
+Manager镜像包包含Skywire Manager和一个Skywire Node,其它Node镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7镜像从192.168.0.2~192.168.0.9为止
 
 1) [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)
 

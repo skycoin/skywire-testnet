@@ -189,11 +189,11 @@ Open [http://localhost:8000](http://localhost:8000).
 
 <a name="images"></a>
 
-`Note: this image can only be run at [Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html).The images have been installed on the Skywire operating environment.`
+Note: this image can only be run at [Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html).The images have been installed on the Skywire operating environment.
 
 ### Automatically sets the IP image
 
-`Manager image package contains Skywire Manager and a Skywire Node, other Node image package only launch a Node.Because the router takes up 192.168.0.1 by default, the Manager goes to the Node7 image from 192.168.0.2~192.168.0.9.`
+Manager image package contains Skywire Manager and a Skywire Node, other Node image package only launch a Node.Because the router takes up 192.168.0.1 by default, the Manager goes to the Node7 image from 192.168.0.2~192.168.0.9.
 
 1) [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)
 
