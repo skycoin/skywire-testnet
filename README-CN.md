@@ -9,7 +9,7 @@ Skywire当前还处于开发阶段，如果没有太多技术背景，请等待�
 * [运行 Skywire](#run-skywire)
 * [打开 Skywire 管理页面](#open-skywire-manager)
 * [使用 Skywire App](#use-skywire-app)
-* [加入微信群](#wechat)
+* [镜像下载地址](#images)
 
 <a name="requirements"></a>
 
@@ -32,12 +32,6 @@ Skywire当前还处于开发阶段，如果没有太多技术背景，请等待�
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
 git clone https://github.com/skycoin/skywire.git
-```
-
-编译Skywire
-```
-cd $GOPATH/src/github.com/skycoin/skywire/cmd
-go install ./...
 ```
 
 ### 编译Skywire
@@ -199,8 +193,34 @@ docker run -ti --rm \
 docker-compose up
 ```
 
-<a name="wechat"></a>
+## 镜像下载地址
 
-# 欢迎加入微信群
+<a name="images"></a>
 
-![2018-01-21 10 56 33](https://user-images.githubusercontent.com/1639632/35190343-ccc1f2ca-fe99-11e7-85c3-a71a0f10d375.png)
+`注意:该镜像暂时只可以在[Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html)运行,以下镜像均已安装好Skywire运行环境`
+
+### 已设置IP镜像
+
+`Manager镜像包包含Skywire Manager和一个Skywire Node,其它Node镜像包只启动一个Node.因路由器默认占用192.168.0.1,所以Manager到Node7镜像从192.168.0.2~192.168.0.9为止`
+
+1) [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)
+
+2) [Node1](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node1.tar.gz)
+
+3) [Node2](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node2.tar.gz)
+
+4) [Node3](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node3.tar.gz)
+
+5) [Node4](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node4.tar.gz)
+
+6) [Node5](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node5.tar.gz)
+
+7) [Node6](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node6.tar.gz)
+
+8) [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz)
+
+### 手动配置IP镜像
+
+`这镜像只包含运行Skywire的基本环境,需要设置IP等,适合具有相关知识人士使用`
+
+[Pure Image](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_pure.tar.gz)

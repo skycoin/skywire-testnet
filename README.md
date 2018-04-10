@@ -17,6 +17,7 @@ Skywire is still under heavy development.
 * [Install](#install)
 * [Run Skywire](#run-skywire)
 * [Docker](#docker)
+* [Images](#images)
 
 ### Requirements
 
@@ -69,7 +70,7 @@ Open a new command window
 
 ```
 cd $GOPATH/bin
-./node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address messenger.skycoin.net:5999-028667f86c17f1b4120c5bf1e58f276cbc1110a60e80b7dc8bf291c6bec9970e74 -address :5000 -web-port :6001
+./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000
 ```
 
 `tip: If you run with the above command, you will not be able to close the current window or you will close Skywire Node.`
@@ -181,3 +182,37 @@ docker-compose up
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
+
+
+
+## Image download address
+
+<a name="images"></a>
+
+`Note: this image can only be run at [Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html).The images have been installed on the Skywire operating environment.`
+
+### Automatically sets the IP image
+
+`Manager image package contains Skywire Manager and a Skywire Node, other Node image package only launch a Node.Because the router takes up 192.168.0.1 by default, the Manager goes to the Node7 image from 192.168.0.2~192.168.0.9.`
+
+1) [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)
+
+2) [Node1](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node1.tar.gz)
+
+3) [Node2](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node2.tar.gz)
+
+4) [Node3](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node3.tar.gz)
+
+5) [Node4](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node4.tar.gz)
+
+6) [Node5](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node5.tar.gz)
+
+7) [Node6](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node6.tar.gz)
+
+8) [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz)
+
+### Manually set the IP image
+
+`Node: This image only contains the basic environment of Skywire, and it needs to set IP, etc., suitable for use by relevant knowledge people.`
+
+[Pure Image](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_pure.tar.gz)
