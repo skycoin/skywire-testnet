@@ -4,7 +4,6 @@ import (
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
 	"time"
-	"github.com/sirupsen/logrus"
 )
 
 type Node struct {
@@ -307,7 +306,6 @@ func FindServiceAddresses(keys []cipher.PubKey, exclude cipher.PubKey) (result [
 		Where("node.key != ?", excludeNodeKey).
 		In("service.key", appKeys).Find(&ns)
 	if err != nil {
-		logrus.Errorf("err: %s", err)
 		return
 	}
 	ss := make(map[string][]*factory.NodeInfo)
