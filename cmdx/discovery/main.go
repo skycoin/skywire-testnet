@@ -54,10 +54,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer util.IPLocator.Close()
-	err = producer.Init(confPath)
-	if err != nil {
-		log.Fatal(err)
-	}
+
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
@@ -67,6 +64,12 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Debugf("listen on %s", address)
+
+	err = producer.Init(confPath, d.GetDiscoveryKey())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	defer d.Close()
 
 	select {
