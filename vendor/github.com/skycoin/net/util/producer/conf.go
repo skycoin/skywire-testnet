@@ -1,18 +1,20 @@
 package producer
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"encoding/json"
-	"io/ioutil"
-	"fmt"
 )
 
 type Config struct {
-	AWSAccessKeyId string `json:"aws_access_key_id"`
-	AWSSecretKey   string `json:"aws_secret_key"`
-	QueueURL       string `json:"queue_url"`
-	Region         string `json:"region"`
+	AWSAccessKeyId           string `json:"aws_access_key_id"`
+	AWSSecretKey             string `json:"aws_secret_key"`
+	QueueURL                 string `json:"queue_url"`
+	OnlineQueueURL           string `json:"online_queue_url"`
+	OnlineTimeQueueURL       string `json:"online_time_queue_url"`
+	Region                   string `json:"region"`
 }
 
 // LoadJsonConfig is used to load config files as json format to config.

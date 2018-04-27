@@ -3,6 +3,7 @@ package producer
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,13 +17,18 @@ var conf *Config
 var sess *session.Session
 var seq uint64 = 0
 var discoveryName string
+var discoveryKey string
 var fieldMutex sync.RWMutex
 
-func Init(path string) (err error) {
+func Init(path, dKey string) (err error) {
 	conf = &Config{}
 	err = LoadConfig(conf, path)
 	if err != nil {
 		return
+	}
+	if len(conf.AWSSecretKey) == 0 || len(conf.AWSAccessKeyId) == 0 || len(conf.QueueURL) == 0 || len(conf.Region) == 0 {
+		err = fmt.Errorf("%s", "You need to fill in the correct information to ensure the discovery works.")
+		panic(err)
 	}
 	sess, err = session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
@@ -34,6 +40,7 @@ func Init(path string) (err error) {
 	if err != nil {
 		return
 	}
+	discoveryKey = dKey
 	discoveryName = getRandomString()
 	return
 }
@@ -59,6 +66,15 @@ type MqBody struct {
 	IsEnd        bool   `json:"is_end"`
 }
 
+type MqOnline struct {
+	Key          string `json:"key"`
+	Seq          uint64 `json:"seq"`
+	Type         int    `json:"type"`
+	NodeKey      string `json:"node_key"`
+	DiscoveryKey string `json:"discovery_key"`
+}
+
+
 func Send(body *MqBody) (err error) {
 	fieldMutex.Lock()
 	seq++
@@ -80,6 +96,31 @@ func Send(body *MqBody) (err error) {
 	})
 	return
 }
+
+func SendOnline(ol *MqOnline) (err error) {
+	fieldMutex.Lock()
+	seq++
+	if seq == 0 {
+		discoveryName = getRandomString()
+		seq++
+	}
+	ol.DiscoveryKey = discoveryKey
+	ol.Key = discoveryName
+	ol.Seq = seq
+
+	fieldMutex.Unlock()
+	svc := sqs.New(sess)
+	b, err := json.Marshal(&ol)
+	if err != nil {
+		return
+	}
+	_, err = svc.SendMessage(&sqs.SendMessageInput{
+		MessageBody: aws.String(string(b)),
+		QueueUrl:    aws.String(conf.OnlineQueueURL),
+	})
+	return
+}
+
 
 func getRandomString() string {
 	bytes := make([]byte, 128)
