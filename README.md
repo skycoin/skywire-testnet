@@ -196,21 +196,21 @@ Note: these images can only be run on [Orange Pi Prime](http://www.orangepi.cn/O
 
 Manager system image package contains Skywire Manager and a Skywire Node, other Node system image package only launch a Node.
 
-1) Download [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz) (IP:192.168.0.2)
+1) Download [Manager](http://discovery.samos.io:8000/manager.tar.gz) (IP:192.168.0.2)
 
-2) Download [Node1](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node1.tar.gz) (IP:192.168.0.3)
+2) Download [Node1](http://discovery.samos.io:8000/node-1-03.tar.gz) (IP:192.168.0.3)
 
-3) Download [Node2](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node2.tar.gz) (IP:192.168.0.4)
+3) Download [Node2](http://discovery.samos.io:8000/node-2-04.tar.gz) (IP:192.168.0.4)
 
-4) Download [Node3](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node3.tar.gz) (IP:192.168.0.5)
+4) Download [Node3](http://discovery.samos.io:8000/node-3-05.tar.gz) (IP:192.168.0.5)
 
-5) Download [Node4](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node4.tar.gz) (IP:192.168.0.6)
+5) Download [Node4](http://discovery.samos.io:8000/node-4-06.tar.gz) (IP:192.168.0.6)
 
-6) Download [Node5](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node5.tar.gz) (IP:192.168.0.7)
+6) Download [Node5](http://discovery.samos.io:8000/node-5-07.tar.gz) (IP:192.168.0.7)
 
-7) Download [Node6](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node6.tar.gz) (IP:192.168.0.8)
+7) Download [Node6](http://discovery.samos.io:8000/node-6-08.tar.gz) (IP:192.168.0.8)
 
-8) Download [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz) (IP:192.168.0.9)
+8) Download [Node7](http://discovery.samos.io:8000/node-7-09.tar.gz) (IP:192.168.0.9)
 
 ### Manually set IP system image
 
