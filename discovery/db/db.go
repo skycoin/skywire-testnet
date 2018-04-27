@@ -21,8 +21,7 @@ func Init() (err error) {
 	if err != nil {
 		return
 	}
-	engine.SetMaxIdleConns(30)
-	engine.SetMaxOpenConns(30)
+	engine.SetMaxIdleConns(100)
 	engine.ShowSQL(true)
 	err = engine.Ping()
 	if err != nil {

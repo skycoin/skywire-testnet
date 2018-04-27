@@ -71,3 +71,7 @@ func (d *Discovery) Close() {
 	d.monitor.Close()
 	d.messenger.Close()
 }
+
+func (d *Discovery) GetDiscoveryKey() string {
+	return d.messenger.GetDefaultSeedConfig().PublicKey
+}
