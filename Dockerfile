@@ -1,8 +1,8 @@
 # skywire build binaries
 # reference https://github.com/skycoin/skywire
+ARG IMAGE_FROM=alpine:3.7
 FROM golang:1.9-alpine AS build-go
 ARG ARCH=amd64
-ARG IMAGE_FROM=alpine:3.7
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
