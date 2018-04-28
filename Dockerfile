@@ -26,9 +26,9 @@ FROM $IMAGE_FROM
 
 ENV DATA_DIR=/root/.skywire
 
-RUN adduser -D skywire
+#RUN adduser -D skywire
 
-USER skywire
+#USER skywire
 
 # copy binaries and assets
 COPY --from=build-go /go/bin/* /usr/bin/
