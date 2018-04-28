@@ -7,7 +7,8 @@ ARG ARCH=amd64
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-  GOARCH=$ARCH CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./...
+    GOARCH=$ARCH CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./... && \
+    sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi"
 
 
 # skywire manager assets
@@ -26,9 +27,9 @@ FROM $IMAGE_FROM
 
 ENV DATA_DIR=/root/.skywire
 
-RUN adduser -D skywire
+#RUN adduser -D skywire
 
-USER skywire
+#USER skywire
 
 # copy binaries and assets
 COPY --from=build-go /go/bin/* /usr/bin/
