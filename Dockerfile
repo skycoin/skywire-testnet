@@ -1,13 +1,13 @@
 # skywire build binaries
 # reference https://github.com/skycoin/skywire
 FROM golang:1.9-alpine AS build-go
-ARG arch=amd64
-ARG imagebase=alpine:3.7
+ARG ARCH=amd64
+ARG IMAGE_FROM=alpine:3.7
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-  GOARCH=$arch CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./...
+  GOARCH=$ARCH CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./...
 
 
 # skywire manager assets
@@ -22,7 +22,7 @@ RUN npm install -g --unsafe @angular/cli && \
 
 
 # skywire image
-FROM $imagebase
+FROM $IMAGE_FROM
 
 ENV DATA_DIR=/root/.skywire
 
