@@ -1,2 +1,2 @@
-docker build -f $DOCKERFILE_PATH -t $IMAGE_NAME
-docker build --build-arg arch=arm --build-arg imagebase=hypriot/rpi-alpine -f $DOCKERFILE_PATH -t $IMAGE_NAME:arm
+docker build -f $DOCKERFILE_PATH -t $IMAGE_NAME .
+docker build --build-arg arch=arm --build-arg imagebase=hypriot/rpi-alpine -f $DOCKERFILE_PATH -t $IMAGE_NAME:arm .
