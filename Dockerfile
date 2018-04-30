@@ -9,8 +9,8 @@ COPY . $GOPATH/src/github.com/skycoin/skywire
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
     GOARCH=$ARCH GOARM=$GOARM CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./... && \
-    sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi"
-    sh -c "if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
+    sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \
+           if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
 
 
 # skywire manager assets
