@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var (
@@ -99,18 +100,24 @@ func main() {
 		} else {
 			tokenUrl = fmt.Sprintf("http://%s/getToken", config.ManagerWeb)
 		}
-		resp, err := http.Get(tokenUrl)
-		if err != nil {
-			log.Error(err)
+		for true  {
+			resp, err := http.Get(tokenUrl)
+			if err != nil {
+				log.Error(err)
+				fmt.Println("Connect to manager failed,Sleep 5 second then reconnect...")
+				time.Sleep(5 * time.Second)
+			} else {
+				defer resp.Body.Close()
+				token, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					log.Error(err)
+				}
+				na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
+				na.StartSrv()
+				defer na.Close()
+				break
+			}
 		}
-		defer resp.Body.Close()
-		token, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Error(err)
-		}
-		na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
-		na.StartSrv()
-		defer na.Close()
 	}
 	select {
 	case signal := <-osSignal:
