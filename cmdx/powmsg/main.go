@@ -34,7 +34,7 @@ func main() {
         return
     }
 
-    file, err := os.OpenFile("./pow.log", os.O_CREATE|os.O_APPEND, 0666)
+    file, err := os.OpenFile("./pow.log", os.O_CREATE|os.O_RDWR, 0666)
     defer file.Close();
     if err != nil {
         fmt.Println("Failed to log to file, using default stderr")
