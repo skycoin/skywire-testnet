@@ -7,7 +7,7 @@
 
 Here is our [Blog ](https://blog.skycoin.net/tags/skywire/) about Skywire.
 
-Skywire is still under heavy development. 
+Skywire is still under heavy development.
 
 
 
@@ -30,7 +30,7 @@ Skywire is still under heavy development.
 
 * setup $GOPATH env (for example: /go)
   https://github.com/golang/go/wiki/SettingGOPATH
-## Install 
+## Install
 ### Unix systems
 
 ```
