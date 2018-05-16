@@ -148,8 +148,8 @@ func handleConnection(conn *ss.Conn, auth bool) {
 	}
 
 	// check if it is ok to forward traffic from this host
-	if !shouldConnectTo(host) {
-		log.Println("not connecting to", host)
+	if err := shouldConnectTo(host); err != nil {
+		log.Printf("not connecting to %s because IP %v\n", host, err)
 		closed = true
 		return
 	}
@@ -184,24 +184,34 @@ func handleConnection(conn *ss.Conn, auth bool) {
 	return
 }
 
-func shouldConnectTo(ipStr string) bool {
+// shouldConnectTo returns if we should connect to an IP, and if not, a reason why
+func shouldConnectTo(ipStr string) error {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return false
+		return errors.New("is not valid")
 	}
 
 	// Check that the IP is not localhost, local multicast or unspecified
 	// TODO -- also block ip.IsMulticast()?
-	if ip.IsLoopback() || ip.IsInterfaceLocalMulticast() || ip.IsUnspecified() {
-		return false
+	if ip.IsLoopback() {
+		return errors.New("IsLoopback")
+	}
+	if ip.IsInterfaceLocalMulticast() {
+		return errors.New("IsInterfaceLocalMulticast")
+	}
+	if ip.IsUnspecified() {
+		return errors.New("IsUnspecified")
 	}
 
 	// Check that the IP is not in private address space
 	_, private24BitBlock, _ := net.ParseCIDR("10.0.0.0/8")
 	_, private20BitBlock, _ := net.ParseCIDR("172.16.0.0/12")
 	_, private16BitBlock, _ := net.ParseCIDR("192.168.0.0/16")
-	private := private24BitBlock.Contains(ip) || private20BitBlock.Contains(ip) || private16BitBlock.Contains(ip)
-	return !private
+	if private24BitBlock.Contains(ip) || private20BitBlock.Contains(ip) || private16BitBlock.Contains(ip) {
+		return errors.New("is in a private network block")
+	}
+
+	return nil
 }
 
 type PortListener struct {
