@@ -3,16 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/node"
-	"github.com/skycoin/skywire/node/api"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/file"
+	"github.com/skycoin/skywire/node"
+	"github.com/skycoin/skywire/node/api"
 )
 
 var (
