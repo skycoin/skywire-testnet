@@ -203,24 +203,25 @@ docker-compose up
 
 注意:Manager系统镜像包包含Skywire Manager和一个Skywire Node,其它Node系统镜像包只启动一个Node
 
-1) 下载 [Manager](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire-manager.tar.gz)  (IP:192.168.0.2)
+1) 下载 [Manager](https://downloads2.skycoin.net/skywire-images/manager.tar.gz) (IP:192.168.0.2)
 
-2) 下载 [Node1](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node1.tar.gz)  (IP:192.168.0.3)
+2) 下载 [Node1](https://downloads2.skycoin.net/skywire-images/node-1-03.tar.gz) (IP:192.168.0.3)
 
-3) 下载 [Node2](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node2.tar.gz)  (IP:192.168.0.4)
+3) 下载 [Node2](https://downloads2.skycoin.net/skywire-images/node-2-04.tar.gz) (IP:192.168.0.4)
 
-4) 下载 [Node3](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node3.tar.gz)  (IP:192.168.0.5)
+4) 下载 [Node3](https://downloads2.skycoin.net/skywire-images/node-3-05.tar.gz) (IP:192.168.0.5)
 
-5) 下载 [Node4](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node4.tar.gz)  (IP:192.168.0.6)
+5) 下载 [Node4](https://downloads2.skycoin.net/skywire-images/node-4-06.tar.gz) (IP:192.168.0.6)
 
-6) 下载 [Node5](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node5.tar.gz)  (IP:192.168.0.7)
+6) 下载 [Node5](https://downloads2.skycoin.net/skywire-images/node-5-07.tar.gz) (IP:192.168.0.7)
 
-7) 下载 [Node6](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node6.tar.gz)  (IP:192.168.0.8)
+7) 下载 [Node6](https://downloads2.skycoin.net/skywire-images/node-6-08.tar.gz) (IP:192.168.0.8)
 
-8) 下载 [Node7](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_node7.tar.gz)  (IP:192.168.0.9)
+8) 下载 [Node7](https://downloads2.skycoin.net/skywire-images/node-7-09.tar.gz) (IP:192.168.0.9)
+
 
 ### 手动配置IP系统镜像
 
 `注意:这个系统镜像只包含运行Skywire的基本环境,需要设置IP等`
 
-下载[Pure Image](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_pure.tar.gz)
+下载[Pure Image](https://downloads2.skycoin.net/skywire-images/skywire_pure.tar.gz)
