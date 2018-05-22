@@ -7,7 +7,7 @@
 
 Here is our [Blog ](https://blog.skycoin.net/tags/skywire/) about Skywire.
 
-Skywire is still under heavy development. 
+Skywire is still under heavy development.
 
 
 
@@ -30,7 +30,7 @@ Skywire is still under heavy development.
 
 * setup $GOPATH env (for example: /go)
   https://github.com/golang/go/wiki/SettingGOPATH
-## Install 
+## Install
 ### Unix systems
 
 ```
@@ -196,24 +196,24 @@ Note: these images can only be run on [Orange Pi Prime](http://www.orangepi.cn/O
 
 Manager system image package contains Skywire Manager and a Skywire Node, other Node system image package only launch a Node.
 
-1) Download [Manager](http://dl.samos.io:8000/manager.tar.gz) (IP:192.168.0.2)
+1) Download [Manager](https://downloads2.skycoin.net/skywire-images/manager.tar.gz) (IP:192.168.0.2)
 
-2) Download [Node1](http://dl.samos.io:8000/node-1-03.tar.gz) (IP:192.168.0.3)
+2) Download [Node1](https://downloads2.skycoin.net/skywire-images/node-1-03.tar.gz) (IP:192.168.0.3)
 
-3) Download [Node2](http://dl.samos.io:8000/node-2-04.tar.gz) (IP:192.168.0.4)
+3) Download [Node2](https://downloads2.skycoin.net/skywire-images/node-2-04.tar.gz) (IP:192.168.0.4)
 
-4) Download [Node3](http://dl.samos.io:8000/node-3-05.tar.gz) (IP:192.168.0.5)
+4) Download [Node3](https://downloads2.skycoin.net/skywire-images/node-3-05.tar.gz) (IP:192.168.0.5)
 
-5) Download [Node4](http://dl.samos.io:8000/node-4-06.tar.gz) (IP:192.168.0.6)
+5) Download [Node4](https://downloads2.skycoin.net/skywire-images/node-4-06.tar.gz) (IP:192.168.0.6)
 
-6) Download [Node5](http://dl.samos.io:8000/node-5-07.tar.gz) (IP:192.168.0.7)
+6) Download [Node5](https://downloads2.skycoin.net/skywire-images/node-5-07.tar.gz) (IP:192.168.0.7)
 
-7) Download [Node6](http://dl.samos.io:8000/node-6-08.tar.gz) (IP:192.168.0.8)
+7) Download [Node6](https://downloads2.skycoin.net/skywire-images/node-6-08.tar.gz) (IP:192.168.0.8)
 
-8) Download [Node7](http://dl.samos.io:8000/node-7-09.tar.gz) (IP:192.168.0.9)
+8) Download [Node7](https://downloads2.skycoin.net/skywire-images/node-7-09.tar.gz) (IP:192.168.0.9)
 
 ### Manually set IP system image
 
 `Note: This system image only contains the basic environment of Skywire, and it needs to set IP, etc.`
 
-Download [Pure Image](https://skywire.oss-cn-hongkong.aliyuncs.com/skywire_pure.tar.gz)
+Download [Pure Image](https://downloads2.skycoin.net/skywire-images/skywire_pure.tar.gz)
