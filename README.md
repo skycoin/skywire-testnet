@@ -3,7 +3,7 @@
 # [中文文档](README-CN.md)
 # [Spanish Document](README-ES.md)
 # [Korean Document](README-KO.md)
-# Skywire
+# [Networking guide for the official miner](networking_guide_official_miner.md)
 
 Here is our [Blog ](https://blog.skycoin.net/tags/skywire/) about Skywire.
 
