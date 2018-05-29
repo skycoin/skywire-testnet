@@ -194,24 +194,24 @@ Open [http://localhost:8000](http://localhost:8000).
 
 매니저 시스템 이미지 패키지에는 스카이와이어 매니저와 스카이와이어 노드가 포함되어 있으며 다른 노드 시스템 이미지 패키지는 노드만 설치되어 있습니다.
 
-1) Download [Manager](https://downloads2.skycoin.net/skywire-images/manager.tar.gz) (IP:192.168.0.2)
+1) Download [Manager](https://downloads3.skycoin.net/skywire-images/manager.tar.gz) (IP:192.168.0.2)
 
-2) Download [Node1](https://downloads2.skycoin.net/skywire-images/node-1-03.tar.gz) (IP:192.168.0.3)
+2) Download [Node1](https://downloads3.skycoin.net/skywire-images/node-1-03.tar.gz) (IP:192.168.0.3)
 
-3) Download [Node2](https://downloads2.skycoin.net/skywire-images/node-2-04.tar.gz) (IP:192.168.0.4)
+3) Download [Node2](https://downloads3.skycoin.net/skywire-images/node-2-04.tar.gz) (IP:192.168.0.4)
 
-4) Download [Node3](https://downloads2.skycoin.net/skywire-images/node-3-05.tar.gz) (IP:192.168.0.5)
+4) Download [Node3](https://downloads3.skycoin.net/skywire-images/node-3-05.tar.gz) (IP:192.168.0.5)
 
-5) Download [Node4](https://downloads2.skycoin.net/skywire-images/node-4-06.tar.gz) (IP:192.168.0.6)
+5) Download [Node4](https://downloads3.skycoin.net/skywire-images/node-4-06.tar.gz) (IP:192.168.0.6)
 
-6) Download [Node5](https://downloads2.skycoin.net/skywire-images/node-5-07.tar.gz) (IP:192.168.0.7)
+6) Download [Node5](https://downloads3.skycoin.net/skywire-images/node-5-07.tar.gz) (IP:192.168.0.7)
 
-7) Download [Node6](https://downloads2.skycoin.net/skywire-images/node-6-08.tar.gz) (IP:192.168.0.8)
+7) Download [Node6](https://downloads3.skycoin.net/skywire-images/node-6-08.tar.gz) (IP:192.168.0.8)
 
-8) Download [Node7](https://downloads2.skycoin.net/skywire-images/node-7-09.tar.gz) (IP:192.168.0.9)
+8) Download [Node7](https://downloads3.skycoin.net/skywire-images/node-7-09.tar.gz) (IP:192.168.0.9)
 
 ### 수동 IP 설정
 
 `주의: 이 시스템 이미지는 단지 기본적인 스카이와이어 설정만을 포함하고 있으며, IP 설정 등이 필요합니다.`
 
-다운로드[원본 이미지](https://downloads2.skycoin.net/skywire-images/skywire_pure.tar.gz)
+다운로드[원본 이미지](https://downloads3.skycoin.net/skywire-images/skywire_pure.tar.gz)
