@@ -258,6 +258,7 @@ func (na *NodeApi) runSshc(w http.ResponseWriter, r *http.Request) (result []byt
 }
 
 func (na *NodeApi) startSshc(toNode, toApp, disvoerveryKey string) (err error) {
+	var gopath = os.Getenv("GOPATH")
 	if len(toNode) == 0 || len(toNode) < 66 {
 		err = errors.New("Node Key at least 66 characters.")
 		return
@@ -279,7 +280,7 @@ func (na *NodeApi) startSshc(toNode, toApp, disvoerveryKey string) (err error) {
 		ok:     isOk,
 	}
 	na.apps[key] = app
-	cmd := exec.CommandContext(app.cxt, "./sshc", "-node-key",
+	cmd := exec.CommandContext(app.cxt, filepath.Join(gopath, "bin", "sshc"), "-node-key",
 		toNode, "-app-key", toApp, "-discovery-key", disvoerveryKey, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
@@ -307,6 +308,7 @@ func (na *NodeApi) runSocksc(w http.ResponseWriter, r *http.Request) (result []b
 }
 
 func (na *NodeApi) startSocksc(toNode, toApp, disvoerveryKey string) (err error) {
+	var gopath = os.Getenv("GOPATH")
 	if len(toNode) == 0 || len(toNode) < 66 {
 		err = errors.New("Node Key at least 66 characters.")
 		return
@@ -328,7 +330,7 @@ func (na *NodeApi) startSocksc(toNode, toApp, disvoerveryKey string) (err error)
 		ok:     isOk,
 	}
 	na.apps[key] = app
-	cmd := exec.CommandContext(app.cxt, "./socksc", "-node-key",
+	cmd := exec.CommandContext(app.cxt, filepath.Join(gopath, "bin", "socksc"), "-node-key",
 		toNode, "-app-key", toApp, "-discovery-key", disvoerveryKey, "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
@@ -356,6 +358,7 @@ func (na *NodeApi) runSshs(w http.ResponseWriter, r *http.Request) (result []byt
 }
 
 func (na *NodeApi) startSshs(arr []string) (err error) {
+	var gopath = os.Getenv("GOPATH")
 	na.Lock()
 	defer na.Unlock()
 	key := "sshs"
@@ -378,7 +381,7 @@ func (na *NodeApi) startSshs(arr []string) (err error) {
 		args = append(args, "-node-key")
 		args = append(args, v)
 	}
-	cmd := exec.CommandContext(app.cxt, "./sshs", args...)
+	cmd := exec.CommandContext(app.cxt, filepath.Join(gopath, "bin", "sshs"), args...)
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -400,6 +403,7 @@ func (na *NodeApi) runSockss(w http.ResponseWriter, r *http.Request) (result []b
 }
 
 func (na *NodeApi) startSockss() (err error) {
+	var gopath = os.Getenv("GOPATH")
 	na.Lock()
 	defer na.Unlock()
 	key := "sockss"
@@ -415,7 +419,7 @@ func (na *NodeApi) startSockss() (err error) {
 		ok:     isOk,
 	}
 	na.apps[key] = app
-	cmd := exec.CommandContext(app.cxt, "./sockss", "-node-address", na.node.GetListenAddress())
+	cmd := exec.CommandContext(app.cxt, filepath.Join(gopath, "bin", "sockss"), "-node-address", na.node.GetListenAddress())
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -499,6 +503,7 @@ func (na *NodeApi) updateNode(w http.ResponseWriter, r *http.Request) (result []
 }
 
 func (na *NodeApi) restart() (err error) {
+	var gopath = os.Getenv("GOPATH")
 	conf, err := node.GetNodeDefaultConfig(na.confPath)
 	if err != nil {
 		return
@@ -517,7 +522,7 @@ func (na *NodeApi) restart() (err error) {
 	na.srv.Close()
 	na.node.Close()
 	time.Sleep(1000 * time.Millisecond)
-	cmd := exec.Command("./node", args...)
+	cmd := exec.Command(filepath.Join(gopath, "bin", "node"), args...)
 	err = cmd.Start()
 	if err != nil {
 		log.Errorf("cmd start err: %v", err)
