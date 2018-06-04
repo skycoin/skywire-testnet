@@ -232,3 +232,9 @@ Manager system image package contains Skywire Manager and a Skywire Node, other 
 `Note: This system image only contains the basic environment of Skywire, and it needs to set IP, etc.`
 
 Download [Pure Image](https://downloads3.skycoin.net/skywire-images/skywire_pure.tar.gz)
+
+## Building the Orange Pi images yourself
+
+The images are in https://github.com/skycoin/Orange-Pi-H5
+
+Instructions for building the images are in https://github.com/skycoin/Orange-Pi-H5/wiki/How-to-build-the-images
