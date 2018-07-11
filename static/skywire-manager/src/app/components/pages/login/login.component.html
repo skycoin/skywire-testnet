@@ -1,4 +1,5 @@
-<p>
-  login works!
-  <i class="material-icons">settings</i>
-</p>
+<form [formGroup]="form">
+  <input type="password" formControlName="password" autocomplete="off">
+  <button (click)="login()">login</button>
+  <div *ngIf="error">{{ error }}</div>
+</form>
