@@ -6,13 +6,18 @@
 </div>
 <div class="content">
   <div class="content-box">
-    <div class="address">
+    <div class="address" *ngIf="loading">
+      <span class="label">Loading nodes...</span>
+
+    </div>
+    <div class="address" *ngIf="!loading">
       <span class="label">Nodes Count:</span>
       <strong>{{nodes?.length}}</strong>
       <small>
         <a href="javascript:void(0);" (click)="show($event)" style="font-size: xx-small">Show Nodes</a>
       </small>
     </div>
+
     <div class="address">
       <span>
         <span class="label">Discovery PubKey:</span>
@@ -27,12 +32,14 @@
           <tr>
             <th>Index</th>
             <th>Node Key</th>
+            <th>Start time</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let node of nodes;let i = index;trackBy: trackByKey">
             <td class="key">{{i + 1}}</td>
             <td class="key">{{node?.key}}</td>
+            <td class="key">{{node?.start_time}}</td>
           </tr>
           <tr *ngIf="nodes?.length === 0" style="border-bottom:0;">
             <td colspan="2" class="text-center">No Node</td>

@@ -16,6 +16,7 @@ export class DiscoveryHomeComponent implements OnInit, OnDestroy {
   nodes: Array<Conn> = [];
   showNodes = false;
   task = null;
+  loading = true;
   @ViewChild('copyTooltip') tooltip: MatTooltip;
 
   constructor(private api: ApiService, private titleService: Title) {
@@ -46,6 +47,7 @@ export class DiscoveryHomeComponent implements OnInit, OnDestroy {
     });
     this.api.getAllNode().subscribe((resp: Array<Conn>) => {
       this.nodes = resp;
+      this.loading = false;
     });
   }
 
