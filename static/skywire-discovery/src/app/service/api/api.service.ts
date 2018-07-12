@@ -8,7 +8,7 @@ import {AlertService} from '../alert/alert.service';
 
 @Injectable()
 export class ApiService {
-  private connUrl = 'http://discovery.skycoin.net:8001/conn/';
+  private connUrl = '/conn/';
   private reqUrl = '/req';
   private bankUrl = '52.15.100.203:8080/';
 
