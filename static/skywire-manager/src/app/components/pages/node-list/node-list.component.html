@@ -1,3 +1,9 @@
 <p>
   node-list works!
 </p>
+
+<button (click)="refresh()">refresh</button>
+
+<div *ngFor="let node of nodes">
+  <div>{{ node.key }}</div>
+</div>
