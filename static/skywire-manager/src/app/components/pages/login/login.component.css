@@ -29,6 +29,7 @@
   padding-left: 10px;
   padding-right: 10px;
   box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.10), 0 6px 20px 0 rgba(0, 0, 0, 0.10);
+
   margin-top: 50px;
   margin-bottom: 50px;
 }
@@ -45,6 +46,7 @@
   font-weight: bold;
   cursor: pointer;
   background-color:#EFF0F0;
+  margin-top: 30px;
 }
 
 .login-container h5 {
