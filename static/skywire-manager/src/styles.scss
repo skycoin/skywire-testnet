@@ -1,6 +1,12 @@
 @import "assets/scss/variables";
 @import "assets/scss/fonts";
 
-body {
+
+html,body{
+  height:100%;
   font-family: Skycoin;
+}
+
+.mat-app-background{
+  background: linear-gradient($blue, $blue-light) no-repeat !important;
 }

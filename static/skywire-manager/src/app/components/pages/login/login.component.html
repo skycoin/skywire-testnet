@@ -1,5 +1,9 @@
-<form [formGroup]="form">
-  <input type="password" formControlName="password" autocomplete="off">
-  <button (click)="login()">login</button>
-  <div *ngIf="error">{{ error }}</div>
-</form>
+<div class="login-container">
+  <img src="/assets/img/login-logo.png" class="logo"/>
+  <form [formGroup]="form">
+    <input type="password" formControlName="password" autocomplete="off">
+    <button (click)="login()">Login</button>
+    <div *ngIf="error">{{ error }}</div>
+  </form>
+  <h5>Skywire Manager</h5>
+</div>
