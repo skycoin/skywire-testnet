@@ -7,20 +7,21 @@ $mat-skywire-primary: (
   100: $blue-light,
   500: $blue,
   contrast: (
-    100: white,
-    500: white,
+    100: $white,
+    500: $white,
   )
 );
 
 $mat-skywire-accent: (
   500: $blue,
   contrast: (
-    500: white
+    500: $white
   )
 );
 
 $skywire-primary: mat-palette($mat-skywire-primary, 500, 100, 500);
-$skywire-accent:  mat-palette($mat-skywire-accent, 500, 500, 500);
+$skywire-accent: mat-palette($mat-skywire-accent, 500, 500, 500);
+
 
 $skywire-theme: mat-light-theme($skywire-primary, $skywire-accent);
 
