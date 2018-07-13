@@ -1,21 +1,24 @@
-import { Component, OnInit } from '@angular/core';
-import { AuthService } from '../../../services/auth.service';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import {Component, OnInit} from '@angular/core';
+import {AuthService} from '../../../services/auth.service';
+import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {Router} from '@angular/router';
+import {catchError} from 'rxjs/operators';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrls: ['./login.component.scss']
 })
 export class LoginComponent implements OnInit {
   form: FormGroup;
   error: string;
+  errorDelay = 3000;
 
   constructor(
     private authService: AuthService,
-    private router: Router,
-  ) { }
+    private router: Router
+  ) {
+  }
 
   ngOnInit() {
     this.form = new FormGroup({
@@ -23,15 +26,28 @@ export class LoginComponent implements OnInit {
     });
   }
 
+  setError(error: string) {
+    this.error = error;
+    setTimeout(() => {
+      this.error = '';
+    }, this.errorDelay);
+  }
+
   login() {
     if (this.form.valid) {
-      this.authService.login(this.form.get('password').value).subscribe(status => {
-        if (status) {
-          this.router.navigate(['nodes']);
-        } else {
-          this.error = 'Incorrect password';
-        }
-      });
+      this.authService.login(this.form.get('password').value)
+        .pipe(
+          catchError(err => {
+            this.setError('Incorrect password');
+            return err;
+          })
+        )
+        .subscribe(status => {
+          console.log(status);
+          if (status) {
+            this.router.navigate(['nodes']);
+          }
+        });
     }
   }
 }
