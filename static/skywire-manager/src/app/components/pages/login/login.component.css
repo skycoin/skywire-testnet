@@ -32,6 +32,7 @@
 
   margin-top: 50px;
   margin-bottom: 50px;
+  color:#000000ad;
 }
 
 .login-container input[type='password']:focus {
