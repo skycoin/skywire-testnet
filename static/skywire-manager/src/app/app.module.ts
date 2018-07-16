@@ -12,7 +12,7 @@ import {ReactiveFormsModule} from '@angular/forms';
 import {RelativeTimePipe} from './pipes/relative-time.pipe';
 import {MatToolbarModule, MatTableModule} from '@angular/material';
 import {FooterComponent} from './components/components/footer/footer.component';
-import {SwitchComponent} from './components/components/switch/switch.component';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 
 
 @NgModule({
@@ -22,8 +22,7 @@ import {SwitchComponent} from './components/components/switch/switch.component';
     NodeListComponent,
     NodeComponent,
     RelativeTimePipe,
-    FooterComponent,
-    SwitchComponent
+    FooterComponent
   ],
   imports: [
     BrowserModule,
@@ -32,7 +31,8 @@ import {SwitchComponent} from './components/components/switch/switch.component';
     HttpClientModule,
     AppRoutingModule,
     MatToolbarModule,
-    MatTableModule
+    MatTableModule,
+    MatSlideToggleModule
   ],
   providers: [],
   bootstrap: [AppComponent]
