@@ -52,17 +52,17 @@
     }
 
     td {
-      min-width: 50px;
       padding-right: 16px;
+    }
+
+    tr.mat-row{
+      cursor:pointer;
     }
 
     tr.mat-row:nth-child(even) {
       background-color: #F7F7F7;
     }
 
-    .cdk-column-key {
-      min-width: 550px;
-    }
   }
 
   .bold {

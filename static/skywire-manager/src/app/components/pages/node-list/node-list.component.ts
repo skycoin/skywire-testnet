@@ -3,12 +3,12 @@ import {NodeService} from '../../../services/node.service';
 import {Node} from '../../../app.datatypes';
 import {Unsubscribable} from 'rxjs';
 import {MatTableDataSource} from '@angular/material';
-import * as moment from 'moment';
+import {Router} from "@angular/router";
 
 @Component({
   selector: 'app-node-list',
   templateUrl: './node-list.component.html',
-  styleUrls: ['./node-list.component.scss']
+  styleUrls: ['./node-list.component.scss'],
 })
 export class NodeListComponent implements OnDestroy {
   private subscription: Unsubscribable;
@@ -18,9 +18,9 @@ export class NodeListComponent implements OnDestroy {
 
   constructor(
     private nodeService: NodeService,
+    private router: Router
   ) {
     this.subscription = nodeService.allNodes().subscribe(allNodes => {
-      console.log(allNodes);
       this.dataSource.data = allNodes;
     });
   }
@@ -31,5 +31,11 @@ export class NodeListComponent implements OnDestroy {
 
   refresh() {
     this.nodeService.refreshNodes();
+  }
+
+
+  viewNode(node) {
+    console.log(node);
+    this.router.navigate(['nodes', node.key]);
   }
 }

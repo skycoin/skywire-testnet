@@ -10,8 +10,8 @@ export class ApiService {
     private http: HttpClient,
   ) { }
 
-  get(url: string, parameters: any = {}, options: any = {}): Observable<any> {
-    return this.http.get(url, this.getRequestOptions(options, parameters));
+  get(url: string, options: any = {}): Observable<any> {
+    return this.http.get(url, this.getRequestOptions(options));
   }
 
   post(url: string, body: any = {}, options: any = {}): Observable<any> {
@@ -25,7 +25,7 @@ export class ApiService {
     );
   }
 
-  private getRequestOptions(options: any, parameters = null) {
+  private getRequestOptions(options: any) {
     const requestOptions: any = {};
 
     requestOptions.headers = new HttpHeaders();
@@ -34,19 +34,11 @@ export class ApiService {
       requestOptions.headers = requestOptions.headers.append('Content-Type', 'application/json');
     }
 
-    requestOptions.parameters = this.getRequestParameters(parameters);
-
-    return requestOptions;
-  }
-
-  private getRequestParameters(parameters = null) {
-    let params = new HttpParams();
-
-    if (parameters) {
-      Object.keys(parameters).forEach(key => params = params.set(key, parameters[key]));
+    if (options.params) {
+      requestOptions.params = options.params;
     }
 
-    return params;
+    return requestOptions;
   }
 
   private getPostBody(body: any, options: any) {
