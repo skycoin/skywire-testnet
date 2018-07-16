@@ -9,13 +9,15 @@ import { LoginComponent } from './components/pages/login/login.component';
 import { NodeListComponent } from './components/pages/node-list/node-list.component';
 import { NodeComponent } from './components/pages/node/node.component';
 import { ReactiveFormsModule } from '@angular/forms';
+import { RelativeTimePipe } from './pipes/relative-time.pipe';
 
 @NgModule({
   declarations: [
     AppComponent,
     LoginComponent,
     NodeListComponent,
-    NodeComponent
+    NodeComponent,
+    RelativeTimePipe,
   ],
   imports: [
     BrowserModule,

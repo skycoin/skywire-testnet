@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Subject, timer, Unsubscribable } from 'rxjs';
-import { Node } from '../app.datatypes';
+import { Observable, Subject, timer, Unsubscribable } from 'rxjs';
+import { Node, NodeApp } from '../app.datatypes';
 import { ApiService } from './api.service';
 
 @Injectable({
@@ -14,7 +14,7 @@ export class NodeService {
     private apiService: ApiService,
   ) { }
 
-  allNodes() {
+  allNodes(): Observable<Node[]> {
     this.refreshNodes();
 
     return this.nodes.asObservable();
@@ -30,5 +30,25 @@ export class NodeService {
         this.nodes.next(allNodes);
       });
     });
+  }
+
+  node(key: string): Observable<Node> {
+    return this.apiService.post('conn/getNode', { key }, { type: 'form' });
+  }
+
+  nodeApps(address: string): Observable<NodeApp[]> {
+    return this.nodeRequest(address, 'getApps');
+  }
+
+  private nodeRequest(nodeAddress: string, endpoint: string, body: any = {}, options: any = {}) {
+    options.params = Object.assign(options.params || {}, {
+      addr: this.nodeRequestAddress(nodeAddress, endpoint),
+    });
+
+    return this.apiService.post('req', body, options);
+  }
+
+  private nodeRequestAddress(nodeAddress: string, endpoint: string) {
+    return 'http://' + nodeAddress + '/node/' + endpoint;
   }
 }
