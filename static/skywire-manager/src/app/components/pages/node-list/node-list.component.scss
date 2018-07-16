@@ -1,3 +1,4 @@
+@import "../../../../assets/scss/variables";
 
 .mat-app-background {
   padding: 0;
@@ -52,17 +53,17 @@
     }
 
     td {
+      min-width: 50px;
       padding-right: 16px;
     }
 
-    tr.mat-row{
-      cursor:pointer;
+    tr.mat-row {
+      cursor: pointer;
     }
 
-    tr.mat-row:nth-child(even) {
-      background-color: #F7F7F7;
+    tr.mat-row:hover{
+      background-color: $light-gray;
     }
-
   }
 
   .bold {
@@ -70,12 +71,11 @@
   }
 }
 
-
-$dot-size:10px;
+$dot-size: 10px;
 .dot {
   height: $dot-size;
   width: $dot-size;
-  background-color: #6BDB8F;
+  background-color: $green;
   border-radius: 50%;
   display: inline-block;
 }
