@@ -39,31 +39,3 @@
 
   }
 }
-
-//Toogle button
-$slider-icon-size: 14px !important;
-::ng-deep .mat-slide-toggle {
-  .mat-slide-toggle-thumb {
-    width: $slider-icon-size;
-    height: $slider-icon-size;
-  }
-
-  .mat-slide-toggle-thumb-container {
-    top: 2px;
-    left: 2px;
-  }
-
-  .mat-slide-toggle-bar {
-    background-color: $black !important;
-    height: 18px;
-    width: 34px;
-  }
-
-  &:not(.mat-disabled) .mat-slide-toggle-thumb {
-    background-color: $red;
-  }
-
-  &.mat-checked:not(.mat-disabled) .mat-slide-toggle-thumb {
-    background-color: $green;
-  }
-}

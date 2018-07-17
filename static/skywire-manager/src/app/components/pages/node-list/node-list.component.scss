@@ -59,16 +59,31 @@
 
     tr.mat-row {
       cursor: pointer;
-    }
 
-    tr.mat-row:hover{
-      background-color: $light-gray;
+      &:hover {
+        background-color: $light-gray;
+
+      }
+
+      .input-label{
+        width:50px !important;
+        border:none;
+        border-bottom: 1px solid black;
+        background-color: transparent;
+        outline: none;
+        font-size:14px;
+      }
     }
+  }
+
+  .mat-form-field-infix{
+    width: 50px !important;
   }
 
   .bold {
     font-weight: bold;
   }
+
 }
 
 $dot-size: 10px;

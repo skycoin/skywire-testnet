@@ -6,8 +6,6 @@
 </mat-toolbar>
 
 <div class="node-list-container">
-
-
   <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" *ngIf="dataSource.data.length > 0">
     <ng-container matColumnDef="enabled">
       <th mat-header-cell *matHeaderCellDef class="bold"></th>
@@ -19,11 +17,14 @@
     </ng-container>
     <ng-container matColumnDef="label">
       <th mat-header-cell *matHeaderCellDef class="bold">Label</th>
-      <td mat-cell *matCellDef="let node;">-----</td>
+      <td mat-cell *matCellDef="let node;">
+        <input [value]="getLabel(node?.key)" class="input-label"
+               maxlength="5" (change)="editLabel($event.target.value,node.key)">
+      </td>
     </ng-container>
     <ng-container matColumnDef="key">
       <th mat-header-cell *matHeaderCellDef class="bold">Key</th>
-      <td mat-cell *matCellDef="let node; "> {{node.key}}</td>
+      <td mat-cell *matCellDef="let node; " (click)="viewNode(node)"> {{node.key}}</td>
     </ng-container>
 
     <ng-container matColumnDef="start_time">
@@ -40,7 +41,7 @@
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="viewNode(row)"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
   </table>
 </div>
 <footer-component></footer-component>

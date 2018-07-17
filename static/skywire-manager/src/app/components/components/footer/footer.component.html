@@ -1,11 +1,6 @@
 <footer class="manager-footer-container">
   <span class="title">Skywire Manager</span>
   <div class="buttons">
-    <span class="state">Skywire
-      <span class="on" *ngIf="enabled">ON</span>
-      <span class="off" *ngIf="!enabled">OFF</span>
-    </span>
-    <mat-slide-toggle [checked]="enabled" (change)="enabled = !enabled"></mat-slide-toggle>
     <img class="settings-icon" src="/assets/img/settings.png"/>
   </div>
 </footer>

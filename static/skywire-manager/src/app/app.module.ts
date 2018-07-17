@@ -12,7 +12,7 @@ import {ReactiveFormsModule} from '@angular/forms';
 import {RelativeTimePipe} from './pipes/relative-time.pipe';
 import {MatToolbarModule, MatTableModule} from '@angular/material';
 import {FooterComponent} from './components/components/footer/footer.component';
-import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatInputModule} from '@angular/material/input';
 
 
 @NgModule({
@@ -32,7 +32,7 @@ import {MatSlideToggleModule} from '@angular/material/slide-toggle';
     AppRoutingModule,
     MatToolbarModule,
     MatTableModule,
-    MatSlideToggleModule
+    MatInputModule
   ],
   providers: [],
   bootstrap: [AppComponent]

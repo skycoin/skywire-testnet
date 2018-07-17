@@ -33,6 +33,14 @@ export class NodeListComponent implements OnDestroy {
     this.nodeService.refreshNodes();
   }
 
+  getLabel(key: string) {
+    return this.nodeService.getLabel(key);
+  }
+
+  editLabel(value:string, key: string) {
+    this.nodeService.setLabel(key,value);
+  }
+
 
   viewNode(node) {
     console.log(node);
