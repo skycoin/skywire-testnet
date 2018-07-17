@@ -1,0 +1,98 @@
+@import "../../../../assets/scss/variables";
+
+.mat-app-background {
+  padding: 0;
+}
+
+.mat-toolbar {
+  background-color: transparent;
+  margin-bottom: 80px;
+  padding-top: 30px;
+  justify-content: space-between;
+
+  .logo {
+    width: 235px;
+    height: auto;
+  }
+}
+
+.reload-icon {
+  width: 20px;
+  cursor: pointer;
+}
+
+.reload-button {
+
+  display: flex;
+  align-items: center;
+  background: transparent no-repeat;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
+  color: white;
+  font-size: 16px;
+
+  .reload-icon {
+    margin-left: 8px;
+  }
+
+}
+
+.node-list-container {
+  table {
+    margin-left: auto;
+    margin-right: auto;
+    padding: 30px;
+    border-collapse: separate !important;
+    border-radius: 10px;
+
+    th {
+      color: black;
+      font-size: 14px;
+    }
+
+    td {
+      min-width: 50px;
+      padding-right: 16px;
+    }
+
+    tr.mat-row {
+      cursor: pointer;
+
+      &:hover {
+        background-color: $light-gray;
+
+      }
+
+      .input-label{
+        width:50px !important;
+        border:none;
+        border-bottom: 1px solid black;
+        background-color: transparent;
+        outline: none;
+        font-size:14px;
+      }
+    }
+  }
+
+  .mat-form-field-infix{
+    width: 50px !important;
+  }
+
+  .bold {
+    font-weight: bold;
+  }
+
+}
+
+$dot-size: 10px;
+.dot {
+  height: $dot-size;
+  width: $dot-size;
+  background-color: $green;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+
