@@ -1,7 +1,7 @@
-import {Injectable} from '@angular/core';
-import {Observable, Subject, timer, Unsubscribable} from 'rxjs';
-import {Node, NodeApp} from '../app.datatypes';
-import {ApiService} from './api.service';
+import { Injectable } from '@angular/core';
+import { Observable, Subject, timer, Unsubscribable } from 'rxjs';
+import { Node, NodeApp } from '../app.datatypes';
+import { ApiService } from './api.service';
 
 @Injectable({
   providedIn: 'root'
@@ -37,11 +37,9 @@ export class NodeService {
     return key in this.nodeLabels ? this.nodeLabels[key] : '';
   }
 
-
   setLabel(key: string, label: string) {
     this.nodeLabels[key] = label;
   }
-
 
   node(key: string): Observable<Node> {
     return this.apiService.post('conn/getNode', {key}, {type: 'form'});

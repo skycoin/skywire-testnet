@@ -14,7 +14,6 @@ import {MatToolbarModule, MatTableModule} from '@angular/material';
 import {FooterComponent} from './components/components/footer/footer.component';
 import {MatInputModule} from '@angular/material/input';
 
-
 @NgModule({
   declarations: [
     AppComponent,
