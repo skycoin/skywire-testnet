@@ -21,6 +21,7 @@ import { RelativeTimePipe } from './pipes/relative-time.pipe';
 import { ActionsComponent } from './components/pages/node/actions/actions.component';
 import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
+import { TransportsComponent } from './components/pages/node/transports/transports.component';
 
 @NgModule({
   declarations: [
@@ -32,6 +33,7 @@ import { ConfigurationComponent } from './components/pages/node/actions/configur
     ActionsComponent,
     TerminalComponent,
     ConfigurationComponent,
+    TransportsComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
