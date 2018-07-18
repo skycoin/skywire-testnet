@@ -8,6 +8,20 @@
     background: none !important;
   }
 
+  &.lg
+  {
+    font-size: 25px !important;
+    font-weight: lighter !important;
+  }
+
+  .mat-button-wrapper
+  {
+    display: flex;
+    align-items: center;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
   .mat-icon
   {
     margin-right: 15px;

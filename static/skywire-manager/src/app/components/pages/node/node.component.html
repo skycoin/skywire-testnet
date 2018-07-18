@@ -1,40 +1,27 @@
-<div *ngIf="node">
-  addr: {{ node.addr }} <br>
-  key: {{ node.key }} <br>
-  started: {{ node.start_time | relativeTime }} <br>
-  last seen: {{ node.last_ack_time | relativeTime }} <br>
-  type: {{ node.type }} <br>
-  <br>
-  apps: <br>
-  <div *ngFor="let app of nodeApps">
-    {{ app.key }}
-  </div>
-</div>
-
-<div class="container-fluid">
-  <div class="row">
+<div class="container-fluid h-100">
+  <div class="row h-100" style="padding-bottom: 40px;">
     <div class="col-3 align-self-end">
       <ul class="list-group">
         <li class="list-group-item">
-          <button mat-flat-button class="link">
+          <button mat-flat-button class="link lg">
             <mat-icon svgIcon="sky-check-update"></mat-icon>
             Check update
           </button>
         </li>
         <li class="list-group-item">
-          <button mat-flat-button class="link">
+          <button mat-flat-button class="link lg">
             <mat-icon svgIcon="sky-reboot"></mat-icon>
             Reboot
           </button>
         </li>
         <li class="list-group-item">
-          <button mat-flat-button class="link">
+          <button mat-flat-button class="link lg">
             <mat-icon svgIcon="sky-settings"></mat-icon>
-            Reboot
+            Settings
           </button>
         </li>
         <li class="list-group-item">
-          <button mat-flat-button class="link">
+          <button mat-flat-button class="link lg">
             <mat-icon svgIcon="sky-terminal"></mat-icon>
             Terminal
           </button>
@@ -49,17 +36,3 @@
     </div>
   </div>
 </div>
-<div class="container">
-  <div class="row">
-    <div class="col align-self-start">
-      One of three columns
-    </div>
-    <div class="col align-self-center">
-      One of three columns
-    </div>
-    <div class="col align-self-end">
-      One of three columns
-    </div>
-  </div>
-</div>
-

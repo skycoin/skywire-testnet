@@ -8,8 +8,9 @@
 * Bootsrap 4
 ****+***********************/
 
-$list-group-bg: transparent;
-$list-group-border-width: 0px;
+$list-group-bg:               transparent;
+$list-group-border-width:     0px;
+$list-group-item-padding-y:   .3rem;
 
 
 // Required
@@ -20,6 +21,7 @@ $list-group-border-width: 0px;
 // Optional
 @import "~bootstrap/scss/list-group";
 @import "~bootstrap/scss/bootstrap-grid";
+@import "~bootstrap/scss/utilities/sizing";
 
 
 /***************************
