@@ -10,18 +10,15 @@
 * Bootsrap 4
 ****+***********************/
 
-$list-group-bg:               transparent;
-$list-group-border-width:     0px;
-$list-group-item-padding-y:   .3rem;
-$list-inline-padding:         0px;
+// Skywire boostrap overrides
+@import "assets/scss/bootstrap_overrides";
 
-
-// Required
+// Bootstrap required
 @import "~bootstrap/scss/functions";
 @import "~bootstrap/scss/mixins";
 @import "~bootstrap/scss/variables";
 
-// Optional
+// Bootstrap optional
 @import "~bootstrap/scss/list-group";
 @import "~bootstrap/scss/type";
 @import "~bootstrap/scss/bootstrap-grid";
@@ -36,7 +33,7 @@ $list-inline-padding:         0px;
 html, body
 {
   height:100%;
-  font-family: Skycoin;
+  font-family: $skywire-font-family;
   margin:0;
   color: theme-color(white) !important;
 }
