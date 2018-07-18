@@ -1,13 +1,59 @@
 @import "assets/scss/variables";
 @import "assets/scss/fonts";
+@import "assets/scss/buttons";
+@import '~@angular/material/theming';
 
 
-html,body{
+/***************************
+* Bootsrap 4
+****+***********************/
+
+$list-group-bg: transparent;
+$list-group-border-width: 0px;
+
+
+// Required
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/variables";
+
+// Optional
+@import "~bootstrap/scss/list-group";
+@import "~bootstrap/scss/bootstrap-grid";
+
+
+/***************************
+* Skyware
+****+***********************/
+
+html, body
+{
   height:100%;
   font-family: Skycoin;
   margin:0;
+  color: theme-color(white) !important;
 }
 
 .mat-app-background{
   background: linear-gradient($blue, $blue-light) no-repeat !important;
+}
+
+//
+// Containers
+//
+
+$elevated-containers-colors: (
+  translucid: map_get($theme-colors, translucid),
+  white:      map_get($theme-colors, white),
+);
+
+@each $color-name, $color-value in $elevated-containers-colors
+{
+  .container-elevated-#{$color-name}
+  {
+    @include mat-elevation(8);
+    border-radius: 10px;
+    padding: 30px;
+    background-color: $color-value !important;
+  }
 }

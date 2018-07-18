@@ -10,9 +10,11 @@ import {NodeListComponent} from './components/pages/node-list/node-list.componen
 import {NodeComponent} from './components/pages/node/node.component';
 import {ReactiveFormsModule} from '@angular/forms';
 import {RelativeTimePipe} from './pipes/relative-time.pipe';
-import {MatToolbarModule, MatTableModule} from '@angular/material';
+import {MatToolbarModule, MatTableModule, MatButtonModule, MatIconModule} from '@angular/material';
 import {FooterComponent} from './components/components/footer/footer.component';
 import {MatInputModule} from '@angular/material/input';
+import {DomSanitizer} from '@angular/platform-browser';
+import {MatIconRegistry} from '@angular/material';
 
 @NgModule({
   declarations: [
@@ -31,10 +33,20 @@ import {MatInputModule} from '@angular/material/input';
     AppRoutingModule,
     MatToolbarModule,
     MatTableModule,
-    MatInputModule
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule
   ],
   providers: [],
   bootstrap: [AppComponent]
 })
-export class AppModule {
+export class AppModule
+{
+  constructor(private matIconRegistry: MatIconRegistry, private domSanitizer: DomSanitizer)
+  {
+    matIconRegistry.addSvgIcon('sky-reboot', domSanitizer.bypassSecurityTrustResourceUrl('/assets/img/ic_reboot.svg'));
+    matIconRegistry.addSvgIcon('sky-settings', domSanitizer.bypassSecurityTrustResourceUrl('/assets/img/ic_settings.svg'));
+    matIconRegistry.addSvgIcon('sky-check-update', domSanitizer.bypassSecurityTrustResourceUrl('/assets/img/ic_check_update.svg'));
+    matIconRegistry.addSvgIcon('sky-terminal', domSanitizer.bypassSecurityTrustResourceUrl('/assets/img/ic_terminal.svg'));
+  }
 }

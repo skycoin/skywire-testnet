@@ -1,0 +1,15 @@
+@import "~@angular/material/theming";
+@include mat-core();
+
+.mat-flat-button
+{
+  &.link
+  {
+    background: none !important;
+  }
+
+  .mat-icon
+  {
+    margin-right: 15px;
+  }
+}
