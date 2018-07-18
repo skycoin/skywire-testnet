@@ -13,6 +13,7 @@
 $list-group-bg:               transparent;
 $list-group-border-width:     0px;
 $list-group-item-padding-y:   .3rem;
+$list-inline-padding:         0px;
 
 
 // Required
@@ -22,8 +23,10 @@ $list-group-item-padding-y:   .3rem;
 
 // Optional
 @import "~bootstrap/scss/list-group";
+@import "~bootstrap/scss/type";
 @import "~bootstrap/scss/bootstrap-grid";
 @import "~bootstrap/scss/utilities/sizing";
+@import "~bootstrap/scss/utilities/text";
 
 
 /***************************
@@ -56,7 +59,7 @@ $elevated-containers-colors: (
   .container-elevated-#{$color-name}
   {
     @include mat-elevation(8);
-    border-radius: 10px;
+    border-radius: 16px;
     padding: 30px;
     background-color: $color-value !important;
   }

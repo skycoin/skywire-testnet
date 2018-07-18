@@ -10,7 +10,13 @@
 
   &.lg
   {
-    font-size: 25px !important;
+    font-size: 18px !important;
+    font-weight: lighter !important;
+  }
+
+  &.md
+  {
+    font-size: 15px !important;
     font-weight: lighter !important;
   }
 
@@ -18,8 +24,6 @@
   {
     display: flex;
     align-items: center;
-    padding-top: 5px;
-    padding-bottom: 5px;
   }
 
   .mat-icon

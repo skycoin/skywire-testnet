@@ -1,0 +1,32 @@
+@import "../../../../assets/scss/variables";
+@import "~bootstrap/scss/functions";
+
+.node-status-bar
+{
+  .separator
+  {
+    width: 0;
+    height: 30px;
+    border: solid 1px theme-color(translucid-white);
+    align-self: center;
+  }
+
+  .status-text
+  {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .mat-icon
+  {
+    margin-right: 10px;
+  }
+}
+
+.node-menu
+{
+  .mat-flat-button
+  {
+    width: 100%;
+  }
+}

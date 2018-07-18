@@ -5,28 +5,28 @@
         <div>
             <img style="margin-left: 20px;" src="/assets/img/logo.png" class="skycoin-logo"/>
         </div>
-          <ul class="list-group">
+          <ul class="node-menu list-group">
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-check-update"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>get_app</mat-icon>
                 Check update
               </button>
             </li>
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-reboot"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>rotate_right</mat-icon>
                 Reboot
               </button>
             </li>
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-settings"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>settings</mat-icon>
                 Settings
               </button>
             </li>
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-terminal"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>laptop</mat-icon>
                 Terminal
               </button>
             </li>
@@ -34,6 +34,29 @@
       </div>
     </div>
     <div class="col-6">
+      <div>
+        <ul class="node-status-bar list-inline d-flex justify-content-around">
+          <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Status">
+              <mat-icon>network_check</mat-icon>
+              Online
+          </li>
+          <li class="separator"></li>
+          <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">
+              <mat-icon>layers</mat-icon>
+              <span class="text-uppercase">{{ node.type }}</span>
+          </li>
+          <li class="separator"></li>
+          <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Last ack time">
+              <mat-icon>timelapse</mat-icon>
+              {{ node.last_ack_time | relativeTime }}
+          </li>
+          <li class="separator"></li>
+          <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Started">
+              <mat-icon>av_timer</mat-icon>
+              {{ node.start_time | relativeTime }}
+          </li>
+        </ul>
+      </div>
       <div class="container-elevated-translucid"></div>
       <div class="container-elevated-translucid" style="margin-top: 20px;">
         <div *ngIf="node">
