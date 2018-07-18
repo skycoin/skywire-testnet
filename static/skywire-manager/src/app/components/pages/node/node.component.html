@@ -35,7 +35,20 @@
     </div>
     <div class="col-6">
       <div class="container-elevated-translucid"></div>
-      <div class="container-elevated-translucid" style="margin-top: 20px;"></div>
+      <div class="container-elevated-translucid" style="margin-top: 20px;">
+        <div *ngIf="node">
+          addr: {{ node.addr }} <br>
+          key: {{ node.key }} <br>
+          started: {{ node.start_time | relativeTime }} <br>
+          last seen: {{ node.last_ack_time | relativeTime }} <br>
+          type: {{ node.type }} <br>
+          <br>
+          apps: <br>
+          <div *ngFor="let app of nodeApps">
+            {{ app.key }}
+          </div>
+        </div>
+      </div>
     </div>
     <div class="col-3">
 
