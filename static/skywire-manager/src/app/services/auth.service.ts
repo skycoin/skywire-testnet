@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {ApiService} from './api.service';
-import {Observable, ReplaySubject, throwError} from 'rxjs';
-import {catchError, tap} from 'rxjs/operators';
+import { Observable, of, ReplaySubject, throwError } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -12,23 +12,38 @@ export class AuthService {
   constructor(
     private apiService: ApiService,
   ) {
-    this.checkLogin().pipe(
-      catchError(err => {
-        this.loggedIn.next(false);
-        return throwError(err);
-      })
-    ).subscribe((response: string) => {
-      this.loggedIn.next(!response.includes('Unauthorized'));
+    this.checkLogin().subscribe(status => {
+      this.loggedIn.next(status);
     });
   }
 
   login(password: string) {
     return this.apiService.post('login', {pass: password}, {type: 'form'})
-      .pipe(tap(status => this.loggedIn.next(!!status)));
+      .pipe(
+        tap(status => {
+          if (status === true) {
+            this.loggedIn.next(true);
+          } else {
+            throw new Error();
+          }
+        }),
+        catchError(() => {
+          return throwError(new Error('Incorrect password'));
+        }),
+      );
   }
 
-  checkLogin() {
-    return this.apiService.post('checkLogin', {}, {responseType: 'text'});
+  checkLogin(): Observable<boolean> {
+    return this.apiService.post('checkLogin', {}, {responseType: 'text'})
+      .pipe(
+        catchError(err => {
+          if (err.error.includes('Unauthorized')) {
+            return of(false);
+          }
+
+          return throwError(err);
+        }),
+      );
   }
 
   isLoggedIn(): Observable<boolean> {

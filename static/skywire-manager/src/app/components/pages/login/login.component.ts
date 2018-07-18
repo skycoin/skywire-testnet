@@ -35,19 +35,10 @@ export class LoginComponent implements OnInit {
 
   login() {
     if (this.form.valid) {
-      this.authService.login(this.form.get('password').value)
-        .pipe(
-          catchError(err => {
-            this.setError('Incorrect password');
-            return err;
-          })
-        )
-        .subscribe(status => {
-          console.log(status);
-          if (status) {
-            this.router.navigate(['nodes']);
-          }
-        });
+      this.authService.login(this.form.get('password').value).subscribe(
+        () => this.router.navigate(['nodes']),
+        (e) => this.setError(e.message),
+      );
     }
   }
 }
