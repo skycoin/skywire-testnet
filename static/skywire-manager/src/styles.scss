@@ -1,7 +1,6 @@
 @import "assets/scss/variables";
 @import "assets/scss/fonts";
 
-
 html,body{
   height:100%;
   font-family: Skycoin;
@@ -9,4 +8,8 @@ html,body{
 
 .mat-app-background{
   background: linear-gradient($blue, $blue-light) no-repeat !important;
+}
+
+mat-dialog-container.mat-dialog-container {
+  border-radius: $radius;
 }

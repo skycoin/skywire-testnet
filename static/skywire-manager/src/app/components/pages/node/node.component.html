@@ -9,4 +9,7 @@
   <div *ngFor="let app of nodeApps">
     {{ app.key }}
   </div>
+  <br>
+  actions: <br>
+  <app-actions [node]="node" [nodeInfo]="nodeInfo"></app-actions>
 </div>

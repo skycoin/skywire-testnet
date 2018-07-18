@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, Subject, timer, Unsubscribable } from 'rxjs';
-import { Node, NodeApp } from '../app.datatypes';
+import { Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
+import { Node, NodeApp, NodeInfo } from '../app.datatypes';
 import { ApiService } from './api.service';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +10,7 @@ import { ApiService } from './api.service';
 export class NodeService {
   private nodes = new Subject<Node[]>();
   private nodesSubscription: Unsubscribable;
+  private currentNode: Node;
 
   constructor(
     private apiService: ApiService,
@@ -36,11 +38,49 @@ export class NodeService {
     return this.apiService.post('conn/getNode', { key }, { type: 'form' });
   }
 
-  nodeApps(address: string): Observable<NodeApp[]> {
-    return this.nodeRequest(address, 'getApps');
+  setCurrentNode(node: Node) {
+    this.currentNode = node;
   }
 
-  private nodeRequest(nodeAddress: string, endpoint: string, body: any = {}, options: any = {}) {
+  nodeApps(): Observable<NodeApp[]> {
+    return this.nodeRequest('getApps');
+  }
+
+  nodeInfo(): Observable<NodeInfo> {
+    return this.nodeRequest('getInfo');
+  }
+
+  setNodeConfig(data: any) {
+    return this.nodeRequest('run/setNodeConfig', data, {type: 'form'});
+  }
+
+  updateNodeConfig() {
+    return this.nodeRequest('run/updateNodeConfig');
+  }
+
+  reboot(): Observable<any> {
+    return this.nodeRequest('reboot', {}, {responseType: 'text'}).pipe(map(result => {
+      if (result.indexOf('darwin') !== -1) {
+        throw new Error(result);
+      }
+
+      return result;
+    }));
+  }
+
+  checkUpdate(): Observable<boolean> {
+    return this.nodeRequest('run/checkUpdate').pipe(map(result => {
+      return result ? result : throwError(new Error('No update available.'));
+    }));
+  }
+
+  update(): Observable<any> {
+    return this.nodeRequest('update');
+  }
+
+  private nodeRequest(endpoint: string, body: any = {}, options: any = {}) {
+    const nodeAddress = this.currentNode.addr;
+
     options.params = Object.assign(options.params || {}, {
       addr: this.nodeRequestAddress(nodeAddress, endpoint),
     });
