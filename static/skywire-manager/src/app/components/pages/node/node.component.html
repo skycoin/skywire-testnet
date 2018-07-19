@@ -43,7 +43,7 @@
           <div class="d-flex align-items-center">
             <span class="font-sm" style="margin-right: 10px;">Refresh</span>
             <mat-form-field class="form-refresh">
-              <input class="input-refresh font-sm" matInput value="3s">
+              <input class="input-refresh font-sm" matInput value="XXXX">
             </mat-form-field>
           </div>
         </div>
@@ -119,9 +119,26 @@
           </ul>
         </div>
       </div>
-      </div>
+    </div>
     <div class="col-3">
-
+      <div class="node-right font-smaller d-flex flex-column h-100">
+        <div class="node-ips-container d-flex justify-content-between">
+          <div class="d-flex flex-column">
+            <span class="section-title">NODE IP</span>
+            <span class="font-smaller">{{ node.addr }}</span>
+          </div>
+          <div class="d-flex flex-column">
+            <span class="section-title">MANAGER IP</span>
+            <span class="font-smaller">XXXXXX</span>
+          </div>
+        </div>
+        <hr>
+        <div class="node-public-key d-flex flex-column">
+          <span class="section-title">PUBLIC KEY</span>
+          <span class="font-smaller">{{ node.key }}</span>
+        </div>
+        <hr>
+      </div>
     </div>
   </div>
 </div>

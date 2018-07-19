@@ -66,3 +66,13 @@ $node-top-bar-padding: 20px;
     line-height: 15px;
   }
 }
+
+.node-right
+{
+  padding-top: 40px;
+
+  .section-title
+  {
+    font-weight: $font-weight-bold;
+  }
+}

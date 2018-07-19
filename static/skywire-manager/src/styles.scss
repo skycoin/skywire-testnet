@@ -87,3 +87,15 @@ $elevated-containers-colors: (
     background-color: $color-value !important;
   }
 }
+
+//
+// Divider
+//
+hr
+{
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border: 0;
+  border-top: 1px solid theme-color(translucid-white);
+  width: 100%;
+}
