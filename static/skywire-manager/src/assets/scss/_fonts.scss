@@ -56,3 +56,9 @@
   @extend .font-size-sm;
   font-weight: $font-weight-light !important;
 }
+
+.font-smaller
+{
+  @extend .font-size-smaller;
+  font-weight: $font-weight-light !important;
+}

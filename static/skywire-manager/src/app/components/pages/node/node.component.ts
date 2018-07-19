@@ -32,4 +32,8 @@ export class NodeComponent implements OnInit {
   ngOnInit() {
   }
 
+  back()
+  {
+    this.router.navigate(['nodes']);
+  }
 }

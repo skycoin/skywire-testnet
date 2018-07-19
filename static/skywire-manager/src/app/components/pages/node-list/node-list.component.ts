@@ -41,7 +41,6 @@ export class NodeListComponent implements OnDestroy {
     this.nodeService.setLabel(key,value);
   }
 
-
   viewNode(node) {
     console.log(node);
     this.router.navigate(['nodes', node.key]);
