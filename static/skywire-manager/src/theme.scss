@@ -1,7 +1,11 @@
 @import "~@angular/material/theming";
 @import "assets/scss/variables";
 
-@include mat-core();
+$general-typography: mat-typography-config(
+  $font-family: $skywire-font-family
+);
+
+@include mat-core($general-typography);
 
 $mat-skywire-primary: (
   100: $blue-light,

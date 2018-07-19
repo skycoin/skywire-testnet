@@ -1,3 +1,7 @@
+//
+// Colors
+//
+
 $white: #F8F9F9;
 $black: #202226;
 
@@ -10,3 +14,18 @@ $blue-panel: rgba(32, 34, 38, .44);
 
 $red: #DA3439;
 $green: #2ECC54;
+$light-gray:#F7F7F7;
+
+$theme-colors: (
+  green:     $green,
+  red:       $red,
+  blue-dark: $blue-dark,
+  translucid: rgba(32, 34, 38, .44),
+  white:      $white
+);
+
+//
+// Typography
+//
+
+$skywire-font-family: '"Skycoin", "Open Sans", "Helvetica Neue", sans-serif';

@@ -43,7 +43,6 @@ export class LoginComponent implements OnInit {
           })
         )
         .subscribe(status => {
-          console.log(status);
           if (status) {
             this.router.navigate(['nodes']);
           }
