@@ -24,6 +24,7 @@
 @import "~bootstrap/scss/variables";
 
 // Bootstrap optional
+@import "~bootstrap/scss/reboot";
 @import "~bootstrap/scss/list-group";
 @import "~bootstrap/scss/type";
 @import "~bootstrap/scss/bootstrap-grid";
@@ -45,6 +46,10 @@ html, body
   font-size: $font-size-base;
   font-weight: $font-weight-base;
   line-height: $line-height-base;
+}
+
+button:focus {
+  outline: 0;
 }
 
 .mat-app-background{

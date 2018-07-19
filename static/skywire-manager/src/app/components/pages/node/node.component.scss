@@ -58,3 +58,11 @@ $node-top-bar-padding: 20px;
     margin-right: 15px;
   }
 }
+
+.node-bottom-bar
+{
+  .mat-flat-button
+  {
+    line-height: 15px;
+  }
+}

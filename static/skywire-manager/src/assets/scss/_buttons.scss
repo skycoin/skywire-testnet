@@ -16,8 +16,26 @@
 
   &.md
   {
-    font-size: theme-font-size(mid) !important;
+    font-size: theme-font-size(base) !important;
     font-weight: lighter !important;
+  }
+
+  &.sm
+  {
+    font-size: theme-font-size(smaller) !important;
+    font-weight: lighter !important;
+  }
+
+  &.centered-col
+  {
+    .mat-button-wrapper
+    {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 10px;
+      line-height: 26px;
+    }
   }
 
   .mat-button-wrapper

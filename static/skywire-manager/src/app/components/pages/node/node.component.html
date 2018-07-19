@@ -3,7 +3,7 @@
     <div class="col-3">
       <div class="d-flex flex-column h-100 justify-content-between">
         <div>
-            <img style="margin-left: 20px; margin-top: 70px;" src="/assets/img/logo.png" class="skycoin-logo"/>
+            <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
         </div>
           <ul class="node-menu list-group">
             <li class="list-group-item">
@@ -36,7 +36,7 @@
     <div class="col-6">
       <div class="d-flex flex-column h-100">
         <div class="node-top-bar d-flex justify-content-between">
-          <button mat-flat-button class="link md" (click)="back()">
+          <button mat-flat-button class="link sm" (click)="back()">
             <mat-icon class="font-sm ic-small rounded-circle sky-bg-white sky-color-blue">chevron_left</mat-icon>
             Back
           </button>
@@ -87,33 +87,33 @@
             </div>
           </div>
         </div>
-        <div class="d-flex align-items-end justify-content-center" style="flex: 1;">
-          <ul class="node-menu list-inline">
+        <div class="node-bottom-bar d-flex align-items-end justify-content-center" style="flex: 1;">
+          <ul class="list-inline d-flex align-items-center">
             <li class="list-inline-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>get_app</mat-icon>
-                Check update
+              <button mat-flat-button class="centered-col link sm">
+                  <span>Apps settings</span>
+                  <mat-icon>settings</mat-icon>
               </button>
             </li>
             <li class="separator list-inline-item"></li>
             <li class="list-inline-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>rotate_right</mat-icon>
-                Reboot
+              <button mat-flat-button class="centered-col link sm">
+                  <span>SSH</span>
+                  <mat-icon>laptop</mat-icon>
               </button>
             </li>
             <li class="separator list-inline-item"></li>
             <li class="list-inline-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>settings</mat-icon>
-                Settings
+              <button mat-flat-button class="centered-col link sm">
+                  <span>Connect to Node</span>
+                  <mat-icon>near_me</mat-icon>
               </button>
             </li>
             <li class="separator list-inline-item"></li>
             <li class="list-inline-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>laptop</mat-icon>
-                Terminal
+              <button mat-flat-button class="centered-col link sm">
+                  <span>SSH Client</span>
+                  <mat-icon>laptop</mat-icon>
               </button>
             </li>
           </ul>
