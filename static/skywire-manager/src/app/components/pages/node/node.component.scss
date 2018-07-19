@@ -1,5 +1,28 @@
 @import "../../../../assets/scss/variables";
+@import "../../../../assets/scss/utilities/theme";
 @import "~bootstrap/scss/functions";
+
+$node-top-bar-padding: 20px;
+
+.node-top-bar
+{
+  padding: $node-top-bar-padding 0 0 0;
+
+  .mat-icon
+  {
+    margin-right: 5px;
+  }
+
+  .input-refresh
+  {
+    text-align: center;
+  }
+
+  .form-refresh
+  {
+    max-width: 40px;
+  }
+}
 
 .node-status-bar
 {
@@ -28,5 +51,10 @@
   .mat-flat-button
   {
     width: 100%;
+  }
+
+  .mat-icon
+  {
+    margin-right: 15px;
   }
 }

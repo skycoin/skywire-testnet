@@ -16,7 +16,7 @@
 
   &.md
   {
-    font-size: 15px !important;
+    font-size: theme-font-size(mid) !important;
     font-weight: lighter !important;
   }
 
@@ -24,10 +24,5 @@
   {
     display: flex;
     align-items: center;
-  }
-
-  .mat-icon
-  {
-    margin-right: 15px;
   }
 }

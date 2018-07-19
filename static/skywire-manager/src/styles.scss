@@ -1,8 +1,15 @@
+// Bootstrap required
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/mixins";
+
 @import "assets/scss/variables";
 @import "assets/scss/fonts";
+@import "assets/scss/utilities/theme";
 @import "assets/scss/utilities/flexbox";
 @import "assets/scss/images";
+@import "assets/scss/icons";
 @import "assets/scss/buttons";
+@import "assets/scss/forms";
 @import '~@angular/material/theming';
 
 
@@ -14,8 +21,6 @@
 @import "assets/scss/bootstrap_overrides";
 
 // Bootstrap required
-@import "~bootstrap/scss/functions";
-@import "~bootstrap/scss/mixins";
 @import "~bootstrap/scss/variables";
 
 // Bootstrap optional
@@ -24,6 +29,7 @@
 @import "~bootstrap/scss/bootstrap-grid";
 @import "~bootstrap/scss/utilities/sizing";
 @import "~bootstrap/scss/utilities/text";
+@import "~bootstrap/scss/utilities/borders";
 
 
 /***************************
@@ -36,6 +42,9 @@ html, body
   font-family: $skywire-font-family;
   margin:0;
   color: theme-color(white) !important;
+  font-size: $font-size-base;
+  font-weight: $font-weight-base;
+  line-height: $line-height-base;
 }
 
 .mat-app-background{
@@ -58,6 +67,18 @@ $elevated-containers-colors: (
     @include mat-elevation(8);
     border-radius: 16px;
     padding: 30px;
+    background-color: $color-value !important;
+  }
+}
+
+//
+// Backgrounds
+//
+
+@each $color-name, $color-value in $theme-colors
+{
+  .sky-bg-#{$color-name}
+  {
     background-color: $color-value !important;
   }
 }

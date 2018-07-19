@@ -34,11 +34,17 @@
       </div>
     </div>
     <div class="col-6">
-      <div>
+      <div class="node-top-bar d-flex justify-content-between">
         <button mat-flat-button class="link md">
-          <mat-icon>chevron_left</mat-icon>
+          <mat-icon class="font-sm ic-small rounded-circle sky-bg-white sky-color-blue">chevron_left</mat-icon>
           Back
         </button>
+        <div class="d-flex align-items-center">
+          <span class="font-sm" style="margin-right: 10px;">Refresh</span>
+          <mat-form-field class="form-refresh">
+            <input class="input-refresh font-sm" matInput value="3s">
+          </mat-form-field>
+        </div>
       </div>
       <div>
         <ul class="node-status-bar list-inline d-flex justify-content-around">

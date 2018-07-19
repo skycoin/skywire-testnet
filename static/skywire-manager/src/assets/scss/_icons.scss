@@ -1,0 +1,16 @@
+$icon-sizes: (
+  small: 20px
+);
+
+@each $size-name, $size-value in $icon-sizes
+{
+  .mat-icon.ic-#{$size-name}
+  {
+    width: $size-value;
+    height: $size-value;
+    line-height: $size-value;
+    font-size: $size-value;
+  }
+}
+
+
