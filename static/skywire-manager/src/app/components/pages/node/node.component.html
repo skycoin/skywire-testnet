@@ -74,7 +74,7 @@
           Public key <span class="font-smaller">{{ node.key }}</span>
         </div>
         <div class="container-elevated-translucid" style="margin-top: 25px;">
-          <div>XXXX</div>
+          <app-connections-list  ></app-connections-list>
           <div *ngIf="node" class="d-none">
             addr: {{ node.addr }} <br>
             key: {{ node.key }} <br>
@@ -107,7 +107,7 @@
                   <span>
                     SSH
                     <mat-icon class="btn-more">more_vert</mat-icon>
-                    <i class="dot-red sm"></i>
+                    <i class="dot-red sm" matTooltip="Messages"></i>
                   </span>
                   <mat-icon>laptop</mat-icon>
               </button>

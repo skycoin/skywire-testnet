@@ -6,7 +6,7 @@
 </mat-toolbar>
 
 <div class="node-list-container">
-  <table mat-table [dataSource]="dataSource" class="container-elevated-white" *ngIf="dataSource.data.length > 0">
+  <table mat-table [dataSource]="dataSource" class="table-white container-elevated-white" *ngIf="dataSource.data.length > 0">
     <ng-container matColumnDef="enabled">
       <th mat-header-cell *matHeaderCellDef class="bold"></th>
       <td mat-cell *matCellDef><span class="dot-green"></span></td>
