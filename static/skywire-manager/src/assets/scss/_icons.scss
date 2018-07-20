@@ -6,11 +6,39 @@ $icon-sizes: (
 {
   .mat-icon.ic-#{$size-name}
   {
-    width: $size-value;
-    height: $size-value;
-    line-height: $size-value;
-    font-size: $size-value;
+    width: $size-value !important;
+    height: $size-value !important;
+    line-height: $size-value !important;
+    font-size: $size-value !important;
   }
 }
 
+//
+// Solid circles
+//
 
+$dot-icons: (
+  green: theme-color(green),
+  red: theme-color(red)
+);
+
+$dot-size:    10px;
+$dot-size-sm: 7px;
+
+@each $color-name, $color-value in $dot-icons
+{
+  .dot-#{$color-name}
+  {
+    height: $dot-size;
+    width: $dot-size;
+    background-color: $color-value;
+    border-radius: 50%;
+    display: inline-block;
+
+    &.sm
+    {
+      height: $dot-size-sm;
+      width: $dot-size-sm;
+    }
+  }
+}

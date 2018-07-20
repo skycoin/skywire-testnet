@@ -1,6 +1,6 @@
 <div class="container-fluid h-100">
   <div class="row h-100" style="padding-bottom: 40px;">
-    <div class="col-3">
+    <div class="col-xl-2 col-lg-3">
       <div class="d-flex flex-column h-100 justify-content-between">
         <div>
             <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
@@ -33,7 +33,7 @@
           </ul>
       </div>
     </div>
-    <div class="col-6">
+    <div class="col-lg-6 col-xl-7">
       <div class="d-flex flex-column h-100">
         <div class="node-top-bar d-flex justify-content-between">
           <button mat-flat-button class="link sm" (click)="back()">
@@ -51,7 +51,7 @@
           <ul class="node-status-bar list-inline d-flex justify-content-around">
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Status">
               <mat-icon>network_check</mat-icon>
-              Online
+              XXX
             </li>
             <li class="separator"></li>
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">
@@ -74,7 +74,8 @@
           Public key <span class="font-smaller">{{ node.key }}</span>
         </div>
         <div class="container-elevated-translucid" style="margin-top: 25px;">
-          <div *ngIf="node">
+          <div>XXXX</div>
+          <div *ngIf="node" class="d-none">
             addr: {{ node.addr }} <br>
             key: {{ node.key }} <br>
             started: {{ node.start_time | relativeTime }} <br>
@@ -87,32 +88,49 @@
             </div>
           </div>
         </div>
-        <div class="node-bottom-bar d-flex align-items-end justify-content-center" style="flex: 1;">
-          <ul class="list-inline d-flex align-items-center">
-            <li class="list-inline-item">
-              <button mat-flat-button class="centered-col link sm">
-                  <span>Apps settings</span>
+        <div class="container-elevated-translucid" style="margin-top: 25px;">
+          <div>XXXX</div>
+        </div>
+        <div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
+          <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
+            <li class="list-inline-item flex-1">
+              <button mat-flat-button class="centered-col link md w-100">
+                  <span>
+                    Apps settings
+                  </span>
                   <mat-icon>settings</mat-icon>
               </button>
             </li>
             <li class="separator list-inline-item"></li>
-            <li class="list-inline-item">
-              <button mat-flat-button class="centered-col link sm">
-                  <span>SSH</span>
+            <li class="list-inline-item flex-1 align-items-center d-flex">
+              <button mat-flat-button class="centered-col link md w-100 active">
+                  <span>
+                    SSH
+                    <mat-icon class="btn-more">more_vert</mat-icon>
+                    <i class="dot-red sm"></i>
+                  </span>
                   <mat-icon>laptop</mat-icon>
               </button>
             </li>
             <li class="separator list-inline-item"></li>
-            <li class="list-inline-item">
-              <button mat-flat-button class="centered-col link sm">
-                  <span>Connect to Node</span>
+            <li class="list-inline-item flex-1">
+              <button mat-flat-button class="centered-col link md w-100">
+                  <span>
+                    Connect to Node
+                    <mat-icon class="btn-more">more_vert</mat-icon>
+                    <i class="dot-red sm"></i>
+                  </span>
                   <mat-icon>near_me</mat-icon>
               </button>
             </li>
             <li class="separator list-inline-item"></li>
-            <li class="list-inline-item">
-              <button mat-flat-button class="centered-col link sm">
-                  <span>SSH Client</span>
+            <li class="list-inline-item flex-1">
+              <button mat-flat-button class="centered-col link md w-100">
+                  <span>
+                    SSH Client
+                    <mat-icon class="btn-more">more_vert</mat-icon>
+                    <i class="dot-red sm"></i>
+                  </span>
                   <mat-icon>laptop</mat-icon>
               </button>
             </li>
@@ -122,20 +140,37 @@
     </div>
     <div class="col-3">
       <div class="node-right font-smaller d-flex flex-column h-100">
+        <!-- IPS -->
         <div class="node-ips-container d-flex justify-content-between">
-          <div class="d-flex flex-column">
+          <div class="section">
             <span class="section-title">NODE IP</span>
             <span class="font-smaller">{{ node.addr }}</span>
           </div>
-          <div class="d-flex flex-column">
+          <div class="section">
             <span class="section-title">MANAGER IP</span>
             <span class="font-smaller">XXXXXX</span>
           </div>
         </div>
         <hr>
-        <div class="node-public-key d-flex flex-column">
+        <!-- Public key -->
+        <div class="node-public-key section">
           <span class="section-title">PUBLIC KEY</span>
           <span class="font-smaller">{{ node.key }}</span>
+        </div>
+        <hr>
+        <!-- Connections -->
+        <div class="node-connections justify-content-between">
+          <div class="section">
+            <span class="section-title">
+              <i class="dot-green"></i> CONNECTION
+            </span>
+            <span class="font-smaller">xxxxxxxxxxx</span>
+          </div>
+          <div class="section">
+            <span class="section-title">
+              <i class="dot-green"></i> NODES</span>
+            <span class="font-smaller">xxxxxxxxxxxx</span>
+          </div>
         </div>
         <hr>
       </div>

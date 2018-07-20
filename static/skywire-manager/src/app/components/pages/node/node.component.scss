@@ -65,14 +65,47 @@ $node-top-bar-padding: 20px;
   {
     line-height: 15px;
   }
+
+  .btn-more, .dot-red
+  {
+    position: absolute;
+    right: -20px;
+  }
+
+  .btn-more
+  {
+    font-size: theme-font-size(lg);
+  }
+
+  .separator
+  {
+    height: 40px;
+  }
+
+  span
+  {
+    position: relative;
+  }
 }
 
 .node-right
 {
   padding-top: 40px;
 
-  .section-title
+  div
   {
-    font-weight: $font-weight-bold;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .section
+  {
+    flex-direction: column;
+
+    .section-title
+    {
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+    }
   }
 }
