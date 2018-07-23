@@ -1,20 +1,28 @@
-import {BrowserModule} from '@angular/platform-browser';
-import {NgModule} from '@angular/core';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {HttpClientModule} from '@angular/common/http';
+import { BrowserModule, DomSanitizer } from '@angular/platform-browser';
+import { NgModule } from '@angular/core';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { HttpClientModule } from '@angular/common/http';
+import { ReactiveFormsModule } from '@angular/forms';
+import {
+  ErrorStateMatcher, MAT_DIALOG_DEFAULT_OPTIONS,
+  MAT_SNACK_BAR_DEFAULT_OPTIONS, MatButtonModule,
+  MatDialogModule,
+  MatFormFieldModule, MatIconModule, MatIconRegistry, MatInputModule,
+  MatSnackBarModule, MatTableModule, MatToolbarModule,
+  ShowOnDirtyErrorStateMatcher
+} from '@angular/material';
 
-import {AppComponent} from './app.component';
-import {AppRoutingModule} from './app-routing.module';
-import {LoginComponent} from './components/pages/login/login.component';
-import {NodeListComponent} from './components/pages/node-list/node-list.component';
-import {NodeComponent} from './components/pages/node/node.component';
-import {ReactiveFormsModule} from '@angular/forms';
-import {RelativeTimePipe} from './pipes/relative-time.pipe';
-import {MatToolbarModule, MatTableModule, MatButtonModule, MatIconModule} from '@angular/material';
-import {FooterComponent} from './components/components/footer/footer.component';
-import {MatInputModule} from '@angular/material/input';
-import {DomSanitizer} from '@angular/platform-browser';
-import {MatIconRegistry} from '@angular/material';
+import { AppComponent } from './app.component';
+import { AppRoutingModule } from './app-routing.module';
+import { LoginComponent } from './components/pages/login/login.component';
+import { NodeListComponent } from './components/pages/node-list/node-list.component';
+import { NodeComponent } from './components/pages/node/node.component';
+import { RelativeTimePipe } from './pipes/relative-time.pipe';
+import { ActionsComponent } from './components/pages/node/actions/actions.component';
+import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
+import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
+import { TransportsComponent } from './components/pages/node/transports/transports.component';
+import { FooterComponent } from './components/components/footer/footer.component';
 
 @NgModule({
   declarations: [
@@ -23,7 +31,15 @@ import {MatIconRegistry} from '@angular/material';
     NodeListComponent,
     NodeComponent,
     RelativeTimePipe,
-    FooterComponent
+    ActionsComponent,
+    TerminalComponent,
+    ConfigurationComponent,
+    TransportsComponent,
+    FooterComponent,
+  ],
+  entryComponents: [
+    ConfigurationComponent,
+    TerminalComponent,
   ],
   imports: [
     BrowserModule,
@@ -31,13 +47,20 @@ import {MatIconRegistry} from '@angular/material';
     ReactiveFormsModule,
     HttpClientModule,
     AppRoutingModule,
+    MatSnackBarModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatToolbarModule,
     MatTableModule,
-    MatInputModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
   ],
-  providers: [],
+  providers: [
+    {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500}},
+    {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: {width: '600px', hasBackdrop: true}},
+    {provide: ErrorStateMatcher, useClass: ShowOnDirtyErrorStateMatcher},
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule

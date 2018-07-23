@@ -5,7 +5,6 @@
 @import "assets/scss/buttons";
 @import '~@angular/material/theming';
 
-
 /***************************
 * Bootsrap 4
 ****+***********************/
@@ -27,7 +26,7 @@ $list-group-item-padding-y:   .3rem;
 
 
 /***************************
-* Skyware
+* Skywire
 ****+***********************/
 
 html, body
@@ -60,4 +59,8 @@ $elevated-containers-colors: (
     padding: 30px;
     background-color: $color-value !important;
   }
+}
+
+mat-dialog-container.mat-dialog-container {
+  border-radius: $radius;
 }
