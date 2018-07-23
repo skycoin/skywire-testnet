@@ -1,0 +1,20 @@
+@import "../../../../assets/scss/variables";
+@import "../../../../assets/scss/text";
+
+td
+{
+  @extend .font-smaller;
+  vertical-align: top;
+}
+
+th, td
+{
+  padding: 10px !important;
+  min-width: 60px;
+}
+
+table
+{
+  width: 100%;
+  word-break: break-word;
+}

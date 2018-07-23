@@ -1,0 +1,34 @@
+<div class="container-elevated-translucid" style="margin-top: 25px;">
+  <table class="table-translucid" mat-table [dataSource]="dataSource" *ngIf="dataSource.data.length > 0">
+    <ng-container matColumnDef="index">
+      <th mat-header-cell *matHeaderCellDef class="bold">#</th>
+      <td mat-cell *matCellDef="let node;let i=index;" class="bold"> {{i+1}}</td>
+    </ng-container>
+    <ng-container matColumnDef="upload_total">
+      <th mat-header-cell *matHeaderCellDef class="bold">Send</th>
+      <td mat-cell *matCellDef="let conn;">{{ conn.upload_total }}</td>
+    </ng-container>
+    <ng-container matColumnDef="download_total">
+      <th mat-header-cell *matHeaderCellDef class="bold">Rec</th>
+      <td mat-cell *matCellDef="let conn;">{{ conn.download_total }}</td>
+    </ng-container>
+    <ng-container matColumnDef="from_node">
+      <th mat-header-cell *matHeaderCellDef class="bold">From node</th>
+      <td mat-cell *matCellDef="let conn;">{{ conn.from_node }}</td>
+    </ng-container>
+    <ng-container matColumnDef="from_app">
+      <th mat-header-cell *matHeaderCellDef class="bold">From app</th>
+      <td mat-cell *matCellDef="let conn;">{{ conn.from_app }}</td>
+    </ng-container>
+    <ng-container matColumnDef="to_node">
+      <th mat-header-cell *matHeaderCellDef class="bold">To node</th>
+      <td mat-cell *matCellDef="let conn;">{{ conn.to_node }}</td>
+    </ng-container>
+    <ng-container matColumnDef="to_app">
+      <th mat-header-cell *matHeaderCellDef class="bold">To app</th>
+      <td mat-cell *matCellDef="let conn;">{{ conn.to_app }}</td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+</div>
