@@ -11,14 +11,15 @@ export class NodeService {
   private nodes = new Subject<Node[]>();
   private nodesSubscription: Unsubscribable;
   private currentNode: Node;
+  private nodeLabels = {};
 
   constructor(
     private apiService: ApiService,
-  ) { }
+  ) {
+  }
 
   allNodes(): Observable<Node[]> {
     this.refreshNodes();
-
     return this.nodes.asObservable();
   }
 
@@ -34,8 +35,16 @@ export class NodeService {
     });
   }
 
+  getLabel(key: string) {
+    return key in this.nodeLabels ? this.nodeLabels[key] : '';
+  }
+
+  setLabel(key: string, label: string) {
+    this.nodeLabels[key] = label;
+  }
+
   node(key: string): Observable<Node> {
-    return this.apiService.post('conn/getNode', { key }, { type: 'form' });
+    return this.apiService.post('conn/getNode', {key}, {type: 'form'});
   }
 
   setCurrentNode(node: Node) {

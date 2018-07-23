@@ -1,0 +1,41 @@
+@import "../../../../assets/scss/variables";
+
+.manager-footer-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: $blue-dark;
+  height: 67px;
+  padding-left: 20px;
+  padding-right: 20px;
+
+  .title {
+    color: white;
+  }
+
+  .buttons {
+    display: flex;
+    align-items: center;
+    color: white;
+    .state {
+      margin-right: 8px;
+    }
+    .on {
+      color: $green;
+    }
+    .off {
+      color: red;
+    }
+
+    .settings-icon {
+      width: 20px;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+
+  }
+}
