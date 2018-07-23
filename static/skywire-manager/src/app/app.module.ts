@@ -23,6 +23,7 @@ import { TerminalComponent } from './components/pages/node/actions/terminal/term
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
 import { TransportsComponent } from './components/pages/node/transports/transports.component';
 import { FooterComponent } from './components/components/footer/footer.component';
+import { AppsComponent } from './components/pages/node/apps/apps.component';
 
 @NgModule({
   declarations: [
@@ -36,6 +37,7 @@ import { FooterComponent } from './components/components/footer/footer.component
     ConfigurationComponent,
     TransportsComponent,
     FooterComponent,
+    AppsComponent,
   ],
   entryComponents: [
     ConfigurationComponent,

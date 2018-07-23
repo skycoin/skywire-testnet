@@ -44,3 +44,10 @@ export interface NodeFeedback {
   failed: boolean;
   unread: number;
 }
+
+export interface ClientConnection {
+  label: string;
+  nodeKey: string;
+  appKey: string;
+  count: number;
+}

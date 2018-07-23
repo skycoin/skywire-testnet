@@ -87,7 +87,7 @@ export class NodeService {
     return this.nodeRequest('update');
   }
 
-  private nodeRequest(endpoint: string, body: any = {}, options: any = {}) {
+  nodeRequest(endpoint: string, body: any = {}, options: any = {}) {
     const nodeAddress = this.currentNode.addr;
 
     options.params = Object.assign(options.params || {}, {
