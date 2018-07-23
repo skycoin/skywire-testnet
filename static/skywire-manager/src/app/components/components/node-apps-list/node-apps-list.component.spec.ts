@@ -1,20 +1,20 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ConnectionsListComponent } from './connections-list.component';
+import { NodeAppsListComponent } from './node-apps-list.component';
 
-describe('ConnectionsListComponent', () => {
-  let component: ConnectionsListComponent;
-  let fixture: ComponentFixture<ConnectionsListComponent>;
+describe('NodeAppsListComponent', () => {
+  let component: NodeAppsListComponent;
+  let fixture: ComponentFixture<NodeAppsListComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ ConnectionsListComponent ]
+      declarations: [ NodeAppsListComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(ConnectionsListComponent);
+    fixture = TestBed.createComponent(NodeAppsListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
