@@ -10,6 +10,11 @@ $tables-colors: (
 
 @each $name, $colors in $tables-colors
 {
+  .mat-column-index
+  {
+    width: 30px;
+  }
+
   .table-#{$name}
   {
     background: nth($colors, 1) !important;
