@@ -40,7 +40,7 @@ export class ConfigurationComponent implements OnInit {
 
   ngOnInit() {
     this.form = new FormGroup({
-      'addresses': new FormControl('', [this.validateAddresses.bind(this)])
+      'addresses': new FormControl('', [this.validateAddresses])
     });
   }
 

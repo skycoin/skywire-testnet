@@ -59,5 +59,8 @@
   <app-actions [node]="node" [nodeInfo]="nodeInfo"></app-actions>
   <br>
   transports: <br>
-  <app-transports [transports]="nodeInfo.transports"></app-transports>
+  <app-transports [transports]="nodeInfo?.transports"></app-transports>
+  <br>
+  apps: <br>
+  <app-apps [node]="node" [apps]="nodeApps"></app-apps>
 </div>

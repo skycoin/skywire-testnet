@@ -25,6 +25,9 @@ import { TransportsComponent } from './components/pages/node/transports/transpor
 import { FooterComponent } from './components/components/footer/footer.component';
 import { AppsComponent } from './components/pages/node/apps/apps.component';
 import { LogComponent } from './components/pages/node/apps/log/log.component';
+import { AppSshsComponent } from './components/pages/node/apps/app-sshs/app-sshs.component';
+import { SshsStartupComponent } from './components/pages/node/apps/app-sshs/sshs-startup/sshs-startup.component';
+import { SshsWhitelistComponent } from './components/pages/node/apps/app-sshs/sshs-whitelist/sshs-whitelist.component';
 
 @NgModule({
   declarations: [
@@ -40,11 +43,16 @@ import { LogComponent } from './components/pages/node/apps/log/log.component';
     FooterComponent,
     AppsComponent,
     LogComponent,
+    AppSshsComponent,
+    SshsStartupComponent,
+    SshsWhitelistComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
     TerminalComponent,
     LogComponent,
+    SshsStartupComponent,
+    SshsWhitelistComponent,
   ],
   imports: [
     BrowserModule,
