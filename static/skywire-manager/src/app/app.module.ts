@@ -10,7 +10,16 @@ import {NodeListComponent} from './components/pages/node-list/node-list.componen
 import {NodeComponent} from './components/pages/node/node.component';
 import {ReactiveFormsModule} from '@angular/forms';
 import {RelativeTimePipe} from './pipes/relative-time.pipe';
-import {MatToolbarModule, MatTableModule, MatButtonModule, MatIconModule, MatTooltipModule, MatChipsModule} from '@angular/material';
+import {
+  MatToolbarModule,
+  MatTableModule,
+  MatButtonModule,
+  MatIconModule,
+  MatTooltipModule,
+  MatChipsModule,
+  MatMenuModule,
+  MatSnackBarModule
+} from '@angular/material';
 import {FooterComponent} from './components/components/footer/footer.component';
 import {MatInputModule} from '@angular/material/input';
 import { NodeTransportsList } from './components/components/node-transports-list/node-transports-list';
@@ -42,6 +51,8 @@ import { CopyToClipboardTextComponent } from './components/components/copy-to-cl
     MatIconModule,
     MatTooltipModule,
     MatChipsModule,
+    MatMenuModule,
+    MatSnackBarModule
   ],
   providers: [],
   bootstrap: [AppComponent]
