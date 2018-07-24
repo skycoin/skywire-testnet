@@ -7,9 +7,12 @@
 @import "assets/scss/utilities/flexbox";
 
 @import "assets/scss/fonts";
+@import "assets/scss/text";
 @import "assets/scss/images";
 @import "assets/scss/icons";
 @import "assets/scss/buttons";
+@import "assets/scss/chips";
+@import "assets/scss/tables";
 @import "assets/scss/forms";
 @import '~@angular/material/theming';
 
@@ -30,6 +33,7 @@
 @import "~bootstrap/scss/type";
 @import "~bootstrap/scss/bootstrap-grid";
 @import "~bootstrap/scss/utilities/sizing";
+@import "~bootstrap/scss/utilities/align";
 @import "~bootstrap/scss/utilities/text";
 @import "~bootstrap/scss/utilities/borders";
 
@@ -40,7 +44,7 @@
 
 html, body
 {
-  height:100%;
+  min-height: 100%;
   font-family: $skywire-font-family;
   margin:0;
   color: theme-color(white) !important;

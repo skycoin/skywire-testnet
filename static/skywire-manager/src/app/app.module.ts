@@ -10,9 +10,12 @@ import {NodeListComponent} from './components/pages/node-list/node-list.componen
 import {NodeComponent} from './components/pages/node/node.component';
 import {ReactiveFormsModule} from '@angular/forms';
 import {RelativeTimePipe} from './pipes/relative-time.pipe';
-import {MatToolbarModule, MatTableModule, MatButtonModule, MatIconModule, MatTooltipModule} from '@angular/material';
+import {MatToolbarModule, MatTableModule, MatButtonModule, MatIconModule, MatTooltipModule, MatChipsModule} from '@angular/material';
 import {FooterComponent} from './components/components/footer/footer.component';
 import {MatInputModule} from '@angular/material/input';
+import { NodeTransportsList } from './components/components/node-transports-list/node-transports-list';
+import { NodeAppsListComponent } from './components/components/node-apps-list/node-apps-list.component';
+import { CopyToClipboardTextComponent } from './components/components/copy-to-clipboard-text/copy-to-clipboard-text.component';
 
 @NgModule({
   declarations: [
@@ -21,7 +24,10 @@ import {MatInputModule} from '@angular/material/input';
     NodeListComponent,
     NodeComponent,
     RelativeTimePipe,
-    FooterComponent
+    FooterComponent,
+    NodeTransportsList,
+    NodeAppsListComponent,
+    CopyToClipboardTextComponent
   ],
   imports: [
     BrowserModule,
@@ -34,7 +40,8 @@ import {MatInputModule} from '@angular/material/input';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatChipsModule,
   ],
   providers: [],
   bootstrap: [AppComponent]

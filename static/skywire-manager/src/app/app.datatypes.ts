@@ -13,3 +13,34 @@ export interface NodeApp {
   attributes: string[]|null;
   allow_nodes: any;
 }
+
+export interface NodeInfo {
+  app_feedbacks: NodeFeedback[]|null;
+  transports: NodeTransport[]|null;
+  discoveries: NodeDiscovery|null;
+  os: string;
+  tag: string;
+  version: string;
+}
+
+export interface NodeDiscovery {
+  [key: string]: boolean;
+}
+
+export interface NodeTransport {
+  from_node: string;
+  to_node: string;
+  from_app: string;
+  to_app: string;
+  upload_bandwidth: number;
+  download_bandwidth: number;
+  upload_total: number;
+  download_total: number;
+}
+
+export interface NodeFeedback {
+  key: string;
+  port: number;
+  failed: boolean;
+  unread: number;
+}

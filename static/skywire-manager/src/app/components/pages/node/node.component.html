@@ -56,7 +56,9 @@
             <li class="separator"></li>
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">
               <mat-icon>layers</mat-icon>
-              <span class="text-uppercase">{{ node.type }}</span>
+              <span class="text-uppercase">
+                {{ node.type }}
+              </span>
             </li>
             <li class="separator"></li>
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Last ack time">
@@ -73,24 +75,8 @@
         <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
           Public key <span class="font-smaller">{{ node.key }}</span>
         </div>
-        <div class="container-elevated-translucid" style="margin-top: 25px;">
-          <app-connections-list  ></app-connections-list>
-          <div *ngIf="node" class="d-none">
-            addr: {{ node.addr }} <br>
-            key: {{ node.key }} <br>
-            started: {{ node.start_time | relativeTime }} <br>
-            last seen: {{ node.last_ack_time | relativeTime }} <br>
-            type: {{ node.type }} <br>
-            <br>
-            apps: <br>
-            <div *ngFor="let app of nodeApps">
-              {{ app.key }}
-            </div>
-          </div>
-        </div>
-        <div class="container-elevated-translucid" style="margin-top: 25px;">
-          <div>XXXX</div>
-        </div>
+        <node-transports-list [connections]="connectionsList" style="margin-top: 25px;"></node-transports-list>
+        <node-app-keys-list [apps]="appsList" style="margin-top: 25px;"></node-app-keys-list>
         <div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
           <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
             <li class="list-inline-item flex-1">

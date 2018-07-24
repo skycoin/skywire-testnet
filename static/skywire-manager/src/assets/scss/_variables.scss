@@ -17,14 +17,16 @@ $green: #2ECC54;
 $light-gray:#F7F7F7;
 
 $theme-colors: (
-  green:      $green,
-  red:        $red,
-  blue-light: $blue-light,
-  blue:       $blue,
-  blue-dark:  $blue-dark,
-  translucid: rgba(32, 34, 38, .44),
-  translucid-white: rgba(255, 255, 255, .44),
-  white:      $white
+  green:              $green,
+  red:                $red,
+  blue-light:         $blue-light,
+  blue:               $blue,
+  blue-dark:          $blue-dark,
+  translucid:         rgba(32, 34, 38, .44),
+  translucid-hover:   rgba(0, 0, 0, 0.1),
+  translucid-white:   rgba(255, 255, 255, .44),
+  white:              $white,
+  white-hover:        darken($white, 5%)
 );
 
 //
@@ -51,4 +53,4 @@ $font-weight-bold:            700;
 // Typography
 //
 
-$skywire-font-family: "Skycoin", "Open Sans", "Helvetica Neue", sans-serif;
+$skywire-font-family: 'Skycoin';
