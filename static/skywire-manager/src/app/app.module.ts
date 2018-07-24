@@ -59,7 +59,7 @@ import { AppsComponent } from './components/pages/node/apps/apps.component';
     MatIconModule,
   ],
   providers: [
-    {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500}},
+    {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
     {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: {width: '600px', hasBackdrop: true}},
     {provide: ErrorStateMatcher, useClass: ShowOnDirtyErrorStateMatcher},
   ],
