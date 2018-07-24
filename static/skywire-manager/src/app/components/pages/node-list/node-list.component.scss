@@ -31,44 +31,10 @@
   .reload-icon {
     margin-left: 8px;
   }
-
 }
 
-.node-list-container {
-  table {
-    margin-left: auto;
-    margin-right: auto;
-    border-collapse: separate !important;
-
-    th {
-      color: black;
-      font-size: 14px;
-    }
-
-    td {
-      min-width: 50px;
-      padding-right: 16px;
-    }
-
-    tr.mat-row {
-      cursor: pointer;
-
-      &:hover {
-        background-color: $light-gray;
-
-      }
-
-      .input-label{
-        width:50px !important;
-        border:none;
-        border-bottom: 1px solid black;
-        background-color: transparent;
-        outline: none;
-        font-size:14px;
-      }
-    }
-  }
-
+.node-list-container
+{
   .mat-form-field-infix{
     width: 50px !important;
   }
@@ -77,15 +43,6 @@
     font-weight: bold;
   }
 
-}
-
-$dot-size: 10px;
-.dot {
-  height: $dot-size;
-  width: $dot-size;
-  background-color: $green;
-  border-radius: 50%;
-  display: inline-block;
 }
 
 
