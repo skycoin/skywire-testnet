@@ -24,6 +24,7 @@ import { ConfigurationComponent } from './components/pages/node/actions/configur
 import { TransportsComponent } from './components/pages/node/transports/transports.component';
 import { FooterComponent } from './components/components/footer/footer.component';
 import { AppsComponent } from './components/pages/node/apps/apps.component';
+import { LogComponent } from './components/pages/node/apps/log/log.component';
 
 @NgModule({
   declarations: [
@@ -38,10 +39,12 @@ import { AppsComponent } from './components/pages/node/apps/apps.component';
     TransportsComponent,
     FooterComponent,
     AppsComponent,
+    LogComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
     TerminalComponent,
+    LogComponent,
   ],
   imports: [
     BrowserModule,

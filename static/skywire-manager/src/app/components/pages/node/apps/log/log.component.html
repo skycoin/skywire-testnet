@@ -1,0 +1,4 @@
+<div *ngFor="let message of logMessages">
+  <span>[{{ message.time * 1000 | date }}]</span>
+  <span>{{ message.msg }}</span>
+</div>

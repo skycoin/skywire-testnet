@@ -51,3 +51,8 @@ export interface ClientConnection {
   appKey: string;
   count: number;
 }
+
+export interface LogMessage {
+  time: number;
+  msg: string;
+}
