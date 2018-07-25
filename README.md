@@ -19,8 +19,11 @@ Skywire is still under heavy development.
 * [Run Skywire](#run-skywire)
 * [Docker](#docker)
 * [System Images Download Url](#images)
+* Developers Guide
+  * [Manager API](docs/api/ManagerAPI.md)
+  * [Node API](docs/api/NodeAPI.md)
 
-### Requirements
+## Requirements
 
 * golang 1.9+
 
