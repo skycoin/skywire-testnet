@@ -28,6 +28,10 @@ import { LogComponent } from './components/pages/node/apps/log/log.component';
 import { AppSshsComponent } from './components/pages/node/apps/app-sshs/app-sshs.component';
 import { SshsStartupComponent } from './components/pages/node/apps/app-sshs/sshs-startup/sshs-startup.component';
 import { SshsWhitelistComponent } from './components/pages/node/apps/app-sshs/sshs-whitelist/sshs-whitelist.component';
+import { AppSshcComponent } from './components/pages/node/apps/app-sshc/app-sshc.component';
+import { SshcStartupComponent } from './components/pages/node/apps/app-sshc/sshc-startup/sshc-startup.component';
+import { SshcKeysComponent } from './components/pages/node/apps/app-sshc/sshc-keys/sshc-keys.component';
+import { KeypairComponent } from './components/layout/keypair/keypair.component';
 
 @NgModule({
   declarations: [
@@ -46,6 +50,10 @@ import { SshsWhitelistComponent } from './components/pages/node/apps/app-sshs/ss
     AppSshsComponent,
     SshsStartupComponent,
     SshsWhitelistComponent,
+    AppSshcComponent,
+    SshcStartupComponent,
+    SshcKeysComponent,
+    KeypairComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -53,6 +61,8 @@ import { SshsWhitelistComponent } from './components/pages/node/apps/app-sshs/ss
     LogComponent,
     SshsStartupComponent,
     SshsWhitelistComponent,
+    SshcKeysComponent,
+    SshcStartupComponent,
   ],
   imports: [
     BrowserModule,

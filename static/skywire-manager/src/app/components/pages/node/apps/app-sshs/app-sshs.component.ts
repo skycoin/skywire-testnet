@@ -24,11 +24,7 @@ export class AppSshsComponent extends AppWrapper {
   }
 
   showStartupConfig() {
-    this.dialog.open(SshsStartupComponent, {
-      data: {
-        node: this.node,
-      },
-    });
+    this.dialog.open(SshsStartupComponent);
   }
 
   showWhitelist() {

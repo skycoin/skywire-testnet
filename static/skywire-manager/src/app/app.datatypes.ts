@@ -69,3 +69,8 @@ export interface AutoStartConfig {
   socksc_conf_appKey: string;
   socksc_conf_discovery: string;
 }
+
+export interface Keypair {
+  nodeKey: string;
+  appKey: string;
+}
