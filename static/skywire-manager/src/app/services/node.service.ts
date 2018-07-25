@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
-import { Node, NodeApp, NodeInfo } from '../app.datatypes';
+import { AutoStartConfig, Node, NodeApp, NodeInfo } from '../app.datatypes';
 import { ApiService } from './api.service';
 import { map } from 'rxjs/operators';
 
@@ -65,6 +65,23 @@ export class NodeService {
 
   updateNodeConfig() {
     return this.nodeRequest('run/updateNodeConfig');
+  }
+
+  getAutoStartConfig(): Observable<AutoStartConfig> {
+    return this.nodeRequest('run/getAutoStartConfig', {
+      key: this.currentNode.key
+    }, {
+      type: 'form',
+    });
+  }
+
+  setAutoStartConfig(config: AutoStartConfig) {
+    return this.nodeRequest('run/setAutoStartConfig', {
+      key: this.currentNode.key,
+      data: JSON.stringify(config),
+    }, {
+      type: 'form',
+    });
   }
 
   reboot(): Observable<any> {

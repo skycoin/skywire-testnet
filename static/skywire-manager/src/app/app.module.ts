@@ -7,7 +7,7 @@ import {
   ErrorStateMatcher, MAT_DIALOG_DEFAULT_OPTIONS,
   MAT_SNACK_BAR_DEFAULT_OPTIONS, MatButtonModule,
   MatDialogModule,
-  MatFormFieldModule, MatIconModule, MatIconRegistry, MatInputModule,
+  MatFormFieldModule, MatIconModule, MatIconRegistry, MatInputModule, MatSlideToggleModule,
   MatSnackBarModule, MatTableModule, MatToolbarModule,
   ShowOnDirtyErrorStateMatcher
 } from '@angular/material';
@@ -68,6 +68,7 @@ import { SshsWhitelistComponent } from './components/pages/node/apps/app-sshs/ss
     MatTableModule,
     MatButtonModule,
     MatIconModule,
+    MatSlideToggleModule,
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},

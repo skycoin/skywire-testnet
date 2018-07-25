@@ -56,3 +56,16 @@ export interface LogMessage {
   time: number;
   msg: string;
 }
+
+export interface AutoStartConfig {
+  sshs: boolean;
+  sshc: boolean;
+  sshc_conf_nodeKey: string;
+  sshc_conf_appKey: string;
+  sshc_conf_discovery: string;
+  sockss: boolean;
+  socksc: boolean;
+  socksc_conf_nodeKey: string;
+  socksc_conf_appKey: string;
+  socksc_conf_discovery: string;
+}

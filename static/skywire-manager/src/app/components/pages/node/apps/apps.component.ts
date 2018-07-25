@@ -1,5 +1,6 @@
 import { Component, Input, Input } from '@angular/core';
-import { Node, NodeApp } from '../../../../app.datatypes';
+import { AutoStartConfig, Node, NodeApp } from '../../../../app.datatypes';
+import { NodeService } from '../../../../services/node.service';
 
 @Component({
   selector: 'app-apps',
@@ -21,5 +22,15 @@ export class AppWrapper {
 
   get isRunning(): boolean {
     return !!this.app;
+  }
+}
+
+export class AppAutoStartConfig {
+  autoStartConfig: AutoStartConfig;
+
+  constructor(
+    private nodeService: NodeService,
+  ) {
+    this.nodeService.getAutoStartConfig().subscribe(config => this.autoStartConfig = config);
   }
 }

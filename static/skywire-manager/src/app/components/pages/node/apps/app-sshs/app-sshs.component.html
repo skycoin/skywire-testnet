@@ -2,6 +2,6 @@
   <span>SSH Server</span>
   <button (click)="start()">start</button>
   <button (click)="showStartupConfig()">startup config</button>
-  <button (click)="showWhitelist()">whitelist</button>
+  <button (click)="showWhitelist()" [disabled]="!isRunning">whitelist</button>
   <button (click)="showLog()" [disabled]="!isRunning">show log</button>
 </div>
