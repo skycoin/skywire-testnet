@@ -267,4 +267,4 @@ The following information needs to be submitted for each type of miner.
      - Node OS: The OS you're running on the pis
      - Node brief description: Describe your setup, the router you're using & the things that you will present on the pictures
      - Miner photos: At least three photos, each from a different perspective (each one max 3MB in size)
-     - You public keys
+     - Your public keys
