@@ -74,3 +74,17 @@ export interface Keypair {
   nodeKey: string;
   appKey: string;
 }
+
+export interface SearchResult {
+  result: SearchResultItem[];
+  seq: number;
+  count: number;
+}
+
+export interface SearchResultItem {
+  node_key: string;
+  app_key: string;
+  location: string;
+  version: string;
+  node_version: string[];
+}

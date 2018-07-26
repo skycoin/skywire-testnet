@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
-import { AutoStartConfig, Node, NodeApp, NodeInfo } from '../app.datatypes';
+import { interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
+import { AutoStartConfig, Node, NodeApp, NodeInfo, SearchResult } from '../app.datatypes';
 import { ApiService } from './api.service';
-import { map } from 'rxjs/operators';
+import { filter, flatMap, map, retryWhen, switchMap, take, timeout } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -82,6 +82,19 @@ export class NodeService {
     }, {
       type: 'form',
     });
+  }
+
+  searchServices(key: string, pages: number, limit: number, discoveryKey: string): Observable<SearchResult> {
+    return this.nodeRequest('run/searchServices', {key, pages, limit, discoveryKey}, {type: 'form'})
+      .pipe(switchMap(() => {
+        return interval(500).pipe(
+          flatMap(() => this.nodeRequest('run/getSearchServicesResult')),
+          filter(result => result !== null),
+          map(result => result[0]),
+          take(1),
+          timeout(5000),
+        );
+      }));
   }
 
   reboot(): Observable<any> {

@@ -32,6 +32,9 @@ import { AppSshcComponent } from './components/pages/node/apps/app-sshc/app-sshc
 import { SshcStartupComponent } from './components/pages/node/apps/app-sshc/sshc-startup/sshc-startup.component';
 import { SshcKeysComponent } from './components/pages/node/apps/app-sshc/sshc-keys/sshc-keys.component';
 import { KeypairComponent } from './components/layout/keypair/keypair.component';
+import { AppSockscComponent } from './components/pages/node/apps/app-socksc/app-socksc.component';
+import { SockscConnectComponent } from './components/pages/node/apps/app-socksc/socksc-connect/socksc-connect.component';
+import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/socksc-startup/socksc-startup.component';
 
 @NgModule({
   declarations: [
@@ -54,6 +57,9 @@ import { KeypairComponent } from './components/layout/keypair/keypair.component'
     SshcStartupComponent,
     SshcKeysComponent,
     KeypairComponent,
+    AppSockscComponent,
+    SockscConnectComponent,
+    SockscStartupComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -63,6 +69,8 @@ import { KeypairComponent } from './components/layout/keypair/keypair.component'
     SshsWhitelistComponent,
     SshcKeysComponent,
     SshcStartupComponent,
+    SockscConnectComponent,
+    SockscStartupComponent,
   ],
   imports: [
     BrowserModule,

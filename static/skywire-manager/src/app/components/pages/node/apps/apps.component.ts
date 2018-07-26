@@ -1,5 +1,5 @@
 import { Component, Input, Input } from '@angular/core';
-import { AutoStartConfig, Node, NodeApp } from '../../../../app.datatypes';
+import { AutoStartConfig, Node, NodeApp, NodeInfo } from '../../../../app.datatypes';
 import { NodeService } from '../../../../services/node.service';
 
 @Component({
@@ -10,6 +10,7 @@ import { NodeService } from '../../../../services/node.service';
 export class AppsComponent {
   @Input() node: Node;
   @Input() apps: NodeApp[] = [];
+  @Input() nodeInfo: NodeInfo;
 
   getApp(name: string) {
     return this.apps.find(app => app.attributes.some(attr => attr === name));

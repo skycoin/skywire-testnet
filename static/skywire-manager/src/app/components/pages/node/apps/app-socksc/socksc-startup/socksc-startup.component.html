@@ -1,0 +1,12 @@
+<div *ngIf="autoStartConfig">
+  <mat-slide-toggle (change)="toggle($event)" [checked]="autoStartConfig.socksc">
+    Automatically connect to Node
+  </mat-slide-toggle>
+
+  <app-keypair
+    (keypairChange)="keypairChange($event)"
+    [keypair]="{nodeKey: autoStartConfig.socksc_conf_nodeKey, appKey: autoStartConfig.socksc_conf_appKey}"
+  ></app-keypair>
+
+  <button (click)="save()">save</button>
+</div>
