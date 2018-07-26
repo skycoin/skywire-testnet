@@ -1,0 +1,113 @@
+@import "../../../../assets/scss/variables";
+@import "../../../../assets/scss/utilities/theme";
+@import "~bootstrap/scss/functions";
+
+$node-top-bar-padding: 20px;
+
+.node-top-bar
+{
+  padding: $node-top-bar-padding 0 0 0;
+
+  .mat-icon
+  {
+    margin-right: 5px;
+  }
+
+  .input-refresh
+  {
+    text-align: center;
+  }
+
+  .form-refresh
+  {
+    max-width: 40px;
+  }
+}
+
+.separator
+{
+  width: 0;
+  height: 30px;
+  border: solid 1px theme-color(translucid-white);
+  align-self: center;
+}
+
+.node-status-bar
+{
+  .status-text
+  {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .mat-icon
+  {
+    margin-right: 10px;
+  }
+}
+
+.node-menu
+{
+  .mat-flat-button
+  {
+    width: 100%;
+  }
+
+  .mat-icon
+  {
+    margin-right: 15px;
+  }
+}
+
+.node-bottom-bar
+{
+  margin-top: 40px;
+
+  .mat-flat-button
+  {
+    line-height: 15px;
+  }
+
+  .btn-more, .dot-red
+  {
+    position: absolute;
+    right: -20px;
+  }
+
+  .btn-more
+  {
+    font-size: theme-font-size(lg);
+  }
+
+  .separator
+  {
+    height: 40px;
+  }
+
+  span
+  {
+    position: relative;
+  }
+}
+
+.node-right
+{
+  padding-top: 40px;
+
+  div
+  {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .section
+  {
+    flex-direction: column;
+
+    .section-title
+    {
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+    }
+  }
+}
