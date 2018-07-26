@@ -1,0 +1,110 @@
+// Bootstrap required
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/mixins";
+
+@import "assets/scss/variables";
+@import "assets/scss/utilities/utilities";
+
+@import "assets/scss/fonts";
+@import "assets/scss/text";
+@import "assets/scss/images";
+@import "assets/scss/icons";
+@import "assets/scss/buttons";
+@import "assets/scss/menu";
+@import "assets/scss/chips";
+@import "assets/scss/tables";
+@import "assets/scss/forms";
+@import '~@angular/material/theming';
+
+/***************************
+* Bootsrap 4
+****+***********************/
+
+// Skywire boostrap overrides
+@import "assets/scss/bootstrap_overrides";
+
+// Bootstrap required
+@import "~bootstrap/scss/variables";
+
+// Bootstrap optional
+@import "~bootstrap/scss/reboot";
+@import "~bootstrap/scss/list-group";
+@import "~bootstrap/scss/type";
+@import "~bootstrap/scss/bootstrap-grid";
+@import "~bootstrap/scss/utilities/sizing";
+@import "~bootstrap/scss/utilities/align";
+@import "~bootstrap/scss/utilities/text";
+@import "~bootstrap/scss/utilities/borders";
+@import "~bootstrap/scss/utilities/float";
+
+
+/***************************
+* Skywire
+****+***********************/
+
+html, body
+{
+  min-height: 100%;
+  font-family: $skywire-font-family;
+  margin:0;
+  color: theme-color(white) !important;
+  font-size: $font-size-base;
+  font-weight: $font-weight-base;
+  line-height: $line-height-base;
+}
+
+button:focus {
+  outline: 0;
+}
+
+.mat-app-background{
+  background: linear-gradient($blue, $blue-light) no-repeat fixed !important;
+}
+
+//
+// Containers
+//
+
+$elevated-containers-colors: (
+  translucid: map_get($theme-colors, translucid),
+  white:      map_get($theme-colors, white),
+);
+
+@each $color-name, $color-value in $elevated-containers-colors
+{
+  .container-elevated-#{$color-name}
+  {
+    @include mat-elevation(8);
+    border-radius: 16px;
+    padding: 15px 30px 15px 30px;
+    background-color: $color-value !important;
+  }
+}
+
+mat-dialog-container.mat-dialog-container {
+  border-radius: $radius;
+}
+
+//
+// Backgrounds
+//
+
+@each $color-name, $color-value in $theme-colors
+{
+  .sky-bg-#{$color-name}
+  {
+    background-color: $color-value !important;
+  }
+}
+
+//
+// Divider
+//
+hr
+{
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border: 0;
+  border-top: 1px solid theme-color(translucid-white);
+  width: 100%;
+}

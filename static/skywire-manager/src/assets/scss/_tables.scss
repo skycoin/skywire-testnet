@@ -1,0 +1,88 @@
+@import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
+
+$tables-colors: (
+  // Background, background:hover, font color
+  white: (theme-color(white), theme-color(white-hover), theme-color(black)),
+  translucid: (transparent, theme-color(translucid-hover), theme-color(white))
+);
+
+@each $name, $colors in $tables-colors
+{
+  .mat-column-index
+  {
+    width: 30px;
+  }
+
+  .table-#{$name}
+  {
+    background: nth($colors, 1) !important;
+    margin-left: auto;
+    margin-right: auto;
+    border-collapse: separate !important;
+    width: 100%;
+    word-break: break-word;
+
+    &.align-top
+    {
+      td
+      {
+        @extend .align-top;
+      }
+    }
+
+    &.align-middle
+    {
+      td
+      {
+        @extend .align-middle;
+      }
+    }
+
+    td, th
+    {
+      color: nth($colors, 3) !important;
+      padding: 10px !important;
+      min-width: 60px;
+    }
+
+    th
+    {
+      font-size: 14px;
+    }
+
+    td
+    {
+      min-width: 50px;
+      padding-right: 16px;
+      @extend .font-smaller;
+    }
+
+    &.selectable
+    {
+      tr.mat-row
+      {
+        cursor: pointer;
+
+        &:hover
+        {
+          background: nth($colors, 2) !important;
+        }
+      }
+    }
+
+    tr.mat-row
+    {
+      .input-label
+      {
+        width: 50px !important;
+        border: none;
+        border-bottom: 1px solid nth($colors, 3) !important;
+        background-color: transparent;
+        outline: none;
+        font-size: 14px;
+      }
+    }
+  }
+}

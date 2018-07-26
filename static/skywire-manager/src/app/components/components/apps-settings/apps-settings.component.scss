@@ -1,0 +1,50 @@
+@import "../../../../assets/scss/variables";
+@import "../../../../assets/scss/utilities/theme";
+@import "../../../../assets/scss/text";
+@import "~bootstrap/scss/functions";
+
+:host::ng-deep
+{
+  .indented
+  {
+    .mat-list-item-content
+    {
+      padding-left: 30px !important;
+      color: theme-color(light-gray) !important;
+
+      label
+      {
+        flex: 1;
+      }
+
+      .mat-form-field
+      {
+        flex: 3;
+        margin-left: 25px;
+      }
+    }
+  }
+  .mat-list-item-content
+  {
+    color: theme-color(blue-dark) !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    @extend .font-base;
+
+    &.margin-bottom
+    {
+      margin-bottom: 20px;
+    }
+
+    label
+    {
+      margin-bottom: 0;
+    }
+  }
+
+  button
+  {
+    margin: 20px;
+  }
+}

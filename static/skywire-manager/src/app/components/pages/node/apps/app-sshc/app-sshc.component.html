@@ -1,0 +1,6 @@
+<div>
+  <span>SSH Client</span>
+  <button (click)="start()">start</button>
+  <button (click)="showStartupConfig()">startup config</button>
+  <button (click)="showLog()" [disabled]="!isRunning">show log</button>
+</div>

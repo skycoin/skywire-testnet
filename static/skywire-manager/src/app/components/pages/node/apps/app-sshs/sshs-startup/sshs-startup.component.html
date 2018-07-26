@@ -1,0 +1,6 @@
+<div *ngIf="autoStartConfig">
+  <mat-slide-toggle (change)="toggle($event)" [checked]="autoStartConfig.sshs">
+    Automatically start SSH server
+  </mat-slide-toggle>
+  <button (click)="save()">save</button>
+</div>
