@@ -20,7 +20,7 @@ Read this information thoroughly and ask in the [Skywire](https://t.me/skywire) 
 
 ## Rules
 
-**Each whitelisted person is eligible of receiving rewards for 1 official miner or 1 DIY miner with up to 8 nodes, in the case that either the official or the DIY miner are running at a different location the person will receive rewards for both if the requirements are met.**
+**Each whitelisted person is eligible of receiving rewards for 1 official miner or 1 DIY miner with up to 8 nodes, in the case that either the official or the DIY miner are running at a different location the person will receive rewards for both if the requirement is met.**
 
 * The demand for a different location is due to the fact that we want to spread out the meshnet and not concentrate the location of nodes to specific central points, which would result in paying people to run orange pi's and not to reward them for providing a useful service to the network.
 
@@ -237,9 +237,10 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 * It doesn't matter in terms of rewards in which week you're getting whitelisted.
 * Your spot is recognized by your email address, you can think of that just as you would think of an account. Right now we have no account system for you in place to check your spot, provided bandwidth etc. but this will be done for the mainnet.
 * Official miners need to submit the form using their purchasing email, as this is the only way for us to identify them 
-* You are advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)) but if you something happens and you had to reflash then simply resubmit the application form including all current active public keys.
+* You are advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)) but if something happens and you have to reflash then simply resubmit the application form including all current active public keys.
 * If you need to update the Skycoin wallet address for receiving the rewards please submit the form again, send support@skycoin.net an email notification about the change and contact someone on telegram if you don't receive an answer after some days.
 * For email address changes of official miners please send the team an email at support@skycoin.net and contact someone on telegram if you don't receive an answer after some days.
+* Make sure to generate new public keys after ownership transfer on an official miner and to resubmit the [whitelist application form](skycoin.net/whitelist)
 
 ### The form
 The following information needs to be submitted for each type of miner.
