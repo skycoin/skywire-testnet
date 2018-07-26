@@ -1,57 +1,165 @@
 <div class="container-fluid h-100">
-  <div class="row h-100" style="padding-bottom: 40px; padding-top: 100px;">
-    <div class="col-3">
+  <div class="row h-100" style="padding-bottom: 40px;">
+    <div class="col-xl-2 col-lg-3">
       <div class="d-flex flex-column h-100 justify-content-between">
         <div>
-            <img style="margin-left: 20px;" src="/assets/img/logo.png" class="skycoin-logo"/>
+            <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
         </div>
-          <ul class="list-group">
+          <ul class="node-menu list-group">
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-check-update"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>get_app</mat-icon>
                 Check update
               </button>
             </li>
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-reboot"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>rotate_right</mat-icon>
                 Reboot
               </button>
             </li>
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-settings"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>settings</mat-icon>
                 Settings
               </button>
             </li>
             <li class="list-group-item">
-              <button mat-flat-button class="link lg">
-                <mat-icon svgIcon="sky-terminal"></mat-icon>
+              <button mat-flat-button class="link md">
+                <mat-icon>laptop</mat-icon>
                 Terminal
               </button>
             </li>
           </ul>
       </div>
     </div>
-    <div class="col-6">
-      <div class="container-elevated-translucid"></div>
-      <div class="container-elevated-translucid" style="margin-top: 20px;">
-        <div *ngIf="node">
-          addr: {{ node.addr }} <br>
-          key: {{ node.key }} <br>
-          started: {{ node.start_time | relativeTime }} <br>
-          last seen: {{ node.last_ack_time | relativeTime }} <br>
-          type: {{ node.type }} <br>
-          <br>
-          apps: <br>
-          <div *ngFor="let app of nodeApps">
-            {{ app.key }}
+    <div class="col-lg-6 col-xl-7">
+      <div class="d-flex flex-column h-100">
+        <div class="node-top-bar d-flex justify-content-between">
+          <button mat-flat-button class="link sm" (click)="back()">
+            <mat-icon class="font-sm ic-small rounded-circle sky-bg-white sky-color-blue">chevron_left</mat-icon>
+            Back
+          </button>
+          <div class="d-flex align-items-center">
+            <span class="font-sm" style="margin-right: 10px;">Refresh</span>
+            <mat-form-field class="form-refresh">
+              <input class="input-refresh font-sm" matInput value="XXXX">
+            </mat-form-field>
           </div>
+        </div>
+        <div>
+          <ul class="node-status-bar list-inline d-flex justify-content-around">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Status">
+              <mat-icon>network_check</mat-icon>
+              XXX
+            </li>
+            <li class="separator"></li>
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">
+              <mat-icon>layers</mat-icon>
+              <span class="text-uppercase">
+                {{ node.type }}
+              </span>
+            </li>
+            <li class="separator"></li>
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Last ack time">
+              <mat-icon>timelapse</mat-icon>
+              {{ node.last_ack_time | relativeTime }}
+            </li>
+            <li class="separator"></li>
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Started">
+              <mat-icon>av_timer</mat-icon>
+              {{ node.start_time | relativeTime }}
+            </li>
+          </ul>
+        </div>
+        <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
+          Public key <span class="font-smaller">{{ node.key }}</span>
+        </div>
+        <node-transports-list [connections]="connectionsList" style="margin-top: 25px;"></node-transports-list>
+        <node-app-keys-list [apps]="appsList" style="margin-top: 25px;"></node-app-keys-list>
+        <div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
+          <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
+            <li class="list-inline-item flex-1">
+              <button mat-flat-button class="centered-col link md w-100">
+                  <span>
+                    Apps settings
+                  </span>
+                  <mat-icon>settings</mat-icon>
+              </button>
+            </li>
+            <li class="separator list-inline-item"></li>
+            <li class="list-inline-item flex-1 align-items-center d-flex">
+              <button mat-flat-button class="centered-col link md w-100 active">
+                  <span>
+                    SSH
+                    <mat-icon class="btn-more">more_vert</mat-icon>
+                    <i class="dot-red sm" matTooltip="Messages"></i>
+                  </span>
+                  <mat-icon>laptop</mat-icon>
+              </button>
+            </li>
+            <li class="separator list-inline-item"></li>
+            <li class="list-inline-item flex-1">
+              <button mat-flat-button class="centered-col link md w-100">
+                  <span>
+                    Connect to Node
+                    <mat-icon class="btn-more">more_vert</mat-icon>
+                    <i class="dot-red sm"></i>
+                  </span>
+                  <mat-icon>near_me</mat-icon>
+              </button>
+            </li>
+            <li class="separator list-inline-item"></li>
+            <li class="list-inline-item flex-1">
+              <button mat-flat-button class="centered-col link md w-100">
+                  <span>
+                    SSH Client
+                    <mat-icon class="btn-more">more_vert</mat-icon>
+                    <i class="dot-red sm"></i>
+                  </span>
+                  <mat-icon>laptop</mat-icon>
+              </button>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
     <div class="col-3">
-
+      <div class="node-right font-smaller d-flex flex-column h-100">
+        <!-- IPS -->
+        <div class="node-ips-container d-flex justify-content-between">
+          <div class="section">
+            <span class="section-title">NODE IP</span>
+            <span class="font-smaller">{{ node.addr }}</span>
+          </div>
+          <div class="section">
+            <span class="section-title">MANAGER IP</span>
+            <span class="font-smaller">XXXXXX</span>
+          </div>
+        </div>
+        <hr>
+        <!-- Public key -->
+        <div class="node-public-key section">
+          <span class="section-title">PUBLIC KEY</span>
+          <span class="font-smaller">{{ node.key }}</span>
+        </div>
+        <hr>
+        <!-- Connections -->
+        <div class="node-connections justify-content-between">
+          <div class="section">
+            <span class="section-title">
+              <i class="dot-green"></i> CONNECTION
+            </span>
+            <span class="font-smaller">xxxxxxxxxxx</span>
+          </div>
+          <div class="section">
+            <span class="section-title">
+              <i class="dot-green"></i> NODES</span>
+            <span class="font-smaller">xxxxxxxxxxxx</span>
+          </div>
+        </div>
+        <hr>
+      </div>
     </div>
   </div>
   <br>

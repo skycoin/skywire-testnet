@@ -3,6 +3,11 @@
 
 .mat-flat-button
 {
+  &.mat-primary.active
+  {
+    color: theme-color(blue-dark);
+  }
+
   &.link
   {
     background: none !important;
@@ -10,20 +15,37 @@
 
   &.lg
   {
-    font-size: 25px !important;
+    font-size: 18px !important;
     font-weight: lighter !important;
+  }
+
+  &.md
+  {
+    font-size: theme-font-size(base) !important;
+    font-weight: lighter !important;
+  }
+
+  &.sm
+  {
+    font-size: theme-font-size(smaller) !important;
+    font-weight: lighter !important;
+  }
+
+  &.centered-col
+  {
+    .mat-button-wrapper
+    {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 10px;
+      line-height: 26px;
+    }
   }
 
   .mat-button-wrapper
   {
     display: flex;
     align-items: center;
-    padding-top: 5px;
-    padding-bottom: 5px;
-  }
-
-  .mat-icon
-  {
-    margin-right: 15px;
   }
 }
