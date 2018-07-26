@@ -1,0 +1,20 @@
+<b>Whitelisted nodes</b>
+<table>
+  <tr *ngFor="let node of whitelistedNodes; let index = i">
+    <td>{{ index }}</td>
+    <td>{{ node.key }}</td>
+  </tr>
+</table>
+
+<b>Update whitelisted nodes</b>
+<form [formGroup]="form">
+  <mat-form-field>
+    <textarea matInput formControlName="keys" rows="5"
+              placeholder="Comma separated public keys"
+    ></textarea>
+    <mat-error *ngIf="form.get('keys').hasError('invalid')">
+      Invalid format, enter comma separated public keys
+    </mat-error>
+  </mat-form-field>
+  <button (click)="save()">save</button>
+</form>
