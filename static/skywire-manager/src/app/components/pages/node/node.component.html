@@ -142,5 +142,10 @@
       </div>
     </div>
   </div>
-  <app-transports [transports]="nodeInfo.transports"></app-transports>
+  <br>
+  transports: <br>
+  <app-transports [transports]="nodeInfo?.transports"></app-transports>
+  <br>
+  apps: <br>
+  <app-apps [node]="node" [apps]="nodeApps" [nodeInfo]="nodeInfo"></app-apps>
 </div>
