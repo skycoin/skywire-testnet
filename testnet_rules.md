@@ -213,7 +213,7 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 
 ### June
 
-    - LAST WHITELISTED APPLICATION ID: XXX
+    - LAST WHITELISTED APPLICATION ID & DATE(UTC+8): 322, 2018-05-24 23:40:27
     - AMOUNT OF WHITELISTED OFFICIAL MINERS: 197
 
 #### Updates
@@ -223,11 +223,14 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 #### Position
     - The whitelist application ID (ID of first submitted application) represents your position in the queue. 
     - Estimate your individual waiting period for your DIY miner based on these two numbers
+    - The ID above is unrepresentative as long as the script for your actual queue position is not finished
+    - You can only estimate when you get whitelisted as of now, this is step to increase transparency
 
 #### Get your position
     - Contact @asxtree @MrHodlr @Paperstream to obtain your application ID etc.
     - You can double check with our team members (see above) if we received your application.
     - Unlike the whitelist data, the team receives *weekly updates* on the application data
+    - A script that calculates your actual queue position & approximate waiting time is WIP (work in progress)
 
 
 ### Facts
