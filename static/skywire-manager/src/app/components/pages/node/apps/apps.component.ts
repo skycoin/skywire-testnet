@@ -1,6 +1,8 @@
-import { Component, Input, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { AutoStartConfig, Node, NodeApp, NodeInfo } from '../../../../app.datatypes';
 import { NodeService } from '../../../../services/node.service';
+import { LogComponent } from './log/log.component';
+import { MatDialog } from '@angular/material';
 
 @Component({
   selector: 'app-apps',
@@ -24,14 +26,26 @@ export class AppWrapper {
   get isRunning(): boolean {
     return !!this.app;
   }
+
+  constructor(
+    private _dialog: MatDialog,
+  ) { }
+
+  showLog() {
+    this._dialog.open(LogComponent, {
+      data: {
+        app: this.app,
+      },
+    });
+  }
 }
 
 export class AppAutoStartConfig {
   autoStartConfig: AutoStartConfig;
 
   constructor(
-    private nodeService: NodeService,
+    private _nodeService: NodeService,
   ) {
-    this.nodeService.getAutoStartConfig().subscribe(config => this.autoStartConfig = config);
+    this._nodeService.getAutoStartConfig().subscribe(config => this.autoStartConfig = config);
   }
 }

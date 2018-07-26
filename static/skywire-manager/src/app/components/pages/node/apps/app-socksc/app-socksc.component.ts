@@ -1,6 +1,5 @@
 import { Component, Input } from '@angular/core';
 import { AppWrapper } from '../apps.component';
-import { LogComponent } from '../log/log.component';
 import { MatDialog } from '@angular/material';
 import { SockscStartupComponent } from './socksc-startup/socksc-startup.component';
 import { SockscConnectComponent } from './socksc-connect/socksc-connect.component';
@@ -23,7 +22,7 @@ export class AppSockscComponent extends AppWrapper {
     private appsService: AppsService,
     private dialog: MatDialog,
   ) {
-    super();
+    super(dialog);
   }
 
   connect() {
@@ -43,13 +42,5 @@ export class AppSockscComponent extends AppWrapper {
 
   showStartupConfig() {
     this.dialog.open(SockscStartupComponent);
-  }
-
-  showLog() {
-    this.dialog.open(LogComponent, {
-      data: {
-        app: this.app,
-      },
-    });
   }
 }

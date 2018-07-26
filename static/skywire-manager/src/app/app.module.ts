@@ -22,7 +22,7 @@ import { ActionsComponent } from './components/pages/node/actions/actions.compon
 import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
 import { TransportsComponent } from './components/pages/node/transports/transports.component';
-import { FooterComponent } from './components/components/footer/footer.component';
+import { FooterComponent } from './components/layout/footer/footer.component';
 import { AppsComponent } from './components/pages/node/apps/apps.component';
 import { LogComponent } from './components/pages/node/apps/log/log.component';
 import { AppSshsComponent } from './components/pages/node/apps/app-sshs/app-sshs.component';

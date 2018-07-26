@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { AppWrapper } from '../apps.component';
 import { AppsService } from '../../../../../services/apps.service';
-import { LogComponent } from '../log/log.component';
 import { MatDialog } from '@angular/material';
 import { SshcStartupComponent } from './sshc-startup/sshc-startup.component';
 import { SshcKeysComponent } from './sshc-keys/sshc-keys.component';
@@ -17,7 +16,7 @@ export class AppSshcComponent extends AppWrapper {
     private appsService: AppsService,
     private dialog: MatDialog,
   ) {
-    super();
+    super(dialog);
   }
 
   start() {
@@ -30,13 +29,5 @@ export class AppSshcComponent extends AppWrapper {
 
   showStartupConfig() {
     this.dialog.open(SshcStartupComponent);
-  }
-
-  showLog() {
-    this.dialog.open(LogComponent, {
-      data: {
-        app: this.app,
-      },
-    });
   }
 }

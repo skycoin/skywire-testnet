@@ -19,7 +19,7 @@ export class SshsStartupComponent extends AppAutoStartConfig {
     this.nodeService.setAutoStartConfig(this.autoStartConfig).subscribe();
   }
 
-  change(event: MatSlideToggleChange) {
+  toggle(event: MatSlideToggleChange) {
     this.autoStartConfig.sshs = event.checked;
   }
 }

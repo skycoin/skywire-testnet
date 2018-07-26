@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { AppsService } from '../../../../../services/apps.service';
 import { MatDialog } from '@angular/material';
-import { LogComponent } from '../log/log.component';
 import { AppWrapper } from '../apps.component';
 import { SshsStartupComponent } from './sshs-startup/sshs-startup.component';
 import { SshsWhitelistComponent } from './sshs-whitelist/sshs-whitelist.component';
@@ -16,7 +15,7 @@ export class AppSshsComponent extends AppWrapper {
     private appsService: AppsService,
     private dialog: MatDialog,
   ) {
-    super();
+    super(dialog);
   }
 
   start() {
@@ -31,14 +30,6 @@ export class AppSshsComponent extends AppWrapper {
     this.dialog.open(SshsWhitelistComponent, {
       data: {
         node: this.app,
-        app: this.app,
-      },
-    });
-  }
-
-  showLog() {
-    this.dialog.open(LogComponent, {
-      data: {
         app: this.app,
       },
     });
