@@ -17,6 +17,7 @@ import {NodeListComponent} from './components/pages/node-list/node-list.componen
 import {NodeComponent} from './components/pages/node/node.component';
 import {ReactiveFormsModule} from '@angular/forms';
 import {RelativeTimePipe} from './pipes/relative-time.pipe';
+import { FormsModule } from '@angular/forms';
 import {
   MatToolbarModule,
   MatTableModule,
@@ -25,7 +26,9 @@ import {
   MatTooltipModule,
   MatChipsModule,
   MatMenuModule,
-  MatSnackBarModule
+  MatSnackBarModule,
+  MatSlideToggleModule,
+  MatListModule
 } from '@angular/material';
 import {FooterComponent} from './components/components/footer/footer.component';
 import { NodeTransportsList } from './components/components/node-transports-list/node-transports-list';
@@ -35,6 +38,11 @@ import { ActionsComponent } from './components/pages/node/actions/actions.compon
 import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
 import { TransportsComponent } from './components/pages/node/transports/transports.component';
+import { NodeAppButtonComponent } from './components/components/node-app-button/node-app-button.component';
+import { SshWarningDialogComponent } from './components/components/ssh-warning-dialog/ssh-warning-dialog.component';
+import { AppsSettingsComponent } from './components/components/apps-settings/apps-settings.component';
+import {ClipboardService} from "./services/clipboard.service";
+import {ClipboardDirective} from "./directives/clipboard.directive";
 
 @NgModule({
   declarations: [
@@ -50,11 +58,17 @@ import { TransportsComponent } from './components/pages/node/transports/transpor
     FooterComponent,
     NodeTransportsList,
     NodeAppsListComponent,
-    CopyToClipboardTextComponent
+    CopyToClipboardTextComponent,
+    NodeAppButtonComponent,
+    SshWarningDialogComponent,
+    AppsSettingsComponent,
+    ClipboardDirective,
   ],
   entryComponents: [
     ConfigurationComponent,
-    TerminalComponent
+    TerminalComponent,
+    SshWarningDialogComponent,
+    AppsSettingsComponent
   ],
   imports: [
     BrowserModule,
@@ -74,9 +88,13 @@ import { TransportsComponent } from './components/pages/node/transports/transpor
     MatChipsModule,
     MatMenuModule,
     MatSnackBarModule,
-    MatIconModule
+    MatIconModule,
+    MatSlideToggleModule,
+    FormsModule,
+    MatListModule
   ],
   providers: [
+    ClipboardService,
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500}},
     {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: {width: '600px', hasBackdrop: true}},
     {provide: ErrorStateMatcher, useClass: ShowOnDirtyErrorStateMatcher},

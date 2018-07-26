@@ -1,0 +1,15 @@
+@import "../../../../assets/scss/variables";
+@import "../../../../assets/scss/utilities/theme";
+@import "~bootstrap/scss/functions";
+
+.warn-icon
+{
+  width: 100px;
+  height: 100px;
+  font-size: 100px;
+}
+
+:host
+{
+  color: theme-color(blue-dark);
+}

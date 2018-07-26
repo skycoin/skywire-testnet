@@ -4,6 +4,23 @@
 
 $node-top-bar-padding: 20px;
 
+:host::ng-deep
+{
+  .mat-form-field-underline
+  {
+    background-color: theme-color(translucid-white) !important;
+  }
+
+  .mat-form-field-ripple
+  {
+    background-color: theme-color(translucid-white) !important;
+  }
+
+  .mat-input-element {
+    caret-color: theme-color(translucid-white) !important;
+  }
+}
+
 .node-top-bar
 {
   padding: $node-top-bar-padding 0 0 0;
@@ -43,19 +60,6 @@ $node-top-bar-padding: 20px;
   .mat-icon
   {
     margin-right: 10px;
-  }
-}
-
-.node-menu
-{
-  .mat-flat-button
-  {
-    width: 100%;
-  }
-
-  .mat-icon
-  {
-    margin-right: 15px;
   }
 }
 
