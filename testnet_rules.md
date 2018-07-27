@@ -213,7 +213,8 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 
 ### June
 
-    - LAST WHITELISTED APPLICATION ID & DATE(UTC+8): 322, 2018-05-24 23:40:27
+    - LAST WHITELISTED APPLICATION ID: 322 
+    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-05-24 23:40:27
     - AMOUNT OF WHITELISTED OFFICIAL MINERS: 197
 
 #### Updates
