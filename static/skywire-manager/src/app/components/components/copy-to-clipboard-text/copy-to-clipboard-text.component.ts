@@ -14,7 +14,6 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy
   @Input() short: boolean = false;
   tooltipText: string;
   fullText: string;
-  @ViewChild('copyTooltip') tooltip: MatTooltip;
 
   constructor(public snackBar: MatSnackBar) {}
 

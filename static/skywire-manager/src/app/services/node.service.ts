@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
 import { AutoStartConfig, Node, NodeApp, NodeInfo, SearchResult } from '../app.datatypes';
 import { ApiService } from './api.service';
-import { filter, flatMap, map, retryWhen, switchMap, take, timeout } from 'rxjs/operators';
+import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
+import {StorageService} from "./storage.service";
 
 @Injectable({
   providedIn: 'root'
@@ -11,11 +12,12 @@ export class NodeService {
   private nodes = new Subject<Node[]>();
   private nodesSubscription: Unsubscribable;
   private currentNode: Node;
-  private nodeLabels = {};
+  private storageService: Storage;
 
   constructor(
-    private apiService: ApiService,
+    private apiService: ApiService
   ) {
+    this.storageService = StorageService.getNamedStorage('nodeStorage')
   }
 
   allNodes(): Observable<Node[]> {
@@ -35,12 +37,55 @@ export class NodeService {
     });
   }
 
-  getLabel(key: string) {
-    return key in this.nodeLabels ? this.nodeLabels[key] : '';
+  /**
+   *
+   Manager (IP:192.168.0.2)
+
+   Node1 (IP:192.168.0.3)
+
+   Node2 (IP:192.168.0.4)
+
+   Node3 (IP:192.168.0.5)
+
+   Node4 (IP:192.168.0.6)
+
+   Node5 (IP:192.168.0.7)
+
+   Node6 (IP:192.168.0.8)
+
+   Node7 (IP:192.168.0.9)
+
+   * @param {Node} node
+   * @returns {string | null}
+   */
+  getLabel(node: Node): string | null
+  {
+    const nodeKey = node.key;
+    let nodeLabel = this.storageService.getItem(nodeKey);
+
+    if (nodeLabel === null)
+    {
+      try
+      {
+        nodeLabel = this.getDefaultNodeLabel(node);
+      }
+      catch (e) {}
+    }
+
+    if (nodeLabel)
+    {
+      this.setLabel(node, nodeLabel);
+    }
+    else
+    {
+      nodeLabel = '';
+    }
+
+    return nodeLabel;
   }
 
-  setLabel(key: string, label: string) {
-    this.nodeLabels[key] = label;
+  setLabel(node: Node, label: string) {
+    this.storageService.setItem(node.key, label);
   }
 
   node(key: string): Observable<Node> {
@@ -129,5 +174,25 @@ export class NodeService {
 
   private nodeRequestAddress(nodeAddress: string, endpoint: string) {
     return 'http://' + nodeAddress + '/node/' + endpoint;
+  }
+
+  private getDefaultNodeLabel(node: Node): string | null
+  {
+    const nodeNumber = parseInt(node.addr.split('.')[3].split(':')[0]);
+    let nodeLabel = null;
+    if (nodeNumber == 2)
+    {
+      nodeLabel = 'Manager';
+    }
+    else if (nodeNumber > 2 && nodeNumber < 8)
+    {
+      nodeLabel = `Node ${nodeNumber}`;
+    }
+    else
+    {
+      nodeLabel = nodeNumber.toString();
+    }
+
+    return nodeLabel;
   }
 }
