@@ -23,7 +23,7 @@
             <th mat-header-cell *matHeaderCellDef class="bold">Label</th>
             <td mat-cell *matCellDef="let node;">
               <input [value]="getLabel(node)" class="input-label"
-                     maxlength="5" (input)="editLabel($event.target.value, node)">
+                     maxlength="11" (input)="editLabel($event.target.value, node)">
             </td>
           </ng-container>
           <ng-container matColumnDef="key">

@@ -182,11 +182,11 @@ export class NodeService {
       }
       else if (nodeNumber > 2 && nodeNumber < 8)
       {
-        nodeLabel = `Node${nodeNumber}`;
+        nodeLabel = `Node${nodeNumber - 2}`;
       }
       else
       {
-        nodeLabel = nodeNumber.toString();
+        nodeLabel = node.addr;
       }
     }
     catch (e) {}
