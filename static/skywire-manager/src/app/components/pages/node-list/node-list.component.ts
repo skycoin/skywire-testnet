@@ -21,10 +21,7 @@ export class NodeListComponent implements OnDestroy {
   ) {
     this.subscription = nodeService.allNodes().subscribe(allNodes =>
     {
-      allNodes.forEach(({ key }) =>
-      {
-        this.fetchNodeInfo(key);
-      });
+      this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes;
     });
   }
@@ -69,5 +66,26 @@ export class NodeListComponent implements OnDestroy {
   private refreshList(data: Node[])
   {
     this.dataSource.data = data;
+  }
+
+  /**
+   * A call to fetchNodeInfo is needed in order to obtain the node's IP from
+   * which we will get the default label.
+   *
+   * The the endpoint will only be called once for each node, as the labels are
+   * stored in the localStorage afterwards.
+   *
+   * @param {Node[]} allNodes
+   */
+  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void
+  {
+    allNodes.forEach((node) =>
+    {
+      let nodeLabel = this.nodeService.getLabel(node);
+      if (nodeLabel === null)
+      {
+        this.fetchNodeInfo(node.key);
+      }
+    });
   }
 }
