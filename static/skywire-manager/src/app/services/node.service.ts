@@ -175,18 +175,20 @@ export class NodeService {
     let nodeLabel = null;
     try
     {
-      const nodeNumber = parseInt(node.addr.split('.')[3].split(':')[0]);
+      const ipWithourPort = node.addr.split(':')[0],
+            nodeNumber = parseInt(ipWithourPort.split('.')[3]);
+
       if (nodeNumber == 2)
       {
         nodeLabel = 'Manager';
       }
       else if (nodeNumber > 2 && nodeNumber < 8)
       {
-        nodeLabel = `Node${nodeNumber - 2}`;
+        nodeLabel = `Node ${nodeNumber - 2}`;
       }
       else
       {
-        nodeLabel = node.addr;
+        nodeLabel = ipWithourPort;
       }
     }
     catch (e) {}
