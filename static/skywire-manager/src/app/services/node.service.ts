@@ -17,7 +17,7 @@ export class NodeService {
   constructor(
     private apiService: ApiService
   ) {
-    this.storageService = StorageService.getNamedStorage('nodeStorage')
+    this.storageService = StorageService.getNamedStorage('nodeLabel')
   }
 
   allNodes(): Observable<Node[]> {
@@ -39,21 +39,9 @@ export class NodeService {
 
   /**
    *
-   Manager (IP:192.168.0.2)
-
-   Node1 (IP:192.168.0.3)
-
-   Node2 (IP:192.168.0.4)
-
-   Node3 (IP:192.168.0.5)
-
-   Node4 (IP:192.168.0.6)
-
-   Node5 (IP:192.168.0.7)
-
-   Node6 (IP:192.168.0.8)
-
-   Node7 (IP:192.168.0.9)
+   * Get the label for a given node:
+   * (1) If no label is stored in the browser's localStorage --> return a name corresponding to the IP
+   * (2) If a label has already been stored in localStorage --> return it
 
    * @param {Node} node
    * @returns {string | null}
@@ -65,20 +53,11 @@ export class NodeService {
 
     if (nodeLabel === null)
     {
-      try
+      nodeLabel = NodeService.getDefaultNodeLabel(node);
+      if (nodeLabel !== null)
       {
-        nodeLabel = this.getDefaultNodeLabel(node);
+        this.setLabel(node, nodeLabel);
       }
-      catch (e) {}
-    }
-
-    if (nodeLabel)
-    {
-      this.setLabel(node, nodeLabel);
-    }
-    else
-    {
-      nodeLabel = '';
     }
 
     return nodeLabel;
@@ -176,22 +155,41 @@ export class NodeService {
     return 'http://' + nodeAddress + '/node/' + endpoint;
   }
 
-  private getDefaultNodeLabel(node: Node): string | null
+  /**
+   * (1) Return a name corresponding to the node's IP
+   *
+   * Manager (IP:192.168.0.2)
+   * Node1 (IP:192.168.0.3)
+   * Node2 (IP:192.168.0.4)
+   * Node3 (IP:192.168.0.5)
+   * Node4 (IP:192.168.0.6)
+   * Node5 (IP:192.168.0.7)
+   * Node6 (IP:192.168.0.8)
+   * Node7 (IP:192.168.0.9)
+   *
+   * @param {Node} node
+   * @returns {string}
+   */
+  private static getDefaultNodeLabel(node: Node): string
   {
-    const nodeNumber = parseInt(node.addr.split('.')[3].split(':')[0]);
     let nodeLabel = null;
-    if (nodeNumber == 2)
+    try
     {
-      nodeLabel = 'Manager';
+      const nodeNumber = parseInt(node.addr.split('.')[3].split(':')[0]);
+      if (nodeNumber == 2)
+      {
+        nodeLabel = 'Manager';
+      }
+      else if (nodeNumber > 2 && nodeNumber < 8)
+      {
+        nodeLabel = `Node${nodeNumber}`;
+      }
+      else
+      {
+        nodeLabel = nodeNumber.toString();
+      }
     }
-    else if (nodeNumber > 2 && nodeNumber < 8)
-    {
-      nodeLabel = `Node ${nodeNumber}`;
-    }
-    else
-    {
-      nodeLabel = nodeNumber.toString();
-    }
+    catch (e) {}
 
     return nodeLabel;
   }
