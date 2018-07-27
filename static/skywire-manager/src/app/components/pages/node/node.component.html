@@ -58,50 +58,7 @@
         </div>
         <node-transports-list [connections]="connectionsList" style="margin-top: 25px;"></node-transports-list>
         <node-app-keys-list [apps]="appsList" style="margin-top: 25px;"></node-app-keys-list>
-        <div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
-          <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
-            <li class="list-inline-item flex-1">
-              <app-node-app-button
-                (onClick)="onSettingsClicked()"
-                title="Apps settings"
-                icon="settings">
-              </app-node-app-button>
-            </li>
-            <li class="separator list-inline-item"></li>
-            <li class="list-inline-item flex-1">
-              <app-node-app-button
-                title="SSH"
-                icon="laptop"
-                [active]="true"
-                subtitle="Port: 8080"
-                [hasMessages]="true"
-                [showMore]="true"
-                (onClick)="onSSHClicked()"
-                (onClickMore)="onSSHMoreClicked()">
-              </app-node-app-button>
-            </li>
-            <li class="separator list-inline-item"></li>
-            <li class="list-inline-item flex-1">
-              <app-node-app-button
-                title="Connect to Node"
-                icon="near_me"
-                [showMore]="true"
-                >
-              </app-node-app-button>
-            </li>
-            <li class="separator list-inline-item"></li>
-            <li class="list-inline-item flex-1">
-              <app-node-app-button
-                title="SSH Client"
-                subtitle="Port: 8080"
-                icon="laptop"
-                [active]="true"
-                [showMore]="true"
-                [hasMessages]="true">
-              </app-node-app-button>
-            </li>
-          </ul>
-        </div>
+        <app-apps></app-apps>
       </div>
     </div>
     <div class="col-3">
