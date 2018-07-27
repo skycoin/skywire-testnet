@@ -1,5 +1,5 @@
 import {Component, Input, OnInit} from '@angular/core';
-import {Node, NodeTransport} from "../../../app.datatypes";
+import {Node, NodeTransport} from "../../../../app.datatypes";
 import {MatTableDataSource} from "@angular/material";
 
 @Component({

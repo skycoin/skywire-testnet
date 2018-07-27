@@ -31,9 +31,9 @@ import {
 }
 from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
-import { NodeTransportsList } from './components/components/node-transports-list/node-transports-list';
-import { NodeAppsListComponent } from './components/components/node-apps-list/node-apps-list.component';
-import { CopyToClipboardTextComponent } from './components/components/copy-to-clipboard-text/copy-to-clipboard-text.component';
+import { NodeTransportsList } from './components/pages/node/node-transports-list/node-transports-list';
+import { NodeAppsListComponent } from './components/pages/node/apps/node-apps-list/node-apps-list.component';
+import { CopyToClipboardTextComponent } from './components/layout/copy-to-clipboard-text/copy-to-clipboard-text.component';
 import { ActionsComponent } from './components/pages/node/actions/actions.component';
 import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
@@ -50,9 +50,9 @@ import { KeypairComponent } from './components/layout/keypair/keypair.component'
 import { AppSockscComponent } from './components/pages/node/apps/app-socksc/app-socksc.component';
 import { SockscConnectComponent } from './components/pages/node/apps/app-socksc/socksc-connect/socksc-connect.component';
 import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/socksc-startup/socksc-startup.component';
-import { NodeAppButtonComponent } from './components/components/node-app-button/node-app-button.component';
-import { SshWarningDialogComponent } from './components/components/ssh-warning-dialog/ssh-warning-dialog.component';
-import { AppsSettingsComponent } from './components/components/apps-settings/apps-settings.component';
+import { NodeAppButtonComponent } from './components/pages/node/apps/node-app-button/node-app-button.component';
+import { SshWarningDialogComponent } from './components/pages/node/actions/ssh-warning-dialog/ssh-warning-dialog.component';
+import { AppsSettingsComponent } from './components/pages/node/apps/apps-settings/apps-settings.component';
 import { ClipboardService } from "./services/clipboard.service";
 import { ClipboardDirective } from "./directives";
 

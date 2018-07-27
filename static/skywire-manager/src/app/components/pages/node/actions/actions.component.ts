@@ -4,7 +4,7 @@ import { Node, NodeInfo } from '../../../../app.datatypes';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { ConfigurationComponent } from './configuration/configuration.component';
 import { TerminalComponent } from './terminal/terminal.component';
-import {SshWarningDialogComponent} from "../../../components/ssh-warning-dialog/ssh-warning-dialog.component";
+import {SshWarningDialogComponent} from "./ssh-warning-dialog/ssh-warning-dialog.component";
 
 @Component({
   selector: 'app-actions',

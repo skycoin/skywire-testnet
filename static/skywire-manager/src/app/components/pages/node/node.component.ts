@@ -3,7 +3,7 @@ import { NodeService } from '../../../services/node.service';
 import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
 import {MatDialog} from "@angular/material";
-import {AppsSettingsComponent} from "../../components/apps-settings/apps-settings.component";
+import {AppsSettingsComponent} from "./apps/apps-settings/apps-settings.component";
 
 @Component({
   selector: 'app-node',

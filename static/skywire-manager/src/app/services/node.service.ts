@@ -48,9 +48,7 @@ export class NodeService {
    */
   getLabel(node: Node): string | null
   {
-    const nodeKey = node.key;
-    let nodeLabel = this.storageService.getItem(nodeKey);
-
+    let nodeLabel = this.storageService.getItem(node.key);
     if (nodeLabel === null)
     {
       nodeLabel = NodeService.getDefaultNodeLabel(node);
@@ -170,7 +168,7 @@ export class NodeService {
    * @param {Node} node
    * @returns {string}
    */
-  private static getDefaultNodeLabel(node: Node): string
+  public static getDefaultNodeLabel(node: Node): string
   {
     let nodeLabel = null;
     try

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {MatDialogRef, MatSlideToggleChange} from "@angular/material";
-import {SshWarningDialogComponent} from "../ssh-warning-dialog/ssh-warning-dialog.component";
+import {SshWarningDialogComponent} from "../../actions/ssh-warning-dialog/ssh-warning-dialog.component";
 
 @Component({
   selector: 'app-apps-settings',
