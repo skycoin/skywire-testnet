@@ -1,5 +1,4 @@
 import { Component, Input } from '@angular/core';
-import { AppWrapper } from '../apps.component';
 import { MatDialog } from '@angular/material';
 import { SockscStartupComponent } from './socksc-startup/socksc-startup.component';
 import { SockscConnectComponent } from './socksc-connect/socksc-connect.component';

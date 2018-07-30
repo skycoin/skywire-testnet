@@ -12,7 +12,7 @@ import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-butt
 })
 export class AppSshsComponent extends NodeAppButtonComponent
 {
-  private menuItems: MenuItem[] = [{
+  protected menuItems: MenuItem[] = [{
     name: 'Startup config',
     callback: this.showStartupConfig.bind(this),
     enabled: true
@@ -25,9 +25,8 @@ export class AppSshsComponent extends NodeAppButtonComponent
     callback: this.showLog.bind(this),
     enabled: this.isRunning
   }];
-
-  title="SSH";
-  icon="laptop";
+  protected title="SSH";
+  protected icon="laptop";
 
   constructor(
     private appsService: AppsService,

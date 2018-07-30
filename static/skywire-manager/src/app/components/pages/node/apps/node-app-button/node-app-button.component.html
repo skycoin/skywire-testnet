@@ -27,7 +27,7 @@
   <div *ngFor="let item of menuItems"
        mat-menu-item
        disabled="{{ !item.enabled }}"
-       (click)="item.callback()">
+       (click)="item.enabled ? item.callback() : null">
     {{ item.name }}
   </div>
 </mat-menu>

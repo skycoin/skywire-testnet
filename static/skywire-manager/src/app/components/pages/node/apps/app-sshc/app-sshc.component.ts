@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { AppWrapper } from '../apps.component';
 import { AppsService } from '../../../../../services/apps.service';
 import { MatDialog } from '@angular/material';
 import { SshcStartupComponent } from './sshc-startup/sshc-startup.component';

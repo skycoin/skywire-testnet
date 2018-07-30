@@ -4,6 +4,7 @@ import { AutoStartConfig, Node, NodeApp, NodeInfo, SearchResult } from '../app.d
 import { ApiService } from './api.service';
 import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
 import {StorageService} from "./storage.service";
+import {Subscription} from "rxjs/internal/Subscription";
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +12,8 @@ import {StorageService} from "./storage.service";
 export class NodeService {
   private nodes = new Subject<Node[]>();
   private nodesSubscription: Unsubscribable;
+  private refreshNodeObservable: Observable<Node>;
+  private refresNodeTimerSubscription: Subscription;
   private currentNode: Node;
   private storageService: Storage;
 
@@ -67,6 +70,18 @@ export class NodeService {
 
   node(key: string): Observable<Node> {
     return this.apiService.post('conn/getNode', {key}, {type: 'form'});
+  }
+
+  refreshNode(key: string, refreshSeconds: number): Observable<Node>
+  {
+    const refreshMillis = refreshSeconds * 1000;
+
+    this.refreshNodeObservable = Observable.create((observer) =>
+    {
+      timer(0, refreshMillis).subscribe(() => this.node(key).subscribe((node) => observer.next(node)));
+    });
+
+    return this.refreshNodeObservable;
   }
 
   setCurrentNode(node: Node) {
