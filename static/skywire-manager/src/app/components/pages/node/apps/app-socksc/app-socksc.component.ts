@@ -5,14 +5,25 @@ import { SockscStartupComponent } from './socksc-startup/socksc-startup.componen
 import { SockscConnectComponent } from './socksc-connect/socksc-connect.component';
 import { AppsService } from '../../../../../services/apps.service';
 import { Keypair, NodeInfo } from '../../../../../app.datatypes';
+import {MenuItem} from "../node-app-button/node-app-button.component";
 
 @Component({
   selector: 'app-app-socksc',
   templateUrl: './app-socksc.component.html',
   styleUrls: ['./app-socksc.component.css']
 })
-export class AppSockscComponent extends AppWrapper {
+export class AppSockscComponent extends AppWrapper
+{
   @Input() nodeInfo: NodeInfo;
+
+  private menuItems: MenuItem[] = [{
+    name: 'Startup config',
+    callback: this.showStartupConfig.bind(this)
+  }, {
+    name: 'Messages',
+    callback: this.showLog.bind(this)
+  }];
+
 
   get parsedDiscoveries() {
     return Object.keys(this.nodeInfo.discoveries).map(disc => disc.split('-')[1]);

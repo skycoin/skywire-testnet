@@ -1,7 +1,14 @@
-<div>
+<!--<div>
   <span>SSH Server</span>
   <button (click)="start()">start</button>
   <button (click)="showStartupConfig()">startup config</button>
   <button (click)="showWhitelist()" [disabled]="!isRunning">whitelist</button>
   <button (click)="showLog()" [disabled]="!isRunning">show log</button>
-</div>
+</div>-->
+
+<app-node-app-button
+  (onClick)="start()"
+  title="SSH"
+  [menuItems]="menuItems"
+  icon="laptop">
+</app-node-app-button>

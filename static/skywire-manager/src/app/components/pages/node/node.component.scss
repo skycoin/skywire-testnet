@@ -63,37 +63,6 @@ $node-top-bar-padding: 20px;
   }
 }
 
-.node-bottom-bar
-{
-  margin-top: 40px;
-
-  .mat-flat-button
-  {
-    line-height: 15px;
-  }
-
-  .btn-more, .dot-red
-  {
-    position: absolute;
-    right: -20px;
-  }
-
-  .btn-more
-  {
-    font-size: theme-font-size(lg);
-  }
-
-  .separator
-  {
-    height: 40px;
-  }
-
-  span
-  {
-    position: relative;
-  }
-}
-
 .node-right
 {
   padding-top: 40px;

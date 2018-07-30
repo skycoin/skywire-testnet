@@ -1,10 +1,20 @@
-<div class="apps">
-  <app-app-sshs [node]="node" [app]="getApp('sshs')"></app-app-sshs>
-  <app-app-sshc [node]="node" [app]="getApp('sshc')"></app-app-sshc>
-  <app-app-socksc [node]="node" [app]="getApp('socksc')" [nodeInfo]="nodeInfo"></app-app-socksc>
+<div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
+  <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
+    <li class="list-inline-item flex-1">
+      <app-app-sshs [node]="node" [app]="getApp('sshs')"></app-app-sshs>
+    </li>
+    <li class="separator list-inline-item"></li>
+    <li class="list-inline-item flex-1">
+      <app-app-sshc [node]="node" [app]="getApp('sshc')"></app-app-sshc>
+    </li>
+    <li class="separator list-inline-item"></li>
+    <li class="list-inline-item flex-1">
+      <app-app-socksc [node]="node" [app]="getApp('socksc')" [nodeInfo]="nodeInfo"></app-app-socksc>
+    </li>
+  </ul>
 </div>
 
-<div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
+<!--<div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
   <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
     <li class="list-inline-item flex-1">
       <app-node-app-button
@@ -47,4 +57,4 @@
       </app-node-app-button>
     </li>
   </ul>
-</div>
+</div>-->
