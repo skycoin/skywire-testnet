@@ -11,7 +11,10 @@
     </button>
     {{ title }}
   </span>
-  <button [ngClass]="appBtn" mat-icon-button (click)="handleClick($event)">
+  <button
+    [ngClass]="appBtn"
+    mat-icon-button
+    (click)="handleClick($event)">
     <mat-icon>{{ icon }}</mat-icon>
   </button>
   <span *ngIf="subtitle" class="font-smaller">
@@ -23,6 +26,7 @@
   #appMenu="matMenu">
   <div *ngFor="let item of menuItems"
        mat-menu-item
+       disabled="{{ !item.enabled }}"
        (click)="item.callback()">
     {{ item.name }}
   </div>

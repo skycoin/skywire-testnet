@@ -1,28 +1,33 @@
 import { Component } from '@angular/core';
 import { AppsService } from '../../../../../services/apps.service';
 import { MatDialog } from '@angular/material';
-import { AppWrapper } from '../apps.component';
 import { SshsStartupComponent } from './sshs-startup/sshs-startup.component';
 import { SshsWhitelistComponent } from './sshs-whitelist/sshs-whitelist.component';
-import { MenuItem } from "../node-app-button/node-app-button.component";
+import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
 
 @Component({
   selector: 'app-app-sshs',
-  templateUrl: './app-sshs.component.html',
-  styleUrls: ['./app-sshs.component.css']
+  templateUrl: '../node-app-button/node-app-button.component.html',
+  styleUrls: ['./app-sshs.component.css', '../node-app-button/node-app-button.component.scss']
 })
-export class AppSshsComponent extends AppWrapper
+export class AppSshsComponent extends NodeAppButtonComponent
 {
   private menuItems: MenuItem[] = [{
     name: 'Startup config',
-    callback: this.showStartupConfig.bind(this)
+    callback: this.showStartupConfig.bind(this),
+    enabled: true
   }, {
     name: 'Whitelist',
-    callback: this.showWhitelist.bind(this)
+    callback: this.showWhitelist.bind(this),
+    enabled: this.isRunning
   }, {
     name: 'Messages',
-    callback: this.showLog.bind(this)
+    callback: this.showLog.bind(this),
+    enabled: this.isRunning
   }];
+
+  title="SSH";
+  icon="laptop";
 
   constructor(
     private appsService: AppsService,
@@ -46,10 +51,5 @@ export class AppSshsComponent extends AppWrapper
         app: this.app,
       },
     });
-  }
-
-  showMessages()
-  {
-    console.log('showMessages');
   }
 }
