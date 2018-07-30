@@ -38,9 +38,9 @@ As previously stated 1 person can receive rewards for 1 official miner and 1 DIY
 The rewards are paid every month around the 5th or with a delay, depending if other things delay the process.
 They are paid on a node by node basis and are subject to change, meaning they may be different for the months to come. 
 
-The total amount of rewards per month are **25.000 Skycoin**, divided into two separate pools
-* **15.000 Skycoin for the official miners**
-* **10.000 Skycoin for the whitelisted DIY miners**
+The total amount of rewards per month are **25,000 Skycoin**, divided into two separate pools
+* **15,000 Skycoin for the official miners**
+* **10,000 Skycoin for the whitelisted DIY miners**
 
 For now, the rewards for each node that meets [the requirement](https://github.com/skycoin/skywire/wiki/_new#requirements) are as follows:
 
@@ -48,7 +48,9 @@ For now, the rewards for each node that meets [the requirement](https://github.c
 
 * **Official miner: 12 Skycoin / node**
 
-*Faulty orange pi's from official miners will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well.*
+*Faulty orange pi's from official miners will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well. Since we are taking care of this manually you are requested to contact one of our team members (@asxtree @MrHodlr @Paperstream).*
+
+As soon as the pool size would be surpassed we will adjust the rewards: We will split up the Skycoin in the pool evenly between all nodes that are eligible for rewards.
 
 ### Requirement
 
@@ -241,6 +243,7 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 * It doesn't matter in terms of rewards in which week you're getting whitelisted.
 * Your spot is recognized by your email address, you can think of that just as you would think of an account. Right now we have no account system for you in place to check your spot, provided bandwidth etc. but this will be done for the mainnet.
 * Official miners need to submit the form using their purchasing email, as this is the only way for us to identify them 
+* Official miners are whitelisted by default, meaning that they are whitelisted as soon as they submit the application form.
 * You are advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)) but if something happens and you have to reflash then simply resubmit the application form including all current active public keys.
 * If you need to update the Skycoin wallet address for receiving the rewards please submit the form again, send support@skycoin.net an email notification about the change and contact someone on telegram if you don't receive an answer after some days.
 * For email address changes of official miners please send the team an email at support@skycoin.net and contact someone on telegram if you don't receive an answer after some days.
