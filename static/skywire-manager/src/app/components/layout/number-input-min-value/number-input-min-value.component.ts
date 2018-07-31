@@ -28,6 +28,7 @@ export class NumberInputMinValueComponent implements OnInit {
   ngOnInit()
   {
     console.log(this.minVal);
+    this.value = this.minVal;
   }
 
   onInput($evt)
