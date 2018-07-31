@@ -55,6 +55,7 @@ import { SshWarningDialogComponent } from './components/pages/node/actions/ssh-w
 import { AppsSettingsComponent } from './components/pages/node/apps/apps-settings/apps-settings.component';
 import { ClipboardService } from "./services/clipboard.service";
 import { ClipboardDirective } from "./directives";
+import { NumberInputMinValueComponent } from './components/layout/number-input-min-value/number-input-min-value.component';
 
 @NgModule({
   declarations: [
@@ -87,6 +88,7 @@ import { ClipboardDirective } from "./directives";
     SshWarningDialogComponent,
     AppsSettingsComponent,
     ClipboardDirective,
+    NumberInputMinValueComponent,
   ],
   entryComponents: [
     ConfigurationComponent,

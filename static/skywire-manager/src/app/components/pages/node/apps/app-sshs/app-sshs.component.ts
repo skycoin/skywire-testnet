@@ -36,7 +36,7 @@ export class AppSshsComponent extends NodeAppButtonComponent
   }
 
   start() {
-    this.appsService.startSshServer().subscribe();
+    this.appsService.startSshServer().subscribe()
   }
 
   showStartupConfig() {

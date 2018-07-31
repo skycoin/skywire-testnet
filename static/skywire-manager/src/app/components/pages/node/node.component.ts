@@ -91,9 +91,9 @@ export class NodeComponent {
     this.router.navigate(['nodes']);
   }
 
-  onRefreshTimeChanged($event): void
+  onRefreshTimeChanged($seconds): void
   {
-    this.refreshSeconds = $event.target.value;
+    this.refreshSeconds = Math.max(1, $seconds);
     this.scheduleNodeRefresh();
   }
 
@@ -104,6 +104,7 @@ export class NodeComponent {
 
   private scheduleNodeRefresh(): void
   {
+    console.log(`scheduleNodeRefresh ${this.refreshSeconds}`);
     if (this.refreshSubscription)
     {
       this.refreshSubscription.unsubscribe();

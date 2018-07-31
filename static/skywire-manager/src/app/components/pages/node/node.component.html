@@ -17,15 +17,13 @@
           </button>
           <div class="d-flex align-items-center">
             <span class="font-sm" style="margin-right: 10px;">Refresh</span>
-            <mat-form-field class="white form-refresh">
-              <input
+              <app-number-input-min-value
+                [minVal]="0"
                 [value]="10"
-                matInput
-                (input)="onRefreshTimeChanged($event)"
-                type="number"
-                class="input-refresh font-sm text-center">
+                [fieldName]="'Refresh time'"
+                class="input-refresh font-sm text-center"
+                (inputCorrect)="onRefreshTimeChanged($event)" ></app-number-input-min-value>
               <span matSuffix>s</span>
-            </mat-form-field>
           </div>
         </div>
         <div>
