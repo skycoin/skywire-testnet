@@ -76,9 +76,14 @@ export class NodeService {
   {
     const refreshMillis = refreshSeconds * 1000;
 
+    if (this.refresNodeTimerSubscription)
+    {
+      this.refresNodeTimerSubscription.unsubscribe();
+    }
+
     this.refreshNodeObservable = Observable.create((observer) =>
     {
-      timer(0, refreshMillis).subscribe(() => this.node(key).subscribe((node) => observer.next(node)));
+      this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(() => this.node(key).subscribe((node) => observer.next(node)));
     });
 
     return this.refreshNodeObservable;

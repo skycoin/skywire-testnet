@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import { AppsService } from '../../../../../services/apps.service';
 import { MatDialog } from '@angular/material';
 import { SshsStartupComponent } from './sshs-startup/sshs-startup.component';
@@ -12,19 +12,7 @@ import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-butt
 })
 export class AppSshsComponent extends NodeAppButtonComponent
 {
-  protected menuItems: MenuItem[] = [{
-    name: 'Startup config',
-    callback: this.showStartupConfig.bind(this),
-    enabled: true
-  }, {
-    name: 'Whitelist',
-    callback: this.showWhitelist.bind(this),
-    enabled: this.isRunning
-  }, {
-    name: 'Messages',
-    callback: this.showLog.bind(this),
-    enabled: this.isRunning
-  }];
+  protected menuItems: MenuItem[] = [];
   protected title="SSH";
   protected icon="laptop";
 
@@ -50,5 +38,22 @@ export class AppSshsComponent extends NodeAppButtonComponent
         app: this.app,
       },
     });
+  }
+
+  getMenuItems()
+  {
+    return [{
+      name: 'Startup config',
+      callback: this.showStartupConfig.bind(this),
+      enabled: true
+    }, {
+      name: 'Whitelist',
+      callback: this.showWhitelist.bind(this),
+      enabled: this.isRunning
+    }, {
+      name: 'Messages',
+      callback: this.showLog.bind(this),
+      enabled: this.isRunning
+    }];
   }
 }

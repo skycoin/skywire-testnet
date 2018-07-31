@@ -54,9 +54,11 @@
         <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
           Public key <span class="font-smaller">{{ node.key }}</span>
         </div>
-        <node-transports-list [connections]="connectionsList" style="margin-top: 25px;"></node-transports-list>
-        <node-app-keys-list [apps]="appsList" style="margin-top: 25px;"></node-app-keys-list>
-        <app-apps></app-apps>
+        <node-transports-list
+          *ngIf="transports.length > 0"
+          [connections]="transports" style="margin-top: 25px;"></node-transports-list>
+        <node-app-keys-list [apps]="nodeApps" style="margin-top: 25px;"></node-app-keys-list>
+        <app-apps [apps]="nodeApps"></app-apps>
       </div>
     </div>
     <div class="col-3">
@@ -97,7 +99,4 @@
       </div>
     </div>
   </div>
-  <br>
-  transports: <br>
-  <app-transports [transports]="nodeInfo?.transports"></app-transports>
 </div>

@@ -15,16 +15,6 @@ export class AppSockscComponent extends NodeAppButtonComponent
 {
   @Input() nodeInfo: NodeInfo;
 
-  private menuItems: MenuItem[] = [{
-    name: 'Startup config',
-    callback: this.showStartupConfig.bind(this),
-    enabled: true
-  }, {
-    name: 'Messages',
-    callback: this.showLog.bind(this),
-    enabled: this.isRunning
-  }];
-
   title="Connect to Node";
   icon="near_me";
 
@@ -56,5 +46,18 @@ export class AppSockscComponent extends NodeAppButtonComponent
 
   showStartupConfig() {
     this.dialog.open(SockscStartupComponent);
+  }
+
+  protected getMenuItems(): MenuItem[]
+  {
+    return [{
+      name: 'Startup config',
+      callback: this.showStartupConfig.bind(this),
+      enabled: true
+    }, {
+      name: 'Messages',
+      callback: this.showLog.bind(this),
+      enabled: this.isRunning
+    }];
   }
 }

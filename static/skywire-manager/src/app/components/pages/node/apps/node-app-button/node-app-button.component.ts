@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, OnInit, Output} from '@angular/core';
 import {Node, NodeApp} from "../../../../../app.datatypes";
 import {LogComponent} from "../log/log.component";
 import {MatDialog} from "@angular/material";
@@ -8,8 +8,7 @@ import {MatDialog} from "@angular/material";
   templateUrl: './node-app-button.component.html',
   styleUrls: ['./node-app-button.component.scss']
 })
-export class NodeAppButtonComponent implements OnInit
-{
+export abstract class NodeAppButtonComponent implements OnChanges {
   protected title: string;
   protected icon: string;
   @Input() enabled: boolean = true;
@@ -18,15 +17,15 @@ export class NodeAppButtonComponent implements OnInit
   @Input() hasMessages: boolean = false;
   @Input() showMore: boolean = true;
   @Input() node: Node;
-  @Input() app: NodeApp|null;
+  @Input() app: NodeApp | null;
   @Output() onClick: EventEmitter<any> = new EventEmitter();
   private containerClass: string;
   protected menuItems: MenuItem[] = [];
 
-  constructor(private _dialog: MatDialog) { }
+  constructor(private _dialog: MatDialog) {
+  }
 
-  handleClick(): void
-  {
+  handleClick(): void {
     this.onClick.emit();
   }
 
@@ -42,11 +41,12 @@ export class NodeAppButtonComponent implements OnInit
     });
   }
 
-  ngOnInit()
-  {
-    this.containerClass =
-      `${"d-flex flex-column align-items-center justify-content-center w-100"} ${this.isRunning ? 'active' : ''}`
+  ngOnChanges(): void {
+    this.containerClass = `${"d-flex flex-column align-items-center justify-content-center w-100"} ${this.isRunning ? 'active' : ''}`
+    this.menuItems = this.getMenuItems();
   }
+
+  protected abstract getMenuItems(): MenuItem[];
 }
 
 export interface MenuItem

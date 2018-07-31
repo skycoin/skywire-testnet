@@ -19,7 +19,7 @@ export class AppsComponent {
     let app = null;
     if (this.apps)
     {
-      return this.apps.find(app => app.attributes.some(attr => attr === name));
+      app = this.apps.find(app => app.attributes.some(attr => attr === name));
     }
     return app;
   }
