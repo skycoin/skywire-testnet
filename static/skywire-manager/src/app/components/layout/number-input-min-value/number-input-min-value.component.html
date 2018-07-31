@@ -1,5 +1,5 @@
 <form>
-  <mat-form-field class="white form-refresh">
+  <mat-form-field>
     <input
       matInput
       [formControl]="refreshSecondsFormControl"
@@ -9,10 +9,10 @@
       (input)="onInput($event)"
       type="number">
     <mat-error *ngIf="refreshSecondsFormControl.hasError('min') && !refreshSecondsFormControl.hasError('required')">
-      Enter a number greater than 0
+      {{ minError }}
     </mat-error>
     <mat-error *ngIf="refreshSecondsFormControl.hasError('required')">
-      Refresh time can't be empty
+      {{ requiredError }}
     </mat-error>
   </mat-form-field>
 </form>

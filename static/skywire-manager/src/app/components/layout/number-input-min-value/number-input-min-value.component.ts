@@ -11,24 +11,27 @@ import {MatInput} from "@angular/material";
 export class NumberInputMinValueComponent implements OnInit {
 
   @Input() minVal = 0;
-  @Output() input = new EventEmitter();
+  @Output() inputCorrect = new EventEmitter();
   @ViewChild(MatInput) inputElement: MatInput;
-  private value: number = this.minVal;
-  private error: string = "lalala";
-
-  refreshSecondsFormControl = new FormControl('', [
-    Validators.required,
-    Validators.min(1),
-  ]);
+  @Input() value: number;
+  @Input() fieldName: string;
 
   matcher = new MyErrorStateMatcher();
+  private minError: string;
+  private requiredError: string;
+  private refreshSecondsFormControl: FormControl;
 
   constructor() { }
 
   ngOnInit()
   {
-    console.log(this.minVal);
-    this.value = this.minVal;
+    this.minError = `Enter a number greater than ${this.minVal}`;
+    this.requiredError = `${this.fieldName} can't be empty`;
+
+    this.refreshSecondsFormControl = new FormControl('', [
+      Validators.required,
+      Validators.min(this.minVal),
+    ]);
   }
 
   onInput($evt)
@@ -36,17 +39,9 @@ export class NumberInputMinValueComponent implements OnInit {
     if (this.refreshSecondsFormControl.valid)
     {
       console.log($evt.target.value);
+      this.value = $evt.target.value;
+      this.inputCorrect.emit(this.value);
     }
-    /*let val = $evt.target.value;
-    if (val && val >= this.minVal)
-    {
-      this.value = val;
-      this.input.emit(this.value);
-    }
-    else
-    {
-      this.error = "Values must be grater than 0";
-    }*/
   }
 }
 
