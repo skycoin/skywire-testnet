@@ -48,7 +48,7 @@ export abstract class NodeAppButtonComponent implements OnChanges {
 
     if (this.isRunning)
     {
-      this.subtitle = this.appFeedback && this.appFeedback.port ? this.getPortString() : null;
+      this.getSubtitle();
       this.hasMessages = this.appFeedback && this.appFeedback.unread ? this.appFeedback.unread > 0 : false;
     }
   }
@@ -57,6 +57,23 @@ export abstract class NodeAppButtonComponent implements OnChanges {
 
   private getPortString() {
     return `Port: ${this.appFeedback.port.toString()}`;
+  }
+
+  private getSubtitle()
+  {
+    let subtitle = null;
+    if (this.appFeedback)
+    {
+      if (this.appFeedback.failed)
+      {
+
+      }
+      else if (this.appFeedback.port)
+      {
+
+      }
+    }
+    this.subtitle = this.appFeedback && this.appFeedback.port ? this.getPortString() : null;
   }
 }
 

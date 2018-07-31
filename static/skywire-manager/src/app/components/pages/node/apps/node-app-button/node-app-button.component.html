@@ -20,6 +20,14 @@
   <span *ngIf="subtitle" class="app-button-port font-smaller">
     {{ subtitle }}
   </span>
+  <div>
+    <mat-icon class="ic-small">highlight_off</mat-icon>
+    <span class="font-sm">Failed</span>
+  </div>
+  <button (click)="update()" mat-flat-button class="link sm">
+    <mat-icon>highlight_off</mat-icon>
+    Failed
+  </button>
 </div>
 <mat-menu
   [overlapTrigger]="false"
