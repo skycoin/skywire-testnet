@@ -14,8 +14,14 @@ export class AppsComponent {
   @Input() apps: NodeApp[] = [];
   @Input() nodeInfo: NodeInfo;
 
-  getApp(name: string) {
-    return this.apps.find(app => app.attributes.some(attr => attr === name));
+  getApp(name: string)
+  {
+    let app = null;
+    if (this.apps)
+    {
+      return this.apps.find(app => app.attributes.some(attr => attr === name));
+    }
+    return app;
   }
 }
 

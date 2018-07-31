@@ -1,6 +1,5 @@
 import {Component, HostListener, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {MatMenuTrigger, MatSnackBar} from "@angular/material";
-import * as ClipboardJs from 'clipboard/dist/clipboard.js';
+import {MatMenuTrigger, MatSnackBar, MatTooltip} from "@angular/material";
 
 @Component({
   selector: 'app-copy-to-clipboard-text',
@@ -13,9 +12,9 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy
   @Input() text: string;
   @Input() shortTextLength: number = 6;
   @Input() short: boolean = false;
-  clipboard: ClipboardJs;
   tooltipText: string;
   fullText: string;
+  @ViewChild('copyTooltip') tooltip: MatTooltip;
 
   constructor(public snackBar: MatSnackBar) {}
 
@@ -28,7 +27,6 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy
 
   ngOnInit()
   {
-    this.clipboard = new ClipboardJs('.clipBtn');
     this.fullText = this.text;
     if (this.short)
     {
@@ -43,7 +41,7 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy
 
   ngOnDestroy()
   {
-    this.clipboard.destroy();
+
   }
 
   private shortenText()
@@ -62,6 +60,6 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy
 
   public onCopyToClipboardClicked()
   {
-    this.openSnackBar('Copied to clipboard!')
+    this.openSnackBar('Copied!')
   }
 }

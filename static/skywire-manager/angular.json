@@ -26,9 +26,7 @@
               "src/styles.scss",
               "src/theme.scss"
             ],
-            "scripts": [
-              "node_modules/clipboard/dist/clipboard.min.js"
-            ]
+            "scripts": []
           },
           "configurations": {
             "production": {

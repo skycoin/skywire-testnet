@@ -2,21 +2,34 @@ import { BrowserModule} from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
+import { AppComponent } from './app.component';
+import { AppRoutingModule } from './app-routing.module';
+import { LoginComponent } from './components/pages/login/login.component';
+import { NodeListComponent } from './components/pages/node-list/node-list.component';
+import { NodeComponent } from './components/pages/node/node.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { RelativeTimePipe } from './pipes/relative-time.pipe';
+import { FormsModule } from '@angular/forms';
 import {
-  ErrorStateMatcher, MAT_DIALOG_DEFAULT_OPTIONS,
-  MAT_SNACK_BAR_DEFAULT_OPTIONS, MatButtonModule, MatChipsModule, MatDialogModule,
-  MatFormFieldModule, MatIconModule, MatInputModule, MatMenuModule, MatSlideToggleModule,
-  MatSnackBarModule, MatTableModule, MatToolbarModule, MatTooltipModule,
+  MatToolbarModule,
+  MatTableModule,
+  MatButtonModule,
+  MatIconModule,
+  MatTooltipModule,
+  MatChipsModule,
+  MatMenuModule,
+  MatSnackBarModule,
+  MatSlideToggleModule,
+  MatListModule,
+  ErrorStateMatcher,
+  MAT_DIALOG_DEFAULT_OPTIONS,
+  MAT_SNACK_BAR_DEFAULT_OPTIONS,
+  MatDialogModule,
+  MatFormFieldModule,
+  MatInputModule,
   ShowOnDirtyErrorStateMatcher
-} from '@angular/material';
-
-import {AppComponent} from './app.component';
-import {AppRoutingModule} from './app-routing.module';
-import {LoginComponent} from './components/pages/login/login.component';
-import {NodeListComponent} from './components/pages/node-list/node-list.component';
-import {NodeComponent} from './components/pages/node/node.component';
-import {ReactiveFormsModule} from '@angular/forms';
-import {RelativeTimePipe} from './pipes/relative-time.pipe';
+}
+from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
 import { NodeTransportsList } from './components/components/node-transports-list/node-transports-list';
 import { NodeAppsListComponent } from './components/components/node-apps-list/node-apps-list.component';
@@ -37,6 +50,11 @@ import { KeypairComponent } from './components/layout/keypair/keypair.component'
 import { AppSockscComponent } from './components/pages/node/apps/app-socksc/app-socksc.component';
 import { SockscConnectComponent } from './components/pages/node/apps/app-socksc/socksc-connect/socksc-connect.component';
 import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/socksc-startup/socksc-startup.component';
+import { NodeAppButtonComponent } from './components/components/node-app-button/node-app-button.component';
+import { SshWarningDialogComponent } from './components/components/ssh-warning-dialog/ssh-warning-dialog.component';
+import { AppsSettingsComponent } from './components/components/apps-settings/apps-settings.component';
+import { ClipboardService } from "./services/clipboard.service";
+import { ClipboardDirective } from "./directives";
 
 @NgModule({
   declarations: [
@@ -64,10 +82,17 @@ import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/
     SockscStartupComponent,
     NodeTransportsList,
     NodeAppsListComponent,
-    CopyToClipboardTextComponent
+    CopyToClipboardTextComponent,
+    NodeAppButtonComponent,
+    SshWarningDialogComponent,
+    AppsSettingsComponent,
+    ClipboardDirective,
   ],
   entryComponents: [
     ConfigurationComponent,
+    TerminalComponent,
+    SshWarningDialogComponent,
+    AppsSettingsComponent,
     TerminalComponent,
     LogComponent,
     SshsStartupComponent,
@@ -96,10 +121,15 @@ import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/
     MatChipsModule,
     MatMenuModule,
     MatSnackBarModule,
-    MatIconModule
+    MatIconModule,
+    MatSlideToggleModule,
+    FormsModule,
+    MatListModule
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
+    ClipboardService,
+    {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500}},
     {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: {width: '600px', hasBackdrop: true}},
     {provide: ErrorStateMatcher, useClass: ShowOnDirtyErrorStateMatcher},
   ],

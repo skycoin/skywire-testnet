@@ -5,32 +5,7 @@
         <div>
             <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
         </div>
-          <ul class="node-menu list-group">
-            <li class="list-group-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>get_app</mat-icon>
-                Check update
-              </button>
-            </li>
-            <li class="list-group-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>rotate_right</mat-icon>
-                Reboot
-              </button>
-            </li>
-            <li class="list-group-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>settings</mat-icon>
-                Settings
-              </button>
-            </li>
-            <li class="list-group-item">
-              <button mat-flat-button class="link md">
-                <mat-icon>laptop</mat-icon>
-                Terminal
-              </button>
-            </li>
-          </ul>
+        <app-actions [node]="node" [nodeInfo]="nodeInfo"></app-actions>
       </div>
     </div>
     <div class="col-lg-6 col-xl-7">
@@ -42,8 +17,14 @@
           </button>
           <div class="d-flex align-items-center">
             <span class="font-sm" style="margin-right: 10px;">Refresh</span>
-            <mat-form-field class="form-refresh">
-              <input class="input-refresh font-sm" matInput value="XXXX">
+            <mat-form-field class="white form-refresh">
+              <input
+                [value]="10"
+                matInput
+                (input)="onRefreshTimeChanged($event)"
+                type="number"
+                class="input-refresh font-sm text-center">
+              <span matSuffix>s</span>
             </mat-form-field>
           </div>
         </div>
@@ -80,45 +61,44 @@
         <div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
           <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
             <li class="list-inline-item flex-1">
-              <button mat-flat-button class="centered-col link md w-100">
-                  <span>
-                    Apps settings
-                  </span>
-                  <mat-icon>settings</mat-icon>
-              </button>
-            </li>
-            <li class="separator list-inline-item"></li>
-            <li class="list-inline-item flex-1 align-items-center d-flex">
-              <button mat-flat-button class="centered-col link md w-100 active">
-                  <span>
-                    SSH
-                    <mat-icon class="btn-more">more_vert</mat-icon>
-                    <i class="dot-red sm" matTooltip="Messages"></i>
-                  </span>
-                  <mat-icon>laptop</mat-icon>
-              </button>
+              <app-node-app-button
+                (onClick)="onSettingsClicked()"
+                title="Apps settings"
+                icon="settings">
+              </app-node-app-button>
             </li>
             <li class="separator list-inline-item"></li>
             <li class="list-inline-item flex-1">
-              <button mat-flat-button class="centered-col link md w-100">
-                  <span>
-                    Connect to Node
-                    <mat-icon class="btn-more">more_vert</mat-icon>
-                    <i class="dot-red sm"></i>
-                  </span>
-                  <mat-icon>near_me</mat-icon>
-              </button>
+              <app-node-app-button
+                title="SSH"
+                icon="laptop"
+                [active]="true"
+                subtitle="Port: 8080"
+                [hasMessages]="true"
+                [showMore]="true"
+                (onClick)="onSSHClicked()"
+                (onClickMore)="onSSHMoreClicked()">
+              </app-node-app-button>
             </li>
             <li class="separator list-inline-item"></li>
             <li class="list-inline-item flex-1">
-              <button mat-flat-button class="centered-col link md w-100">
-                  <span>
-                    SSH Client
-                    <mat-icon class="btn-more">more_vert</mat-icon>
-                    <i class="dot-red sm"></i>
-                  </span>
-                  <mat-icon>laptop</mat-icon>
-              </button>
+              <app-node-app-button
+                title="Connect to Node"
+                icon="near_me"
+                [showMore]="true"
+                >
+              </app-node-app-button>
+            </li>
+            <li class="separator list-inline-item"></li>
+            <li class="list-inline-item flex-1">
+              <app-node-app-button
+                title="SSH Client"
+                subtitle="Port: 8080"
+                icon="laptop"
+                [active]="true"
+                [showMore]="true"
+                [hasMessages]="true">
+              </app-node-app-button>
             </li>
           </ul>
         </div>
@@ -162,9 +142,6 @@
       </div>
     </div>
   </div>
-  <br>
-  actions: <br>
-  <app-actions [node]="node" [nodeInfo]="nodeInfo"></app-actions>
   <br>
   transports: <br>
   <app-transports [transports]="nodeInfo?.transports"></app-transports>

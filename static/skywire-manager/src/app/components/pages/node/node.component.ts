@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { NodeService } from '../../../services/node.service';
 import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
+import {MatDialog} from "@angular/material";
+import {AppsSettingsComponent} from "../../components/apps-settings/apps-settings.component";
 
 @Component({
   selector: 'app-node',
@@ -56,6 +58,7 @@ export class NodeComponent {
     private nodeService: NodeService,
     private route: ActivatedRoute,
     private router: Router,
+    private dialog: MatDialog
   ) {
     const key: string = route.snapshot.params['key'];
 
@@ -71,13 +74,37 @@ export class NodeComponent {
     );
   }
 
-  private loadData() {
+  private loadData(): void {
     this.nodeService.nodeApps().subscribe(apps => this.nodeApps = apps);
     this.nodeService.nodeInfo().subscribe(info => this.nodeInfo = info);
   }
 
-  back()
+  back(): void
   {
     this.router.navigate(['nodes']);
+  }
+
+  onSSHClicked(): void
+  {
+    console.log('onSSHClicked');
+  }
+
+  onSSHMoreClicked(): void
+  {
+    console.log('onSSHMoreClicked');
+  }
+
+  onSettingsClicked(): void
+  {
+    this.dialog.open(AppsSettingsComponent,
+      {
+        width: '400px',
+      });
+  }
+
+  onRefreshTimeChanged($event)
+  {
+    let refreshSeconds = $event.target.value;
+    console.log(`handleRefreshFreq ${refreshSeconds}`);
   }
 }

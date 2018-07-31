@@ -27,19 +27,30 @@ span
   }
 }
 
+.font-weight-light
+{
+  font-weight: $font-weight-light !important;
+}
+
 .font-base
 {
   @extend .font-size-base;
 }
 
+.font-base-light
+{
+  @extend .font-base;
+  @extend .font-weight-light;
+}
+
 .font-sm
 {
   @extend .font-size-sm;
-  font-weight: $font-weight-light !important;
+  @extend .font-weight-light;
 }
 
 .font-smaller
 {
   @extend .font-size-smaller;
-  font-weight: $font-weight-light !important;
+  @extend .font-weight-light;
 }

@@ -2,7 +2,14 @@
   {{ text }}
 </div>
 <mat-menu [overlapTrigger]="false" #appMenu="matMenu">
-  <button (click)="onCopyToClipboardClicked()" mat-menu-item class="clipBtn" attr.data-clipboard-text="{{ fullText }}" >
-    {{ fullText }} <button style="margin-left: 15px;" color="accent" mat-flat-button>COPY TO CLIPBOARD</button>
-  </button>
+  <div
+    mat-menu-item
+    clipboard="{{ fullText }}"
+    matTooltip="Copy to clipboard"
+    (copyEvent)="onCopyToClipboardClicked($event)">
+    {{ fullText }}
+    <button style="margin-left: 15px;" color="accent" mat-icon-button>
+      <mat-icon aria-label="content_copy">content_copy</mat-icon>
+    </button>
+  </div>
 </mat-menu>

@@ -16,7 +16,7 @@ $blue-panel: rgba(32, 34, 38, .44);
 
 $red: #DA3439;
 $green: #2ECC54;
-$light-gray:#F7F7F7;
+$light-gray: #777;
 
 $theme-colors: (
   green:              $green,
@@ -28,7 +28,8 @@ $theme-colors: (
   translucid-hover:   rgba(0, 0, 0, 0.1),
   translucid-white:   rgba(255, 255, 255, .44),
   white:              $white,
-  white-hover:        darken($white, 5%)
+  white-hover:        darken($white, 5%),
+  light-gray:         $light-gray
 );
 
 //

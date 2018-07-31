@@ -4,11 +4,12 @@ import { Node, NodeInfo } from '../../../../app.datatypes';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { ConfigurationComponent } from './configuration/configuration.component';
 import { TerminalComponent } from './terminal/terminal.component';
+import {SshWarningDialogComponent} from "../../../components/ssh-warning-dialog/ssh-warning-dialog.component";
 
 @Component({
   selector: 'app-actions',
   templateUrl: './actions.component.html',
-  styleUrls: ['./actions.component.css']
+  styleUrls: ['./actions.component.scss']
 })
 export class ActionsComponent {
   @Input() node: Node;
@@ -43,7 +44,17 @@ export class ActionsComponent {
     });
   }
 
-  terminal() {
+  terminal()
+  {
+    this.dialog.open(SshWarningDialogComponent, {
+      data: {
+        acceptButtonCallback: this.openTerminal.bind(this),
+      }
+    });
+  }
+
+  openTerminal(): void
+  {
     this.dialog.open(TerminalComponent);
   }
 }
