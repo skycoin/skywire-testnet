@@ -37,6 +37,8 @@ import { KeypairComponent } from './components/layout/keypair/keypair.component'
 import { AppSockscComponent } from './components/pages/node/apps/app-socksc/app-socksc.component';
 import { SockscConnectComponent } from './components/pages/node/apps/app-socksc/socksc-connect/socksc-connect.component';
 import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/socksc-startup/socksc-startup.component';
+import { SettingsComponent } from './components/pages/settings/settings.component';
+import { PasswordComponent } from './components/pages/settings/password/password.component';
 
 @NgModule({
   declarations: [
@@ -64,7 +66,9 @@ import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/
     SockscStartupComponent,
     NodeTransportsList,
     NodeAppsListComponent,
-    CopyToClipboardTextComponent
+    CopyToClipboardTextComponent,
+    SettingsComponent,
+    PasswordComponent
   ],
   entryComponents: [
     ConfigurationComponent,

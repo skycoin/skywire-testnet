@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
 import { AutoStartConfig, Node, NodeApp, NodeInfo, SearchResult } from '../app.datatypes';
 import { ApiService } from './api.service';
-import { filter, flatMap, map, retryWhen, switchMap, take, timeout } from 'rxjs/operators';
+import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
