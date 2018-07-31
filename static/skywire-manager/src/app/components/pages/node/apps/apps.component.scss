@@ -1,0 +1,29 @@
+@import "../../../../../assets/scss/variables";
+@import "../../../../../assets/scss/utilities/theme";
+@import "~bootstrap/scss/functions";
+
+:host::ng-deep
+{
+  .node-bottom-bar
+  {
+    margin-top: 40px;
+
+    .mat-flat-button
+    {
+      line-height: 15px;
+    }
+
+    .separator
+    {
+      width: 0;
+      height: 40px;
+      border: solid 1px theme-color(translucid-white);
+      align-self: center;
+    }
+
+    span
+    {
+      position: relative;
+    }
+  }
+}

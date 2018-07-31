@@ -3,7 +3,7 @@ import { NodeService } from '../../../services/node.service';
 import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
 import {MatDialog} from "@angular/material";
-import {AppsSettingsComponent} from "../../components/apps-settings/apps-settings.component";
+import {Subscription} from "rxjs/internal/Subscription";
 
 @Component({
   selector: 'app-node',
@@ -14,6 +14,7 @@ export class NodeComponent {
   node: Node;
   nodeApps: NodeApp[] = [];
   nodeInfo: NodeInfo;
+  refreshSeconds: number = 10;
 
   connectionsList: NodeTransport[] =
   [{
@@ -53,6 +54,7 @@ export class NodeComponent {
     attributes: ['CLIENT'],
     allow_nodes: null
   }];
+  private refreshSubscription: Subscription;
 
   constructor(
     private nodeService: NodeService,
@@ -60,21 +62,26 @@ export class NodeComponent {
     private router: Router,
     private dialog: MatDialog
   ) {
-    const key: string = route.snapshot.params['key'];
-
-    nodeService.node(key).subscribe(
-      node => {
-        this.node = { key, ...node };
-
-        nodeService.setCurrentNode(this.node);
-
-        this.loadData();
-      },
-      () => router.navigate(['nodes']),
-    );
+    this.scheduleNodeRefresh();
   }
 
-  private loadData(): void {
+  get key(): string
+  {
+    return this.route.snapshot.params['key'];
+  }
+
+  onNodeReceived(node: Node)
+  {
+    const key: string = this.route.snapshot.params['key'];
+    this.node = { key, ...node };
+    this.nodeService.setCurrentNode(this.node);
+
+    console.log('onNodeReceived');
+    this.loadData();
+  }
+
+  private loadData(): void
+  {
     this.nodeService.nodeApps().subscribe(apps => this.nodeApps = apps);
     this.nodeService.nodeInfo().subscribe(info => this.nodeInfo = info);
   }
@@ -84,27 +91,27 @@ export class NodeComponent {
     this.router.navigate(['nodes']);
   }
 
-  onSSHClicked(): void
+  onRefreshTimeChanged($seconds): void
   {
-    console.log('onSSHClicked');
+    this.refreshSeconds = Math.max(1, $seconds);
+    this.scheduleNodeRefresh();
   }
 
-  onSSHMoreClicked(): void
+  private onNodeError(): void
   {
-    console.log('onSSHMoreClicked');
+    this.router.navigate(['nodes']);
   }
 
-  onSettingsClicked(): void
+  private scheduleNodeRefresh(): void
   {
-    this.dialog.open(AppsSettingsComponent,
-      {
-        width: '400px',
-      });
-  }
-
-  onRefreshTimeChanged($event)
-  {
-    let refreshSeconds = $event.target.value;
-    console.log(`handleRefreshFreq ${refreshSeconds}`);
+    console.log(`scheduleNodeRefresh ${this.refreshSeconds}`);
+    if (this.refreshSubscription)
+    {
+      this.refreshSubscription.unsubscribe();
+    }
+    this.refreshSubscription = this.nodeService.refreshNode(this.key, this.refreshSeconds).subscribe(
+      this.onNodeReceived.bind(this),
+      this.onNodeError.bind(this)
+    );
   }
 }
