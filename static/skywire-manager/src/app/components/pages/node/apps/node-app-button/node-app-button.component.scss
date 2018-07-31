@@ -4,9 +4,18 @@
 
 :host ::ng-deep
 {
+  position: relative;
   .active .app-icon
   {
     color: theme-color(blue-dark) !important;
+  }
+
+  .app-button-port
+  {
+    position: absolute !important;
+    text-align: center;
+    top: 60px;
+    width: 150px;
   }
 }
 

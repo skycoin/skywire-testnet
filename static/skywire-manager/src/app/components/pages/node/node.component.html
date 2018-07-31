@@ -58,7 +58,7 @@
           *ngIf="transports.length > 0"
           [connections]="transports" style="margin-top: 25px;"></node-transports-list>
         <node-app-keys-list [apps]="nodeApps" style="margin-top: 25px;"></node-app-keys-list>
-        <app-apps [apps]="nodeApps"></app-apps>
+        <app-apps [apps]="nodeApps" [nodeInfo]="nodeInfo"></app-apps>
       </div>
     </div>
     <div class="col-3">

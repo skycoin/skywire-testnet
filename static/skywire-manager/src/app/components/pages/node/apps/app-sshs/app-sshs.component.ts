@@ -12,7 +12,6 @@ import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-butt
 })
 export class AppSshsComponent extends NodeAppButtonComponent
 {
-  protected menuItems: MenuItem[] = [];
   protected title="SSH";
   protected icon="laptop";
 

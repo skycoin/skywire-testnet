@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { AutoStartConfig, Node, NodeApp, NodeInfo } from '../../../../app.datatypes';
+import {AutoStartConfig, Node, NodeApp, NodeFeedback, NodeInfo} from '../../../../app.datatypes';
 import { NodeService } from '../../../../services/node.service';
 import { LogComponent } from './log/log.component';
 import { MatDialog } from '@angular/material';
@@ -22,6 +22,17 @@ export class AppsComponent {
       app = this.apps.find(app => app.attributes.some(attr => attr === name));
     }
     return app;
+  }
+
+  getFeedback(appName: string)
+  {
+    const appKey = this.getApp(appName) ? this.getApp(appName).key : null;
+    let feedback: NodeFeedback;
+    if (appKey && this.nodeInfo && this.nodeInfo.app_feedbacks)
+    {
+      feedback = this.nodeInfo.app_feedbacks.find(fb => fb.key === appKey);
+    }
+    return feedback;
   }
 }
 export class AppAutoStartConfig {

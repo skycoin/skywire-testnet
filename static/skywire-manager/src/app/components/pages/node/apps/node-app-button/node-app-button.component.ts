@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnChanges, OnInit, Output} from '@angular/core';
-import {Node, NodeApp} from "../../../../../app.datatypes";
+import {Node, NodeApp, NodeFeedback} from "../../../../../app.datatypes";
 import {LogComponent} from "../log/log.component";
 import {MatDialog} from "@angular/material";
 
@@ -18,6 +18,7 @@ export abstract class NodeAppButtonComponent implements OnChanges {
   @Input() showMore: boolean = true;
   @Input() node: Node;
   @Input() app: NodeApp | null;
+  @Input() appFeedback: NodeFeedback | null;
   @Output() onClick: EventEmitter<any> = new EventEmitter();
   private containerClass: string;
   protected menuItems: MenuItem[] = [];
@@ -44,9 +45,19 @@ export abstract class NodeAppButtonComponent implements OnChanges {
   ngOnChanges(): void {
     this.containerClass = `${"d-flex flex-column align-items-center justify-content-center w-100"} ${this.isRunning ? 'active' : ''}`
     this.menuItems = this.getMenuItems();
+
+    if (this.isRunning)
+    {
+      this.subtitle = this.appFeedback && this.appFeedback.port ? this.getPortString() : null;
+      this.hasMessages = this.appFeedback && this.appFeedback.unread ? this.appFeedback.unread > 0 : false;
+    }
   }
 
   protected abstract getMenuItems(): MenuItem[];
+
+  private getPortString() {
+    return `Port: ${this.appFeedback.port.toString()}`;
+  }
 }
 
 export interface MenuItem
