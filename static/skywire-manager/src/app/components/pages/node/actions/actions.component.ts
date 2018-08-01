@@ -53,8 +53,13 @@ export class ActionsComponent {
     });
   }
 
-  openTerminal(): void
-  {
-    this.dialog.open(TerminalComponent);
+  openTerminal(): void {
+    this.dialog.open(TerminalComponent, {
+      width: '700px',
+      id: 'terminal-dialog',
+      data: {
+        addr: this.node.addr,
+      }
+    });
   }
 }

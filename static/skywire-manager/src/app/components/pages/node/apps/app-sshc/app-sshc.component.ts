@@ -13,16 +13,6 @@ import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-butt
 })
 export class AppSshcComponent extends NodeAppButtonComponent
 {
-  private menuItems: MenuItem[] = [{
-    name: 'Startup config',
-    callback: this.showStartupConfig.bind(this),
-    enabled: true
-  }, {
-    name: 'Messages',
-    callback: this.showLog.bind(this),
-    enabled: this.isRunning
-  }];
-
   title="SSH Client";
   icon="laptop";
 
@@ -31,6 +21,16 @@ export class AppSshcComponent extends NodeAppButtonComponent
     private dialog: MatDialog,
   ) {
     super(dialog);
+
+    this.menuItems = [{
+      name: 'Startup config',
+      callback: this.showStartupConfig.bind(this),
+      enabled: true
+    }, {
+      name: 'Messages',
+      callback: this.showLog.bind(this),
+      enabled: this.isRunning
+    }];
   }
 
   start() {
