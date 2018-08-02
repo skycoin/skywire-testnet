@@ -10,12 +10,22 @@
     color: theme-color(blue-dark) !important;
   }
 
-  .app-button-port
+  .ic-app-failed, .app-button-port
   {
     position: absolute !important;
     text-align: center;
     top: 60px;
     width: 150px;
+  }
+
+  .ic-app-failed
+  {
+    display: flex;
+    justify-content: center;
+    color: theme-color(red);
+    text-shadow: 0 1px 1px #ddd;
+    font-size: theme-font-size(md);
+    font-weight: $font-weight-normal !important;
   }
 }
 

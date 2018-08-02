@@ -16,14 +16,8 @@ export class AppSshcComponent extends NodeAppButtonComponent
   title="SSH Client";
   icon="laptop";
 
-  constructor(
-    private appsService: AppsService,
-    private dialog: MatDialog,
-  ) {
-    super(dialog);
-  }
-
-  start() {
+  startApp(): void
+  {
     this.dialog.open(SshcKeysComponent).afterClosed().subscribe((keypair: Keypair) => {
       if (keypair) {
         this.appsService.startSshClient(keypair.nodeKey, keypair.appKey).subscribe();

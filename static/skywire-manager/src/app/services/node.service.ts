@@ -16,13 +16,11 @@ export class NodeService {
   private refreshNodeObservable: Observable<Node>;
   private refresNodeTimerSubscription: Subscription;
   private currentNode: Node;
-  private storageService: Storage;
 
   constructor(
-    private apiService: ApiService
-  ) {
-    this.storageService = StorageService.getNamedStorage('nodeLabel')
-  }
+    private apiService: ApiService,
+    private storageService: StorageService
+  ) {}
 
   allNodes(): Observable<Node[]> {
     this.refreshNodes();
@@ -52,7 +50,7 @@ export class NodeService {
    */
   getLabel(node: Node): string | null
   {
-    let nodeLabel = this.storageService.getItem(node.key);
+    let nodeLabel = this.storageService.getNodeLabel(node.key);
     if (nodeLabel === null)
     {
       nodeLabel = NodeService.getDefaultNodeLabel(node);
@@ -66,7 +64,7 @@ export class NodeService {
   }
 
   setLabel(node: Node, label: string) {
-    this.storageService.setItem(node.key, label);
+    this.storageService.setNodeLabel(node.key, label);
   }
 
   node(key: string): Observable<Node> {
@@ -82,8 +80,9 @@ export class NodeService {
       this.refresNodeTimerSubscription.unsubscribe();
     }
 
-    this.refreshNodeObservable = Observable.create((observer: Observer) =>
+    this.refreshNodeObservable = Observable.create((observer: Observer<Node>) =>
     {
+
       this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(
         () => this.node(key).subscribe(
           (node) => observer.next(node),
@@ -199,7 +198,7 @@ export class NodeService {
     try
     {
       const ipWithourPort = node.addr.split(':')[0],
-            nodeNumber = parseInt(ipWithourPort.split('.')[3]);
+        nodeNumber = parseInt(ipWithourPort.split('.')[3]);
 
       if (nodeNumber == 2)
       {

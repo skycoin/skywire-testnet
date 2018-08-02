@@ -1,22 +1,25 @@
-import { Component } from '@angular/core';
+import {Component, OnChanges, OnInit} from '@angular/core';
 import { NodeService } from '../../../services/node.service';
 import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
 import {MatDialog, MatSnackBar} from "@angular/material";
 import {Subscription} from "rxjs/internal/Subscription";
+import {StorageService} from "../../../services/storage.service";
+
+const DEFAULT_REFRESH_SECONDS = 10;
 
 @Component({
   selector: 'app-node',
   templateUrl: './node.component.html',
   styleUrls: ['./node.component.scss']
 })
-export class NodeComponent {
+export class NodeComponent implements OnInit
+{
   node: Node;
   nodeApps: NodeApp[] = [];
   nodeInfo: NodeInfo;
-  refreshSeconds: number = 10;
+  refreshSeconds: number;
   transports: NodeTransport[] = [];
-
   private refreshSubscription: Subscription;
   private REFRESH_SUBSCRIPTION_DELAY: number = 10000;
 
@@ -25,10 +28,9 @@ export class NodeComponent {
     private route: ActivatedRoute,
     private router: Router,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
-    this.scheduleNodeRefresh();
-  }
+    private snackBar: MatSnackBar,
+    private storageService: StorageService
+  ) {}
 
   get key(): string
   {
@@ -66,6 +68,7 @@ export class NodeComponent {
   {
     this.refreshSeconds = $seconds;
     this.scheduleNodeRefresh();
+    this.storageService.setRefreshTime($seconds);
   }
 
   private onNodeError(): void
@@ -93,5 +96,11 @@ export class NodeComponent {
       this.onNodeReceived.bind(this),
       this.onNodeError.bind(this)
     );
+  }
+
+  ngOnInit(): void
+  {
+    this.refreshSeconds = this.storageService.getRefreshTime() || DEFAULT_REFRESH_SECONDS;
+    this.scheduleNodeRefresh();
   }
 }

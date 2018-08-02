@@ -22,11 +22,9 @@ export class AppSockscComponent extends NodeAppButtonComponent
     return Object.keys(this.nodeInfo.discoveries).map(disc => disc.split('-')[1]);
   }
 
-  constructor(
-    private appsService: AppsService,
-    private dialog: MatDialog,
-  ) {
-    super(dialog);
+  startApp(): void
+  {
+    this.connect();
   }
 
   connect() {

@@ -3,7 +3,7 @@ import {NodeApp, NodeTransport} from "../../../../../app.datatypes";
 import {MatTableDataSource} from "@angular/material";
 
 @Component({
-  selector: 'node-app-keys-list',
+  selector: 'node-app-list',
   templateUrl: './node-apps-list.component.html',
   styleUrls: ['./node-apps-list.component.scss']
 })

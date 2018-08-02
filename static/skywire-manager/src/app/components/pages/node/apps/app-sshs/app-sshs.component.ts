@@ -15,17 +15,6 @@ export class AppSshsComponent extends NodeAppButtonComponent
   protected title="SSH";
   protected icon="laptop";
 
-  constructor(
-    private appsService: AppsService,
-    private dialog: MatDialog,
-  ) {
-    super(dialog);
-  }
-
-  start() {
-    this.appsService.startSshServer().subscribe()
-  }
-
   showStartupConfig() {
     this.dialog.open(SshsStartupComponent);
   }
@@ -54,5 +43,10 @@ export class AppSshsComponent extends NodeAppButtonComponent
       callback: this.showLog.bind(this),
       enabled: this.isRunning
     }];
+  }
+
+  startApp(): void
+  {
+    this.appsService.startSshServer().subscribe()
   }
 }

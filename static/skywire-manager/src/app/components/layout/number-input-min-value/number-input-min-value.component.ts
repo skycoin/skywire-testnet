@@ -25,7 +25,7 @@ export class NumberInputMinValueComponent implements OnInit {
 
   ngOnInit()
   {
-    this.minError = `Enter a number greater than ${this.minVal}`;
+    this.minError = `Enter a number greater than ${this.minVal - 1}`;
     this.requiredError = `${this.fieldName} can't be empty`;
 
     this.refreshSecondsFormControl = new FormControl('', [

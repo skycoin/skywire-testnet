@@ -1,7 +1,8 @@
-import {Component, EventEmitter, Input, OnChanges, OnInit, Output} from '@angular/core';
+import {Component, Input, OnChanges} from '@angular/core';
 import {Node, NodeApp, NodeFeedback} from "../../../../../app.datatypes";
 import {LogComponent} from "../log/log.component";
 import {MatDialog} from "@angular/material";
+import {AppsService} from "../../../../../services/apps.service";
 
 @Component({
   selector: 'app-node-app-button',
@@ -19,23 +20,39 @@ export abstract class NodeAppButtonComponent implements OnChanges {
   @Input() node: Node;
   @Input() app: NodeApp | null;
   @Input() appFeedback: NodeFeedback | null;
-  @Output() onClick: EventEmitter<any> = new EventEmitter();
   private containerClass: string;
   protected menuItems: MenuItem[] = [];
+  private failed: boolean;
 
-  constructor(private _dialog: MatDialog) {
+  public constructor(
+    protected dialog: MatDialog,
+    protected appsService: AppsService
+  ) {
   }
 
-  handleClick(): void {
-    this.onClick.emit();
+  onAppClicked(): void
+  {
+    this.toggleApp();
+  }
+
+  private toggleApp()
+  {
+    if (this.isRunning)
+    {
+      this.appsService.closeApp(this.app.attributes[0]).subscribe();
+    }
+    else {
+      this.startApp();
+    }
   }
 
   get isRunning(): boolean {
     return !!this.app;
   }
 
-  showLog() {
-    this._dialog.open(LogComponent, {
+  showLog()
+  {
+    this.dialog.open(LogComponent, {
       data: {
         app: this.app,
       },
@@ -46,8 +63,7 @@ export abstract class NodeAppButtonComponent implements OnChanges {
     this.containerClass = `${"d-flex flex-column align-items-center justify-content-center w-100"} ${this.isRunning ? 'active' : ''}`
     this.menuItems = this.getMenuItems();
 
-    if (this.isRunning)
-    {
+    if (this.isRunning) {
       this.getSubtitle();
       this.hasMessages = this.appFeedback && this.appFeedback.unread ? this.appFeedback.unread > 0 : false;
     }
@@ -59,23 +75,23 @@ export abstract class NodeAppButtonComponent implements OnChanges {
     return `Port: ${this.appFeedback.port.toString()}`;
   }
 
-  private getSubtitle()
-  {
-    let subtitle = null;
-    if (this.appFeedback)
-    {
-      if (this.appFeedback.failed)
-      {
+  private getSubtitle() {
+    this.failed = false;
+    this.subtitle = null;
 
+    if (this.appFeedback) {
+      if (this.appFeedback.failed) {
+        this.failed = true;
       }
-      else if (this.appFeedback.port)
-      {
-
+      else if (this.appFeedback.port) {
+        this.subtitle = this.getPortString();
       }
     }
-    this.subtitle = this.appFeedback && this.appFeedback.port ? this.getPortString() : null;
   }
+
+  abstract startApp(): void;
 }
+
 
 export interface MenuItem
 {
