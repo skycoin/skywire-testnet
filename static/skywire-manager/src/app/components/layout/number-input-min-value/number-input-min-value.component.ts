@@ -30,7 +30,7 @@ export class NumberInputMinValueComponent implements OnInit {
 
     this.refreshSecondsFormControl = new FormControl('', [
       Validators.required,
-      Validators.min(this.minVal),
+      Validators.min(this.minVal)
     ]);
   }
 

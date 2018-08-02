@@ -7,12 +7,14 @@ import { Keypair } from '../../../app.datatypes';
   templateUrl: './keypair.component.html',
   styleUrls: ['./keypair.component.css']
 })
-export class KeypairComponent implements OnInit {
+export class KeypairComponent implements OnInit
+{
   @Input() keypair: Keypair;
   @Output() keypairChange = new EventEmitter<Keypair>();
   form: FormGroup;
 
-  ngOnInit() {
+  ngOnInit()
+  {
     this.form = new FormGroup({
       nodeKey: new FormControl('', [this.validateKey]),
       appKey: new FormControl('', [this.validateKey]),
@@ -33,7 +35,13 @@ export class KeypairComponent implements OnInit {
     }
   }
 
-  private validateKey(control: FormControl) {
+  get isValid(): boolean
+  {
+    return this.form.valid;
+  }
+
+  private validateKey(control: FormControl)
+  {
     const key: string = control.value;
 
     if (!key) {
@@ -44,4 +52,8 @@ export class KeypairComponent implements OnInit {
       return { invalid: true };
     }
   }
+
+  get nodeKey() { return this.form.get('nodeKey'); }
+
+  get appKey() { return this.form.get('appKey'); }
 }
