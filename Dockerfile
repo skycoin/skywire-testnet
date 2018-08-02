@@ -33,8 +33,8 @@ ENV DATA_DIR=/root/.skywire
 
 #USER skywire
 
-# copy binaries and assets
-COPY --from=build-go /go/bin/* /usr/bin/
+# copy binaries and asset
+COPY --from=build-go /go/bin/* /bin/
 COPY --from=build-go /go/bin/sockss .
 COPY --from=build-node /home/node/net/skycoin-messenger/monitor/web/dist-manager /usr/local/skycoin/net/skycoin-messenger/monitor/web/dist-manager
 
