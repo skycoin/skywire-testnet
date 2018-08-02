@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { NodeService } from '../../../services/node.service';
 import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
-import {MatDialog} from "@angular/material";
+import {MatDialog, MatSnackBar} from "@angular/material";
 import {Subscription} from "rxjs/internal/Subscription";
 
 @Component({
@@ -18,12 +18,14 @@ export class NodeComponent {
   transports: NodeTransport[] = [];
 
   private refreshSubscription: Subscription;
+  private REFRESH_SUBSCRIPTION_DELAY: number = 10000;
 
   constructor(
     private nodeService: NodeService,
     private route: ActivatedRoute,
     private router: Router,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {
     this.scheduleNodeRefresh();
   }
@@ -62,18 +64,27 @@ export class NodeComponent {
 
   onRefreshTimeChanged($seconds): void
   {
-    this.refreshSeconds = Math.max(1, $seconds);
+    this.refreshSeconds = $seconds;
     this.scheduleNodeRefresh();
   }
 
   private onNodeError(): void
   {
-    this.router.navigate(['nodes']);
+    this.openSnackBar('An error occurred while refreshing node data');
+
+    setTimeout(this.scheduleNodeRefresh.bind(this), this.REFRESH_SUBSCRIPTION_DELAY);
+  }
+
+  private openSnackBar(message: string)
+  {
+    this.snackBar.open(message, null, {
+      duration: 2000,
+    });
   }
 
   private scheduleNodeRefresh(): void
   {
-    console.log(`scheduleNodeRefresh ${this.refreshSeconds}`);
+    // console.log(`scheduleNodeRefresh ${this.refreshSeconds}`);
     if (this.refreshSubscription)
     {
       this.refreshSubscription.unsubscribe();

@@ -5,6 +5,7 @@ import { ApiService } from './api.service';
 import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
 import {StorageService} from "./storage.service";
 import {Subscription} from "rxjs/internal/Subscription";
+import {Observer} from "rxjs/internal/types";
 
 @Injectable({
   providedIn: 'root'
@@ -81,9 +82,13 @@ export class NodeService {
       this.refresNodeTimerSubscription.unsubscribe();
     }
 
-    this.refreshNodeObservable = Observable.create((observer) =>
+    this.refreshNodeObservable = Observable.create((observer: Observer) =>
     {
-      this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(() => this.node(key).subscribe((node) => observer.next(node)));
+      this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(
+        () => this.node(key).subscribe(
+          (node) => observer.next(node),
+          (err) => observer.error(err)
+        ));
     });
 
     return this.refreshNodeObservable;
