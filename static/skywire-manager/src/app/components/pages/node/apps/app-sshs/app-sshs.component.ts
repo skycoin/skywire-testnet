@@ -15,11 +15,13 @@ export class AppSshsComponent extends NodeAppButtonComponent
   protected title="SSH";
   protected icon="laptop";
 
-  showStartupConfig() {
+  showStartupConfig()
+  {
     this.dialog.open(SshsStartupComponent);
   }
 
-  showWhitelist() {
+  showWhitelist()
+  {
     this.dialog.open(SshsWhitelistComponent, {
       data: {
         node: this.app,

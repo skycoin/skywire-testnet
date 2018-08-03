@@ -1,31 +1,45 @@
-import { Component } from '@angular/core';
+import {Component, ViewChild} from '@angular/core';
 import { AppAutoStartConfig } from '../../apps.component';
 import { NodeService } from '../../../../../../services/node.service';
-import { Keypair } from '../../../../../../app.datatypes';
-import { MatSlideToggleChange } from '@angular/material';
+import {MatDialogRef, MatSlideToggleChange} from '@angular/material';
+import {KeypairComponent, KeyPairState} from "../../../../../layout/keypair/keypair.component";
 
 @Component({
   selector: 'app-sshc-startup',
   templateUrl: './sshc-startup.component.html',
   styleUrls: ['./sshc-startup.component.css']
 })
-export class SshcStartupComponent extends AppAutoStartConfig {
+export class SshcStartupComponent extends AppAutoStartConfig
+{
+  @ViewChild(KeypairComponent) keyPairComp: KeypairComponent;
+  keyPairValid: boolean = false;
+
   constructor(
     private nodeService: NodeService,
+    public dialogRef: MatDialogRef<SshcStartupComponent>
   ) {
     super(nodeService);
   }
 
-  save() {
+  save()
+  {
     this.nodeService.setAutoStartConfig(this.autoStartConfig).subscribe();
+    this.dialogRef.close();
   }
 
-  keypairChange(keypair: Keypair) {
-    this.autoStartConfig.sshc_conf_nodeKey = keypair.nodeKey;
-    this.autoStartConfig.sshc_conf_appKey = keypair.appKey;
+  keypairChange({ keyPair, valid}: KeyPairState)
+  {
+    if (valid)
+    {
+      this.autoStartConfig.sshc_conf_nodeKey = keyPair.nodeKey;
+      this.autoStartConfig.sshc_conf_appKey = keyPair.appKey;
+    }
+
+    this.keyPairValid = valid;
   }
 
-  toggle(event: MatSlideToggleChange) {
+  toggle(event: MatSlideToggleChange)
+  {
     this.autoStartConfig.sshc = event.checked;
   }
 }

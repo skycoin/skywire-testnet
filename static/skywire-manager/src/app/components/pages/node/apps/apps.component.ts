@@ -1,8 +1,6 @@
 import { Component, Input } from '@angular/core';
 import {AutoStartConfig, Node, NodeApp, NodeFeedback, NodeInfo} from '../../../../app.datatypes';
 import { NodeService } from '../../../../services/node.service';
-import { LogComponent } from './log/log.component';
-import { MatDialog } from '@angular/material';
 
 @Component({
   selector: 'app-apps',

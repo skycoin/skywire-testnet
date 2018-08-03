@@ -1,6 +1,12 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
+import {FormControl, FormGroup} from '@angular/forms';
 import { Keypair } from '../../../app.datatypes';
+
+export interface KeyPairState
+{
+  keyPair: Keypair;
+  valid: boolean;
+}
 
 @Component({
   selector: 'app-keypair',
@@ -10,7 +16,7 @@ import { Keypair } from '../../../app.datatypes';
 export class KeypairComponent implements OnInit
 {
   @Input() keypair: Keypair;
-  @Output() keypairChange = new EventEmitter<Keypair>();
+  @Output() keypairChange = new EventEmitter<KeyPairState>();
   form: FormGroup;
 
   ngOnInit()
@@ -20,24 +26,29 @@ export class KeypairComponent implements OnInit
       appKey: new FormControl('', [this.validateKey]),
     });
 
-    this.form.valueChanges.subscribe(value => {
-      if (this.form.valid) {
-        this.keypairChange.emit({
+    this.form.valueChanges.subscribe(value =>
+    {
+      this.keypairChange.emit({
+        keyPair: {
           nodeKey: value.nodeKey,
           appKey: value.appKey,
-        });
-      }
+        },
+        valid: this.form.valid
+      });
     });
 
-    if (this.keypair) {
-      this.form.get('nodeKey').setValue(this.keypair.nodeKey);
-      this.form.get('appKey').setValue(this.keypair.appKey);
+    if (this.keypair)
+    {
+      this.nodeKey.setValue(this.keypair.nodeKey);
+      this.appKey.setValue(this.keypair.appKey);
+      this.keypairChange.emit({
+        keyPair: {
+          nodeKey: this.keypair.nodeKey,
+          appKey: this.keypair.appKey,
+        },
+        valid: this.form.valid
+      });
     }
-  }
-
-  get isValid(): boolean
-  {
-    return this.form.valid;
   }
 
   private validateKey(control: FormControl)
@@ -53,7 +64,13 @@ export class KeypairComponent implements OnInit
     }
   }
 
-  get nodeKey() { return this.form.get('nodeKey'); }
+  get nodeKey(): any
+  {
+    return this.form.get('nodeKey');
+  }
 
-  get appKey() { return this.form.get('appKey'); }
+  get appKey(): any
+  {
+    return this.form.get('appKey');
+  }
 }

@@ -74,7 +74,6 @@ export class NodeComponent implements OnInit
   private onNodeError(): void
   {
     this.openSnackBar('An error occurred while refreshing node data');
-
     setTimeout(this.scheduleNodeRefresh.bind(this), this.REFRESH_SUBSCRIPTION_DELAY);
   }
 

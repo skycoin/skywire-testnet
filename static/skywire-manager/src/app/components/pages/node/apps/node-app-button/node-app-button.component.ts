@@ -32,18 +32,7 @@ export abstract class NodeAppButtonComponent implements OnChanges {
 
   onAppClicked(): void
   {
-    this.toggleApp();
-  }
-
-  private toggleApp()
-  {
-    if (this.isRunning)
-    {
-      this.appsService.closeApp(this.app.attributes[0]).subscribe();
-    }
-    else {
-      this.startApp();
-    }
+    this.startApp();
   }
 
   get isRunning(): boolean {

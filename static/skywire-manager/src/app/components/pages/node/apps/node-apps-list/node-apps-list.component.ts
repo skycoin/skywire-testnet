@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges} from '@angular/core';
 import {NodeApp, NodeTransport} from "../../../../../app.datatypes";
 import {MatTableDataSource} from "@angular/material";
+import {AppsService} from "../../../../../services/apps.service";
 
 @Component({
   selector: 'node-app-list',
@@ -13,7 +14,7 @@ export class NodeAppsListComponent implements OnChanges
   dataSource = new MatTableDataSource<NodeApp>();
   @Input() apps: NodeApp[] = [];
 
-  constructor() { }
+  constructor(private appsService: AppsService) { }
 
   ngOnChanges(changes: SimpleChanges): void
   {
@@ -22,5 +23,10 @@ export class NodeAppsListComponent implements OnChanges
       this.apps.sort((app1: NodeApp, app2: NodeApp) => app1.key.localeCompare(app2.key));
     }
     this.dataSource.data = this.apps;
+  }
+
+  onCloseAppClicked(appName: string): void
+  {
+    this.appsService.closeApp(appName).subscribe();
   }
 }

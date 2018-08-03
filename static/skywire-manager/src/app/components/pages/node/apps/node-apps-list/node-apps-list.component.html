@@ -19,7 +19,7 @@
               {{ attr }}
             </mat-chip>
           </mat-chip-list>
-          <button mat-icon-button>
+          <button mat-icon-button (click)="onCloseAppClicked(app.attributes[0])">
             <mat-icon>close</mat-icon>
           </button>
         </div>
