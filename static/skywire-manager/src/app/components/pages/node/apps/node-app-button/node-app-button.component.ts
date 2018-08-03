@@ -45,6 +45,7 @@ export abstract class NodeAppButtonComponent implements OnChanges {
       data: {
         app: this.app,
       },
+      panelClass: 'app-log-dialog'
     });
   }
 

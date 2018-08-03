@@ -1,6 +1,15 @@
 @import "../../../../../../assets/scss/variables";
 @import "../../../../../../assets/scss/utilities/theme";
+@import "../../../../../../assets/scss/backgrounds";
 @import "../../../../../../../node_modules/bootstrap/scss/functions";
+
+.mat-dialog-container
+{
+  @extend .container-elevated-translucid;
+  overflow: hidden !important;
+  border-radius: 5px !important;
+  padding: 5px !important;
+}
 
 :host ::ng-deep
 {

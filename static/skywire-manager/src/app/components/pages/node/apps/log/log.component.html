@@ -1,4 +1,14 @@
-<div *ngFor="let message of logMessages">
-  <span>[{{ message.time * 1000 | date }}]</span>
-  <span>{{ message.msg }}</span>
-</div>
+<span class="font-base text-uppercase app-log-title" mat-dialog-title> Log </span>
+<mat-dialog-content class="app-log-content">
+  <div *ngFor="let message of logMessages" style="margin-top: 15px;">
+    <span class="app-log-timestamp">
+      [{{ message.time * 1000 | date:'yyyy-MM-dd HH:mm:ss' }}]
+    </span>
+    <span class="app-log-message">
+      {{ message.msg }}
+    </span>
+  </div>
+  <div class="app-log-empty" style="margin-top: 20px;" *ngIf="logMessages.length === 0">
+    There are no messages
+  </div>
+</mat-dialog-content>
