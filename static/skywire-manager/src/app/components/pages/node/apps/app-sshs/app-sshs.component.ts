@@ -1,9 +1,7 @@
-import {Component, OnInit} from '@angular/core';
-import { AppsService } from '../../../../../services/apps.service';
-import { MatDialog } from '@angular/material';
+import {Component} from '@angular/core';
 import { SshsStartupComponent } from './sshs-startup/sshs-startup.component';
 import { SshsWhitelistComponent } from './sshs-whitelist/sshs-whitelist.component';
-import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
+import {NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
 
 @Component({
   selector: 'app-app-sshs',

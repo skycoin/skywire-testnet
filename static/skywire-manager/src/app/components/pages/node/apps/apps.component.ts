@@ -1,6 +1,5 @@
 import { Component, Input } from '@angular/core';
-import {AutoStartConfig, Node, NodeApp, NodeFeedback, NodeInfo} from '../../../../app.datatypes';
-import { NodeService } from '../../../../services/node.service';
+import {Node, NodeApp, NodeFeedback, NodeInfo} from '../../../../app.datatypes';
 
 @Component({
   selector: 'app-apps',
@@ -33,12 +32,4 @@ export class AppsComponent {
     return feedback;
   }
 }
-export class AppAutoStartConfig {
-  autoStartConfig: AutoStartConfig;
 
-  constructor(
-    private _nodeService: NodeService,
-  ) {
-    this._nodeService.getAutoStartConfig().subscribe(config => this.autoStartConfig = config);
-  }
-}

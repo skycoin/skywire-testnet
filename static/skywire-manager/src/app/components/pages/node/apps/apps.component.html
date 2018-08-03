@@ -19,14 +19,14 @@
     <li class="list-inline-item flex-1">
       <app-node-app-button
         (onClick)="onSettingsClicked()"
-        title="Apps settings"
+        automaticStartTitle="Apps settings"
         icon="settings">
       </app-node-app-button>
     </li>
     <li class="separator list-inline-item"></li>
     <li class="list-inline-item flex-1">
       <app-node-app-button
-        title="SSH"
+        automaticStartTitle="SSH"
         icon="laptop"
         [active]="true"
         subtitle="Port: 8080"
@@ -39,7 +39,7 @@
     <li class="separator list-inline-item"></li>
     <li class="list-inline-item flex-1">
       <app-node-app-button
-        title="Connect to Node"
+        automaticStartTitle="Connect to Node"
         icon="near_me"
         [showMore]="true"
       >
@@ -48,7 +48,7 @@
     <li class="separator list-inline-item"></li>
     <li class="list-inline-item flex-1">
       <app-node-app-button
-        title="SSH Client"
+        automaticStartTitle="SSH Client"
         subtitle="Port: 8080"
         icon="laptop"
         [active]="true"

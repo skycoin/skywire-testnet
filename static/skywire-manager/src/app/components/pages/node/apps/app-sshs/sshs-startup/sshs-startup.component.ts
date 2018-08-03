@@ -1,31 +1,13 @@
-import { Component } from '@angular/core';
-import {MatDialogRef, MatSlideToggleChange} from '@angular/material';
-import { AppAutoStartConfig } from '../../apps.component';
-import { NodeService } from '../../../../../../services/node.service';
-import {SshWarningDialogComponent} from "../../../actions/ssh-warning-dialog/ssh-warning-dialog.component";
+import {StartupConfigComponent} from "../../startup-config/startup-config.component";
 
-@Component({
-  selector: 'app-sshs-startup',
-  templateUrl: './sshs-startup.component.html',
-  styleUrls: ['./sshs-startup.component.css']
-})
-export class SshsStartupComponent extends AppAutoStartConfig
+export class SshsStartupComponent extends StartupConfigComponent
 {
-  constructor(
-    private nodeService: NodeService,
-    public dialogRef: MatDialogRef<SshsStartupComponent>
-  ) {
-    super(nodeService);
-  }
+  hasKeyPair = false;
+  appConfigField = "sshs";
+  autoStartTitle = "Automatically start SSH server";
 
-  save()
+  protected get isFormValid()
   {
-    this.nodeService.setAutoStartConfig(this.autoStartConfig).subscribe();
-    this.dialogRef.close();
-  }
-
-  toggle(event: MatSlideToggleChange)
-  {
-    this.autoStartConfig.sshs = event.checked;
+    return true;
   }
 }
