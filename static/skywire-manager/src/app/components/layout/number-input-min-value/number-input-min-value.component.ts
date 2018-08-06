@@ -19,7 +19,7 @@ export class NumberInputMinValueComponent implements OnInit {
   matcher = new MyErrorStateMatcher();
   private minError: string;
   private requiredError: string;
-  private refreshSecondsFormControl: FormControl;
+  private validator: FormControl;
 
   constructor() { }
 
@@ -28,7 +28,7 @@ export class NumberInputMinValueComponent implements OnInit {
     this.minError = `Enter a number greater than ${this.minVal - 1}`;
     this.requiredError = `${this.fieldName} can't be empty`;
 
-    this.refreshSecondsFormControl = new FormControl('', [
+    this.validator = new FormControl('', [
       Validators.required,
       Validators.min(this.minVal)
     ]);
@@ -36,7 +36,7 @@ export class NumberInputMinValueComponent implements OnInit {
 
   onInput($evt)
   {
-    if (this.refreshSecondsFormControl.valid)
+    if (this.validator.valid)
     {
       console.log($evt.target.value);
       this.value = $evt.target.value;

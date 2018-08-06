@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
 import { Keypair } from '../../../app.datatypes';
+import {KeyInputEvent} from "../key-input/key-input.component";
 
 export interface KeyPairState
 {
@@ -11,66 +11,48 @@ export interface KeyPairState
 @Component({
   selector: 'app-keypair',
   templateUrl: './keypair.component.html',
-  styleUrls: ['./keypair.component.css']
+  styleUrls: ['./keypair.component.css'],
+  host: {'class': 'keypair-component'}
 })
 export class KeypairComponent implements OnInit
 {
   @Input() keypair: Keypair;
   @Output() keypairChange = new EventEmitter<KeyPairState>();
-  form: FormGroup;
+  private nodeKeyValid: boolean = true;
+  private appKeyValid: boolean = true;
+
+  onNodeValueChanged({value, valid}: KeyInputEvent)
+  {
+    this.keypair.nodeKey = value;
+    this.nodeKeyValid = valid;
+    this.onPairChanged();
+  }
+
+  onAppValueChanged({value, valid}: KeyInputEvent)
+  {
+    this.keypair.appKey = value;
+    this.appKeyValid = valid;
+    this.onPairChanged();
+  }
+
+  onPairChanged()
+  {
+    this.keypairChange.emit({
+      keyPair: this.keypair,
+      valid: this.valid
+    });
+  }
+
+  private get valid()
+  {
+    return this.nodeKeyValid && this.appKeyValid;
+  }
 
   ngOnInit()
   {
-    this.form = new FormGroup({
-      nodeKey: new FormControl('', [this.validateKey]),
-      appKey: new FormControl('', [this.validateKey]),
-    });
-
-    this.form.valueChanges.subscribe(value =>
-    {
-      this.keypairChange.emit({
-        keyPair: {
-          nodeKey: value.nodeKey,
-          appKey: value.appKey,
-        },
-        valid: this.form.valid
-      });
-    });
-
     if (this.keypair)
     {
-      this.nodeKey.setValue(this.keypair.nodeKey);
-      this.appKey.setValue(this.keypair.appKey);
-      this.keypairChange.emit({
-        keyPair: {
-          nodeKey: this.keypair.nodeKey,
-          appKey: this.keypair.appKey,
-        },
-        valid: this.form.valid
-      });
+      this.onPairChanged();
     }
-  }
-
-  private validateKey(control: FormControl)
-  {
-    const key: string = control.value;
-
-    if (!key) {
-      return { required: true };
-    }
-
-    if (key.length < 66) {
-      return { invalid: true };
-    }
-  }
-
-  get nodeKey(): any
-  {
-    return this.form.get('nodeKey');
-  }
-
-  get appKey(): any
-  {
-    return this.form.get('appKey');
   }
 }

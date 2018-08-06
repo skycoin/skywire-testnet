@@ -1,20 +1,12 @@
-<div class="keypair-container" [formGroup]="form">
-  <mat-form-field>
-    <input matInput formControlName="nodeKey" type="text" placeholder="Node Key">
-    <mat-error *ngIf="nodeKey.errors?.required && (nodeKey.dirty || nodeKey.touched)">
-      Node key is required.
-    </mat-error>
-    <mat-error *ngIf="nodeKey.errors?.invalid && (nodeKey.dirty || nodeKey.touched)">
-      Node key must be at least 66 characters long
-    </mat-error>
-  </mat-form-field>
-  <mat-form-field style="margin-top: 15px;">
-    <input matInput formControlName="appKey" type="text" placeholder="App Key">
-    <mat-error *ngIf="appKey.errors?.required && (appKey.dirty || appKey.touched)">
-      App key is required.
-    </mat-error>
-    <mat-error *ngIf="appKey.errors?.invalid && (appKey.dirty || appKey.touched)">
-      App key must be at least 66 characters long
-    </mat-error>
-  </mat-form-field>
+<div class="keypair-container">
+  <app-key-input
+    value="{{keypair.nodeKey}}"
+    (inputCorrect)="onNodeValueChanged($event)"
+    placeholder="Node Key"></app-key-input>
+
+  <app-key-input
+    value="{{keypair.appKey}}"
+    (inputCorrect)="onAppValueChanged($event)"
+    style="margin-top: 15px;"
+    placeholder="App Key"></app-key-input>
 </div>
