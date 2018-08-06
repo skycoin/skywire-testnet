@@ -50,12 +50,15 @@ import { KeypairComponent } from './components/layout/keypair/keypair.component'
 import { AppSockscComponent } from './components/pages/node/apps/app-socksc/app-socksc.component';
 import { SockscConnectComponent } from './components/pages/node/apps/app-socksc/socksc-connect/socksc-connect.component';
 import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/socksc-startup/socksc-startup.component';
+import { SettingsComponent } from './components/pages/settings/settings.component';
+import { PasswordComponent } from './components/pages/settings/password/password.component';
 import { NodeAppButtonComponent } from './components/pages/node/apps/node-app-button/node-app-button.component';
 import { SshWarningDialogComponent } from './components/pages/node/actions/ssh-warning-dialog/ssh-warning-dialog.component';
 import { AppsSettingsComponent } from './components/pages/node/apps/apps-settings/apps-settings.component';
 import { ClipboardService } from "./services/clipboard.service";
 import { ClipboardDirective } from "./directives";
 import { NumberInputMinValueComponent } from './components/layout/number-input-min-value/number-input-min-value.component';
+import { AppTranslationModule } from './app-translation.module';
 
 @NgModule({
   declarations: [
@@ -84,6 +87,8 @@ import { NumberInputMinValueComponent } from './components/layout/number-input-m
     NodeTransportsList,
     NodeAppsListComponent,
     CopyToClipboardTextComponent,
+    SettingsComponent,
+    PasswordComponent,
     NodeAppButtonComponent,
     SshWarningDialogComponent,
     AppsSettingsComponent,
@@ -110,6 +115,7 @@ import { NumberInputMinValueComponent } from './components/layout/number-input-m
     ReactiveFormsModule,
     HttpClientModule,
     AppRoutingModule,
+    AppTranslationModule,
     MatSnackBarModule,
     MatDialogModule,
     MatFormFieldModule,
