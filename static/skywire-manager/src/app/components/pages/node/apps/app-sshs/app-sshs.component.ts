@@ -12,19 +12,6 @@ import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-butt
 })
 export class AppSshsComponent extends NodeAppButtonComponent
 {
-  protected menuItems: MenuItem[] = [{
-    name: 'Startup config',
-    callback: this.showStartupConfig.bind(this),
-    enabled: true
-  }, {
-    name: 'Whitelist',
-    callback: this.showWhitelist.bind(this),
-    enabled: this.isRunning
-  }, {
-    name: 'Messages',
-    callback: this.showLog.bind(this),
-    enabled: this.isRunning
-  }];
   protected title="SSH";
   protected icon="laptop";
 
@@ -33,6 +20,20 @@ export class AppSshsComponent extends NodeAppButtonComponent
     private dialog: MatDialog,
   ) {
     super(dialog);
+
+    this.menuItems = [{
+      name: 'Startup config',
+      callback: this.showStartupConfig.bind(this),
+      enabled: true
+    }, {
+      name: 'Whitelist',
+      callback: this.showWhitelist.bind(this),
+      enabled: this.isRunning
+    }, {
+      name: 'Messages',
+      callback: this.showLog.bind(this),
+      enabled: this.isRunning
+    }];
   }
 
   start() {

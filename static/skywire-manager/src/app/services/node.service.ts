@@ -154,6 +154,10 @@ export class NodeService {
     return this.nodeRequest('update');
   }
 
+  getManagerPort() {
+    return this.apiService.post('getPort');
+  }
+
   nodeRequest(endpoint: string, body: any = {}, options: any = {}) {
     const nodeAddress = this.currentNode.addr;
 
