@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../services/auth.service';
+import { Location } from '@angular/common';
 
 @Component({
   selector: 'app-password',
@@ -14,6 +15,7 @@ export class PasswordComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private location: Location,
   ) { }
 
   ngOnInit() {
@@ -34,6 +36,10 @@ export class PasswordComponent implements OnInit {
           (error) => console.log(error),
         );
     }
+  }
+
+  back() {
+    this.location.back();
   }
 
   private validatePasswords(control: AbstractControl) {
