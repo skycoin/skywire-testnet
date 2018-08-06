@@ -43,7 +43,6 @@ export class NodeComponent implements OnInit
     this.node = { key, ...node };
     this.nodeService.setCurrentNode(this.node);
 
-    console.log('onNodeReceived');
     this.loadData();
   }
 

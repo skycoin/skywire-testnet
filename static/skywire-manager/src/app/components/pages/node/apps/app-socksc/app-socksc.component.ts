@@ -35,8 +35,10 @@ export class AppSockscComponent extends NodeAppButtonComponent
         },
       })
       .afterClosed()
-      .subscribe((keypair: Keypair) => {
-        if (keypair) {
+      .subscribe((keypair: Keypair) =>
+      {
+        if (keypair)
+        {
           this.appsService.startSocksc(keypair.nodeKey, keypair.appKey).subscribe();
         }
       });

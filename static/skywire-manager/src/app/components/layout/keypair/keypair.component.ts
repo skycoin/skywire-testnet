@@ -16,7 +16,11 @@ export interface KeyPairState
 })
 export class KeypairComponent implements OnInit
 {
-  @Input() keypair: Keypair;
+  @Input() keypair: Keypair =
+  {
+    nodeKey: '',
+    appKey: ''
+  };
   @Output() keypairChange = new EventEmitter<KeyPairState>();
   private nodeKeyValid: boolean = true;
   private appKeyValid: boolean = true;
