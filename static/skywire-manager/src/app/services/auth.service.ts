@@ -2,6 +2,7 @@ import {Injectable} from '@angular/core';
 import {ApiService} from './api.service';
 import { Observable, of, ReplaySubject, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +12,7 @@ export class AuthService {
 
   constructor(
     private apiService: ApiService,
+    private router: Router,
   ) {
     this.checkLogin().subscribe(status => {
       this.loggedIn.next(!!status);
@@ -42,6 +44,21 @@ export class AuthService {
           }
 
           return throwError(err);
+        }),
+      );
+  }
+
+  changePassword(oldPass: string, newPass: string): Observable<boolean> {
+    return this.apiService.post('updatePass', {oldPass, newPass}, {type: 'form', responseType: 'text'})
+      .pipe(
+        tap(result => {
+          if (result === 'true') {
+            this.loggedIn.next(false);
+
+            return of(true);
+          } else {
+            throw new Error(result);
+          }
         }),
       );
   }

@@ -9,7 +9,7 @@ import {AppsService} from "../../../../../services/apps.service";
   templateUrl: './node-app-button.component.html',
   styleUrls: ['./node-app-button.component.scss']
 })
-export abstract class NodeAppButtonComponent implements OnChanges {
+export class NodeAppButtonComponent implements OnChanges {
   protected title: string;
   protected icon: string;
   @Input() enabled: boolean = true;
@@ -59,7 +59,7 @@ export abstract class NodeAppButtonComponent implements OnChanges {
     }
   }
 
-  protected abstract getMenuItems(): MenuItem[];
+  protected getMenuItems(): MenuItem[] { return []; }
 
   private getPortString() {
     return `Port: ${this.appFeedback.port.toString()}`;
@@ -79,7 +79,7 @@ export abstract class NodeAppButtonComponent implements OnChanges {
     }
   }
 
-  abstract startApp(): void;
+  protected startApp() {} void;
 }
 
 
