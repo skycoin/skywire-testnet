@@ -169,11 +169,11 @@ New password length is 4~20.
 ### Manager Node Request
 Asks the Manager to perform an API request for one of its connected Nodes. Use the `/conn/getNode` API to obtain the `IP` and `Port` for the Node you wish to call an API for.
 
-You must have logged in to the Manager using `/login` and obtained a valid Token from `/token` before calling this API.
+Note: You must have logged in to the Manager using `/login` before calling this API.
 
 Set the following parameters on the request:
 - `addr` = URI of the Node API to be called
-- `method` = The HTTP method to be used (GET, POST, etc)
+- `method` = The HTTP method to be used. This must be either GET or POST (default if not provided)
 
 
 #### Usage
@@ -197,7 +197,7 @@ Response:
 
 Example - Requesting `/node/getApps`:
 ```sh
-curl -X "POST" "http://127.0.0.1:8888/req" \
+curl -X "POST" "http://127.0.0.1:8000/req" \
      -H 'Content-Type: application/x-www-form-urlencoded; charset=utf-8' \
      -H 'Cookie: SWSId=15723926ac7a3b0d4659cb472ed3cab2' \
      --data-urlencode "addr=http://{IP:PORT}/node/getApps" \
@@ -367,11 +367,13 @@ HTTP/1.1 500 Internal Server Error
 ```
 
 ### Get Node Information
-Get detailed information from the Manager about the specified Node. The Node key must be passed as a query string to the URI.
+Get detailed information from the Manager about the specified Node. The Node Key must be passed as a query string to the `key` parameter on the URI.
 
 Use the `/conn/getAll` to obtain a list of the connect Node keys, then use one of the returned Node Keys as input to this API request.
 
-Note: You must have already logged into the Manager using the `/login` API, and obtained a valid token from the `/token` API.
+This API will provide the `IP:PORT` of the Node. This information will be required to make API requests to the Node using the `/req` API.
+
+Note: You must have already logged into the Manager using the `/login` API.
 
 #### Usage
 ```
