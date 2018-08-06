@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -8,21 +10,27 @@ import { Observable } from 'rxjs';
 export class ApiService {
   constructor(
     private http: HttpClient,
+    private router: Router,
   ) { }
 
   get(url: string, options: any = {}): Observable<any> {
-    return this.http.get(url, this.getRequestOptions(options));
+    return this.request(this.http.get(url, this.getRequestOptions(options)));
   }
 
   post(url: string, body: any = {}, options: any = {}): Observable<any> {
-    return this.http.post(
+    return this.request(this.http.post(
       url,
       this.getPostBody(body, options),
       {
         ...this.getRequestOptions(options),
         responseType: options.responseType ? options.responseType : 'json',
       },
-    );
+    ));
+  }
+
+  private request(request) {
+    return request
+      .pipe(catchError(error => this.errorHandler(error)));
   }
 
   private getRequestOptions(options: any) {
@@ -51,5 +59,13 @@ export class ApiService {
     }
 
     return body;
+  }
+
+  private errorHandler(error: HttpErrorResponse) {
+    if (!error.url.includes('checkLogin') && error.error.includes('Unauthorized')) {
+      this.router.navigate(['login']);
+    }
+
+    return throwError(error);
   }
 }
