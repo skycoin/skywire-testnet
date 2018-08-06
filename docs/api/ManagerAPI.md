@@ -1,4 +1,4 @@
-# Skywire Manager API Documentation
+v# Skywire Manager API Documentation
 **Note: This document is a work in progress**
 
 The following describes the Web API for the Skywire Manager (`manager`) application. You will need access to a running instance this application in order to utilise the APIs.
@@ -12,7 +12,7 @@ The following API services are made avaiable by the Skywire Manager application 
     - [Login](#login)
     - [Check Login](#heck-login)
     - [Change Password](#update-password)
-    - [Manager Req](#manager-request-connection)
+    - [Manager Node Request](#manager-node-request)
     - [Manager Term](#manager-term)
     - [Get Manager Port](#get-manager-port)
     - [Get Token](#get-token)
@@ -166,18 +166,47 @@ Connection: close
 New password length is 4~20.
 ```
 
-### Manager Request
+### Manager Node Request
+Asks the Manager to perform an API request for one of its connected Nodes. Use the `/conn/getNode` API to obtain the `IP` and `Port` for the Node you wish to call an API for.
+
+You must have logged in to the Manager using `/login` and obtained a valid Token from `/token` before calling this API.
+
+Set the following parameters on the request:
+- `addr` = URI of the Node API to be called
+- `method` = The HTTP method to be used (GET, POST, etc)
+
+
 #### Usage
 ```
 URI: /req
 Method: Post
 ```
-Example:
+Example - Requesting `/node/getInfo`:
 ```sh
+curl -X "POST" "http://127.0.0.1:8000/req" \
+     -H 'Content-Type: application/x-www-form-urlencoded; charset=utf-8' \
+     -H 'Cookie: SWSId=15723926ac7a3b0d4659cb472ed3cab2' \
+     --data-urlencode "addr=http://{IP:PORT}/node/getInfo" \
+     --data-urlencode "method=post"
 ```
 
 Response:
 ```json
+{"discoveries":{"discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68":true},"transports":null,"app_feedbacks":null,"version":"0.1.0","tag":"dev","os":"linux"}
+```
+
+Example - Requesting `/node/getApps`:
+```sh
+curl -X "POST" "http://127.0.0.1:8888/req" \
+     -H 'Content-Type: application/x-www-form-urlencoded; charset=utf-8' \
+     -H 'Cookie: SWSId=15723926ac7a3b0d4659cb472ed3cab2' \
+     --data-urlencode "addr=http://{IP:PORT}/node/getApps" \
+     --data-urlencode "method=post"
+```
+
+Response:
+```json
+[{"key":"123e56823dc4b83472648172af3936618bca3663a52429fc32afc1870937830496","attributes":["sockss"],"allow_nodes":null}]
 ```
 
 ### Manager Term
@@ -337,8 +366,12 @@ Error Response:
 HTTP/1.1 500 Internal Server Error
 ```
 
-### Get Node
-Get detailed information from the manager about the specified Node. The Node key must be passed as a query string to the URI.
+### Get Node Information
+Get detailed information from the Manager about the specified Node. The Node key must be passed as a query string to the URI.
+
+Use the `/conn/getAll` to obtain a list of the connect Node keys, then use one of the returned Node Keys as input to this API request.
+
+Note: You must have already logged into the Manager using the `/login` API, and obtained a valid token from the `/token` API.
 
 #### Usage
 ```
