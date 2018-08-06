@@ -58,6 +58,7 @@ import { AppsSettingsComponent } from './components/pages/node/apps/apps-setting
 import { ClipboardService } from "./services/clipboard.service";
 import { ClipboardDirective } from "./directives";
 import { NumberInputMinValueComponent } from './components/layout/number-input-min-value/number-input-min-value.component';
+import { AppTranslationModule } from './app-translation.module';
 
 @NgModule({
   declarations: [
@@ -114,6 +115,7 @@ import { NumberInputMinValueComponent } from './components/layout/number-input-m
     ReactiveFormsModule,
     HttpClientModule,
     AppRoutingModule,
+    AppTranslationModule,
     MatSnackBarModule,
     MatDialogModule,
     MatFormFieldModule,
