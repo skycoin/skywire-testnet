@@ -27,6 +27,10 @@ export class AppsService {
     }, {type: 'form'});
   }
 
+  startSshServerWithoutWhitelist() {
+    return this.nodeService.nodeRequest('run/sshs');
+  }
+
   startSshClient(nodeKey: string, appKey: string) {
     return this.clientConnection.save('sshc', <ClientConnection>{
       label: '',

@@ -11,7 +11,7 @@ import {AutoStartConfig, Keypair} from "../../../../../app.datatypes";
 })
 export class StartupConfigComponent implements OnInit
 {
-  private validKeyPair: boolean = false;
+  private validKeyPair: boolean = true;
   private autoStartConfig: AutoStartConfig;
   protected hasKeyPair: boolean = true;
 

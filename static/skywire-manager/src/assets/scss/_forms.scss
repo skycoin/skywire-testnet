@@ -9,8 +9,13 @@
 
 }
 
-.startup-form
+.startup-form, .dialog-form
 {
+  .keypair-component, textarea, .mat-form-field
+  {
+    width: 100%;
+  }
+
   .mat-list-item
   {
     min-height: 48px;

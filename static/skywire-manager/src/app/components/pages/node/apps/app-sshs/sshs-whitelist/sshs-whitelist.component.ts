@@ -1,46 +1,59 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
-import { MAT_DIALOG_DATA } from '@angular/material';
+import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
+import {MAT_DIALOG_DATA, MatTableDataSource} from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
+import StringUtils from "../../../../../../utils/stringUtils";
+import {Node} from "../../../../../../app.datatypes";
 
 @Component({
   selector: 'app-sshs-whitelist',
   templateUrl: './sshs-whitelist.component.html',
-  styleUrls: ['./sshs-whitelist.component.css']
+  styleUrls: ['./sshs-whitelist.component.scss']
 })
 export class SshsWhitelistComponent implements OnInit {
   form: FormGroup;
-  whitelistedNodes: string[] = [];
+  displayedColumns = [ 'index', 'key' ];
+  dataSource = new MatTableDataSource<string>();
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
     private appsService: AppsService,
   ) {
-    this.whitelistedNodes = data.app.allow_nodes;
-  }
-
-  ngOnInit() {
     this.form = new FormGroup({
-      'keys': new FormControl('', [this.validateKeys]),
+      'keys': new FormControl('', [this.validateKeys.bind(this)]),
     });
+    this.dataSource.data = data.app.allow_nodes;
   }
 
-  save() {
-    if (this.form.valid) {
-      const keys = (this.form.get('keys').value as string).split(',');
-
-      this.appsService.startSshServer(keys).subscribe();
+  save()
+  {
+    if (this.form.valid)
+    {
+      this.appsService.startSshServer(this.keysValues()).subscribe();
     }
   }
 
-  private validateKeys(control: FormControl) {
-    const value: string = control.value;
-
-    const isInvalid = value
-      .split(',')
+  private validateKeys(control: FormControl)
+  {
+    const isInvalid = this.keysValues(control)
       .map(key => key.length === 66)
       .some(result => result === false);
 
-    return { invalid: isInvalid };
+    // Must return null if the form is correct
+    return isInvalid ? { invalid: isInvalid } : null;
+  }
+
+  private get keysInput(): AbstractControl
+  {
+    return this.form.get('keys');
+  }
+
+  private keysValues(control = this.keysInput): string[]
+  {
+    let value = StringUtils.removeWhitespaces((control.value as string));
+    return value.split(',').filter(key => key.length > 0);
+  }
+
+  ngOnInit(): void {
   }
 }

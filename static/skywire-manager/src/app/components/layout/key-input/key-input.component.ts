@@ -17,10 +17,13 @@ export class KeyInputComponent implements OnInit
 {
   @Output() inputCorrect = new EventEmitter<KeyInputEvent>();
   @Input() value: string;
+  @Input() required: boolean = true;
   @Input() placeholder: string;
-  private validator = new FormControl('', [PublicKeyValidator]);
+  validator: FormControl;
 
-  constructor() {}
+  constructor() {
+
+  }
 
   onInput($evt)
   {
@@ -34,6 +37,7 @@ export class KeyInputComponent implements OnInit
 
   ngOnInit()
   {
+    this.validator = new FormControl('', [PublicKeyValidator(this.required)]);
   }
 
 }

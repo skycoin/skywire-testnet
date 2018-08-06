@@ -14,6 +14,8 @@
 @import "assets/scss/chips";
 @import "assets/scss/tables";
 @import "assets/scss/forms";
+@import "assets/scss/backgrounds";
+@import "assets/scss/dialogs";
 @import '~@angular/material/theming';
 
 /***************************
@@ -36,6 +38,7 @@
 @import "~bootstrap/scss/utilities/text";
 @import "~bootstrap/scss/utilities/borders";
 @import "~bootstrap/scss/utilities/float";
+@import "~bootstrap/scss/utilities/spacing";
 
 
 /***************************
@@ -55,46 +58,6 @@ html, body
 
 button:focus {
   outline: 0;
-}
-
-.mat-app-background{
-  background: linear-gradient($blue, $blue-light) no-repeat fixed !important;
-}
-
-//
-// Containers
-//
-
-$elevated-containers-colors: (
-  translucid: map_get($theme-colors, translucid),
-  white:      map_get($theme-colors, white),
-);
-
-@each $color-name, $color-value in $elevated-containers-colors
-{
-  .container-elevated-#{$color-name}
-  {
-    @include mat-elevation(8);
-    border-radius: 16px;
-    padding: 15px 30px 15px 30px;
-    background-color: $color-value !important;
-  }
-}
-
-mat-dialog-container.mat-dialog-container {
-  border-radius: $radius;
-}
-
-//
-// Backgrounds
-//
-
-@each $color-name, $color-value in $theme-colors
-{
-  .sky-bg-#{$color-name}
-  {
-    background-color: $color-value !important;
-  }
 }
 
 //
