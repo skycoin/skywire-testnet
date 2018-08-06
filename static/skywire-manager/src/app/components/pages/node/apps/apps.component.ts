@@ -7,39 +7,23 @@ import { MatDialog } from '@angular/material';
 @Component({
   selector: 'app-apps',
   templateUrl: './apps.component.html',
-  styleUrls: ['./apps.component.css']
+  styleUrls: ['./apps.component.scss']
 })
 export class AppsComponent {
   @Input() node: Node;
   @Input() apps: NodeApp[] = [];
   @Input() nodeInfo: NodeInfo;
 
-  getApp(name: string) {
-    return this.apps.find(app => app.attributes.some(attr => attr === name));
+  getApp(name: string)
+  {
+    let app = null;
+    if (this.apps)
+    {
+      return this.apps.find(app => app.attributes.some(attr => attr === name));
+    }
+    return app;
   }
 }
-
-export class AppWrapper {
-  @Input() node: Node;
-  @Input() app: NodeApp|null;
-
-  get isRunning(): boolean {
-    return !!this.app;
-  }
-
-  constructor(
-    private _dialog: MatDialog,
-  ) { }
-
-  showLog() {
-    this._dialog.open(LogComponent, {
-      data: {
-        app: this.app,
-      },
-    });
-  }
-}
-
 export class AppAutoStartConfig {
   autoStartConfig: AutoStartConfig;
 

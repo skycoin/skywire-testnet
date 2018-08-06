@@ -4,23 +4,46 @@
 
 $node-top-bar-padding: 20px;
 
-.node-top-bar
+:host::ng-deep
 {
-  padding: $node-top-bar-padding 0 0 0;
-
-  .mat-icon
+  .mat-form-field
   {
-    margin-right: 5px;
+    width: 50px;
+    transition: width .4s cubic-bezier(.25,.8,.25,1);
+
+    &.mat-form-field-invalid
+    {
+      width: 180px;
+    }
   }
 
-  .input-refresh
+  .mat-form-field-underline
   {
-    text-align: center;
+    background-color: theme-color(translucid-white);
   }
 
-  .form-refresh
+  .mat-form-field-ripple
   {
-    max-width: 40px;
+    background-color: theme-color(translucid-white);
+  }
+
+  .mat-input-element {
+    caret-color: theme-color(translucid-white);
+  }
+
+  .node-top-bar
+  {
+    padding: $node-top-bar-padding 0 0 0;
+
+    .mat-icon
+    {
+      margin-right: 5px;
+    }
+
+    .input-refresh input
+    {
+      text-align: center;
+    }
   }
 }
 
@@ -43,50 +66,6 @@ $node-top-bar-padding: 20px;
   .mat-icon
   {
     margin-right: 10px;
-  }
-}
-
-.node-menu
-{
-  .mat-flat-button
-  {
-    width: 100%;
-  }
-
-  .mat-icon
-  {
-    margin-right: 15px;
-  }
-}
-
-.node-bottom-bar
-{
-  margin-top: 40px;
-
-  .mat-flat-button
-  {
-    line-height: 15px;
-  }
-
-  .btn-more, .dot-red
-  {
-    position: absolute;
-    right: -20px;
-  }
-
-  .btn-more
-  {
-    font-size: theme-font-size(lg);
-  }
-
-  .separator
-  {
-    height: 40px;
-  }
-
-  span
-  {
-    position: relative;
   }
 }
 

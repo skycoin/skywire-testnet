@@ -1,0 +1,34 @@
+<div [ngClass]="containerClass">
+  <span class="font-sm">
+    <button *ngIf="showMore"
+            [matMenuTriggerFor]="appMenu"
+            [disabled]="menuItems.length === 0"
+            matTooltip="Messages"
+            mat-icon-button
+            class="link btn-more">
+      <mat-icon> more_vert</mat-icon>
+      <i *ngIf="hasMessages" class="dot-red sm"></i>
+    </button>
+    {{ title }}
+  </span>
+  <button
+    [ngClass]="appBtn"
+    mat-icon-button
+    (click)="handleClick($event)">
+    <mat-icon>{{ icon }}</mat-icon>
+  </button>
+  <span *ngIf="subtitle" class="font-smaller">
+    {{ subtitle }}
+  </span>
+</div>
+<mat-menu
+  [overlapTrigger]="false"
+  #appMenu="matMenu">
+  <div *ngFor="let item of menuItems"
+       mat-menu-item
+       disabled="{{ !item.enabled }}"
+       (click)="item.enabled ? item.callback() : null">
+    {{ item.name }}
+  </div>
+</mat-menu>
+

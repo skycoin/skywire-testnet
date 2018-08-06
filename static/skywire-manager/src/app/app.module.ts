@@ -2,25 +2,38 @@ import { BrowserModule} from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
+import { AppComponent } from './app.component';
+import { AppRoutingModule } from './app-routing.module';
+import { LoginComponent } from './components/pages/login/login.component';
+import { NodeListComponent } from './components/pages/node-list/node-list.component';
+import { NodeComponent } from './components/pages/node/node.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { RelativeTimePipe } from './pipes/relative-time.pipe';
+import { FormsModule } from '@angular/forms';
 import {
-  ErrorStateMatcher, MAT_DIALOG_DEFAULT_OPTIONS,
-  MAT_SNACK_BAR_DEFAULT_OPTIONS, MatButtonModule, MatChipsModule, MatDialogModule,
-  MatFormFieldModule, MatIconModule, MatInputModule, MatMenuModule, MatSlideToggleModule,
-  MatSnackBarModule, MatTableModule, MatToolbarModule, MatTooltipModule,
+  MatToolbarModule,
+  MatTableModule,
+  MatButtonModule,
+  MatIconModule,
+  MatTooltipModule,
+  MatChipsModule,
+  MatMenuModule,
+  MatSnackBarModule,
+  MatSlideToggleModule,
+  MatListModule,
+  ErrorStateMatcher,
+  MAT_DIALOG_DEFAULT_OPTIONS,
+  MAT_SNACK_BAR_DEFAULT_OPTIONS,
+  MatDialogModule,
+  MatFormFieldModule,
+  MatInputModule,
   ShowOnDirtyErrorStateMatcher
-} from '@angular/material';
-
-import {AppComponent} from './app.component';
-import {AppRoutingModule} from './app-routing.module';
-import {LoginComponent} from './components/pages/login/login.component';
-import {NodeListComponent} from './components/pages/node-list/node-list.component';
-import {NodeComponent} from './components/pages/node/node.component';
-import {ReactiveFormsModule} from '@angular/forms';
-import {RelativeTimePipe} from './pipes/relative-time.pipe';
+}
+from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
-import { NodeTransportsList } from './components/components/node-transports-list/node-transports-list';
-import { NodeAppsListComponent } from './components/components/node-apps-list/node-apps-list.component';
-import { CopyToClipboardTextComponent } from './components/components/copy-to-clipboard-text/copy-to-clipboard-text.component';
+import { NodeTransportsList } from './components/pages/node/node-transports-list/node-transports-list';
+import { NodeAppsListComponent } from './components/pages/node/apps/node-apps-list/node-apps-list.component';
+import { CopyToClipboardTextComponent } from './components/layout/copy-to-clipboard-text/copy-to-clipboard-text.component';
 import { ActionsComponent } from './components/pages/node/actions/actions.component';
 import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
@@ -39,6 +52,12 @@ import { SockscConnectComponent } from './components/pages/node/apps/app-socksc/
 import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/socksc-startup/socksc-startup.component';
 import { SettingsComponent } from './components/pages/settings/settings.component';
 import { PasswordComponent } from './components/pages/settings/password/password.component';
+import { NodeAppButtonComponent } from './components/pages/node/apps/node-app-button/node-app-button.component';
+import { SshWarningDialogComponent } from './components/pages/node/actions/ssh-warning-dialog/ssh-warning-dialog.component';
+import { AppsSettingsComponent } from './components/pages/node/apps/apps-settings/apps-settings.component';
+import { ClipboardService } from "./services/clipboard.service";
+import { ClipboardDirective } from "./directives";
+import { NumberInputMinValueComponent } from './components/layout/number-input-min-value/number-input-min-value.component';
 
 @NgModule({
   declarations: [
@@ -68,10 +87,18 @@ import { PasswordComponent } from './components/pages/settings/password/password
     NodeAppsListComponent,
     CopyToClipboardTextComponent,
     SettingsComponent,
-    PasswordComponent
+    PasswordComponent,
+    NodeAppButtonComponent,
+    SshWarningDialogComponent,
+    AppsSettingsComponent,
+    ClipboardDirective,
+    NumberInputMinValueComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
+    TerminalComponent,
+    SshWarningDialogComponent,
+    AppsSettingsComponent,
     TerminalComponent,
     LogComponent,
     SshsStartupComponent,
@@ -100,10 +127,15 @@ import { PasswordComponent } from './components/pages/settings/password/password
     MatChipsModule,
     MatMenuModule,
     MatSnackBarModule,
-    MatIconModule
+    MatIconModule,
+    MatSlideToggleModule,
+    FormsModule,
+    MatListModule
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
+    ClipboardService,
+    {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500}},
     {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: {width: '600px', hasBackdrop: true}},
     {provide: ErrorStateMatcher, useClass: ShowOnDirtyErrorStateMatcher},
   ],

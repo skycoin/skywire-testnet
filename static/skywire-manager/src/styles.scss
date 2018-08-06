@@ -35,6 +35,7 @@
 @import "~bootstrap/scss/utilities/align";
 @import "~bootstrap/scss/utilities/text";
 @import "~bootstrap/scss/utilities/borders";
+@import "~bootstrap/scss/utilities/float";
 
 
 /***************************
@@ -106,4 +107,14 @@ hr
   border: 0;
   border-top: 1px solid theme-color(translucid-white);
   width: 100%;
+}
+
+//
+// Terminal
+//
+
+@import "~xterm/dist/xterm.css";
+
+#terminal-dialog {
+  padding: 0;
 }

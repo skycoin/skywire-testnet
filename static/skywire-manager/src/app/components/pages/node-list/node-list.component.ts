@@ -15,12 +15,13 @@ export class NodeListComponent implements OnDestroy {
   dataSource = new MatTableDataSource<Node>();
   displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'refresh'];
 
-
   constructor(
     private nodeService: NodeService,
     private router: Router
   ) {
-    this.subscription = nodeService.allNodes().subscribe(allNodes => {
+    this.subscription = nodeService.allNodes().subscribe(allNodes =>
+    {
+      this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes;
     });
   }
@@ -33,16 +34,58 @@ export class NodeListComponent implements OnDestroy {
     this.nodeService.refreshNodes();
   }
 
-  getLabel(key: string) {
-    return this.nodeService.getLabel(key);
+  getLabel(node: Node) {
+    return this.nodeService.getLabel(node);
   }
 
-  editLabel(value:string, key: string) {
-    this.nodeService.setLabel(key,value);
+  editLabel(value:string, node: Node) {
+    this.nodeService.setLabel(node, value);
   }
 
   viewNode(node) {
     console.log(node);
     this.router.navigate(['nodes', node.key]);
+  }
+
+  private fetchNodeInfo(key: string)
+  {
+    this.nodeService.node(key).subscribe(node =>
+      {
+        let dataCopy = [].concat(this.dataSource.data),
+            updateNode = dataCopy.find((node) => node.key === key);
+
+        if (updateNode)
+        {
+          updateNode.addr = node.addr;
+          this.refreshList(dataCopy)
+        }
+      },
+      () => this.router.navigate(['login']));
+  }
+
+  private refreshList(data: Node[])
+  {
+    this.dataSource.data = data;
+  }
+
+  /**
+   * A call to fetchNodeInfo is needed in order to obtain the node's IP from
+   * which we will get the default label.
+   *
+   * The the endpoint will only be called once for each node, as the labels are
+   * stored in the localStorage afterwards.
+   *
+   * @param {Node[]} allNodes
+   */
+  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void
+  {
+    allNodes.forEach((node) =>
+    {
+      let nodeLabel = this.nodeService.getLabel(node);
+      if (nodeLabel === null)
+      {
+        this.fetchNodeInfo(node.key);
+      }
+    });
   }
 }

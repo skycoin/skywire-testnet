@@ -15,7 +15,7 @@ export class AuthService {
     private router: Router,
   ) {
     this.checkLogin().subscribe(status => {
-      this.loggedIn.next(status);
+      this.loggedIn.next(!!status);
     });
   }
 
@@ -35,12 +35,12 @@ export class AuthService {
       );
   }
 
-  checkLogin(): Observable<boolean> {
+  checkLogin(): Observable<string|null> {
     return this.apiService.post('checkLogin', {}, {responseType: 'text'})
       .pipe(
         catchError(err => {
           if (err.error.includes('Unauthorized')) {
-            return of(false);
+            return of(null);
           }
 
           return throwError(err);

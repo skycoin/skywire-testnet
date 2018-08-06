@@ -1,0 +1,41 @@
+@import "../../../../../../assets/scss/variables";
+@import "../../../../../../assets/scss/utilities/theme";
+@import "../../../../../../../node_modules/bootstrap/scss/functions";
+
+:host ::ng-deep
+{
+  .active
+  {
+    color: theme-color(blue-dark) !important;
+  }
+}
+
+.mat-flat-button
+{
+  line-height: 15px;
+}
+
+.dot-red
+{
+  position: absolute;
+  right: 3px;
+  top: -3px;
+}
+
+.btn-more
+{
+  font-size: theme-font-size(lg);
+  position: absolute;
+  right: -30px;
+  top: -12px;
+}
+
+.separator
+{
+  height: 40px;
+}
+
+span
+{
+  position: relative;
+}
