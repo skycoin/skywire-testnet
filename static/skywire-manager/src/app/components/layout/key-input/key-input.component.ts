@@ -22,15 +22,23 @@ export class KeyInputComponent implements OnInit, AfterViewInit
   @Input() value: string;
   @Input() required: boolean = true;
   @Input() placeholder: string;
+  @Input() autofocus: boolean = false;
   validator: FormControl;
 
-  constructor() {}
+  constructor()
+  {
+    console.log(`${this.autofocus}`);
+  }
 
   @ViewChild(MatInput) keyInput: MatInput;
 
   ngAfterViewInit()
   {
-    this.keyInput.focus();
+    console.log('2');
+    if (this.autofocus)
+    {
+      this.keyInput.focus();
+    }
   }
 
   onInput($evt)
@@ -55,6 +63,7 @@ export class KeyInputComponent implements OnInit, AfterViewInit
 
   ngOnInit()
   {
+    console.log(`2 - ${this.autofocus}`);
     this.validator = new FormControl('', [PublicKeyValidator(this.required)]);
   }
 

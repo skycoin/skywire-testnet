@@ -1,4 +1,5 @@
 <app-key-input
+  [autofocus]=autofocus
   *ngIf="editMode"
   value="{{value}}"
   (blur)="onAppKeyBlurred($event)"

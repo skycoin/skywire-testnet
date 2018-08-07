@@ -9,6 +9,7 @@ import {KeyInputEvent} from "../key-input/key-input.component";
 })
 export class EditableKeyComponent implements OnInit {
   @Input() value: string;
+  @Input() autofocus: boolean = false;
   @Output() onValueEdited = new EventEmitter<string>();
   editMode: boolean = false;
 
