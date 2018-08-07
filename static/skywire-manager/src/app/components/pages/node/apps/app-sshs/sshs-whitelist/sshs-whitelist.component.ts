@@ -1,5 +1,5 @@
-import {Component, Inject, OnChanges, OnInit, SimpleChanges, ViewChild} from '@angular/core';
-import {MAT_DIALOG_DATA, MatInput, MatTableDataSource} from '@angular/material';
+import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {MAT_DIALOG_DATA, MatTableDataSource} from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
 import {KeyInputComponent, KeyInputEvent} from "../../../../../layout/key-input/key-input.component";
 
@@ -8,7 +8,7 @@ import {KeyInputComponent, KeyInputEvent} from "../../../../../layout/key-input/
   templateUrl: './sshs-whitelist.component.html',
   styleUrls: ['./sshs-whitelist.component.scss']
 })
-export class SshsWhitelistComponent implements OnInit, OnChanges
+export class SshsWhitelistComponent implements OnInit
 {
   displayedColumns = [ 'index', 'key', 'remove' ];
   dataSource = new MatTableDataSource<string>();
@@ -72,10 +72,5 @@ export class SshsWhitelistComponent implements OnInit, OnChanges
   {
     this.dataSource.data = keys;
     this.save();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void
-  {
-    this.updateKeys()
   }
 }

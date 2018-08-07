@@ -1,0 +1,12 @@
+<app-domain-input
+  [autofocus]=autofocus
+  *ngIf="editMode"
+  value="{{value}}"
+  (blur)="onAppKeyBlurred($event)"
+  (onKeyChange)="onAppKeyChanged($event)">
+</app-domain-input>
+<span
+  (click)="onKeyClicked($event)"
+  *ngIf="!editMode">
+  {{ value }}
+</span>

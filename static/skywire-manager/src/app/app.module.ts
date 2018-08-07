@@ -62,6 +62,9 @@ import { StartupConfigComponent } from './components/pages/node/apps/startup-con
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
 import {EditableKeyComponent} from "./components/layout/editable-key/editable-key.component";
+import {DiscoveryAddressInputComponent} from "./components/layout/discovery-address-input/discovery-address-input.component";
+import {DomainInputComponent} from "./components/layout/domain-input/domain-input.component";
+import {ValidationInputComponent} from "./components/layout/validation-input/validation-input.component";
 
 @NgModule({
   declarations: [
@@ -99,7 +102,10 @@ import {EditableKeyComponent} from "./components/layout/editable-key/editable-ke
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
-    EditableKeyComponent
+    EditableKeyComponent,
+    DiscoveryAddressInputComponent,
+    DomainInputComponent,
+    ValidationInputComponent
   ],
   entryComponents: [
     ConfigurationComponent,

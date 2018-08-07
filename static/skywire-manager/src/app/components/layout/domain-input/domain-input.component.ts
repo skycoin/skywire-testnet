@@ -13,7 +13,7 @@ export class DomainInputComponent
   ]);
 
   getErrorMessage() {
-    return this.validator.hasError('required') ? 'Domain cannot be empty' : '';
+    return this.validator.hasError('required') ? 'Domain is required' : '';
   }
 
   ngOnInit()

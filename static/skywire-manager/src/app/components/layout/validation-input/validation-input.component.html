@@ -1,4 +1,5 @@
 <mat-form-field>
   <input (input)="onInput($event)" matInput placeholder="{{placeHolder}}" [formControl]="validator" required>
   <mat-error *ngIf="validator.invalid">{{getErrorMessage()}}</mat-error>
+  <mat-hint *ngIf="hint">{{hint}}</mat-hint>
 </mat-form-field>

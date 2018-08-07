@@ -15,6 +15,7 @@ export class ValidationInputComponent implements OnInit
   @ViewChild(MatInput) inputElement: MatInput;
   @Input() value: number;
   @Input() placeHolder: string;
+  @Input() hint: string;
   @Input() validator: FormControl;
   @Input() getErrorMessage: () => string;
 

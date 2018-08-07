@@ -9,6 +9,7 @@
     <th mat-header-cell *matHeaderCellDef>Node key</th>
     <td mat-cell *matCellDef="let key; let i=index;">
       <app-editable-key
+        [autofocus]=true
         matTooltip="Click to edit"
         (onValueEdited)="onKeyAtPositionChanged(i, $event)"
         value="{{ key }}">

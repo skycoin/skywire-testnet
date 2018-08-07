@@ -1,4 +1,4 @@
-<mat-dialog-content>
+<!--<mat-dialog-content>
   <form [formGroup]="form">
     <mat-form-field>
       <textarea matInput formControlName="addresses" rows="5"
@@ -26,4 +26,6 @@
 
 <mat-dialog-actions>
   <button (click)="save()" [disabled]="!form.valid">save config and restart node</button>
-</mat-dialog-actions>
+</mat-dialog-actions>-->
+
+<app-discovery-address-input></app-discovery-address-input>
