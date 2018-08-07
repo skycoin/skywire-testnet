@@ -61,6 +61,7 @@ import { NumberInputMinValueComponent } from './components/layout/number-input-m
 import { StartupConfigComponent } from './components/pages/node/apps/startup-config/startup-config.component';
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
+import {EditableKeyComponent} from "./components/layout/editable-key/editable-key.component";
 
 @NgModule({
   declarations: [
@@ -98,6 +99,7 @@ import { AppTranslationModule } from './app-translation.module';
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
+    EditableKeyComponent
   ],
   entryComponents: [
     ConfigurationComponent,

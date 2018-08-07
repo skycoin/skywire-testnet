@@ -5,18 +5,21 @@ function isValidPublicKey(value: string, required: boolean)
 {
   console.log('2');
 
-  if (required || value.length > 0)
+  if (value)
   {
-    const isEmpty = StringUtils.removeWhitespaces(value).length === 0,
-      isValid = (value as string).length === 66;
+    if (required || value.length > 0)
+    {
+      const isEmpty = StringUtils.removeWhitespaces(value).length === 0,
+        isValid = (value as string).length === 66;
 
-    if (isEmpty)
-    {
-      return { required: true }
-    }
-    else if (!isValid)
-    {
-      return { invalid: true }
+      if (isEmpty)
+      {
+        return { required: true }
+      }
+      else if (!isValid)
+      {
+        return { invalid: true }
+      }
     }
   }
   return null;

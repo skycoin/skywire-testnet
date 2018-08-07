@@ -1,23 +1,34 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import {MAT_DIALOG_DATA, MatTableDataSource} from '@angular/material';
+import {Component, Inject, OnChanges, OnInit, SimpleChanges, ViewChild} from '@angular/core';
+import {MAT_DIALOG_DATA, MatInput, MatTableDataSource} from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
-import {KeyInputEvent} from "../../../../../layout/key-input/key-input.component";
+import {KeyInputComponent, KeyInputEvent} from "../../../../../layout/key-input/key-input.component";
 
 @Component({
   selector: 'app-sshs-whitelist',
   templateUrl: './sshs-whitelist.component.html',
   styleUrls: ['./sshs-whitelist.component.scss']
 })
-export class SshsWhitelistComponent implements OnInit {
-  displayedColumns = [ 'index', 'key' ];
+export class SshsWhitelistComponent implements OnInit, OnChanges
+{
+  displayedColumns = [ 'index', 'key', 'remove' ];
   dataSource = new MatTableDataSource<string>();
   private keyToAdd: string;
+
+  @ViewChild(KeyInputComponent) newKeyInput: KeyInputComponent;
+
+  onKeyAtPositionChanged(position: number, keyValue: string)
+  {
+    let dataCopy = this.keysValues();
+    dataCopy[position] = keyValue;
+    this.dataSource.data = dataCopy;
+    this.save();
+  }
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
     private appsService: AppsService,
   ) {
-    this.dataSource.data = data.app.allow_nodes || [];
+    this.updateKeys(data.app.allow_nodes || []);
   }
 
   save()
@@ -37,8 +48,9 @@ export class SshsWhitelistComponent implements OnInit {
   {
     let dataCopy = this.keysValues();
     dataCopy.push(this.keyToAdd);
+    this.updateKeys(dataCopy);
 
-    this.dataSource.data = dataCopy;
+    this.newKeyInput.clear();
   }
 
   onKeyChange({value, valid}: KeyInputEvent)
@@ -47,5 +59,23 @@ export class SshsWhitelistComponent implements OnInit {
     {
       this.keyToAdd = value;
     }
+  }
+
+  removeKey(position)
+  {
+    let keys = this.keysValues();
+    keys.splice(position, 1);
+    this.updateKeys(keys);
+  }
+
+  private updateKeys(keys: string[])
+  {
+    this.dataSource.data = keys;
+    this.save();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void
+  {
+    this.updateKeys()
   }
 }
