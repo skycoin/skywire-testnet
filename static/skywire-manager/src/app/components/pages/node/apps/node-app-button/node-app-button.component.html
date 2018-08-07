@@ -6,7 +6,7 @@
             mat-icon-button
             class="link btn-more">
       <mat-icon> more_vert</mat-icon>
-      <i *ngIf="hasMessages" class="dot-red sm"></i>
+      <i *ngIf="isRunning && hasMessages" class="dot-red sm"></i>
     </button>
     {{ title }}
   </span>
@@ -16,11 +16,11 @@
     (click)="onAppClicked($event)">
     <mat-icon>{{ icon }}</mat-icon>
   </button>
-  <span *ngIf="subtitle" class="app-button-port font-smaller">
+  <span *ngIf="isRunning && subtitle" class="app-button-port font-smaller">
     {{ subtitle }}
   </span>
   <div
-    *ngIf="appFeedback?.failed"
+    *ngIf="isRunning && appFeedback?.failed"
     disabled
     matTooltip="There's been some problem in the app. Check the app's messages for more information."
     class="ic-app-failed link md">
