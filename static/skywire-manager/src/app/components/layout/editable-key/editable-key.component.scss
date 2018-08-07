@@ -1,0 +1,14 @@
+:host.editable-key-container
+{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+:host::ng-deep
+{
+  .key-input-container, .mat-form-field
+  {
+    width: 100%;
+  }
+}

@@ -1,12 +1,12 @@
 <div class="keypair-container">
   <app-key-input
     value="{{keypair ? keypair.nodeKey : null}}"
-    (inputCorrect)="onNodeValueChanged($event)"
+    (onKeyChange)="onNodeValueChanged($event)"
     placeholder="Node Key"></app-key-input>
 
   <app-key-input
     value="{{keypair ? keypair.appKey : null}}"
-    (inputCorrect)="onAppValueChanged($event)"
+    (onKeyChange)="onAppValueChanged($event)"
     style="margin-top: 15px;"
     placeholder="App Key"></app-key-input>
 </div>

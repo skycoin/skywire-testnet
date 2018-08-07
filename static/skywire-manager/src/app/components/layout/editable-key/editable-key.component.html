@@ -1,0 +1,11 @@
+<app-key-input
+  *ngIf="editMode"
+  value="{{value}}"
+  (blur)="onAppKeyBlurred($event)"
+  (onKeyChange)="onAppKeyChanged($event)">
+</app-key-input>
+<span
+  (click)="onKeyClicked($event)"
+  *ngIf="!editMode">
+  {{ value }}
+</span>
