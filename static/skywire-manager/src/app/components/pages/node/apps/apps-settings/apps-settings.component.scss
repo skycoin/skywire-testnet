@@ -1,6 +1,6 @@
-@import "../../../../../../assets/scss/variables";
-@import "../../../../../../assets/scss/utilities/theme";
-@import "../../../../../../assets/scss/text";
+@import "variables";
+@import "utilities/theme";
+@import "text";
 @import "~bootstrap/scss/functions";
 
 :host::ng-deep
