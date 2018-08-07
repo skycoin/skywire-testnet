@@ -48,6 +48,11 @@ export class KeyInputComponent implements OnInit, AfterViewInit
     this.blur.emit();
   }
 
+  clear()
+  {
+    this.keyInput.value = null;
+  }
+
   ngOnInit()
   {
     this.validator = new FormControl('', [PublicKeyValidator(this.required)]);

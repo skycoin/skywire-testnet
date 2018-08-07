@@ -24,7 +24,6 @@ export class EditableKeyComponent implements OnInit {
     if (valid)
     {
       this.value = value;
-      this.onValueEdited.emit(this.value);
     }
   }
 
@@ -36,6 +35,7 @@ export class EditableKeyComponent implements OnInit {
   onAppKeyBlurred($event)
   {
     this.toggleEditMode();
+    this.onValueEdited.emit(this.value);
   }
 
   private toggleEditMode()
