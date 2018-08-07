@@ -50,7 +50,7 @@ export class KeyInputComponent implements OnInit, AfterViewInit
 
   clear()
   {
-    this.keyInput.value = null;
+    this.value = "";
   }
 
   ngOnInit()
