@@ -45,6 +45,10 @@ export class AuthService {
       );
   }
 
+  authToken(): Observable<string> {
+    return this.apiService.post('checkLogin', {}, {responseType: 'text'});
+  }
+
   changePassword(oldPass: string, newPass: string): Observable<boolean> {
     return this.apiService.post('updatePass', {oldPass, newPass}, {type: 'form', responseType: 'text'})
       .pipe(map(result => {

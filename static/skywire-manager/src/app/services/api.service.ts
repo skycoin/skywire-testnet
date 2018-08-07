@@ -29,8 +29,7 @@ export class ApiService {
   }
 
   private request(request) {
-    return request
-      .pipe(catchError(error => this.errorHandler(error)));
+    return request.pipe(catchError(error => this.errorHandler(error)));
   }
 
   private getRequestOptions(options: any) {
