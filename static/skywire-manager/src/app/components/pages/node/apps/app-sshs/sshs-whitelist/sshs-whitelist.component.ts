@@ -1,46 +1,51 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
-import { MAT_DIALOG_DATA } from '@angular/material';
+import {MAT_DIALOG_DATA, MatTableDataSource} from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
+import {KeyInputEvent} from "../../../../../layout/key-input/key-input.component";
 
 @Component({
   selector: 'app-sshs-whitelist',
   templateUrl: './sshs-whitelist.component.html',
-  styleUrls: ['./sshs-whitelist.component.css']
+  styleUrls: ['./sshs-whitelist.component.scss']
 })
 export class SshsWhitelistComponent implements OnInit {
-  form: FormGroup;
-  whitelistedNodes: string[] = [];
+  displayedColumns = [ 'index', 'key' ];
+  dataSource = new MatTableDataSource<string>();
+  private keyToAdd: string;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
     private appsService: AppsService,
   ) {
-    this.whitelistedNodes = data.app.allow_nodes;
+    this.dataSource.data = data.app.allow_nodes || [];
   }
 
-  ngOnInit() {
-    this.form = new FormGroup({
-      'keys': new FormControl('', [this.validateKeys]),
-    });
+  save()
+  {
+    this.appsService.startSshServer(this.keysValues()).subscribe();
   }
 
-  save() {
-    if (this.form.valid) {
-      const keys = (this.form.get('keys').value as string).split(',');
+  private keysValues(): string[]
+  {
+    return this.dataSource.data.concat([]);
+  }
 
-      this.appsService.startSshServer(keys).subscribe();
+  ngOnInit(): void {
+  }
+
+  addNodeKey()
+  {
+    let dataCopy = this.keysValues();
+    dataCopy.push(this.keyToAdd);
+
+    this.dataSource.data = dataCopy;
+  }
+
+  onKeyChange({value, valid}: KeyInputEvent)
+  {
+    if (valid)
+    {
+      this.keyToAdd = value;
     }
-  }
-
-  private validateKeys(control: FormControl) {
-    const value: string = control.value;
-
-    const isInvalid = value
-      .split(',')
-      .map(key => key.length === 66)
-      .some(result => result === false);
-
-    return { invalid: isInvalid };
   }
 }

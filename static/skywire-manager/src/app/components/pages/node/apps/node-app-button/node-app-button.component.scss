@@ -1,12 +1,40 @@
-@import "../../../../../../assets/scss/variables";
-@import "../../../../../../assets/scss/utilities/theme";
-@import "../../../../../../../node_modules/bootstrap/scss/functions";
+@import "variables";
+@import "utilities/theme";
+@import "backgrounds";
+@import "~bootstrap/scss/functions";
+
+.mat-dialog-container
+{
+  @extend .container-elevated-translucid;
+  overflow: hidden !important;
+  border-radius: 5px !important;
+  padding: 5px !important;
+}
 
 :host ::ng-deep
 {
-  .active
+  position: relative;
+  .active .app-icon
   {
     color: theme-color(blue-dark) !important;
+  }
+
+  .ic-app-failed, .app-button-port
+  {
+    position: absolute !important;
+    text-align: center;
+    top: 60px;
+    width: 150px;
+  }
+
+  .ic-app-failed
+  {
+    display: flex;
+    justify-content: center;
+    color: theme-color(red);
+    text-shadow: 0 1px 1px #ddd;
+    font-size: theme-font-size(md);
+    font-weight: $font-weight-normal !important;
   }
 }
 

@@ -1,20 +1,20 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SockscStartupComponent } from './socksc-startup.component';
+import { KeyInputComponent } from './key-input.component';
 
-describe('SockscStartupComponent', () => {
-  let component: SockscStartupComponent;
-  let fixture: ComponentFixture<SockscStartupComponent>;
+describe('KeyInputComponent', () => {
+  let component: KeyInputComponent;
+  let fixture: ComponentFixture<KeyInputComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ SockscStartupComponent ]
+      declarations: [ KeyInputComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(SockscStartupComponent);
+    fixture = TestBed.createComponent(KeyInputComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

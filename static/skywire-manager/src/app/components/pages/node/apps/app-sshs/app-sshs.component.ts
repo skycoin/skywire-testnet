@@ -1,9 +1,7 @@
-import { Component } from '@angular/core';
-import { AppsService } from '../../../../../services/apps.service';
-import { MatDialog } from '@angular/material';
+import {Component} from '@angular/core';
 import { SshsStartupComponent } from './sshs-startup/sshs-startup.component';
 import { SshsWhitelistComponent } from './sshs-whitelist/sshs-whitelist.component';
-import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
+import {NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
 
 @Component({
   selector: 'app-app-sshs',
@@ -15,13 +13,24 @@ export class AppSshsComponent extends NodeAppButtonComponent
   protected title="SSH";
   protected icon="laptop";
 
-  constructor(
-    private appsService: AppsService,
-    private dialog: MatDialog,
-  ) {
-    super(dialog);
+  showStartupConfig()
+  {
+    this.dialog.open(SshsStartupComponent);
+  }
 
-    this.menuItems = [{
+  showWhitelist()
+  {
+    this.dialog.open(SshsWhitelistComponent, {
+      data: {
+        node: this.app,
+        app: this.app,
+      },
+    });
+  }
+
+  getMenuItems()
+  {
+    return [{
       name: 'Startup config',
       callback: this.showStartupConfig.bind(this),
       enabled: true
@@ -36,20 +45,8 @@ export class AppSshsComponent extends NodeAppButtonComponent
     }];
   }
 
-  start() {
-    this.appsService.startSshServer().subscribe()
-  }
-
-  showStartupConfig() {
-    this.dialog.open(SshsStartupComponent);
-  }
-
-  showWhitelist() {
-    this.dialog.open(SshsWhitelistComponent, {
-      data: {
-        node: this.app,
-        app: this.app,
-      },
-    });
+  startApp(): void
+  {
+    this.appsService.startSshServerWithoutWhitelist().subscribe()
   }
 }

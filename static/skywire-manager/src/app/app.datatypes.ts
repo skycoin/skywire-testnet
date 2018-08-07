@@ -23,6 +23,12 @@ export interface NodeInfo {
   version: string;
 }
 
+export interface NodeData {
+  node: Node;
+  info: NodeInfo;
+  apps: NodeApp[];
+}
+
 export interface NodeDiscovery {
   [key: string]: boolean;
 }

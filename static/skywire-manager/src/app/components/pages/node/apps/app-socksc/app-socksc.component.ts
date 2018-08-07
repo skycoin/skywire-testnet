@@ -22,21 +22,9 @@ export class AppSockscComponent extends NodeAppButtonComponent
     return Object.keys(this.nodeInfo.discoveries).map(disc => disc.split('-')[1]);
   }
 
-  constructor(
-    private appsService: AppsService,
-    private dialog: MatDialog,
-  ) {
-    super(dialog);
-
-    this.menuItems = [{
-      name: 'Startup config',
-      callback: this.showStartupConfig.bind(this),
-      enabled: true
-    }, {
-      name: 'Messages',
-      callback: this.showLog.bind(this),
-      enabled: this.isRunning
-    }];
+  startApp(): void
+  {
+    this.connect();
   }
 
   connect() {
@@ -47,8 +35,10 @@ export class AppSockscComponent extends NodeAppButtonComponent
         },
       })
       .afterClosed()
-      .subscribe((keypair: Keypair) => {
-        if (keypair) {
+      .subscribe((keypair: Keypair) =>
+      {
+        if (keypair)
+        {
           this.appsService.startSocksc(keypair.nodeKey, keypair.appKey).subscribe();
         }
       });
@@ -56,5 +46,18 @@ export class AppSockscComponent extends NodeAppButtonComponent
 
   showStartupConfig() {
     this.dialog.open(SockscStartupComponent);
+  }
+
+  protected getMenuItems(): MenuItem[]
+  {
+    return [{
+      name: 'Startup config',
+      callback: this.showStartupConfig.bind(this),
+      enabled: true
+    }, {
+      name: 'Messages',
+      callback: this.showLog.bind(this),
+      enabled: this.isRunning
+    }];
   }
 }

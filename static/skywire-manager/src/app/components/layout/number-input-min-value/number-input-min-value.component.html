@@ -2,16 +2,16 @@
   <mat-form-field>
     <input
       matInput
-      [formControl]="refreshSecondsFormControl"
+      [formControl]="validator"
       [errorStateMatcher]="matcher"
       min="1"
       value="{{ value }}"
       (input)="onInput($event)"
       type="number">
-    <mat-error *ngIf="refreshSecondsFormControl.hasError('min') && !refreshSecondsFormControl.hasError('required')">
+    <mat-error *ngIf="validator.hasError('min') && !validator.hasError('required')">
       {{ minError }}
     </mat-error>
-    <mat-error *ngIf="refreshSecondsFormControl.hasError('required')">
+    <mat-error *ngIf="validator.hasError('required')">
       {{ requiredError }}
     </mat-error>
   </mat-form-field>

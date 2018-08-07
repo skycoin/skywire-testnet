@@ -1,49 +1,41 @@
 import { Injectable } from '@angular/core';
 
+const KEY_REFRESH_SECONDS: string = 'KEY_REFRESH_SECONDS';
+
 @Injectable({
   providedIn: 'root'
 })
-export class StorageService implements Storage
+export class StorageService
 {
   private storage: Storage;
 
-  constructor(private namespace: string)
+  constructor()
   {
     this.storage = localStorage;
   }
 
-  static getNamedStorage(namespace: string): Storage
+  private static nodeLabelNamespace(nodeKey: string): string
   {
-    return new StorageService(namespace);
+    return `${nodeKey}-label`;
   }
 
-  [key: string]: any;
-
-  readonly length: number;
-
-  private namespacedKey(key: string)
+  public setNodeLabel(nodeKey: string, nodeLabel: string): void
   {
-    return `${this.namespace}-${key}`;
+    this.storage.setItem(StorageService.nodeLabelNamespace(nodeKey), nodeLabel);
   }
 
-  clear(): void
+  public getNodeLabel(nodeKey: string): string
   {
-    return this.storage.clear();
+    return this.storage.getItem(StorageService.nodeLabelNamespace(nodeKey));
   }
 
-  getItem(key: string): string | null {
-    return this.storage.getItem(this.namespacedKey(key));
+  setRefreshTime(seconds: number)
+  {
+    this.storage.setItem(KEY_REFRESH_SECONDS, seconds.toString());
   }
 
-  key(index: number): string | null {
-    return this.storage.key(index);
-  }
-
-  removeItem(key: string): void {
-    this.storage.removeItem(this.namespacedKey(key))
-  }
-
-  setItem(key: string, value: string): void {
-    this.storage.setItem(this.namespacedKey(key), value);
+  getRefreshTime(): number
+  {
+    return parseInt(this.storage.getItem(KEY_REFRESH_SECONDS));
   }
 }

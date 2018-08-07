@@ -16,24 +16,8 @@ export class AppSshcComponent extends NodeAppButtonComponent
   title="SSH Client";
   icon="laptop";
 
-  constructor(
-    private appsService: AppsService,
-    private dialog: MatDialog,
-  ) {
-    super(dialog);
-
-    this.menuItems = [{
-      name: 'Startup config',
-      callback: this.showStartupConfig.bind(this),
-      enabled: true
-    }, {
-      name: 'Messages',
-      callback: this.showLog.bind(this),
-      enabled: this.isRunning
-    }];
-  }
-
-  start() {
+  startApp(): void
+  {
     this.dialog.open(SshcKeysComponent).afterClosed().subscribe((keypair: Keypair) => {
       if (keypair) {
         this.appsService.startSshClient(keypair.nodeKey, keypair.appKey).subscribe();
@@ -43,5 +27,18 @@ export class AppSshcComponent extends NodeAppButtonComponent
 
   showStartupConfig() {
     this.dialog.open(SshcStartupComponent);
+  }
+
+  protected getMenuItems(): MenuItem[]
+  {
+    return [{
+      name: 'Startup config',
+      callback: this.showStartupConfig.bind(this),
+      enabled: true
+    }, {
+      name: 'Messages',
+      callback: this.showLog.bind(this),
+      enabled: this.isRunning
+    }];
   }
 }

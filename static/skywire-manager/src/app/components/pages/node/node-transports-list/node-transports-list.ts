@@ -1,4 +1,4 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, Input, OnChanges, OnInit, SimpleChanges} from '@angular/core';
 import {Node, NodeTransport} from "../../../../app.datatypes";
 import {MatTableDataSource} from "@angular/material";
 
@@ -7,7 +7,7 @@ import {MatTableDataSource} from "@angular/material";
   templateUrl: './node-transports-list.html',
   styleUrls: ['./node-transports-list.scss']
 })
-export class NodeTransportsList implements OnInit
+export class NodeTransportsList implements OnChanges
 {
   displayedColumns: string[] = ['index', 'upload_total', 'download_total', 'from_node', 'from_app', 'to_node', 'to_app'];
   dataSource = new MatTableDataSource<NodeTransport>();
@@ -17,9 +17,8 @@ export class NodeTransportsList implements OnInit
     this.dataSource = new MatTableDataSource<NodeTransport>();
   }
 
-  ngOnInit()
+  ngOnChanges(changes: SimpleChanges): void
   {
     this.dataSource.data = this.connections;
   }
-
 }

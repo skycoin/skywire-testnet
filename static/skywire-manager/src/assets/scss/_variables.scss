@@ -27,9 +27,11 @@ $theme-colors: (
   translucid:         rgba(32, 34, 38, .44),
   translucid-hover:   rgba(0, 0, 0, 0.1),
   translucid-white:   rgba(255, 255, 255, .44),
+  translucid-dark:    rgba(21, 75, 108, .91),
   white:              $white,
   white-hover:        darken($white, 5%),
-  light-gray:         $light-gray
+  light-gray:         $light-gray,
+  yellow:             #CAB862
 );
 
 //
