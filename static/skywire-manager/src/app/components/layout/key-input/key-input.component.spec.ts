@@ -1,20 +1,20 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SshcStartupComponent } from './sshc-startup.component';
+import { KeyInputComponent } from './key-input.component';
 
-describe('SshcStartupComponent', () => {
-  let component: SshcStartupComponent;
-  let fixture: ComponentFixture<SshcStartupComponent>;
+describe('KeyInputComponent', () => {
+  let component: KeyInputComponent;
+  let fixture: ComponentFixture<KeyInputComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ SshcStartupComponent ]
+      declarations: [ KeyInputComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(SshcStartupComponent);
+    fixture = TestBed.createComponent(KeyInputComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

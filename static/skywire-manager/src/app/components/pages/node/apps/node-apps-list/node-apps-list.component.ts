@@ -1,22 +1,32 @@
-import {Component, Input, OnDestroy, OnInit} from '@angular/core';
+import {Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges} from '@angular/core';
 import {NodeApp, NodeTransport} from "../../../../../app.datatypes";
 import {MatTableDataSource} from "@angular/material";
+import {AppsService} from "../../../../../services/apps.service";
 
 @Component({
-  selector: 'node-app-keys-list',
+  selector: 'node-app-list',
   templateUrl: './node-apps-list.component.html',
   styleUrls: ['./node-apps-list.component.scss']
 })
-export class NodeAppsListComponent implements OnInit
+export class NodeAppsListComponent implements OnChanges
 {
   displayedColumns: string[] = ['index', 'key', 'type'];
   dataSource = new MatTableDataSource<NodeApp>();
   @Input() apps: NodeApp[] = [];
 
-  constructor() { }
+  constructor(private appsService: AppsService) { }
 
-  ngOnInit()
+  ngOnChanges(changes: SimpleChanges): void
   {
+    if (this.apps)
+    {
+      this.apps.sort((app1: NodeApp, app2: NodeApp) => app1.key.localeCompare(app2.key));
+    }
     this.dataSource.data = this.apps;
+  }
+
+  onCloseAppClicked(appName: string): void
+  {
+    this.appsService.closeApp(appName).subscribe();
   }
 }

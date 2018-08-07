@@ -5,7 +5,8 @@
 $tables-colors: (
   // Background, background:hover, font color
   white: (theme-color(white), theme-color(white-hover), theme-color(black)),
-  translucid: (transparent, theme-color(translucid-hover), theme-color(white))
+  translucid: (transparent, theme-color(translucid-hover), theme-color(white)),
+  abs-white: (white, theme-color(white-hover), theme-color(black))
 );
 
 @each $name, $colors in $tables-colors
@@ -61,13 +62,16 @@ $tables-colors: (
 
     &.selectable
     {
-      tr.mat-row
+      tbody
       {
-        cursor: pointer;
-
-        &:hover
+        tr
         {
-          background: nth($colors, 2) !important;
+          cursor: pointer;
+
+          &:hover
+          {
+            background: nth($colors, 2) !important;
+          }
         }
       }
     }

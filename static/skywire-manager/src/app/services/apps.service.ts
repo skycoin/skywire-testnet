@@ -14,7 +14,7 @@ export class AppsService {
   ) { }
 
   closeApp(key: string) {
-    return this.nodeService.nodeRequest('run/closeApp');
+    return this.nodeService.nodeRequest('run/closeApp', {key}, {type: 'form'});
   }
 
   getLogMessages(key: string) {
@@ -25,6 +25,10 @@ export class AppsService {
     return this.nodeService.nodeRequest('run/sshs', {
       data: whitelistedKeys ? whitelistedKeys.join(',') : null,
     }, {type: 'form'});
+  }
+
+  startSshServerWithoutWhitelist() {
+    return this.nodeService.nodeRequest('run/sshs');
   }
 
   startSshClient(nodeKey: string, appKey: string) {

@@ -5,6 +5,7 @@ import { ApiService } from './api.service';
 import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
 import {StorageService} from "./storage.service";
 import {Subscription} from "rxjs/internal/Subscription";
+import {Observer} from "rxjs/internal/types";
 
 @Injectable({
   providedIn: 'root'
@@ -15,13 +16,11 @@ export class NodeService {
   private refreshNodeObservable: Observable<Node>;
   private refresNodeTimerSubscription: Subscription;
   private currentNode: Node;
-  private storageService: Storage;
 
   constructor(
-    private apiService: ApiService
-  ) {
-    this.storageService = StorageService.getNamedStorage('nodeLabel')
-  }
+    private apiService: ApiService,
+    private storageService: StorageService
+  ) {}
 
   allNodes(): Observable<Node[]> {
     this.refreshNodes();
@@ -51,7 +50,7 @@ export class NodeService {
    */
   getLabel(node: Node): string | null
   {
-    let nodeLabel = this.storageService.getItem(node.key);
+    let nodeLabel = this.storageService.getNodeLabel(node.key);
     if (nodeLabel === null)
     {
       nodeLabel = NodeService.getDefaultNodeLabel(node);
@@ -65,7 +64,7 @@ export class NodeService {
   }
 
   setLabel(node: Node, label: string) {
-    this.storageService.setItem(node.key, label);
+    this.storageService.setNodeLabel(node.key, label);
   }
 
   node(key: string): Observable<Node> {
@@ -76,9 +75,19 @@ export class NodeService {
   {
     const refreshMillis = refreshSeconds * 1000;
 
-    this.refreshNodeObservable = Observable.create((observer) =>
+    if (this.refresNodeTimerSubscription)
     {
-      timer(0, refreshMillis).subscribe(() => this.node(key).subscribe((node) => observer.next(node)));
+      this.refresNodeTimerSubscription.unsubscribe();
+    }
+
+    this.refreshNodeObservable = Observable.create((observer: Observer<Node>) =>
+    {
+
+      this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(
+        () => this.node(key).subscribe(
+          (node) => observer.next(node),
+          (err) => observer.error(err)
+        ));
     });
 
     return this.refreshNodeObservable;
@@ -193,7 +202,7 @@ export class NodeService {
     try
     {
       const ipWithourPort = node.addr.split(':')[0],
-            nodeNumber = parseInt(ipWithourPort.split('.')[3]);
+        nodeNumber = parseInt(ipWithourPort.split('.')[3]);
 
       if (nodeNumber == 2)
       {

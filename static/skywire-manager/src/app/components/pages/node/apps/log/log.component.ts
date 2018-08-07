@@ -6,7 +6,8 @@ import { MAT_DIALOG_DATA } from '@angular/material';
 @Component({
   selector: 'app-log',
   templateUrl: './log.component.html',
-  styleUrls: ['./log.component.css']
+  styleUrls: ['./log.component.scss'],
+  host: {'class': 'app-log-container'}
 })
 export class LogComponent implements OnInit {
   app: NodeApp;

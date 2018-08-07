@@ -1,9 +1,12 @@
-<div [formGroup]="form">
-  <mat-form-field>
-    <input matInput formControlName="nodeKey" type="text" placeholder="Node Key">
-  </mat-form-field>
+<div class="keypair-container">
+  <app-key-input
+    value="{{keypair ? keypair.nodeKey : null}}"
+    (inputCorrect)="onNodeValueChanged($event)"
+    placeholder="Node Key"></app-key-input>
 
-  <mat-form-field>
-    <input matInput formControlName="appKey" type="text" placeholder="App Key">
-  </mat-form-field>
+  <app-key-input
+    value="{{keypair ? keypair.appKey : null}}"
+    (inputCorrect)="onAppValueChanged($event)"
+    style="margin-top: 15px;"
+    placeholder="App Key"></app-key-input>
 </div>

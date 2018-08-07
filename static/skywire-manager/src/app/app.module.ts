@@ -58,6 +58,8 @@ import { AppsSettingsComponent } from './components/pages/node/apps/apps-setting
 import { ClipboardService } from "./services/clipboard.service";
 import { ClipboardDirective } from "./directives";
 import { NumberInputMinValueComponent } from './components/layout/number-input-min-value/number-input-min-value.component';
+import { StartupConfigComponent } from './components/pages/node/apps/startup-config/startup-config.component';
+import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
 
 @NgModule({
@@ -94,6 +96,8 @@ import { AppTranslationModule } from './app-translation.module';
     AppsSettingsComponent,
     ClipboardDirective,
     NumberInputMinValueComponent,
+    StartupConfigComponent,
+    KeyInputComponent,
   ],
   entryComponents: [
     ConfigurationComponent,

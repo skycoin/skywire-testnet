@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { Keypair, SearchResult, SearchResultItem } from '../../../../../../app.datatypes';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
 import { NodeService } from '../../../../../../services/node.service';
+import {KeyPairState} from "../../../../../layout/keypair/keypair.component";
 
 @Component({
   selector: 'app-socksc-connect',
@@ -50,12 +51,18 @@ export class SockscConnectComponent implements OnInit {
     }
   }
 
-  keypairChange(keypair: Keypair) {
-    this.keypair = keypair;
+  keypairChange({keyPair, valid}: KeyPairState)
+  {
+    if (valid)
+    {
+      this.keypair = keyPair;
+    }
   }
 
-  connect(keypair?: Keypair) {
-    if (keypair) {
+  connect(keypair?: Keypair)
+  {
+    if (keypair)
+    {
       this.keypair = keypair;
     }
 

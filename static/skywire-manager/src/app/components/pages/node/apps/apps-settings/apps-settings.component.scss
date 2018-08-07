@@ -1,7 +1,7 @@
-@import "../../../../../../assets/scss/variables";
-@import "../../../../../../assets/scss/utilities/theme";
-@import "../../../../../../assets/scss/text";
-@import "../../../../../../../node_modules/bootstrap/scss/functions";
+@import "variables";
+@import "utilities/theme";
+@import "text";
+@import "~bootstrap/scss/functions";
 
 :host::ng-deep
 {

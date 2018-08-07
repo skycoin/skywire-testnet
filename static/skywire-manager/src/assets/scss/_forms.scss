@@ -1,7 +1,56 @@
+@import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
 //
 // Input
 //
 .form-group
 {
 
+}
+
+.startup-form, .dialog-form
+{
+  .keypair-component, textarea, .mat-form-field
+  {
+    width: 100%;
+  }
+
+  .mat-list-item
+  {
+    min-height: 48px;
+    height: auto !important;
+  }
+
+  .mat-list-item-content
+  {
+    color: theme-color(blue-dark) !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    @extend .font-base;
+
+    &.margin-bottom
+    {
+      margin-bottom: 20px;
+    }
+
+    label
+    {
+      margin-bottom: 0;
+    }
+  }
+
+  .submit-btn
+  {
+    margin-top: 15px;
+    float: right;
+  }
+
+  .keypair-container
+  {
+    display: flex;
+    flex-direction: column;
+  }
 }

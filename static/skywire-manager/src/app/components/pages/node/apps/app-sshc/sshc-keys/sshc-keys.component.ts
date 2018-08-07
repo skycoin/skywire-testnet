@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { MatDialogRef } from '@angular/material';
 import { Keypair } from '../../../../../../app.datatypes';
+import {KeyPairState} from "../../../../../layout/keypair/keypair.component";
 
 @Component({
   selector: 'app-sshc-keys',
@@ -18,7 +19,11 @@ export class SshcKeysComponent {
     this.dialogRef.close(this.keypair);
   }
 
-  keypairChange(keypair: Keypair) {
-    this.keypair = keypair;
+  keypairChange({keyPair, valid}: KeyPairState)
+  {
+    if (valid)
+    {
+      this.keypair = keyPair;
+    }
   }
 }

@@ -1,20 +1,20 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SockscStartupComponent } from './socksc-startup.component';
+import { StartupConfigComponent } from './startup-config.component';
 
-describe('SockscStartupComponent', () => {
-  let component: SockscStartupComponent;
-  let fixture: ComponentFixture<SockscStartupComponent>;
+describe('StartupConfigComponent', () => {
+  let component: StartupConfigComponent;
+  let fixture: ComponentFixture<StartupConfigComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ SockscStartupComponent ]
+      declarations: [ StartupConfigComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(SockscStartupComponent);
+    fixture = TestBed.createComponent(StartupConfigComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
