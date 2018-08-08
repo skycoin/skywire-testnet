@@ -1,5 +1,6 @@
-import {Component, EventEmitter, Input, OnInit, Output, Type} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, Type, ViewChild} from '@angular/core';
 import {MatTableDataSource} from "@angular/material";
+import {KeyInputComponent} from "../key-input/key-input.component";
 
 @Component({
   selector: 'app-datatable',
@@ -8,28 +9,29 @@ import {MatTableDataSource} from "@angular/material";
 })
 export class DatatableComponent implements OnInit
 {
-  private dataSource = new MatTableDataSource<string>();
+  dataSource = new MatTableDataSource<string>();
 
   @Input() data: string[];
   @Output() onSave: EventEmitter<string[]>;
 
   // Header
-  @Input() displayedColumns: string[];
-  @Input() headerTitle: string;
-
-  // Remove row section
-  @Input() removeRowTooltipText: string;
+  displayedColumns = [ 'index', 'key', 'remove' ];
 
   // Editabe rows
-  @Input() getEditableRowData: any;
-  @Input() getEditableRowComponentClass: Type<any>;
+  @Input() getEditableRowData: (index: number, currentValue: string, callback: ()=>any) => any;
+  @Input() getEditableRowComponentClass: () => Type<any>;
 
   // Add input section
-  @Input() getAddRowData: any;
-  @Input() getAddRowComponentClass: Type<any>;
-  @Input() addButtonTitle: string;
-  @Input() onAddBtnClicked: () => void;
-  @Input() valueToAdd: string;
+  @Input() getAddRowData: (any) => any;
+  @Input() getAddRowComponentClass: () => Type<any>;
+
+  @Input() meta: {
+    headerTitle: string,
+    removeRowTooltipText: string,
+    addButtonTitle: string
+  };
+
+  valueToAdd: string;
 
   constructor() { }
 
@@ -41,6 +43,38 @@ export class DatatableComponent implements OnInit
   private updateValues(list: string[])
   {
     this.dataSource.data = list;
-    this.onSave.emit(list);
+    if (this.onSave)
+    {
+      this.onSave.emit(list);
+    }
+  }
+
+  onAddValueChanged({value, valid}): void
+  {
+    if (valid)
+    {
+      this.valueToAdd = value;
+    }
+  }
+
+  onAddBtnClicked()
+  {
+    this.data.push(this.valueToAdd);
+    this.updateValues(this.data);
+
+    this.valueToAdd = null;
+  }
+
+  onRemoveBtnClicked(position)
+  {
+    this.data.splice(position, 1);
+    this.updateValues(this.data);
+  }
+
+  onKeyAtPositionChanged(position: number, keyValue: string)
+  {
+    let dataCopy = this.data;
+    dataCopy[position] = keyValue;
+    this.updateValues(dataCopy);
   }
 }

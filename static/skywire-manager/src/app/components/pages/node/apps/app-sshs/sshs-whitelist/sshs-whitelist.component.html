@@ -1,14 +1,8 @@
 <app-datatable
   [data]="data.app.allow_nodes"
-  (onSave)="save($values)"
-  [displayedColumns]="displayedColumns"
-  [headerTitle]="headerTitle"
-  [removeRowTooltipText]="removeRowTooltipText"
-  [getEditableRowData]="getEditableRowData"
-  [getEditableRowComponentClass]="getEditableRowComponentClass"
-  [getAddRowData]="getAddRowData"
-  [getAddRowComponentClass]="getAddRowComponentClass"
-  [addButtonTitle]="addButtonTitle"
-  [onAddBtnClicked]="onAddBtnClicked"
-  [valueToAdd]="valueToAdd">
+  [meta]='{headerTitle: "Key", removeRowTooltipText: "Remove key", addButtonTitle: "Add to list" }'
+  [getEditableRowData]="getEditableRowData.bind(this)"
+  [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
+  [getAddRowData]="getAddRowData.bind(this)"
+  [getAddRowComponentClass]="getAddRowComponentClass.bind(this)">
 </app-datatable>

@@ -7,11 +7,11 @@
   </ng-container>
   <ng-container matColumnDef="key">
     <th mat-header-cell *matHeaderCellDef>
-      {{ headerTitle }}
+      {{ meta.headerTitle }}
     </th>
     <td mat-cell *matCellDef="let key; let i=index;">
       <app-host
-        [data]="getEditableRowData(i)"
+        [data]="getEditableRowData(i, key, onKeyAtPositionChanged)"
         [componentClass]="getEditableRowComponentClass()">
       </app-host>
     </td>
@@ -21,7 +21,7 @@
     <td mat-cell *matCellDef="let key; let i=index;">
       <button
         mat-icon-button
-        matTooltip="{{ removeRowTooltipText }}"
+        matTooltip="{{ meta.removeRowTooltipText }}"
         (click)="onRemoveBtnClicked(i)">
         <mat-icon>close</mat-icon>
       </button>
@@ -33,7 +33,7 @@
 <div class="table-abs-white font-sm d-flex align-items-center mt-3">
   <app-host
     style="flex: 1;"
-    [data]="getAddRowData()"
+    [data]="getAddRowData(onAddValueChanged.bind(this))"
     [componentClass]="getAddRowComponentClass()">
   </app-host>
   <button
@@ -41,6 +41,6 @@
     (click)="onAddBtnClicked()"
     class="ml-3"
     color="accent" mat-raised-button>
-    {{ addButtonTitle }}
+    {{ meta.addButtonTitle }}
   </button>
 </div>
