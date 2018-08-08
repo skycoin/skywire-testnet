@@ -31,6 +31,7 @@ export class DatatableComponent implements OnInit
   };
 
   valueToAdd: string;
+  private clearInputEmitter = new EventEmitter();
 
   constructor() { }
 
@@ -62,6 +63,7 @@ export class DatatableComponent implements OnInit
     this.updateValues(this.data);
 
     this.valueToAdd = null;
+    this.clearInputEmitter.emit();
   }
 
   onRemoveBtnClicked(position)
@@ -81,6 +83,7 @@ export class DatatableComponent implements OnInit
   {
     let data = this.getAddRowData();
     data.subscriber = this.onAddValueChanged.bind(this);
+    data.clearInputEmitter = this.clearInputEmitter;
     return data;
   }
 
