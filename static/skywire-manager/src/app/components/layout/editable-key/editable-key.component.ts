@@ -13,7 +13,7 @@ export class EditableKeyComponent implements OnInit {
   @Output() onValueEdited = new EventEmitter<string>();
   editMode: boolean = false;
 
-  constructor() { }
+  constructor() {}
 
   ngOnInit()
   {
@@ -42,5 +42,12 @@ export class EditableKeyComponent implements OnInit {
   private toggleEditMode()
   {
     this.editMode = !this.editMode;
+  }
+
+  set data({autofocus, value, subscriber}: {autofocus: boolean, value: string, subscriber: (next: string) => void})
+  {
+    this.autofocus = autofocus;
+    this.value = value;
+    this.onValueEdited.subscribe(subscriber);
   }
 }

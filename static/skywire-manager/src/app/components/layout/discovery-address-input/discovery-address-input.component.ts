@@ -1,4 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import {NodeAppButtonComponent} from "../../pages/node/apps/node-app-button/node-app-button.component";
+import {MatDialog} from "@angular/material";
+import {AppsService} from "../../../services/apps.service";
 
 @Component({
   selector: 'app-discovery-address-input',
@@ -7,7 +10,8 @@ import { Component, OnInit } from '@angular/core';
 })
 export class DiscoveryAddressInputComponent implements OnInit {
 
-  constructor() { }
+  constructor(protected dialog: MatDialog,
+              protected appsService: AppsService) { }
 
   ngOnInit() {
   }
