@@ -68,6 +68,7 @@ import {ValidationInputComponent} from "./components/layout/validation-input/val
 import {ComponentHostDirective} from "./directives/component-host.directive";
 import {HostComponent} from "./components/layout/host/host.component";
 import {DatatableComponent} from "./components/layout/datatable/datatable.component";
+import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
 
 @NgModule({
   declarations: [
@@ -111,7 +112,8 @@ import {DatatableComponent} from "./components/layout/datatable/datatable.compon
     DomainInputComponent,
     ValidationInputComponent,
     HostComponent,
-    DatatableComponent
+    DatatableComponent,
+    EditableDiscoveryAddressComponent
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -127,7 +129,9 @@ import {DatatableComponent} from "./components/layout/datatable/datatable.compon
     SockscConnectComponent,
     SockscStartupComponent,
     EditableKeyComponent,
-    KeyInputComponent
+    KeyInputComponent,
+    DiscoveryAddressInputComponent,
+    EditableDiscoveryAddressComponent
   ],
   imports: [
     BrowserModule,

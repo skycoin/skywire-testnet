@@ -94,3 +94,12 @@ export class DatatableComponent implements OnInit
     return data;
   }
 }
+
+export interface DatatableProvider
+{
+  getEditableRowComponentClass: () => Type<any>;
+  getAddRowComponentClass: () => Type<any>;
+  getAddRowData: () => any;
+  getEditableRowData: (index: number, currentValue: string) => any;
+  save: (values: string[]) => void;
+}

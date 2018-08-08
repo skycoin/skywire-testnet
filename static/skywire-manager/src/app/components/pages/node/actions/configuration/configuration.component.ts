@@ -3,13 +3,17 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatSnackBar } from '@angular/material';
 import { FormControl, FormGroup } from '@angular/forms';
 import { NodeService } from '../../../../../services/node.service';
 import { Node, NodeDiscovery } from '../../../../../app.datatypes';
+import {DatatableProvider} from "../../../../layout/datatable/datatable.component";
+import {DiscoveryAddressInputComponent} from "../../../../layout/discovery-address-input/discovery-address-input.component";
+import {EditableDiscoveryAddressComponent} from "../../../../layout/editable-discovery-address/editable-discovery-address.component";
 
 @Component({
   selector: 'app-configuration',
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss']
 })
-export class ConfigurationComponent implements OnInit {
+export class ConfigurationComponent implements OnInit, DatatableProvider
+{
   form: FormGroup;
   node: Node;
   discoveries: NodeDiscovery;
@@ -18,11 +22,13 @@ export class ConfigurationComponent implements OnInit {
     return Object.keys(this.discoveries).map(key => {
       const parts = key.split('-');
 
-      return {
+      return key;
+
+      /*return {
         host: parts[0],
         key: parts[1],
         connected: this.discoveries[key],
-      }
+      }*/
     });
   }
 
@@ -34,6 +40,7 @@ export class ConfigurationComponent implements OnInit {
   ) {
     this.node = data.node;
     this.discoveries = data.discoveries;
+
 
     console.log(this.discoveries)
   }
@@ -103,5 +110,27 @@ export class ConfigurationComponent implements OnInit {
       .some(result => result === false);
 
     return isValid ? null : { invalid: true };
+  }
+
+  getAddRowComponentClass()
+  {
+    return DiscoveryAddressInputComponent;
+  }
+
+  getAddRowData()
+  {
+    return {};
+  }
+
+  getEditableRowComponentClass()
+  {
+    return EditableDiscoveryAddressComponent;
+  }
+
+  getEditableRowData(index: number, currentValue: string)
+  {
+    return {
+      value: currentValue
+    };
   }
 }

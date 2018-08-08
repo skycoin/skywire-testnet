@@ -27,5 +27,12 @@
 <mat-dialog-actions>
   <button (click)="save()" [disabled]="!form.valid">save config and restart node</button>
 </mat-dialog-actions>-->
-
-<app-discovery-address-input></app-discovery-address-input>
+<app-datatable
+  [data]="discoveryNodes"
+  [meta]='{headerTitle: "Discovery address", removeRowTooltipText: "Remove address", addButtonTitle: "Add" }'
+  [getEditableRowData]="getEditableRowData.bind(this)"
+  [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
+  [getAddRowData]="getAddRowData.bind(this)"
+  [getAddRowComponentClass]="getAddRowComponentClass.bind(this)"
+  (onSave)="save($event)">
+</app-datatable>

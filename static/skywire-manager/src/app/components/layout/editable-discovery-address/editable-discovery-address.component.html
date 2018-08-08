@@ -1,12 +1,17 @@
-<app-domain-input
-  [autofocus]=autofocus
+<app-discovery-address-input
+  [autofocus]=true
+  *ngIf="editMode"
+  value="{{value}}">
+</app-discovery-address-input>
+<!--<app-domain-input
+  [autofocus]=true
   *ngIf="editMode"
   value="{{value}}"
   (blur)="onAppKeyBlurred($event)"
   (onKeyChange)="onAppKeyChanged($event)">
-</app-domain-input>
+</app-domain-input>-->
 <span
-  (click)="onKeyClicked($event)"
+  (click)="onValueClicked($event)"
   *ngIf="!editMode">
   {{ value }}
 </span>

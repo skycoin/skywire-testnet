@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, Input} from '@angular/core';
 import {FormControl, Validators} from "@angular/forms";
 
 @Component({
@@ -8,6 +8,10 @@ import {FormControl, Validators} from "@angular/forms";
 })
 export class DomainInputComponent
 {
+  @Input() autofocus: boolean;
+  @Input() value: string;
+  editMode: boolean = false;
+
   validator = new FormControl('', [
     Validators.required
   ]);
