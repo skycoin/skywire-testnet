@@ -14,17 +14,17 @@ export class AppsService {
   ) { }
 
   closeApp(key: string) {
-    return this.nodeService.nodeRequest('run/closeApp', {key}, {type: 'form'});
+    return this.nodeService.nodeRequest('run/closeApp', {key});
   }
 
   getLogMessages(key: string) {
-    return this.nodeService.nodeRequest('getMsg', {key}, {type: 'form'});
+    return this.nodeService.nodeRequest('getMsg', {key});
   }
 
   startSshServer(whitelistedKeys?: string[]) {
     return this.nodeService.nodeRequest('run/sshs', {
       data: whitelistedKeys ? whitelistedKeys.join(',') : null,
-    }, {type: 'form'});
+    });
   }
 
   startSshServerWithoutWhitelist() {
@@ -41,7 +41,7 @@ export class AppsService {
       .pipe(switchMap(() => this.nodeService.nodeRequest('run/sshc', {
         toNode: nodeKey,
         toApp: appKey,
-      }, {type: 'form'})));
+      })));
   }
 
   startSocksc(nodeKey: string, appKey: string) {
@@ -54,6 +54,6 @@ export class AppsService {
       .pipe(switchMap(() => this.nodeService.nodeRequest('run/socksc', {
         toNode: nodeKey,
         toApp: appKey,
-      }, {type: 'form'})));
+      })));
   }
 }

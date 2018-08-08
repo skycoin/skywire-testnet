@@ -16,7 +16,7 @@ export class AuthService {
   ) { }
 
   login(password: string) {
-    return this.apiService.post('login', {pass: password}, {type: 'form'})
+    return this.apiService.post('login', {pass: password})
       .pipe(
         tap(status => {
           if (status !== true) {
@@ -50,7 +50,7 @@ export class AuthService {
   }
 
   changePassword(oldPass: string, newPass: string): Observable<boolean> {
-    return this.apiService.post('updatePass', {oldPass, newPass}, {type: 'form', responseType: 'text'})
+    return this.apiService.post('updatePass', {oldPass, newPass}, {responseType: 'text'})
       .pipe(map(result => {
         if (result === 'true') {
           return true;

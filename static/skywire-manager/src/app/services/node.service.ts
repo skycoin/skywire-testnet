@@ -68,7 +68,7 @@ export class NodeService {
   }
 
   node(key: string): Observable<Node> {
-    return this.apiService.post('conn/getNode', {key}, {type: 'form'});
+    return this.apiService.post('conn/getNode', {key});
   }
 
   refreshNode(key: string, refreshSeconds: number): Observable<Node>
@@ -106,7 +106,7 @@ export class NodeService {
   }
 
   setNodeConfig(data: any) {
-    return this.nodeRequest('run/setNodeConfig', data, {type: 'form'});
+    return this.nodeRequest('run/setNodeConfig', data);
   }
 
   updateNodeConfig() {
@@ -115,9 +115,7 @@ export class NodeService {
 
   getAutoStartConfig(): Observable<AutoStartConfig> {
     return this.nodeRequest('run/getAutoStartConfig', {
-      key: this.currentNode.key
-    }, {
-      type: 'form',
+      key: this.currentNode.key,
     });
   }
 
@@ -125,13 +123,11 @@ export class NodeService {
     return this.nodeRequest('run/setAutoStartConfig', {
       key: this.currentNode.key,
       data: JSON.stringify(config),
-    }, {
-      type: 'form',
     });
   }
 
   searchServices(key: string, pages: number, limit: number, discoveryKey: string): Observable<SearchResult> {
-    return this.nodeRequest('run/searchServices', {key, pages, limit, discoveryKey}, {type: 'form'})
+    return this.nodeRequest('run/searchServices', {key, pages, limit, discoveryKey})
       .pipe(switchMap(() => {
         return interval(500).pipe(
           flatMap(() => this.nodeRequest('run/getSearchServicesResult')),

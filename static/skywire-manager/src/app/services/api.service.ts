@@ -20,7 +20,7 @@ export class ApiService {
   post(url: string, body: any = {}, options: any = {}): Observable<any> {
     return this.request(this.http.post(
       url,
-      this.getPostBody(body, options),
+      this.getPostBody(body),
       {
         ...this.getRequestOptions(options),
         responseType: options.responseType ? options.responseType : 'json',
@@ -37,7 +37,7 @@ export class ApiService {
 
     requestOptions.headers = new HttpHeaders();
 
-    if (options.type !== 'form') {
+    if (options.type === 'json') {
       requestOptions.headers = requestOptions.headers.append('Content-Type', 'application/json');
     }
 
@@ -48,16 +48,12 @@ export class ApiService {
     return requestOptions;
   }
 
-  private getPostBody(body: any, options: any) {
-    if (options.type === 'form') {
-      const formData = new FormData();
+  private getPostBody(body: any) {
+    const formData = new FormData();
 
-      Object.keys(body).forEach(key => formData.append(key, body[key]));
+    Object.keys(body).forEach(key => formData.append(key, body[key]));
 
-      return formData;
-    }
-
-    return body;
+    return formData;
   }
 
   private errorHandler(error: HttpErrorResponse) {
