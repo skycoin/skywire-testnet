@@ -61,8 +61,14 @@ export class ApiService {
   }
 
   private errorHandler(error: HttpErrorResponse) {
-    if (!error.url.includes('checkLogin') && error.error.includes('Unauthorized')) {
-      this.router.navigate(['login']);
+    if (!error.url.includes('checkLogin')) {
+      if (error.error.includes('Unauthorized')) {
+        this.router.navigate(['login']);
+      }
+
+      if (error.error.includes('change password')) {
+        this.router.navigate(['settings/password']);
+      }
     }
 
     return throwError(error);
