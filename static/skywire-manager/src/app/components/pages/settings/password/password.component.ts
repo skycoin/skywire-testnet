@@ -3,6 +3,7 @@ import { AbstractControl, FormControl, FormGroup, Validators } from '@angular/fo
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../services/auth.service';
 import { Location } from '@angular/common';
+import { MatSnackBar } from '@angular/material';
 
 @Component({
   selector: 'app-password',
@@ -16,6 +17,7 @@ export class PasswordComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private location: Location,
+    private snackbar: MatSnackBar,
   ) { }
 
   ngOnInit() {
@@ -32,8 +34,13 @@ export class PasswordComponent implements OnInit {
     if (this.form.valid) {
       this.authService.changePassword(this.form.get('oldPassword').value, this.form.get('newPassword').value)
         .subscribe(
-          () => this.router.navigate(['login']),
-          (error) => console.log(error),
+          () => {
+            this.router.navigate(['login']);
+            this.snackbar.open('Log in with your new password');
+          },
+          (err) => {
+            this.snackbar.open(err.message);
+          },
         );
     }
   }
