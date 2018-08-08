@@ -12,7 +12,6 @@ import {EditableKeyComponent} from "../../../../../layout/editable-key/editable-
 export class SshsWhitelistComponent implements OnInit
 {
   displayedColumns = [ 'index', 'key', 'remove' ];
-  dataSource = new MatTableDataSource<string>();
   private valueToAdd: string;
 
   @ViewChild(KeyInputComponent) newKeyInput: KeyInputComponent;
@@ -21,28 +20,22 @@ export class SshsWhitelistComponent implements OnInit
 
   onKeyAtPositionChanged(position: number, keyValue: string)
   {
-    let dataCopy = this.keysValues();
+    let dataCopy = this.data;
     dataCopy[position] = keyValue;
-    this.dataSource.data = dataCopy;
-    this.save();
+    this.data = dataCopy;
+    this.save(dataCopy);
   }
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private appsService: AppsService,
-    private componentFactoryResolver: ComponentFactoryResolver
+    private appsService: AppsService
   ) {
     this.updateKeys(data.app.allow_nodes || []);
   }
 
-  save()
+  save(keys: string[])
   {
-    this.appsService.startSshServer(this.keysValues()).subscribe();
-  }
-
-  private keysValues(): string[]
-  {
-    return this.dataSource.data.concat([]);
+    this.appsService.startSshServer(keys).subscribe();
   }
 
   ngOnInit(): void {
@@ -50,7 +43,7 @@ export class SshsWhitelistComponent implements OnInit
 
   onAddBtnClicked()
   {
-    let dataCopy = this.keysValues();
+    let dataCopy = this.data;
     dataCopy.push(this.valueToAdd);
     this.updateKeys(dataCopy);
 
@@ -68,15 +61,15 @@ export class SshsWhitelistComponent implements OnInit
 
   onRemoveBtnClicked(position)
   {
-    let keys = this.keysValues();
+    let keys = this.data;
     keys.splice(position, 1);
     this.updateKeys(keys);
   }
 
   private updateKeys(keys: string[])
   {
-    this.dataSource.data = keys;
-    this.save();
+    this.data = keys;
+    this.save(keys);
   }
 
   getEditableRowComponentClass() {
@@ -100,7 +93,7 @@ export class SshsWhitelistComponent implements OnInit
   {
     return {
       autofocus: true,
-      value: this.keysValues()[index],
+      value: this.data[index],
       subscriber: this.onKeyAtPositionChanged.bind(this, index)
     }
   }

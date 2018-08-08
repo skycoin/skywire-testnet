@@ -67,6 +67,7 @@ import {DomainInputComponent} from "./components/layout/domain-input/domain-inpu
 import {ValidationInputComponent} from "./components/layout/validation-input/validation-input.component";
 import {ComponentHostDirective} from "./directives/component-host.directive";
 import {HostComponent} from "./components/layout/host/host.component";
+import {DatatableComponent} from "./components/layout/datatable/datatable.component";
 
 @NgModule({
   declarations: [
@@ -109,7 +110,8 @@ import {HostComponent} from "./components/layout/host/host.component";
     DiscoveryAddressInputComponent,
     DomainInputComponent,
     ValidationInputComponent,
-    HostComponent
+    HostComponent,
+    DatatableComponent
   ],
   entryComponents: [
     ConfigurationComponent,

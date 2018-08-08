@@ -62,7 +62,6 @@ export class KeyInputComponent implements OnInit, AfterViewInit
 
   ngOnInit()
   {
-    console.log(`2 - ${this.autofocus}`);
     this.validator = new FormControl('', [PublicKeyValidator(this.required)]);
   }
 
