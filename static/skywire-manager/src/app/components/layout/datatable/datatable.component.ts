@@ -1,6 +1,5 @@
-import {Component, EventEmitter, Input, OnInit, Output, Type, ViewChild} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, Type} from '@angular/core';
 import {MatTableDataSource} from "@angular/material";
-import {KeyInputComponent} from "../key-input/key-input.component";
 
 @Component({
   selector: 'app-datatable',
@@ -12,17 +11,17 @@ export class DatatableComponent implements OnInit
   dataSource = new MatTableDataSource<string>();
 
   @Input() data: string[];
-  @Output() onSave: EventEmitter<string[]>;
+  @Output() onSave = new EventEmitter<string[]>();
 
   // Header
   displayedColumns = [ 'index', 'key', 'remove' ];
 
   // Editabe rows
-  @Input() getEditableRowData: (index: number, currentValue: string, callback: ()=>any) => any;
+  @Input() getEditableRowData: (index: number, currentValue: string) => any;
   @Input() getEditableRowComponentClass: () => Type<any>;
 
   // Add input section
-  @Input() getAddRowData: (any) => any;
+  @Input() getAddRowData: () => any;
   @Input() getAddRowComponentClass: () => Type<any>;
 
   @Input() meta: {
@@ -71,10 +70,24 @@ export class DatatableComponent implements OnInit
     this.updateValues(this.data);
   }
 
-  onKeyAtPositionChanged(position: number, keyValue: string)
+  onValueAtPositionChanged(position: number, value: string)
   {
     let dataCopy = this.data;
-    dataCopy[position] = keyValue;
+    dataCopy[position] = value;
     this.updateValues(dataCopy);
+  }
+
+  _getAddRowData()
+  {
+    let data = this.getAddRowData();
+    data.subscriber = this.onAddValueChanged.bind(this);
+    return data;
+  }
+
+  _getEditableRowData(position: number, currentValue: string)
+  {
+    let data = this.getEditableRowData(position, currentValue);
+    data.subscriber = this.onValueAtPositionChanged.bind(this);
+    return data;
   }
 }

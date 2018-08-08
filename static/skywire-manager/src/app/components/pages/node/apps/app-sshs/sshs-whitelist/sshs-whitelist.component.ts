@@ -30,12 +30,11 @@ export class SshsWhitelistComponent
     return KeyInputComponent;
   }
 
-  getAddRowData(addRowCallback)
+  getAddRowData()
   {
     return {
       required: false,
-      placeholder: 'Enter node key',
-      onKeyChangeSubscriber: addRowCallback
+      placeholder: 'Enter node key'
     }
   }
 

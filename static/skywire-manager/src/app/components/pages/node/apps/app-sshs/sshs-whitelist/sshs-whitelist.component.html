@@ -4,5 +4,6 @@
   [getEditableRowData]="getEditableRowData.bind(this)"
   [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
   [getAddRowData]="getAddRowData.bind(this)"
-  [getAddRowComponentClass]="getAddRowComponentClass.bind(this)">
+  [getAddRowComponentClass]="getAddRowComponentClass.bind(this)"
+  (onSave)="save($event)">
 </app-datatable>
