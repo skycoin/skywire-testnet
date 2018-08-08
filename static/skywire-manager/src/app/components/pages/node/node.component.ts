@@ -1,4 +1,4 @@
-import {Component, OnChanges, OnInit} from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 import { NodeService } from '../../../services/node.service';
 import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -13,7 +13,7 @@ const DEFAULT_REFRESH_SECONDS = 10;
   templateUrl: './node.component.html',
   styleUrls: ['./node.component.scss']
 })
-export class NodeComponent implements OnInit
+export class NodeComponent implements OnInit, OnDestroy
 {
   node: Node;
   nodeApps: NodeApp[] = [];
@@ -100,5 +100,18 @@ export class NodeComponent implements OnInit
   {
     this.refreshSeconds = this.storageService.getRefreshTime() || DEFAULT_REFRESH_SECONDS;
     this.scheduleNodeRefresh();
+  }
+
+  ngOnDestroy(): void
+  {
+    this.unsubscribeRefresh();
+  }
+
+  private unsubscribeRefresh()
+  {
+    if (this.refreshSubscription)
+    {
+      this.refreshSubscription.unsubscribe();
+    }
   }
 }
