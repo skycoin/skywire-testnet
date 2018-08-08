@@ -1,7 +1,8 @@
-import {Component, Inject, OnInit, ViewChild} from '@angular/core';
+import {Component, ComponentFactoryResolver, EventEmitter, Inject, OnInit, ViewChild} from '@angular/core';
 import {MAT_DIALOG_DATA, MatTableDataSource} from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
 import {KeyInputComponent, KeyInputEvent} from "../../../../../layout/key-input/key-input.component";
+import {EditableKeyComponent} from "../../../../../layout/editable-key/editable-key.component";
 
 @Component({
   selector: 'app-sshs-whitelist',
@@ -12,9 +13,11 @@ export class SshsWhitelistComponent implements OnInit
 {
   displayedColumns = [ 'index', 'key', 'remove' ];
   dataSource = new MatTableDataSource<string>();
-  private keyToAdd: string;
+  private valueToAdd: string;
 
   @ViewChild(KeyInputComponent) newKeyInput: KeyInputComponent;
+  removeRowTooltipText: string = "Remove key";
+  addButtonTitle: string = "Add to list";
 
   onKeyAtPositionChanged(position: number, keyValue: string)
   {
@@ -27,6 +30,7 @@ export class SshsWhitelistComponent implements OnInit
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
     private appsService: AppsService,
+    private componentFactoryResolver: ComponentFactoryResolver
   ) {
     this.updateKeys(data.app.allow_nodes || []);
   }
@@ -44,24 +48,25 @@ export class SshsWhitelistComponent implements OnInit
   ngOnInit(): void {
   }
 
-  addNodeKey()
+  onAddBtnClicked()
   {
     let dataCopy = this.keysValues();
-    dataCopy.push(this.keyToAdd);
+    dataCopy.push(this.valueToAdd);
     this.updateKeys(dataCopy);
 
     this.newKeyInput.clear();
+    this.valueToAdd = null;
   }
 
-  onKeyChange({value, valid}: KeyInputEvent)
+  onAddRowValueChange({value, valid}: KeyInputEvent)
   {
     if (valid)
     {
-      this.keyToAdd = value;
+      this.valueToAdd = value;
     }
   }
 
-  removeKey(position)
+  onRemoveBtnClicked(position)
   {
     let keys = this.keysValues();
     keys.splice(position, 1);
@@ -72,5 +77,31 @@ export class SshsWhitelistComponent implements OnInit
   {
     this.dataSource.data = keys;
     this.save();
+  }
+
+  getEditableRowComponentClass() {
+    return EditableKeyComponent;
+  }
+
+  getAddRowComponentClass() {
+    return KeyInputComponent;
+  }
+
+  getAddRowData()
+  {
+    return {
+      required: false,
+      placeholder: 'Enter node key',
+      onKeyChangeSubscriber: this.onAddRowValueChange.bind(this)
+    }
+  }
+
+  getEditableRowData(index: number)
+  {
+    return {
+      autofocus: true,
+      value: this.keysValues()[index],
+      subscriber: this.onKeyAtPositionChanged.bind(this, index)
+    }
   }
 }

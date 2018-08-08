@@ -34,7 +34,6 @@ export class KeyInputComponent implements OnInit, AfterViewInit
 
   ngAfterViewInit()
   {
-    console.log('2');
     if (this.autofocus)
     {
       this.keyInput.focus();
@@ -67,4 +66,10 @@ export class KeyInputComponent implements OnInit, AfterViewInit
     this.validator = new FormControl('', [PublicKeyValidator(this.required)]);
   }
 
+  set data({required, placeholder, onKeyChangeSubscriber}: {required: boolean, placeholder: string, onKeyChangeSubscriber: ({value, valid}: KeyInputEvent) => void})
+  {
+    this.required = required;
+    this.placeholder = placeholder;
+    this.onKeyChange.subscribe(onKeyChangeSubscriber);
+  }
 }

@@ -65,6 +65,8 @@ import {EditableKeyComponent} from "./components/layout/editable-key/editable-ke
 import {DiscoveryAddressInputComponent} from "./components/layout/discovery-address-input/discovery-address-input.component";
 import {DomainInputComponent} from "./components/layout/domain-input/domain-input.component";
 import {ValidationInputComponent} from "./components/layout/validation-input/validation-input.component";
+import {ComponentHostDirective} from "./directives/component-host.directive";
+import {HostComponent} from "./components/layout/host/host.component";
 
 @NgModule({
   declarations: [
@@ -99,13 +101,15 @@ import {ValidationInputComponent} from "./components/layout/validation-input/val
     SshWarningDialogComponent,
     AppsSettingsComponent,
     ClipboardDirective,
+    ComponentHostDirective,
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
     EditableKeyComponent,
     DiscoveryAddressInputComponent,
     DomainInputComponent,
-    ValidationInputComponent
+    ValidationInputComponent,
+    HostComponent
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -120,6 +124,8 @@ import {ValidationInputComponent} from "./components/layout/validation-input/val
     SshcStartupComponent,
     SockscConnectComponent,
     SockscStartupComponent,
+    EditableKeyComponent,
+    KeyInputComponent
   ],
   imports: [
     BrowserModule,

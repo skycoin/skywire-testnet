@@ -2,18 +2,16 @@
   <ng-container matColumnDef="index">
     <th mat-header-cell *matHeaderCellDef>#</th>
     <td mat-cell *matCellDef="let node;let i=index;">
-      {{ i }}
+      {{ i + 1 }}
     </td>
   </ng-container>
   <ng-container matColumnDef="key">
     <th mat-header-cell *matHeaderCellDef>Node key</th>
     <td mat-cell *matCellDef="let key; let i=index;">
-      <app-editable-key
-        [autofocus]=true
-        matTooltip="Click to edit"
-        (onValueEdited)="onKeyAtPositionChanged(i, $event)"
-        value="{{ key }}">
-      </app-editable-key>
+      <app-host
+        [data]="getEditableRowData(i)"
+        [componentClass]="getEditableRowComponentClass()">
+      </app-host>
     </td>
   </ng-container>
   <ng-container matColumnDef="remove">
@@ -21,8 +19,8 @@
     <td mat-cell *matCellDef="let key; let i=index;">
       <button
         mat-icon-button
-        matTooltip="Remove key"
-        (click)="removeKey(i)">
+        matTooltip="{{removeRowTooltipText}}"
+        (click)="onRemoveBtnClicked(i)">
         <mat-icon>close</mat-icon>
       </button>
     </td>
@@ -31,24 +29,16 @@
   <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 </table>
 <div class="table-abs-white font-sm d-flex align-items-center mt-3">
-  <app-key-input
+  <app-host
     style="flex: 1;"
-    (onKeyChange)="onKeyChange($event)"
-    [required]=false
-    placeholder="Enter node key"></app-key-input>
+    [data]="getAddRowData()"
+    [componentClass]="getAddRowComponentClass()">
+  </app-host>
   <button
-    disabled="{{!keyToAdd}}"
-    (click)="addNodeKey()"
+    disabled="{{ !valueToAdd }}"
+    (click)="onAddBtnClicked()"
     class="ml-3"
-    color="accent" mat-raised-button>Add to list</button>
+    color="accent" mat-raised-button>
+    {{ addButtonTitle }}
+  </button>
 </div>
-
-<!--<span class="font-base text-uppercase app-log-title" mat-dialog-title>
-  Whitelisted nodes
-</span>
-<mat-dialog-content class="app-log-content">
-
-  <div class="app-log-empty" style="margin-top: 20px;" *ngIf="logMessages.length === 0">
-    There are no messages
-  </div>
-</mat-dialog-content>-->
