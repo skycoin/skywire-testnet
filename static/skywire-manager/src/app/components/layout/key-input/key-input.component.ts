@@ -65,7 +65,7 @@ export class KeyInputComponent implements OnInit, AfterViewInit
     this.validator = new FormControl('', [PublicKeyValidator(this.required)]);
   }
 
-  set data({required, placeholder, subscriber, clearInputEmitter}: {required: boolean, placeholder: string, subscriber: ({value, valid}: KeyInputEvent, clearInputEmitter: EventEmitter<void>) => void})
+  set data({required, placeholder, subscriber, clearInputEmitter}: {required: boolean, placeholder: string, subscriber: ({value, valid}: KeyInputEvent) => void, clearInputEmitter: EventEmitter<void>})
   {
     this.required = required;
     this.placeholder = placeholder;
