@@ -1,8 +1,8 @@
-import {Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {MatDialog} from "@angular/material";
 import {KeyInputEvent} from "../key-input/key-input.component";
 import {InputState} from "../validation-input/validation-input.component";
-const INITIAL_STATE: DiscoveryAddress = {domain: '', publicKey: ''};
+import {DiscoveryAddress} from "../../../app.datatypes";
 
 @Component({
   selector: 'app-discovery-address-input',
@@ -13,7 +13,7 @@ const INITIAL_STATE: DiscoveryAddress = {domain: '', publicKey: ''};
 export class DiscoveryAddressInputComponent implements OnInit
 {
   @Input() autofocus: boolean;
-  @Input() value: DiscoveryAddress = INITIAL_STATE;
+  @Input() value: DiscoveryAddress = DiscoveryAddressInputComponent.initialState;
   @Input() required: boolean;
   @Output() onValueChanged = new EventEmitter<{valid: boolean, value: DiscoveryAddress}>();
   @Output() onBlur = new EventEmitter();
@@ -31,9 +31,14 @@ export class DiscoveryAddressInputComponent implements OnInit
     this.emit();
   }
 
+  static get initialState()
+  {
+    return {domain: '', publicKey: ''};
+  }
+
   clear()
   {
-    this.value = INITIAL_STATE;
+    this.value = DiscoveryAddressInputComponent.initialState;
   }
 
   onDomainChange({valid, value}: InputState)
@@ -61,14 +66,8 @@ export class DiscoveryAddressInputComponent implements OnInit
   set data({autofocus, value, subscriber, clearInputEmitter}: { autofocus: boolean, value: DiscoveryAddress, subscriber: (next: DiscoveryAddress) => void, clearInputEmitter: EventEmitter<void>})
   {
     this.autofocus = autofocus;
-    this.value = value || INITIAL_STATE;
+    this.value = value || DiscoveryAddressInputComponent.initialState;
     this.onValueChanged.subscribe(subscriber);
     clearInputEmitter.subscribe(this.clear.bind(this));
   }
-}
-
-export interface DiscoveryAddress
-{
-  domain: string;
-  publicKey: string;
 }

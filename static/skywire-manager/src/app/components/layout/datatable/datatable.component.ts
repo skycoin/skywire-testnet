@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, Type} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, OnInit, Output, Type} from '@angular/core';
 import {MatTableDataSource} from "@angular/material";
 
 @Component({
@@ -6,7 +6,7 @@ import {MatTableDataSource} from "@angular/material";
   templateUrl: './datatable.component.html',
   styleUrls: ['./datatable.component.css']
 })
-export class DatatableComponent implements OnInit
+export class DatatableComponent implements OnInit, OnChanges
 {
   dataSource = new MatTableDataSource<string>();
 
@@ -42,10 +42,10 @@ export class DatatableComponent implements OnInit
 
   private updateValues(list: string[])
   {
-    this.dataSource.data = list;
+    this.dataSource.data = list.concat([]);
     if (this.onSave)
     {
-      this.onSave.emit(list);
+      this.onSave.emit(list.concat([]));
     }
   }
 
@@ -69,6 +69,11 @@ export class DatatableComponent implements OnInit
     this.updateValues(this.data);
   }
 
+  onEditBtnClicked(position)
+  {
+
+  }
+
   onValueAtPositionChanged(position: number, value: any)
   {
     let dataCopy = this.data;
@@ -87,16 +92,21 @@ export class DatatableComponent implements OnInit
   _getEditableRowData(position: number, currentValue: string)
   {
     let data = this.getEditableRowData(position, currentValue);
-    data.subscriber = this.onValueAtPositionChanged.bind(this);
+    data.subscriber = this.onValueAtPositionChanged.bind(this, position);
     return data;
+  }
+
+  ngOnChanges(): void
+  {
+    //this.updateValues(this.data || []);
   }
 }
 
-export interface DatatableProvider
+export interface DatatableProvider<T>
 {
   getEditableRowComponentClass: () => Type<any>;
   getAddRowComponentClass: () => Type<any>;
   getAddRowData: () => any;
-  getEditableRowData: (index: number, currentValue: string) => any;
-  save: (values: string[]) => void;
+  getEditableRowData: (index: number, currentValue: T) => any;
+  save: (values: T[]) => void;
 }

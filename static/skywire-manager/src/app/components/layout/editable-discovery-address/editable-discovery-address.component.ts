@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {DiscoveryAddress} from "../discovery-address-input/discovery-address-input.component";
+import {DiscoveryAddress} from "../../../app.datatypes";
 
 @Component({
   selector: 'app-editable-discovery-address',
@@ -17,9 +17,12 @@ export class EditableDiscoveryAddressComponent implements OnInit
 
   ngOnInit() {}
 
-  onValueChanged(value: DiscoveryAddress)
+  onValueChanged({valid, value}: {valid: boolean, value: DiscoveryAddress})
   {
-    this.value = value;
+    if (valid)
+    {
+      this.value = value;
+    }
   }
 
   set data({autofocus, value, subscriber}: {autofocus: boolean, value: DiscoveryAddress, subscriber: (next: DiscoveryAddress) => void})

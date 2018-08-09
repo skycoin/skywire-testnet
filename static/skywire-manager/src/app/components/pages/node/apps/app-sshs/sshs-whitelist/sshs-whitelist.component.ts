@@ -10,7 +10,7 @@ import {DatatableProvider} from "../../../../../layout/datatable/datatable.compo
   templateUrl: './sshs-whitelist.component.html',
   styleUrls: ['./sshs-whitelist.component.scss']
 })
-export class SshsWhitelistComponent implements DatatableProvider
+export class SshsWhitelistComponent implements DatatableProvider<string>
 {
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,

@@ -1,10 +1,12 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import {Component, Inject, OnChanges, OnInit} from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatSnackBar } from '@angular/material';
 import { FormControl, FormGroup } from '@angular/forms';
 import { NodeService } from '../../../../../services/node.service';
-import { Node, NodeDiscovery } from '../../../../../app.datatypes';
+import {DiscoveryAddress, Node, NodeDiscovery} from '../../../../../app.datatypes';
 import {DatatableProvider} from "../../../../layout/datatable/datatable.component";
-import {DiscoveryAddressInputComponent} from "../../../../layout/discovery-address-input/discovery-address-input.component";
+import {
+  DiscoveryAddressInputComponent
+} from "../../../../layout/discovery-address-input/discovery-address-input.component";
 import {EditableDiscoveryAddressComponent} from "../../../../layout/editable-discovery-address/editable-discovery-address.component";
 
 @Component({
@@ -12,23 +14,12 @@ import {EditableDiscoveryAddressComponent} from "../../../../layout/editable-dis
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss']
 })
-export class ConfigurationComponent implements OnInit, DatatableProvider
+export class ConfigurationComponent implements OnInit, OnChanges, DatatableProvider<DiscoveryAddress>
 {
   form: FormGroup;
   node: Node;
   discoveries: NodeDiscovery;
-
-  get discoveryNodes() {
-    return Object.keys(this.discoveries).map(key => {
-      const parts = key.split('-');
-
-      return {
-        domain: parts[0],
-        publicKey: parts[1],
-        connected: this.discoveries[key],
-      }
-    });
-  }
+  discoveryNodes: DiscoveryAddress[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
@@ -38,24 +29,38 @@ export class ConfigurationComponent implements OnInit, DatatableProvider
   ) {
     this.node = data.node;
     this.discoveries = data.discoveries;
-
-
     console.log(this.discoveries)
   }
 
-  ngOnInit() {
-    this.form = new FormGroup({
-      'addresses': new FormControl('', [this.validateAddresses])
+  ngOnInit()
+  {
+    return Object.keys(this.discoveries).map(key => {
+      const parts = key.split('-');
+
+      this.discoveryNodes.push({
+        domain: parts[0],
+        publicKey: parts[1]
+      })
     });
+
+    /*this.form = new FormGroup({
+      'addresses': new FormControl('', [this.validateAddresses])
+    });*/
   }
 
-  save() {
-    if (!this.form.valid) {
+  save(values: DiscoveryAddress[]) {
+    /*if (!this.form.valid) {
       return;
-    }
+    }*/
+
+    let stringValues = [];
+    values.map(({domain, publicKey}) =>
+    {
+        stringValues.push(`${domain}-${publicKey}`)
+    });
 
     const config = {
-      'discovery_addresses': this.form.get('addresses').value.split(','),
+      'discovery_addresses': stringValues,
     };
 
     const data = {
@@ -127,11 +132,15 @@ export class ConfigurationComponent implements OnInit, DatatableProvider
     return EditableDiscoveryAddressComponent;
   }
 
-  getEditableRowData(index: number, currentValue: string)
+  getEditableRowData(index: number, currentValue: DiscoveryAddress)
   {
     return {
       autofocus: true,
       value: currentValue
     };
+  }
+
+  ngOnChanges(): void {
+    console.log('configuration onChanges');
   }
 }
