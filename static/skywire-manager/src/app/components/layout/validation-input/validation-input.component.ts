@@ -14,7 +14,7 @@ export class ValidationInputComponent implements OnInit
 
   @Output() inputCorrect = new EventEmitter();
   @ViewChild(MatInput) inputElement: MatInput;
-  @Input() value: number;
+  @Input() value: string;
   @Input() required: boolean;
   @Input() placeHolder: string;
   @Input() hint: string;

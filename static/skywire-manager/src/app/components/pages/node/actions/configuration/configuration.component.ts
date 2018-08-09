@@ -22,13 +22,11 @@ export class ConfigurationComponent implements OnInit, DatatableProvider
     return Object.keys(this.discoveries).map(key => {
       const parts = key.split('-');
 
-      return key;
-
-      /*return {
-        host: parts[0],
-        key: parts[1],
+      return {
+        domain: parts[0],
+        publicKey: parts[1],
         connected: this.discoveries[key],
-      }*/
+      }
     });
   }
 

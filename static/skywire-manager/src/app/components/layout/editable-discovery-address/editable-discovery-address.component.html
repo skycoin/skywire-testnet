@@ -1,7 +1,7 @@
 <app-discovery-address-input
   [autofocus]=true
   *ngIf="editMode"
-  value="{{value}}">
+  [value]="value">
 </app-discovery-address-input>
 <!--<app-domain-input
   [autofocus]=true
@@ -13,5 +13,5 @@
 <span
   (click)="onValueClicked($event)"
   *ngIf="!editMode">
-  {{ value }}
+  {{ value.domain }}<br>{{ value.publicKey }}
 </span>

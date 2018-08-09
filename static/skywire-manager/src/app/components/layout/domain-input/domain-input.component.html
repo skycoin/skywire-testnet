@@ -3,5 +3,7 @@
   [validator]="validator"
   hint="domain:port"
   [required]="required"
+  [value]="value"
+  (inputCorrect)="onDomainChange.emit($event)"
   [getErrorMessage]="getErrorMessage">
 </app-validation-input>

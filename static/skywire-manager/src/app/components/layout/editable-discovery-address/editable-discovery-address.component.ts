@@ -1,4 +1,5 @@
 import {Component, Input, OnInit} from '@angular/core';
+import {DiscoveryAddress} from "../discovery-address-input/discovery-address-input.component";
 
 @Component({
   selector: 'app-editable-discovery-address',
@@ -7,15 +8,17 @@ import {Component, Input, OnInit} from '@angular/core';
 })
 export class EditableDiscoveryAddressComponent implements OnInit
 {
-  @Input() value: string;
-  private editMode: boolean = false;
+  @Input() value: DiscoveryAddress;
+  editMode: boolean = false;
 
   constructor() { }
 
-  ngOnInit() {
+  ngOnInit()
+  {
+
   }
 
-  set data({ value }: {value: string})
+  set data({value}: {value: DiscoveryAddress})
   {
     this.value = value;
   }
