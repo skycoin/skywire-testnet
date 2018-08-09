@@ -4,6 +4,12 @@ import {KeyInputEvent} from "../key-input/key-input.component";
 import {InputState} from "../validation-input/validation-input.component";
 import {DiscoveryAddress} from "../../../app.datatypes";
 
+export interface DiscoveryAddressState
+{
+  valid: boolean;
+  value: DiscoveryAddress;
+}
+
 @Component({
   selector: 'app-discovery-address-input',
   templateUrl: './discovery-address-input.component.html',
@@ -15,10 +21,10 @@ export class DiscoveryAddressInputComponent implements OnInit
   @Input() autofocus: boolean;
   @Input() value: DiscoveryAddress = DiscoveryAddressInputComponent.initialState;
   @Input() required: boolean;
-  @Output() onValueChanged = new EventEmitter<{valid: boolean, value: DiscoveryAddress}>();
+  @Output() onValueChanged = new EventEmitter<DiscoveryAddressState>();
   @Output() onBlur = new EventEmitter();
-  private domainValid: boolean = false;
-  private keyValid: boolean = false;
+  private domainValid: boolean = true;
+  private keyValid: boolean = true;
 
   constructor(protected dialog: MatDialog) {}
 

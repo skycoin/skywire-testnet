@@ -1,19 +1,25 @@
-<app-discovery-address-input
-  [autofocus]="autofocus"
-  (onBlur)="onDiscoveryAddressBlurred($event)"
-  *ngIf="editMode"
-  (onValueChanged)="onValueChanged($event)"
-  [value]="value">
-</app-discovery-address-input>
-<!--<app-domain-input
-  [autofocus]=true
-  *ngIf="editMode"
-  value="{{value}}"
-  (blur)="onAppKeyBlurred($event)"
-  (onKeyChange)="onAppKeyChanged($event)">
-</app-domain-input>-->
-<span
-  (click)="onValueClicked($event)"
-  *ngIf="!editMode">
+<div class="d-flex align-items-center justify-content-between">
+  <app-discovery-address-input
+    style="flex: 1;"
+    [autofocus]="autofocus"
+    (onBlur)="onDiscoveryAddressBlurred($event)"
+    *ngIf="editMode"
+    (onValueChanged)="onValueChanged($event)"
+    [value]="value">
+  </app-discovery-address-input>
+  <span
+    style="flex: 1;"
+    (click)="onValueClicked($event)"
+    *ngIf="!editMode">
   {{ value.domain }}<br>{{ value.publicKey }}
 </span>
+  <button
+    (click)="toggleEditMode()"
+    mat-icon-button
+    [disabled]="editMode && !valid">
+    <mat-icon>
+      {{editMode ? 'done' : 'edit'}}
+    </mat-icon>
+  </button>
+</div>
+

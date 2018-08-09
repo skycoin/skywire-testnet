@@ -135,7 +135,7 @@ export class ConfigurationComponent implements OnInit, OnChanges, DatatableProvi
   getEditableRowData(index: number, currentValue: DiscoveryAddress)
   {
     return {
-      autofocus: true,
+      autofocus: false,
       value: currentValue
     };
   }

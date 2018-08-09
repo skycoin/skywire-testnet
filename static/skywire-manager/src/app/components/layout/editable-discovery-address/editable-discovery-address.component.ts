@@ -12,6 +12,7 @@ export class EditableDiscoveryAddressComponent implements OnInit
   @Input() autofocus: boolean;
   @Output() onValueEdited = new EventEmitter<DiscoveryAddress>();
   editMode: boolean = false;
+  private valid: boolean = true;
 
   constructor() {}
 
@@ -19,6 +20,7 @@ export class EditableDiscoveryAddressComponent implements OnInit
 
   onValueChanged({valid, value}: {valid: boolean, value: DiscoveryAddress})
   {
+    this.valid = valid;
     if (valid)
     {
       this.value = value;
@@ -39,8 +41,11 @@ export class EditableDiscoveryAddressComponent implements OnInit
 
   onDiscoveryAddressBlurred()
   {
-    this.toggleEditMode();
-    this.onValueEdited.emit(this.value);
+    if (this.valid)
+    {
+      //this.toggleEditMode();
+      this.onValueEdited.emit(this.value);
+    }
   }
 
   private toggleEditMode()
