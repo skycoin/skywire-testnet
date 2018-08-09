@@ -3,14 +3,12 @@ import StringUtils from "../utils/stringUtils";
 
 function isValidPublicKey(value: string, required: boolean)
 {
-  console.log('2');
-
   if (value)
   {
     if (required || value.length > 0)
     {
       const isEmpty = StringUtils.removeWhitespaces(value).length === 0,
-        isValid = (value as string).length === 66;
+            isValid = (value as string).length === 66;
 
       if (isEmpty)
       {
@@ -25,9 +23,8 @@ function isValidPublicKey(value: string, required: boolean)
   return null;
 }
 
-function publicKey (required: boolean = true)
+function publicKey (required: boolean = false)
 {
-  console.log('aaa');
   return (control: FormControl) =>
   {
     const value = control.value;

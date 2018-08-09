@@ -30,9 +30,9 @@
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
   <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 </table>
-<div class="table-abs-white font-sm d-flex align-items-center mt-3">
+<div id="addValueContainer" class="table-abs-white font-sm d-flex align-items-center mt-3">
   <app-host
-    style="flex: 1;"
+    style="display: flex; flex: 1;"
     [data]="_getAddRowData()"
     [componentClass]="getAddRowComponentClass()">
   </app-host>

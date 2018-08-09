@@ -12,7 +12,7 @@ export interface KeyInputEvent
 @Component({
   selector: 'app-key-input',
   templateUrl: './key-input.component.html',
-  styleUrls: ['./key-input.component.css'],
+  styleUrls: ['./key-input.component.scss'],
   host: {class: 'key-input-container'}
 })
 export class KeyInputComponent implements OnInit, AfterViewInit
@@ -20,15 +20,13 @@ export class KeyInputComponent implements OnInit, AfterViewInit
   @Output() onKeyChange = new EventEmitter<KeyInputEvent>();
   @Output() blur = new EventEmitter<void>();
   @Input() value: string;
-  @Input() required: boolean = true;
+  @Input() required: boolean;
   @Input() placeholder: string;
   @Input() autofocus: boolean = false;
   validator: FormControl;
 
   constructor()
-  {
-    console.log(`${this.autofocus}`);
-  }
+  {}
 
   @ViewChild(MatInput) keyInput: MatInput;
 

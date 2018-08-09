@@ -1,11 +1,12 @@
 import {Component, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
 import {MatInput} from "@angular/material";
-import {FormControl, Validators} from "@angular/forms";
+import {FormControl} from "@angular/forms";
 
 @Component({
   selector: 'app-validation-input',
   templateUrl: './validation-input.component.html',
-  styleUrls: ['./validation-input.component.css']
+  styleUrls: ['./validation-input.component.scss'],
+  host: {class: 'validation-input-container'}
 })
 export class ValidationInputComponent implements OnInit
 {
@@ -14,6 +15,7 @@ export class ValidationInputComponent implements OnInit
   @Output() inputCorrect = new EventEmitter();
   @ViewChild(MatInput) inputElement: MatInput;
   @Input() value: number;
+  @Input() required: boolean;
   @Input() placeHolder: string;
   @Input() hint: string;
   @Input() validator: FormControl;

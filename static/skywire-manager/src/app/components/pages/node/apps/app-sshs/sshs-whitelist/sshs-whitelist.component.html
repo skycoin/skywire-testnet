@@ -1,5 +1,5 @@
 <app-datatable
-  [data]="data.app.allow_nodes"
+  [data]="data.app.allow_nodes || []"
   [meta]='{headerTitle: "Key", removeRowTooltipText: "Remove key", addButtonTitle: "Add to list" }'
   [getEditableRowData]="getEditableRowData.bind(this)"
   [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"

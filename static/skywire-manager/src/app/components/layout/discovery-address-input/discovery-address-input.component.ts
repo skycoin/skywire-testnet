@@ -6,12 +6,14 @@ import {AppsService} from "../../../services/apps.service";
 @Component({
   selector: 'app-discovery-address-input',
   templateUrl: './discovery-address-input.component.html',
-  styleUrls: ['./discovery-address-input.component.css']
+  styleUrls: ['./discovery-address-input.component.scss'],
+  host: {class: 'discovery-address-input-container'}
 })
 export class DiscoveryAddressInputComponent implements OnInit
 {
   @Input() autofocus: boolean;
   @Input() value: string;
+  @Input() required: boolean;
 
   constructor(protected dialog: MatDialog,
               protected appsService: AppsService) { }
