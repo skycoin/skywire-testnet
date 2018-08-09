@@ -2,6 +2,12 @@ import {AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild
 import {MatInput} from "@angular/material";
 import {FormControl} from "@angular/forms";
 
+export interface InputState
+{
+  valid: boolean;
+  value: string;
+}
+
 @Component({
   selector: 'app-validation-input',
   templateUrl: './validation-input.component.html',
@@ -12,18 +18,20 @@ export class ValidationInputComponent implements OnInit, AfterViewInit
 {
   constructor() { }
 
-  @Output() inputCorrect = new EventEmitter();
+  @Output() valueChanged = new EventEmitter<InputState>();
   @Output() onBlur = new EventEmitter();
   @ViewChild(MatInput) inputElement: MatInput;
   @Input() value: string;
   @Input() required: boolean;
   @Input() placeHolder: string;
   @Input() hint: string;
-  @Input() autofocus: string;
+  @Input() autofocus: boolean;
   @Input() validator: FormControl;
   @Input() getErrorMessage: () => string;
 
-  ngOnInit()
+  ngOnInit() {}
+
+  ngAfterViewInit()
   {
     if (this.autofocus)
     {
@@ -31,20 +39,12 @@ export class ValidationInputComponent implements OnInit, AfterViewInit
     }
   }
 
-  ngAfterViewInit()
-  {
-    if (this.autofocus)
-    {
-      this.keyInput.focus();
-    }
-  }
-
   onInput($evt)
   {
-    if (this.validator.valid)
-    {
-      this.value = $evt.target.value;
-      this.inputCorrect.emit(this.value);
-    }
+    this.value = $evt.target.value;
+    this.valueChanged.emit({
+      value: this.value,
+      valid: this.validator.valid
+    });
   }
 }

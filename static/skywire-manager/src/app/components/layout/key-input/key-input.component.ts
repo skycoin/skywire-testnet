@@ -40,7 +40,6 @@ export class KeyInputComponent implements OnInit, AfterViewInit
 
   onInput($evt)
   {
-    console.log($evt.target.value);
     this.value = $evt.target.value;
     this.onKeyChange.emit({
       value: this.value,

@@ -51,10 +51,7 @@ export class DatatableComponent implements OnInit
 
   onAddValueChanged({value, valid}): void
   {
-    if (valid)
-    {
-      this.valueToAdd = value;
-    }
+    this.valueToAdd = valid ? value : null;
   }
 
   onAddBtnClicked()

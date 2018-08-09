@@ -9,6 +9,7 @@ import {DiscoveryAddress} from "../discovery-address-input/discovery-address-inp
 export class EditableDiscoveryAddressComponent implements OnInit
 {
   @Input() value: DiscoveryAddress;
+  @Input() autofocus: boolean;
   @Output() onValueEdited = new EventEmitter<DiscoveryAddress>();
   editMode: boolean = false;
 
@@ -21,8 +22,9 @@ export class EditableDiscoveryAddressComponent implements OnInit
     this.value = value;
   }
 
-  set data({value, subscriber}: {value: DiscoveryAddress, subscriber: (next: DiscoveryAddress) => void})
+  set data({autofocus, value, subscriber}: {autofocus: boolean, value: DiscoveryAddress, subscriber: (next: DiscoveryAddress) => void})
   {
+    this.autofocus = autofocus;
     this.value = value;
     this.onValueEdited.subscribe(subscriber);
   }

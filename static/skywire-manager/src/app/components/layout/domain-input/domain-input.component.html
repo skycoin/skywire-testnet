@@ -6,6 +6,6 @@
   [autofocus]="autofocus"
   [required]="required"
   [value]="value"
-  (inputCorrect)="onDomainChange.emit($event)"
+  (valueChanged)="onDomainChange.emit($event)"
   [getErrorMessage]="getErrorMessage">
 </app-validation-input>

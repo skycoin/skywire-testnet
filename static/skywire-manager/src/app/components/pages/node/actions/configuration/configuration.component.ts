@@ -118,7 +118,7 @@ export class ConfigurationComponent implements OnInit, DatatableProvider
   getAddRowData()
   {
     return {
-
+      required: false
     };
   }
 
@@ -130,8 +130,8 @@ export class ConfigurationComponent implements OnInit, DatatableProvider
   getEditableRowData(index: number, currentValue: string)
   {
     return {
-      value: currentValue,
-
+      autofocus: true,
+      value: currentValue
     };
   }
 }
