@@ -50,7 +50,7 @@ For now, the rewards for each node that meets [the requirement](https://github.c
 
 *Faulty orange pi's from official miners will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well. Since we are taking care of this manually you are requested to contact one of our team members (@asxtree @MrHodlr @Paperstream).*
 
-As soon as the pool size would be surpassed we will adjust the rewards: We will split up the Skycoin in the pool evenly between all nodes that are eligible for rewards.
+As soon as the pool size would be surpassed we will adjust the rewards: We will split up the Skycoin in the pool evenly between all nodes that are eligible for rewards, i.e. the total amount is shared amongst all nodes which meet the uptime requirements, with a maximum of 6 Skycoin per node (DIY) and 12 Skycoin per node (officia).
 
 ### Requirement
 
@@ -213,27 +213,26 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
 
 The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist).
 
-### June
+### July
 
-    - LAST WHITELISTED APPLICATION ID: 322 
-    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-05-24 23:40:27
-    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 197
+    - LAST WHITELISTED QUEUE POSITION: 411
+    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-05-31 21:18:02
+    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 360
 
 #### Updates
     - The whitelist is updated on a monthly basis, meaning that we are whitelisting 200 applications each month.
     - The numbers above are getting updated on a monthly basis as well
 
 #### Position
-    - The whitelist application ID (ID of first submitted application) represents your position in the queue. 
-    - Estimate your individual waiting period for your DIY miner based on these two numbers
-    - The ID above is unrepresentative as long as the script for your actual queue position is not finished
-    - You can only estimate when you get whitelisted as of now, this is step to increase transparency
-
-#### Get your position
-    - Contact @asxtree @MrHodlr @Paperstream to obtain your application ID etc.
+    - You can request your actual queue position by contacting one of our team members on telegram
+    - Calculate your individual waiting period based on this queue position
+    - The application ID is not representative of your queue position
+    - Multiple submitted applications by the same email each have an application ID
+    
+#### Get your data
+    - Contact @asxtree @MrHodlr @Paperstream to obtain your queue position, your submitted data etc.
     - You can double check with our team members (see above) if we received your application.
     - Unlike the whitelist data, the team receives *weekly updates* on the application data
-    - A script that calculates your actual queue position & approximate waiting time is WIP (work in progress)
 
 
 ### Facts
