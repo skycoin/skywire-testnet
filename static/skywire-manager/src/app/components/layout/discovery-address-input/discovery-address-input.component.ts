@@ -1,5 +1,4 @@
-import {Component, Input, OnInit} from '@angular/core';
-import {NodeAppButtonComponent} from "../../pages/node/apps/node-app-button/node-app-button.component";
+import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {MatDialog} from "@angular/material";
 import {AppsService} from "../../../services/apps.service";
 import {KeyInputEvent} from "../key-input/key-input.component";
@@ -15,6 +14,8 @@ export class DiscoveryAddressInputComponent implements OnInit
   @Input() autofocus: boolean;
   @Input() value: DiscoveryAddress;
   @Input() required: boolean;
+  @Output() onValueChanged = new EventEmitter<DiscoveryAddress>();
+  @Output() onBlur = new EventEmitter<>();
 
   constructor(protected dialog: MatDialog,
               protected appsService: AppsService) { }
@@ -26,12 +27,22 @@ export class DiscoveryAddressInputComponent implements OnInit
     if (valid)
     {
       this.value.publicKey = value;
+      this.emitIfValid();
     }
   }
 
   onDomainChange(domain: string)
   {
     this.value.domain = domain;
+    this.emitIfValid();
+  }
+
+  private emitIfValid()
+  {
+    if (this.value.publicKey && this.value.domain)
+    {
+      this.onValueChanged.emit(this.value);
+    }
   }
 }
 

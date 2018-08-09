@@ -72,7 +72,7 @@ export class DatatableComponent implements OnInit
     this.updateValues(this.data);
   }
 
-  onValueAtPositionChanged(position: number, value: string)
+  onValueAtPositionChanged(position: number, value: any)
   {
     let dataCopy = this.data;
     dataCopy[position] = value;

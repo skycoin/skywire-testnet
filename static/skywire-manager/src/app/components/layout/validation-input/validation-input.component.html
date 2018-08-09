@@ -2,6 +2,7 @@
   <input
     [value]="value"
     (input)="onInput($event)"
+    (blur)="onBlur.emit($event)"
     matInput
     placeholder="{{placeHolder}}"
     [formControl]="validator">

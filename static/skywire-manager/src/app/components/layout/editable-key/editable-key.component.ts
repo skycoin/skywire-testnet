@@ -15,10 +15,7 @@ export class EditableKeyComponent implements OnInit {
 
   constructor() {}
 
-  ngOnInit()
-  {
-    console.log('init');
-  }
+  ngOnInit() {}
 
   onAppKeyChanged({value, valid} : KeyInputEvent)
   {
@@ -28,12 +25,12 @@ export class EditableKeyComponent implements OnInit {
     }
   }
 
-  onKeyClicked($event)
+  onKeyClicked()
   {
     this.toggleEditMode();
   }
 
-  onAppKeyBlurred($event)
+  onAppKeyBlurred()
   {
     this.toggleEditMode();
     this.onValueEdited.emit(this.value);

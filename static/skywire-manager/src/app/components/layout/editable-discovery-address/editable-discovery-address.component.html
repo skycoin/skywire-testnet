@@ -1,6 +1,8 @@
 <app-discovery-address-input
   [autofocus]=true
+  (onBlur)="onDiscoveryAddressBlurred($event)"
   *ngIf="editMode"
+  (onValueChanged)="onValueChanged($event)"
   [value]="value">
 </app-discovery-address-input>
 <!--<app-domain-input

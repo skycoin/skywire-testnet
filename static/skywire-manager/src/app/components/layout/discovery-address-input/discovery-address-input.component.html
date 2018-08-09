@@ -2,11 +2,13 @@
   id="domainInput"
   [required]="required"
   [autofocus]="autofocus"
+  (onBlur)="onBlur.emit()"
   (onDomainChange)="onDomainChange($event)"
   [value]="value?.domain">
 </app-domain-input>
 <app-key-input
   id="keyInput"
+  (blur)="onBlur.emit()"
   [required]="required"
   [value]="value?.publicKey"
   (onKeyChange)="onKeyChange($event)"

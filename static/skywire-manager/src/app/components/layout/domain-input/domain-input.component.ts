@@ -13,6 +13,7 @@ export class DomainInputComponent
   @Input() value: string;
   @Input() required: boolean;
   @Output() onDomainChange = new EventEmitter<string>();
+  @Output() onBlur = new EventEmitter<string>();
   editMode: boolean = false;
   validator: FormControl;
 

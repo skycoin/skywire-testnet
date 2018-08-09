@@ -1,4 +1,4 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {DiscoveryAddress} from "../discovery-address-input/discovery-address-input.component";
 
 @Component({
@@ -9,21 +9,36 @@ import {DiscoveryAddress} from "../discovery-address-input/discovery-address-inp
 export class EditableDiscoveryAddressComponent implements OnInit
 {
   @Input() value: DiscoveryAddress;
+  @Output() onValueEdited = new EventEmitter<DiscoveryAddress>();
   editMode: boolean = false;
 
-  constructor() { }
+  constructor() {}
 
-  ngOnInit()
-  {
+  ngOnInit() {}
 
-  }
-
-  set data({value}: {value: DiscoveryAddress})
+  onValueChanged(value: DiscoveryAddress)
   {
     this.value = value;
   }
 
-  onValueClicked($event)
+  set data({value, subscriber}: {value: DiscoveryAddress, subscriber: (next: DiscoveryAddress) => void})
+  {
+    this.value = value;
+    this.onValueEdited.subscribe(subscriber);
+  }
+
+  onValueClicked()
+  {
+    this.toggleEditMode();
+  }
+
+  onDiscoveryAddressBlurred()
+  {
+    this.toggleEditMode();
+    this.onValueEdited.emit(this.value);
+  }
+
+  private toggleEditMode()
   {
     this.editMode = !this.editMode;
   }
