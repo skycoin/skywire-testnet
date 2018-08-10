@@ -1,21 +1,19 @@
-<div class="d-flex align-items-center justify-content-between">
+<div class="d-flex align-items-center">
   <app-discovery-address-input
-    style="flex: 1;"
     [autofocus]="autofocus"
-    (onBlur)="onDiscoveryAddressBlurred($event)"
     *ngIf="editMode"
     (onValueChanged)="onValueChanged($event)"
     [value]="value">
   </app-discovery-address-input>
   <span
-    style="flex: 1;"
     (click)="onValueClicked($event)"
     *ngIf="!editMode">
   {{ value.domain }}<br>{{ value.publicKey }}
-</span>
-  <button
+  </span>
+  <button color="{{editMode ? 'primary' : ''}}"
     (click)="toggleEditMode()"
     mat-icon-button
+    matTooltip="{{editMode ? 'Save changes' : 'Edit value'}}"
     [disabled]="editMode && !valid">
     <mat-icon>
       {{editMode ? 'done' : 'edit'}}

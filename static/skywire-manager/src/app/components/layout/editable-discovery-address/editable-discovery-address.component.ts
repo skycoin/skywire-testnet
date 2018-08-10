@@ -39,17 +39,17 @@ export class EditableDiscoveryAddressComponent implements OnInit
     this.toggleEditMode();
   }
 
-  onDiscoveryAddressBlurred()
-  {
-    if (this.valid)
-    {
-      //this.toggleEditMode();
-      this.onValueEdited.emit(this.value);
-    }
-  }
-
   private toggleEditMode()
   {
     this.editMode = !this.editMode;
+    this.triggerValueChanged();
+  }
+
+  private triggerValueChanged()
+  {
+    if (!this.editMode && this.valid)
+    {
+      this.onValueEdited.emit(this.value);
+    }
   }
 }

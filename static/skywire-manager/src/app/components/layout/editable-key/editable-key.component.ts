@@ -12,6 +12,7 @@ export class EditableKeyComponent implements OnInit {
   @Input() autofocus: boolean = false;
   @Output() onValueEdited = new EventEmitter<string>();
   editMode: boolean = false;
+  private valid: boolean = true;
 
   constructor() {}
 
@@ -19,26 +20,25 @@ export class EditableKeyComponent implements OnInit {
 
   onAppKeyChanged({value, valid} : KeyInputEvent)
   {
+    this.valid = valid;
     if (valid)
     {
       this.value = value;
     }
   }
 
-  onKeyClicked()
-  {
-    this.toggleEditMode();
-  }
-
-  onAppKeyBlurred()
-  {
-    this.toggleEditMode();
-    this.onValueEdited.emit(this.value);
-  }
-
   private toggleEditMode()
   {
     this.editMode = !this.editMode;
+    this.triggerValueChanged();
+  }
+
+  private triggerValueChanged()
+  {
+    if (!this.editMode && this.valid)
+    {
+      this.onValueEdited.emit(this.value);
+    }
   }
 
   set data({autofocus, value, subscriber}: {autofocus: boolean, value: string, subscriber: (next: string) => void})

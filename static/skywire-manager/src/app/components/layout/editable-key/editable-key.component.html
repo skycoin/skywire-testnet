@@ -1,12 +1,21 @@
-<app-key-input
-  [autofocus]=autofocus
-  *ngIf="editMode"
-  value="{{value}}"
-  (blur)="onAppKeyBlurred($event)"
-  (onKeyChange)="onAppKeyChanged($event)">
-</app-key-input>
-<span
-  (click)="onKeyClicked($event)"
-  *ngIf="!editMode">
-  {{ value }}
-</span>
+<div class="d-flex align-items-center flex-1">
+  <app-key-input
+    [autofocus]=autofocus
+    *ngIf="editMode"
+    value="{{value}}"
+    (onKeyChange)="onAppKeyChanged($event)">
+  </app-key-input>
+  <span
+    *ngIf="!editMode">
+    {{ value }}
+  </span>
+  <button color="{{editMode ? 'primary' : ''}}"
+          (click)="toggleEditMode()"
+          mat-icon-button
+          matTooltip="{{editMode ? 'Save changes' : 'Edit value'}}"
+          [disabled]="editMode && !valid">
+    <mat-icon>
+      {{editMode ? 'done' : 'edit'}}
+    </mat-icon>
+  </button>
+</div>
