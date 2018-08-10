@@ -1,7 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { Keypair, SearchResult, SearchResultItem } from '../../../../../../app.datatypes';
+import { Keypair} from '../../../../../../app.datatypes';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
-import { NodeService } from '../../../../../../services/node.service';
 import {KeyPairState} from "../../../../../layout/keypair/keypair.component";
 
 @Component({
@@ -12,12 +11,16 @@ import {KeyPairState} from "../../../../../layout/keypair/keypair.component";
 export class SockscConnectComponent implements OnInit
 {
   keypair: Keypair;
+  private discoveries = [];
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
     private dialogRef: MatDialogRef<SockscConnectComponent>
   ) {}
 
-  ngOnInit() {}
+  ngOnInit()
+  {
+    this.discoveries = this.data.discoveries;
+  }
 
   keypairChange({keyPair, valid}: KeyPairState)
   {

@@ -14,7 +14,7 @@
   <button color="{{editMode ? 'primary' : ''}}"
     (click)="toggleEditMode()"
     mat-icon-button
-    matTooltip="{{editMode ? 'Save changes' : 'Edit value'}}"
+    matTooltip="{{editMode ? 'Save changes' : 'Edit'}}"
     [disabled]="editMode && !valid">
     <mat-icon>
       {{editMode ? 'done' : 'edit'}}

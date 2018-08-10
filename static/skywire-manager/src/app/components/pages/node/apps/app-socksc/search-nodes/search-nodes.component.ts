@@ -1,5 +1,5 @@
-import {Component, Input, OnInit} from '@angular/core';
-import {SearchResult, SearchResultItem} from "../../../../../../app.datatypes";
+import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
+import {Keypair, SearchResult, SearchResultItem} from "../../../../../../app.datatypes";
 import {NodeService} from "../../../../../../services/node.service";
 import {MatTableDataSource} from "@angular/material";
 
@@ -10,7 +10,8 @@ import {MatTableDataSource} from "@angular/material";
 })
 export class SearchNodesComponent implements OnInit
 {
-  @Input() discoveries: string[] = [];
+  @Input() discovery: string;
+  @Output() connect = new EventEmitter<Keypair>();
 
   readonly serviceKey = 'sockss';
   readonly limit = 5;
@@ -19,7 +20,6 @@ export class SearchNodesComponent implements OnInit
   dataSource = new MatTableDataSource<SearchResultItem>();
   currentPage = 1;
   pages = 1;
-  discovery: string;
   count = 0;
   loading: boolean = false;
 
@@ -27,11 +27,7 @@ export class SearchNodesComponent implements OnInit
 
   ngOnInit()
   {
-    if (this.discoveries.length > 0)
-    {
-      this.discovery = this.discoveries[0];
-      this.search();
-    }
+    this.search();
   }
 
   get pagerState(): string
