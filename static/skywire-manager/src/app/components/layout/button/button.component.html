@@ -1,0 +1,13 @@
+<button
+  mat-button
+  (click)="click()"
+  [matTooltip]="tooltip"
+  [disabled]="disabled"
+  [ngClass]="dark ? 'dark' : ''"
+>
+  <mat-spinner *ngIf="state === buttonStates.LOADING" [diameter]="24" color="white"></mat-spinner>
+  <mat-icon *ngIf="state === buttonStates.SUCCESS">done</mat-icon>
+  <mat-icon *ngIf="state === buttonStates.ERROR">error_outline</mat-icon>
+  <mat-icon *ngIf="state === buttonStates.NORMAL && icon">{{ icon }}</mat-icon>
+  <ng-content></ng-content>
+</button>

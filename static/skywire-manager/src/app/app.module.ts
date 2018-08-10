@@ -27,9 +27,9 @@ import {
   MatDialogModule,
   MatFormFieldModule,
   MatInputModule,
-  ShowOnDirtyErrorStateMatcher
+  ShowOnDirtyErrorStateMatcher, MatProgressSpinnerModule
 }
-from '@angular/material';
+  from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
 import { NodeTransportsList } from './components/pages/node/node-transports-list/node-transports-list';
 import { NodeAppsListComponent } from './components/pages/node/apps/node-apps-list/node-apps-list.component';
@@ -61,6 +61,7 @@ import { NumberInputMinValueComponent } from './components/layout/number-input-m
 import { StartupConfigComponent } from './components/pages/node/apps/startup-config/startup-config.component';
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
+import { ButtonComponent } from './components/layout/button/button.component';
 
 @NgModule({
   declarations: [
@@ -98,6 +99,7 @@ import { AppTranslationModule } from './app-translation.module';
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
+    ButtonComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -136,7 +138,8 @@ import { AppTranslationModule } from './app-translation.module';
     MatIconModule,
     MatSlideToggleModule,
     FormsModule,
-    MatListModule
+    MatListModule,
+    MatProgressSpinnerModule,
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
