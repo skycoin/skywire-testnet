@@ -60,6 +60,11 @@ $tables-colors: (
       @extend .font-smaller;
     }
 
+    &.sm td
+    {
+      @extend .font-mini;
+    }
+
     &.selectable
     {
       tbody
