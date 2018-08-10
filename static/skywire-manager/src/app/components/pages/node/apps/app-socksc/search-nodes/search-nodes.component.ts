@@ -34,6 +34,13 @@ export class SearchNodesComponent implements OnInit
     }
   }
 
+  get pagerState(): string
+  {
+    let baseIndex = (this.currentPage - 1) * this.limit ;
+
+    return `${baseIndex + 1} - ${baseIndex + this.limit} of ${this.count}`;
+  }
+
   search()
   {
     this.loading = true;

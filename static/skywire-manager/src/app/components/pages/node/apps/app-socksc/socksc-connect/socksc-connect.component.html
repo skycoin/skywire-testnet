@@ -6,11 +6,8 @@
     </div>
   </mat-tab>
   <mat-tab label="Search node">
-    <ng-template matTabContent class="pt-5">
-      <div class="pt-4">
-        <app-search-nodes
-          [discoveries]="data.discoveries"></app-search-nodes>
-      </div>
+    <ng-template matTabContent>
+      <app-search-nodes [discoveries]="data.discoveries"></app-search-nodes>
     </ng-template>
   </mat-tab>
 </mat-tab-group>

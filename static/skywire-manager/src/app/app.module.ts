@@ -29,7 +29,7 @@ import {
   MatFormFieldModule,
   MatInputModule,
   ShowOnDirtyErrorStateMatcher,
-  MatProgressSpinnerModule
+  MatProgressBarModule
 }
   from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
@@ -162,7 +162,7 @@ import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/sear
     MatSlideToggleModule,
     FormsModule,
     MatListModule,
-    MatProgressSpinnerModule
+    MatProgressBarModule
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
