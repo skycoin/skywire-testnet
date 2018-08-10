@@ -1,4 +1,9 @@
-<app-keypair (keypairChange)="keypairChange($event)">
-  
-</app-keypair>
-<button (click)="connect()" [disabled]="!(keypair && keypair.nodeKey && keypair.appKey)">connect</button>
+<app-keypair
+  [required]="true"
+  (keypairChange)="keypairChange($event)"></app-keypair>
+<button
+  class="float-right"
+  (click)="connect()"
+  mat-raised-button
+  color="primary"
+  [disabled]="!(valid && keypair && keypair.nodeKey && keypair.appKey)"> Connect </button>
