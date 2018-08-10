@@ -9,4 +9,9 @@ export default class StringUtils
   {
     return value.replace(/\s/g,'');
   }
+
+  static isEmpty(value: string): boolean
+  {
+    return StringUtils.removeWhitespaces(value).length === 0;
+  }
 }

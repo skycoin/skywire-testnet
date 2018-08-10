@@ -1,4 +1,4 @@
-import {Component, Inject, OnChanges, OnInit} from '@angular/core';
+import {Component, Inject, OnInit} from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatSnackBar } from '@angular/material';
 import { FormControl, FormGroup } from '@angular/forms';
 import { NodeService } from '../../../../../services/node.service';
@@ -14,7 +14,7 @@ import {EditableDiscoveryAddressComponent} from "../../../../layout/editable-dis
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss']
 })
-export class ConfigurationComponent implements OnInit, OnChanges, DatatableProvider<DiscoveryAddress>
+export class ConfigurationComponent implements OnInit, DatatableProvider<DiscoveryAddress>
 {
   form: FormGroup;
   node: Node;
@@ -42,17 +42,10 @@ export class ConfigurationComponent implements OnInit, OnChanges, DatatableProvi
         publicKey: parts[1]
       })
     });
-
-    /*this.form = new FormGroup({
-      'addresses': new FormControl('', [this.validateAddresses])
-    });*/
   }
 
-  save(values: DiscoveryAddress[]) {
-    /*if (!this.form.valid) {
-      return;
-    }*/
-
+  save(values: DiscoveryAddress[])
+  {
     let stringValues = [];
     values.map(({domain, publicKey}) =>
     {
@@ -138,9 +131,5 @@ export class ConfigurationComponent implements OnInit, OnChanges, DatatableProvi
       autofocus: false,
       value: currentValue
     };
-  }
-
-  ngOnChanges(): void {
-    console.log('configuration onChanges');
   }
 }

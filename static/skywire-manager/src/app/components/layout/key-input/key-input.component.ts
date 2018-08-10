@@ -1,5 +1,5 @@
 import {AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
-import PublicKeyValidator from "../../../forms/publicKeyValidator";
+import {publicKeyValidator} from "../../../forms/validators";
 import {FormControl} from "@angular/forms";
 import {MatInput} from "@angular/material";
 
@@ -18,7 +18,6 @@ export interface KeyInputEvent
 export class KeyInputComponent implements OnInit, AfterViewInit
 {
   @Output() onKeyChange = new EventEmitter<KeyInputEvent>();
-  @Output() blur = new EventEmitter<void>();
   @Input() value: string;
   @Input() required: boolean;
   @Input() placeholder: string;
@@ -47,11 +46,6 @@ export class KeyInputComponent implements OnInit, AfterViewInit
     });
   }
 
-  onBlur($evt)
-  {
-    this.blur.emit();
-  }
-
   clear()
   {
     this.value = "";
@@ -59,7 +53,7 @@ export class KeyInputComponent implements OnInit, AfterViewInit
 
   ngOnInit()
   {
-    this.validator = new FormControl('', [PublicKeyValidator(this.required)]);
+    this.validator = new FormControl('', [publicKeyValidator(this.required)]);
   }
 
   set data({required, placeholder, subscriber, clearInputEmitter}: {required: boolean, placeholder: string, subscriber: ({value, valid}: KeyInputEvent) => void, clearInputEmitter: EventEmitter<void>})

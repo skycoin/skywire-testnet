@@ -93,6 +93,7 @@ export class DatatableComponent implements OnInit, OnChanges
   {
     let data = this.getEditableRowData(position, currentValue);
     data.subscriber = this.onValueAtPositionChanged.bind(this, position);
+    data.required = true;
     return data;
   }
 

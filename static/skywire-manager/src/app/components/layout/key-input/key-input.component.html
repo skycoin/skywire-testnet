@@ -1,7 +1,6 @@
 <mat-form-field>
   <input
     value="{{value}}"
-    (blur)="onBlur($event)"
     (input)="onInput($event)"
     matInput [formControl]="validator"
     type="text"

@@ -1,6 +1,7 @@
 import {Component, EventEmitter, Input, Output} from '@angular/core';
 import {FormControl, Validators} from "@angular/forms";
 import {InputState} from "../validation-input/validation-input.component";
+import {domainValidator} from "../../../forms/validators";
 
 @Component({
   selector: 'app-domain-input',
@@ -12,9 +13,8 @@ export class DomainInputComponent
 {
   @Input() autofocus: boolean;
   @Input() value: string;
-  @Input() required: boolean;
+  @Input() required: boolean = false;
   @Output() onDomainChange = new EventEmitter<InputState>();
-  @Output() onBlur = new EventEmitter<string>();
   validator: FormControl;
 
   constructor()
@@ -24,12 +24,12 @@ export class DomainInputComponent
 
   getErrorMessage()
   {
-    return this.validator.hasError('required') ? 'Domain is required' : '';
+    return this.validator.hasError('required') ? 'Domain is required' : 'Format must be domain:port';
   }
 
   ngOnInit()
   {
-    let validatorsList = [];
+    let validatorsList = [domainValidator];
     if (this.required)
     {
       validatorsList.push(Validators.required)

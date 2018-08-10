@@ -1,5 +1,6 @@
 <div class="d-flex align-items-center flex-1">
   <app-key-input
+    [required]="required"
     [autofocus]=autofocus
     *ngIf="editMode"
     value="{{value}}"

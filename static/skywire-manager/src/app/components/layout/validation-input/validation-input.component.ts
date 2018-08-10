@@ -19,7 +19,6 @@ export class ValidationInputComponent implements OnInit, AfterViewInit
   constructor() { }
 
   @Output() valueChanged = new EventEmitter<InputState>();
-  @Output() onBlur = new EventEmitter();
   @ViewChild(MatInput) inputElement: MatInput;
   @Input() value: string;
   @Input() required: boolean;

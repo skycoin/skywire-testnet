@@ -9,6 +9,7 @@ import {DiscoveryAddress} from "../../../app.datatypes";
 export class EditableDiscoveryAddressComponent implements OnInit
 {
   @Input() value: DiscoveryAddress;
+  @Input() required: boolean = false;
   @Input() autofocus: boolean;
   @Output() onValueEdited = new EventEmitter<DiscoveryAddress>();
   editMode: boolean = false;
@@ -27,8 +28,9 @@ export class EditableDiscoveryAddressComponent implements OnInit
     }
   }
 
-  set data({autofocus, value, subscriber}: {autofocus: boolean, value: DiscoveryAddress, subscriber: (next: DiscoveryAddress) => void})
+  set data({required, autofocus, value, subscriber}: {required: boolean, autofocus: boolean, value: DiscoveryAddress, subscriber: (next: DiscoveryAddress) => void})
   {
+    this.required = required;
     this.autofocus = autofocus;
     this.value = value;
     this.onValueEdited.subscribe(subscriber);
@@ -47,7 +49,7 @@ export class EditableDiscoveryAddressComponent implements OnInit
 
   private triggerValueChanged()
   {
-    if (!this.editMode && this.valid)
+    if (this.valid && !this.editMode)
     {
       this.onValueEdited.emit(this.value);
     }

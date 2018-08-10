@@ -20,9 +20,8 @@ export class DiscoveryAddressInputComponent implements OnInit
 {
   @Input() autofocus: boolean;
   @Input() value: DiscoveryAddress = DiscoveryAddressInputComponent.initialState;
-  @Input() required: boolean;
+  @Input() required: boolean = false;
   @Output() onValueChanged = new EventEmitter<DiscoveryAddressState>();
-  @Output() onBlur = new EventEmitter();
   private domainValid: boolean = true;
   private keyValid: boolean = true;
 

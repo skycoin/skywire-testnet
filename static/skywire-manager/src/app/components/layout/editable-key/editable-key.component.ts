@@ -10,6 +10,7 @@ import {KeyInputEvent} from "../key-input/key-input.component";
 export class EditableKeyComponent implements OnInit {
   @Input() value: string;
   @Input() autofocus: boolean = false;
+  @Input() required: boolean = false;
   @Output() onValueEdited = new EventEmitter<string>();
   editMode: boolean = false;
   private valid: boolean = true;
@@ -27,7 +28,7 @@ export class EditableKeyComponent implements OnInit {
     }
   }
 
-  private toggleEditMode()
+  toggleEditMode()
   {
     this.editMode = !this.editMode;
     this.triggerValueChanged();
@@ -41,8 +42,9 @@ export class EditableKeyComponent implements OnInit {
     }
   }
 
-  set data({autofocus, value, subscriber}: {autofocus: boolean, value: string, subscriber: (next: string) => void})
+  set data({required, autofocus, value, subscriber}: {required: boolean, autofocus: boolean, value: string, subscriber: (next: string) => void})
   {
+    this.required = required;
     this.autofocus = autofocus;
     this.value = value;
     this.onValueEdited.subscribe(subscriber);

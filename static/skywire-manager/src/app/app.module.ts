@@ -69,6 +69,7 @@ import {ComponentHostDirective} from "./directives/component-host.directive";
 import {HostComponent} from "./components/layout/host/host.component";
 import {DatatableComponent} from "./components/layout/datatable/datatable.component";
 import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
+import {EditableInputComponent} from "./components/layout/editable-input/editable-input.component";
 
 @NgModule({
   declarations: [
