@@ -27,7 +27,7 @@ export class TerminalComponent implements OnInit {
   ngOnInit() {
     forkJoin(
       this.nodeService.getManagerPort(),
-      this.authService.checkLogin(),
+      this.authService.authToken(),
     ).subscribe(res => {
       this.ws = new WebSocket(this.buildUrl(res[0], res[1]));
       this.ws.binaryType = 'arraybuffer';
