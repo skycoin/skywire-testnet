@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnChanges, OnInit, Output, Type} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, Type} from '@angular/core';
 import {MatTableDataSource} from "@angular/material";
 
 @Component({
@@ -6,7 +6,7 @@ import {MatTableDataSource} from "@angular/material";
   templateUrl: './datatable.component.html',
   styleUrls: ['./datatable.component.css']
 })
-export class DatatableComponent implements OnInit, OnChanges
+export class DatatableComponent implements OnInit
 {
   dataSource = new MatTableDataSource<string>();
 
@@ -37,13 +37,13 @@ export class DatatableComponent implements OnInit, OnChanges
 
   ngOnInit()
   {
-    this.updateValues(this.data || []);
+    this.updateValues(this.data || [], false);
   }
 
-  private updateValues(list: string[])
+  private updateValues(list: string[], save: boolean = true)
   {
     this.dataSource.data = list.concat([]);
-    if (this.onSave)
+    if (save && this.onSave)
     {
       this.onSave.emit(list.concat([]));
     }
@@ -69,11 +69,6 @@ export class DatatableComponent implements OnInit, OnChanges
     this.updateValues(this.data);
   }
 
-  onEditBtnClicked(position)
-  {
-
-  }
-
   onValueAtPositionChanged(position: number, value: any)
   {
     let dataCopy = this.data;
@@ -95,11 +90,6 @@ export class DatatableComponent implements OnInit, OnChanges
     data.subscriber = this.onValueAtPositionChanged.bind(this, position);
     data.required = true;
     return data;
-  }
-
-  ngOnChanges(): void
-  {
-    //this.updateValues(this.data || []);
   }
 }
 

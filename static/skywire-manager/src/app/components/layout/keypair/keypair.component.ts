@@ -22,6 +22,7 @@ export class KeypairComponent implements OnInit
     appKey: ''
   };
   @Output() keypairChange = new EventEmitter<KeyPairState>();
+  @Input() required: boolean = false;
   private nodeKeyValid: boolean = true;
   private appKeyValid: boolean = true;
 

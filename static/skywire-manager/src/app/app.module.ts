@@ -11,6 +11,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RelativeTimePipe } from './pipes/relative-time.pipe';
 import { FormsModule } from '@angular/forms';
 import {
+  MatTabsModule,
   MatToolbarModule,
   MatTableModule,
   MatButtonModule,
@@ -27,9 +28,10 @@ import {
   MatDialogModule,
   MatFormFieldModule,
   MatInputModule,
-  ShowOnDirtyErrorStateMatcher
+  ShowOnDirtyErrorStateMatcher,
+  MatProgressBarModule
 }
-from '@angular/material';
+  from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
 import { NodeTransportsList } from './components/pages/node/node-transports-list/node-transports-list';
 import { NodeAppsListComponent } from './components/pages/node/apps/node-apps-list/node-apps-list.component';
@@ -69,7 +71,7 @@ import {ComponentHostDirective} from "./directives/component-host.directive";
 import {HostComponent} from "./components/layout/host/host.component";
 import {DatatableComponent} from "./components/layout/datatable/datatable.component";
 import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
-import {EditableInputComponent} from "./components/layout/editable-input/editable-input.component";
+import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/search-nodes/search-nodes.component";
 
 @NgModule({
   declarations: [
@@ -114,7 +116,8 @@ import {EditableInputComponent} from "./components/layout/editable-input/editabl
     ValidationInputComponent,
     HostComponent,
     DatatableComponent,
-    EditableDiscoveryAddressComponent
+    EditableDiscoveryAddressComponent,
+    SearchNodesComponent
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -146,6 +149,7 @@ import {EditableInputComponent} from "./components/layout/editable-input/editabl
     MatFormFieldModule,
     MatInputModule,
     MatToolbarModule,
+    MatTabsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
@@ -157,7 +161,8 @@ import {EditableInputComponent} from "./components/layout/editable-input/editabl
     MatIconModule,
     MatSlideToggleModule,
     FormsModule,
-    MatListModule
+    MatListModule,
+    MatProgressBarModule
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
