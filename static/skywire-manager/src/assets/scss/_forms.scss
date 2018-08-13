@@ -54,3 +54,13 @@
     flex-direction: column;
   }
 }
+
+.mat-form-field.w-100
+{
+  width: 100%;
+  .mat-form-field-wrapper
+  {
+    width: 100%;
+  }
+}
+
