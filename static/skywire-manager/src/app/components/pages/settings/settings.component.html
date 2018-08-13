@@ -30,14 +30,14 @@
                 </mat-select>
               </mat-form-field>
             </mat-list-item>
-            <mat-list-item class="h-auto" style="padding: 10px 0 10px 0;">
-              <div class="d-flex flex-column w-100">
-                <label>Change Password</label>
-                <app-password class="mt-2 flex-1"></app-password>
-              </div>
+            <mat-list-item>
+                <button
+                  class="ml-0"
+                  mat-raised-button
+                  color="primary"
+                  (click)="onChangePasswordClicked($event)">Change Password</button>
             </mat-list-item>
           </mat-list>
-          example: {{ 'test' | translate }}
         </form>
       </div>
     </div>

@@ -83,4 +83,9 @@ export class SettingsComponent implements OnInit
       });
     });
   }
+
+  onChangePasswordClicked()
+  {
+    this.password();
+  }
 }
