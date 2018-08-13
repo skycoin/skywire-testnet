@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
+import {interval, Observable, of, Subject, throwError, timer, Unsubscribable} from 'rxjs';
 import { AutoStartConfig, Node, NodeApp, NodeInfo, SearchResult } from '../app.datatypes';
 import { ApiService } from './api.service';
 import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
@@ -155,12 +155,14 @@ export class NodeService {
 
   checkUpdate(): Observable<boolean> {
     return this.nodeRequest('run/checkUpdate').pipe(map(result => {
-      return result ? result : throwError(new Error('No update available.'));
+      return result;
     }));
   }
 
-  update(): Observable<any> {
-    return this.nodeRequest('update');
+  update(): Observable<boolean> {
+    return this.nodeRequest('update').pipe(map(result => {
+      return result;
+    }));
   }
 
   getManagerPort() {

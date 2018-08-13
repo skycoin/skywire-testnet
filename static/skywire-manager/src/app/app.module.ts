@@ -73,6 +73,7 @@ import {DatatableComponent} from "./components/layout/datatable/datatable.compon
 import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
 import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/search-nodes/search-nodes.component";
 import {ToolbarComponent} from "./components/layout/toolbar/toolbar.component";
+import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/update-node.component";
 
 @NgModule({
   declarations: [
@@ -119,7 +120,8 @@ import {ToolbarComponent} from "./components/layout/toolbar/toolbar.component";
     DatatableComponent,
     EditableDiscoveryAddressComponent,
     SearchNodesComponent,
-    ToolbarComponent
+    ToolbarComponent,
+    UpdateNodeComponent
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -137,7 +139,8 @@ import {ToolbarComponent} from "./components/layout/toolbar/toolbar.component";
     EditableKeyComponent,
     KeyInputComponent,
     DiscoveryAddressInputComponent,
-    EditableDiscoveryAddressComponent
+    EditableDiscoveryAddressComponent,
+    UpdateNodeComponent
   ],
   imports: [
     BrowserModule,

@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { TranslateService } from '@ngx-translate/core';
 import {StorageService} from "../../../services/storage.service";
-import ISO from "iso-639-1";
+import {getNativeName} from "../../../utils/languageUtils";
 
 interface LangOption
 {
@@ -79,7 +79,7 @@ export class SettingsComponent implements OnInit
     {
       this.langList.push({
         id: code,
-        name: ISO.getNativeName(code)
+        name: getNativeName(code)
       });
     });
   }

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {StorageService} from "./services/storage.service";
+import {getLangs} from "./utils/languageUtils";
 
 @Component({
   selector: 'app-root',
@@ -14,7 +15,7 @@ export class AppComponent {
   )
   {
     translate.onDefaultLangChange.subscribe(({lang}) => storage.setDefaultLanguage(lang));
-    translate.addLangs(['en', 'es']);
+    translate.addLangs(getLangs());
     translate.use(storage.getDefaultLanguage());
   }
 }

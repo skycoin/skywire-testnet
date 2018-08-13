@@ -5,6 +5,7 @@ import { MatDialog, MatSnackBar } from '@angular/material';
 import { ConfigurationComponent } from './configuration/configuration.component';
 import { TerminalComponent } from './terminal/terminal.component';
 import {SshWarningDialogComponent} from "./ssh-warning-dialog/ssh-warning-dialog.component";
+import {UpdateNodeComponent} from "./update-node/update-node.component";
 
 @Component({
   selector: 'app-actions',
@@ -29,10 +30,7 @@ export class ActionsComponent {
   }
 
   update() {
-    this.nodeService.checkUpdate().subscribe(
-      () => console.log('new update available'),
-      (e) => console.warn('check update problem', e),
-    );
+    this.dialog.open(UpdateNodeComponent);
   }
 
   configuration() {
