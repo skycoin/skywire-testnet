@@ -1,5 +1,10 @@
 <mat-form-field>
-  <input required="{{required}}" (input)="onInput($event)" matInput [formControl]="validator" type="text" placeholder="{{ placeholder }}" value="{{ value?value:'' }}">
+  <input
+    value="{{value}}"
+    (input)="onInput($event)"
+    matInput [formControl]="validator"
+    type="text"
+    placeholder="{{ placeholder }}">
   <mat-error *ngIf="validator.errors?.required && (validator.dirty || validator.touched)">
     Key is required.
   </mat-error>

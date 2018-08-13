@@ -1,6 +1,7 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import PublicKeyValidator from "../../../forms/publicKeyValidator";
+import {AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
+import {publicKeyValidator} from "../../../forms/validators";
 import {FormControl} from "@angular/forms";
+import {MatInput} from "@angular/material";
 
 export interface KeyInputEvent
 {
@@ -11,33 +12,55 @@ export interface KeyInputEvent
 @Component({
   selector: 'app-key-input',
   templateUrl: './key-input.component.html',
-  styleUrls: ['./key-input.component.css']
+  styleUrls: ['./key-input.component.scss'],
+  host: {class: 'key-input-container'}
 })
-export class KeyInputComponent implements OnInit
+export class KeyInputComponent implements OnInit, AfterViewInit
 {
-  @Output() inputCorrect = new EventEmitter<KeyInputEvent>();
+  @Output() onKeyChange = new EventEmitter<KeyInputEvent>();
   @Input() value: string;
-  @Input() required: boolean = true;
+  @Input() required: boolean;
   @Input() placeholder: string;
+  @Input() autofocus: boolean = false;
   validator: FormControl;
 
-  constructor() {
+  constructor()
+  {}
 
+  @ViewChild(MatInput) keyInput: MatInput;
+
+  ngAfterViewInit()
+  {
+    if (this.autofocus)
+    {
+      this.keyInput.focus();
+    }
   }
 
   onInput($evt)
   {
-    console.log($evt.target.value);
     this.value = $evt.target.value;
-    this.inputCorrect.emit({
+    this.onKeyChange.emit({
       value: this.value,
       valid: this.validator.valid
     });
   }
 
-  ngOnInit()
+  clear()
   {
-    this.validator = new FormControl('', [PublicKeyValidator(this.required)]);
+    this.value = "";
   }
 
+  ngOnInit()
+  {
+    this.validator = new FormControl('', [publicKeyValidator(this.required)]);
+  }
+
+  set data({required, placeholder, subscriber, clearInputEmitter}: {required: boolean, placeholder: string, subscriber: ({value, valid}: KeyInputEvent) => void, clearInputEmitter: EventEmitter<void>})
+  {
+    this.required = required;
+    this.placeholder = placeholder;
+    this.onKeyChange.subscribe(subscriber);
+    clearInputEmitter.subscribe(this.clear.bind(this));
+  }
 }

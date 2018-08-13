@@ -61,6 +61,15 @@ import { NumberInputMinValueComponent } from './components/layout/number-input-m
 import { StartupConfigComponent } from './components/pages/node/apps/startup-config/startup-config.component';
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
+import {EditableKeyComponent} from "./components/layout/editable-key/editable-key.component";
+import {DiscoveryAddressInputComponent} from "./components/layout/discovery-address-input/discovery-address-input.component";
+import {DomainInputComponent} from "./components/layout/domain-input/domain-input.component";
+import {ValidationInputComponent} from "./components/layout/validation-input/validation-input.component";
+import {ComponentHostDirective} from "./directives/component-host.directive";
+import {HostComponent} from "./components/layout/host/host.component";
+import {DatatableComponent} from "./components/layout/datatable/datatable.component";
+import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
+import {EditableInputComponent} from "./components/layout/editable-input/editable-input.component";
 
 @NgModule({
   declarations: [
@@ -95,9 +104,17 @@ import { AppTranslationModule } from './app-translation.module';
     SshWarningDialogComponent,
     AppsSettingsComponent,
     ClipboardDirective,
+    ComponentHostDirective,
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
+    EditableKeyComponent,
+    DiscoveryAddressInputComponent,
+    DomainInputComponent,
+    ValidationInputComponent,
+    HostComponent,
+    DatatableComponent,
+    EditableDiscoveryAddressComponent
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -112,6 +129,10 @@ import { AppTranslationModule } from './app-translation.module';
     SshcStartupComponent,
     SockscConnectComponent,
     SockscStartupComponent,
+    EditableKeyComponent,
+    KeyInputComponent,
+    DiscoveryAddressInputComponent,
+    EditableDiscoveryAddressComponent
   ],
   imports: [
     BrowserModule,

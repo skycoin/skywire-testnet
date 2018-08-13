@@ -1,30 +1,25 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import {Component, Inject, OnInit} from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatSnackBar } from '@angular/material';
 import { FormControl, FormGroup } from '@angular/forms';
 import { NodeService } from '../../../../../services/node.service';
-import { Node, NodeDiscovery } from '../../../../../app.datatypes';
+import {DiscoveryAddress, Node, NodeDiscovery} from '../../../../../app.datatypes';
+import {DatatableProvider} from "../../../../layout/datatable/datatable.component";
+import {
+  DiscoveryAddressInputComponent
+} from "../../../../layout/discovery-address-input/discovery-address-input.component";
+import {EditableDiscoveryAddressComponent} from "../../../../layout/editable-discovery-address/editable-discovery-address.component";
 
 @Component({
   selector: 'app-configuration',
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss']
 })
-export class ConfigurationComponent implements OnInit {
+export class ConfigurationComponent implements OnInit, DatatableProvider<DiscoveryAddress>
+{
   form: FormGroup;
   node: Node;
   discoveries: NodeDiscovery;
-
-  get discoveryNodes() {
-    return Object.keys(this.discoveries).map(key => {
-      const parts = key.split('-');
-
-      return {
-        host: parts[0],
-        key: parts[1],
-        connected: this.discoveries[key],
-      }
-    });
-  }
+  discoveryNodes: DiscoveryAddress[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
@@ -34,23 +29,31 @@ export class ConfigurationComponent implements OnInit {
   ) {
     this.node = data.node;
     this.discoveries = data.discoveries;
-
     console.log(this.discoveries)
   }
 
-  ngOnInit() {
-    this.form = new FormGroup({
-      'addresses': new FormControl('', [this.validateAddresses])
+  ngOnInit()
+  {
+    return Object.keys(this.discoveries).map(key => {
+      const parts = key.split('-');
+
+      this.discoveryNodes.push({
+        domain: parts[0],
+        publicKey: parts[1]
+      })
     });
   }
 
-  save() {
-    if (!this.form.valid) {
-      return;
-    }
+  save(values: DiscoveryAddress[])
+  {
+    let stringValues = [];
+    values.map(({domain, publicKey}) =>
+    {
+        stringValues.push(`${domain}-${publicKey}`)
+    });
 
     const config = {
-      'discovery_addresses': this.form.get('addresses').value.split(','),
+      'discovery_addresses': stringValues,
     };
 
     const data = {
@@ -103,5 +106,30 @@ export class ConfigurationComponent implements OnInit {
       .some(result => result === false);
 
     return isValid ? null : { invalid: true };
+  }
+
+  getAddRowComponentClass()
+  {
+    return DiscoveryAddressInputComponent;
+  }
+
+  getAddRowData()
+  {
+    return {
+      required: false
+    };
+  }
+
+  getEditableRowComponentClass()
+  {
+    return EditableDiscoveryAddressComponent;
+  }
+
+  getEditableRowData(index: number, currentValue: DiscoveryAddress)
+  {
+    return {
+      autofocus: false,
+      value: currentValue
+    };
   }
 }

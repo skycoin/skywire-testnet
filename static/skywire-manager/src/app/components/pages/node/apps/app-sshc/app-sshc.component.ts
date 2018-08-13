@@ -1,6 +1,4 @@
 import { Component } from '@angular/core';
-import { AppsService } from '../../../../../services/apps.service';
-import { MatDialog } from '@angular/material';
 import { SshcStartupComponent } from './sshc-startup/sshc-startup.component';
 import { SshcKeysComponent } from './sshc-keys/sshc-keys.component';
 import { Keypair } from '../../../../../app.datatypes';
