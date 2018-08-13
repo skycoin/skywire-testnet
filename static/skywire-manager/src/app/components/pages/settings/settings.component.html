@@ -4,17 +4,16 @@
     <span class="ml-1">Back</span>
   </button>
 </app-toolbar>
-<div class="container mt-5">
-  <div class="row">
-    <div class="col-1"></div>
-    <div class="col-10">
+<div class="container-fluid mt-5">
+  <div class="row justify-content-center">
+    <div class="col-7">
       <div class="container-elevated-white">
         <form [formGroup]="form">
           <mat-list>
             <mat-list-item>
-              <label for="refreshRate">Refresh rate</label>
+              <label translate for="refreshRate">Refresh rate</label>
               <mat-form-field id="refreshRate">
-                <mat-select [(value)]="currentRefreshRate" formControlName="refreshRate">
+                <mat-select formControlName="refreshRate">
                   <mat-option *ngFor="let time of timesList" value="{{time}}">
                     {{ time }} seconds
                   </mat-option>
@@ -22,9 +21,9 @@
               </mat-form-field>
             </mat-list-item>
             <mat-list-item>
-              <label for="lang">Language</label>
+              <label translate for="lang">Language</label>
               <mat-form-field id="lang">
-                <mat-select [(value)]="currentLang" formControlName="language">
+                <mat-select formControlName="language">
                   <mat-option *ngFor="let lang of langList" value="{{lang.id}}">
                     {{ lang.name }}
                   </mat-option>
@@ -42,6 +41,5 @@
         </form>
       </div>
     </div>
-    <div class="col-1"></div>
   </div>
 </div>
