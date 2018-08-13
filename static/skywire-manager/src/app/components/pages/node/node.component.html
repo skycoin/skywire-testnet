@@ -28,9 +28,10 @@
         </div>
         <div>
           <ul class="node-status-bar list-inline d-flex justify-content-around">
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Status">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between"
+                matTooltip="{{ getOnlineTooltip() }}">
               <mat-icon>network_check</mat-icon>
-              XXX
+              <span>{{ isOnline ? 'Online' : 'Offline'}}</span>
             </li>
             <li class="separator"></li>
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">

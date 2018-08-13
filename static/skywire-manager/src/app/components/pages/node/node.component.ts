@@ -22,6 +22,7 @@ export class NodeComponent implements OnInit, OnDestroy
   transports: NodeTransport[] = [];
   private refreshSubscription: Subscription;
   private REFRESH_SUBSCRIPTION_DELAY: number = 10000;
+  private isOnline: boolean = false;
 
   constructor(
     private nodeService: NodeService,
@@ -56,6 +57,19 @@ export class NodeComponent implements OnInit, OnDestroy
   {
     this.nodeInfo = info;
     this.transports = info.transports || [];
+    this.setOnlineStatus();
+  }
+
+  /**
+   * Node is online if at least one discovery is seeing it.
+   */
+  private setOnlineStatus()
+  {
+    this.isOnline = false;
+    Object.keys(this.nodeInfo.discoveries).map((discovery) =>
+    {
+      this.isOnline = this.isOnline || this.nodeInfo.discoveries[discovery];
+    });
   }
 
   back(): void
@@ -113,5 +127,19 @@ export class NodeComponent implements OnInit, OnDestroy
     {
       this.refreshSubscription.unsubscribe();
     }
+  }
+
+  getOnlineTooltip(): string
+  {
+    let tooltip;
+    if (this.isOnline)
+    {
+      tooltip = "Online: the node is correctly detected by the Skycoin network. ";
+    }
+    else
+    {
+      tooltip = "Offline: the node is not detected by the Skycoin network. Probably it has no internet connectivity.";
+    }
+    return tooltip;
   }
 }
