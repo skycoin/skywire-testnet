@@ -7,10 +7,19 @@ import { TranslateService } from '@ngx-translate/core';
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.css']
+  styleUrls: ['./settings.component.scss']
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit
+{
   form: FormGroup;
+  readonly timesList = ['3', '4', '5', '10', '15', '20', '30', '60'];
+  readonly langList = [
+    {id: 'en', name: 'English'},
+    {id: 'test', name: 'Test'},
+  ];
+
+  currentLang: 'en';
+  currentRefreshRate: '3';
 
   constructor(
     private router: Router,

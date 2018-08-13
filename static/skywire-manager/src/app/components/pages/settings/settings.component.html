@@ -1,31 +1,47 @@
-<form [formGroup]="form">
-  node detail refresh rate
-  <select formControlName="refreshRate">
-    <option value="3">3 seconds</option>
-    <option value="4">4 seconds</option>
-    <option value="5">5 seconds</option>
-    <option value="10">10 seconds</option>
-    <option value="15">15 seconds</option>
-    <option value="20">20 seconds</option>
-    <option value="30">30 seconds</option>
-    <option value="60">60 seconds</option>
-  </select>
-
-  <br><br>
-
-  language
-  <select formControlName="language">
-    <option value="test">Test</option>
-    <option value="en">English</option>
-  </select>
-
-  example: {{ 'test' | translate }}
-</form>
-
-<br><br>
-
-<button (click)="password()">change password</button>
-
-<br><br>
-
-<button (click)="back()">go back</button>
+<app-toolbar>
+  <button mat-flat-button class="link sm" (click)="back()">
+    <mat-icon class="ic-small rounded-circle sky-bg-white sky-color-blue">chevron_left</mat-icon>
+    <span class="ml-1">Back</span>
+  </button>
+</app-toolbar>
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-1"></div>
+    <div class="col-10">
+      <div class="container-elevated-white">
+        <form [formGroup]="form">
+          <mat-list>
+            <mat-list-item>
+              <label for="refreshRate">Refresh rate</label>
+              <mat-form-field id="refreshRate">
+                <mat-select [(value)]="currentRefreshRate" formControlName="refreshRate">
+                  <mat-option *ngFor="let time of timesList" value="{{time}}">
+                    {{ time }} seconds
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </mat-list-item>
+            <mat-list-item>
+              <label for="lang">Language</label>
+              <mat-form-field id="lang">
+                <mat-select [(value)]="currentLang" formControlName="language">
+                  <mat-option *ngFor="let lang of langList" value="{{lang.id}}">
+                    {{ lang.name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </mat-list-item>
+            <mat-list-item class="h-auto" style="padding: 10px 0 10px 0;">
+              <div class="d-flex flex-column w-100">
+                <label>Change Password</label>
+                <app-password class="mt-2 flex-1"></app-password>
+              </div>
+            </mat-list-item>
+          </mat-list>
+          example: {{ 'test' | translate }}
+        </form>
+      </div>
+    </div>
+    <div class="col-1"></div>
+  </div>
+</div>
