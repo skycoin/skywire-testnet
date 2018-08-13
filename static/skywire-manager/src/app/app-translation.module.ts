@@ -1,4 +1,4 @@
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
+import {TranslateLoader, TranslateModule, TranslateStore} from '@ngx-translate/core';
 import { from, Observable } from 'rxjs';
 import { NgModule } from '@angular/core';
 

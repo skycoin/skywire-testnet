@@ -23,10 +23,10 @@ export class PasswordComponent implements OnInit {
   ngOnInit() {
     this.form = new FormGroup({
       'oldPassword': new FormControl('', Validators.required),
-      'newPassword': new FormControl('', Validators.compose([Validators.minLength(4), Validators.maxLength(20)])),
-      'newPasswordConfirmation': new FormControl(''),
+      'newPassword': new FormControl('', Validators.compose([Validators.required, Validators.minLength(4), Validators.maxLength(20)])),
+      'newPasswordConfirmation': new FormControl('', [this.validatePasswords.bind(this)]),
     }, {
-      validators: [this.validatePasswords],
+      validators: [this.validatePasswords.bind(this)],
     });
   }
 
@@ -38,7 +38,8 @@ export class PasswordComponent implements OnInit {
             this.router.navigate(['login']);
             this.snackbar.open('Log in with your new password');
           },
-          (err) => {
+          (err) =>
+          {
             this.snackbar.open(err.message);
           },
         );
@@ -49,8 +50,16 @@ export class PasswordComponent implements OnInit {
     this.location.back();
   }
 
-  private validatePasswords(control: AbstractControl) {
-    return control.get('newPassword').value !== control.get('newPasswordConfirmation').value
-      ? { invalid: true } : null;
+  private validatePasswords(control: AbstractControl)
+  {
+    if (this.form)
+    {
+      return this.form.get('newPassword').value !== this.form.get('newPasswordConfirmation').value
+        ? { invalid: true } : null;
+    }
+    else
+    {
+      return null;
+    }
   }
 }

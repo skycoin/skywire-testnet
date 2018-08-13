@@ -25,7 +25,7 @@ export class ValidationInputComponent implements OnInit, AfterViewInit
   @Input() placeHolder: string;
   @Input() hint: string;
   @Input() autofocus: boolean;
-  @Input() validator: FormControl;
+  @Input() validator: FormControl = null;
   @Input() getErrorMessage: () => string;
 
   ngOnInit() {}

@@ -29,7 +29,7 @@ import {
   MatFormFieldModule,
   MatInputModule,
   ShowOnDirtyErrorStateMatcher,
-  MatProgressBarModule
+  MatProgressBarModule, MatSelectModule
 }
   from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
@@ -72,6 +72,7 @@ import {HostComponent} from "./components/layout/host/host.component";
 import {DatatableComponent} from "./components/layout/datatable/datatable.component";
 import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
 import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/search-nodes/search-nodes.component";
+import {ToolbarComponent} from "./components/layout/toolbar/toolbar.component";
 
 @NgModule({
   declarations: [
@@ -117,7 +118,8 @@ import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/sear
     HostComponent,
     DatatableComponent,
     EditableDiscoveryAddressComponent,
-    SearchNodesComponent
+    SearchNodesComponent,
+    ToolbarComponent
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -162,7 +164,8 @@ import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/sear
     MatSlideToggleModule,
     FormsModule,
     MatListModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatSelectModule
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
