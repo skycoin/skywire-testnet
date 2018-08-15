@@ -1,0 +1,30 @@
+@import 'variables';
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, .7);
+
+   > div {
+     max-width: 500px;
+
+     mat-spinner {
+       margin-bottom: 30px;
+
+       ::ng-deep circle {
+         stroke: $white;
+       }
+     }
+
+     .message {
+       font-size: 16px;
+       color: $white;
+     }
+   }
+}
