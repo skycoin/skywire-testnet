@@ -1,11 +1,11 @@
-<div class="container-fluid h-100" *ngIf="node">
+<div class="container-fluid h-100" *ngIf="nodeData">
   <div class="row h-100" style="padding-bottom: 40px;">
     <div class="col-xl-2 col-lg-3">
       <div class="d-flex flex-column justify-content-between h-100">
         <div>
             <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
         </div>
-        <app-actions [node]="node" [nodeInfo]="nodeInfo"></app-actions>
+        <app-actions [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
       </div>
     </div>
     <div class="col-lg-6 col-xl-7">
@@ -17,13 +17,13 @@
           </button>
           <div class="d-flex align-items-center">
             <span class="font-sm" style="margin-right: 10px;">Refresh</span>
-              <app-number-input-min-value
-                [minVal]="1"
-                [value]="refreshSeconds"
-                [fieldName]="'Refresh time'"
-                class="input-refresh font-sm text-center"
-                (inputCorrect)="onRefreshTimeChanged($event)" ></app-number-input-min-value>
-              <span matSuffix>s</span>
+              <!--<app-number-input-min-value-->
+                <!--[minVal]="1"-->
+                <!--[value]="refreshSeconds"-->
+                <!--[fieldName]="'Refresh time'"-->
+                <!--class="input-refresh font-sm text-center"-->
+                <!--(inputCorrect)="onRefreshTimeChanged($event)" ></app-number-input-min-value>-->
+              <!--<span matSuffix>s</span>-->
           </div>
         </div>
         <div>
@@ -36,33 +36,33 @@
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">
               <mat-icon>layers</mat-icon>
               <span class="text-uppercase">
-                {{ node.type }}
+                {{ nodeData.node.type }}
               </span>
             </li>
             <li class="separator"></li>
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Last ack time">
               <mat-icon>timelapse</mat-icon>
-              {{ node.last_ack_time | relativeTime }}
+              {{ nodeData.node.last_ack_time | relativeTime }}
             </li>
             <li class="separator"></li>
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Started">
               <mat-icon>av_timer</mat-icon>
-              {{ node.start_time | relativeTime }}
+              {{ nodeData.node.start_time | relativeTime }}
             </li>
           </ul>
         </div>
         <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
-          Public key <span class="font-smaller">{{ node.key }}</span>
+          Public key <span class="font-smaller">{{ nodeData.node.key }}</span>
         </div>
         <node-transports-list
-          *ngIf="transports?.length > 0"
-          [connections]="transports" style="margin-top: 25px;"></node-transports-list>
+          *ngIf="nodeData.info.transports.length > 0"
+          [connections]="nodeData.info.transports" style="margin-top: 25px;"></node-transports-list>
         <node-app-list
-          *ngIf="nodeApps?.length > 0"
-          [apps]="nodeApps"
+          *ngIf="nodeData.apps.length > 0"
+          [apps]="nodeData.apps"
           style="margin-top: 25px;">
         </node-app-list>
-        <app-apps [apps]="nodeApps" [nodeInfo]="nodeInfo"></app-apps>
+        <app-apps [apps]="nodeData.apps" [nodeInfo]="nodeData.info"></app-apps>
       </div>
     </div>
     <div class="col-3">
@@ -71,7 +71,7 @@
         <div class="node-ips-container d-flex justify-content-between">
           <div class="section">
             <span class="section-title">NODE IP</span>
-            <span class="font-smaller">{{ node.addr }}</span>
+            <span class="font-smaller">{{ nodeData.node.addr }}</span>
           </div>
           <div class="section">
             <span class="section-title">MANAGER IP</span>
@@ -82,7 +82,7 @@
         <!-- Public key -->
         <div class="node-public-key section">
           <span class="section-title">PUBLIC KEY</span>
-          <span class="font-smaller">{{ node.key }}</span>
+          <span class="font-smaller">{{ nodeData.node.key }}</span>
         </div>
         <hr>
         <!-- Connections -->

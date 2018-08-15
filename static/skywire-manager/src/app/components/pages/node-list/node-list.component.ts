@@ -1,7 +1,7 @@
 import {Component, OnDestroy} from '@angular/core';
 import {NodeService} from '../../../services/node.service';
 import {Node} from '../../../app.datatypes';
-import {Unsubscribable} from 'rxjs';
+import { Subscription } from 'rxjs';
 import {MatTableDataSource} from '@angular/material';
 import {Router} from "@angular/router";
 
@@ -11,27 +11,29 @@ import {Router} from "@angular/router";
   styleUrls: ['./node-list.component.scss'],
 })
 export class NodeListComponent implements OnDestroy {
-  private subscription: Unsubscribable;
   dataSource = new MatTableDataSource<Node>();
   displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'refresh'];
+
+  private subscriptions: Subscription;
 
   constructor(
     private nodeService: NodeService,
     private router: Router
   ) {
-    this.subscription = nodeService.allNodes().subscribe(allNodes =>
-    {
+    this.subscriptions = nodeService.allNodes().subscribe(allNodes => {
       this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes;
     });
+
+    this.refresh();
   }
 
   ngOnDestroy() {
-    this.subscription.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   refresh() {
-    this.nodeService.refreshNodes();
+    this.subscriptions.add(this.nodeService.refreshNodes());
   }
 
   getLabel(node: Node) {
