@@ -28,23 +28,30 @@ export class NodeService {
     return this.nodes.asObservable();
   }
 
-  refreshNodes(): Unsubscribable {
+  refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
     if (this.nodesSubscription) {
       this.nodesSubscription.unsubscribe();
     }
 
-    return this.nodesSubscription = timer(0, 10000).subscribe(() => {
-      this.apiService.get('conn/getAll').subscribe((allNodes: Node[]) => {
+    return this.nodesSubscription = timer(0, 10000).pipe(flatMap(() => {
+      return this.apiService.get('conn/getAll');
+    })).subscribe(
+      (allNodes: Node[]) => {
         this.nodes.next(allNodes);
-      });
-    });
+
+        if (successCallback) {
+          successCallback();
+        }
+      },
+      errorCallback,
+    );
   }
 
   nodeData(): Observable<NodeData> {
     return this.currentNodeData.asObservable();
   }
 
-  refreshNodeData(errorHandler: any = null): Unsubscribable {
+  refreshNodeData(errorCallback: any = null): Unsubscribable {
     if (this.nodeDataSubscription) {
       this.nodeDataSubscription.unsubscribe();
     }
@@ -59,7 +66,7 @@ export class NodeService {
         apps: data[1] || [],
         info: { ...data[2], transports: data[2].transports || [] }
       });
-    }, errorHandler);
+    }, errorCallback);
   }
 
   /**

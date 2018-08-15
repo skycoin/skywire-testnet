@@ -30,6 +30,7 @@ export class ButtonComponent {
   reset() {
     this.state = BUTTON_STATE.NORMAL;
     this.tooltip = '';
+    this.disabled = false;
   }
 
   enable() {

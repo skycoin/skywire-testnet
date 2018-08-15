@@ -1,8 +1,6 @@
 <mat-toolbar>
   <span><img src="/assets/img/logo.png" class="skycoin-logo"/></span>
-  <button class="reload-button" (click)="refresh()">Node List
-    <img class="reload-icon" src="/assets/img/reload.png"/>
-  </button>
+  <app-button (action)="refresh()" icon="refresh" #refreshButton>Refresh nodes</app-button>
 </mat-toolbar>
 <div class="container-fluid">
   <div class="row">
@@ -34,14 +32,7 @@
             <th mat-header-cell *matHeaderCellDef class="bold">Started</th>
             <td mat-cell *matCellDef="let node;"> {{node.start_time | relativeTime}}</td>
           </ng-container>
-          <ng-container matColumnDef="refresh">
-            <th mat-header-cell *matHeaderCellDef class="bold"></th>
-            <td mat-cell *matCellDef>
-              <button class="reload-button" (click)="refresh()">
-                <img class="reload-icon" src="/assets/img/reload_black.png"/>
-              </button>
-            </td>
-          </ng-container>
+
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>

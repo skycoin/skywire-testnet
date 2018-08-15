@@ -1,26 +1,31 @@
-import {Component, OnDestroy} from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {NodeService} from '../../../services/node.service';
 import {Node} from '../../../app.datatypes';
 import { Subscription } from 'rxjs';
-import {MatTableDataSource} from '@angular/material';
+import { MatSnackBar, MatTableDataSource } from '@angular/material';
 import {Router} from "@angular/router";
+import { ButtonComponent } from '../../layout/button/button.component';
 
 @Component({
   selector: 'app-node-list',
   templateUrl: './node-list.component.html',
   styleUrls: ['./node-list.component.scss'],
 })
-export class NodeListComponent implements OnDestroy {
+export class NodeListComponent implements OnInit, OnDestroy {
+  @ViewChild('refreshButton') refreshButton: ButtonComponent;
   dataSource = new MatTableDataSource<Node>();
-  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'refresh'];
+  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time'];
 
   private subscriptions: Subscription;
 
   constructor(
     private nodeService: NodeService,
-    private router: Router
-  ) {
-    this.subscriptions = nodeService.allNodes().subscribe(allNodes => {
+    private router: Router,
+    private snackbar: MatSnackBar,
+  ) { }
+
+  ngOnInit() {
+    this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
       this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes;
     });
@@ -33,7 +38,13 @@ export class NodeListComponent implements OnDestroy {
   }
 
   refresh() {
-    this.subscriptions.add(this.nodeService.refreshNodes());
+    this.refreshButton.loading();
+    this.subscriptions.add(
+      this.nodeService.refreshNodes(
+        () => this.refreshButton.reset(),
+        () => this.snackbar.open('An error occurred while refreshing nodes'),
+      )
+    );
   }
 
   getLabel(node: Node) {
