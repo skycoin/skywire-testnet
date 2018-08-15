@@ -1,41 +1,14 @@
 <ul class="list-group">
   <li class="list-group-item">
-    <button (click)="update()" mat-flat-button class="link md">
-      <mat-icon>get_app</mat-icon>
-      Check update
-    </button>
+    <app-button (action)="terminal()" icon="laptop">Terminal</app-button>
   </li>
   <li class="list-group-item">
-    <button (click)="reboot()" mat-flat-button class="link md">
-      <mat-icon>rotate_right</mat-icon>
-      Reboot
-    </button>
+    <app-button (action)="configuration()" icon="settings">Discovery</app-button>
   </li>
   <li class="list-group-item">
-    <button (click)="configuration()" mat-flat-button class="link md">
-      <mat-icon>settings</mat-icon>
-      Settings
-    </button>
+    <app-button (action)="update()" icon="get_app">Check update</app-button>
   </li>
   <li class="list-group-item">
-    <button (click)="terminal()" mat-flat-button class="link md">
-      <mat-icon>laptop</mat-icon>
-      Terminal
-    </button>
-  </li>
-</ul>
-
-<ul class="list-group">
-  <li class="list-group-item">
-    <app-button icon="get_app" #button3 [dark]="true">Check update</app-button>
-  </li>
-  <li class="list-group-item">
-    <app-button icon="rotate_right" #button2 [disabled]="true" [dark]="true">Reboot</app-button>
-  </li>
-  <li class="list-group-item">
-    <app-button icon="settings" #button1>Settings</app-button>
-  </li>
-  <li class="list-group-item">
-    <app-button icon="laptop" #button0 [disabled]="true">Terminal</app-button>
+    <app-button (action)="reboot()" icon="rotate_right">Reboot</app-button>
   </li>
 </ul>

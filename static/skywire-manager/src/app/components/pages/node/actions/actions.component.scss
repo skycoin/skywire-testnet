@@ -1,12 +1,8 @@
-:host
-{
-  .mat-flat-button
-  {
-    width: 100%;
-  }
+app-button {
+  width: 100%;
 
-  .mat-icon
-  {
-    margin-right: 15px;
+  ::ng-deep button {
+    width: 100%;
+    text-align: left;
   }
 }

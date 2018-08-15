@@ -53,8 +53,6 @@ import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/
 import { SettingsComponent } from './components/pages/settings/settings.component';
 import { PasswordComponent } from './components/pages/settings/password/password.component';
 import { NodeAppButtonComponent } from './components/pages/node/apps/node-app-button/node-app-button.component';
-import { SshWarningDialogComponent } from './components/pages/node/actions/ssh-warning-dialog/ssh-warning-dialog.component';
-import { AppsSettingsComponent } from './components/pages/node/apps/apps-settings/apps-settings.component';
 import { ClipboardService } from "./services/clipboard.service";
 import { ClipboardDirective } from "./directives";
 import { NumberInputMinValueComponent } from './components/layout/number-input-min-value/number-input-min-value.component';
@@ -62,7 +60,6 @@ import { StartupConfigComponent } from './components/pages/node/apps/startup-con
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
 import { ButtonComponent } from './components/layout/button/button.component';
-import { LoadingComponent } from './components/layout/loading/loading.component';
 
 @NgModule({
   declarations: [
@@ -94,20 +91,14 @@ import { LoadingComponent } from './components/layout/loading/loading.component'
     SettingsComponent,
     PasswordComponent,
     NodeAppButtonComponent,
-    SshWarningDialogComponent,
-    AppsSettingsComponent,
     ClipboardDirective,
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
     ButtonComponent,
-    LoadingComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
-    TerminalComponent,
-    SshWarningDialogComponent,
-    AppsSettingsComponent,
     TerminalComponent,
     LogComponent,
     SshsStartupComponent,
