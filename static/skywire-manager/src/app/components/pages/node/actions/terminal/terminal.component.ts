@@ -17,9 +17,13 @@ export class TerminalComponent implements OnInit {
   xterm: Terminal;
   decoder = new TextDecoder('utf-8');
 
+  get ip() {
+    return this.data.addr.split(':')[0];
+  }
+
   constructor(
+    public dialogRef: MatDialogRef<TerminalComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private dialogRef: MatDialogRef<TerminalComponent>,
     private nodeService: NodeService,
     private authService: AuthService,
   ) { }

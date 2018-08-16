@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import {MAT_DIALOG_DATA, MatTableDataSource} from '@angular/material';
+import { MAT_DIALOG_DATA, MatDialogRef, MatTableDataSource } from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
 import {KeyInputEvent} from "../../../../../layout/key-input/key-input.component";
 
@@ -14,6 +14,7 @@ export class SshsWhitelistComponent implements OnInit {
   private keyToAdd: string;
 
   constructor(
+    public dialogRef: MatDialogRef<SshsWhitelistComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
     private appsService: AppsService,
   ) {

@@ -22,13 +22,13 @@ export class ConfigurationComponent implements OnInit {
         host: parts[0],
         key: parts[1],
         connected: this.discoveries[key],
-      }
+      };
     });
   }
 
   constructor(
+    public dialogRef: MatDialogRef<ConfigurationComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private dialogRef: MatDialogRef<ConfigurationComponent>,
     private nodeService: NodeService,
     private snackbar: MatSnackBar,
   ) {

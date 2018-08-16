@@ -1,4 +1,4 @@
-<app-keypair (keypairChange)="keypairChange($event)">
-  
-</app-keypair>
-<button (click)="connect()" [disabled]="!(keypair && keypair.nodeKey && keypair.appKey)">connect</button>
+<app-dialog headline="SSH Client Connect" [dialogRef]="dialogRef">
+  <app-keypair (keypairChange)="keypairChange($event)"></app-keypair>
+  <button (click)="connect()" [disabled]="!(keypair && keypair.nodeKey && keypair.appKey)">connect</button>
+</app-dialog>

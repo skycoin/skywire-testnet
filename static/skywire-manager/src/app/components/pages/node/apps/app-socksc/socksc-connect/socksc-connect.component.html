@@ -1,24 +1,26 @@
-<div>
-  <button (click)="changeConnectMode(1)">enter keypair</button>
-  <button (click)="changeConnectMode(2)">search nodes</button>
-</div>
+<app-dialog headline="Connect to Node" [dialogRef]="dialogRef">
+  <div>
+    <button (click)="changeConnectMode(1)">enter keypair</button>
+    <button (click)="changeConnectMode(2)">search nodes</button>
+  </div>
 
-<div *ngIf="connectMode === 1">
-  <app-keypair (keypairChange)="keypairChange($event)"></app-keypair>
-  <button (click)="connect()">connect</button>
-</div>
+  <div *ngIf="connectMode === 1">
+    <app-keypair (keypairChange)="keypairChange($event)"></app-keypair>
+    <button (click)="connect()">connect</button>
+  </div>
 
-<div *ngIf="connectMode === 2">
-  <table>
-    <tr *ngFor="let item of results">
-      <td>{{ item.node_key }}</td>
-      <td>{{ item.app_key }}</td>
-      <td>{{ item.node_version[0] }} - {{ item.version }}</td>
-      <td>{{ item.location }}</td>
-      <td><button (click)="connect({nodeKey: item.node_key, appKey: item.app_key})">connect</button></td>
-    </tr>
-  </table>
-  <button (click)="prevPage()">previous</button>
-  <button (click)="nextPage()">next</button>
-  total results: {{ count }}
-</div>
+  <div *ngIf="connectMode === 2">
+    <table>
+      <tr *ngFor="let item of results">
+        <td>{{ item.node_key }}</td>
+        <td>{{ item.app_key }}</td>
+        <td>{{ item.node_version[0] }} - {{ item.version }}</td>
+        <td>{{ item.location }}</td>
+        <td><button (click)="connect({nodeKey: item.node_key, appKey: item.app_key})">connect</button></td>
+      </tr>
+    </table>
+    <button (click)="prevPage()">previous</button>
+    <button (click)="nextPage()">next</button>
+    total results: {{ count }}
+  </div>
+</app-dialog>

@@ -1,34 +1,36 @@
-<table [dataSource]="dataSource" mat-table class="table-abs-white selectable" *ngIf="dataSource.data.length > 0">
-  <ng-container matColumnDef="index">
-    <th mat-header-cell *matHeaderCellDef>#</th>
-    <td mat-cell *matCellDef="let node;let i=index;">
-      {{ i }}
-    </td>
-  </ng-container>
-  <ng-container matColumnDef="key">
-    <th mat-header-cell *matHeaderCellDef>Node key</th>
-    <td mat-cell *matCellDef="let key;" matTooltip="Click to edit">
-      {{ key }}
-    </td>
-  </ng-container>
-  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-</table>
-<form class="mt-4 mb-5 dialog-form">
-  <div class="d-flex flex-row justify-content-between align-items-center">
-    <app-key-input
-      (inputCorrect)="onKeyChange($event)"
-      [required]=false
-      style="flex: 1;"
-      placeholder="Node key"></app-key-input>
-    <button
-      disabled="{{!keyToAdd}}"
-      (click)="addNodeKey()"
-      class="ml-3"
-      color="accent" mat-raised-button>Add to whitelist</button>
-  </div>
-  <button class="submit-btn" color="primary" mat-raised-button (click)="save()">Save</button>
-</form>
+<app-dialog headline="SSH Server Whitelist" [dialogRef]="dialogRef">
+  <table [dataSource]="dataSource" mat-table class="table-abs-white selectable" *ngIf="dataSource.data.length > 0">
+    <ng-container matColumnDef="index">
+      <th mat-header-cell *matHeaderCellDef>#</th>
+      <td mat-cell *matCellDef="let node;let i=index;">
+        {{ i }}
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="key">
+      <th mat-header-cell *matHeaderCellDef>Node key</th>
+      <td mat-cell *matCellDef="let key;" matTooltip="Click to edit">
+        {{ key }}
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+  <form class="mt-4 mb-5 dialog-form">
+    <div class="d-flex flex-row justify-content-between align-items-center">
+      <app-key-input
+        (inputCorrect)="onKeyChange($event)"
+        [required]=false
+        style="flex: 1;"
+        placeholder="Node key"></app-key-input>
+      <button
+        disabled="{{!keyToAdd}}"
+        (click)="addNodeKey()"
+        class="ml-3"
+        color="accent" mat-raised-button>Add to whitelist</button>
+    </div>
+    <button class="submit-btn" color="primary" mat-raised-button (click)="save()">Save</button>
+  </form>
+</app-dialog>
 
 <!--<span class="font-base text-uppercase app-log-title" mat-dialog-title>
   Whitelisted nodes

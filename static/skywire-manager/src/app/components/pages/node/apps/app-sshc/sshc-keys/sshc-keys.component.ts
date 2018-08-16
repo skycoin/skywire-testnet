@@ -12,7 +12,7 @@ export class SshcKeysComponent {
   keypair: Keypair;
 
   constructor(
-    private dialogRef: MatDialogRef<SshcKeysComponent>,
+    public dialogRef: MatDialogRef<SshcKeysComponent>,
   ) { }
 
   connect() {

@@ -23,8 +23,8 @@ export class SockscConnectComponent implements OnInit {
   count = 0;
 
   constructor(
+    public dialogRef: MatDialogRef<SockscConnectComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private dialogRef: MatDialogRef<SockscConnectComponent>,
     private nodeService: NodeService,
   ) {
     this.discoveries = data.discoveries;

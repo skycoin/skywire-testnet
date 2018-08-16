@@ -61,6 +61,7 @@ import { KeyInputComponent } from './components/layout/key-input/key-input.compo
 import { AppTranslationModule } from './app-translation.module';
 import { ButtonComponent } from './components/layout/button/button.component';
 import { EditLabelComponent } from './components/pages/node-list/edit-label/edit-label.component';
+import { DialogComponent } from './components/layout/dialog/dialog.component';
 
 @NgModule({
   declarations: [
@@ -98,6 +99,7 @@ import { EditLabelComponent } from './components/pages/node-list/edit-label/edit
     KeyInputComponent,
     ButtonComponent,
     EditLabelComponent,
+    DialogComponent,
   ],
   entryComponents: [
     ConfigurationComponent,

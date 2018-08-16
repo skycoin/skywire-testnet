@@ -23,8 +23,8 @@ export class StartupConfigComponent implements OnInit
   @Input() automaticStartTitle;
 
   public constructor(
+    public dialogRef: MatDialogRef<StartupConfigComponent>,
     private nodeService: NodeService,
-    public dialogRef: MatDialogRef<StartupConfigComponent>
   ) {}
 
   save()
