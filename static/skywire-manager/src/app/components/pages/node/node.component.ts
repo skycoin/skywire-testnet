@@ -46,10 +46,6 @@ export class NodeComponent implements OnInit, OnDestroy {
     this.refreshSubscription.unsubscribe();
   }
 
-  back() {
-    this.router.navigate(['nodes']);
-  }
-
   private onError() {
     this.snackBar.open('An error occurred while refreshing node data');
   }

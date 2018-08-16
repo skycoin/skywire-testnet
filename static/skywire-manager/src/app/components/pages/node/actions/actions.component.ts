@@ -58,4 +58,8 @@ export class ActionsComponent {
       }
     });
   }
+
+  back() {
+    this.router.navigate(['nodes']);
+  }
 }

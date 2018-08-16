@@ -62,7 +62,7 @@ export class NodeService {
       this.nodeInfo(),
     ))).subscribe(data => {
       this.currentNodeData.next({
-        node: data[0],
+        node: { ...data[0], key: this.currentNode.key },
         apps: data[1] || [],
         info: { ...data[2], transports: data[2].transports || [] }
       });
