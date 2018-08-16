@@ -14,10 +14,10 @@
           <ul class="node-status-bar list-inline d-flex justify-content-around">
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Status">
               <mat-icon>network_check</mat-icon>
-              XXX
+              Online
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Protocol">
               <mat-icon>layers</mat-icon>
               <span class="text-uppercase">
                 {{ nodeData.node.type }}
@@ -29,9 +29,9 @@
               {{ nodeData.node.last_ack_time | relativeTime }}
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Started">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Running">
               <mat-icon>av_timer</mat-icon>
-              {{ nodeData.node.start_time | relativeTime }}
+              {{ nodeData.node.start_time | relativeTime:true }}
             </li>
           </ul>
         </div>

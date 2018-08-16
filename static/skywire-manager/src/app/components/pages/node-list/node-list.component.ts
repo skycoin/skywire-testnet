@@ -2,9 +2,10 @@ import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {NodeService} from '../../../services/node.service';
 import {Node} from '../../../app.datatypes';
 import { Subscription } from 'rxjs';
-import { MatSnackBar, MatTableDataSource } from '@angular/material';
+import { MatDialog, MatSnackBar, MatTableDataSource } from '@angular/material';
 import {Router} from "@angular/router";
 import { ButtonComponent } from '../../layout/button/button.component';
+import { EditLabelComponent } from './edit-label/edit-label.component';
 
 @Component({
   selector: 'app-node-list',
@@ -14,7 +15,7 @@ import { ButtonComponent } from '../../layout/button/button.component';
 export class NodeListComponent implements OnInit, OnDestroy {
   @ViewChild('refreshButton') refreshButton: ButtonComponent;
   dataSource = new MatTableDataSource<Node>();
-  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time'];
+  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'actions'];
 
   private subscriptions: Subscription;
 
@@ -22,6 +23,7 @@ export class NodeListComponent implements OnInit, OnDestroy {
     private nodeService: NodeService,
     private router: Router,
     private snackbar: MatSnackBar,
+    private dialog: MatDialog,
   ) { }
 
   ngOnInit() {
@@ -47,6 +49,12 @@ export class NodeListComponent implements OnInit, OnDestroy {
     );
   }
 
+  showEditLabelDialog(node: Node) {
+    this.dialog.open(EditLabelComponent, {
+      data: { node },
+    });
+  }
+
   getLabel(node: Node) {
     return this.nodeService.getLabel(node);
   }
@@ -56,7 +64,6 @@ export class NodeListComponent implements OnInit, OnDestroy {
   }
 
   viewNode(node) {
-    console.log(node);
     this.router.navigate(['nodes', node.key]);
   }
 

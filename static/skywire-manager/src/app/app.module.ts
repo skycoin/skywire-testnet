@@ -60,6 +60,7 @@ import { StartupConfigComponent } from './components/pages/node/apps/startup-con
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
 import { ButtonComponent } from './components/layout/button/button.component';
+import { EditLabelComponent } from './components/pages/node-list/edit-label/edit-label.component';
 
 @NgModule({
   declarations: [
@@ -96,6 +97,7 @@ import { ButtonComponent } from './components/layout/button/button.component';
     StartupConfigComponent,
     KeyInputComponent,
     ButtonComponent,
+    EditLabelComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -107,6 +109,7 @@ import { ButtonComponent } from './components/layout/button/button.component';
     SshcStartupComponent,
     SockscConnectComponent,
     SockscStartupComponent,
+    EditLabelComponent,
   ],
   imports: [
     BrowserModule,
