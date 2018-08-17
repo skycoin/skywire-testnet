@@ -1,0 +1,8 @@
+:host::ng-deep
+{
+  .mat-form-field, .mat-form-field-wrapper
+  {
+    display: flex;
+    flex: 1;
+  }
+}

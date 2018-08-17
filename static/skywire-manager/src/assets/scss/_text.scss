@@ -1,5 +1,3 @@
-
-
 span
 {
   overflow-wrap: break-word;
@@ -52,5 +50,11 @@ span
 .font-smaller
 {
   @extend .font-size-smaller;
+  @extend .font-weight-light;
+}
+
+.font-mini
+{
+  @extend .font-size-mini;
   @extend .font-weight-light;
 }

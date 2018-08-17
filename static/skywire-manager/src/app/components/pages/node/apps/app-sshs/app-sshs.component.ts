@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, OnChanges} from '@angular/core';
 import { SshsStartupComponent } from './sshs-startup/sshs-startup.component';
 import { SshsWhitelistComponent } from './sshs-whitelist/sshs-whitelist.component';
 import {NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
@@ -8,7 +8,7 @@ import {NodeAppButtonComponent} from "../node-app-button/node-app-button.compone
   templateUrl: '../node-app-button/node-app-button.component.html',
   styleUrls: ['./app-sshs.component.css', '../node-app-button/node-app-button.component.scss']
 })
-export class AppSshsComponent extends NodeAppButtonComponent
+export class AppSshsComponent extends NodeAppButtonComponent implements OnChanges
 {
   protected title="SSH";
   protected icon="laptop";
@@ -25,6 +25,7 @@ export class AppSshsComponent extends NodeAppButtonComponent
         node: this.app,
         app: this.app,
       },
+      width: '700px'
     });
   }
 

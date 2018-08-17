@@ -1,52 +1,49 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef, MatTableDataSource } from '@angular/material';
+import { Component, Inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
-import {KeyInputEvent} from "../../../../../layout/key-input/key-input.component";
+import {KeyInputComponent} from "../../../../../layout/key-input/key-input.component";
+import {EditableKeyComponent} from "../../../../../layout/editable-key/editable-key.component";
+import {DatatableProvider} from "../../../../../layout/datatable/datatable.component";
 
 @Component({
   selector: 'app-sshs-whitelist',
   templateUrl: './sshs-whitelist.component.html',
   styleUrls: ['./sshs-whitelist.component.scss']
 })
-export class SshsWhitelistComponent implements OnInit {
-  displayedColumns = [ 'index', 'key' ];
-  dataSource = new MatTableDataSource<string>();
-  private keyToAdd: string;
-
+export class SshsWhitelistComponent implements DatatableProvider<string>
+{
   constructor(
     public dialogRef: MatDialogRef<SshsWhitelistComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private appsService: AppsService,
-  ) {
-    this.dataSource.data = data.app.allow_nodes || [];
-  }
+    private appsService: AppsService
+  ) {}
 
-  save()
+  save(values: string[])
   {
-    this.appsService.startSshServer(this.keysValues()).subscribe();
+    this.appsService.startSshServer(values).subscribe();
   }
 
-  private keysValues(): string[]
+  getEditableRowComponentClass() {
+    return EditableKeyComponent;
+  }
+
+  getAddRowComponentClass() {
+    return KeyInputComponent;
+  }
+
+  getAddRowData()
   {
-    return this.dataSource.data.concat([]);
+    return {
+      required: false,
+      placeholder: 'Enter node key'
+    }
   }
 
-  ngOnInit(): void {
-  }
-
-  addNodeKey()
+  getEditableRowData(index: number, currentValue: string)
   {
-    let dataCopy = this.keysValues();
-    dataCopy.push(this.keyToAdd);
-
-    this.dataSource.data = dataCopy;
-  }
-
-  onKeyChange({value, valid}: KeyInputEvent)
-  {
-    if (valid)
-    {
-      this.keyToAdd = value;
+    return {
+      autofocus: true,
+      value: currentValue
     }
   }
 }

@@ -1,0 +1,22 @@
+@import "variables";
+@import "utilities/theme";
+@import "text";
+@import "~bootstrap/scss/functions";
+
+:host::ng-deep
+{
+  td.mat-cell:last-child, td.mat-footer-cell:last-child
+  {
+    text-align: right;
+  }
+
+  td.mat-footer-cell
+  {
+    border-bottom: none;
+  }
+
+  .key-input-container, .mat-form-field
+  {
+    width: 100%;
+  }
+}

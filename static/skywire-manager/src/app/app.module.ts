@@ -11,6 +11,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RelativeTimePipe } from './pipes/relative-time.pipe';
 import { FormsModule } from '@angular/forms';
 import {
+  MatTabsModule,
   MatToolbarModule,
   MatTableModule,
   MatButtonModule,
@@ -27,7 +28,9 @@ import {
   MatDialogModule,
   MatFormFieldModule,
   MatInputModule,
-  ShowOnDirtyErrorStateMatcher, MatProgressSpinnerModule
+  ShowOnDirtyErrorStateMatcher,
+  MatProgressBarModule,
+  MatProgressSpinnerModule,
 }
   from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
@@ -62,6 +65,15 @@ import { AppTranslationModule } from './app-translation.module';
 import { ButtonComponent } from './components/layout/button/button.component';
 import { EditLabelComponent } from './components/pages/node-list/edit-label/edit-label.component';
 import { DialogComponent } from './components/layout/dialog/dialog.component';
+import {EditableKeyComponent} from "./components/layout/editable-key/editable-key.component";
+import {DiscoveryAddressInputComponent} from "./components/layout/discovery-address-input/discovery-address-input.component";
+import {DomainInputComponent} from "./components/layout/domain-input/domain-input.component";
+import {ValidationInputComponent} from "./components/layout/validation-input/validation-input.component";
+import {ComponentHostDirective} from "./directives/component-host.directive";
+import {HostComponent} from "./components/layout/host/host.component";
+import {DatatableComponent} from "./components/layout/datatable/datatable.component";
+import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
+import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/search-nodes/search-nodes.component";
 
 @NgModule({
   declarations: [
@@ -94,12 +106,21 @@ import { DialogComponent } from './components/layout/dialog/dialog.component';
     PasswordComponent,
     NodeAppButtonComponent,
     ClipboardDirective,
+    ComponentHostDirective,
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
     ButtonComponent,
     EditLabelComponent,
     DialogComponent,
+    EditableKeyComponent,
+    DiscoveryAddressInputComponent,
+    DomainInputComponent,
+    ValidationInputComponent,
+    HostComponent,
+    DatatableComponent,
+    EditableDiscoveryAddressComponent,
+    SearchNodesComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -112,6 +133,10 @@ import { DialogComponent } from './components/layout/dialog/dialog.component';
     SockscConnectComponent,
     SockscStartupComponent,
     EditLabelComponent,
+    EditableKeyComponent,
+    KeyInputComponent,
+    DiscoveryAddressInputComponent,
+    EditableDiscoveryAddressComponent,
   ],
   imports: [
     BrowserModule,
@@ -125,6 +150,7 @@ import { DialogComponent } from './components/layout/dialog/dialog.component';
     MatFormFieldModule,
     MatInputModule,
     MatToolbarModule,
+    MatTabsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
@@ -138,6 +164,7 @@ import { DialogComponent } from './components/layout/dialog/dialog.component';
     FormsModule,
     MatListModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
   ],
   providers: [
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},

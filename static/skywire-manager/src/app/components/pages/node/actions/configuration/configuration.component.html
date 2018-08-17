@@ -1,32 +1,38 @@
-<app-dialog headline="Discovery configuration" [dialogRef]="dialogRef">
-  <mat-dialog-content>
-    <form [formGroup]="form">
-      <mat-form-field>
+<!--<mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field>
       <textarea matInput formControlName="addresses" rows="5"
                 placeholder="Comma separated discovery addresses"
       ></textarea>
-        <mat-hint align="start">
-          Address format: <strong>domain.tld:port-publickey</strong>
-        </mat-hint>
-        <mat-error *ngIf="form.get('addresses').hasError('invalid')">
-          Invalid addresses. Address format: <strong>domain.tld:port-publickey</strong>
-        </mat-error>
-      </mat-form-field>
-    </form>
+      <mat-hint align="start">
+        Address format: <strong>domain.tld:port-publickey</strong>
+      </mat-hint>
+      <mat-error *ngIf="form.get('addresses').hasError('invalid')">
+        Invalid addresses. Address format: <strong>domain.tld:port-publickey</strong>
+      </mat-error>
+    </mat-form-field>
+  </form>
 
-    <div>
-      discoveries: <br>
-      <table>
-        <tr *ngFor="let node of discoveryNodes">
-          <td>{{ node.host }}<br><small>{{ node.key }}</small></td>
-          <td>{{ node.connected ? 'OK' : 'ERROR' }}</td>
-        </tr>
-      </table>
-    </div>
-  </mat-dialog-content>
+  <div>
+    discoveries: <br>
+    <table>
+      <tr *ngFor="let node of discoveryNodes">
+        <td>{{ node.host }}<br><small>{{ node.key }}</small></td>
+        <td>{{ node.connected ? 'OK' : 'ERROR' }}</td>
+      </tr>
+    </table>
+  </div>
+</mat-dialog-content>
 
-  <mat-dialog-actions>
-    <button (click)="save()" [disabled]="!form.valid">save config and restart node</button>
-  </mat-dialog-actions>
-
-</app-dialog>
+<mat-dialog-actions>
+  <button (click)="save()" [disabled]="!form.valid">save config and restart node</button>
+</mat-dialog-actions>-->
+<app-datatable
+  [data]="discoveryNodes"
+  [meta]='{headerTitle: "Discovery address", removeRowTooltipText: "Remove address", addButtonTitle: "Add" }'
+  [getEditableRowData]="getEditableRowData.bind(this)"
+  [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
+  [getAddRowData]="getAddRowData.bind(this)"
+  [getAddRowComponentClass]="getAddRowComponentClass.bind(this)"
+  (onSave)="save($event)">
+</app-datatable>

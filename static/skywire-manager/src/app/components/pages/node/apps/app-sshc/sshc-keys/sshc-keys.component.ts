@@ -10,20 +10,20 @@ import {KeyPairState} from "../../../../../layout/keypair/keypair.component";
 })
 export class SshcKeysComponent {
   keypair: Keypair;
+  private valid: boolean = true;
 
   constructor(
     public dialogRef: MatDialogRef<SshcKeysComponent>,
   ) { }
 
-  connect() {
+  connect()
+  {
     this.dialogRef.close(this.keypair);
   }
 
   keypairChange({keyPair, valid}: KeyPairState)
   {
-    if (valid)
-    {
-      this.keypair = keyPair;
-    }
+    this.valid = valid;
+    this.keypair = keyPair;
   }
 }

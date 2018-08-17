@@ -8,8 +8,8 @@ import {MatInput} from "@angular/material";
   templateUrl: './number-input-min-value.component.html',
   styleUrls: ['./number-input-min-value.component.css']
 })
-export class NumberInputMinValueComponent implements OnInit {
-
+export class NumberInputMinValueComponent implements OnInit
+{
   @Input() minVal = 0;
   @Output() inputCorrect = new EventEmitter();
   @ViewChild(MatInput) inputElement: MatInput;

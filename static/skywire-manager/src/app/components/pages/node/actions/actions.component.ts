@@ -45,7 +45,8 @@ export class ActionsComponent {
       data: {
         node: this.node,
         discoveries: this.nodeInfo.discoveries,
-      }
+      },
+      width: '800px'
     });
   }
 
