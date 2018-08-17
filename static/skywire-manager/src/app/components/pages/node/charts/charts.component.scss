@@ -1,0 +1,39 @@
+@import 'variables';
+
+.chart {
+  position: relative;
+  margin-bottom: 20px;
+
+  .info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 10px;
+    width: 100%;
+
+    span {
+      color: $white;
+
+      &.text {
+        font-size: 13px;
+        text-transform: uppercase;
+        font-weight: $font-weight-bold;
+      }
+
+      &.rate {
+        .value {
+          font-size: 20px;
+          font-weight: $font-weight-bold;
+        }
+
+        .unit {
+          font-size: 13px;
+          padding-left: 5px;
+        }
+      }
+    }
+  }
+}

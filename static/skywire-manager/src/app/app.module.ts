@@ -74,6 +74,8 @@ import {HostComponent} from "./components/layout/host/host.component";
 import {DatatableComponent} from "./components/layout/datatable/datatable.component";
 import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
 import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/search-nodes/search-nodes.component";
+import { LineChartComponent } from './components/layout/line-chart/line-chart.component';
+import { ChartsComponent } from './components/pages/node/charts/charts.component';
 
 @NgModule({
   declarations: [
@@ -121,6 +123,8 @@ import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/sear
     DatatableComponent,
     EditableDiscoveryAddressComponent,
     SearchNodesComponent,
+    LineChartComponent,
+    ChartsComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
