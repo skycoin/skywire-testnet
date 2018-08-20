@@ -106,7 +106,7 @@ pkill -F node.pid
 Open [http://localhost:8000](http://localhost:8000).
 The default login password for Skywire manager is **1234**.
 
-### Conect to node
+### Connect to node
 1) Connect to node —— Search services —— Connect
 
 2) Connect to node —— Enter the key for node and app —— Connect
