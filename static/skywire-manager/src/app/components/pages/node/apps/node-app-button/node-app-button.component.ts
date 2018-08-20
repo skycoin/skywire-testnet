@@ -3,6 +3,7 @@ import {Node, NodeApp, NodeFeedback} from '../../../../../app.datatypes';
 import {LogComponent} from '../log/log.component';
 import {MatDialog} from '@angular/material';
 import {AppsService} from '../../../../../services/apps.service';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-node-app-button',
@@ -26,9 +27,9 @@ export class NodeAppButtonComponent implements OnChanges {
 
   public constructor(
     protected dialog: MatDialog,
-    protected appsService: AppsService
-  ) {
-  }
+    protected appsService: AppsService,
+    protected translate: TranslateService,
+  ) { }
 
   onAppClicked(): void {
     this.startApp();
@@ -60,7 +61,7 @@ export class NodeAppButtonComponent implements OnChanges {
   protected getMenuItems(): MenuItem[] { return []; }
 
   private getPortString() {
-    return `Port: ${this.appFeedback.port.toString()}`;
+    return `${this.translate.instant('common.port')}: ${this.appFeedback.port.toString()}`;
   }
 
   private getSubtitle() {

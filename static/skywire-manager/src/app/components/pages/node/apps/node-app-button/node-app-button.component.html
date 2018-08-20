@@ -8,7 +8,7 @@
       <mat-icon> more_vert</mat-icon>
       <i *ngIf="isRunning && hasMessages" class="dot-red sm"></i>
     </button>
-    {{ title }}
+    {{ title | translate }}
   </span>
   <button
     class="app-icon"
@@ -22,10 +22,10 @@
   <div
     *ngIf="isRunning && appFeedback?.failed"
     disabled
-    matTooltip="Something was wrong. Check the app's messages for more information."
+    [matTooltip]="'apps.errors.fail-tooltip' | translate"
     class="ic-app-failed link md">
     <mat-icon>highlight_off</mat-icon>
-    Failed
+    {{ 'apps.errors.fail' | translate }}
   </div>
 </div>
 <mat-menu
@@ -35,7 +35,7 @@
        mat-menu-item
        disabled="{{ !item.enabled }}"
        (click)="item.enabled ? item.callback() : null">
-    {{ item.name }}
+    {{ item.name | translate }}
   </div>
 </mat-menu>
 

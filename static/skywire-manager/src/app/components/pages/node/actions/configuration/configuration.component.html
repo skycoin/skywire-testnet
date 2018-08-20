@@ -27,10 +27,10 @@
 <mat-dialog-actions>
   <button (click)="save()" [disabled]="!form.valid">save config and restart node</button>
 </mat-dialog-actions>-->
-<app-dialog headline="Discovery configuration" [dialogRef]="dialogRef">
+<app-dialog [headline]="'actions.config.title' | translate" [dialogRef]="dialogRef">
   <app-datatable
     [data]="discoveryNodes"
-    [meta]='{headerTitle: "Discovery address", removeRowTooltipText: "Remove address", addButtonTitle: "Add" }'
+    [meta]="{headerTitle: ('actions.config.header' | translate), removeRowTooltipText: ('actions.config.remove' | translate), addButtonTitle: ('actions.config.add' | translate) }"
     [getEditableRowData]="getEditableRowData.bind(this)"
     [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
     [getAddRowData]="getAddRowData.bind(this)"

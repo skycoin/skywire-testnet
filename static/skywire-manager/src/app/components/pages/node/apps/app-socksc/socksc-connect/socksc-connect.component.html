@@ -1,14 +1,19 @@
-<app-dialog headline="Connect to Node" [dialogRef]="dialogRef">
+<app-dialog [headline]="'apps.socksc.title' | translate" [dialogRef]="dialogRef">
   <mat-tab-group>
-    <mat-tab label="Enter key pair">
+    <mat-tab [label]="'apps.socksc.connect-keypair' | translate">
       <div class="pt-4">
         <app-keypair [required]="true" (keypairChange)="keypairChange($event)"></app-keypair>
-        <button class="float-right" mat-raised-button color="primary" (click)="connect()">Connect</button>
+        <button class="float-right" mat-raised-button color="primary" (click)="connect()">
+          {{ 'apps.socksc.connect' | translate }}
+        </button>
       </div>
     </mat-tab>
-    <mat-tab label="Search node">
+    <mat-tab [label]="'apps.socksc.connect-search' | translate">
       <mat-tab-group>
-        <mat-tab label="{{'Discovery ' + (i + 1)}}" *ngFor="let discovery of discoveries; let i = index;">
+        <mat-tab
+          [label]="('common.discovery' | translate) + ' ' + (i + 1)"
+          *ngFor="let discovery of discoveries; let i = index;"
+        >
           <ng-template matTabContent>
             <app-search-nodes
               [discovery]="discovery"

@@ -3,18 +3,18 @@
     [required]="required"
     [autofocus]=autofocus
     *ngIf="editMode"
-    value="{{value}}"
-    (onKeyChange)="onAppKeyChanged($event)">
+    [value]="value"
+    (keyChange)="onAppKeyChanged($event)">
   </app-key-input>
-  <span
-    *ngIf="!editMode">
+  <span *ngIf="!editMode">
     {{ value }}
   </span>
-  <button color="{{editMode ? 'primary' : ''}}"
-          (click)="toggleEditMode()"
-          mat-icon-button
-          matTooltip="{{editMode ? 'Save changes' : 'Edit'}}"
-          [disabled]="editMode && !valid">
+  <button
+    [color]="editMode ? 'primary' : ''"
+    (click)="toggleEditMode()"
+    mat-icon-button
+    [matTooltip]="(editMode ? 'common.save' : 'common.edit') | translate"
+    [disabled]="editMode && !valid">
     <mat-icon>
       {{editMode ? 'done' : 'edit'}}
     </mat-icon>

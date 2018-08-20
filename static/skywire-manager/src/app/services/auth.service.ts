@@ -23,9 +23,6 @@ export class AuthService {
             throw new Error();
           }
         }),
-        catchError(() => {
-          return throwError(new Error('Incorrect password'));
-        }),
       );
   }
 

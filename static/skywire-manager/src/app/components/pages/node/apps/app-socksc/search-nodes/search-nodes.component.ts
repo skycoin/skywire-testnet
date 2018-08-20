@@ -39,12 +39,13 @@ export class SearchNodesComponent implements OnInit {
     this.nodeService.searchServices(this.serviceKey, this.currentPage, this.limit, this.discovery)
       .subscribe(
         (result: SearchResult) => {
-        this.loading = false;
-        this.dataSource.data = result.result;
-        this.count = result.count;
-        this.pages = Math.floor(this.count / this.limit);
-      },
-        (error) => this.loading = false);
+          this.loading = false;
+          this.dataSource.data = result.result;
+          this.count = result.count;
+          this.pages = Math.floor(this.count / this.limit);
+        },
+        () => this.loading = false
+      );
   }
 
   prevPage() {
@@ -56,5 +57,4 @@ export class SearchNodesComponent implements OnInit {
     this.currentPage = Math.min(this.pages, this.currentPage + 1);
     this.search();
   }
-
 }

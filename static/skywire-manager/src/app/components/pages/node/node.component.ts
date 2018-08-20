@@ -4,6 +4,7 @@ import { Node, NodeData } from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-node',
@@ -21,6 +22,7 @@ export class NodeComponent implements OnInit, OnDestroy {
     private router: Router,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
+    private translate: TranslateService,
   ) { }
 
   ngOnInit() {
@@ -47,6 +49,8 @@ export class NodeComponent implements OnInit, OnDestroy {
   }
 
   private onError() {
-    this.snackBar.open('An error occurred while refreshing node data');
+    this.translate.get('node.error-load').subscribe(str => {
+      this.snackBar.open(str);
+    });
   }
 }

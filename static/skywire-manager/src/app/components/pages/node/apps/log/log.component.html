@@ -1,4 +1,6 @@
-<span class="font-base text-uppercase app-log-title" mat-dialog-title> Log </span>
+<span class="font-base text-uppercase app-log-title" mat-dialog-title>
+  {{ 'apps.log.title' | translate }}
+</span>
 <mat-dialog-content class="app-log-content">
   <div *ngFor="let message of logMessages" style="margin-top: 15px;">
     <span class="app-log-timestamp">
@@ -9,6 +11,6 @@
     </span>
   </div>
   <div class="app-log-empty" style="margin-top: 20px;" *ngIf="logMessages.length === 0">
-    There are no messages
+    {{ 'apps.log.empty' | translate }}
   </div>
 </mat-dialog-content>

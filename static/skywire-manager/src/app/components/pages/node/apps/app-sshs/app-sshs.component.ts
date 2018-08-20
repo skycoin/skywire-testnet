@@ -9,7 +9,7 @@ import {NodeAppButtonComponent} from '../node-app-button/node-app-button.compone
   styleUrls: ['./app-sshs.component.css', '../node-app-button/node-app-button.component.scss']
 })
 export class AppSshsComponent extends NodeAppButtonComponent implements OnChanges {
-  protected title = 'SSH';
+  protected title = 'apps.sshs.title';
   protected icon = 'laptop';
 
   showStartupConfig() {
@@ -28,15 +28,15 @@ export class AppSshsComponent extends NodeAppButtonComponent implements OnChange
 
   getMenuItems() {
     return [{
-      name: 'Startup config',
+      name: 'apps.menu.startup-config',
       callback: this.showStartupConfig.bind(this),
       enabled: true
     }, {
-      name: 'Whitelist',
+      name: 'apps.menu.whitelist',
       callback: this.showWhitelist.bind(this),
       enabled: this.isRunning
     }, {
-      name: 'Messages',
+      name: 'apps.menu.log',
       callback: this.showLog.bind(this),
       enabled: this.isRunning
     }];

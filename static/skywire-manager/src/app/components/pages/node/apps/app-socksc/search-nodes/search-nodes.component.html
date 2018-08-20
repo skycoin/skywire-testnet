@@ -6,19 +6,19 @@
   </mat-progress-bar>
   <table mat-table class="table-abs-white sm" [dataSource]="dataSource">
     <ng-container matColumnDef="nodekey">
-      <th mat-header-cell *matHeaderCellDef>Node key</th>
+      <th mat-header-cell *matHeaderCellDef>{{ 'common.node-key' | translate }}</th>
       <td mat-cell *matCellDef="let item;">
         {{ item.node_key }}
       </td>
     </ng-container>
     <ng-container matColumnDef="appkey">
-      <th mat-header-cell *matHeaderCellDef>App key</th>
+      <th mat-header-cell *matHeaderCellDef>{{ 'common.app-key' | translate }}</th>
       <td mat-cell *matCellDef="let item;">
         {{ item.app_key }}
       </td>
     </ng-container>
     <ng-container matColumnDef="versions">
-      <th mat-header-cell *matHeaderCellDef>Versions</th>
+      <th mat-header-cell *matHeaderCellDef>{{ 'apps.socksc.versions' | translate }}</th>
       <td mat-cell *matCellDef="let item;">
         <span>Node: {{ item.node_version[0] }}</span>
         <br>
@@ -26,7 +26,7 @@
       </td>
     </ng-container>
     <ng-container matColumnDef="location">
-      <th mat-header-cell *matHeaderCellDef>Location</th>
+      <th mat-header-cell *matHeaderCellDef>{{ 'apps.socksc.location' | translate }}</th>
       <td mat-cell *matCellDef="let item;">
         {{ item.location }}
       </td>
@@ -34,7 +34,9 @@
     <ng-container matColumnDef="connect">
       <th mat-header-cell *matHeaderCellDef></th>
       <td mat-cell *matCellDef="let item;">
-        <button color="primary" mat-flat-button (click)="connect.emit({nodeKey: item.node_key, appKey: item.app_key})">Connect</button>
+        <button color="primary" mat-flat-button (click)="connect.emit({nodeKey: item.node_key, appKey: item.app_key})">
+          {{ 'apps.socksc.connect' | translate }}
+        </button>
       </td>
     </ng-container>
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
@@ -47,14 +49,14 @@
     <button
       [disabled]="this.currentPage === 1"
       mat-icon-button
-      matTooltip="Previous page"
+      [matTooltip]="'apps.socksc.prev-page' | translate"
       (click)="prevPage()">
       <mat-icon>navigate_before</mat-icon>
     </button>
     <button
       [disabled]="this.currentPage === this.pages"
       mat-icon-button
-      matTooltip="Next page"
+      [matTooltip]="'apps.socksc.next-page' | translate"
       (click)="nextPage()">
       <mat-icon>navigate_next</mat-icon>
     </button>

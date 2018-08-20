@@ -1,9 +1,9 @@
-<app-dialog headline="Startup configuration" [dialogRef]="dialogRef">
+<app-dialog [headline]="'apps.config.title' | translate" [dialogRef]="dialogRef">
   <form class="startup-form" *ngIf="autoStartConfig">
     <mat-list>
       <mat-list-item>
         <span>
-          {{ autoStartTitle }}
+          {{ autoStartTitle | translate }}
         </span>
         <mat-slide-toggle (change)="toggle($event)" [checked]="isAutoStartChecked"></mat-slide-toggle>
       </mat-list-item>
@@ -15,7 +15,7 @@
       </mat-list-item>
     </mat-list>
     <button disabled="{{ !isFormValid }}" class="submit-btn" color="primary" mat-raised-button (click)="save()">
-      Save
+      {{ 'common.save' | translate }}
     </button>
   </form>
 </app-dialog>

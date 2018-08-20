@@ -21,18 +21,11 @@ export class NumberInputMinValueComponent implements OnInit {
   @ViewChild(MatInput) inputElement: MatInput;
   @Input() value: number;
   @Input() fieldName: string;
-
   matcher = new MyErrorStateMatcher();
-  private minError: string;
-  private requiredError: string;
+
   private validator: FormControl;
 
-  constructor() { }
-
   ngOnInit() {
-    this.minError = `Enter a number greater than ${this.minVal - 1}`;
-    this.requiredError = `${this.fieldName} can't be empty`;
-
     this.validator = new FormControl('', [
       Validators.required,
       Validators.min(this.minVal)
