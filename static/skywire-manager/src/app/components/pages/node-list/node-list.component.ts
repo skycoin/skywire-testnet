@@ -1,37 +1,58 @@
-import {Component, OnDestroy} from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {NodeService} from '../../../services/node.service';
 import {Node} from '../../../app.datatypes';
-import {Unsubscribable} from 'rxjs';
-import {MatTableDataSource} from '@angular/material';
+import { Subscription } from 'rxjs';
+import { MatDialog, MatSnackBar, MatTableDataSource } from '@angular/material';
 import {Router} from "@angular/router";
+import { ButtonComponent } from '../../layout/button/button.component';
+import { EditLabelComponent } from './edit-label/edit-label.component';
 
 @Component({
   selector: 'app-node-list',
   templateUrl: './node-list.component.html',
   styleUrls: ['./node-list.component.scss'],
 })
-export class NodeListComponent implements OnDestroy {
-  private subscription: Unsubscribable;
+export class NodeListComponent implements OnInit, OnDestroy {
+  @ViewChild('refreshButton') refreshButton: ButtonComponent;
   dataSource = new MatTableDataSource<Node>();
-  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'refresh'];
+  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'actions'];
+
+  private subscriptions: Subscription;
 
   constructor(
     private nodeService: NodeService,
-    private router: Router
-  ) {
-    this.subscription = nodeService.allNodes().subscribe(allNodes =>
-    {
+    private router: Router,
+    private snackbar: MatSnackBar,
+    private dialog: MatDialog,
+  ) { }
+
+  ngOnInit() {
+    this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
       this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes;
     });
+
+    this.refresh();
   }
 
   ngOnDestroy() {
-    this.subscription.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   refresh() {
-    this.nodeService.refreshNodes();
+    this.refreshButton.loading();
+    this.subscriptions.add(
+      this.nodeService.refreshNodes(
+        () => this.refreshButton.reset(),
+        () => this.snackbar.open('An error occurred while refreshing nodes'),
+      )
+    );
+  }
+
+  showEditLabelDialog(node: Node) {
+    this.dialog.open(EditLabelComponent, {
+      data: { node },
+    });
   }
 
   getLabel(node: Node) {
@@ -43,7 +64,6 @@ export class NodeListComponent implements OnDestroy {
   }
 
   viewNode(node) {
-    console.log(node);
     this.router.navigate(['nodes', node.key]);
   }
 

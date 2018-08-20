@@ -11,28 +11,6 @@
   justify-content: space-between;
 }
 
-.reload-icon {
-  width: 20px;
-  cursor: pointer;
-}
-
-.reload-button {
-
-  display: flex;
-  align-items: center;
-  background: transparent no-repeat;
-  border: none;
-  cursor: pointer;
-  overflow: hidden;
-  outline: none;
-  color: white;
-  font-size: 16px;
-
-  .reload-icon {
-    margin-left: 8px;
-  }
-}
-
 .node-list-container
 {
   .mat-form-field-infix{
@@ -42,7 +20,18 @@
   .bold {
     font-weight: bold;
   }
-
 }
 
+.actions {
+  text-align: right;
 
+  button {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+
+    &:last-child {
+      margin-left: 15px;
+    }
+  }
+}

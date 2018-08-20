@@ -1,9 +1,21 @@
-<app-datatable
-  [data]="data.app.allow_nodes || []"
-  [meta]='{headerTitle: "Key", removeRowTooltipText: "Remove key", addButtonTitle: "Add to list" }'
-  [getEditableRowData]="getEditableRowData.bind(this)"
-  [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
-  [getAddRowData]="getAddRowData.bind(this)"
-  [getAddRowComponentClass]="getAddRowComponentClass.bind(this)"
-  (onSave)="save($event)">
-</app-datatable>
+<!--<span class="font-base text-uppercase app-log-title" mat-dialog-title>
+  Whitelisted nodes
+</span>
+<mat-dialog-content class="app-log-content">
+
+  <div class="app-log-empty" style="margin-top: 20px;" *ngIf="logMessages.length === 0">
+    There are no messages
+  </div>
+</mat-dialog-content>-->
+
+<app-dialog headline="SSH Server Whitelist" [dialogRef]="dialogRef">
+  <app-datatable
+    [data]="data.app.allow_nodes || []"
+    [meta]='{headerTitle: "Key", removeRowTooltipText: "Remove key", addButtonTitle: "Add to list" }'
+    [getEditableRowData]="getEditableRowData.bind(this)"
+    [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
+    [getAddRowData]="getAddRowData.bind(this)"
+    [getAddRowComponentClass]="getAddRowComponentClass.bind(this)"
+    (onSave)="save($event)">
+  </app-datatable>
+</app-dialog>

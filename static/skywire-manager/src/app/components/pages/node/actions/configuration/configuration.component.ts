@@ -22,14 +22,13 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
   discoveryNodes: DiscoveryAddress[] = [];
 
   constructor(
+    public dialogRef: MatDialogRef<ConfigurationComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private dialogRef: MatDialogRef<ConfigurationComponent>,
     private nodeService: NodeService,
     private snackbar: MatSnackBar,
   ) {
     this.node = data.node;
     this.discoveries = data.discoveries;
-    console.log(this.discoveries)
   }
 
   ngOnInit()

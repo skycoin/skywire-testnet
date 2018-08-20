@@ -1,20 +1,20 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SshWarningDialogComponent } from './ssh-warning-dialog.component';
+import { ButtonComponent } from './button.component';
 
-describe('SshWarningDialogComponent', () => {
-  let component: SshWarningDialogComponent;
-  let fixture: ComponentFixture<SshWarningDialogComponent>;
+describe('ButtonComponent', () => {
+  let component: ButtonComponent;
+  let fixture: ComponentFixture<ButtonComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ SshWarningDialogComponent ]
+      declarations: [ ButtonComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(SshWarningDialogComponent);
+    fixture = TestBed.createComponent(ButtonComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

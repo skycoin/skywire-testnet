@@ -13,7 +13,7 @@ export class SshcKeysComponent {
   private valid: boolean = true;
 
   constructor(
-    private dialogRef: MatDialogRef<SshcKeysComponent>,
+    public dialogRef: MatDialogRef<SshcKeysComponent>,
   ) { }
 
   connect()

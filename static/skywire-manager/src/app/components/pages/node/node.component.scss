@@ -2,8 +2,6 @@
 @import "utilities/theme";
 @import "~bootstrap/scss/functions";
 
-$node-top-bar-padding: 20px;
-
 :host::ng-deep
 {
   .mat-form-field
@@ -29,21 +27,6 @@ $node-top-bar-padding: 20px;
 
   .mat-input-element {
     caret-color: theme-color(translucid-white);
-  }
-
-  .node-top-bar
-  {
-    padding: $node-top-bar-padding 0 0 0;
-
-    .mat-icon
-    {
-      margin-right: 5px;
-    }
-
-    .input-refresh input
-    {
-      text-align: center;
-    }
   }
 }
 

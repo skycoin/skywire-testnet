@@ -1,10 +1,11 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ViewChild } from '@angular/core';
 import { NodeService } from '../../../../services/node.service';
 import { Node, NodeInfo } from '../../../../app.datatypes';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { ConfigurationComponent } from './configuration/configuration.component';
 import { TerminalComponent } from './terminal/terminal.component';
-import {SshWarningDialogComponent} from "./ssh-warning-dialog/ssh-warning-dialog.component";
+import { ButtonComponent } from '../../../layout/button/button.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-actions',
@@ -19,11 +20,15 @@ export class ActionsComponent {
     private nodeService: NodeService,
     private snackbar: MatSnackBar,
     private dialog: MatDialog,
+    private router: Router,
   ) { }
 
   reboot() {
     this.nodeService.reboot().subscribe(
-      () => console.log('reboot ok'),
+      () => {
+        this.router.navigate(['nodes']);
+        this.snackbar.open('Node is rebooting');
+      },
       (e) => this.snackbar.open(e.message),
     );
   }
@@ -45,16 +50,7 @@ export class ActionsComponent {
     });
   }
 
-  terminal()
-  {
-    this.dialog.open(SshWarningDialogComponent, {
-      data: {
-        acceptButtonCallback: this.openTerminal.bind(this),
-      }
-    });
-  }
-
-  openTerminal(): void {
+  terminal() {
     this.dialog.open(TerminalComponent, {
       width: '700px',
       id: 'terminal-dialog',
@@ -62,5 +58,9 @@ export class ActionsComponent {
         addr: this.node.addr,
       }
     });
+  }
+
+  back() {
+    this.router.navigate(['nodes']);
   }
 }

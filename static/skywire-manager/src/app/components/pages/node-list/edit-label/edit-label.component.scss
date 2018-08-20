@@ -1,0 +1,10 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+
+  mat-form-field {
+    flex: 1;
+    margin-bottom: -1.25em;
+    margin-right: 15px;
+  }
+}

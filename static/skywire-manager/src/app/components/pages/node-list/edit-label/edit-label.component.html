@@ -1,0 +1,8 @@
+<app-dialog headline="Edit node label" [dialogRef]="dialogRef">
+  <div class="wrapper">
+    <mat-form-field>
+      <input placeholder="Label" [(ngModel)]="label" class="input-label" maxlength="20" matInput>
+    </mat-form-field>
+    <app-button (action)="save()" [dark]="true">Save</app-button>
+  </div>
+</app-dialog>

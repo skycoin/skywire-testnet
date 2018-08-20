@@ -13,9 +13,9 @@ export class SockscConnectComponent implements OnInit
   keypair: Keypair;
   private discoveries = [];
   constructor(
+    public dialogRef: MatDialogRef<SockscConnectComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private dialogRef: MatDialogRef<SockscConnectComponent>
-  ) {}
+  ) { }
 
   ngOnInit()
   {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
-import { AutoStartConfig, Node, NodeApp, NodeInfo, SearchResult } from '../app.datatypes';
+import { forkJoin, interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
+import { AutoStartConfig, Node, NodeApp, NodeData, NodeInfo, SearchResult } from '../app.datatypes';
 import { ApiService } from './api.service';
 import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
 import {StorageService} from "./storage.service";
@@ -16,6 +16,8 @@ export class NodeService {
   private refreshNodeObservable: Observable<Node>;
   private refresNodeTimerSubscription: Subscription;
   private currentNode: Node;
+  private currentNodeData = new Subject<NodeData>();
+  private nodeDataSubscription: Unsubscribable;
 
   constructor(
     private apiService: ApiService,
@@ -23,20 +25,48 @@ export class NodeService {
   ) {}
 
   allNodes(): Observable<Node[]> {
-    this.refreshNodes();
     return this.nodes.asObservable();
   }
 
-  refreshNodes() {
+  refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
     if (this.nodesSubscription) {
       this.nodesSubscription.unsubscribe();
     }
 
-    this.nodesSubscription = timer(0, 10000).subscribe(() => {
-      this.apiService.get('conn/getAll').subscribe((allNodes: Node[]) => {
+    return this.nodesSubscription = timer(0, 10000).pipe(flatMap(() => {
+      return this.apiService.get('conn/getAll');
+    })).subscribe(
+      (allNodes: Node[]) => {
         this.nodes.next(allNodes);
+
+        if (successCallback) {
+          successCallback();
+        }
+      },
+      errorCallback,
+    );
+  }
+
+  nodeData(): Observable<NodeData> {
+    return this.currentNodeData.asObservable();
+  }
+
+  refreshNodeData(errorCallback: any = null): Unsubscribable {
+    if (this.nodeDataSubscription) {
+      this.nodeDataSubscription.unsubscribe();
+    }
+
+    return this.nodeDataSubscription = timer(0, 10000).pipe(flatMap(() => forkJoin(
+      this.node(this.currentNode.key),
+      this.nodeApps(),
+      this.nodeInfo(),
+    ))).subscribe(data => {
+      this.currentNodeData.next({
+        node: { ...data[0], key: this.currentNode.key },
+        apps: data[1] || [],
+        info: { ...data[2], transports: data[2].transports || [] }
       });
-    });
+    }, errorCallback);
   }
 
   /**
@@ -68,7 +98,7 @@ export class NodeService {
   }
 
   node(key: string): Observable<Node> {
-    return this.apiService.post('conn/getNode', {key}, {type: 'form'});
+    return this.apiService.post('conn/getNode', {key});
   }
 
   refreshNode(key: string, refreshSeconds: number): Observable<Node>
@@ -106,7 +136,7 @@ export class NodeService {
   }
 
   setNodeConfig(data: any) {
-    return this.nodeRequest('run/setNodeConfig', data, {type: 'form'});
+    return this.nodeRequest('run/setNodeConfig', data);
   }
 
   updateNodeConfig() {
@@ -115,9 +145,7 @@ export class NodeService {
 
   getAutoStartConfig(): Observable<AutoStartConfig> {
     return this.nodeRequest('run/getAutoStartConfig', {
-      key: this.currentNode.key
-    }, {
-      type: 'form',
+      key: this.currentNode.key,
     });
   }
 
@@ -125,13 +153,11 @@ export class NodeService {
     return this.nodeRequest('run/setAutoStartConfig', {
       key: this.currentNode.key,
       data: JSON.stringify(config),
-    }, {
-      type: 'form',
     });
   }
 
   searchServices(key: string, pages: number, limit: number, discoveryKey: string): Observable<SearchResult> {
-    return this.nodeRequest('run/searchServices', {key, pages, limit, discoveryKey}, {type: 'form'})
+    return this.nodeRequest('run/searchServices', {key, pages, limit, discoveryKey})
       .pipe(switchMap(() => {
         return interval(500).pipe(
           flatMap(() => this.nodeRequest('run/getSearchServicesResult')),

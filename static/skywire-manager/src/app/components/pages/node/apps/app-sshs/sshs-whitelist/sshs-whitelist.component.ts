@@ -1,5 +1,5 @@
-import {Component, Inject} from '@angular/core';
-import {MAT_DIALOG_DATA} from '@angular/material';
+import { Component, Inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
 import { AppsService } from '../../../../../../services/apps.service';
 import {KeyInputComponent} from "../../../../../layout/key-input/key-input.component";
 import {EditableKeyComponent} from "../../../../../layout/editable-key/editable-key.component";
@@ -13,6 +13,7 @@ import {DatatableProvider} from "../../../../../layout/datatable/datatable.compo
 export class SshsWhitelistComponent implements DatatableProvider<string>
 {
   constructor(
+    public dialogRef: MatDialogRef<SshsWhitelistComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
     private appsService: AppsService
   ) {}

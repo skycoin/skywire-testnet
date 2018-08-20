@@ -1,27 +1,19 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NodeService } from '../../../services/node.service';
-import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
+import { Node, NodeData } from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
-import {MatDialog, MatSnackBar} from "@angular/material";
-import {Subscription} from "rxjs/internal/Subscription";
-import {StorageService} from "../../../services/storage.service";
-
-const DEFAULT_REFRESH_SECONDS = 10;
+import { MatDialog, MatSnackBar } from '@angular/material';
+import { Subscription } from 'rxjs/internal/Subscription';
 
 @Component({
   selector: 'app-node',
   templateUrl: './node.component.html',
   styleUrls: ['./node.component.scss']
 })
-export class NodeComponent implements OnInit, OnDestroy
-{
-  node: Node;
-  nodeApps: NodeApp[] = [];
-  nodeInfo: NodeInfo;
-  refreshSeconds: number;
-  transports: NodeTransport[] = [];
+export class NodeComponent implements OnInit, OnDestroy {
+  nodeData: NodeData;
+
   private refreshSubscription: Subscription;
-  private REFRESH_SUBSCRIPTION_DELAY: number = 10000;
 
   constructor(
     private nodeService: NodeService,
@@ -29,89 +21,32 @@ export class NodeComponent implements OnInit, OnDestroy
     private router: Router,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private storageService: StorageService
-  ) {}
+  ) { }
 
-  get key(): string
-  {
-    return this.route.snapshot.params['key'];
-  }
-
-  onNodeReceived(node: Node)
-  {
+  ngOnInit() {
     const key: string = this.route.snapshot.params['key'];
-    this.node = { key, ...node };
-    this.nodeService.setCurrentNode(this.node);
 
-    this.loadData();
-  }
+    this.nodeService.node(key).subscribe(
+      (node: Node) => {
+        this.nodeService.setCurrentNode({ key, ...node });
 
-  private loadData(): void
-  {
-    this.nodeService.nodeApps().subscribe(apps => this.nodeApps = apps);
-    this.nodeService.nodeInfo().subscribe(this.onNodeInfoReceived.bind(this));
-  }
+        this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) => {
+          this.nodeData = nodeData;
+        });
 
-  onNodeInfoReceived(info: NodeInfo)
-  {
-    this.nodeInfo = info;
-    this.transports = info.transports || [];
-  }
-
-  back(): void
-  {
-    this.router.navigate(['nodes']);
-  }
-
-  onRefreshTimeChanged($seconds): void
-  {
-    this.refreshSeconds = $seconds;
-    this.scheduleNodeRefresh();
-    this.storageService.setRefreshTime($seconds);
-  }
-
-  private onNodeError(): void
-  {
-    this.openSnackBar('An error occurred while refreshing node data');
-    setTimeout(this.scheduleNodeRefresh.bind(this), this.REFRESH_SUBSCRIPTION_DELAY);
-  }
-
-  private openSnackBar(message: string)
-  {
-    this.snackBar.open(message, null, {
-      duration: 2000,
-    });
-  }
-
-  private scheduleNodeRefresh(): void
-  {
-    // console.log(`scheduleNodeRefresh ${this.refreshSeconds}`);
-    if (this.refreshSubscription)
-    {
-      this.refreshSubscription.unsubscribe();
-    }
-    this.refreshSubscription = this.nodeService.refreshNode(this.key, this.refreshSeconds).subscribe(
-      this.onNodeReceived.bind(this),
-      this.onNodeError.bind(this)
+        this.refreshSubscription.add(
+          this.nodeService.refreshNodeData(this.onError.bind(this))
+        );
+      },
+      () => this.router.navigate(['nodes'])
     );
   }
 
-  ngOnInit(): void
-  {
-    this.refreshSeconds = this.storageService.getRefreshTime() || DEFAULT_REFRESH_SECONDS;
-    this.scheduleNodeRefresh();
+  ngOnDestroy() {
+    this.refreshSubscription.unsubscribe();
   }
 
-  ngOnDestroy(): void
-  {
-    this.unsubscribeRefresh();
-  }
-
-  private unsubscribeRefresh()
-  {
-    if (this.refreshSubscription)
-    {
-      this.refreshSubscription.unsubscribe();
-    }
+  private onError() {
+    this.snackBar.open('An error occurred while refreshing node data');
   }
 }
