@@ -1,1 +1,1 @@
-export * from './clipboard.directive'
+export * from './clipboard.directive';

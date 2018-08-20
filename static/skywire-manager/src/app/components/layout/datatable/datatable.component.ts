@@ -1,17 +1,16 @@
 import {Component, EventEmitter, Input, OnInit, Output, Type} from '@angular/core';
-import {MatTableDataSource} from "@angular/material";
+import {MatTableDataSource} from '@angular/material';
 
 @Component({
   selector: 'app-datatable',
   templateUrl: './datatable.component.html',
   styleUrls: ['./datatable.component.css']
 })
-export class DatatableComponent implements OnInit
-{
+export class DatatableComponent implements OnInit {
   dataSource = new MatTableDataSource<string>();
 
   @Input() data: string[];
-  @Output() onSave = new EventEmitter<string[]>();
+  @Output() save = new EventEmitter<string[]>();
 
   // Header
   displayedColumns = [ 'index', 'key', 'remove' ];
@@ -35,27 +34,22 @@ export class DatatableComponent implements OnInit
 
   constructor() { }
 
-  ngOnInit()
-  {
+  ngOnInit() {
     this.updateValues(this.data || [], false);
   }
 
-  private updateValues(list: string[], save: boolean = true)
-  {
+  private updateValues(list: string[], save: boolean = true) {
     this.dataSource.data = list.concat([]);
-    if (save && this.onSave)
-    {
-      this.onSave.emit(list.concat([]));
+    if (save && this.save) {
+      this.save.emit(list.concat([]));
     }
   }
 
-  onAddValueChanged({value, valid}): void
-  {
+  onAddValueChanged({value, valid}): void {
     this.valueToAdd = valid ? value : null;
   }
 
-  onAddBtnClicked()
-  {
+  onAddBtnClicked() {
     this.data.push(this.valueToAdd);
     this.updateValues(this.data);
 
@@ -63,38 +57,33 @@ export class DatatableComponent implements OnInit
     this.clearInputEmitter.emit();
   }
 
-  onRemoveBtnClicked(position)
-  {
+  onRemoveBtnClicked(position) {
     this.data.splice(position, 1);
     this.updateValues(this.data);
   }
 
-  onValueAtPositionChanged(position: number, value: any)
-  {
-    let dataCopy = this.data;
+  onValueAtPositionChanged(position: number, value: any) {
+    const dataCopy = this.data;
     dataCopy[position] = value;
     this.updateValues(dataCopy);
   }
 
-  _getAddRowData()
-  {
-    let data = this.getAddRowData();
+  _getAddRowData() {
+    const data = this.getAddRowData();
     data.subscriber = this.onAddValueChanged.bind(this);
     data.clearInputEmitter = this.clearInputEmitter;
     return data;
   }
 
-  _getEditableRowData(position: number, currentValue: string)
-  {
-    let data = this.getEditableRowData(position, currentValue);
+  _getEditableRowData(position: number, currentValue: string) {
+    const data = this.getEditableRowData(position, currentValue);
     data.subscriber = this.onValueAtPositionChanged.bind(this, position);
     data.required = true;
     return data;
   }
 }
 
-export interface DatatableProvider<T>
-{
+export interface DatatableProvider<T> {
   getEditableRowComponentClass: () => Type<any>;
   getAddRowComponentClass: () => Type<any>;
   getAddRowData: () => any;

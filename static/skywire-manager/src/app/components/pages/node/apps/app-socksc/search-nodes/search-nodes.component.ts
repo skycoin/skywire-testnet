@@ -1,15 +1,14 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {Keypair, SearchResult, SearchResultItem} from "../../../../../../app.datatypes";
-import {NodeService} from "../../../../../../services/node.service";
-import {MatTableDataSource} from "@angular/material";
+import {Keypair, SearchResult, SearchResultItem} from '../../../../../../app.datatypes';
+import {NodeService} from '../../../../../../services/node.service';
+import {MatTableDataSource} from '@angular/material';
 
 @Component({
   selector: 'app-search-nodes',
   templateUrl: './search-nodes.component.html',
   styleUrls: ['./search-nodes.component.css']
 })
-export class SearchNodesComponent implements OnInit
-{
+export class SearchNodesComponent implements OnInit {
   @Input() discovery: string;
   @Output() connect = new EventEmitter<Keypair>();
 
@@ -21,29 +20,25 @@ export class SearchNodesComponent implements OnInit
   currentPage = 1;
   pages = 1;
   count = 0;
-  loading: boolean = false;
+  loading = false;
 
   constructor(private nodeService: NodeService) { }
 
-  ngOnInit()
-  {
+  ngOnInit() {
     this.search();
   }
 
-  get pagerState(): string
-  {
-    let baseIndex = (this.currentPage - 1) * this.limit ;
+  get pagerState(): string {
+    const baseIndex = (this.currentPage - 1) * this.limit ;
 
     return `${baseIndex + 1} - ${baseIndex + this.limit} of ${this.count}`;
   }
 
-  search()
-  {
+  search() {
     this.loading = true;
     this.nodeService.searchServices(this.serviceKey, this.currentPage, this.limit, this.discovery)
       .subscribe(
-        (result: SearchResult) =>
-      {
+        (result: SearchResult) => {
         this.loading = false;
         this.dataSource.data = result.result;
         this.count = result.count;

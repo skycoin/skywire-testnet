@@ -1,25 +1,22 @@
 import {Component, OnChanges} from '@angular/core';
 import { SshsStartupComponent } from './sshs-startup/sshs-startup.component';
 import { SshsWhitelistComponent } from './sshs-whitelist/sshs-whitelist.component';
-import {NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
+import {NodeAppButtonComponent} from '../node-app-button/node-app-button.component';
 
 @Component({
   selector: 'app-app-sshs',
   templateUrl: '../node-app-button/node-app-button.component.html',
   styleUrls: ['./app-sshs.component.css', '../node-app-button/node-app-button.component.scss']
 })
-export class AppSshsComponent extends NodeAppButtonComponent implements OnChanges
-{
-  protected title="SSH";
-  protected icon="laptop";
+export class AppSshsComponent extends NodeAppButtonComponent implements OnChanges {
+  protected title = 'SSH';
+  protected icon = 'laptop';
 
-  showStartupConfig()
-  {
+  showStartupConfig() {
     this.dialog.open(SshsStartupComponent);
   }
 
-  showWhitelist()
-  {
+  showWhitelist() {
     this.dialog.open(SshsWhitelistComponent, {
       data: {
         node: this.app,
@@ -29,8 +26,7 @@ export class AppSshsComponent extends NodeAppButtonComponent implements OnChange
     });
   }
 
-  getMenuItems()
-  {
+  getMenuItems() {
     return [{
       name: 'Startup config',
       callback: this.showStartupConfig.bind(this),
@@ -46,8 +42,7 @@ export class AppSshsComponent extends NodeAppButtonComponent implements OnChange
     }];
   }
 
-  startApp(): void
-  {
-    this.appsService.startSshServerWithoutWhitelist().subscribe()
+  startApp(): void {
+    this.appsService.startSshServerWithoutWhitelist().subscribe();
   }
 }

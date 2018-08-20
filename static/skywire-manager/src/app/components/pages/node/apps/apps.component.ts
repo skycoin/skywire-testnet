@@ -11,22 +11,14 @@ export class AppsComponent {
   @Input() apps: NodeApp[] = [];
   @Input() nodeInfo: NodeInfo;
 
-  getApp(name: string)
-  {
-    let app = null;
-    if (this.apps)
-    {
-      app = this.apps.find(app => app.attributes.some(attr => attr === name));
-    }
-    return app;
+  getApp(name: string) {
+    return (this.apps || []).find(app => app.attributes.some(attr => attr === name));
   }
 
-  getFeedback(appName: string)
-  {
+  getFeedback(appName: string) {
     const appKey = this.getApp(appName) ? this.getApp(appName).key : null;
     let feedback: NodeFeedback;
-    if (appKey && this.nodeInfo && this.nodeInfo.app_feedbacks)
-    {
+    if (appKey && this.nodeInfo && this.nodeInfo.app_feedbacks) {
       feedback = this.nodeInfo.app_feedbacks.find(fb => fb.key === appKey);
     }
     return feedback;

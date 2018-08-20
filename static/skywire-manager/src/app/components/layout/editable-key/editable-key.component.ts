@@ -1,52 +1,49 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {KeyInputEvent} from "../key-input/key-input.component";
+import { Component, EventEmitter, HostBinding, Input, Output } from '@angular/core';
+import {KeyInputEvent} from '../key-input/key-input.component';
 
 @Component({
   selector: 'app-editable-key',
   templateUrl: './editable-key.component.html',
   styleUrls: ['./editable-key.component.scss'],
-  host: {class: 'editable-key-container'}
 })
-export class EditableKeyComponent implements OnInit {
+export class EditableKeyComponent {
+  @HostBinding('attr.class') hostClass = 'editable-key-container';
   @Input() value: string;
-  @Input() autofocus: boolean = false;
-  @Input() required: boolean = false;
-  @Output() onValueEdited = new EventEmitter<string>();
-  editMode: boolean = false;
-  private valid: boolean = true;
+  @Input() autofocus = false;
+  @Input() required = false;
+  @Output() valueEdited = new EventEmitter<string>();
+  editMode = false;
+  private valid = true;
 
-  constructor() {}
-
-  ngOnInit() {}
-
-  onAppKeyChanged({value, valid} : KeyInputEvent)
-  {
+  onAppKeyChanged({value, valid}: KeyInputEvent) {
     this.valid = valid;
-    if (valid)
-    {
+    if (valid) {
       this.value = value;
     }
   }
 
-  toggleEditMode()
-  {
+  toggleEditMode() {
     this.editMode = !this.editMode;
     this.triggerValueChanged();
   }
 
-  private triggerValueChanged()
-  {
-    if (!this.editMode && this.valid)
-    {
-      this.onValueEdited.emit(this.value);
+  private triggerValueChanged() {
+    if (!this.editMode && this.valid) {
+      this.valueEdited.emit(this.value);
     }
   }
 
-  set data({required, autofocus, value, subscriber}: {required: boolean, autofocus: boolean, value: string, subscriber: (next: string) => void})
-  {
-    this.required = required;
-    this.autofocus = autofocus;
-    this.value = value;
-    this.onValueEdited.subscribe(subscriber);
+  set data(data: Data) {
+    this.required = data.required;
+    this.autofocus = data.autofocus;
+    this.value = data.value;
+    this.valueEdited.subscribe(data.subscriber);
   }
+}
+
+interface Data {
+  required: boolean;
+  autofocus: boolean;
+  value: string;
+  subscriber: (next: string) => void;
 }
