@@ -1,8 +1,8 @@
 import {Component, Input, OnChanges} from '@angular/core';
-import {Node, NodeApp, NodeFeedback} from "../../../../../app.datatypes";
-import {LogComponent} from "../log/log.component";
-import {MatDialog} from "@angular/material";
-import {AppsService} from "../../../../../services/apps.service";
+import {Node, NodeApp, NodeFeedback} from '../../../../../app.datatypes';
+import {LogComponent} from '../log/log.component';
+import {MatDialog} from '@angular/material';
+import {AppsService} from '../../../../../services/apps.service';
 
 @Component({
   selector: 'app-node-app-button',
@@ -12,11 +12,11 @@ import {AppsService} from "../../../../../services/apps.service";
 export class NodeAppButtonComponent implements OnChanges {
   protected title: string;
   protected icon: string;
-  @Input() enabled: boolean = true;
+  @Input() enabled = true;
   @Input() subtitle: string;
-  @Input() active: boolean = false;
-  @Input() hasMessages: boolean = false;
-  @Input() showMore: boolean = true;
+  @Input() active = false;
+  @Input() hasMessages = false;
+  @Input() showMore = true;
   @Input() node: Node;
   @Input() app: NodeApp | null;
   @Input() appFeedback: NodeFeedback | null;
@@ -30,8 +30,7 @@ export class NodeAppButtonComponent implements OnChanges {
   ) {
   }
 
-  onAppClicked(): void
-  {
+  onAppClicked(): void {
     this.startApp();
   }
 
@@ -39,8 +38,7 @@ export class NodeAppButtonComponent implements OnChanges {
     return !!this.app;
   }
 
-  showLog()
-  {
+  showLog() {
     this.dialog.open(LogComponent, {
       data: {
         app: this.app,
@@ -50,7 +48,7 @@ export class NodeAppButtonComponent implements OnChanges {
   }
 
   ngOnChanges(): void {
-    this.containerClass = `${"d-flex flex-column align-items-center justify-content-center w-100"} ${this.isRunning ? 'active' : ''}`
+    this.containerClass = `${'d-flex flex-column align-items-center justify-content-center w-100'} ${this.isRunning ? 'active' : ''}`;
     this.menuItems = this.getMenuItems();
 
     if (this.isRunning) {
@@ -72,19 +70,16 @@ export class NodeAppButtonComponent implements OnChanges {
     if (this.appFeedback) {
       if (this.appFeedback.failed) {
         this.failed = true;
-      }
-      else if (this.appFeedback.port) {
+      } else if (this.appFeedback.port) {
         this.subtitle = this.getPortString();
       }
     }
   }
 
-  protected startApp() {} void;
+  protected startApp() {}
 }
 
-
-export interface MenuItem
-{
+export interface MenuItem {
   name: string;
   callback: Function;
   enabled: boolean;

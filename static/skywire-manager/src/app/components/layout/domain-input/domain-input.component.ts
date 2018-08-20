@@ -1,38 +1,29 @@
-import {Component, EventEmitter, Input, Output} from '@angular/core';
-import {FormControl, Validators} from "@angular/forms";
-import {InputState} from "../validation-input/validation-input.component";
-import {domainValidator} from "../../../forms/validators";
+import { Component, EventEmitter, HostBinding, Input, OnInit, Output } from '@angular/core';
+import {FormControl, Validators} from '@angular/forms';
+import {InputState} from '../validation-input/validation-input.component';
+import {domainValidator} from '../../../forms/validators';
 
 @Component({
   selector: 'app-domain-input',
   templateUrl: './domain-input.component.html',
   styleUrls: ['./domain-input.component.css'],
-  host: {class: 'domain-input-container'}
 })
-export class DomainInputComponent
-{
+export class DomainInputComponent implements OnInit {
+  @HostBinding('attr.class') hostClass = 'domain-input-container';
   @Input() autofocus: boolean;
   @Input() value: string;
-  @Input() required: boolean = false;
-  @Output() onDomainChange = new EventEmitter<InputState>();
+  @Input() required = false;
+  @Output() domainChange = new EventEmitter<InputState>();
   validator: FormControl;
 
-  constructor()
-  {
-
-  }
-
-  getErrorMessage()
-  {
+  getErrorMessage() {
     return this.validator.hasError('required') ? 'Domain is required' : 'Format must be domain:port';
   }
 
-  ngOnInit()
-  {
-    let validatorsList = [domainValidator];
-    if (this.required)
-    {
-      validatorsList.push(Validators.required)
+  ngOnInit() {
+    const validatorsList = [domainValidator];
+    if (this.required) {
+      validatorsList.push(Validators.required);
     }
     this.validator = new FormControl('', validatorsList);
   }

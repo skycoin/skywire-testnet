@@ -3,7 +3,7 @@
     [autofocus]="autofocus"
     *ngIf="editMode"
     [required]="required"
-    (onValueChanged)="onValueChanged($event)"
+    (valueChanged)="onValueChanged($event)"
     [value]="value">
   </app-discovery-address-input>
   <span

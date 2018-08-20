@@ -1,6 +1,6 @@
 import { Directive, Output, Input, HostListener } from '@angular/core';
 import { EventEmitter } from '@angular/core';
-import {ClipboardService} from "../services/clipboard.service";
+import {ClipboardService} from '../services/clipboard.service';
 
 @Directive({
   /* tslint:disable:directive-selector */

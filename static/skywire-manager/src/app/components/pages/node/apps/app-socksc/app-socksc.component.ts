@@ -4,26 +4,24 @@ import { SockscStartupComponent } from './socksc-startup/socksc-startup.componen
 import { SockscConnectComponent } from './socksc-connect/socksc-connect.component';
 import { AppsService } from '../../../../../services/apps.service';
 import { Keypair, NodeInfo } from '../../../../../app.datatypes';
-import {MenuItem, NodeAppButtonComponent} from "../node-app-button/node-app-button.component";
+import {MenuItem, NodeAppButtonComponent} from '../node-app-button/node-app-button.component';
 
 @Component({
   selector: 'app-app-socksc',
   templateUrl: '../node-app-button/node-app-button.component.html',
   styleUrls: ['./app-socksc.component.css', '../node-app-button/node-app-button.component.scss']
 })
-export class AppSockscComponent extends NodeAppButtonComponent
-{
+export class AppSockscComponent extends NodeAppButtonComponent {
   @Input() nodeInfo: NodeInfo;
 
-  title="Connect to Node";
-  icon="near_me";
+  title = 'Connect to Node';
+  icon = 'near_me';
 
   get parsedDiscoveries() {
     return Object.keys(this.nodeInfo.discoveries).map(disc => disc.split('-')[1]);
   }
 
-  startApp(): void
-  {
+  startApp(): void {
     this.connect();
   }
 
@@ -36,10 +34,8 @@ export class AppSockscComponent extends NodeAppButtonComponent
         width: 'auto'
       })
       .afterClosed()
-      .subscribe((keypair: Keypair) =>
-      {
-        if (keypair)
-        {
+      .subscribe((keypair: Keypair) => {
+        if (keypair) {
           this.appsService.startSocksc(keypair.nodeKey, keypair.appKey).subscribe();
         }
       });
@@ -49,8 +45,7 @@ export class AppSockscComponent extends NodeAppButtonComponent
     this.dialog.open(SockscStartupComponent);
   }
 
-  protected getMenuItems(): MenuItem[]
-  {
+  protected getMenuItems(): MenuItem[] {
     return [{
       name: 'Startup config',
       callback: this.showStartupConfig.bind(this),

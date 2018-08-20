@@ -3,7 +3,7 @@ import {NodeService} from '../../../services/node.service';
 import {Node} from '../../../app.datatypes';
 import { Subscription } from 'rxjs';
 import { MatDialog, MatSnackBar, MatTableDataSource } from '@angular/material';
-import {Router} from "@angular/router";
+import {Router} from '@angular/router';
 import { ButtonComponent } from '../../layout/button/button.component';
 import { EditLabelComponent } from './edit-label/edit-label.component';
 
@@ -59,7 +59,7 @@ export class NodeListComponent implements OnInit, OnDestroy {
     return this.nodeService.getLabel(node);
   }
 
-  editLabel(value:string, node: Node) {
+  editLabel(value: string, node: Node) {
     this.nodeService.setLabel(node, value);
   }
 
@@ -67,24 +67,20 @@ export class NodeListComponent implements OnInit, OnDestroy {
     this.router.navigate(['nodes', node.key]);
   }
 
-  private fetchNodeInfo(key: string)
-  {
-    this.nodeService.node(key).subscribe(node =>
-      {
-        let dataCopy = [].concat(this.dataSource.data),
-            updateNode = dataCopy.find((node) => node.key === key);
+  private fetchNodeInfo(key: string) {
+    this.nodeService.node(key).subscribe(node => {
+        const dataCopy = [].concat(this.dataSource.data),
+            updateNode = dataCopy.find(n => n.key === key);
 
-        if (updateNode)
-        {
+        if (updateNode) {
           updateNode.addr = node.addr;
-          this.refreshList(dataCopy)
+          this.refreshList(dataCopy);
         }
       },
       () => this.router.navigate(['login']));
   }
 
-  private refreshList(data: Node[])
-  {
+  private refreshList(data: Node[]) {
     this.dataSource.data = data;
   }
 
@@ -97,13 +93,10 @@ export class NodeListComponent implements OnInit, OnDestroy {
    *
    * @param {Node[]} allNodes
    */
-  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void
-  {
-    allNodes.forEach((node) =>
-    {
-      let nodeLabel = this.nodeService.getLabel(node);
-      if (nodeLabel === null)
-      {
+  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void {
+    allNodes.forEach((node) => {
+      const nodeLabel = this.nodeService.getLabel(node);
+      if (nodeLabel === null) {
         this.fetchNodeInfo(node.key);
       }
     });

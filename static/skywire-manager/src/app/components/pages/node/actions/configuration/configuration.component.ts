@@ -3,19 +3,18 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatSnackBar } from '@angular/material';
 import { FormControl, FormGroup } from '@angular/forms';
 import { NodeService } from '../../../../../services/node.service';
 import {DiscoveryAddress, Node, NodeDiscovery} from '../../../../../app.datatypes';
-import {DatatableProvider} from "../../../../layout/datatable/datatable.component";
+import {DatatableProvider} from '../../../../layout/datatable/datatable.component';
 import {
   DiscoveryAddressInputComponent
-} from "../../../../layout/discovery-address-input/discovery-address-input.component";
-import {EditableDiscoveryAddressComponent} from "../../../../layout/editable-discovery-address/editable-discovery-address.component";
+} from '../../../../layout/discovery-address-input/discovery-address-input.component';
+import {EditableDiscoveryAddressComponent} from '../../../../layout/editable-discovery-address/editable-discovery-address.component';
 
 @Component({
   selector: 'app-configuration',
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss']
 })
-export class ConfigurationComponent implements OnInit, DatatableProvider<DiscoveryAddress>
-{
+export class ConfigurationComponent implements OnInit, DatatableProvider<DiscoveryAddress> {
   form: FormGroup;
   node: Node;
   discoveries: NodeDiscovery;
@@ -31,24 +30,21 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
     this.discoveries = data.discoveries;
   }
 
-  ngOnInit()
-  {
+  ngOnInit() {
     return Object.keys(this.discoveries).map(key => {
       const parts = key.split('-');
 
       this.discoveryNodes.push({
         domain: parts[0],
         publicKey: parts[1]
-      })
+      });
     });
   }
 
-  save(values: DiscoveryAddress[])
-  {
-    let stringValues = [];
-    values.map(({domain, publicKey}) =>
-    {
-        stringValues.push(`${domain}-${publicKey}`)
+  save(values: DiscoveryAddress[]) {
+    const stringValues = [];
+    values.map(({domain, publicKey}) => {
+        stringValues.push(`${domain}-${publicKey}`);
     });
 
     const config = {
@@ -107,25 +103,21 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
     return isValid ? null : { invalid: true };
   }
 
-  getAddRowComponentClass()
-  {
+  getAddRowComponentClass() {
     return DiscoveryAddressInputComponent;
   }
 
-  getAddRowData()
-  {
+  getAddRowData() {
     return {
       required: false
     };
   }
 
-  getEditableRowComponentClass()
-  {
+  getEditableRowComponentClass() {
     return EditableDiscoveryAddressComponent;
   }
 
-  getEditableRowData(index: number, currentValue: DiscoveryAddress)
-  {
+  getEditableRowData(index: number, currentValue: DiscoveryAddress) {
     return {
       autofocus: false,
       value: currentValue

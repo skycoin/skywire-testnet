@@ -38,14 +38,14 @@
         <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
           Public key <span class="font-smaller">{{ nodeData.node.key }}</span>
         </div>
-        <node-transports-list
+        <app-node-transports-list
           *ngIf="nodeData.info.transports.length > 0"
-          [connections]="nodeData.info.transports" style="margin-top: 25px;"></node-transports-list>
-        <node-app-list
+          [connections]="nodeData.info.transports" style="margin-top: 25px;"></app-node-transports-list>
+        <app-node-app-list
           *ngIf="nodeData.apps.length > 0"
           [apps]="nodeData.apps"
           style="margin-top: 25px;">
-        </node-app-list>
+        </app-node-app-list>
         <app-apps [apps]="nodeData.apps" [nodeInfo]="nodeData.info"></app-apps>
       </div>
     </div>
