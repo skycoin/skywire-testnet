@@ -9,6 +9,6 @@
   id="keyInput"
   [required]="required"
   [value]="value?.publicKey"
-  (onKeyChange)="onKeyChange($event)"
-  placeholder="Public key">
+  (keyChange)="onKeyChange($event)"
+  [placeholder]="'common.public-key' | translate">
 </app-key-input>

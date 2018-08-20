@@ -8,10 +8,10 @@
   </div>
 </mat-dialog-content>-->
 
-<app-dialog headline="SSH Server Whitelist" [dialogRef]="dialogRef">
+<app-dialog [headline]="'apps.sshs.whitelist.title' | translate" [dialogRef]="dialogRef">
   <app-datatable
     [data]="data.app.allow_nodes || []"
-    [meta]='{headerTitle: "Key", removeRowTooltipText: "Remove key", addButtonTitle: "Add to list" }'
+    [meta]="{headerTitle: ('apps.sshs.whitelist.header' | translate), removeRowTooltipText: ('apps.sshs.whitelist.remove' | translate), addButtonTitle: ('apps.sshs.whitelist.add' | translate) }"
     [getEditableRowData]="getEditableRowData.bind(this)"
     [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
     [getAddRowData]="getAddRowData.bind(this)"

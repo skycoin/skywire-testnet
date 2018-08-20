@@ -10,7 +10,7 @@ import {MenuItem, NodeAppButtonComponent} from '../node-app-button/node-app-butt
   styleUrls: ['./app-sshc.component.css', '../node-app-button/node-app-button.component.scss']
 })
 export class AppSshcComponent extends NodeAppButtonComponent {
-  title = 'SSH Client';
+  title = 'apps.sshc.title';
   icon = 'laptop';
 
   startApp(): void {
@@ -27,11 +27,11 @@ export class AppSshcComponent extends NodeAppButtonComponent {
 
   protected getMenuItems(): MenuItem[] {
     return [{
-      name: 'Startup config',
+      name: 'apps.menu.startup-config',
       callback: this.showStartupConfig.bind(this),
       enabled: true
     }, {
-      name: 'Messages',
+      name: 'apps.menu.log',
       callback: this.showLog.bind(this),
       enabled: this.isRunning
     }];

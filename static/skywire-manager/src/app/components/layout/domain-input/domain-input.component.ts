@@ -17,7 +17,9 @@ export class DomainInputComponent implements OnInit {
   validator: FormControl;
 
   getErrorMessage() {
-    return this.validator.hasError('required') ? 'Domain is required' : 'Format must be domain:port';
+    return this.validator.hasError('required')
+      ? 'inputs.errors.domain-required'
+      : 'inputs.errors.domain-format';
   }
 
   ngOnInit() {

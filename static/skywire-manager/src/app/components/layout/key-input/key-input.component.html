@@ -1,14 +1,15 @@
 <mat-form-field>
   <input
-    value="{{value}}"
+    [value]="value"
     (input)="onInput($event)"
-    matInput [formControl]="validator"
+    matInput
+    [formControl]="validator"
     type="text"
-    placeholder="{{ placeholder }}">
+    [placeholder]="placeholder">
   <mat-error *ngIf="validator.errors?.required && (validator.dirty || validator.touched)">
-    Key is required.
+    {{ 'inputs.errors.key-required' | translate }}
   </mat-error>
   <mat-error *ngIf="validator.errors?.invalid && (validator.dirty || validator.touched)">
-    Key must be 66 characters long
+    {{ 'inputs.errors.key-length' | translate }}
   </mat-error>
 </mat-form-field>

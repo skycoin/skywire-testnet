@@ -1,12 +1,13 @@
-import {Component, HostListener, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {MatMenuTrigger, MatSnackBar, MatTooltip} from '@angular/material';
+import {Component, HostListener, Input, OnInit, ViewChild} from '@angular/core';
+import {MatMenuTrigger, MatSnackBar} from '@angular/material';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-copy-to-clipboard-text',
   templateUrl: './copy-to-clipboard-text.component.html',
   styleUrls: ['./copy-to-clipboard-text.component.css']
 })
-export class CopyToClipboardTextComponent implements OnInit, OnDestroy {
+export class CopyToClipboardTextComponent implements OnInit {
   @ViewChild(MatMenuTrigger) trigger: MatMenuTrigger;
   @Input() text: string;
   @Input() shortTextLength = 6;
@@ -14,7 +15,10 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy {
   tooltipText: string;
   fullText: string;
 
-  constructor(public snackBar: MatSnackBar) {}
+  constructor(
+    public snackBar: MatSnackBar,
+    private translate: TranslateService,
+  ) {}
 
   openSnackBar(message: string) {
     this.snackBar.open(message, null, {
@@ -25,15 +29,11 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.fullText = this.text;
     if (this.short) {
-      this.tooltipText = 'Click to see full text';
+      this.tooltipText = 'copy.click-to-see';
       this.shortenText();
     } else {
-      this.tooltipText = 'Click to copy';
+      this.tooltipText = 'copy.click-to-copy';
     }
-  }
-
-  ngOnDestroy() {
-
   }
 
   private shortenText() {
@@ -49,6 +49,8 @@ export class CopyToClipboardTextComponent implements OnInit, OnDestroy {
   }
 
   public onCopyToClipboardClicked() {
-    this.openSnackBar('Copied!');
+    this.translate.get('copy.copied').subscribe(str => {
+      this.openSnackBar(str);
+    });
   }
 }

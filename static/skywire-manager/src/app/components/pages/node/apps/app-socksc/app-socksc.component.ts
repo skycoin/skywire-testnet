@@ -1,8 +1,6 @@
 import { Component, Input } from '@angular/core';
-import { MatDialog } from '@angular/material';
 import { SockscStartupComponent } from './socksc-startup/socksc-startup.component';
 import { SockscConnectComponent } from './socksc-connect/socksc-connect.component';
-import { AppsService } from '../../../../../services/apps.service';
 import { Keypair, NodeInfo } from '../../../../../app.datatypes';
 import {MenuItem, NodeAppButtonComponent} from '../node-app-button/node-app-button.component';
 
@@ -14,7 +12,7 @@ import {MenuItem, NodeAppButtonComponent} from '../node-app-button/node-app-butt
 export class AppSockscComponent extends NodeAppButtonComponent {
   @Input() nodeInfo: NodeInfo;
 
-  title = 'Connect to Node';
+  title = 'apps.socksc.title';
   icon = 'near_me';
 
   get parsedDiscoveries() {
@@ -47,11 +45,11 @@ export class AppSockscComponent extends NodeAppButtonComponent {
 
   protected getMenuItems(): MenuItem[] {
     return [{
-      name: 'Startup config',
+      name: 'apps.menu.startup-config',
       callback: this.showStartupConfig.bind(this),
       enabled: true
     }, {
-      name: 'Messages',
+      name: 'apps.menu.log',
       callback: this.showLog.bind(this),
       enabled: this.isRunning
     }];

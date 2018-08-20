@@ -5,6 +5,7 @@ import { AuthService } from '../../../../../services/auth.service';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
 import { Terminal } from 'xterm';
 import { fit } from 'xterm/lib/addons/fit/fit';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-terminal',
@@ -26,6 +27,7 @@ export class TerminalComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) private data: any,
     private nodeService: NodeService,
     private authService: AuthService,
+    private translate: TranslateService,
   ) { }
 
   ngOnInit() {
@@ -56,14 +58,16 @@ export class TerminalComponent implements OnInit {
   }
 
   private close() {
-    const hasXterm = !!this.xterm;
+    this.translate.get('actions.terminal.exitting').subscribe(str => {
+      const hasXterm = !!this.xterm;
 
-    if (hasXterm) {
-      this.disableInput();
-      this.xterm.writeln('Exitting terminal...');
-    }
+      if (hasXterm) {
+        this.disableInput();
+        this.xterm.writeln(str);
+      }
 
-    setTimeout(() => this.dialogRef.close(), hasXterm ? 2000 : 0);
+      setTimeout(() => this.dialogRef.close(), hasXterm ? 2000 : 0);
+    });
   }
 
   private disableInput() {

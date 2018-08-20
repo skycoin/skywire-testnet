@@ -4,5 +4,5 @@ export class SshcStartupComponent extends StartupConfigComponent {
   appKeyConfigField = 'sshc_conf_appKey';
   appConfigField = 'sshc';
   nodeKeyConfigField = 'sshc_conf_nodeKey';
-  autoStartTitle = 'Automatically start SSH server';
+  autoStartTitle = 'apps.sshc.auto-startup';
 }

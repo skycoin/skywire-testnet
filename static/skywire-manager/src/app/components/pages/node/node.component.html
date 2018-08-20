@@ -12,31 +12,32 @@
       <div class="d-flex flex-column h-100">
         <div class="mt-5">
           <ul class="node-status-bar list-inline d-flex justify-content-around">
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Status">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.status' | translate">
               <mat-icon>network_check</mat-icon>
-              Online
+              {{ 'node.online' | translate }}
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Protocol">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.protocol' | translate">
               <mat-icon>layers</mat-icon>
               <span class="text-uppercase">
                 {{ nodeData.node.type }}
               </span>
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Last ack time">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.last-ack' | translate">
               <mat-icon>timelapse</mat-icon>
               {{ nodeData.node.last_ack_time | relativeTime }}
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Running">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.running' | translate">
               <mat-icon>av_timer</mat-icon>
               {{ nodeData.node.start_time | relativeTime:true }}
             </li>
           </ul>
         </div>
         <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
-          Public key <span class="font-smaller">{{ nodeData.node.key }}</span>
+          {{ 'common.public-key' | translate }}
+          <span class="font-smaller">{{ nodeData.node.key }}</span>
         </div>
         <app-node-transports-list
           *ngIf="nodeData.info.transports.length > 0"
@@ -54,18 +55,18 @@
         <!-- IPS -->
         <div class="node-ips-container d-flex justify-content-between">
           <div class="section">
-            <span class="section-title">NODE IP</span>
+            <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
             <span class="font-smaller">{{ nodeData.node.addr }}</span>
           </div>
           <div class="section">
-            <span class="section-title">MANAGER IP</span>
+            <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
             <span class="font-smaller">XXXXXX</span>
           </div>
         </div>
         <hr>
         <!-- Public key -->
         <div class="node-public-key section">
-          <span class="section-title">PUBLIC KEY</span>
+          <span class="section-title">{{ 'common.public-key' | translate }}</span>
           <span class="font-smaller">{{ nodeData.node.key }}</span>
         </div>
         <hr>

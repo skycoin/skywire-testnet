@@ -8,6 +8,8 @@ import {
   DiscoveryAddressInputComponent
 } from '../../../../layout/discovery-address-input/discovery-address-input.component';
 import {EditableDiscoveryAddressComponent} from '../../../../layout/editable-discovery-address/editable-discovery-address.component';
+import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-configuration',
@@ -25,6 +27,8 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
     @Inject(MAT_DIALOG_DATA) private data: any,
     private nodeService: NodeService,
     private snackbar: MatSnackBar,
+    private router: Router,
+    private translate: TranslateService,
   ) {
     this.node = data.node;
     this.discoveries = data.discoveries;
@@ -56,17 +60,24 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
       data: JSON.stringify(config),
     };
 
-    this.nodeService.setNodeConfig(data).subscribe(
-      () => {
-        this.nodeService.updateNodeConfig().subscribe(
-          () => this.snackbar.open('Rebooting node, please wait.'),
-          () => this.snackbar.open('Unable to reboot node.'),
-        );
-      },
-      () => {
-        this.snackbar.open('Unable to store node configuration.');
-      }
-    );
+    this.translate.get([
+      'actions.config.success',
+      'actions.config.cant-store',
+      'actions.config.cant-reboot'
+    ]).subscribe(str => {
+      this.nodeService.setNodeConfig(data).subscribe(
+        () => {
+          this.nodeService.updateNodeConfig().subscribe(
+            () => {
+              this.snackbar.open(str['actions.config.success']);
+              this.router.navigate(['nodes']);
+            },
+            () => this.snackbar.open(str['actions.config.cant-reboot']),
+          );
+        },
+        () => this.snackbar.open(str['actions.config.cant-store']),
+      );
+    });
   }
 
   private validateAddresses(control: FormControl) {

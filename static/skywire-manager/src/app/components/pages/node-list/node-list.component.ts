@@ -6,6 +6,7 @@ import { MatDialog, MatSnackBar, MatTableDataSource } from '@angular/material';
 import {Router} from '@angular/router';
 import { ButtonComponent } from '../../layout/button/button.component';
 import { EditLabelComponent } from './edit-label/edit-label.component';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-node-list',
@@ -24,6 +25,7 @@ export class NodeListComponent implements OnInit, OnDestroy {
     private router: Router,
     private snackbar: MatSnackBar,
     private dialog: MatDialog,
+    private translate: TranslateService,
   ) { }
 
   ngOnInit() {
@@ -44,7 +46,7 @@ export class NodeListComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.nodeService.refreshNodes(
         () => this.refreshButton.reset(),
-        () => this.snackbar.open('An error occurred while refreshing nodes'),
+        () => this.onError(),
       )
     );
   }
@@ -99,6 +101,12 @@ export class NodeListComponent implements OnInit, OnDestroy {
       if (nodeLabel === null) {
         this.fetchNodeInfo(node.key);
       }
+    });
+  }
+
+  private onError() {
+    this.translate.get('nodes.error-load').subscribe(str => {
+      this.snackbar.open(str);
     });
   }
 }

@@ -1,10 +1,10 @@
 <app-validation-input
-  placeHolder="Domain"
+  [placeHolder]="'common.domain' | translate"
   [validator]="validator"
-  hint="domain:port"
+  [hint]="'inputs.hints.domain-port' | translate"
   [autofocus]="autofocus"
   [required]="required"
   [value]="value"
   (valueChanged)="domainChange.emit($event)"
-  [getErrorMessage]="getErrorMessage">
+  [getErrorMessage]="getErrorMessage | translate">
 </app-validation-input>

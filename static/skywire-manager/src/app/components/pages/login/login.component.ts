@@ -37,7 +37,7 @@ export class LoginComponent implements OnInit {
     if (this.form.valid) {
       this.authService.login(this.form.get('password').value).subscribe(
         () => this.router.navigate(['nodes']),
-        (e) => this.setError(e.message),
+        () => this.setError('login.incorrect-password'),
       );
     }
   }
