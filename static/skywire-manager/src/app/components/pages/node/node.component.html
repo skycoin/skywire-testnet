@@ -52,41 +52,31 @@
     </div>
     <div class="col-3">
       <div class="node-right font-smaller d-flex flex-column h-100">
-        <!-- IPS -->
-        <div class="node-ips-container d-flex justify-content-between">
-          <div class="section">
-            <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
-            <span class="font-smaller">{{ nodeData.node.addr }}</span>
-          </div>
-          <div class="section">
-            <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
-            <span class="font-smaller">XXXXXX</span>
-          </div>
+        <div class="section">
+          <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
+          <span class="font-smaller">{{ nodeData.node.addr }}</span>
         </div>
         <hr>
-        <!-- Public key -->
-        <div class="node-public-key section">
-          <span class="section-title">{{ 'common.public-key' | translate }}</span>
-          <span class="font-smaller">{{ nodeData.node.key }}</span>
+        <div class="section">
+          <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
+          <span class="font-smaller">{{ nodeData.info.os }}</span>
         </div>
         <hr>
-        <!-- Connections -->
-        <div class="node-connections justify-content-between">
-          <div class="section">
-            <span class="section-title">
-              <i class="dot-green"></i> CONNECTION
-            </span>
-            <span class="font-smaller">xxxxxxxxxxx</span>
-          </div>
-          <div class="section">
-            <span class="section-title">
-              <i class="dot-green"></i> NODES</span>
-            <span class="font-smaller">xxxxxxxxxxxx</span>
-          </div>
+        <div class="section">
+          <span class="section-title">{{ 'node.details.node-version' | translate }}</span>
+          <span class="font-smaller">{{ nodeData.info.version }} ({{ nodeData.info.tag}})</span>
+        </div>
+        <hr>
+        <div class="section">
+          <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
+          <span class="font-smaller">{{ managerIp }}</span>
         </div>
         <hr>
 
-        <app-charts></app-charts>
+        <app-charts
+          *ngIf="nodeData.info.transports.length > 0"
+          [transports]="nodeData.info.transports"
+        ></app-charts>
       </div>
     </div>
   </div>

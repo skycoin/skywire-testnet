@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, DoCheck, ElementRef, Input, IterableDiffers, OnInit, ViewChild } from '@angular/core';
 import { Chart } from 'chart.js';
 
 @Component({
@@ -6,31 +6,49 @@ import { Chart } from 'chart.js';
   templateUrl: './line-chart.component.html',
   styleUrls: ['./line-chart.component.scss']
 })
-export class LineChartComponent implements OnInit {
+export class LineChartComponent implements OnInit, DoCheck {
   @ViewChild('chart') chartElement: ElementRef;
+  @Input() data: number[];
   chart: any;
 
+  private differ: any;
+
+  constructor(
+    private differs: IterableDiffers,
+  ) {
+    this.differ = differs.find([]).create(null);
+  }
+
   ngOnInit() {
+    console.log(this.chartElement)
     this.chart = new Chart(this.chartElement.nativeElement, {
       type: 'line',
       data: {
-        labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        labels: Array.from(Array(this.data.length).keys()),
         datasets: [{
-          data: [1, 2, 3, 4, 3, 2, 5, 2, 3, 4],
+          data: this.data,
           backgroundColor: ['#0B6DB0'],
           borderColor: ['#0B6DB0'],
           borderWidth: 1,
         }],
       },
       options: {
-        legend: { display: false},
+        legend: { display: false },
         tooltips: { enabled: false },
         scales: {
-          yAxes: [{ display: false}],
-          xAxes: [{ display: false}],
+          yAxes: [{ display: false }],
+          xAxes: [{ display: false }],
         },
-        elements: { point: { radius: 0 }},
+        elements: { point: { radius: 0 } },
       },
     });
+  }
+
+  ngDoCheck() {
+    const changes = this.differ.diff(this.data);
+
+    if (changes && this.chart) {
+      this.chart.update();
+    }
   }
 }
