@@ -84,6 +84,9 @@
     "terminal": {
       "title": "Terminal",
       "exitting": "Exitting terminal..."
+    },
+    "update": {
+      "title": "Check node update"
     }
   },
 
@@ -129,7 +132,7 @@
     },
     "errors": {
       "fail": "Failed",
-      "fail-tooltip": "Something was wrong. Check the app's messages for more information"
+      "fail-tooltip": "Something went wrong. Check the app's messages for more information"
     }
   },
 

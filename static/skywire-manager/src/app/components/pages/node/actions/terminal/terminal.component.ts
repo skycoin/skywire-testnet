@@ -10,7 +10,7 @@ import { TranslateService } from '@ngx-translate/core';
 @Component({
   selector: 'app-terminal',
   templateUrl: './terminal.component.html',
-  styleUrls: ['./terminal.component.css']
+  styleUrls: ['./terminal.component.scss']
 })
 export class TerminalComponent implements OnInit {
   @ViewChild('terminal') terminalElement: ElementRef;

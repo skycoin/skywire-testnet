@@ -1,5 +1,9 @@
-<app-dialog [headline]="('actions.terminal.title' | translate) + ip" [dialogRef]="dialogRef">
-  <div class="wrapper">
-    <div #terminal></div>
-  </div>
+<app-dialog [headline]="('actions.terminal.title' | translate) + ' ' + ip">
+  <mat-dialog-content>
+    <div class="wrapper">
+      <div #terminal></div>
+    </div>
+  </mat-dialog-content>
 </app-dialog>
+
+

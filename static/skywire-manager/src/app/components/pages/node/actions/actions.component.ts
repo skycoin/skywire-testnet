@@ -60,7 +60,6 @@ export class ActionsComponent {
   terminal() {
     this.dialog.open(TerminalComponent, {
       width: '700px',
-      id: 'terminal-dialog',
       data: {
         addr: this.node.addr,
       }

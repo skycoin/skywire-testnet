@@ -1,25 +1,23 @@
 @import 'variables';
 
-.header {
-  color: $blue-dark;
-  background: $white;
-  padding: 5px 20px;
-  font-size: 16px;
-  text-transform: uppercase;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0;
-
-  mat-icon {
-    cursor: pointer;
+:host
+{
+  .header {
+    margin-top: -$mat-dialog-padding;
+    margin-left: -$mat-dialog-padding;
+    margin-right: -$mat-dialog-padding;
+    margin-bottom: 0;
+    color: $blue-dark;
+    padding: 15px $mat-dialog-padding;
     font-size: 16px;
-    width: 16px;
-    height: 16px;
-    color: darken($white, 30%)
-  }
-}
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
-.body {
-  padding: 20px;
+    mat-icon {
+      cursor: pointer;
+      color: darken($white, 30%)
+    }
+  }
 }

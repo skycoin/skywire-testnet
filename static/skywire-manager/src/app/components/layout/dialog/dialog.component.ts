@@ -8,9 +8,4 @@ import { MatDialogRef } from '@angular/material';
 })
 export class DialogComponent {
   @Input() headline: string;
-  @Input() dialogRef: MatDialogRef<any>;
-
-  close() {
-    this.dialogRef.close();
-  }
 }
