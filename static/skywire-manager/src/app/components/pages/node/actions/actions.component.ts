@@ -19,7 +19,7 @@ export class ActionsComponent {
   constructor(
     private nodeService: NodeService,
     private snackbar: MatSnackBar,
-    private dialog: MatDialog,
+    private dialog: MatDialog
   ) { }
 
   reboot() {
@@ -30,7 +30,13 @@ export class ActionsComponent {
   }
 
   update() {
-    this.dialog.open(UpdateNodeComponent);
+    this.dialog.open(UpdateNodeComponent).afterClosed().subscribe((updated) =>
+    {
+      if (updated)
+      {
+        this.snackbar.open('Node updated successfully');
+      }
+    });
   }
 
   configuration() {

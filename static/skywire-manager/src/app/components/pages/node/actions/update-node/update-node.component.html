@@ -5,11 +5,14 @@
                     mode="indeterminate"></mat-progress-bar>
 </div>
 <mat-dialog-content>
-  <span class="font-base text-danger" *ngIf="!isLoading && !isUpdateAvailable">
+  <span class="font-base text-danger" *ngIf="!isLoading && !isUpdateAvailable && !updateError">
     Currently there is no update for the node.
   </span>
-  <span class=" font-base sky-color-blue-dark" *ngIf="!isLoading && isUpdateAvailable">
+  <span class=" font-base sky-color-blue-dark" *ngIf="!isLoading && isUpdateAvailable && !updateError">
     There is an update available for the node. Click the "Install update" button to continue.
+  </span>
+  <span class=" font-base text-danger" *ngIf="!isLoading && updateError">
+    {{ updateError }}
   </span>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
@@ -19,7 +22,6 @@
     (click)="onUpdateClicked($event)"
     color="primary"
     [disabled]="!isUpdateAvailable"
-    [mat-dialog-close]="true"
     cdkFocusInitial>
     Install update
   </button>

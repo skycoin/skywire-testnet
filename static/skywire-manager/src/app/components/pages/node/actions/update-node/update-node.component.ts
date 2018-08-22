@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {NodeService} from "../../../../../services/node.service";
+import {MatDialogRef} from "@angular/material";
 
 @Component({
   selector: 'app-update-node',
@@ -8,7 +9,11 @@ import {NodeService} from "../../../../../services/node.service";
 })
 export class UpdateNodeComponent implements OnInit
 {
-  constructor(private nodeService: NodeService) { }
+  updateError: string = null;
+  constructor(
+    private nodeService: NodeService,
+    private dialogRef: MatDialogRef<UpdateNodeComponent>,
+  ) { }
 
   isLoading: boolean = false;
   isUpdateAvailable: boolean = false;
@@ -27,28 +32,40 @@ export class UpdateNodeComponent implements OnInit
   private onFetchUpdateSuccess(updateAvailable: boolean)
   {
     this.isLoading = false;
-    this.isUpdateAvailable = true; //updateAvailable;
+    this.isUpdateAvailable = updateAvailable;
   }
 
   private onFetchUpdateError(e)
   {
     this.isLoading = false;
-    console.warn('check update problem', e)
+    console.warn('check update problem', e);
   }
 
   onUpdateClicked($event)
   {
     this.isLoading = true;
+    this.updateError = null;
     this.nodeService.update().subscribe(this.onUpdateSuccess.bind(this), this.onUpdateError.bind(this));
   }
 
   onUpdateSuccess(updated: boolean)
   {
     this.isLoading = false;
+    if (updated)
+    {
+      this.dialogRef.close({
+        updated: true
+      });
+    }
+    else
+    {
+      this.onUpdateError();
+    }
   }
 
-  onUpdateError(e)
+  onUpdateError()
   {
+    this.updateError = "Could not install node update. Please, try again later";
     this.isLoading = false;
   }
 }
