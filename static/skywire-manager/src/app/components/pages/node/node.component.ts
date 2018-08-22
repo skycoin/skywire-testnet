@@ -13,6 +13,7 @@ import { TranslateService } from '@ngx-translate/core';
 })
 export class NodeComponent implements OnInit, OnDestroy {
   nodeData: NodeData;
+  managerIp: string;
 
   private refreshSubscription: Subscription;
 
@@ -39,6 +40,10 @@ export class NodeComponent implements OnInit, OnDestroy {
         this.refreshSubscription.add(
           this.nodeService.refreshNodeData(this.onError.bind(this))
         );
+
+        this.nodeService.serverInfo().subscribe(info => {
+          this.managerIp = info.split('-')[0].replace('localhost', '127.0.0.1');
+        });
       },
       () => this.router.navigate(['nodes'])
     );

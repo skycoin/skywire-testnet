@@ -14,7 +14,10 @@ export class ApiService {
   ) { }
 
   get(url: string, options: any = {}): Observable<any> {
-    return this.request(this.http.get(url, this.getRequestOptions(options)));
+    return this.request(this.http.get(url, {
+      ...this.getRequestOptions(options),
+      responseType: options.responseType ? options.responseType : 'json',
+    }));
   }
 
   post(url: string, body: any = {}, options: any = {}): Observable<any> {

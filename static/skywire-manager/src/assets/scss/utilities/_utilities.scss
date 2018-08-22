@@ -5,3 +5,9 @@
 {
   cursor: pointer;
 }
+
+.clearfix::after {
+  content: '';
+  display: block;
+  clear: both;
+}

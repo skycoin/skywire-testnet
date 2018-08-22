@@ -220,6 +220,10 @@ export class NodeService {
     return this.apiService.post('getPort');
   }
 
+  serverInfo(): Observable<string> {
+    return this.apiService.get('conn/getServerInfo', { responseType: 'text' });
+  }
+
   nodeRequest(endpoint: string, body: any = {}, options: any = {}) {
     const nodeAddress = this.currentNode.addr;
 

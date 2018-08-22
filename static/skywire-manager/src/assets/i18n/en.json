@@ -36,6 +36,8 @@
     "running": "Running",
     "details": {
       "node-ip": "Node IP",
+      "node-os": "Node OS",
+      "node-version": "Node Version",
       "manager-ip": "Manager IP"
     },
     "error-load": "An error occurred while refreshing node data"
