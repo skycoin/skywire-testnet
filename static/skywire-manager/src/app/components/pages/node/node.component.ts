@@ -11,12 +11,10 @@ import { TranslateService } from '@ngx-translate/core';
   templateUrl: './node.component.html',
   styleUrls: ['./node.component.scss']
 })
-export class NodeComponent implements OnInit, OnDestroy, OnChanges {
+export class NodeComponent implements OnInit, OnDestroy {
   nodeData: NodeData;
 
   private refreshSubscription: Subscription;
-  onlineTooltip: string | any;
-
   constructor(
     private nodeService: NodeService,
     private route: ActivatedRoute,
@@ -36,7 +34,6 @@ export class NodeComponent implements OnInit, OnDestroy, OnChanges {
 
         this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) => {
           this.nodeData = nodeData;
-          this.getOnlineTooltip();
         });
 
         this.refreshSubscription.add(
@@ -55,37 +52,5 @@ export class NodeComponent implements OnInit, OnDestroy, OnChanges {
     this.translate.get('node.error-load').subscribe(str => {
       this.snackBar.open(str);
     });
-  }
-
-  /**
-   * Node is online if at least one discovery is seeing it.
-   */
-  private get isOnline()
-  {
-    let isOnline = false;
-    Object.keys(this.nodeData.info.discoveries).map((discovery) =>
-    {
-      isOnline = isOnline || this.nodeData.info.discoveries[discovery];
-    });
-    return isOnline;
-  }
-
-  getOnlineTooltip(): void
-  {
-    let key;
-    if (this.isOnline)
-    {
-      key = 'node.online-tooltip';
-    }
-    else
-    {
-      key = 'node.offline-tooltip';
-    }
-    this.translate.get(key).subscribe((text) => this.onlineTooltip = text);
-  }
-
-  ngOnChanges(): void
-  {
-    this.getOnlineTooltip();
   }
 }

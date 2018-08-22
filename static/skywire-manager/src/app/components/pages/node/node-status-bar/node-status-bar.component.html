@@ -1,0 +1,24 @@
+<ul class="node-status-bar list-inline d-flex justify-content-around mb-0">
+  <li class="status-text list-inline-item d-flex align-items-center justify-content-between"
+      matTooltip="{{onlineTooltip}}">
+    <mat-icon>network_check</mat-icon>
+    <span>{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
+  </li>
+  <li class="separator"></li>
+  <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.protocol' | translate">
+    <mat-icon>layers</mat-icon>
+    <span class="text-uppercase">
+      {{ nodeData.node.type }}
+    </span>
+  </li>
+  <li class="separator"></li>
+  <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.last-ack' | translate">
+    <mat-icon>timelapse</mat-icon>
+    {{ nodeData.node.last_ack_time | relativeTime }}
+  </li>
+  <li class="separator"></li>
+  <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.running' | translate">
+    <mat-icon>av_timer</mat-icon>
+    {{ nodeData.node.start_time | relativeTime:true }}
+  </li>
+</ul>

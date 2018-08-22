@@ -1,0 +1,16 @@
+:host::ng-deep
+{
+  .node-status-bar
+  {
+    .status-text
+    {
+      padding-right: 16px;
+      padding-left: 16px;
+    }
+
+    .mat-icon
+    {
+      margin-right: 10px;
+    }
+  }
+}
