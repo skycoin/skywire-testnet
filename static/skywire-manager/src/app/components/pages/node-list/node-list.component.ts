@@ -7,6 +7,12 @@ import {Router} from '@angular/router';
 import { ButtonComponent } from '../../layout/button/button.component';
 import { EditLabelComponent } from './edit-label/edit-label.component';
 import { TranslateService } from '@ngx-translate/core';
+import {isOnline} from "../../../utils/nodeUtils";
+
+interface NodeStatus extends Node
+{
+  online?: boolean;
+}
 
 @Component({
   selector: 'app-node-list',
@@ -15,7 +21,7 @@ import { TranslateService } from '@ngx-translate/core';
 })
 export class NodeListComponent implements OnInit, OnDestroy {
   @ViewChild('refreshButton') refreshButton: ButtonComponent;
-  dataSource = new MatTableDataSource<Node>();
+  dataSource = new MatTableDataSource<NodeStatus>();
   displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'actions'];
 
   private subscriptions: Subscription;
@@ -31,7 +37,8 @@ export class NodeListComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
       this.fetchNodesLabelsIfNeeded(allNodes);
-      this.dataSource.data = allNodes;
+      this.dataSource.data = allNodes as NodeStatus[];
+      this.computeOnlineStatus(allNodes);
     });
 
     this.refresh();
@@ -59,10 +66,6 @@ export class NodeListComponent implements OnInit, OnDestroy {
 
   getLabel(node: Node) {
     return this.nodeService.getLabel(node);
-  }
-
-  editLabel(value: string, node: Node) {
-    this.nodeService.setLabel(node, value);
   }
 
   viewNode(node) {
@@ -107,6 +110,28 @@ export class NodeListComponent implements OnInit, OnDestroy {
   private onError() {
     this.translate.get('nodes.error-load').subscribe(str => {
       this.snackbar.open(str);
+    });
+  }
+
+  /**
+   * For each node, request its info to determine if it is online (discovered by the Skycoin network)
+   * or offline (not discovered, but seen by the manager).
+
+   * @param allNodes
+   */
+  private computeOnlineStatus(allNodes: Node[]) {
+    allNodes.forEach(({key}) => this.computeSingleNodeOnlineStatus(key));
+  }
+
+  private computeSingleNodeOnlineStatus(key: string) {
+    this.nodeService.node(key).subscribe((node) => {
+      this.nodeService.nodeInfo(node).subscribe((nodeInfo) =>
+      {
+        let currentList = this.dataSource.data;
+        let node = currentList.find((node) => node.key === node.key);
+        node.online = isOnline(nodeInfo);
+        this.dataSource.data = currentList;
+      });
     });
   }
 }

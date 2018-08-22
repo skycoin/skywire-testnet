@@ -160,8 +160,8 @@ export class NodeService {
     return this.nodeRequest('getApps');
   }
 
-  nodeInfo(): Observable<NodeInfo> {
-    return this.nodeRequest('getInfo');
+  nodeInfo(node?: Node): Observable<NodeInfo> {
+    return this.nodeRequest('getInfo', undefined, undefined, node);
   }
 
   setNodeConfig(data: any) {
@@ -220,8 +220,8 @@ export class NodeService {
     return this.apiService.post('getPort');
   }
 
-  nodeRequest(endpoint: string, body: any = {}, options: any = {}) {
-    const nodeAddress = this.currentNode.addr;
+  nodeRequest(endpoint: string, body: any = {}, options: any = {}, node = this.currentNode) {
+    const nodeAddress = node.addr;
 
     options.params = Object.assign(options.params || {}, {
       addr: this.nodeRequestAddress(nodeAddress, endpoint),
