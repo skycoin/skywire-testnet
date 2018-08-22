@@ -6,5 +6,5 @@
   [required]="required"
   [value]="value"
   (valueChanged)="domainChange.emit($event)"
-  [getErrorMessage]="getErrorMessage | translate">
+  [getErrorMessage]="getErrorMessage.bind(this)">
 </app-validation-input>
