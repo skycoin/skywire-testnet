@@ -154,15 +154,11 @@ export class NodeService {
   }
 
   checkUpdate(): Observable<boolean> {
-    return this.nodeRequest('run/checkUpdate').pipe(map(result => {
-      return result;
-    }));
+    return this.nodeRequest('run/checkUpdate');
   }
 
   update(): Observable<boolean> {
-    return this.nodeRequest('update').pipe(map(result => {
-      return result;
-    }));
+    return this.nodeRequest('update');
   }
 
   getManagerPort() {
