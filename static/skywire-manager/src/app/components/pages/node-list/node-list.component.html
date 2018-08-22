@@ -1,7 +1,5 @@
 <app-toolbar>
-  <button class="reload-button" (click)="refresh()">Node List
-    <img class="reload-icon" src="/assets/img/reload.png"/>
-  </button>
+  <app-button (action)="refresh()" icon="refresh" #refreshButton>{{ 'nodes.refresh' | translate }}</app-button>
 </app-toolbar>
 <div class="container-fluid mt-5">
   <div class="row">
@@ -13,31 +11,37 @@
             <th mat-header-cell *matHeaderCellDef class="bold"></th>
             <td mat-cell *matCellDef><span class="dot-green"></span></td>
           </ng-container>
+
           <ng-container matColumnDef="index">
             <th mat-header-cell *matHeaderCellDef class="bold">#</th>
-            <td mat-cell *matCellDef="let node;let i=index;" class="bold"> {{i+1}}</td>
+            <td mat-cell *matCellDef="let node;let i=index;" class="bold">{{i+1}}</td>
           </ng-container>
+
           <ng-container matColumnDef="label">
-            <th mat-header-cell *matHeaderCellDef class="bold">Label</th>
+            <th mat-header-cell *matHeaderCellDef class="bold">{{ 'nodes.label' | translate }}</th>
             <td mat-cell *matCellDef="let node;">
-              <input [value]="getLabel(node)" class="input-label"
-                     maxlength="11" (input)="editLabel($event.target.value, node)">
+              {{ getLabel(node) }}
             </td>
           </ng-container>
+
           <ng-container matColumnDef="key">
-            <th mat-header-cell *matHeaderCellDef class="bold">Key</th>
-            <td mat-cell *matCellDef="let node; " (click)="viewNode(node)"> {{node.key}}</td>
+            <th mat-header-cell *matHeaderCellDef class="bold">{{ 'common.key' | translate }}</th>
+            <td mat-cell *matCellDef="let node;" (click)="viewNode(node)">{{node.key}}</td>
           </ng-container>
 
           <ng-container matColumnDef="start_time">
-            <th mat-header-cell *matHeaderCellDef class="bold">Started</th>
-            <td mat-cell *matCellDef="let node;"> {{node.start_time | relativeTime}}</td>
+            <th mat-header-cell *matHeaderCellDef class="bold">{{ 'nodes.running' | translate }}</th>
+            <td mat-cell *matCellDef="let node;">{{node.start_time | relativeTime:true}}</td>
           </ng-container>
-          <ng-container matColumnDef="refresh">
-            <th mat-header-cell *matHeaderCellDef class="bold"></th>
-            <td mat-cell *matCellDef>
-              <button class="reload-button" (click)="refresh()">
-                <img class="reload-icon" src="/assets/img/reload_black.png"/>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let node;" class="actions">
+              <button (click)="showEditLabelDialog(node)" mat-icon-button [matTooltip]="'nodes.edit-label' | translate">
+                <mat-icon>short_text</mat-icon>
+              </button>
+              <button (click)="viewNode(node)" mat-icon-button [matTooltip]="'nodes.view-node' | translate">
+                <mat-icon>chevron_right</mat-icon>
               </button>
             </td>
           </ng-container>
@@ -50,4 +54,3 @@
     <div class="col-md-1"></div>
   </div>
 </div>
-<footer-component></footer-component>

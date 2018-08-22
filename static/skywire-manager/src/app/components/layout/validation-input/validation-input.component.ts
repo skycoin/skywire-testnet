@@ -1,9 +1,8 @@
-import {AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {MatInput} from "@angular/material";
-import {FormControl} from "@angular/forms";
+import { AfterViewInit, Component, EventEmitter, HostBinding, Input, Output, ViewChild } from '@angular/core';
+import {MatInput} from '@angular/material';
+import {FormControl} from '@angular/forms';
 
-export interface InputState
-{
+export interface InputState {
   valid: boolean;
   value: string;
 }
@@ -12,12 +11,9 @@ export interface InputState
   selector: 'app-validation-input',
   templateUrl: './validation-input.component.html',
   styleUrls: ['./validation-input.component.scss'],
-  host: {class: 'validation-input-container'}
 })
-export class ValidationInputComponent implements OnInit, AfterViewInit
-{
-  constructor() { }
-
+export class ValidationInputComponent implements AfterViewInit {
+  @HostBinding('attr.class') hostClass = 'validation-input-container';
   @Output() valueChanged = new EventEmitter<InputState>();
   @ViewChild(MatInput) inputElement: MatInput;
   @Input() value: string;
@@ -28,18 +24,13 @@ export class ValidationInputComponent implements OnInit, AfterViewInit
   @Input() validator: FormControl = null;
   @Input() getErrorMessage: () => string;
 
-  ngOnInit() {}
-
-  ngAfterViewInit()
-  {
-    if (this.autofocus)
-    {
+  ngAfterViewInit() {
+    if (this.autofocus) {
       this.inputElement.focus();
     }
   }
 
-  onInput($evt)
-  {
+  onInput($evt) {
     this.value = $evt.target.value;
     this.valueChanged.emit({
       value: this.value,

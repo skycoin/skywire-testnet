@@ -1,0 +1,25 @@
+@import 'variables';
+
+.header {
+  color: $blue-dark;
+  background: $white;
+  padding: 5px 20px;
+  font-size: 16px;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+
+  mat-icon {
+    cursor: pointer;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: darken($white, 30%)
+  }
+}
+
+.body {
+  padding: 20px;
+}

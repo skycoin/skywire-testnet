@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, HostBinding, Inject, OnInit } from '@angular/core';
 import { AppsService } from '../../../../../services/apps.service';
 import { LogMessage, NodeApp } from '../../../../../app.datatypes';
 import { MAT_DIALOG_DATA } from '@angular/material';
@@ -7,9 +7,9 @@ import { MAT_DIALOG_DATA } from '@angular/material';
   selector: 'app-log',
   templateUrl: './log.component.html',
   styleUrls: ['./log.component.scss'],
-  host: {'class': 'app-log-container'}
 })
 export class LogComponent implements OnInit {
+  @HostBinding('attr.class') hostClass = 'app-log-container';
   app: NodeApp;
   logMessages: LogMessage[] = [];
 
@@ -21,6 +21,6 @@ export class LogComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.appsService.getLogMessages(this.app.key).subscribe(log => this.logMessages = log);
+    this.appsService.getLogMessages(this.app.key).subscribe(log => this.logMessages = log || []);
   }
 }

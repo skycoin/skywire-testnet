@@ -1,69 +1,54 @@
-<div class="container-fluid h-100" *ngIf="node">
+<div class="container-fluid h-100" *ngIf="nodeData">
   <div class="row h-100" style="padding-bottom: 40px;">
     <div class="col-xl-2 col-lg-3">
-      <div class="d-flex flex-column h-100 justify-content-between">
+      <div class="d-flex flex-column justify-content-between h-100">
         <div>
             <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
         </div>
-        <app-actions [node]="node" [nodeInfo]="nodeInfo"></app-actions>
+        <app-actions [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
       </div>
     </div>
     <div class="col-lg-6 col-xl-7">
       <div class="d-flex flex-column h-100">
-        <div class="node-top-bar d-flex justify-content-between">
-          <button mat-flat-button class="link sm" (click)="back()">
-            <mat-icon class="font-sm ic-small rounded-circle sky-bg-white sky-color-blue">chevron_left</mat-icon>
-            Back
-          </button>
-          <div class="d-flex align-items-center">
-            <span class="font-sm" style="margin-right: 10px;">Refresh</span>
-              <app-number-input-min-value
-                [minVal]="1"
-                [value]="refreshSeconds"
-                [fieldName]="'Refresh time'"
-                class="input-refresh font-sm text-center"
-                (inputCorrect)="onRefreshTimeChanged($event)" ></app-number-input-min-value>
-              <span matSuffix>s</span>
-          </div>
-        </div>
-        <div>
+        <div class="mt-5">
           <ul class="node-status-bar list-inline d-flex justify-content-around">
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between"
                 matTooltip="{{ getOnlineTooltip() }}">
               <mat-icon>network_check</mat-icon>
-              <span>{{ isOnline ? 'Online' : 'Offline'}}</span>
+              <span>{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Type">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.protocol' | translate">
               <mat-icon>layers</mat-icon>
               <span class="text-uppercase">
-                {{ node.type }}
+                {{ nodeData.node.type }}
               </span>
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Last ack time">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.last-ack' | translate">
               <mat-icon>timelapse</mat-icon>
-              {{ node.last_ack_time | relativeTime }}
+              {{ nodeData.node.last_ack_time | relativeTime }}
             </li>
             <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" matTooltip="Started">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.running' | translate">
               <mat-icon>av_timer</mat-icon>
-              {{ node.start_time | relativeTime }}
+              {{ nodeData.node.start_time | relativeTime:true }}
             </li>
           </ul>
         </div>
         <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
-          Public key <span class="font-smaller">{{ node.key }}</span>
+          {{ 'common.public-key' | translate }}
+          <span class="font-smaller">{{ nodeData.node.key }}</span>
         </div>
-        <node-transports-list
-          *ngIf="transports?.length > 0"
-          [connections]="transports" style="margin-top: 25px;"></node-transports-list>
-        <node-app-list
-          *ngIf="nodeApps?.length > 0"
-          [apps]="nodeApps"
+        <app-node-transports-list
+          *ngIf="nodeData.info.transports.length > 0"
+          [connections]="nodeData.info.transports" style="margin-top: 25px;"></app-node-transports-list>
+        <app-node-app-list
+          *ngIf="nodeData.apps.length > 0"
+          [apps]="nodeData.apps"
           style="margin-top: 25px;">
-        </node-app-list>
-        <app-apps [apps]="nodeApps" [nodeInfo]="nodeInfo"></app-apps>
+        </app-node-app-list>
+        <app-apps [apps]="nodeData.apps" [nodeInfo]="nodeData.info"></app-apps>
       </div>
     </div>
     <div class="col-3">
@@ -71,19 +56,19 @@
         <!-- IPS -->
         <div class="node-ips-container d-flex justify-content-between">
           <div class="section">
-            <span class="section-title">NODE IP</span>
-            <span class="font-smaller">{{ node.addr }}</span>
+            <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.node.addr }}</span>
           </div>
           <div class="section">
-            <span class="section-title">MANAGER IP</span>
+            <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
             <span class="font-smaller">XXXXXX</span>
           </div>
         </div>
         <hr>
         <!-- Public key -->
         <div class="node-public-key section">
-          <span class="section-title">PUBLIC KEY</span>
-          <span class="font-smaller">{{ node.key }}</span>
+          <span class="section-title">{{ 'common.public-key' | translate }}</span>
+          <span class="font-smaller">{{ nodeData.node.key }}</span>
         </div>
         <hr>
         <!-- Connections -->
@@ -101,9 +86,9 @@
           </div>
         </div>
         <hr>
+
+        <app-charts></app-charts>
       </div>
     </div>
   </div>
 </div>
-
-<footer-component></footer-component>

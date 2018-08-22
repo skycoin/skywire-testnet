@@ -1,9 +1,8 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostBinding, Input, OnInit, Output } from '@angular/core';
 import { Keypair } from '../../../app.datatypes';
-import {KeyInputEvent} from "../key-input/key-input.component";
+import {KeyInputEvent} from '../key-input/key-input.component';
 
-export interface KeyPairState
-{
+export interface KeyPairState {
   keyPair: Keypair;
   valid: boolean;
 }
@@ -12,51 +11,43 @@ export interface KeyPairState
   selector: 'app-keypair',
   templateUrl: './keypair.component.html',
   styleUrls: ['./keypair.component.css'],
-  host: {'class': 'keypair-component'}
 })
-export class KeypairComponent implements OnInit
-{
-  @Input() keypair: Keypair =
-  {
+export class KeypairComponent implements OnInit {
+  @HostBinding('attr.class') hostClass = 'keypair-component';
+  @Input() keypair: Keypair = {
     nodeKey: '',
     appKey: ''
   };
   @Output() keypairChange = new EventEmitter<KeyPairState>();
-  @Input() required: boolean = false;
-  private nodeKeyValid: boolean = true;
-  private appKeyValid: boolean = true;
+  @Input() required = false;
+  private nodeKeyValid = true;
+  private appKeyValid = true;
 
-  onNodeValueChanged({value, valid}: KeyInputEvent)
-  {
+  onNodeValueChanged({value, valid}: KeyInputEvent) {
     this.keypair.nodeKey = value;
     this.nodeKeyValid = valid;
     this.onPairChanged();
   }
 
-  onAppValueChanged({value, valid}: KeyInputEvent)
-  {
+  onAppValueChanged({value, valid}: KeyInputEvent) {
     this.keypair.appKey = value;
     this.appKeyValid = valid;
     this.onPairChanged();
   }
 
-  onPairChanged()
-  {
+  onPairChanged() {
     this.keypairChange.emit({
       keyPair: this.keypair,
       valid: this.valid
     });
   }
 
-  private get valid()
-  {
+  private get valid() {
     return this.nodeKeyValid && this.appKeyValid;
   }
 
-  ngOnInit()
-  {
-    if (this.keypair)
-    {
+  ngOnInit() {
+    if (this.keypair) {
       this.onPairChanged();
     }
   }

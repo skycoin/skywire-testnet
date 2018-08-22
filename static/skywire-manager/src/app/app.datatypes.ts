@@ -95,8 +95,7 @@ export interface SearchResultItem {
   node_version: string[];
 }
 
-export interface DiscoveryAddress
-{
+export interface DiscoveryAddress {
   domain: string;
   publicKey: string;
 }

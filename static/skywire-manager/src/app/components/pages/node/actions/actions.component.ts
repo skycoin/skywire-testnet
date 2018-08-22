@@ -4,7 +4,8 @@ import { Node, NodeInfo } from '../../../../app.datatypes';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { ConfigurationComponent } from './configuration/configuration.component';
 import { TerminalComponent } from './terminal/terminal.component';
-import {SshWarningDialogComponent} from "./ssh-warning-dialog/ssh-warning-dialog.component";
+import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 import {UpdateNodeComponent} from "./update-node/update-node.component";
 
 @Component({
@@ -19,12 +20,19 @@ export class ActionsComponent {
   constructor(
     private nodeService: NodeService,
     private snackbar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private router: Router,
+    private translate: TranslateService
   ) { }
 
   reboot() {
     this.nodeService.reboot().subscribe(
-      () => console.log('reboot ok'),
+      () => {
+        this.translate.get('actions.config.success').subscribe(str => {
+          this.snackbar.open(str);
+          this.router.navigate(['nodes']);
+        });
+      },
       (e) => this.snackbar.open(e.message),
     );
   }
@@ -49,16 +57,7 @@ export class ActionsComponent {
     });
   }
 
-  terminal()
-  {
-    this.dialog.open(SshWarningDialogComponent, {
-      data: {
-        acceptButtonCallback: this.openTerminal.bind(this),
-      }
-    });
-  }
-
-  openTerminal(): void {
+  terminal() {
     this.dialog.open(TerminalComponent, {
       width: '700px',
       id: 'terminal-dialog',
@@ -66,5 +65,9 @@ export class ActionsComponent {
         addr: this.node.addr,
       }
     });
+  }
+
+  back() {
+    this.router.navigate(['nodes']);
   }
 }

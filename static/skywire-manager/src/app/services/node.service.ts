@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
-import {interval, Observable, of, Subject, throwError, timer, Unsubscribable} from 'rxjs';
-import { AutoStartConfig, Node, NodeApp, NodeInfo, SearchResult } from '../app.datatypes';
+import { forkJoin, interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
+import { AutoStartConfig, Node, NodeApp, NodeData, NodeInfo, SearchResult } from '../app.datatypes';
 import { ApiService } from './api.service';
 import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
-import {StorageService} from "./storage.service";
-import {Subscription} from "rxjs/internal/Subscription";
-import {Observer} from "rxjs/internal/types";
+import {StorageService} from './storage.service';
+import {Subscription} from 'rxjs/internal/Subscription';
+import {Observer} from 'rxjs/internal/types';
 
 @Injectable({
   providedIn: 'root'
@@ -16,6 +16,41 @@ export class NodeService {
   private refreshNodeObservable: Observable<Node>;
   private refresNodeTimerSubscription: Subscription;
   private currentNode: Node;
+  private currentNodeData = new Subject<NodeData>();
+  private nodeDataSubscription: Unsubscribable;
+
+  /**
+   * (1) Return a name corresponding to the node's IP
+   *
+   * Manager (IP:192.168.0.2)
+   * Node1 (IP:192.168.0.3)
+   * Node2 (IP:192.168.0.4)
+   * Node3 (IP:192.168.0.5)
+   * Node4 (IP:192.168.0.6)
+   * Node5 (IP:192.168.0.7)
+   * Node6 (IP:192.168.0.8)
+   * Node7 (IP:192.168.0.9)
+   *
+   * @param {Node} node
+   * @returns {string}
+   */
+  public static getDefaultNodeLabel(node: Node): string {
+    let nodeLabel = null;
+    try {
+      const ipWithourPort = node.addr.split(':')[0],
+        nodeNumber = parseInt(ipWithourPort.split('.')[3], 10);
+
+      if (nodeNumber === 2) {
+        nodeLabel = 'Manager';
+      } else if (nodeNumber > 2 && nodeNumber < 8) {
+        nodeLabel = `Node ${nodeNumber - 2}`;
+      } else {
+        nodeLabel = ipWithourPort;
+      }
+    } catch (e) {}
+
+    return nodeLabel;
+  }
 
   constructor(
     private apiService: ApiService,
@@ -23,20 +58,48 @@ export class NodeService {
   ) {}
 
   allNodes(): Observable<Node[]> {
-    this.refreshNodes();
     return this.nodes.asObservable();
   }
 
-  refreshNodes() {
+  refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
     if (this.nodesSubscription) {
       this.nodesSubscription.unsubscribe();
     }
 
-    this.nodesSubscription = timer(0, 10000).subscribe(() => {
-      this.apiService.get('conn/getAll').subscribe((allNodes: Node[]) => {
+    return this.nodesSubscription = timer(0, 10000).pipe(flatMap(() => {
+      return this.apiService.get('conn/getAll');
+    })).subscribe(
+      (allNodes: Node[]) => {
         this.nodes.next(allNodes);
+
+        if (successCallback) {
+          successCallback();
+        }
+      },
+      errorCallback,
+    );
+  }
+
+  nodeData(): Observable<NodeData> {
+    return this.currentNodeData.asObservable();
+  }
+
+  refreshNodeData(errorCallback: any = null): Unsubscribable {
+    if (this.nodeDataSubscription) {
+      this.nodeDataSubscription.unsubscribe();
+    }
+
+    return this.nodeDataSubscription = timer(0, 10000).pipe(flatMap(() => forkJoin(
+      this.node(this.currentNode.key),
+      this.nodeApps(),
+      this.nodeInfo(),
+    ))).subscribe(data => {
+      this.currentNodeData.next({
+        node: { ...data[0], key: this.currentNode.key },
+        apps: data[1] || [],
+        info: { ...data[2], transports: data[2].transports || [] }
       });
-    });
+    }, errorCallback);
   }
 
   /**
@@ -48,14 +111,11 @@ export class NodeService {
    * @param {Node} node
    * @returns {string | null}
    */
-  getLabel(node: Node): string | null
-  {
+  getLabel(node: Node): string | null {
     let nodeLabel = this.storageService.getNodeLabel(node.key);
-    if (nodeLabel === null)
-    {
+    if (nodeLabel === null) {
       nodeLabel = NodeService.getDefaultNodeLabel(node);
-      if (nodeLabel !== null)
-      {
+      if (nodeLabel !== null) {
         this.setLabel(node, nodeLabel);
       }
     }
@@ -68,20 +128,17 @@ export class NodeService {
   }
 
   node(key: string): Observable<Node> {
-    return this.apiService.post('conn/getNode', {key}, {type: 'form'});
+    return this.apiService.post('conn/getNode', {key});
   }
 
-  refreshNode(key: string, refreshSeconds: number): Observable<Node>
-  {
+  refreshNode(key: string, refreshSeconds: number): Observable<Node> {
     const refreshMillis = refreshSeconds * 1000;
 
-    if (this.refresNodeTimerSubscription)
-    {
+    if (this.refresNodeTimerSubscription) {
       this.refresNodeTimerSubscription.unsubscribe();
     }
 
-    this.refreshNodeObservable = Observable.create((observer: Observer<Node>) =>
-    {
+    this.refreshNodeObservable = Observable.create((observer: Observer<Node>) => {
 
       this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(
         () => this.node(key).subscribe(
@@ -106,7 +163,7 @@ export class NodeService {
   }
 
   setNodeConfig(data: any) {
-    return this.nodeRequest('run/setNodeConfig', data, {type: 'form'});
+    return this.nodeRequest('run/setNodeConfig', data);
   }
 
   updateNodeConfig() {
@@ -115,9 +172,7 @@ export class NodeService {
 
   getAutoStartConfig(): Observable<AutoStartConfig> {
     return this.nodeRequest('run/getAutoStartConfig', {
-      key: this.currentNode.key
-    }, {
-      type: 'form',
+      key: this.currentNode.key,
     });
   }
 
@@ -125,13 +180,11 @@ export class NodeService {
     return this.nodeRequest('run/setAutoStartConfig', {
       key: this.currentNode.key,
       data: JSON.stringify(config),
-    }, {
-      type: 'form',
     });
   }
 
   searchServices(key: string, pages: number, limit: number, discoveryKey: string): Observable<SearchResult> {
-    return this.nodeRequest('run/searchServices', {key, pages, limit, discoveryKey}, {type: 'form'})
+    return this.nodeRequest('run/searchServices', {key, pages, limit, discoveryKey})
       .pipe(switchMap(() => {
         return interval(500).pipe(
           flatMap(() => this.nodeRequest('run/getSearchServicesResult')),
@@ -177,46 +230,5 @@ export class NodeService {
 
   private nodeRequestAddress(nodeAddress: string, endpoint: string) {
     return 'http://' + nodeAddress + '/node/' + endpoint;
-  }
-
-  /**
-   * (1) Return a name corresponding to the node's IP
-   *
-   * Manager (IP:192.168.0.2)
-   * Node1 (IP:192.168.0.3)
-   * Node2 (IP:192.168.0.4)
-   * Node3 (IP:192.168.0.5)
-   * Node4 (IP:192.168.0.6)
-   * Node5 (IP:192.168.0.7)
-   * Node6 (IP:192.168.0.8)
-   * Node7 (IP:192.168.0.9)
-   *
-   * @param {Node} node
-   * @returns {string}
-   */
-  public static getDefaultNodeLabel(node: Node): string
-  {
-    let nodeLabel = null;
-    try
-    {
-      const ipWithourPort = node.addr.split(':')[0],
-        nodeNumber = parseInt(ipWithourPort.split('.')[3]);
-
-      if (nodeNumber == 2)
-      {
-        nodeLabel = 'Manager';
-      }
-      else if (nodeNumber > 2 && nodeNumber < 8)
-      {
-        nodeLabel = `Node ${nodeNumber - 2}`;
-      }
-      else
-      {
-        nodeLabel = ipWithourPort;
-      }
-    }
-    catch (e) {}
-
-    return nodeLabel;
   }
 }

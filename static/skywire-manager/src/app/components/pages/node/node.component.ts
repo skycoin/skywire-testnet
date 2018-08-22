@@ -1,28 +1,20 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NodeService } from '../../../services/node.service';
-import {Node, NodeApp, NodeTransport, NodeInfo} from '../../../app.datatypes';
+import { Node, NodeData } from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
-import {MatDialog, MatSnackBar} from "@angular/material";
-import {Subscription} from "rxjs/internal/Subscription";
-import {StorageService} from "../../../services/storage.service";
-
-const DEFAULT_REFRESH_SECONDS = 10;
+import { MatDialog, MatSnackBar } from '@angular/material';
+import { Subscription } from 'rxjs/internal/Subscription';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-node',
   templateUrl: './node.component.html',
   styleUrls: ['./node.component.scss']
 })
-export class NodeComponent implements OnInit, OnDestroy
-{
-  node: Node;
-  nodeApps: NodeApp[] = [];
-  nodeInfo: NodeInfo;
-  refreshSeconds: number;
-  transports: NodeTransport[] = [];
+export class NodeComponent implements OnInit, OnDestroy {
+  nodeData: NodeData;
+
   private refreshSubscription: Subscription;
-  private REFRESH_SUBSCRIPTION_DELAY: number = 10000;
-  private isOnline: boolean = false;
 
   constructor(
     private nodeService: NodeService,
@@ -30,103 +22,49 @@ export class NodeComponent implements OnInit, OnDestroy
     private router: Router,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private storageService: StorageService
-  ) {}
+    private translate: TranslateService,
+  ) { }
 
-  get key(): string
-  {
-    return this.route.snapshot.params['key'];
-  }
-
-  onNodeReceived(node: Node)
-  {
+  ngOnInit() {
     const key: string = this.route.snapshot.params['key'];
-    this.node = { key, ...node };
-    this.nodeService.setCurrentNode(this.node);
 
-    this.loadData();
+    this.nodeService.node(key).subscribe(
+      (node: Node) => {
+        this.nodeService.setCurrentNode({ key, ...node });
+
+        this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) => {
+          this.nodeData = nodeData;
+        });
+
+        this.refreshSubscription.add(
+          this.nodeService.refreshNodeData(this.onError.bind(this))
+        );
+      },
+      () => this.router.navigate(['nodes'])
+    );
   }
 
-  private loadData(): void
-  {
-    this.nodeService.nodeApps().subscribe(apps => this.nodeApps = apps);
-    this.nodeService.nodeInfo().subscribe(this.onNodeInfoReceived.bind(this));
+  ngOnDestroy() {
+    this.refreshSubscription.unsubscribe();
   }
 
-  onNodeInfoReceived(info: NodeInfo)
-  {
-    this.nodeInfo = info;
-    this.transports = info.transports || [];
-    this.setOnlineStatus();
+  private onError() {
+    this.translate.get('node.error-load').subscribe(str => {
+      this.snackBar.open(str);
+    });
   }
 
   /**
    * Node is online if at least one discovery is seeing it.
    */
-  private setOnlineStatus()
+  private get isOnline()
   {
-    this.isOnline = false;
-    Object.keys(this.nodeInfo.discoveries).map((discovery) =>
+    let isOnline = false;
+    Object.keys(this.nodeData.info.discoveries).map((discovery) =>
     {
-      this.isOnline = this.isOnline || this.nodeInfo.discoveries[discovery];
+      isOnline = isOnline || this.nodeData.info.discoveries[discovery];
     });
-  }
-
-  back(): void
-  {
-    this.router.navigate(['nodes']);
-  }
-
-  onRefreshTimeChanged($seconds): void
-  {
-    this.refreshSeconds = $seconds;
-    this.scheduleNodeRefresh();
-    this.storageService.setRefreshTime($seconds);
-  }
-
-  private onNodeError(): void
-  {
-    this.openSnackBar('An error occurred while refreshing node data');
-    setTimeout(this.scheduleNodeRefresh.bind(this), this.REFRESH_SUBSCRIPTION_DELAY);
-  }
-
-  private openSnackBar(message: string)
-  {
-    this.snackBar.open(message, null, {
-      duration: 2000,
-    });
-  }
-
-  private scheduleNodeRefresh(): void
-  {
-    // console.log(`scheduleNodeRefresh ${this.refreshSeconds}`);
-    if (this.refreshSubscription)
-    {
-      this.refreshSubscription.unsubscribe();
-    }
-    this.refreshSubscription = this.nodeService.refreshNode(this.key, this.refreshSeconds).subscribe(
-      this.onNodeReceived.bind(this),
-      this.onNodeError.bind(this)
-    );
-  }
-
-  ngOnInit(): void
-  {
-    this.refreshSeconds = this.storageService.getRefreshTime() || DEFAULT_REFRESH_SECONDS;
-    this.scheduleNodeRefresh();
-  }
-
-  ngOnDestroy(): void
-  {
-    this.unsubscribeRefresh();
-  }
-
-  private unsubscribeRefresh()
-  {
-    if (this.refreshSubscription)
-    {
-      this.refreshSubscription.unsubscribe();
-    }
+    return isOnline;
   }
 
   getOnlineTooltip(): string

@@ -35,7 +35,18 @@
   .bold {
     font-weight: bold;
   }
-
 }
 
+.actions {
+  text-align: right;
 
+  button {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+
+    &:last-child {
+      margin-left: 15px;
+    }
+  }
+}

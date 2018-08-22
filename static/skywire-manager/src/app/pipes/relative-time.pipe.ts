@@ -6,8 +6,8 @@ import * as moment from 'moment';
 })
 export class RelativeTimePipe implements PipeTransform {
 
-  transform(value: number, args?: any): string {
-    return moment().subtract(value, 'seconds').fromNow();
+  transform(value: number, withoutSuffix: boolean): string {
+    return moment().subtract(value, 'seconds').fromNow(withoutSuffix);
   }
 
 }

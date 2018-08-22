@@ -3,18 +3,17 @@
     [autofocus]="autofocus"
     *ngIf="editMode"
     [required]="required"
-    (onValueChanged)="onValueChanged($event)"
+    (valueChanged)="onValueChanged($event)"
     [value]="value">
   </app-discovery-address-input>
-  <span
-    (click)="onValueClicked($event)"
-    *ngIf="!editMode">
-  {{ value.domain }}<br>{{ value.publicKey }}
+  <span (click)="onValueClicked($event)" *ngIf="!editMode">
+    {{ value.domain }}<br>{{ value.publicKey }}
   </span>
-  <button color="{{editMode ? 'primary' : ''}}"
+  <button
+    [color]="editMode ? 'primary' : ''"
     (click)="toggleEditMode()"
     mat-icon-button
-    matTooltip="{{editMode ? 'Save changes' : 'Edit'}}"
+    [matTooltip]="(editMode ? 'common.save' : 'common.edit') | translate"
     [disabled]="editMode && !valid">
     <mat-icon>
       {{editMode ? 'done' : 'edit'}}

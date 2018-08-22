@@ -1,0 +1,8 @@
+<app-dialog [headline]="'nodes.edit-label-title' | translate" [dialogRef]="dialogRef">
+  <div class="wrapper">
+    <mat-form-field>
+      <input [placeholder]="'nodes.label' | translate" [(ngModel)]="label" class="input-label" maxlength="20" matInput>
+    </mat-form-field>
+    <app-button (action)="save()" [dark]="true">{{ 'common.save' | translate }}</app-button>
+  </div>
+</app-dialog>

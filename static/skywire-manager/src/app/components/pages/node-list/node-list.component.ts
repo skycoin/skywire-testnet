@@ -1,70 +1,88 @@
-import {Component, OnDestroy} from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {NodeService} from '../../../services/node.service';
 import {Node} from '../../../app.datatypes';
-import {Unsubscribable} from 'rxjs';
-import {MatTableDataSource} from '@angular/material';
-import {Router} from "@angular/router";
+import { Subscription } from 'rxjs';
+import { MatDialog, MatSnackBar, MatTableDataSource } from '@angular/material';
+import {Router} from '@angular/router';
+import { ButtonComponent } from '../../layout/button/button.component';
+import { EditLabelComponent } from './edit-label/edit-label.component';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-node-list',
   templateUrl: './node-list.component.html',
   styleUrls: ['./node-list.component.scss'],
 })
-export class NodeListComponent implements OnDestroy {
-  private subscription: Unsubscribable;
+export class NodeListComponent implements OnInit, OnDestroy {
+  @ViewChild('refreshButton') refreshButton: ButtonComponent;
   dataSource = new MatTableDataSource<Node>();
-  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'refresh'];
+  displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'actions'];
+
+  private subscriptions: Subscription;
 
   constructor(
     private nodeService: NodeService,
-    private router: Router
-  ) {
-    this.subscription = nodeService.allNodes().subscribe(allNodes =>
-    {
+    private router: Router,
+    private snackbar: MatSnackBar,
+    private dialog: MatDialog,
+    private translate: TranslateService,
+  ) { }
+
+  ngOnInit() {
+    this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
       this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes;
     });
+
+    this.refresh();
   }
 
   ngOnDestroy() {
-    this.subscription.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   refresh() {
-    this.nodeService.refreshNodes();
+    this.refreshButton.loading();
+    this.subscriptions.add(
+      this.nodeService.refreshNodes(
+        () => this.refreshButton.reset(),
+        () => this.onError(),
+      )
+    );
+  }
+
+  showEditLabelDialog(node: Node) {
+    this.dialog.open(EditLabelComponent, {
+      data: { node },
+    });
   }
 
   getLabel(node: Node) {
     return this.nodeService.getLabel(node);
   }
 
-  editLabel(value:string, node: Node) {
+  editLabel(value: string, node: Node) {
     this.nodeService.setLabel(node, value);
   }
 
   viewNode(node) {
-    console.log(node);
     this.router.navigate(['nodes', node.key]);
   }
 
-  private fetchNodeInfo(key: string)
-  {
-    this.nodeService.node(key).subscribe(node =>
-      {
-        let dataCopy = [].concat(this.dataSource.data),
-            updateNode = dataCopy.find((node) => node.key === key);
+  private fetchNodeInfo(key: string) {
+    this.nodeService.node(key).subscribe(node => {
+        const dataCopy = [].concat(this.dataSource.data),
+            updateNode = dataCopy.find(n => n.key === key);
 
-        if (updateNode)
-        {
+        if (updateNode) {
           updateNode.addr = node.addr;
-          this.refreshList(dataCopy)
+          this.refreshList(dataCopy);
         }
       },
       () => this.router.navigate(['login']));
   }
 
-  private refreshList(data: Node[])
-  {
+  private refreshList(data: Node[]) {
     this.dataSource.data = data;
   }
 
@@ -77,15 +95,18 @@ export class NodeListComponent implements OnDestroy {
    *
    * @param {Node[]} allNodes
    */
-  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void
-  {
-    allNodes.forEach((node) =>
-    {
-      let nodeLabel = this.nodeService.getLabel(node);
-      if (nodeLabel === null)
-      {
+  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void {
+    allNodes.forEach((node) => {
+      const nodeLabel = this.nodeService.getLabel(node);
+      if (nodeLabel === null) {
         this.fetchNodeInfo(node.key);
       }
+    });
+  }
+
+  private onError() {
+    this.translate.get('nodes.error-load').subscribe(str => {
+      this.snackbar.open(str);
     });
   }
 }

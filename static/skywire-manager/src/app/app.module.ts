@@ -29,11 +29,12 @@ import {
   MatFormFieldModule,
   MatInputModule,
   ShowOnDirtyErrorStateMatcher,
-  MatProgressBarModule, MatSelectModule
-}
-  from '@angular/material';
+  MatProgressBarModule,
+  MatProgressSpinnerModule,
+  MatSelectModule
+} from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
-import { NodeTransportsList } from './components/pages/node/node-transports-list/node-transports-list';
+import { NodeTransportsListComponent } from './components/pages/node/node-transports-list/node-transports-list';
 import { NodeAppsListComponent } from './components/pages/node/apps/node-apps-list/node-apps-list.component';
 import { CopyToClipboardTextComponent } from './components/layout/copy-to-clipboard-text/copy-to-clipboard-text.component';
 import { ActionsComponent } from './components/pages/node/actions/actions.component';
@@ -55,23 +56,26 @@ import { SockscStartupComponent } from './components/pages/node/apps/app-socksc/
 import { SettingsComponent } from './components/pages/settings/settings.component';
 import { PasswordComponent } from './components/pages/settings/password/password.component';
 import { NodeAppButtonComponent } from './components/pages/node/apps/node-app-button/node-app-button.component';
-import { SshWarningDialogComponent } from './components/pages/node/actions/ssh-warning-dialog/ssh-warning-dialog.component';
-import { AppsSettingsComponent } from './components/pages/node/apps/apps-settings/apps-settings.component';
-import { ClipboardService } from "./services/clipboard.service";
-import { ClipboardDirective } from "./directives";
+import { ClipboardService } from './services/clipboard.service';
+import { ClipboardDirective } from './directives';
 import { NumberInputMinValueComponent } from './components/layout/number-input-min-value/number-input-min-value.component';
 import { StartupConfigComponent } from './components/pages/node/apps/startup-config/startup-config.component';
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
-import {EditableKeyComponent} from "./components/layout/editable-key/editable-key.component";
-import {DiscoveryAddressInputComponent} from "./components/layout/discovery-address-input/discovery-address-input.component";
-import {DomainInputComponent} from "./components/layout/domain-input/domain-input.component";
-import {ValidationInputComponent} from "./components/layout/validation-input/validation-input.component";
-import {ComponentHostDirective} from "./directives/component-host.directive";
-import {HostComponent} from "./components/layout/host/host.component";
-import {DatatableComponent} from "./components/layout/datatable/datatable.component";
-import {EditableDiscoveryAddressComponent} from "./components/layout/editable-discovery-address/editable-discovery-address.component";
-import {SearchNodesComponent} from "./components/pages/node/apps/app-socksc/search-nodes/search-nodes.component";
+import { ButtonComponent } from './components/layout/button/button.component';
+import { EditLabelComponent } from './components/pages/node-list/edit-label/edit-label.component';
+import { DialogComponent } from './components/layout/dialog/dialog.component';
+import {EditableKeyComponent} from './components/layout/editable-key/editable-key.component';
+import {DiscoveryAddressInputComponent} from './components/layout/discovery-address-input/discovery-address-input.component';
+import {DomainInputComponent} from './components/layout/domain-input/domain-input.component';
+import {ValidationInputComponent} from './components/layout/validation-input/validation-input.component';
+import {ComponentHostDirective} from './directives/component-host.directive';
+import {HostComponent} from './components/layout/host/host.component';
+import {DatatableComponent} from './components/layout/datatable/datatable.component';
+import {EditableDiscoveryAddressComponent} from './components/layout/editable-discovery-address/editable-discovery-address.component';
+import {SearchNodesComponent} from './components/pages/node/apps/app-socksc/search-nodes/search-nodes.component';
+import { LineChartComponent } from './components/layout/line-chart/line-chart.component';
+import { ChartsComponent } from './components/pages/node/charts/charts.component';
 import {ToolbarComponent} from "./components/layout/toolbar/toolbar.component";
 import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/update-node.component";
 
@@ -99,19 +103,20 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
     AppSockscComponent,
     SockscConnectComponent,
     SockscStartupComponent,
-    NodeTransportsList,
+    NodeTransportsListComponent,
     NodeAppsListComponent,
     CopyToClipboardTextComponent,
     SettingsComponent,
     PasswordComponent,
     NodeAppButtonComponent,
-    SshWarningDialogComponent,
-    AppsSettingsComponent,
     ClipboardDirective,
     ComponentHostDirective,
     NumberInputMinValueComponent,
     StartupConfigComponent,
     KeyInputComponent,
+    ButtonComponent,
+    EditLabelComponent,
+    DialogComponent,
     EditableKeyComponent,
     DiscoveryAddressInputComponent,
     DomainInputComponent,
@@ -121,13 +126,12 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
     EditableDiscoveryAddressComponent,
     SearchNodesComponent,
     ToolbarComponent,
-    UpdateNodeComponent
+    UpdateNodeComponent,
+    LineChartComponent,
+    ChartsComponent,
   ],
   entryComponents: [
     ConfigurationComponent,
-    TerminalComponent,
-    SshWarningDialogComponent,
-    AppsSettingsComponent,
     TerminalComponent,
     LogComponent,
     SshsStartupComponent,
@@ -136,11 +140,12 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
     SshcStartupComponent,
     SockscConnectComponent,
     SockscStartupComponent,
+    EditLabelComponent,
     EditableKeyComponent,
     KeyInputComponent,
     DiscoveryAddressInputComponent,
     EditableDiscoveryAddressComponent,
-    UpdateNodeComponent
+    UpdateNodeComponent,
   ],
   imports: [
     BrowserModule,
@@ -168,11 +173,12 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
     FormsModule,
     MatListModule,
     MatProgressBarModule,
-    MatSelectModule
+    MatSelectModule,
+    MatProgressSpinnerModule,
   ],
   providers: [
-    {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
     ClipboardService,
+    {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500}},
     {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: {width: '600px', hasBackdrop: true}},
     {provide: ErrorStateMatcher, useClass: ShowOnDirtyErrorStateMatcher},

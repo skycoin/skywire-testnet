@@ -1,39 +1,35 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { Keypair} from '../../../../../../app.datatypes';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
-import {KeyPairState} from "../../../../../layout/keypair/keypair.component";
+import {KeyPairState} from '../../../../../layout/keypair/keypair.component';
 
 @Component({
   selector: 'app-socksc-connect',
   templateUrl: './socksc-connect.component.html',
   styleUrls: ['./socksc-connect.component.css']
 })
-export class SockscConnectComponent implements OnInit
-{
+export class SockscConnectComponent implements OnInit {
   keypair: Keypair;
-  private discoveries = [];
-  constructor(
-    @Inject(MAT_DIALOG_DATA) private data: any,
-    private dialogRef: MatDialogRef<SockscConnectComponent>
-  ) {}
 
-  ngOnInit()
-  {
+  private discoveries = [];
+
+  constructor(
+    public dialogRef: MatDialogRef<SockscConnectComponent>,
+    @Inject(MAT_DIALOG_DATA) private data: any,
+  ) { }
+
+  ngOnInit() {
     this.discoveries = this.data.discoveries;
   }
 
-  keypairChange({keyPair, valid}: KeyPairState)
-  {
-    if (valid)
-    {
+  keypairChange({keyPair, valid}: KeyPairState) {
+    if (valid) {
       this.keypair = keyPair;
     }
   }
 
-  connect(keypair?: Keypair)
-  {
-    if (keypair)
-    {
+  connect(keypair?: Keypair) {
+    if (keypair) {
       this.keypair = keypair;
     }
 

@@ -31,8 +31,6 @@ export class ClientConnectionService {
     return this.apiService.post(endpoint, {
       client: key,
       ...data,
-    }, {
-      type: 'form',
     });
   }
 }

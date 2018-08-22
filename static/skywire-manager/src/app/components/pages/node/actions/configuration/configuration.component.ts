@@ -3,53 +3,52 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatSnackBar } from '@angular/material';
 import { FormControl, FormGroup } from '@angular/forms';
 import { NodeService } from '../../../../../services/node.service';
 import {DiscoveryAddress, Node, NodeDiscovery} from '../../../../../app.datatypes';
-import {DatatableProvider} from "../../../../layout/datatable/datatable.component";
+import {DatatableProvider} from '../../../../layout/datatable/datatable.component';
 import {
   DiscoveryAddressInputComponent
-} from "../../../../layout/discovery-address-input/discovery-address-input.component";
-import {EditableDiscoveryAddressComponent} from "../../../../layout/editable-discovery-address/editable-discovery-address.component";
+} from '../../../../layout/discovery-address-input/discovery-address-input.component';
+import {EditableDiscoveryAddressComponent} from '../../../../layout/editable-discovery-address/editable-discovery-address.component';
+import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-configuration',
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss']
 })
-export class ConfigurationComponent implements OnInit, DatatableProvider<DiscoveryAddress>
-{
+export class ConfigurationComponent implements OnInit, DatatableProvider<DiscoveryAddress> {
   form: FormGroup;
   node: Node;
   discoveries: NodeDiscovery;
   discoveryNodes: DiscoveryAddress[] = [];
 
   constructor(
+    public dialogRef: MatDialogRef<ConfigurationComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
-    private dialogRef: MatDialogRef<ConfigurationComponent>,
     private nodeService: NodeService,
     private snackbar: MatSnackBar,
+    private router: Router,
+    private translate: TranslateService,
   ) {
     this.node = data.node;
     this.discoveries = data.discoveries;
-    console.log(this.discoveries)
   }
 
-  ngOnInit()
-  {
+  ngOnInit() {
     return Object.keys(this.discoveries).map(key => {
       const parts = key.split('-');
 
       this.discoveryNodes.push({
         domain: parts[0],
         publicKey: parts[1]
-      })
+      });
     });
   }
 
-  save(values: DiscoveryAddress[])
-  {
-    let stringValues = [];
-    values.map(({domain, publicKey}) =>
-    {
-        stringValues.push(`${domain}-${publicKey}`)
+  save(values: DiscoveryAddress[]) {
+    const stringValues = [];
+    values.map(({domain, publicKey}) => {
+        stringValues.push(`${domain}-${publicKey}`);
     });
 
     const config = {
@@ -61,17 +60,24 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
       data: JSON.stringify(config),
     };
 
-    this.nodeService.setNodeConfig(data).subscribe(
-      () => {
-        this.nodeService.updateNodeConfig().subscribe(
-          () => this.snackbar.open('Rebooting node, please wait.'),
-          () => this.snackbar.open('Unable to reboot node.'),
-        );
-      },
-      () => {
-        this.snackbar.open('Unable to store node configuration.');
-      }
-    );
+    this.translate.get([
+      'actions.config.success',
+      'actions.config.cant-store',
+      'actions.config.cant-reboot'
+    ]).subscribe(str => {
+      this.nodeService.setNodeConfig(data).subscribe(
+        () => {
+          this.nodeService.updateNodeConfig().subscribe(
+            () => {
+              this.snackbar.open(str['actions.config.success']);
+              this.router.navigate(['nodes']);
+            },
+            () => this.snackbar.open(str['actions.config.cant-reboot']),
+          );
+        },
+        () => this.snackbar.open(str['actions.config.cant-store']),
+      );
+    });
   }
 
   private validateAddresses(control: FormControl) {
@@ -108,25 +114,21 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
     return isValid ? null : { invalid: true };
   }
 
-  getAddRowComponentClass()
-  {
+  getAddRowComponentClass() {
     return DiscoveryAddressInputComponent;
   }
 
-  getAddRowData()
-  {
+  getAddRowData() {
     return {
       required: false
     };
   }
 
-  getEditableRowComponentClass()
-  {
+  getEditableRowComponentClass() {
     return EditableDiscoveryAddressComponent;
   }
 
-  getEditableRowData(index: number, currentValue: DiscoveryAddress)
-  {
+  getEditableRowData(index: number, currentValue: DiscoveryAddress) {
     return {
       autofocus: false,
       value: currentValue

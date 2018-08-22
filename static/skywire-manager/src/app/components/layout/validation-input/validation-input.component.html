@@ -3,7 +3,7 @@
     [value]="value"
     (input)="onInput($event)"
     matInput
-    placeholder="{{placeHolder}}"
+    [placeholder]="placeHolder"
     [formControl]="validator">
   <mat-error *ngIf="validator.invalid">{{getErrorMessage()}}</mat-error>
   <mat-hint *ngIf="hint">{{hint}}</mat-hint>

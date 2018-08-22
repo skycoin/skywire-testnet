@@ -6,38 +6,31 @@ const KEY_DEFAULT_LANG:    string = 'KEY_DEFAULT_LANG';
 @Injectable({
   providedIn: 'root'
 })
-export class StorageService
-{
+export class StorageService {
   private storage: Storage;
 
-  constructor()
-  {
+  constructor() {
     this.storage = localStorage;
   }
 
-  private static nodeLabelNamespace(nodeKey: string): string
-  {
+  private static nodeLabelNamespace(nodeKey: string): string {
     return `${nodeKey}-label`;
   }
 
-  public setNodeLabel(nodeKey: string, nodeLabel: string): void
-  {
+  public setNodeLabel(nodeKey: string, nodeLabel: string): void {
     this.storage.setItem(StorageService.nodeLabelNamespace(nodeKey), nodeLabel);
   }
 
-  public getNodeLabel(nodeKey: string): string
-  {
+  public getNodeLabel(nodeKey: string): string {
     return this.storage.getItem(StorageService.nodeLabelNamespace(nodeKey));
   }
 
-  setRefreshTime(seconds: number)
-  {
+  setRefreshTime(seconds: number) {
     this.storage.setItem(KEY_REFRESH_SECONDS, seconds.toString());
   }
 
-  getRefreshTime(): number
-  {
-    return parseInt(this.storage.getItem(KEY_REFRESH_SECONDS));
+  getRefreshTime(): number {
+    return parseInt(this.storage.getItem(KEY_REFRESH_SECONDS), 10);
   }
 
   setDefaultLanguage(lang: string): void
