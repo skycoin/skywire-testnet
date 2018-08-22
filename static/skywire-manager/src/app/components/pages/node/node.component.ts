@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import {Component, OnChanges, OnDestroy, OnInit} from '@angular/core';
 import { NodeService } from '../../../services/node.service';
 import { Node, NodeData } from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -11,10 +11,11 @@ import { TranslateService } from '@ngx-translate/core';
   templateUrl: './node.component.html',
   styleUrls: ['./node.component.scss']
 })
-export class NodeComponent implements OnInit, OnDestroy {
+export class NodeComponent implements OnInit, OnDestroy, OnChanges {
   nodeData: NodeData;
 
   private refreshSubscription: Subscription;
+  onlineTooltip: string | any;
 
   constructor(
     private nodeService: NodeService,
@@ -25,7 +26,8 @@ export class NodeComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
   ) { }
 
-  ngOnInit() {
+  ngOnInit()
+  {
     const key: string = this.route.snapshot.params['key'];
 
     this.nodeService.node(key).subscribe(
@@ -34,6 +36,7 @@ export class NodeComponent implements OnInit, OnDestroy {
 
         this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) => {
           this.nodeData = nodeData;
+          this.getOnlineTooltip();
         });
 
         this.refreshSubscription.add(
@@ -67,17 +70,22 @@ export class NodeComponent implements OnInit, OnDestroy {
     return isOnline;
   }
 
-  getOnlineTooltip(): string
+  getOnlineTooltip(): void
   {
-    let tooltip;
+    let key;
     if (this.isOnline)
     {
-      tooltip = "Online: the node is correctly detected by the Skycoin network. ";
+      key = 'node.online-tooltip';
     }
     else
     {
-      tooltip = "Offline: the node is not detected by the Skycoin network. Probably it has no internet connectivity.";
+      key = 'node.offline-tooltip';
     }
-    return tooltip;
+    this.translate.get(key).subscribe((text) => this.onlineTooltip = text);
+  }
+
+  ngOnChanges(): void
+  {
+    this.getOnlineTooltip();
   }
 }

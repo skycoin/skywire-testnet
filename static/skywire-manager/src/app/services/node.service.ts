@@ -89,7 +89,9 @@ export class NodeService {
       this.nodeDataSubscription.unsubscribe();
     }
 
-    return this.nodeDataSubscription = timer(0, 10000).pipe(flatMap(() => forkJoin(
+    const refreshMilliseconds = this.storageService.getRefreshTime() * 1000;
+
+    return this.nodeDataSubscription = timer(0, refreshMilliseconds).pipe(flatMap(() => forkJoin(
       this.node(this.currentNode.key),
       this.nodeApps(),
       this.nodeInfo(),

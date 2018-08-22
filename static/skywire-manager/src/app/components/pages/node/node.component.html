@@ -13,7 +13,7 @@
         <div class="mt-5">
           <ul class="node-status-bar list-inline d-flex justify-content-around">
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between"
-                matTooltip="{{ getOnlineTooltip() }}">
+                matTooltip="{{onlineTooltip}}">
               <mat-icon>network_check</mat-icon>
               <span>{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
             </li>
