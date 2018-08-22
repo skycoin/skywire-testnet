@@ -30,6 +30,7 @@
 
   "node": {
     "online": "Online",
+    "offline": "Offline",
     "status": "Status",
     "protocol": "Protocol",
     "last-ack": "Last ack time",
