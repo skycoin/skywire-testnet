@@ -36,7 +36,6 @@ export class NodeListComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
-      this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes as NodeStatus[];
       this.computeOnlineStatus(allNodes);
     });
@@ -89,24 +88,6 @@ export class NodeListComponent implements OnInit, OnDestroy {
     this.dataSource.data = data;
   }
 
-  /**
-   * A call to fetchNodeInfo is needed in order to obtain the node's IP from
-   * which we will get the default label.
-   *
-   * The the endpoint will only be called once for each node, as the labels are
-   * stored in the localStorage afterwards.
-   *
-   * @param {Node[]} allNodes
-   */
-  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void {
-    allNodes.forEach((node) => {
-      const nodeLabel = this.nodeService.getLabel(node);
-      if (nodeLabel === null) {
-        this.fetchNodeInfo(node.key);
-      }
-    });
-  }
-
   private onError() {
     this.translate.get('nodes.error-load').subscribe(str => {
       this.snackbar.open(str);
@@ -120,18 +101,16 @@ export class NodeListComponent implements OnInit, OnDestroy {
    * @param allNodes
    */
   private computeOnlineStatus(allNodes: Node[]) {
-    allNodes.forEach(({key}) => this.computeSingleNodeOnlineStatus(key));
+    allNodes.forEach((node) => this.computeSingleNodeOnlineStatus(node));
   }
 
-  private computeSingleNodeOnlineStatus(key: string) {
-    this.nodeService.node(key).subscribe((node) => {
-      this.nodeService.nodeInfo(node).subscribe((nodeInfo) =>
-      {
-        let currentList = this.dataSource.data;
-        let node = currentList.find((node) => node.key === node.key);
-        node.online = isOnline(nodeInfo);
-        this.dataSource.data = currentList;
-      });
+  private computeSingleNodeOnlineStatus(node: Node) {
+    this.nodeService.nodeInfo(node).subscribe((nodeInfo) =>
+    {
+      let currentList = this.dataSource.data;
+      let node = currentList.find((node) => node.key === node.key);
+      node.online = isOnline(nodeInfo);
+      this.dataSource.data = currentList;
     });
   }
 }

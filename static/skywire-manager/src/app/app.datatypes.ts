@@ -27,6 +27,7 @@ export interface NodeData {
   node: Node;
   info: NodeInfo;
   apps: NodeApp[];
+  allNodes: Node[];
 }
 
 export interface NodeDiscovery {

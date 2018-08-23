@@ -1,16 +1,18 @@
 import { Injectable } from '@angular/core';
-import { forkJoin, interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
+import { forkJoin, interval, Observable, Subject, timer, Unsubscribable } from 'rxjs';
 import { AutoStartConfig, Node, NodeApp, NodeData, NodeInfo, SearchResult } from '../app.datatypes';
 import { ApiService } from './api.service';
-import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
+import {filter, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
 import {StorageService} from './storage.service';
 import {Subscription} from 'rxjs/internal/Subscription';
 import {Observer} from 'rxjs/internal/types';
+import {getNodeLabel} from "../utils/nodeUtils";
 
 @Injectable({
   providedIn: 'root'
 })
-export class NodeService {
+export class NodeService
+{
   private nodes = new Subject<Node[]>();
   private nodesSubscription: Unsubscribable;
   private refreshNodeObservable: Observable<Node>;
@@ -18,39 +20,6 @@ export class NodeService {
   private currentNode: Node;
   private currentNodeData = new Subject<NodeData>();
   private nodeDataSubscription: Unsubscribable;
-
-  /**
-   * (1) Return a name corresponding to the node's IP
-   *
-   * Manager (IP:192.168.0.2)
-   * Node1 (IP:192.168.0.3)
-   * Node2 (IP:192.168.0.4)
-   * Node3 (IP:192.168.0.5)
-   * Node4 (IP:192.168.0.6)
-   * Node5 (IP:192.168.0.7)
-   * Node6 (IP:192.168.0.8)
-   * Node7 (IP:192.168.0.9)
-   *
-   * @param {Node} node
-   * @returns {string}
-   */
-  public static getDefaultNodeLabel(node: Node): string {
-    let nodeLabel = null;
-    try {
-      const ipWithourPort = node.addr.split(':')[0],
-        nodeNumber = parseInt(ipWithourPort.split('.')[3], 10);
-
-      if (nodeNumber === 2) {
-        nodeLabel = 'Manager';
-      } else if (nodeNumber > 2 && nodeNumber < 8) {
-        nodeLabel = `Node ${nodeNumber - 2}`;
-      } else {
-        nodeLabel = ipWithourPort;
-      }
-    } catch (e) {}
-
-    return nodeLabel;
-  }
 
   constructor(
     private apiService: ApiService,
@@ -61,15 +30,37 @@ export class NodeService {
     return this.nodes.asObservable();
   }
 
+  /**
+   * Fetch getAll endpoint and then add the address
+   * for each node calling the node endpoint.
+   */
+  getAllNodes(): Observable<Node[]> {
+    return this.apiService.get('conn/getAll').pipe(
+      flatMap(
+        nodes => forkJoin(
+          nodes.map(
+            node => this.node(node.key).pipe(
+              map(nodeWithAddress => {
+                node.addr = nodeWithAddress.addr;
+                return node;
+              })
+            )
+          )
+        )
+      )
+    );
+  }
+
   refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
     if (this.nodesSubscription) {
       this.nodesSubscription.unsubscribe();
     }
 
     return this.nodesSubscription = timer(0, this.storageService.getRefreshTime() * 1000).pipe(flatMap(() => {
-      return this.apiService.get('conn/getAll');
+      return this.getAllNodes();
     })).subscribe(
-      (allNodes: Node[]) => {
+      (allNodes: Node[]) =>
+      {
         this.nodes.next(allNodes);
 
         if (successCallback) {
@@ -95,11 +86,13 @@ export class NodeService {
       this.node(this.currentNode.key),
       this.nodeApps(),
       this.nodeInfo(),
+      this.getAllNodes()
     ))).subscribe(data => {
       this.currentNodeData.next({
         node: { ...data[0], key: this.currentNode.key },
         apps: data[1] || [],
-        info: { ...data[2], transports: data[2].transports || [] }
+        info: { ...data[2], transports: data[2].transports || [] },
+        allNodes: data[3] || []
       });
     }, errorCallback);
   }
@@ -116,7 +109,7 @@ export class NodeService {
   getLabel(node: Node): string | null {
     let nodeLabel = this.storageService.getNodeLabel(node.key);
     if (nodeLabel === null) {
-      nodeLabel = NodeService.getDefaultNodeLabel(node);
+      nodeLabel = getNodeLabel(node);
       if (nodeLabel !== null) {
         this.setLabel(node, nodeLabel);
       }
@@ -131,25 +124,6 @@ export class NodeService {
 
   node(key: string): Observable<Node> {
     return this.apiService.post('conn/getNode', {key});
-  }
-
-  refreshNode(key: string, refreshSeconds: number): Observable<Node> {
-    const refreshMillis = refreshSeconds * 1000;
-
-    if (this.refresNodeTimerSubscription) {
-      this.refresNodeTimerSubscription.unsubscribe();
-    }
-
-    this.refreshNodeObservable = Observable.create((observer: Observer<Node>) => {
-
-      this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(
-        () => this.node(key).subscribe(
-          (node) => observer.next(node),
-          (err) => observer.error(err)
-        ));
-    });
-
-    return this.refreshNodeObservable;
   }
 
   setCurrentNode(node: Node) {

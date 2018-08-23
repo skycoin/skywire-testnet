@@ -39,7 +39,8 @@
     "running": "Running",
     "details": {
       "node-ip": "Node IP",
-      "manager-ip": "Manager IP"
+      "manager-ip": "Manager IP",
+      "manager-ip-not-found": "Manager not found"
     },
     "error-load": "An error occurred while refreshing node data"
   },

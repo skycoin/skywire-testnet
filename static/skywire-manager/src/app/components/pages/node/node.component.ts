@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { TranslateService } from '@ngx-translate/core';
+import {isManager} from "../../../utils/nodeUtils";
 
 @Component({
   selector: 'app-node',
@@ -56,6 +57,17 @@ export class NodeComponent implements OnInit, OnDestroy {
       },
       () => this.router.navigate(['nodes'])
     );
+  }
+
+  get managerIp() {
+    let ipText = this.translate.instant('node.details.manager-ip-not-found'),
+        manager = this.nodeData.allNodes.find((node) => isManager(node));
+
+    if (manager && manager.addr) {
+      ipText = manager.addr;
+    }
+
+    return ipText;
   }
 
   ngOnDestroy() {
