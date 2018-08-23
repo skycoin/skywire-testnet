@@ -34,7 +34,9 @@ export class NodeComponent implements OnInit, OnDestroy {
 
         this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) =>
         {
-          let transport: NodeTransport = {
+          // Fake data used to style the list because it is
+          // difficult to see real transports while developing.
+          /*let transport: NodeTransport = {
             download_bandwidth: 1333323,
             download_total: 4323331,
             from_app: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
@@ -44,7 +46,7 @@ export class NodeComponent implements OnInit, OnDestroy {
             upload_bandwidth: 333333333,
             upload_total: 33333333
           };
-          nodeData.info.transports = [transport, transport, transport];
+          nodeData.info.transports = [transport, transport, transport];*/
           this.nodeData = nodeData;
         });
 
