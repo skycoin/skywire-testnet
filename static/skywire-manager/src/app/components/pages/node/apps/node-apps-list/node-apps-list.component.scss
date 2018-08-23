@@ -3,3 +3,14 @@
   max-width: 70px;
   text-transform: lowercase;
 }
+
+:host::ng-deep
+{
+  .copy-to-clipboard-container
+  {
+    .text-truncate
+    {
+      white-space: normal;
+    }
+  }
+}

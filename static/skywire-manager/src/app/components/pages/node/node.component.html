@@ -11,9 +11,13 @@
         <div class="mt-5">
           <app-node-status-bar [nodeData]="nodeData"></app-node-status-bar>
         </div>
-        <div style="margin-top: 30px; padding: 20px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
-          {{ 'common.public-key' | translate }}
-          <span class="font-smaller">{{ nodeData.node.key }}</span>
+        <div
+          style="margin-top: 30px; padding: 20px;"
+          class="container-elevated-translucid d-flex justify-content-between align-items-center">
+            <span class="mr-2">{{ 'common.public-key' | translate }}</span>
+            <app-copy-to-clipboard-text
+              class="flex-1 font-smaller text-truncate"
+              [text]="nodeData.node.key"></app-copy-to-clipboard-text>
         </div>
         <app-node-transports-list
           *ngIf="nodeData.info.transports.length > 0"
