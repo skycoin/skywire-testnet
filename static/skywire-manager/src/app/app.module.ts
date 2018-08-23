@@ -40,7 +40,6 @@ import { CopyToClipboardTextComponent } from './components/layout/copy-to-clipbo
 import { ActionsComponent } from './components/pages/node/actions/actions.component';
 import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
-import { TransportsComponent } from './components/pages/node/transports/transports.component';
 import { AppsComponent } from './components/pages/node/apps/apps.component';
 import { LogComponent } from './components/pages/node/apps/log/log.component';
 import { AppSshsComponent } from './components/pages/node/apps/app-sshs/app-sshs.component';
@@ -92,7 +91,6 @@ import {ErrorsnackbarService} from "./services/errorsnackbar.service";
     ActionsComponent,
     TerminalComponent,
     ConfigurationComponent,
-    TransportsComponent,
     FooterComponent,
     AppsComponent,
     LogComponent,

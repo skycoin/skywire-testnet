@@ -1,6 +1,7 @@
 @import "variables";
 @import "utilities/theme";
 @import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/mixins/text-truncate";
 
 $tables-colors: (
   // Background, background:hover, font color
@@ -45,17 +46,16 @@ $tables-colors: (
     {
       color: nth($colors, 3) !important;
       padding: 10px !important;
-      min-width: 60px;
     }
 
     th
     {
       font-size: 14px;
+      @include text-truncate;
     }
 
     td
     {
-      min-width: 50px;
       padding-right: 16px;
       @extend .font-smaller;
     }

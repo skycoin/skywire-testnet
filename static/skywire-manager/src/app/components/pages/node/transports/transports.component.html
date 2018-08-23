@@ -1,8 +1,0 @@
-<div *ngFor="let transport of transports; let index = i">
-  {{ index }}:
-
-  ( {{ transport.from_node }} -> {{ transport.from_app }} ) =>
-  ( {{ transport.to_app }} -> {{ transport.to_node }} )
-
-  using {{ transport.upload_bandwidth }} upload and {{ transport.download_bandwidth }} download
-</div>

@@ -1,16 +1,12 @@
+@import "~bootstrap/scss/mixins/text-truncate";
+
 .mat-chip
 {
   max-width: 70px;
   text-transform: lowercase;
 }
 
-:host::ng-deep
+td
 {
-  .copy-to-clipboard-container
-  {
-    .text-truncate
-    {
-      white-space: normal;
-    }
-  }
+  vertical-align: top;
 }
