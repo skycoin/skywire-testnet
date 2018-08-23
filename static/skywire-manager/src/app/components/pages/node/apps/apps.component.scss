@@ -4,26 +4,21 @@
 
 :host::ng-deep
 {
-  .node-bottom-bar
+  .mat-flat-button
   {
-    margin-top: 40px;
+    line-height: 15px;
+  }
 
-    .mat-flat-button
-    {
-      line-height: 15px;
-    }
+  .separator
+  {
+    width: 0;
+    height: 40px;
+    border: solid 1px theme-color(translucid-white);
+    align-self: center;
+  }
 
-    .separator
-    {
-      width: 0;
-      height: 40px;
-      border: solid 1px theme-color(translucid-white);
-      align-self: center;
-    }
-
-    span
-    {
-      position: relative;
-    }
+  span
+  {
+    position: relative;
   }
 }

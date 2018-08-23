@@ -23,9 +23,12 @@
         <app-node-app-list
           *ngIf="nodeData.apps.length > 0"
           [apps]="nodeData.apps"
-          style="margin-top: 25px;">
+          class="mt-3 mb-3">
         </app-node-app-list>
-        <app-apps [apps]="nodeData.apps" [nodeInfo]="nodeData.info"></app-apps>
+        <app-apps
+          style="margin-top: auto;"
+          [apps]="nodeData.apps"
+          [nodeInfo]="nodeData.info"></app-apps>
       </div>
     </div>
     <div class="col-3">

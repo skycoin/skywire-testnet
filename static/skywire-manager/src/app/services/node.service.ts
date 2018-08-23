@@ -66,7 +66,7 @@ export class NodeService {
       this.nodesSubscription.unsubscribe();
     }
 
-    return this.nodesSubscription = timer(0, 10000).pipe(flatMap(() => {
+    return this.nodesSubscription = timer(0, this.storageService.getRefreshTime() * 1000).pipe(flatMap(() => {
       return this.apiService.get('conn/getAll');
     })).subscribe(
       (allNodes: Node[]) => {

@@ -1,18 +1,16 @@
-<div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
-  <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
-    <li class="list-inline-item flex-1">
-      <app-app-sshs [node]="node" [app]="getApp('sshs')" [appFeedback]="getFeedback('sshs')"></app-app-sshs>
-    </li>
-    <li class="separator list-inline-item"></li>
-    <li class="list-inline-item flex-1">
-      <app-app-socksc [node]="node" [app]="getApp('socksc')" [nodeInfo]="nodeInfo" [appFeedback]="getFeedback('socksc')"></app-app-socksc>
-    </li>
-    <li class="separator list-inline-item"></li>
-    <li class="list-inline-item flex-1">
-      <app-app-sshc [node]="node" [app]="getApp('sshc')" [appFeedback]="getFeedback('sshc')"></app-app-sshc>
-    </li>
-  </ul>
-</div>
+<ul class="mb-0 list-inline d-flex align-items-center w-100 justify-content-between flex-1">
+  <li class="list-inline-item flex-1">
+    <app-app-sshs [node]="node" [app]="getApp('sshs')" [appFeedback]="getFeedback('sshs')"></app-app-sshs>
+  </li>
+  <li class="separator list-inline-item"></li>
+  <li class="list-inline-item flex-1">
+    <app-app-socksc [node]="node" [app]="getApp('socksc')" [nodeInfo]="nodeInfo" [appFeedback]="getFeedback('socksc')"></app-app-socksc>
+  </li>
+  <li class="separator list-inline-item"></li>
+  <li class="list-inline-item flex-1">
+    <app-app-sshc [node]="node" [app]="getApp('sshc')" [appFeedback]="getFeedback('sshc')"></app-app-sshc>
+  </li>
+</ul>
 
 <!--<div class="node-bottom-bar d-flex align-items-end justify-content-center flex-1">
   <ul class="list-inline d-flex align-items-center w-100 justify-content-between flex-1">
