@@ -2,7 +2,9 @@ import {Component, OnInit} from '@angular/core';
 import {AuthService} from '../../../services/auth.service';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
 import {Router} from '@angular/router';
-import {catchError} from 'rxjs/operators';
+import {MatSnackBar} from "@angular/material";
+import {TranslateService} from "@ngx-translate/core";
+import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
 
 @Component({
   selector: 'app-login',
@@ -12,11 +14,12 @@ import {catchError} from 'rxjs/operators';
 export class LoginComponent implements OnInit {
   form: FormGroup;
   error: string;
-  errorDelay = 3000;
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private translate: TranslateService,
+    private router: Router,
+    private snackbar: ErrorsnackbarService,
   ) {
   }
 
@@ -26,19 +29,16 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  setError(error: string) {
-    this.error = error;
-    setTimeout(() => {
-      this.error = '';
-    }, this.errorDelay);
+  setError(error: string)
+  {
+    this.snackbar.open(error, null);
   }
 
-  login() {
-    if (this.form.valid) {
-      this.authService.login(this.form.get('password').value).subscribe(
-        () => this.router.navigate(['nodes']),
-        () => this.setError('login.incorrect-password'),
-      );
-    }
+  login()
+  {
+    this.authService.login(this.form.get('password').value).subscribe(
+      () => this.router.navigate(['nodes']),
+      () => this.setError(this.translate.instant('login.incorrect-password')),
+    );
   }
 }

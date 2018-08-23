@@ -2,9 +2,7 @@
   <div class="row h-100" style="padding-bottom: 40px;">
     <div class="col-xl-2 col-lg-3">
       <div class="d-flex flex-column justify-content-between h-100">
-        <div>
-            <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
-        </div>
+        <app-toolbar></app-toolbar>
         <app-actions [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
       </div>
     </div>
@@ -66,8 +64,9 @@
           </div>
         </div>
         <hr>
-
-        <app-charts></app-charts>
+        <app-charts
+          class="d-flex flex-1 flex-column justify-content-end"
+        ></app-charts>
       </div>
     </div>
   </div>
