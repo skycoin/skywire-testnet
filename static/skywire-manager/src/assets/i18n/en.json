@@ -42,7 +42,9 @@
     "details": {
       "node-ip": "Node IP",
       "manager-ip": "Manager IP",
-      "manager-ip-not-found": "Manager not found"
+      "manager-ip-not-found": "Manager not found",
+      "connection": "Connection",
+      "nodes": "nodes"
     },
     "error-load": "An error occurred while refreshing node data"
   },
@@ -58,6 +60,16 @@
   },
 
   "settings": {
+    "password" : {
+      "old-password": "Old password",
+      "new-password": "New password",
+      "repeat-password": "Repeat password",
+      "errors": {
+        "old-password-required": "Old password is required",
+        "new-password-error": "Password must be 4-20 characters long",
+        "passwords-not-match": "Passwords do not match"
+      }
+    },
     "seconds": "seconds",
     "change-password": "Change password",
     "refresh-rate": "Refresh rate",
@@ -144,7 +156,8 @@
     "errors": {
       "fail": "Failed",
       "fail-tooltip": "Something went wrong. Check the app's messages for more information"
-    }
+    },
+    "close-app": "Close app"
   },
 
   "charts": {
