@@ -80,6 +80,7 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
 import {NodeStatusBarComponent} from "./components/pages/node/node-status-bar/node-status-bar.component";
 import {SkycoinLogoComponent} from "./components/layout/skycoin-logo/skycoin-logo.component";
 import {ErrorsnackbarService} from "./services/errorsnackbar.service";
+import {BackButtonComponent} from "./components/layout/back-button/back-button.component";
 
 @NgModule({
   declarations: [
@@ -131,7 +132,8 @@ import {ErrorsnackbarService} from "./services/errorsnackbar.service";
     LineChartComponent,
     ChartsComponent,
     NodeStatusBarComponent,
-    SkycoinLogoComponent
+    SkycoinLogoComponent,
+    BackButtonComponent
   ],
   entryComponents: [
     ConfigurationComponent,
