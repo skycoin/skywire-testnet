@@ -69,7 +69,9 @@
               <i class="dot-green"></i>
               {{ 'node.details.nodes' | translate }}
             </span>
-            <span class="font-smaller">xxxxxxxxxxxx</span>
+            <span class="font-smaller">
+              {{ operationalNodesCount }}/{{ nodeData.allNodes.length }} <span class="text-capitalize">{{ 'node.details.operational-nodes' | translate }}</span>
+            </span>
           </div>
         </div>
         <hr>

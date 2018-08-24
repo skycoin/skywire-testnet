@@ -44,7 +44,8 @@
       "manager-ip": "Manager IP",
       "manager-ip-not-found": "Manager not found",
       "connection": "Connection",
-      "nodes": "nodes"
+      "nodes": "nodes",
+      "operational-nodes": "operational"
     },
     "error-load": "An error occurred while refreshing node data"
   },

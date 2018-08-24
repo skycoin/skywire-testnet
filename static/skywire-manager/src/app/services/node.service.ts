@@ -1,22 +1,18 @@
 import { Injectable } from '@angular/core';
-import { forkJoin, interval, Observable, Subject, timer, Unsubscribable } from 'rxjs';
-import { AutoStartConfig, Node, NodeApp, NodeData, NodeInfo, SearchResult } from '../app.datatypes';
+import {forkJoin, interval, Observable, Subject, timer, Unsubscribable} from 'rxjs';
+import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, SearchResult} from '../app.datatypes';
 import { ApiService } from './api.service';
 import {filter, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
 import {StorageService} from './storage.service';
-import {Subscription} from 'rxjs/internal/Subscription';
-import {Observer} from 'rxjs/internal/types';
-import {getNodeLabel} from "../utils/nodeUtils";
+import {getNodeLabel, isOnline} from "../utils/nodeUtils";
 
 @Injectable({
   providedIn: 'root'
 })
 export class NodeService
 {
-  private nodes = new Subject<Node[]>();
+  private nodes = new Subject<NodeStatusInfo[]>();
   private nodesSubscription: Unsubscribable;
-  private refreshNodeObservable: Observable<Node>;
-  private refresNodeTimerSubscription: Subscription;
   private currentNode: Node;
   private currentNodeData = new Subject<NodeData>();
   private nodeDataSubscription: Unsubscribable;
@@ -26,29 +22,42 @@ export class NodeService
     private storageService: StorageService
   ) {}
 
-  allNodes(): Observable<Node[]> {
+  allNodes(): Observable<NodeStatusInfo[]> {
     return this.nodes.asObservable();
   }
 
   /**
-   * Fetch getAll endpoint and then add the address
-   * for each node calling the node endpoint.
+   * Fetch getAll endpoint and then for each node, call:
+   *
+   * 1 - node endpoint
+   * 2 - nodeInfo endpoint
+   *
+   * And join all the information
    */
-  getAllNodes(): Observable<Node[]> {
+  getAllNodes(): Observable<NodeStatusInfo[]> {
     return this.apiService.get('conn/getAll').pipe(
       flatMap(
         nodes => forkJoin(
           nodes.map(
-            node => this.node(node.key).pipe(
-              map(nodeWithAddress => {
-                node.addr = nodeWithAddress.addr;
-                return node;
-              })
+            node =>
+              this.node(node.key).pipe(
+                map(nodeWithAddress => ({...node, ...nodeWithAddress})
+              )
             )
           )
         )
       )
-    );
+    ).pipe(
+      flatMap(
+        nodes => forkJoin(
+          nodes.map(
+            (node: Node) => this.nodeInfo(node).pipe(
+              map(nodeInfo => ({...node, ...nodeInfo, online: isOnline(nodeInfo)}))
+            )
+          )
+        )
+      )
+    )
   }
 
   refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
@@ -59,7 +68,7 @@ export class NodeService
     return this.nodesSubscription = timer(0, this.storageService.getRefreshTime() * 1000).pipe(flatMap(() => {
       return this.getAllNodes();
     })).subscribe(
-      (allNodes: Node[]) =>
+      (allNodes: NodeStatusInfo[]) =>
       {
         this.nodes.next(allNodes);
 

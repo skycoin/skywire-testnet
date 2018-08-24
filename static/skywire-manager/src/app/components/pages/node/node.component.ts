@@ -79,4 +79,8 @@ export class NodeComponent implements OnInit, OnDestroy {
       this.snackBar.open(str);
     });
   }
+
+  get operationalNodesCount(): number {
+    return this.nodeData.allNodes.filter((node) => node.online === true).length;
+  }
 }
