@@ -12,9 +12,10 @@
       <div class="d-flex flex-column h-100">
         <div class="mt-5">
           <ul class="node-status-bar list-inline d-flex justify-content-around">
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.status' | translate">
+            <li class="status-text list-inline-item d-flex align-items-center justify-content-between"
+                matTooltip="{{onlineTooltip}}">
               <mat-icon>network_check</mat-icon>
-              {{ 'node.online' | translate }}
+              <span>{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
             </li>
             <li class="separator"></li>
             <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.protocol' | translate">

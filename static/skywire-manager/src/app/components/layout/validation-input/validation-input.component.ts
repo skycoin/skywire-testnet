@@ -21,7 +21,7 @@ export class ValidationInputComponent implements AfterViewInit {
   @Input() placeHolder: string;
   @Input() hint: string;
   @Input() autofocus: boolean;
-  @Input() validator: FormControl;
+  @Input() validator: FormControl = null;
   @Input() getErrorMessage: () => string;
 
   ngAfterViewInit() {

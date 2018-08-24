@@ -4,11 +4,26 @@
   padding: 0;
 }
 
-.mat-toolbar {
-  background-color: transparent;
-  margin-bottom: 80px;
-  padding-top: 30px;
-  justify-content: space-between;
+.reload-icon {
+  width: 20px;
+  cursor: pointer;
+}
+
+.reload-button
+{
+  display: flex;
+  align-items: center;
+  background: transparent no-repeat;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
+  color: white;
+  font-size: 16px;
+
+  .reload-icon {
+    margin-left: 8px;
+  }
 }
 
 .node-list-container

@@ -6,6 +6,7 @@ import { ConfigurationComponent } from './configuration/configuration.component'
 import { TerminalComponent } from './terminal/terminal.component';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import {UpdateNodeComponent} from "./update-node/update-node.component";
 
 @Component({
   selector: 'app-actions',
@@ -21,7 +22,7 @@ export class ActionsComponent {
     private snackbar: MatSnackBar,
     private dialog: MatDialog,
     private router: Router,
-    private translate: TranslateService,
+    private translate: TranslateService
   ) { }
 
   reboot() {
@@ -37,10 +38,13 @@ export class ActionsComponent {
   }
 
   update() {
-    this.nodeService.checkUpdate().subscribe(
-      () => console.log('new update available'),
-      (e) => console.warn('check update problem', e),
-    );
+    this.dialog.open(UpdateNodeComponent).afterClosed().subscribe((updated) =>
+    {
+      if (updated)
+      {
+        this.snackbar.open('Node updated successfully');
+      }
+    });
   }
 
   configuration() {

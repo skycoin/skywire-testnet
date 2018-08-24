@@ -31,6 +31,7 @@ import {
   ShowOnDirtyErrorStateMatcher,
   MatProgressBarModule,
   MatProgressSpinnerModule,
+  MatSelectModule
 } from '@angular/material';
 import {FooterComponent} from './components/layout/footer/footer.component';
 import { NodeTransportsListComponent } from './components/pages/node/node-transports-list/node-transports-list';
@@ -75,6 +76,8 @@ import {EditableDiscoveryAddressComponent} from './components/layout/editable-di
 import {SearchNodesComponent} from './components/pages/node/apps/app-socksc/search-nodes/search-nodes.component';
 import { LineChartComponent } from './components/layout/line-chart/line-chart.component';
 import { ChartsComponent } from './components/pages/node/charts/charts.component';
+import {ToolbarComponent} from "./components/layout/toolbar/toolbar.component";
+import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/update-node.component";
 
 @NgModule({
   declarations: [
@@ -122,6 +125,8 @@ import { ChartsComponent } from './components/pages/node/charts/charts.component
     DatatableComponent,
     EditableDiscoveryAddressComponent,
     SearchNodesComponent,
+    ToolbarComponent,
+    UpdateNodeComponent,
     LineChartComponent,
     ChartsComponent,
   ],
@@ -140,6 +145,7 @@ import { ChartsComponent } from './components/pages/node/charts/charts.component
     KeyInputComponent,
     DiscoveryAddressInputComponent,
     EditableDiscoveryAddressComponent,
+    UpdateNodeComponent,
   ],
   imports: [
     BrowserModule,
@@ -166,8 +172,9 @@ import { ChartsComponent } from './components/pages/node/charts/charts.component
     MatSlideToggleModule,
     FormsModule,
     MatListModule,
-    MatProgressSpinnerModule,
     MatProgressBarModule,
+    MatSelectModule,
+    MatProgressSpinnerModule,
   ],
   providers: [
     ClipboardService,

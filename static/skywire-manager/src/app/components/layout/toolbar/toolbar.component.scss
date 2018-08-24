@@ -1,0 +1,14 @@
+:host
+{
+  display: flex;
+  padding: 20px 0 20px 0;
+}
+
+:host::ng-deep
+{
+  .mat-toolbar
+  {
+    background-color: transparent;
+    justify-content: space-between;
+  }
+}

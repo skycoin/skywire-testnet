@@ -1,13 +1,10 @@
 @import "variables";
 @import "utilities/theme";
+@import "text";
 @import "~bootstrap/scss/functions";
 //
 // Input
 //
-.form-group
-{
-
-}
 
 .startup-form, .dialog-form
 {
@@ -15,7 +12,10 @@
   {
     width: 100%;
   }
+}
 
+.startup-form, .dialog-form, .settings-form
+{
   .mat-list-item
   {
     min-height: 48px;
@@ -53,3 +53,4 @@
     flex-direction: column;
   }
 }
+
