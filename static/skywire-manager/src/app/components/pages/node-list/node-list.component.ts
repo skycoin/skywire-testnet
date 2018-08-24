@@ -1,16 +1,13 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {NodeService} from '../../../services/node.service';
-import {Node} from '../../../app.datatypes';
+import {Node, NodeStatusInfo} from '../../../app.datatypes';
 import { Subscription } from 'rxjs';
-import { MatDialog, MatSnackBar, MatTableDataSource } from '@angular/material';
+import { MatDialog, MatTableDataSource } from '@angular/material';
 import {Router} from '@angular/router';
 import { ButtonComponent } from '../../layout/button/button.component';
 import { EditLabelComponent } from './edit-label/edit-label.component';
 import { TranslateService } from '@ngx-translate/core';
-
-interface NodeStatus extends Node {
-  online?: boolean;
-}
+import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
 
 @Component({
   selector: 'app-node-list',
@@ -19,7 +16,7 @@ interface NodeStatus extends Node {
 })
 export class NodeListComponent implements OnInit, OnDestroy {
   @ViewChild('refreshButton') refreshButton: ButtonComponent;
-  dataSource = new MatTableDataSource<NodeStatus>();
+  dataSource = new MatTableDataSource<NodeStatusInfo>();
   displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'actions'];
 
   private subscriptions: Subscription;
@@ -27,14 +24,14 @@ export class NodeListComponent implements OnInit, OnDestroy {
   constructor(
     private nodeService: NodeService,
     private router: Router,
-    private snackbar: MatSnackBar,
+    private errorSnackBar: ErrorsnackbarService,
     private dialog: MatDialog,
     private translate: TranslateService,
   ) { }
 
   ngOnInit() {
     this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
-      this.dataSource.data = allNodes as NodeStatus[];
+      this.dataSource.data = allNodes;
     });
 
     this.refresh();
@@ -70,7 +67,7 @@ export class NodeListComponent implements OnInit, OnDestroy {
 
   private onError() {
     this.translate.get('nodes.error-load').subscribe(str => {
-      this.snackbar.open(str);
+      this.errorSnackBar.open(str);
     });
   }
 }

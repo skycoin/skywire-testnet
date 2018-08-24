@@ -21,6 +21,7 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
   node: Node;
   discoveries: NodeDiscovery;
   discoveryNodes: DiscoveryAddress[] = [];
+  private currentDiscoveries: DiscoveryAddress[] = [];
 
   constructor(
     public dialogRef: MatDialogRef<ConfigurationComponent>,
@@ -35,6 +36,11 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
   }
 
   ngOnInit() {
+    this.dialogRef.beforeClose().subscribe(() =>
+    {
+      this._save()
+    });
+
     return Object.keys(this.discoveries).map(key => {
       const parts = key.split('-');
 
@@ -45,39 +51,46 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
     });
   }
 
-  save(values: DiscoveryAddress[]) {
-    const stringValues = [];
-    values.map(({domain, publicKey}) => {
+  _save() {
+    if (this.currentDiscoveries.length > 0)
+    {
+      const stringValues = [];
+      this.currentDiscoveries.map(({domain, publicKey}) => {
         stringValues.push(`${domain}-${publicKey}`);
-    });
+      });
 
-    const config = {
-      'discovery_addresses': stringValues,
-    };
+      const config = {
+        'discovery_addresses': stringValues,
+      };
 
-    const data = {
-      key: this.node.key,
-      data: JSON.stringify(config),
-    };
+      const data = {
+        key: this.node.key,
+        data: JSON.stringify(config),
+      };
 
-    this.translate.get([
-      'actions.config.success',
-      'actions.config.cant-store',
-      'actions.config.cant-reboot'
-    ]).subscribe(str => {
-      this.nodeService.setNodeConfig(data).subscribe(
-        () => {
-          this.nodeService.updateNodeConfig().subscribe(
-            () => {
-              this.snackbar.open(str['actions.config.success']);
-              this.router.navigate(['nodes']);
-            },
-            () => this.snackbar.open(str['actions.config.cant-reboot']),
-          );
-        },
-        () => this.snackbar.open(str['actions.config.cant-store']),
-      );
-    });
+      this.translate.get([
+        'actions.config.success',
+        'actions.config.cant-store',
+        'actions.config.cant-reboot'
+      ]).subscribe(str => {
+        this.nodeService.setNodeConfig(data).subscribe(
+          () => {
+            this.nodeService.updateNodeConfig().subscribe(
+              () => {
+                this.snackbar.open(str['actions.config.success']);
+                this.router.navigate(['nodes']);
+              },
+              () => this.snackbar.open(str['actions.config.cant-reboot']),
+            );
+          },
+          () => this.snackbar.open(str['actions.config.cant-store']),
+        );
+      });
+    }
+  }
+
+  save(values: DiscoveryAddress[]) {
+    this.currentDiscoveries = values;
   }
 
   getAddRowComponentClass() {

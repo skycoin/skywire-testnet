@@ -139,7 +139,11 @@
         "header": "Key",
         "add": "Add to list",
         "remove": "Remove key",
-        "enter-key": "Enter node key"
+        "enter-key": "Enter node key",
+        "errors": {
+          "cant-save": "Could not save whitelist changes"
+        },
+        "saved-correctly": "Whitelist changes saved successfully"
       },
       "auto-startup": "Automatically start SSH server"
     },

@@ -1,11 +1,12 @@
-import {Component, OnChanges, OnDestroy, OnInit} from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 import { NodeService } from '../../../services/node.service';
-import {Node, NodeData, NodeTransport} from '../../../app.datatypes';
+import {Node, NodeData} from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDialog, MatSnackBar } from '@angular/material';
+import { MatDialog} from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { TranslateService } from '@ngx-translate/core';
 import {isManager} from '../../../utils/nodeUtils';
+import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
 
 @Component({
   selector: 'app-node',
@@ -21,7 +22,7 @@ export class NodeComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private errorSnackBar: ErrorsnackbarService,
     private translate: TranslateService,
   ) { }
 
@@ -74,7 +75,7 @@ export class NodeComponent implements OnInit, OnDestroy {
 
   private onError() {
     this.translate.get('node.error-load').subscribe(str => {
-      this.snackBar.open(str);
+      this.errorSnackBar.open(str);
     });
   }
 
