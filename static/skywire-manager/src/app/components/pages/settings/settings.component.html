@@ -14,7 +14,7 @@
               <mat-form-field id="refreshRate">
                 <mat-select formControlName="refreshRate">
                   <mat-option *ngFor="let time of timesList" value="{{time}}">
-                    {{ time }} seconds
+                    {{ time }} {{ 'settings.seconds' | translate }}
                   </mat-option>
                 </mat-select>
               </mat-form-field>

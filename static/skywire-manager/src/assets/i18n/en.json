@@ -11,7 +11,8 @@
     "app-key": "App Key",
     "key": "Key",
     "discovery": "Discovery",
-    "port": "Port"
+    "port": "Port",
+    "back": "Back"
   },
 
   "inputs": {
@@ -56,7 +57,7 @@
   },
 
   "settings": {
-
+    "seconds": "seconds"
   },
 
   "login": {
