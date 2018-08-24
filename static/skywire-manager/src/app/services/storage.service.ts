@@ -30,7 +30,7 @@ export class StorageService {
   }
 
   getRefreshTime(): number {
-    return parseInt(this.storage.getItem(KEY_REFRESH_SECONDS), 10);
+    return parseInt(this.storage.getItem(KEY_REFRESH_SECONDS), 10) || 5;
   }
 
   setDefaultLanguage(lang: string): void
