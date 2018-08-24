@@ -3,8 +3,7 @@ import {Component, Input, OnInit} from '@angular/core';
 @Component({
   selector: 'app-skycoin-logo',
   templateUrl: './skycoin-logo.component.html',
-  styleUrls: ['./skycoin-logo.component.css'],
-  host: {'class': 'skycoin-logo'}
+  styleUrls: ['./skycoin-logo.component.scss'],
 })
 export class SkycoinLogoComponent implements OnInit {
   @Input() direction: 'vertical' | 'horizontal' = 'horizontal';

@@ -5,8 +5,7 @@ import { TranslateService } from '@ngx-translate/core';
 @Component({
   selector: 'app-copy-to-clipboard-text',
   templateUrl: './copy-to-clipboard-text.component.html',
-  styleUrls: ['./copy-to-clipboard-text.component.css'],
-  host: {'class': 'copy-to-clipboard-container'}
+  styleUrls: ['./copy-to-clipboard-text.component.css']
 })
 export class CopyToClipboardTextComponent implements OnInit {
   @ViewChild(MatMenuTrigger) trigger: MatMenuTrigger;

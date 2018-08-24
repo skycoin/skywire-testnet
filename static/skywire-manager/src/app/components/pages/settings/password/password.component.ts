@@ -8,8 +8,7 @@ import { MatSnackBar } from '@angular/material';
 @Component({
   selector: 'app-password',
   templateUrl: './password.component.html',
-  styleUrls: ['./password.component.scss'],
-  host: {class: 'password-container'}
+  styleUrls: ['./password.component.scss']
 })
 export class PasswordComponent implements OnInit {
   form: FormGroup;

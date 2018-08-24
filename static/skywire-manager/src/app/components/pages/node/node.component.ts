@@ -58,8 +58,8 @@ export class NodeComponent implements OnInit, OnDestroy {
   }
 
   get managerIp() {
-    let ipText = this.translate.instant('node.details.manager-ip-not-found'),
-        manager = this.nodeData.allNodes.find((node) => isManager(node));
+    let ipText = this.translate.instant('node.details.manager-ip-not-found');
+    const manager = this.nodeData.allNodes.find((node) => isManager(node));
 
     if (manager && manager.addr) {
       ipText = manager.addr;
