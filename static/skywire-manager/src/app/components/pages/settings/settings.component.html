@@ -10,7 +10,9 @@
           [formGroup]="form">
           <mat-list>
             <mat-list-item>
-              <label translate for="refreshRate">Refresh rate</label>
+              <label translate for="refreshRate">
+                settings.refresh-rate
+              </label>
               <mat-form-field id="refreshRate">
                 <mat-select formControlName="refreshRate">
                   <mat-option *ngFor="let time of timesList" value="{{time}}">
@@ -20,7 +22,9 @@
               </mat-form-field>
             </mat-list-item>
             <mat-list-item>
-              <label translate for="lang">Language</label>
+              <label translate for="lang">
+                settings.language
+              </label>
               <mat-form-field id="lang">
                 <mat-select formControlName="language">
                   <mat-option *ngFor="let lang of langList" value="{{lang.id}}">
@@ -34,7 +38,9 @@
                   class="ml-0"
                   mat-raised-button
                   color="primary"
-                  (click)="onChangePasswordClicked($event)">Change Password</button>
+                  (click)="onChangePasswordClicked($event)">
+                    {{ "settings.change-password" | translate }}
+                </button>
             </mat-list-item>
           </mat-list>
         </form>

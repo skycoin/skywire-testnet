@@ -5,25 +5,28 @@
                     style="position: relative; top: 0;"
                     mode="indeterminate"></mat-progress-bar>
   <mat-dialog-content>
-  <span class="font-base text-danger" *ngIf="!isLoading && !isUpdateAvailable && !updateError">
-    Currently there is no update for the node.
+  <span translate class="font-base text-danger" *ngIf="!isLoading && !isUpdateAvailable && !updateError">
+    {{ 'actions.no-update' | translate }}
   </span>
-    <span class=" font-base sky-color-blue-dark" *ngIf="!isLoading && isUpdateAvailable && !updateError">
-    There is an update available for the node. Click the "Install update" button to continue.
+  <span class=" font-base sky-color-blue-dark" *ngIf="!isLoading && isUpdateAvailable && !updateError">
+    {{ 'actions.update.update-available' | translate }}
   </span>
-    <span class=" font-base text-danger" *ngIf="!isLoading && updateError">
-    {{ updateError }}
+  <span translate class=" font-base text-danger" *ngIf="!isLoading && updateError">
+    {{ 'actions.update.update-error' | translate }}
   </span>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button mat-raised-button mat-dialog-close>Cancel</button>
+    <button translate mat-raised-button mat-dialog-close>
+      {{ 'common.cancel' | translate }}
+    </button>
     <button
+      translate
       mat-raised-button
       (click)="onUpdateClicked($event)"
       color="primary"
       [disabled]="!isUpdateAvailable"
       cdkFocusInitial>
-      Install update
+        {{ 'actions.update.install' | translate }}
     </button>
   </mat-dialog-actions>
 </app-dialog>

@@ -12,7 +12,8 @@
     "key": "Key",
     "discovery": "Discovery",
     "port": "Port",
-    "back": "Back"
+    "back": "Back",
+    "cancel": "Cancel"
   },
 
   "inputs": {
@@ -57,7 +58,10 @@
   },
 
   "settings": {
-    "seconds": "seconds"
+    "seconds": "seconds",
+    "change-password": "Change password",
+    "refresh-rate": "Refresh rate",
+    "language": "Language"
   },
 
   "login": {
@@ -88,7 +92,11 @@
       "exitting": "Exitting terminal..."
     },
     "update": {
-      "title": "Check node update"
+      "title": "Check node update",
+      "no-update": "Currently there is no update for the node.",
+      "update-available": "There is an update available for the node. Click the 'Install update' button to continue.",
+      "update-error": "Could not install node update. Please, try again later.",
+      "install": "Install update"
     }
   },
 
