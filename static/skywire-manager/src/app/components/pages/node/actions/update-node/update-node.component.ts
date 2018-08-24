@@ -9,7 +9,7 @@ import {MatDialogRef} from "@angular/material";
 })
 export class UpdateNodeComponent implements OnInit
 {
-  updateError: string = null;
+  updateError: boolean = false;
   constructor(
     private nodeService: NodeService,
     private dialogRef: MatDialogRef<UpdateNodeComponent>,
@@ -44,7 +44,7 @@ export class UpdateNodeComponent implements OnInit
   onUpdateClicked($event)
   {
     this.isLoading = true;
-    this.updateError = null;
+    this.updateError = false;
     this.nodeService.update().subscribe(this.onUpdateSuccess.bind(this), this.onUpdateError.bind(this));
   }
 
@@ -65,7 +65,7 @@ export class UpdateNodeComponent implements OnInit
 
   onUpdateError()
   {
-    this.updateError = "Could not install node update. Please, try again later";
+    this.updateError = true;
     this.isLoading = false;
   }
 }

@@ -42,7 +42,7 @@ export class ActionsComponent {
     {
       if (updated)
       {
-        this.snackbar.open('Node updated successfully');
+        this.snackbar.open(this.translate.instant('actions.update.update-success'));
       }
     });
   }

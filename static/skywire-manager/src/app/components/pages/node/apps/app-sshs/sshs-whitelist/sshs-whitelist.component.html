@@ -1,13 +1,3 @@
-<!--<span class="font-base text-uppercase app-log-title" mat-dialog-title>
-  Whitelisted nodes
-</span>
-<mat-dialog-content class="app-log-content">
-
-  <div class="app-log-empty" style="margin-top: 20px;" *ngIf="logMessages.length === 0">
-    There are no messages
-  </div>
-</mat-dialog-content>-->
-
 <app-dialog [headline]="'apps.sshs.whitelist.title' | translate">
   <app-datatable
     [data]="data.app.allow_nodes || []"

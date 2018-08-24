@@ -13,7 +13,6 @@ import { TranslateService } from '@ngx-translate/core';
 })
 export class SshsWhitelistComponent implements DatatableProvider<string> {
   constructor(
-    public dialogRef: MatDialogRef<SshsWhitelistComponent>,
     @Inject(MAT_DIALOG_DATA) private data: any,
     private appsService: AppsService,
     private translate: TranslateService,

@@ -96,7 +96,8 @@
       "no-update": "Currently there is no update for the node.",
       "update-available": "There is an update available for the node. Click the 'Install update' button to continue.",
       "update-error": "Could not install node update. Please, try again later.",
-      "install": "Install update"
+      "install": "Install update",
+      "update-success": "Node updated successfully"
     }
   },
 
