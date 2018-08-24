@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import {forkJoin, interval, Observable, Subject, timer, Unsubscribable} from 'rxjs';
+import {forkJoin, interval, Observable, of, Subject, timer, Unsubscribable} from 'rxjs';
 import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, SearchResult} from '../app.datatypes';
 import { ApiService } from './api.service';
 import {filter, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
@@ -89,19 +89,34 @@ export class NodeService {
 
     const refreshMilliseconds = this.storageService.getRefreshTime() * 1000;
 
-    return this.nodeDataSubscription = timer(0, refreshMilliseconds).pipe(flatMap(() => forkJoin(
-      this.node(this.currentNode.key),
-      this.nodeApps(),
-      this.nodeInfo(),
-      this.getAllNodes()
-    ))).subscribe(data => {
-      this.currentNodeData.next({
+    return this.nodeDataSubscription = timer(0, refreshMilliseconds)
+      .pipe(this.requestRefreshNodeData())
+      .subscribe(this.notifyNodeDataRefreshed.bind(this), errorCallback);
+  }
+
+  notifyNodeDataRefreshed(data)
+  {
+    this.currentNodeData.next({
         node: { ...data[0], key: this.currentNode.key },
         apps: data[1] || [],
         info: { ...data[2], transports: data[2].transports || [] },
         allNodes: data[3] || []
       });
-    }, errorCallback);
+  }
+
+  requestRefreshNodeData()
+  {
+    return flatMap(() => forkJoin(
+      this.node(this.currentNode.key),
+      this.nodeApps(),
+      this.nodeInfo(),
+      this.getAllNodes()
+    ));
+  }
+
+  refreshAppData()
+  {
+    of(this.requestRefreshNodeData()).subscribe(this.notifyNodeDataRefreshed.bind(this));
   }
 
   /**
