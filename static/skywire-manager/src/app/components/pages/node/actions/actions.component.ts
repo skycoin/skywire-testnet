@@ -6,7 +6,7 @@ import { ConfigurationComponent } from './configuration/configuration.component'
 import { TerminalComponent } from './terminal/terminal.component';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
-import {UpdateNodeComponent} from "./update-node/update-node.component";
+import {UpdateNodeComponent} from './update-node/update-node.component';
 
 @Component({
   selector: 'app-actions',
@@ -38,10 +38,8 @@ export class ActionsComponent {
   }
 
   update() {
-    this.dialog.open(UpdateNodeComponent).afterClosed().subscribe((updated) =>
-    {
-      if (updated)
-      {
+    this.dialog.open(UpdateNodeComponent).afterClosed().subscribe((updated) => {
+      if (updated) {
         this.snackbar.open(this.translate.instant('actions.update.update-success'));
       }
     });

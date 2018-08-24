@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import {StorageService} from "./services/storage.service";
-import {getLangs} from "./utils/languageUtils";
+import {StorageService} from './services/storage.service';
+import {getLangs} from './utils/languageUtils';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 

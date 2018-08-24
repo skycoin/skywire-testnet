@@ -16,7 +16,7 @@ export interface KeyInputEvent {
 export class KeyInputComponent implements OnInit, AfterViewInit {
   @HostBinding('attr.class') hostClass = 'key-input-container';
   @Output() keyChange = new EventEmitter<KeyInputEvent>();
-  @Input() value: string = "";
+  @Input() value = '';
   @Input() required: boolean;
   @Input() placeholder: string;
   @Input() autofocus = false;

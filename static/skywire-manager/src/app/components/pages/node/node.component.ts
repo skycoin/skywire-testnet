@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { TranslateService } from '@ngx-translate/core';
-import {isManager} from "../../../utils/nodeUtils";
+import {isManager} from '../../../utils/nodeUtils';
 
 @Component({
   selector: 'app-node',
@@ -25,16 +25,14 @@ export class NodeComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
   ) { }
 
-  ngOnInit()
-  {
+  ngOnInit() {
     const key: string = this.route.snapshot.params['key'];
 
     this.nodeService.node(key).subscribe(
       (node: Node) => {
         this.nodeService.setCurrentNode({ key, ...node });
 
-        this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) =>
-        {
+        this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) => {
           // Fake data used to style the list because it is
           // difficult to see real transports while developing.
           /*let transport: NodeTransport = {

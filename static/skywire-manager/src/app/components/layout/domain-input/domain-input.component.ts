@@ -2,7 +2,7 @@ import { Component, EventEmitter, HostBinding, Input, OnInit, Output } from '@an
 import {FormControl, Validators} from '@angular/forms';
 import {InputState} from '../validation-input/validation-input.component';
 import {domainValidator} from '../../../forms/validators';
-import {TranslateService} from "@ngx-translate/core";
+import {TranslateService} from '@ngx-translate/core';
 
 @Component({
   selector: 'app-domain-input',
@@ -19,10 +19,10 @@ export class DomainInputComponent implements OnInit {
 
   constructor(
     private translate: TranslateService
-  ){}
+  ) {}
 
   getErrorMessage() {
-    let key = this.validator.hasError('required') ?
+    const key = this.validator.hasError('required') ?
       'inputs.errors.domain-required'
       :
       'inputs.errors.domain-format';

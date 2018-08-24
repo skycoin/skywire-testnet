@@ -8,8 +8,7 @@ import { ButtonComponent } from '../../layout/button/button.component';
 import { EditLabelComponent } from './edit-label/edit-label.component';
 import { TranslateService } from '@ngx-translate/core';
 
-interface NodeStatus extends Node
-{
+interface NodeStatus extends Node {
   online?: boolean;
 }
 

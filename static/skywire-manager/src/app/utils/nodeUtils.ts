@@ -1,12 +1,10 @@
-import {Node, NodeInfo} from "../app.datatypes";
+import {Node, NodeInfo} from '../app.datatypes';
 
 /**
  * Node is online if at least one discovery is seeing it.
  */
-function isOnline(nodeInfo: NodeInfo): boolean
-{
-  return Object.keys(nodeInfo.discoveries).some((discovery) =>
-  {
+function isOnline(nodeInfo: NodeInfo): boolean {
+  return Object.keys(nodeInfo.discoveries).some((discovery) => {
     return nodeInfo.discoveries[discovery] === true;
   });
 }
@@ -27,7 +25,7 @@ function isOnline(nodeInfo: NodeInfo): boolean
  * @returns {string}
  */
 
-const MANAGER_CODE: number = 2;
+const MANAGER_CODE = 2;
 
 function getNodeLabel(node: Node): string {
   let nodeLabel = null;
@@ -52,7 +50,7 @@ function getNodeIp(node: Node): string {
 }
 
 function getNodeNumber(node: Node): number {
-  return parseInt(getNodeIp(node).split('.')[3], 10)
+  return parseInt(getNodeIp(node).split('.')[3], 10);
 }
 
 function isManager(node: Node) {
@@ -64,4 +62,4 @@ export
   isOnline,
   getNodeLabel,
   isManager
-}
+};

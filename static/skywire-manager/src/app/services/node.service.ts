@@ -4,13 +4,12 @@ import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, Sear
 import { ApiService } from './api.service';
 import {filter, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
 import {StorageService} from './storage.service';
-import {getNodeLabel, isOnline} from "../utils/nodeUtils";
+import {getNodeLabel, isOnline} from '../utils/nodeUtils';
 
 @Injectable({
   providedIn: 'root'
 })
-export class NodeService
-{
+export class NodeService {
   private nodes = new Subject<NodeStatusInfo[]>();
   private nodesSubscription: Unsubscribable;
   private currentNode: Node;
@@ -57,7 +56,7 @@ export class NodeService
           )
         )
       )
-    )
+    );
   }
 
   refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
@@ -68,8 +67,7 @@ export class NodeService
     return this.nodesSubscription = timer(0, this.storageService.getRefreshTime() * 1000).pipe(flatMap(() => {
       return this.getAllNodes();
     })).subscribe(
-      (allNodes: NodeStatusInfo[]) =>
-      {
+      (allNodes: NodeStatusInfo[]) => {
         this.nodes.next(allNodes);
 
         if (successCallback) {

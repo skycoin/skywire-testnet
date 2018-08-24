@@ -6,34 +6,27 @@ import {Component, Input, OnInit} from '@angular/core';
   styleUrls: ['./skycoin-logo.component.css'],
   host: {'class': 'skycoin-logo'}
 })
-export class SkycoinLogoComponent implements OnInit
-{
+export class SkycoinLogoComponent implements OnInit {
   @Input() direction: 'vertical' | 'horizontal' = 'horizontal';
   logoPath: string;
 
   constructor() { }
 
-  get isVertical()
-  {
+  get isVertical() {
     return this.direction === 'vertical';
   }
 
-  get logoName(): string
-  {
+  get logoName(): string {
     let logoName = '';
-    if (this.isVertical)
-    {
+    if (this.isVertical) {
       logoName = 'logo-vert';
-    }
-    else
-    {
+    } else {
       logoName = 'logo-horiz';
     }
     return logoName;
   }
 
-  ngOnInit()
-  {
+  ngOnInit() {
     this.logoPath = `/assets/img/${this.logoName}.png`;
   }
 }

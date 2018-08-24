@@ -39,8 +39,7 @@ export class PasswordComponent implements OnInit {
             this.router.navigate(['login']);
             this.snackbar.open('Log in with your new password');
           },
-          (err) =>
-          {
+          (err) => {
             this.snackbar.open(err.message);
           },
         );
@@ -51,15 +50,11 @@ export class PasswordComponent implements OnInit {
     this.location.back();
   }
 
-  private validatePasswords(control: AbstractControl)
-  {
-    if (this.form)
-    {
+  private validatePasswords() {
+    if (this.form) {
       return this.form.get('newPassword').value !== this.form.get('newPasswordConfirmation').value
         ? { invalid: true } : null;
-    }
-    else
-    {
+    } else {
       return null;
     }
   }

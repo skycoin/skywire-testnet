@@ -1,5 +1,4 @@
-const LANGUAGES_LIST =
-{
+const LANGUAGES_LIST = {
   en: {
     name: 'English',
     nativeName: 'English',
@@ -10,17 +9,15 @@ const LANGUAGES_LIST =
   }
 };
 
-function getNativeName(langCode: string): string
-{
+function getNativeName(langCode: string): string {
   return LANGUAGES_LIST[langCode].nativeName;
 }
 
-function getLangs(): string[]
-{
+function getLangs(): string[] {
   return Object.keys(LANGUAGES_LIST);
 }
 
 export {
   getNativeName,
   getLangs
-}
+};

@@ -31,13 +31,6 @@ export class StartupConfigComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  private get keyPair(): Keypair {
-    return {
-      nodeKey: this.nodeKey,
-      appKey: this.appKey
-    };
-  }
-
   protected get nodeKey(): string {
     return this.autoStartConfig[this.nodeKeyConfigField];
   }
@@ -50,21 +43,8 @@ export class StartupConfigComponent implements OnInit {
     return this.autoStartConfig[this.appConfigField];
   }
 
-  private keypairChange({ keyPair, valid}: KeyPairState) {
-    if (valid) {
-      this.autoStartConfig[this.nodeKeyConfigField] = keyPair.nodeKey;
-      this.autoStartConfig[this.appKeyConfigField] = keyPair.appKey;
-    }
-
-    this.validKeyPair = valid;
-  }
-
   protected get isFormValid() {
     return this.validKeyPair;
-  }
-
-  private toggle(event: MatSlideToggleChange) {
-    this.autoStartConfig[this.appConfigField] = event.checked;
   }
 
   ngOnInit() {

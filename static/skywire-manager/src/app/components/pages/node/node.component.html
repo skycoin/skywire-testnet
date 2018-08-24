@@ -64,12 +64,13 @@
             </span>
             <span class="font-smaller">xxxxxxxxxxx</span>
           </div>
-          <div class="section">
+          <div class="section" matTooltip="{{ 'node.details.operational-nodes-tooltip' | translate: {value: operationalNodesCount} }}">
             <span class="section-title">
               <i class="dot-green"></i>
               {{ 'node.details.nodes' | translate }}
             </span>
-            <span class="font-smaller">
+            <span
+              class="font-smaller">
               {{ operationalNodesCount }}/{{ nodeData.allNodes.length }} <span class="text-capitalize">{{ 'node.details.operational-nodes' | translate }}</span>
             </span>
           </div>

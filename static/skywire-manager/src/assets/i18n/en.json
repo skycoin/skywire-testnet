@@ -45,7 +45,8 @@
       "manager-ip-not-found": "Manager not found",
       "connection": "Connection",
       "nodes": "nodes",
-      "operational-nodes": "operational"
+      "operational-nodes": "operational",
+      "operational-nodes-tooltip": "{{value}} nodes discovered by Skycoin network."
     },
     "error-load": "An error occurred while refreshing node data"
   },

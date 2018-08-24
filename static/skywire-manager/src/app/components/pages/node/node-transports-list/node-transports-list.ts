@@ -16,7 +16,7 @@ export class NodeTransportsListComponent implements OnChanges, OnInit {
     this.dataSource = new MatTableDataSource<NodeTransport>();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  ngOnChanges(): void {
     this.dataSource.data = this.connections;
   }
 
