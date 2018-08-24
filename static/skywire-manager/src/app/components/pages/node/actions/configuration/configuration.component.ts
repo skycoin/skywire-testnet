@@ -80,40 +80,6 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
     });
   }
 
-  private validateAddresses(control: FormControl) {
-    if (!control.value) {
-      return null;
-    }
-
-    const isValid = !control.value.split(',')
-      .map((address: string) => {
-        const parts = address.split('-');
-
-        if (parts.length !== 2) {
-          return false;
-        }
-
-        const host = parts[0].split(':');
-
-        if (host.length !== 2) {
-          return false;
-        }
-
-        const port = parseInt(host[1], 10);
-
-        if (isNaN(port) || port <= 0 || port > 65535) {
-          return false;
-        }
-
-        if (parts[1].length !== 66) {
-          return false;
-        }
-      })
-      .some(result => result === false);
-
-    return isValid ? null : { invalid: true };
-  }
-
   getAddRowComponentClass() {
     return DiscoveryAddressInputComponent;
   }
