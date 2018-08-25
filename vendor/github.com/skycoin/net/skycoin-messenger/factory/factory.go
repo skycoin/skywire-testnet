@@ -24,6 +24,10 @@ type MessengerFactory struct {
 
 	// will deliver the services data to server if true
 	Proxy bool
+
+	// Log writeOP and writeOPSyn calls
+	LogWriteOps bool
+
 	serviceDiscovery
 
 	defaultSeedConfig *SeedConfig

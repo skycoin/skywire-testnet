@@ -12,6 +12,9 @@ import (
 	"github.com/skycoin/net/util"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/discovery"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var (
@@ -32,6 +35,9 @@ var (
 	parsedLogLevel log.Level = log.DebugLevel
 	disableLog     bool
 	logFilename    string
+
+	profile     bool
+	profileAddr string
 )
 
 func parseFlags() {
@@ -53,6 +59,9 @@ func parseFlags() {
 	flag.StringVar(&logLevel, "log-level", "debug", "general log level, choices are debug, info, warn, error, fatal, panic")
 	flag.BoolVar(&disableLog, "disable-log", false, "disable general logging")
 	flag.StringVar(&logFilename, "log-filename", "", "general logging writes to this file, if set")
+
+	flag.BoolVar(&profile, "profile", false, "enable http/pprof on profile-port")
+	flag.StringVar(&profileAddr, "profile-addr", "localhost:6060", "http/pprof listen address")
 
 	flag.Parse()
 
@@ -89,6 +98,15 @@ func initLogger() {
 	}
 }
 
+func initProfiler() {
+	log.Infof("profile enabled on %s", profileAddr)
+	go func() {
+		if err := http.ListenAndServe(profileAddr, nil); err != nil {
+			log.WithError(err).Error("Failed to start http profiler")
+		}
+	}()
+}
+
 func main() {
 	parseFlags()
 	if version {
@@ -97,6 +115,10 @@ func main() {
 	}
 
 	initLogger()
+
+	if profile {
+		initProfiler()
+	}
 
 	var err error
 	err = util.IPLocator.Init(ipDBPath)

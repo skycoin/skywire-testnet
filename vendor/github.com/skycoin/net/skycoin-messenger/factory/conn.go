@@ -543,7 +543,11 @@ func (c *Connection) writeOP(op byte, object interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.GetContextLogger().Debugf("writeOP %#v", object)
+
+	if c.factory.LogWriteOps {
+		c.GetContextLogger().Debugf("writeOP %#v", object)
+	}
+
 	return c.writeOPBytes(op, js)
 }
 
@@ -552,7 +556,11 @@ func (c *Connection) writeOPSyn(op byte, object interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.GetContextLogger().Debugf("writeOP %#v", object)
+
+	if c.factory.LogWriteOps {
+		c.GetContextLogger().Debugf("writeOP %#v", object)
+	}
+
 	data := make([]byte, MSG_HEADER_END+len(body))
 	data[MSG_OP_BEGIN] = op
 	copy(data[MSG_HEADER_END:], body)

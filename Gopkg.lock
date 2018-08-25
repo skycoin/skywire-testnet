@@ -118,8 +118,8 @@
     "skycoin-messenger/monitor",
     "util"
   ]
-  revision = "19a99e340e7b115b33049ad6551991bce831d67e"
-  version = "v0.1.1"
+  revision = "83d008f5923ae3cdb3bd6d62331fcc94b22822c2"
+  version = "v0.1.2"
 
 [[projects]]
   name = "github.com/skycoin/skycoin"
@@ -162,6 +162,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bed7a8900c11b698847aad10fc2c57854c0e5e0929c2edd527412a7ed89de677"
+  inputs-digest = "c071c4a97fad6e243674b181f67f004aca02dea2b7f13936ac0bb591a50ba70f"
   solver-name = "gps-cdcl"
   solver-version = 1
