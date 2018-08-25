@@ -1,0 +1,72 @@
+<div class="record-page">
+  <h1>Withdraw Balance</h1>
+  <div>
+    <span>Balance:</span>
+    <span>{{balance}}</span>
+    <button mat-raised-button color="primary" style="transform:scale(.7);" (click)="openWithdraw($event,tmp)">Withdraw</button>
+  </div>
+
+  <div class="record-box">
+    <div class="text-center">
+      <h3 class="record-title">Withdraw Records</h3>
+      <app-refresh-icon #recordRefresh (click)="refresh($event)"></app-refresh-icon>
+    </div>
+    <table class="record-table">
+      <thead>
+        <tr>
+          <th>Index</th>
+          <th>Count</th>
+          <th>Dst Addr</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="record-row" *ngFor="let order of orders;let i=index;">
+          <td>{{i+1 +((pageIndex - 1) * limit)}}</td>
+          <td>{{order?.count}}</td>
+          <td class="address">{{order?.dst}}</td>
+          <td class="status">{{order?.status ? "Confirm" : "Unconfirmed"}}</td>
+          <td>{{order?.created | date:'yyyy-MM-dd HH:mm:ss z'}}</td>
+          <td>{{order?.updated | date:'yyyy-MM-dd HH:mm:ss z'}}</td>
+        </tr>
+        <tr *ngIf="orders?.length === 0">
+          <td colspan="6" class="no-found">No Service</td>
+        </tr>
+      </tbody>
+    </table>
+    <mat-paginator [length]="len" [pageSize]="limit" [pageSizeOptions]="[5, 10]" (page)="page($event)">
+    </mat-paginator>
+  </div>
+</div>
+
+<ng-template #tmp>
+  <div class="withdraw-dialog">
+    <form class="withdraw-form" [formGroup]="whithdrawForm">
+      <mat-form-field class="full-width">
+        <input matInput placeholder="Dst Addr" formControlName="dst">
+        <mat-error *ngIf="whithdrawForm.get('count').hasError('required')">
+          Target Address is
+          <strong>required</strong>
+        </mat-error>
+        <mat-error *ngIf="whithdrawForm.get('dst').hasError('minlength') || whithdrawForm.get('dst').hasError('minlength')">
+          The Node Key must be 34 characters long.
+        </mat-error>
+      </mat-form-field>
+      <mat-form-field class="full-width">
+        <input matInput type="number" min="0" max="{{convertible}}" placeholder="Sky Coin Count" formControlName="count">
+        <mat-hint>You can withdraw
+          <strong style="color:red;">{{convertible}}</strong> SKY</mat-hint>
+        <mat-error *ngIf="whithdrawForm.get('count').hasError('required')">
+          Count is
+          <strong>required</strong>
+        </mat-error>
+
+      </mat-form-field>
+      <p class="text-right" style="margin-top:2rem;">
+        <button mat-raised-button color="primary" (click)="addOrder($event)" [disabled]="!whithdrawForm.valid">OK</button>
+      </p>
+    </form>
+  </div>
+</ng-template>

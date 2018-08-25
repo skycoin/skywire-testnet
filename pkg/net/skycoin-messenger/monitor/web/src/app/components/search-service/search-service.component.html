@@ -1,0 +1,83 @@
+<div class="search-page">
+  <p class="text-center search-title">
+    <span class="text">Search Node Server Result</span>
+    <mat-icon class="refresh" [class.refresh-process]="status === 0" (click)="refresh($event)">refresh</mat-icon>
+  </p>
+  <mat-tab-group (selectedTabChange)="tab($event)" backgroundColor="#000">
+    <mat-tab label="Discovery {{i + 1}}" *ngFor="let d of discoveries;let i=index;">
+      <div class="table-container">
+        <div class="table-content">
+          <table class="search-table" *ngIf="results?.length > 0">
+            <thead>
+              <tr>
+                <th>Node Key</th>
+                <th>App Key</th>
+                <th>Versions</th>
+                <th>Location</th>
+                <th>Operation</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let item of results">
+                <td class="key">
+                  <p>{{item?.node_key}}</p>
+                </td>
+                <td class="key">
+                  <p>{{item?.app_key}}</p>
+                </td>
+                <td class="version">
+                  <p style="color:#999;">node:{{getNodeVersion(item?.node_version)}}</p>
+                  <p style="color:#999;">app:{{getAppVersion(item?.version)}}</p>
+                </td>
+                <td class="location">{{item?.location}}</td>
+                <td>
+                  <button mat-raised-button style="background-color:#87bf17;color:#fff;" (click)="connectSocket(item?.node_key,item?.app_key)">connect</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="search-foot text-right">
+          <mat-paginator [length]="total" [pageSize]="limit" (page)="page($event)">
+          </mat-paginator>
+        </p>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+  <!-- <table class="search-table" *ngIf="results?.length > 0">
+    <thead>
+      <tr>
+        <th>Node Key</th>
+        <th>App Key</th>
+        <th>Versions</th>
+        <th>Location</th>
+        <th>Operation</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let item of results">
+        <td class="key">
+          <p>{{item?.node_key}}</p>
+        </td>
+        <td class="key">
+          <p>{{item?.app_key}}</p>
+        </td>
+        <td class="version">
+          <p style="color:#999;">node:{{getNodeVersion(item?.node_version)}}</p>
+          <p style="color:#999;">app:{{getAppVersion(item?.version)}}</p>
+        </td>
+        <td class="location">{{item?.location}}</td>
+        <td>
+          <button mat-raised-button style="background-color:#87bf17;color:#fff;" (click)="connectSocket(item?.node_key,item?.app_key)">connect</button>
+        </td>
+      </tr>
+    </tbody>
+  </table> -->
+</div>
+
+<!-- <p class="search-foot text-right">
+  <mat-paginator [length]="total" [pageSize]="limit" (page)="page($event)">
+  </mat-paginator>
+</p> -->

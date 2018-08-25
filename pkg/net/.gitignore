@@ -1,12 +1,3 @@
-dist*
-*.sh
-keys
-main
-keys.json
-discovery.log
-discovery.log.conf
-skywire-discovery.db
-*.log
 node_modules
 
 electron/release
@@ -23,6 +14,7 @@ src/mesh/TODO
 src/gui/static/dist
 
 .idea/
+net
 skycoin-messenger/dist
 push.sh
 restart.sh

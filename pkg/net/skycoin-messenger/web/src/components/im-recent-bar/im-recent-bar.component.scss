@@ -1,0 +1,74 @@
+app-im-recent-bar {
+  position: relative;
+  display: block;
+  width: 25%; // height: 35rem;
+  height: 100%;
+  float: left;
+  background-color: #444753;
+  color: #fff;
+  border-radius: .5rem 0 0 .5rem;
+  overflow: hidden;
+  .hint-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    color: #999;
+    text-align: center;
+  }
+  .contact-box {
+    height: 90%;
+    ul {
+      height: 100%;
+      list-style: none;
+    }
+  }
+  .create-chat-box {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    color: #999;
+    background-color: #3e414a;
+    box-shadow: 0 0.1rem 0.1rem hsla(0, 0%, 0%, 0.2) inset;
+    padding: 1rem;
+    text-align: center;
+    .create {
+      clear: both;
+      cursor: pointer;
+      &:hover {
+        color: #fff;
+      }
+    }
+    .info {
+      color: #fff;
+      cursor: pointer;
+      float: right;
+    }
+    .fa {
+      margin-right: 5px;
+    }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  app-im-recent-bar {
+    .create-chat-box {
+      .create {
+        .text {
+          display: none;
+        }
+      }
+      .info {
+        .tooltip-top[aria-label] {
+          &:hover:after,
+          &:focus:after {
+            display: none;
+          }
+        }
+        float: none;
+      }
+    }
+  }
+}
