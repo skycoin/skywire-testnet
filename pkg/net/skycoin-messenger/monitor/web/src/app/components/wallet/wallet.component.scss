@@ -1,0 +1,56 @@
+.wallet-box {
+  // color: #727272;
+  .title {
+    color: #000;
+  }
+  .wallet-content {
+    .mat-icon {
+      cursor: pointer;
+      &:hover {
+        color: #862c2c;
+      }
+    }
+    .item {
+      .item-content {
+        padding: .5em 0;
+        .address {
+          color: #8a8a8a;
+          padding: .5em; // background-color: rgba(0, 0, 0, 0.1);
+          border: 1px solid #d0d0d0;
+          border-radius: .25rem;
+        }
+        img {
+          vertical-align: middle;
+          width: 24px;
+          height: 24px;
+        }
+      }
+    }
+    .record-box {
+      height: 300px;
+      overflow: auto;
+      table {
+        width: 80%;
+        border-collapse: collapse;
+        margin: 0 auto;
+        tr {
+          th,
+          td {
+            padding: .5rem;
+          }
+        }
+        thead {
+          background-color: #e8e8e8;
+          tr {
+            text-align: left;
+          }
+        }
+        tbody {
+          tr {
+            border-bottom: 1px solid #d0d0d0;
+          }
+        }
+      }
+    }
+  }
+}

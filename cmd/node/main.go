@@ -3,10 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/node"
-	"github.com/skycoin/skywire/node/api"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,6 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/file"
+	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/node/api"
 )
 
 var (
@@ -100,7 +101,7 @@ func main() {
 		} else {
 			tokenUrl = fmt.Sprintf("http://%s/getToken", config.ManagerWeb)
 		}
-		for true  {
+		for true {
 			resp, err := http.Get(tokenUrl)
 			if err != nil {
 				log.Error(err)

@@ -1,0 +1,11 @@
+<div class="terminal-box" #terminal (mousedown)="_mousedown($event)" style="top: 100px;left: 300px;">
+  <!--(mousemove)="_move($event)"   -->
+  <div class="terminal-header">
+    <button class="terminal-btn close" tabindex="-1" (click)="_close($event)"></button>
+    <button class="terminal-btn minimize disable" tabindex="-1"></button>
+    <button class="terminal-btn maximize disable" tabindex="-1"></button>
+    <!-- <span>{{rows}} x {{cols}}</span> -->
+  </div>
+  <div class="terminal-content" #container>
+  </div>
+</div>
