@@ -195,14 +195,14 @@ func (f *MessengerFactory) register(key cipher.PubKey, connection *Connection) {
 			f.regConnectionsMutex.Unlock()
 			log.WithFields(log.Fields{
 				"pubkey": key.Hex(),
-				"conn":   connection,
+				"conn":   fmt.Sprintf("%p", connection),
 			}).Debugf("reg already")
 			return
 		}
 		log.WithFields(log.Fields{
 			"pubkey":   key.Hex(),
-			"conn":     connection,
-			"new_conn": c,
+			"conn":     fmt.Sprintf("%p", connection),
+			"new_conn": fmt.Sprintf("%p", c),
 		}).Debugf("reg close conn for new_conn")
 		go c.Close()
 	}
@@ -211,7 +211,7 @@ func (f *MessengerFactory) register(key cipher.PubKey, connection *Connection) {
 	f.regConnectionsMutex.Unlock()
 	log.WithFields(log.Fields{
 		"pubkey": key.Hex(),
-		"conn":   connection,
+		"conn":   fmt.Sprintf("%p", connection),
 	}).Debugf("reg")
 }
 
@@ -241,14 +241,14 @@ func (f *MessengerFactory) unregister(key cipher.PubKey, connection *Connection)
 			f.regConnectionsMutex.Unlock()
 			log.WithFields(log.Fields{
 				"pubkey": key.Hex(),
-				"conn":   c,
+				"conn":   fmt.Sprintf("%p", c),
 			}).Debugf("unreg")
 		} else {
 			f.regConnectionsMutex.Unlock()
 			log.WithFields(log.Fields{
 				"pubkey":   key.Hex(),
-				"conn":     connection,
-				"new_conn": c,
+				"conn":     fmt.Sprintf("%p", connection),
+				"new_conn": fmt.Sprintf("%p", c),
 			}).Debugf("unreg connection mismatch")
 		}
 	} else {
