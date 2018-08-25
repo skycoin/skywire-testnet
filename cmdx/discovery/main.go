@@ -3,14 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/net/util"
-	"github.com/skycoin/net/util/producer"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/discovery"
 	"os"
 	"os/signal"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/net/util"
+	"github.com/skycoin/skycoin/src/util/file"
+	"github.com/skycoin/skywire/discovery"
 )
 
 var (
@@ -65,10 +65,10 @@ func main() {
 	}
 	log.Debugf("listen on %s", address)
 
-	err = producer.Init(confPath, d.GetDiscoveryKey())
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = producer.Init(confPath, d.GetDiscoveryKey())
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	defer d.Close()
 

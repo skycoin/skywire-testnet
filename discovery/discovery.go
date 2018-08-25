@@ -1,14 +1,15 @@
 package discovery
 
 import (
+	"io/ioutil"
+	"os"
+
 	"github.com/gogap/logrus_mate"
 	_ "github.com/gogap/logrus_mate/hooks/file"
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/net/skycoin-messenger/monitor"
 	"github.com/skycoin/skywire/discovery/db"
-	"io/ioutil"
-	"os"
 )
 
 type Discovery struct {
@@ -20,13 +21,16 @@ type Discovery struct {
 }
 
 func New(seedPath, address, webAddress, webDir string) *Discovery {
-	if _, e := os.Stat(logFilePath); os.IsNotExist(e) {
-		e := ioutil.WriteFile(logFilePath, []byte(logConf), 0660)
-		if e != nil {
-			logrus.Fatal(e)
+	if _, err := os.Stat(logFilePath); os.IsNotExist(err) {
+		err := ioutil.WriteFile(logFilePath, []byte(logConf), 0660)
+		if err != nil {
+			logrus.Fatal(err)
 			return nil
 		}
+	} else if err != nil {
+		logrus.Fatal(err)
 	}
+
 	mate, err := logrus_mate.NewLogrusMate(
 		logrus_mate.ConfigFile(logFilePath),
 	)

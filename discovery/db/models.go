@@ -1,10 +1,10 @@
 package db
 
 import (
+	"time"
+
 	"github.com/skycoin/net/skycoin-messenger/factory"
 	"github.com/skycoin/skycoin/src/cipher"
-	"time"
-	"github.com/skycoin/net/util/producer"
 )
 
 type Node struct {
@@ -84,10 +84,10 @@ func UnRegisterService(key cipher.PubKey) (err error) {
 		}
 	}
 	sess.Commit()
-	producer.SendOnline(&producer.MqOnline{
-		NodeKey: key.Hex(),
-		Type:    1,
-	})
+	// producer.SendOnline(&producer.MqOnline{
+	// 	NodeKey: key.Hex(),
+	// 	Type:    1,
+	// })
 
 	return
 }
@@ -173,10 +173,10 @@ func RegisterService(key cipher.PubKey, ns *factory.NodeServices) (err error) {
 
 	}
 	sess.Commit()
-	producer.SendOnline(&producer.MqOnline{
-		NodeKey: key.Hex(),
-		Type:    0,
-	})
+	// producer.SendOnline(&producer.MqOnline{
+	// 	NodeKey: key.Hex(),
+	// 	Type:    0,
+	// })
 	return
 }
 

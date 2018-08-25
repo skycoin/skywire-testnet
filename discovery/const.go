@@ -28,8 +28,9 @@ discovery {
                     filename = "discovery.log"
                     daily = true
                     rotate = true
-					level = 3
-					max-days = 7
+                    level = 3
+                    max-days = 7
+                    max-size = 100000000
                 }
         }
 }
