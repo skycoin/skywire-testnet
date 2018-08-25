@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/cipher"
 	"github.com/skycoin/skycoin/src/util/file"
 	"github.com/skycoin/skywire/pkg/discovery"
 	"github.com/skycoin/skywire/pkg/net/util"
@@ -16,6 +17,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 )
+
+func init() {
+	// Disable DebugLevel2 in the cipher module which kills network perfomance
+	cipher.DebugLevel2 = false
+}
 
 var (
 	address  string
