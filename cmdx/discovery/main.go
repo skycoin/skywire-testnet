@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,6 +24,14 @@ var (
 	confPath string
 
 	version bool
+
+	showSQL     bool
+	sqlLogLevel string
+
+	logLevel       string
+	parsedLogLevel log.Level = log.DebugLevel
+	disableLog     bool
+	logFilename    string
 )
 
 func parseFlags() {
@@ -38,7 +47,45 @@ func parseFlags() {
 	flag.StringVar(&ipDBPath, "ipdb-path", filepath.Join(dir, "ip.db"), "ip db file path")
 	flag.StringVar(&confPath, "conf-path", filepath.Join(file.UserHome(), ".skywire", "discovery", "conf.json"), "config file path")
 	flag.BoolVar(&version, "v", false, "print current version")
+	flag.BoolVar(&showSQL, "show-sql", false, "print sql statements for log statements >= INFO")
+	flag.StringVar(&sqlLogLevel, "sql-log-level", "off", "xorm sql log level, choices are debug, info, warn, error, off")
+
+	flag.StringVar(&logLevel, "log-level", "debug", "general log level, choices are debug, info, warn, error, fatal, panic")
+	flag.BoolVar(&disableLog, "disable-log", false, "disable general logging")
+	flag.StringVar(&logFilename, "log-filename", "", "general logging writes to this file, if set")
+
 	flag.Parse()
+
+	if logLevel != "" {
+		var err error
+		parsedLogLevel, err = log.ParseLevel(logLevel)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
+}
+
+func initLogger() {
+	log.SetOutput(os.Stdout)
+
+	log.SetLevel(parsedLogLevel)
+
+	if disableLog {
+		log.SetOutput(ioutil.Discard)
+	}
+
+	log.SetFormatter(&log.TextFormatter{})
+
+	if logFilename != "" {
+		f, err := os.OpenFile("discovery.log", os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		log.SetOutput(f)
+	}
 }
 
 func main() {
@@ -47,6 +94,8 @@ func main() {
 		fmt.Println(discovery.Version)
 		return
 	}
+
+	initLogger()
 
 	var err error
 	err = util.IPLocator.Init(ipDBPath)
@@ -59,16 +108,14 @@ func main() {
 	signal.Notify(osSignal, os.Interrupt, os.Kill)
 
 	d := discovery.New(seedPath, address, webPort, webDir)
+	d.SQLLogLevel = sqlLogLevel
+	d.ShowSQL = showSQL
 	err = d.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Debugf("listen on %s", address)
 
-	// err = producer.Init(confPath, d.GetDiscoveryKey())
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	log.Debugf("listen on %s", address)
 
 	defer d.Close()
 

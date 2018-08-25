@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"sync"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/net/conn"
 	"github.com/skycoin/net/factory"
 	"github.com/skycoin/net/msg"
 	"github.com/skycoin/skycoin/src/cipher"
-	"io/ioutil"
-	"sync"
-	"time"
 )
 
 type MessengerFactory struct {
@@ -333,7 +334,7 @@ func (f *MessengerFactory) ConnectWithConfig(address string, config *ConnConfig)
 		key, secKey, err = f.loadSeedConfig(config)
 		if err == nil {
 			conn.SetSecKey(secKey)
-			if config.TargetKey != EMPATY_PUBLIC_KEY {
+			if config.TargetKey != EMPTY_PUBLIC_KEY {
 				err = conn.RegWithKeys(key, config.TargetKey, config.Context)
 			} else {
 				err = conn.RegWithKey(key, config.Context)
@@ -403,7 +404,7 @@ func (f *MessengerFactory) connectUDPWithConfig(address string, config *ConnConf
 			key, secKey, err = f.loadSeedConfig(config)
 			if err == nil {
 				connection.SetSecKey(secKey)
-				if config.TargetKey != EMPATY_PUBLIC_KEY {
+				if config.TargetKey != EMPTY_PUBLIC_KEY {
 					err = connection.RegWithKeys(key, config.TargetKey, config.Context)
 				} else {
 					err = connection.RegWithKey(key, config.Context)

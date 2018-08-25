@@ -20,6 +20,9 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+[prune]
+  unused-packages = true
+  go-tests = true
 
 [[constraint]]
   name = "github.com/shadowsocks/shadowsocks-go"
@@ -32,3 +35,7 @@
 [[constraint]]
   name = "github.com/skycoin/skycoin"
   version = "0.20.3"
+
+[[constraint]]
+  name = "github.com/skycoin/net"
+  version = "0.1.1"

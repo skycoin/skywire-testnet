@@ -6,14 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/skycoin/net/conn"
-	"github.com/skycoin/net/factory"
-	"github.com/skycoin/skycoin/src/cipher"
 	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/skycoin/net/conn"
+	"github.com/skycoin/net/factory"
+	"github.com/skycoin/skycoin/src/cipher"
 )
 
 type Connection struct {
@@ -322,7 +323,7 @@ func checkNodeServices(ns *NodeServices) (valid bool) {
 				return
 			}
 		}
-		if s.Key == EMPATY_PUBLIC_KEY {
+		if s.Key == EMPTY_PUBLIC_KEY {
 			return false
 		}
 		for _, k := range s.AllowNodes {
@@ -618,6 +619,7 @@ func (c *Connection) IsSkipFactoryReg() (skip bool) {
 func (c *Connection) ForEachTransport(fn func(t *Transport)) {
 	filter := make(map[*Transport]struct{})
 	c.appTransportsMutex.RLock()
+	defer c.appTransportsMutex.RUnlock()
 	for _, tr := range c.appTransports {
 		_, ok := filter[tr]
 		if ok {
@@ -626,7 +628,6 @@ func (c *Connection) ForEachTransport(fn func(t *Transport)) {
 		filter[tr] = struct{}{}
 		fn(tr)
 	}
-	c.appTransportsMutex.RUnlock()
 }
 
 func (c *Connection) StoreContext(key, value interface{}) {

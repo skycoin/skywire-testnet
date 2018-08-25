@@ -4,10 +4,11 @@ import (
 	"crypto/aes"
 	"crypto/rand"
 	"fmt"
-	"github.com/skycoin/skycoin/src/cipher"
 	"io"
 	"net"
 	"sync"
+
+	"github.com/skycoin/skycoin/src/cipher"
 )
 
 func init() {
@@ -78,7 +79,7 @@ func (req *appConn) Execute(f *MessengerFactory, conn *Connection) (r resp, err 
 	sent := make(map[string]struct{})
 	f.ForEachConn(func(connection *Connection) {
 		discoveryKey := connection.GetTargetKey()
-		if discoveryKey != req.Discovery && req.Discovery != EMPATY_PUBLIC_KEY {
+		if discoveryKey != req.Discovery && req.Discovery != EMPTY_PUBLIC_KEY {
 			return
 		}
 		_, ok := sent[discoveryKey.Hex()]

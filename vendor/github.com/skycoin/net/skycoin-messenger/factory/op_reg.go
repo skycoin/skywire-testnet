@@ -152,7 +152,7 @@ func (resp *regWithKeyResp) Run(conn *Connection) (err error) {
 		}
 		tpk := resp.PublicKey
 		t := conn.GetTargetKey()
-		if t != EMPATY_PUBLIC_KEY && t != tpk {
+		if t != EMPTY_PUBLIC_KEY && t != tpk {
 			tpk = t
 		}
 		err = conn.SetCrypto(pk, conn.GetSecKey(), tpk, resp.Num)

@@ -35,5 +35,4 @@ discovery {
         }
 }
 `
-	logFilePath = "./discovery.log.conf"
 )

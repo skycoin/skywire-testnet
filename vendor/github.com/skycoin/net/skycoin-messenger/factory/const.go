@@ -55,7 +55,7 @@ const (
 	OP_REG_KEY
 	OP_REG_SIG
 
-	// POW
+	// POW (unused)
 	OP_POW
 
 	OP_SIZE
@@ -63,4 +63,4 @@ const (
 
 const RESP_PREFIX = 0x80
 
-var EMPATY_PUBLIC_KEY = cipher.PubKey{}
+var EMPTY_PUBLIC_KEY = cipher.PubKey{}

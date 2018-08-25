@@ -83,16 +83,7 @@ func UnRegisterService(key cipher.PubKey) (err error) {
 		}
 	}
 	return sess.Commit()
-	// producer.SendOnline(&producer.MqOnline{
-	// 	NodeKey: key.Hex(),
-	// 	Type:    1,
-	// })
 }
-
-// func DelByKeyString(key string) (err error) {
-// 	_, err = engine.Where("key = ?", key).Delete(&Node{})
-// 	return
-// }
 
 func RegisterService(key cipher.PubKey, ns *factory.NodeServices) (err error) {
 	keyHex := key.Hex()
@@ -167,10 +158,6 @@ func RegisterService(key cipher.PubKey, ns *factory.NodeServices) (err error) {
 
 	}
 	return sess.Commit()
-	// producer.SendOnline(&producer.MqOnline{
-	// 	NodeKey: key.Hex(),
-	// 	Type:    0,
-	// })
 }
 
 type NodeDetail struct {

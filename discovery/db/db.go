@@ -2,16 +2,18 @@ package db
 
 import (
 	"os"
+	"strings"
 
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
 )
 
 var engine *xorm.Engine
 var dbName = "skywire-discovery.db"
 
-func Init() (err error) {
+func Init(showSQL bool, sqlLogLevel string) (err error) {
 	if _, err = os.Stat(dbName); err == nil {
 		err = os.Remove(dbName)
 		if err != nil {
@@ -23,14 +25,33 @@ func Init() (err error) {
 		return
 	}
 	engine.SetMaxIdleConns(100)
-	// engine.ShowSQL(true)
-	engine.SetLogLevel(core.LOG_WARNING)
+
+	engine.ShowSQL(showSQL)
+	engine.SetLogLevel(ToXormLogLevel(sqlLogLevel))
+
 	err = engine.Ping()
 	if err != nil {
 		return
 	}
 	err = createTables()
 	return
+}
+
+func ToXormLogLevel(s string) core.LogLevel {
+	switch strings.ToLower(s) {
+	case "debug":
+		return core.LOG_DEBUG
+	case "info":
+		return core.LOG_INFO
+	case "warn", "warning":
+		return core.LOG_WARNING
+	case "err", "error":
+		return core.LOG_ERR
+	case "off":
+		return core.LOG_OFF
+	default:
+		return core.LOG_UNKNOWN
+	}
 }
 
 func createTables() (err error) {

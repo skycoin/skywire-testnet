@@ -1,8 +1,9 @@
 package factory
 
 import (
-	"github.com/skycoin/skycoin/src/cipher"
 	"sync"
+
+	"github.com/skycoin/skycoin/src/cipher"
 )
 
 type Service struct {
@@ -190,7 +191,7 @@ func (sd *serviceDiscovery) findByAttributes(attrs ...string) (result *AttrNodes
 }
 
 func (sd *serviceDiscovery) findByAttributesAndPaging(page, limit int, attrs ...string) (result *AttrNodesInfo) {
-	if sd.FindByAttributes != nil {
+	if sd.FindByAttributesAndPaging != nil {
 		return sd.FindByAttributesAndPaging(page, limit, attrs...)
 	}
 	return

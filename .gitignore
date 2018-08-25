@@ -1,3 +1,9 @@
 dist*
 *.sh
 keys
+main
+keys.json
+discovery.log
+discovery.log.conf
+skywire-discovery.db
+*.log
