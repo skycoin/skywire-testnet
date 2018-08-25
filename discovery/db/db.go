@@ -1,10 +1,11 @@
 package db
 
 import (
-	"github.com/go-xorm/xorm"
-	_ "github.com/mattn/go-sqlite3"
-	log "github.com/sirupsen/logrus"
 	"os"
+
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
+	log "github.com/sirupsen/logrus"
 )
 
 var engine *xorm.Engine
@@ -22,7 +23,8 @@ func Init() (err error) {
 		return
 	}
 	engine.SetMaxIdleConns(100)
-	engine.ShowSQL(true)
+	// engine.ShowSQL(true)
+	engine.SetLogLevel(core.LOG_WARNING)
 	err = engine.Ping()
 	if err != nil {
 		return
