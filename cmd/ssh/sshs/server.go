@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/app"
 	"os"
 	"os/signal"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/file"
+	"github.com/skycoin/skywire/pkg/app"
 )
 
 const (

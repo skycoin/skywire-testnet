@@ -107,21 +107,6 @@
   version = "v1.0.3"
 
 [[projects]]
-  name = "github.com/skycoin/net"
-  packages = [
-    "client",
-    "conn",
-    "factory",
-    "msg",
-    "server",
-    "skycoin-messenger/factory",
-    "skycoin-messenger/monitor",
-    "util"
-  ]
-  revision = "83d008f5923ae3cdb3bd6d62331fcc94b22822c2"
-  version = "v0.1.2"
-
-[[projects]]
   name = "github.com/skycoin/skycoin"
   packages = [
     "src/cipher",
@@ -131,11 +116,18 @@
     "src/cipher/ripemd160",
     "src/cipher/secp256k1-go",
     "src/cipher/secp256k1-go/secp256k1-go2",
+    "src/util/browser",
     "src/util/file",
     "src/util/logging"
   ]
   revision = "b200e2c40ebbce316ae2f40e68d9dd7ff907da33"
   version = "v0.20.3"
+
+[[projects]]
+  name = "github.com/toqueteos/webbrowser"
+  packages = ["."]
+  revision = "3232c91b8ede8ca86e8962981d881af78875542f"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -162,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c071c4a97fad6e243674b181f67f004aca02dea2b7f13936ac0bb591a50ba70f"
+  inputs-digest = "c5a30054023457c74b9a79582836dfc78fa3a6491ec136347e40314a46da0797"
   solver-name = "gps-cdcl"
   solver-version = 1
