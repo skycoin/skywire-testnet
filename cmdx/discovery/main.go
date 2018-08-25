@@ -72,6 +72,7 @@ func initLogger() {
 	log.SetLevel(parsedLogLevel)
 
 	if disableLog {
+		fmt.Println("Disabling log output")
 		log.SetOutput(ioutil.Discard)
 	}
 
