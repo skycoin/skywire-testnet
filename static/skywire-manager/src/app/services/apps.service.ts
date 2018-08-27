@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { NodeService } from './node.service';
 import { ClientConnectionService } from './client-connection.service';
-import { switchMap } from 'rxjs/operators';
+import {finalize, switchMap} from 'rxjs/operators';
 import { ClientConnection } from '../app.datatypes';
+import {Observable} from "rxjs";
 
 @Injectable({
   providedIn: 'root'
@@ -14,21 +15,21 @@ export class AppsService {
   ) { }
 
   closeApp(key: string) {
-    return this.nodeService.nodeRequest('run/closeApp', {key});
+    return this.nodeService.nodeRequestWithRefresh('run/closeApp', {key}).pipe();
   }
 
   getLogMessages(key: string) {
-    return this.nodeService.nodeRequest('getMsg', {key});
+    return this.nodeService.nodeRequestWithRefresh('getMsg', {key})
   }
 
   startSshServer(whitelistedKeys?: string[]) {
-    return this.nodeService.nodeRequest('run/sshs', {
+    return this.nodeService.nodeRequestWithRefresh('run/sshs', {
       data: whitelistedKeys ? whitelistedKeys.join(',') : null,
     });
   }
 
   startSshServerWithoutWhitelist() {
-    return this.nodeService.nodeRequest('run/sshs');
+    return this.nodeService.nodeRequestWithRefresh('run/sshs');
   }
 
   startSshClient(nodeKey: string, appKey: string) {
@@ -38,7 +39,7 @@ export class AppsService {
       appKey,
       count: 1,
     })
-      .pipe(switchMap(() => this.nodeService.nodeRequest('run/sshc', {
+      .pipe(switchMap(() => this.nodeService.nodeRequestWithRefresh('run/sshc', {
         toNode: nodeKey,
         toApp: appKey,
       })));
@@ -51,7 +52,7 @@ export class AppsService {
       appKey,
       count: 1,
     })
-      .pipe(switchMap(() => this.nodeService.nodeRequest('run/socksc', {
+      .pipe(switchMap(() => this.nodeService.nodeRequestWithRefresh('run/socksc', {
         toNode: nodeKey,
         toApp: appKey,
       })));

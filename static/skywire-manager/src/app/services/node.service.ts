@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import {forkJoin, interval, Observable, of, Subject, timer, Unsubscribable} from 'rxjs';
+import {bindCallback, forkJoin, interval, Observable, of, Subject, timer, Unsubscribable} from 'rxjs';
 import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, SearchResult} from '../app.datatypes';
 import { ApiService } from './api.service';
-import {filter, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
+import {delay, filter, finalize, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
 import {StorageService} from './storage.service';
 import {getNodeLabel, isOnline} from '../utils/nodeUtils';
 
@@ -89,12 +89,13 @@ export class NodeService {
 
     const refreshMilliseconds = this.storageService.getRefreshTime() * 1000;
 
-    return this.nodeDataSubscription = timer(0, refreshMilliseconds)
-      .pipe(this.requestRefreshNodeData())
-      .subscribe(this.notifyNodeDataRefreshed.bind(this), errorCallback);
+    return this.nodeDataSubscription = timer(0, refreshMilliseconds).subscribe(() =>
+    {
+      this.requestRefreshNodeData().subscribe(this.notifyNodeDataRefreshed.bind(this), errorCallback);
+    });
   }
 
-  notifyNodeDataRefreshed(data)
+  notifyNodeDataRefreshed(data: any)
   {
     this.currentNodeData.next({
         node: { ...data[0], key: this.currentNode.key },
@@ -106,17 +107,17 @@ export class NodeService {
 
   requestRefreshNodeData()
   {
-    return flatMap(() => forkJoin(
+    return forkJoin(
       this.node(this.currentNode.key),
       this.nodeApps(),
       this.nodeInfo(),
       this.getAllNodes()
-    ));
+    );
   }
 
   refreshAppData()
   {
-    of(this.requestRefreshNodeData()).subscribe(this.notifyNodeDataRefreshed.bind(this));
+    this.requestRefreshNodeData().subscribe(this.notifyNodeDataRefreshed.bind(this));
   }
 
   /**
@@ -214,6 +215,16 @@ export class NodeService {
 
   getManagerPort() {
     return this.apiService.post('getPort');
+  }
+
+  /**
+   * Calls nodeRequest and after the request has completed, it refreshes the app status. This is intended
+   * to force the UI update when a large refresh interval is selected (if it's 60 seconds, the user wouldn't see
+   * any change in 1 minute, which would be a very bad user experience).
+   *
+   */
+  nodeRequestWithRefresh(endpoint: string, body: any = {}, options: any = {}, node = this.currentNode) {
+    return this.nodeRequest(endpoint, body, options, node).pipe(delay(5000), finalize(() => this.refreshAppData()));
   }
 
   nodeRequest(endpoint: string, body: any = {}, options: any = {}, node = this.currentNode) {
