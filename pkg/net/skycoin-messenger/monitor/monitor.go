@@ -617,30 +617,38 @@ func (m *Monitor) UpdatePass(w http.ResponseWriter, r *http.Request) (result []b
 	if !verifyLogin(w, r, true) {
 		return
 	}
+
 	oldPass := r.FormValue("oldPass")
 	newPass := r.FormValue("newPass")
 	if len(oldPass) < 4 || len(oldPass) > 20 {
-		result = []byte("Old password length is 4~20.")
+		code = 400
+		err = errors.New("Old password length is 4~20.")
 		return
 	}
 	if len(newPass) < 4 || len(newPass) > 20 {
-		result = []byte("New password length is 4~20.")
+		code = 400
+		err = errors.New("New password length is 4~20.")
 		return
 	}
 	if newPass == "1234" {
-		result = []byte("Please do not change the default password.")
+		code = 400
+		err = errors.New("Please do not change the default password.")
 		return
 	}
+
 	err = checkPass(oldPass)
 	if err != nil {
-		result = []byte("The original password is wrong, please confirm again and try again.")
+		code = 400
+		err = errors.New("The original password is wrong, please confirm again and try again.")
 		return
 	}
 	err = WriteConfig(&User{Pass: getBcrypt(newPass)}, userPath)
 	if err != nil {
-		result = []byte("The server is busy. Please try again later.")
+		code = 400
+		err = errors.New("The server is busy. Please try again later.")
 		return
 	}
+
 	globalSessions.SessionDestroy(w, r)
 	result = []byte("true")
 	return
