@@ -1,4 +1,27 @@
-app-button {
+@import "bootstrap_overrides";
+@import "~bootstrap/scss/mixins/breakpoints";
+
+:host::ng-deep {
+  @include media-breakpoint-down(md) {
+    ul {
+      flex-direction: row;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    li:first-child
+    {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+    }
+  }
+}
+
+app-button
+{
   width: 100%;
 
   ::ng-deep button {
