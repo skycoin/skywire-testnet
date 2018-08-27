@@ -18,7 +18,7 @@ interface LangOption {
 })
 export class SettingsComponent implements OnInit {
   form: FormGroup;
-  readonly timesList = ['3', '4', '5', '10', '15', '20', '30', '60'];
+  readonly timesList = ['3', '4', '5', '10', '15'];
   langList: LangOption[] = [];
 
   currentLang: string;
