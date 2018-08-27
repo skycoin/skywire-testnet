@@ -1,11 +1,13 @@
 # skywire build binaries
 # reference https://github.com/skycoin/skywire
-FROM golang:1.9-alpine AS build-go
+FROM golang:1.10-alpine AS build-go
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
+RUN apk add --update gcc g++ git sqlite musl-dev
+
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-  CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./...
+  GOOS=linux go install -a -installsuffix cgo ./...
 
 
 # skywire manager assets
