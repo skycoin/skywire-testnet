@@ -35,17 +35,21 @@ describe('NodeDetail view', () => {
     expect(new NodesListPage().isVisible()).toBeTruthy();
   });
 
-  it('SSHS app starts correctly.', () => {
+  it('SSHS app starts and stops correctly.', () => {
 
     browser.waitForAngularEnabled(false);
     page.navigateTo();
 
     page.clickStartSshsApp();
 
-    expect(new NodesListPage().isSshsAppRunning()).toBeTruthy();
+    expect(page.isSshsAppRunning()).toBeTruthy();
+
+    page.clickStopApp();
+
+    expect(page.noAppIsRunning()).toEqual(0);
   });
 
-  it('SSHC app starts correctly.', () => {
+  it('SOCKSc app starts correctly.', () => {
 
     browser.waitForAngularEnabled(false);
 
@@ -53,7 +57,7 @@ describe('NodeDetail view', () => {
 
     page.startSockscApp();
 
-    expect(new NodesListPage().isSockscAppRunning()).toBeTruthy();
+    expect(page.isSockscAppRunning()).toBeTruthy();
   });
 
   it('SSHS app starts correctly.', () => {
@@ -63,6 +67,6 @@ describe('NodeDetail view', () => {
 
     page.startSshcApp();
 
-    expect(new NodesListPage().isSshcAppRunning()).toBeTruthy();
+    expect(page.isSshcAppRunning()).toBeTruthy();
   });
 });

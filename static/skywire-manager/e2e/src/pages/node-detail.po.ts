@@ -1,9 +1,9 @@
 import {PATHS} from "../../../src/app/app-routing.module";
 import BasePage from "./base-page.po";
-import {findById, waitForVisibility} from "../util/selection";
+import {findById, waitForInvisibility, waitForVisibility} from "../util/selection";
 import {NodesListPage} from "./nodes-list.po";
 import {by, element, ElementFinder} from "protractor";
-import {NODE_PUBLIC_KEY} from "../util/constants";
+import {APP_SOCKSC, APP_SSHC, APP_SSHS, NODE_PUBLIC_KEY} from "../util/constants";
 
 export class NodeDetailPage extends BasePage {
 
@@ -40,27 +40,54 @@ export class NodeDetailPage extends BasePage {
   }
 
   clickNodesListButton() {
-    const el = findById('nodeListBtn');
-    waitForVisibility(el);
-    return el.click();
+    this.clickButton('nodeListBtn');
   }
 
-  private clickAppButton(btnId: string) {
+  private clickButton(btnId: string) {
     const el = findById(btnId);
     waitForVisibility(el);
     return el.click();
   }
 
   clickStartSshsApp() {
-    this.clickAppButton('sshsAppBtn');
+    this.clickButton('sshsAppBtn');
   }
 
   clickStartSshcApp() {
-    this.clickAppButton('sshcAppBtn');
+    this.clickButton('sshcAppBtn');
   }
 
   clickStartSockscApp() {
-    this.clickAppButton('sockscAppBtn');
+    this.clickButton('sockscAppBtn');
+  }
+
+  noAppIsRunning() {
+    waitForInvisibility(this.runningApp(APP_SOCKSC));
+    waitForInvisibility(this.runningApp(APP_SSHC));
+    waitForInvisibility(this.runningApp(APP_SSHS));
+    return this.getRunningAppsTable().element(by.tagName('tbody')).all(by.tagName('tr')).count();
+  }
+
+  runningApp(appName: string) {
+    return element(by.cssContainingText('.node-app-attr', appName));
+  }
+
+  isAppRunning(appName: string) {
+    const el = this.runningApp(appName);
+    waitForVisibility(el);
+    return el.isDisplayed();
+  }
+
+  isSshsAppRunning() {
+    return this.isAppRunning(APP_SSHS)
+  }
+
+  isSockscAppRunning() {
+    return this.isAppRunning(APP_SOCKSC)
+  }
+
+  isSshcAppRunning() {
+    return this.isAppRunning(APP_SSHC)
   }
 
   fillKeyPair(parentElement: ElementFinder, nodeKey: string, appKey: string) {
@@ -87,5 +114,21 @@ export class NodeDetailPage extends BasePage {
     this.fillKeyPair(dialog, NODE_PUBLIC_KEY, NODE_PUBLIC_KEY);
 
     findById('startSshcAppBtn').click();
+  }
+
+  clickStopApp() {
+    this.clickFirstAppCloseButton();
+  }
+
+  private clickFirstAppCloseButton() {
+    this.getFirstRunningAppRow().element(by.id('stopAppBtn')).click();
+  }
+
+  private getRunningAppsTable() {
+    return findById('nodeRunningAppsTable');
+  }
+
+  private getFirstRunningAppRow() {
+    return this.getRunningAppsTable().all(by.tagName('tr')).get(1);
   }
 }

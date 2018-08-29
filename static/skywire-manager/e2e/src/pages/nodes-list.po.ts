@@ -75,22 +75,4 @@ export class NodesListPage extends BasePage {
     this.waitNodesTablesToBeLoaded();
     return this.getNodesTable().isDisplayed();
   }
-
-  isAppRunning(appName: string) {
-    const el = element(by.cssContainingText('.node-app-attr', appName));
-    waitForVisibility(el);
-    return el.isDisplayed();
-  }
-
-  isSshsAppRunning() {
-    return this.isAppRunning(APP_SSHS)
-  }
-
-  isSockscAppRunning() {
-    return this.isAppRunning(APP_SOCKSC)
-  }
-
-  isSshcAppRunning() {
-    return this.isAppRunning(APP_SSHC)
-  }
 }
