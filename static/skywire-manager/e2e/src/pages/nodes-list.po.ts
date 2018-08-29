@@ -10,6 +10,7 @@ export class NodesListPage extends BasePage {
   private ROW_INDEX = "nodeIndex";
   private ROW_LABEL = "nodeLabel";
   private ROW_KEY = "nodeKey";
+  private ROW_STATUS_ONLINE = "nodeStatusOnline";
 
   private getNodesTable() {
     return findById(this.NODES_TABLE_ID);
@@ -30,11 +31,11 @@ export class NodesListPage extends BasePage {
 
   getFirstNodeIndex() {
     this.waitNodesTablesToBeLoaded();
-    return this.getFirstNodeValue(this.ROW_INDEX);
+    return this.getFirstNodeField(this.ROW_INDEX).getText();
   }
 
-  getFirstNodeValue(field: string) {
-    return this.getFirstRow().element(by.id(field)).getText();
+  getFirstNodeField(field: string) {
+    return this.getFirstRow().element(by.id(field));
   }
 
   private getFirstRow() {
@@ -42,10 +43,23 @@ export class NodesListPage extends BasePage {
   }
 
   getFirstNodeLabel() {
-    return this.getFirstNodeValue(this.ROW_LABEL);
+    this.waitNodesTablesToBeLoaded();
+    return this.getFirstNodeField(this.ROW_LABEL).getText();
   }
 
   getFirstNodeKey() {
-    return this.getFirstNodeValue(this.ROW_KEY);
+    this.waitNodesTablesToBeLoaded();
+    return this.getFirstNodeField(this.ROW_KEY).getText();
+  }
+
+  getFirstNodeTooltip() {
+    this.waitNodesTablesToBeLoaded();
+    browser.wait(ExpectedConditions.visibilityOf(this.getFirstNodeField(this.ROW_STATUS_ONLINE)));
+    return this.getFirstNodeField(this.ROW_STATUS_ONLINE).getAttribute("title");
+  }
+
+  clickFirstNode() {
+    this.waitNodesTablesToBeLoaded();
+    this.getFirstRow().click();
   }
 }

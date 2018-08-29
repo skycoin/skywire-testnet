@@ -9,13 +9,14 @@ import { PasswordComponent } from './components/pages/settings/password/password
 
 export const PATHS = {
   login: 'login',
-  nodes: 'nodes'
+  nodes: 'nodes',
+  nodeDetail: 'nodes/:key'
 };
 
 const routes: Routes = [
   { path: PATHS.login, component: LoginComponent, canActivate: [AuthGuardService] },
   { path: PATHS.nodes, component: NodeListComponent, canActivate: [AuthGuardService] },
-  { path: 'nodes/:key', component: NodeComponent, canActivate: [AuthGuardService] },
+  { path: PATHS.nodeDetail, component: NodeComponent, canActivate: [AuthGuardService] },
   { path: 'settings', component: SettingsComponent, canActivate: [AuthGuardService] },
   { path: 'settings/password', component: PasswordComponent, canActivate: [AuthGuardService] },
   { path: '**', redirectTo: 'login' },
