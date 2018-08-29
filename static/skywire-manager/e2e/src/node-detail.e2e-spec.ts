@@ -48,9 +48,10 @@ describe('NodeDetail view', () => {
   it('SSHC app starts correctly.', () => {
 
     browser.waitForAngularEnabled(false);
+
     page.navigateTo();
 
-    page.clickStartSockscApp();
+    page.startSockscApp();
 
     expect(new NodesListPage().isSockscAppRunning()).toBeTruthy();
   });
@@ -60,7 +61,7 @@ describe('NodeDetail view', () => {
     browser.waitForAngularEnabled(false);
     page.navigateTo();
 
-    page.clickStartSshcApp();
+    page.startSshcApp();
 
     expect(new NodesListPage().isSshcAppRunning()).toBeTruthy();
   });

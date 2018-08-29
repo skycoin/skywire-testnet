@@ -2,6 +2,8 @@ import {PATHS} from "../../../src/app/app-routing.module";
 import BasePage from "./base-page.po";
 import {findById, waitForVisibility} from "../util/selection";
 import {NodesListPage} from "./nodes-list.po";
+import {by, element, ElementFinder} from "protractor";
+import {NODE_PUBLIC_KEY} from "../util/constants";
 
 export class NodeDetailPage extends BasePage {
 
@@ -59,5 +61,31 @@ export class NodeDetailPage extends BasePage {
 
   clickStartSockscApp() {
     this.clickAppButton('sockscAppBtn');
+  }
+
+  fillKeyPair(parentElement: ElementFinder, nodeKey: string, appKey: string) {
+    parentElement.element(by.id('nodeKeyField')).element(by.tagName('input')).sendKeys(nodeKey);
+    parentElement.element(by.id('appKeyField')).element(by.tagName('input')).sendKeys(appKey);
+  }
+
+  startSockscApp() {
+    this.clickStartSockscApp();
+
+    const dialog = findById('sockscConnectContainer');
+    waitForVisibility(dialog);
+
+    this.fillKeyPair(dialog, NODE_PUBLIC_KEY, NODE_PUBLIC_KEY);
+
+    findById('startSockscAppBtn').click();
+  }
+
+  startSshcApp() {
+    this.clickStartSshcApp();
+    const dialog = findById('sshcConnectContainer');
+    waitForVisibility(dialog);
+
+    this.fillKeyPair(dialog, NODE_PUBLIC_KEY, NODE_PUBLIC_KEY);
+
+    findById('startSshcAppBtn').click();
   }
 }

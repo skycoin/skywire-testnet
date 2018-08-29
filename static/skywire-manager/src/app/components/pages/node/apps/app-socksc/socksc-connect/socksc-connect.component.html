@@ -1,9 +1,12 @@
-<app-dialog [headline]="'apps.socksc.title' | translate">
+<app-dialog
+  id="sockscConnectContainer"
+  [headline]="'apps.socksc.title' | translate">
   <mat-tab-group>
     <mat-tab [label]="'apps.socksc.connect-keypair' | translate">
       <div class="pt-4">
         <app-keypair [required]="true" (keypairChange)="keypairChange($event)"></app-keypair>
         <button
+          id="startSockscAppBtn"
           [disabled]="!keypair"
           class="float-right"
           mat-raised-button
