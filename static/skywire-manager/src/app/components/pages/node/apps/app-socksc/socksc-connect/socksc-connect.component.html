@@ -3,7 +3,12 @@
     <mat-tab [label]="'apps.socksc.connect-keypair' | translate">
       <div class="pt-4">
         <app-keypair [required]="true" (keypairChange)="keypairChange($event)"></app-keypair>
-        <button class="float-right" mat-raised-button color="primary" (click)="connect()">
+        <button
+          [disabled]="!keypair"
+          class="float-right"
+          mat-raised-button
+          color="primary"
+          (click)="connect()">
           {{ 'apps.socksc.connect' | translate }}
         </button>
       </div>

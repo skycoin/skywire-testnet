@@ -20,8 +20,8 @@ export class KeypairComponent implements OnInit {
   };
   @Output() keypairChange = new EventEmitter<KeyPairState>();
   @Input() required = false;
-  private nodeKeyValid = true;
-  private appKeyValid = true;
+  private nodeKeyValid = false;
+  private appKeyValid = false;
 
   onNodeValueChanged({value, valid}: KeyInputEvent) {
     this.keypair.nodeKey = value;

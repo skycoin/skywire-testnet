@@ -8,22 +8,14 @@ describe('Nodelist view', () => {
 
   beforeEach(() => {
     // NodeService runs a timer, and it makes Protractor to wait forever. Make Protractor not wait.
-    browser.waitForAngularEnabled(false);
-    page = new NodesListPage();
-  });
-
-  afterEach(() => {
     browser.restart();
+    page = new NodesListPage();
   });
 
   it('List should display 1 node', () => {
 
-    page.navigateTo();
-
-    new LoginPage().login();
-
-    // NodeService runs a timer, and it makes Protractor to wait forever. Make Protractor not wait.
     browser.waitForAngularEnabled(false);
+    page.navigateTo();
 
     // Wait until the table is rendered, that means the NodeService request has been received.
     expect(page.getTableRowsCount()).toEqual(2);
@@ -35,9 +27,8 @@ describe('Nodelist view', () => {
 
   it('Click node should bring to node detail view', () => {
 
+    browser.waitForAngularEnabled(false);
     page.navigateTo();
-
-    new LoginPage().login();
 
     page.clickFirstNode();
 

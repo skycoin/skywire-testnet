@@ -1,7 +1,9 @@
 import {PATHS} from "../../../src/app/app-routing.module";
 import BasePage from "./base-page.po";
 import {findById, waitForVisibility} from "../util/selection";
-import {browser, by, ExpectedConditions} from "protractor";
+import {by, element} from "protractor";
+import {LoginPage} from "./login";
+import {APP_SOCKSC, APP_SSHC, APP_SSHS} from "../util/constants";
 
 export class NodesListPage extends BasePage {
 
@@ -14,6 +16,12 @@ export class NodesListPage extends BasePage {
 
   private getNodesTable() {
     return findById(this.NODES_TABLE_ID);
+  }
+
+  navigateTo() {
+    let result = new LoginPage().navigateTo();
+    new LoginPage().login();
+    return result;
   }
 
   waitNodesTablesToBeLoaded() {
@@ -61,5 +69,28 @@ export class NodesListPage extends BasePage {
   clickFirstNode() {
     this.waitNodesTablesToBeLoaded();
     this.getFirstRow().click();
+  }
+
+  isVisible() {
+    this.waitNodesTablesToBeLoaded();
+    return this.getNodesTable().isDisplayed();
+  }
+
+  isAppRunning(appName: string) {
+    const el = element(by.cssContainingText('.node-app-attr', appName));
+    waitForVisibility(el);
+    return el.isDisplayed();
+  }
+
+  isSshsAppRunning() {
+    return this.isAppRunning(APP_SSHS)
+  }
+
+  isSockscAppRunning() {
+    return this.isAppRunning(APP_SOCKSC)
+  }
+
+  isSshcAppRunning() {
+    return this.isAppRunning(APP_SSHC)
   }
 }

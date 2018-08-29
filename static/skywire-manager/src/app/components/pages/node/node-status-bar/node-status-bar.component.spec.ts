@@ -1,6 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NodeStatusBarComponent } from './status-bar.component';
+import { NodeStatusBarComponent } from './node-status-bar.component';
 
 describe('StatusBarComponent', () => {
   let component: NodeStatusBarComponent;

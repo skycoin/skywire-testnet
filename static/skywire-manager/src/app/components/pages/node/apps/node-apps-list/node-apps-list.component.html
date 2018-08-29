@@ -15,7 +15,7 @@
       <td mat-cell *matCellDef="let app;">
         <div style="margin-left: 15px;" class="d-flex flex-row align-items-center justify-content-end">
           <mat-chip-list class="align-end">
-            <mat-chip *ngFor="let attr of app.attributes" color="accent" selected [matTooltip]="attr">
+            <mat-chip class="node-app-attr" *ngFor="let attr of app.attributes" color="accent" selected [matTooltip]="attr">
               {{ attr }}
             </mat-chip>
           </mat-chip-list>
