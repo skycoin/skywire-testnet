@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import {Injectable, NgZone} from '@angular/core';
 import {bindCallback, forkJoin, interval, Observable, of, Subject, timer, Unsubscribable} from 'rxjs';
 import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, SearchResult} from '../app.datatypes';
 import { ApiService } from './api.service';
@@ -18,7 +18,8 @@ export class NodeService {
 
   constructor(
     private apiService: ApiService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private ngZone: NgZone
   ) {}
 
   allNodes(): Observable<NodeStatusInfo[]> {
@@ -58,6 +59,27 @@ export class NodeService {
       )
     );
   }
+
+  /*refreshNodes(successCallback: any = null, errorCallback: any = null): void {
+    this.ngZone.runOutsideAngular(() => {
+      if (this.nodesSubscription) {
+        this.nodesSubscription.unsubscribe();
+      }
+      this.nodesSubscription = timer(0, this.storageService.getRefreshTime() * 1000).pipe(flatMap(() => {
+        return this.getAllNodes();
+      })).subscribe(
+        (allNodes: NodeStatusInfo[]) => {
+          this.ngZone.run(() => {
+            this.nodes.next(allNodes);
+            if (successCallback) {
+              successCallback();
+            }
+          });
+        },
+        errorCallback,
+      );
+    });
+  }*/
 
   refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
     if (this.nodesSubscription) {

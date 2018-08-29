@@ -5,12 +5,14 @@
     <app-skycoin-logo [direction]="'vertical'"></app-skycoin-logo>
     <form class="mt-5" [formGroup]="form">
       <input
+        id="passwordInput"
         type="password"
         formControlName="password"
         autocomplete="off"
         [placeholder]="'login.password' | translate"
       >
       <button
+        id="loginButton"
         [disabled]="!form.valid"
         class="ml-3 d-flex justify-content-center"
         mat-raised-button
