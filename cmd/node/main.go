@@ -3,16 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/node"
-	"github.com/skycoin/skywire/node/api"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/file"
+	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/node/api"
 )
 
 var (
@@ -99,18 +101,24 @@ func main() {
 		} else {
 			tokenUrl = fmt.Sprintf("http://%s/getToken", config.ManagerWeb)
 		}
-		resp, err := http.Get(tokenUrl)
-		if err != nil {
-			log.Error(err)
+		for true {
+			resp, err := http.Get(tokenUrl)
+			if err != nil {
+				log.Error(err)
+				fmt.Println("Connect to manager failed,Sleep 5 second then reconnect...")
+				time.Sleep(5 * time.Second)
+			} else {
+				defer resp.Body.Close()
+				token, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					log.Error(err)
+				}
+				na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
+				na.StartSrv()
+				defer na.Close()
+				break
+			}
 		}
-		defer resp.Body.Close()
-		token, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Error(err)
-		}
-		na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
-		na.StartSrv()
-		defer na.Close()
 	}
 	select {
 	case signal := <-osSignal:

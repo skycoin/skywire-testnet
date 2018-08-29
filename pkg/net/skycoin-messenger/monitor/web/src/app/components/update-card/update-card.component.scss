@@ -1,0 +1,11 @@
+.update-panel {
+  .mat-dialog-container {
+    border-radius: .25rem;
+    .mat-dialog-content {
+      margin-bottom: .5rem;
+    }
+    .mat-dialog-actions {
+      justify-content: center;
+    }
+  }
+}

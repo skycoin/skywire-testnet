@@ -1,0 +1,15 @@
+language: go
+go:
+  - "1.9.x"
+  - "1.10.x"
+
+matrix:
+  include:
+    - os: linux
+    - os: osx
+
+install: true
+
+script:
+  - go install cmd/...
+  - go install cmdx/...

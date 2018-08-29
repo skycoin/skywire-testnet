@@ -1,0 +1,32 @@
+.client-setting {
+  width: 400px;
+  .client-setting-list {
+    .text {
+      flex-grow: 2;
+    }
+  }
+}
+
+.apps-setting {
+  .custom-input-box {
+    width: 100%;
+    .text {
+      display: inline-block;
+      width: 5em;
+      text-align: right;
+      vertical-align: middle;
+      margin: 0 1em 0 0;
+      color: #777;
+    }
+    .custom-input {
+      width: 30em;
+      padding: .5em;
+      border-radius: 4px;
+      border: 1px solid #d0d0d0;
+      &:focus {
+        outline: none;
+        border-color: #129fea;
+      }
+    }
+  }
+}

@@ -1,0 +1,109 @@
+app-im-view {
+  display: block;
+  width: 75%;
+  height: 100%; // padding: .75rem;
+  float: left;
+  border-radius: 0 .5rem .5rem 0;
+  background-color: #F2F5F8;
+  perfect-scrollbar>.ps {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .hint-box {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    p {
+      margin: auto;
+      color: #ccc;
+    }
+  }
+  .container {
+    width: 100%;
+    height: 100%;
+    .message-box,
+    .send-box {
+      width: 100%;
+    }
+    .tooltip[aria-label] {
+      &:after {
+        top: 90%;
+        left: 5%;
+      }
+    }
+    .message-box-head {
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      height: 10%;
+      top: 0;
+      left: 0;
+      right: 0;
+      border-radius: .5rem .5rem 0 0;
+      background-color: inherit;
+      border-bottom: 1px solid hsla(0, 0%, 80%, 0.3);
+      .head-name {
+        width: 10rem;
+        text-decoration: none;
+        color: #000;
+      }
+    }
+    .message-box {
+      position: relative;
+      height: 70%;
+      padding: .25rem;
+      border-bottom: .2rem solid #fff;
+      overflow: auto;
+    }
+    .send-box {
+      height: 20%; // padding: .5rem 1rem;
+      textarea {
+        font-size: 1.1rem;
+        background-color: inherit;
+        width: 100%;
+        border: none;
+        border-radius: .5rem;
+        resize: none;
+        padding: .5rem;
+        transition: box-shadow .1s;
+        &:focus {
+          border: none;
+          outline: none; // box-shadow: .1rem .2rem .75rem hsla(210, 75%, 52%, 0.6), -.1rem -.2rem .75rem hsla(210, 75%, 52%, 0.6);
+        }
+      }
+      .more-box {
+        text-align: right;
+        margin-top: .5rem;
+        .btn {
+          border: none;
+          border-radius: .5rem;
+          padding: .5rem 1rem;
+          outline: none;
+        }
+        .btn-send {
+          cursor: pointer;
+          background-color: #2a85e0;
+          color: #fff;
+          &:active {
+            background-color: #0a0aad;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media screen and (max-width:768px) {
+  app-im-view {
+    .container {
+      .tooltip[aria-label] {
+        &:after {
+          width: 15rem;
+          word-break: break-all;
+          white-space: normal;
+          line-height: 1.2em;
+        }
+      }
+    }
+  }
+}
