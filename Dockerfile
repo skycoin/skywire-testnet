@@ -10,7 +10,7 @@ COPY . $GOPATH/src/github.com/skycoin/skywire
 RUN apk add --update gcc g++ git sqlite musl-dev
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-    GOARCH=$ARCH GOARM=$GOARM GOOS=linux go install -a -installsuffix cgo ./... && \
+    GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 go install -a -installsuffix cgo ./... && \
     sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \
            if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
 
