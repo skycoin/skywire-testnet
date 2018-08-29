@@ -1,7 +1,6 @@
 import {PATHS} from "../../../src/app/app-routing.module";
 import BasePage from "./base-page.po";
-import {findById} from "../util/selection";
-import {browser, ExpectedConditions} from "protractor";
+import {findById, waitForVisibility} from "../util/selection";
 
 export class NodeDetailPage extends BasePage {
 
@@ -12,7 +11,7 @@ export class NodeDetailPage extends BasePage {
   }
 
   isVisible() {
-    browser.wait(ExpectedConditions.visibilityOf(this.getContainer()));
+    waitForVisibility(this.getContainer());
     return this.getContainer().isDisplayed();
   }
 }

@@ -1,6 +1,6 @@
 import {PATHS} from "../../../src/app/app-routing.module";
 import BasePage from "./base-page.po";
-import {findById} from "../util/selection";
+import {findById, waitForVisibility} from "../util/selection";
 import {browser, by, ExpectedConditions} from "protractor";
 
 export class NodesListPage extends BasePage {
@@ -17,7 +17,7 @@ export class NodesListPage extends BasePage {
   }
 
   waitNodesTablesToBeLoaded() {
-    browser.wait(ExpectedConditions.visibilityOf(this.getNodesTable()));
+    waitForVisibility(this.getNodesTable());
   }
 
   private getTableRows() {
@@ -54,7 +54,7 @@ export class NodesListPage extends BasePage {
 
   getFirstNodeTooltip() {
     this.waitNodesTablesToBeLoaded();
-    browser.wait(ExpectedConditions.visibilityOf(this.getFirstNodeField(this.ROW_STATUS_ONLINE)));
+    waitForVisibility(this.getFirstNodeField(this.ROW_STATUS_ONLINE));
     return this.getFirstNodeField(this.ROW_STATUS_ONLINE).getAttribute("title");
   }
 
