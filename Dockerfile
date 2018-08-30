@@ -9,7 +9,7 @@ ARG CC=gcc
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
 RUN apt-get update \
-    && apt-get -y install build-essential crossbuild-essential-armhf
+    && apt-get -y install build-essential crossbuild-essential-armhf crossbuild-essential-arm64 automake gcc-arm-linux-gnueabihf
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
     GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 CC=$CC \
