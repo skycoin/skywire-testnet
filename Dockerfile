@@ -1,22 +1,18 @@
 # skywire build binaries
 # reference https://github.com/skycoin/skywire
 ARG IMAGE_FROM=alpine:3.7
-FROM golang:1.10-alpine AS build-go
+FROM golang:1.10-stretch AS build-go
 ARG ARCH=amd64
 ARG GOARM
+ARG CC=gcc
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
-RUN apk add --update --no-cache gcc git sqlite musl-dev w3m bzip2-dev tar bzip2-dev openssl wget
-
-RUN wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2 \
-    && tar xvf gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2 \
-        && rm gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2
-
-ENV PATH="/go/gcc-arm-none-eabi-6-2017-q2-update/bin:${PATH}"
+RUN apt-get update \
+    && apt-get -y install build-essential crossbuild-essential-armhf
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-    GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 CC=arm-none-eabi-gcc CXX=arm-none-eabi-g++ \
+    GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 CC=$CC \
     go install -a -installsuffix cgo ./... && \
     sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \
            if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
