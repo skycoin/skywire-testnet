@@ -68,4 +68,8 @@ export class StartupConfigComponent implements OnInit {
   ngOnInit() {
     this.nodeService.getAutoStartConfig().subscribe(config => this.autoStartConfig = config);
   }
+
+  get formValid() {
+    return this.hasKeyPair ? this.validKeyPair : true;
+  }
 }
