@@ -1,7 +1,18 @@
-import { AfterViewInit, Component, EventEmitter, HostBinding, Input, OnInit, Output, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  EventEmitter,
+  HostBinding,
+  Input,
+  OnChanges,
+  OnInit,
+  Output, SimpleChanges,
+  ViewChild
+} from '@angular/core';
 import {publicKeyValidator} from '../../../forms/validators';
 import {FormControl} from '@angular/forms';
 import {MatInput} from '@angular/material';
+import {Observable} from "rxjs";
 
 export interface KeyInputEvent {
   value: string;
@@ -13,7 +24,7 @@ export interface KeyInputEvent {
   templateUrl: './key-input.component.html',
   styleUrls: ['./key-input.component.scss'],
 })
-export class KeyInputComponent implements OnInit, AfterViewInit {
+export class KeyInputComponent implements OnInit, AfterViewInit, OnChanges {
   @HostBinding('attr.class') hostClass = 'key-input-container';
   @Output() keyChange = new EventEmitter<KeyInputEvent>();
   @Input() value = '';
@@ -32,10 +43,7 @@ export class KeyInputComponent implements OnInit, AfterViewInit {
 
   onInput($evt) {
     this.value = $evt.target.value;
-    this.keyChange.emit({
-      value: this.value,
-      valid: this.validator.valid
-    });
+    this.emitState();
   }
 
   clear() {
@@ -43,7 +51,7 @@ export class KeyInputComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    this.validator = new FormControl('', [publicKeyValidator(this.required)]);
+    this.createFormControl();
   }
 
   set data(data: Data) {
@@ -51,6 +59,26 @@ export class KeyInputComponent implements OnInit, AfterViewInit {
     this.placeholder = data.placeholder;
     this.keyChange.subscribe(data.subscriber);
     data.clearInputEmitter.subscribe(this.clear.bind(this));
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    //console.log(`keyinput onchanges ${JSON.stringify(changes)}`);
+    this.createFormControl();
+
+    // setTimeout to avoid "ExpressionChangedAfterItHasBeenCheckedError" error...
+    setTimeout(() => this.emitState(), 0);
+  }
+
+  createFormControl()
+  {
+    this.validator = new FormControl(this.value, [publicKeyValidator(this.required)]);
+  }
+
+  private emitState() {
+    this.keyChange.emit({
+      value: this.value,
+      valid: this.validator.valid
+    });
   }
 }
 

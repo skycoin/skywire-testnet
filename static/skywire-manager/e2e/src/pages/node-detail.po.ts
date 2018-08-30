@@ -61,7 +61,7 @@ export class NodeDetailPage extends BasePage {
     this.clickButton('sockscAppBtn');
   }
 
-  noAppIsRunning() {
+  runningAppsCount() {
     waitForInvisibility(this.runningApp(APP_SOCKSC));
     waitForInvisibility(this.runningApp(APP_SSHC));
     waitForInvisibility(this.runningApp(APP_SSHS));

@@ -10,6 +10,7 @@
         </mat-list-item>
         <mat-list-item *ngIf="hasKeyPair">
           <app-keypair
+            [required]="isAutoStartChecked"
             (keypairChange)="keypairChange($event)"
             [keypair]="keyPair"
           ></app-keypair>
@@ -18,7 +19,7 @@
     </form>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button disabled="{{ !isFormValid }}" class="submit-btn" color="primary" mat-raised-button (click)="save()">
+    <button [disabled]="!validKeyPair" class="submit-btn" color="primary" mat-raised-button (click)="save()">
       {{ 'common.save' | translate }}
     </button>
   </mat-dialog-actions>

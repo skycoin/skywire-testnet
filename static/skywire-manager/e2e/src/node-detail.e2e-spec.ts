@@ -46,10 +46,10 @@ describe('NodeDetail view', () => {
 
     page.clickStopApp();
 
-    expect(page.noAppIsRunning()).toEqual(0);
+    expect(page.runningAppsCount()).toEqual(0);
   });
 
-  it('SOCKSc app starts correctly.', () => {
+  it('SOCKSc app starts and stops correctly.', () => {
 
     browser.waitForAngularEnabled(false);
 
@@ -58,9 +58,13 @@ describe('NodeDetail view', () => {
     page.startSockscApp();
 
     expect(page.isSockscAppRunning()).toBeTruthy();
+
+    page.clickStopApp();
+
+    expect(page.runningAppsCount()).toEqual(0);
   });
 
-  it('SSHS app starts correctly.', () => {
+  it('SSHS app starts and stops correctly.', () => {
 
     browser.waitForAngularEnabled(false);
     page.navigateTo();
@@ -68,5 +72,9 @@ describe('NodeDetail view', () => {
     page.startSshcApp();
 
     expect(page.isSshcAppRunning()).toBeTruthy();
+
+    page.clickStopApp();
+
+    expect(page.runningAppsCount()).toEqual(0);
   });
 });
