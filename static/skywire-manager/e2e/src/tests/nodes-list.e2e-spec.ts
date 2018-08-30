@@ -1,7 +1,6 @@
 import {browser, by, element, ExpectedConditions} from "protractor";
-import {NodesListPage} from "./pages/nodes-list.po";
-import {LoginPage} from "./pages/login";
-import {NodeDetailPage} from "./pages/node-detail.po";
+import {NodesListPage} from "../pages/nodes-list.po";
+import {NodeDetailPage} from "../pages/node-detail.po";
 
 describe('Nodelist view', () => {
   let page: NodesListPage;

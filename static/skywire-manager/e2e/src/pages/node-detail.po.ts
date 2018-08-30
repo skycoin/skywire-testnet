@@ -2,12 +2,14 @@ import {PATHS} from "../../../src/app/app-routing.module";
 import BasePage from "./base-page.po";
 import {findById, waitForInvisibility, waitForVisibility} from "../util/selection";
 import {NodesListPage} from "./nodes-list.po";
-import {by, element, ElementFinder} from "protractor";
-import {APP_SOCKSC, APP_SSHC, APP_SSHS, NODE_PUBLIC_KEY} from "../util/constants";
+import {by, element} from "protractor";
+import {APP_SOCKSC, APP_SSHC, APP_SSHS} from "../util/constants";
+import {NodeAppsButtons} from "../components/node-apps.po";
 
 export class NodeDetailPage extends BasePage {
 
   path = PATHS.nodeDetail;
+  private appsButtons = new NodeAppsButtons();
 
   navigateTo() {
     let nodeListPage = new NodesListPage(),
@@ -40,31 +42,20 @@ export class NodeDetailPage extends BasePage {
   }
 
   clickNodesListButton() {
-    this.clickButton('nodeListBtn');
+    this.clickElement('nodeListBtn');
   }
 
-  private clickButton(btnId: string) {
-    const el = findById(btnId);
+  private clickElement(elId: string) {
+    const el = findById(elId);
     waitForVisibility(el);
     return el.click();
   }
 
   clickStartSshsApp() {
-    this.clickButton('sshsAppBtn');
-  }
-
-  clickStartSshcApp() {
-    this.clickButton('sshcAppBtn');
-  }
-
-  clickStartSockscApp() {
-    this.clickButton('sockscAppBtn');
+    this.appsButtons.clickStartSshsApp();
   }
 
   runningAppsCount() {
-    waitForInvisibility(this.runningApp(APP_SOCKSC));
-    waitForInvisibility(this.runningApp(APP_SSHC));
-    waitForInvisibility(this.runningApp(APP_SSHS));
     return this.getRunningAppsTable().element(by.tagName('tbody')).all(by.tagName('tr')).count();
   }
 
@@ -90,34 +81,19 @@ export class NodeDetailPage extends BasePage {
     return this.isAppRunning(APP_SSHC)
   }
 
-  fillKeyPair(parentElement: ElementFinder, nodeKey: string, appKey: string) {
-    parentElement.element(by.id('nodeKeyField')).element(by.tagName('input')).sendKeys(nodeKey);
-    parentElement.element(by.id('appKeyField')).element(by.tagName('input')).sendKeys(appKey);
-  }
-
   startSockscApp() {
-    this.clickStartSockscApp();
-
-    const dialog = findById('sockscConnectContainer');
-    waitForVisibility(dialog);
-
-    this.fillKeyPair(dialog, NODE_PUBLIC_KEY, NODE_PUBLIC_KEY);
-
-    findById('startSockscAppBtn').click();
+    this.appsButtons.startSockscApp();
   }
 
   startSshcApp() {
-    this.clickStartSshcApp();
-    const dialog = findById('sshcConnectContainer');
-    waitForVisibility(dialog);
-
-    this.fillKeyPair(dialog, NODE_PUBLIC_KEY, NODE_PUBLIC_KEY);
-
-    findById('startSshcAppBtn').click();
+    this.appsButtons.startSshcApp();
   }
 
   clickStopApp() {
     this.clickFirstAppCloseButton();
+    waitForInvisibility(this.runningApp(APP_SOCKSC));
+    waitForInvisibility(this.runningApp(APP_SSHC));
+    waitForInvisibility(this.runningApp(APP_SSHS));
   }
 
   private clickFirstAppCloseButton() {

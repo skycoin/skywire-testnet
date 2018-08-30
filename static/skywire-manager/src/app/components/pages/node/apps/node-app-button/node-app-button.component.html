@@ -1,10 +1,12 @@
 <div [ngClass]="containerClass">
   <span class="font-sm">
-    <button *ngIf="showMore"
-            [matMenuTriggerFor]="appMenu"
-            [disabled]="menuItems.length === 0"
-            mat-icon-button
-            class="link btn-more">
+    <button
+      id="showMoreBtn"
+      *ngIf="showMore"
+      [matMenuTriggerFor]="appMenu"
+      [disabled]="menuItems.length === 0"
+      mat-icon-button
+      class="link btn-more">
       <mat-icon> more_vert</mat-icon>
       <i *ngIf="isRunning && hasMessages" class="dot-red sm"></i>
     </button>
