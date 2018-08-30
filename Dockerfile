@@ -7,7 +7,13 @@ ARG GOARM
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
-RUN apk add --update gcc g++ git sqlite musl-dev
+RUN apk add --update --no-cache gcc git sqlite musl-dev w3m bzip2-dev tar bzip2-dev
+
+RUN wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2 \
+    && tar xvf gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2 \
+        && rm gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2
+
+ENV PATH="/gcc-arm-none-eabi-6-2017-q2-update/bin:${PATH}"
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
     GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 go install -a -installsuffix cgo ./... && \
