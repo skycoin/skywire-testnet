@@ -5,6 +5,7 @@ import {NodesListPage} from "./nodes-list.po";
 import {by, element} from "protractor";
 import {APP_SOCKSC, APP_SSHC, APP_SSHS} from "../util/constants";
 import {NodeAppsButtons} from "../components/node-apps.po";
+import {StartupConfigDialog} from "../components/startup-config.po";
 
 export class NodeDetailPage extends BasePage {
 
@@ -106,5 +107,15 @@ export class NodeDetailPage extends BasePage {
 
   private getFirstRunningAppRow() {
     return this.getRunningAppsTable().all(by.tagName('tr')).get(1);
+  }
+
+  openSshStartupConfig() {
+    this.appsButtons.clickSshsStartupConfig();
+    return new StartupConfigDialog();
+  }
+
+  openSockscsStartupConfig() {
+    this.appsButtons.clickSockscStartupConfig();
+    return new StartupConfigDialog();
   }
 }

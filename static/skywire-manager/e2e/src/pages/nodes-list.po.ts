@@ -8,14 +8,13 @@ import {APP_SOCKSC, APP_SSHC, APP_SSHS} from "../util/constants";
 export class NodesListPage extends BasePage {
 
   path = PATHS.nodes;
-  private NODES_TABLE_ID = "nodeListTable";
   private ROW_INDEX = "nodeIndex";
   private ROW_LABEL = "nodeLabel";
   private ROW_KEY = "nodeKey";
   private ROW_STATUS_ONLINE = "nodeStatusOnline";
 
-  private getNodesTable() {
-    return findById(this.NODES_TABLE_ID);
+  private getNodesList() {
+    return findById("nodeListTable").element(by.tagName('tbody'));
   }
 
   navigateTo() {
@@ -25,14 +24,14 @@ export class NodesListPage extends BasePage {
   }
 
   waitNodesTablesToBeLoaded() {
-    waitForVisibility(this.getNodesTable());
+    waitForVisibility(this.getNodesList());
   }
 
   private getTableRows() {
-    return this.getNodesTable().all(by.tagName('tr'));
+    return this.getNodesList().all(by.tagName('tr'));
   }
 
-  getTableRowsCount() {
+  getNodesListCount() {
     this.waitNodesTablesToBeLoaded();
     return this.getTableRows().count();
   }
@@ -47,7 +46,7 @@ export class NodesListPage extends BasePage {
   }
 
   private getFirstRow() {
-    return this.getTableRows().get(1);
+    return this.getTableRows().first();
   }
 
   getFirstNodeLabel() {
@@ -73,6 +72,6 @@ export class NodesListPage extends BasePage {
 
   isVisible() {
     this.waitNodesTablesToBeLoaded();
-    return this.getNodesTable().isDisplayed();
+    return this.getNodesList().isDisplayed();
   }
 }

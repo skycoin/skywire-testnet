@@ -6,7 +6,10 @@
         <span>
           {{ autoStartTitle | translate }}
         </span>
-          <mat-slide-toggle (change)="toggle($event)" [checked]="isAutoStartChecked"></mat-slide-toggle>
+          <mat-slide-toggle
+            id="toggleAutomaticStartBtn"
+            (change)="toggle($event)"
+            [checked]="isAutoStartChecked"></mat-slide-toggle>
         </mat-list-item>
         <mat-list-item *ngIf="hasKeyPair">
           <app-keypair
@@ -19,7 +22,13 @@
     </form>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button [disabled]="!formValid" class="submit-btn" color="primary" mat-raised-button (click)="save()">
+    <button
+      id="saveStartupConfigBtn"
+      [disabled]="!formValid"
+      class="submit-btn"
+      color="primary"
+      mat-raised-button
+      (click)="save()">
       {{ 'common.save' | translate }}
     </button>
   </mat-dialog-actions>
