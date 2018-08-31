@@ -5,7 +5,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog} from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { TranslateService } from '@ngx-translate/core';
-import {isManager} from '../../../utils/nodeUtils';
 import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
 
 @Component({
@@ -15,6 +14,7 @@ import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
 })
 export class NodeComponent implements OnInit, OnDestroy {
   nodeData: NodeData;
+  managerIp: string;
 
   private refreshSubscription: Subscription;
   constructor(
@@ -53,12 +53,16 @@ export class NodeComponent implements OnInit, OnDestroy {
         this.refreshSubscription.add(
           this.nodeService.refreshNodeData(this.onError.bind(this))
         );
+
+        this.nodeService.serverInfo().subscribe(info => {
+          this.managerIp = info.split('-')[0].replace('localhost', '127.0.0.1');
+        });
       },
       () => this.router.navigate(['nodes'])
     );
   }
 
-  get managerIp() {
+  /*get managerIp() {
     let ipText = this.translate.instant('node.details.manager-ip-not-found');
     const manager = this.nodeData.allNodes.find((node) => isManager(node));
 
@@ -67,7 +71,7 @@ export class NodeComponent implements OnInit, OnDestroy {
     }
 
     return ipText;
-  }
+  }*/
 
   ngOnDestroy() {
     this.refreshSubscription.unsubscribe();

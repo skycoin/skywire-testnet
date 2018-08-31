@@ -18,8 +18,7 @@ export class NodeService {
 
   constructor(
     private apiService: ApiService,
-    private storageService: StorageService,
-    private ngZone: NgZone
+    private storageService: StorageService
   ) {}
 
   allNodes(): Observable<NodeStatusInfo[]> {
@@ -237,6 +236,10 @@ export class NodeService {
 
   getManagerPort() {
     return this.apiService.post('getPort');
+  }
+
+  serverInfo(): Observable<string> {
+    return this.apiService.get('conn/getServerInfo', { responseType: 'text' });
   }
 
   /**

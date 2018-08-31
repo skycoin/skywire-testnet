@@ -41,6 +41,8 @@
     "running": "Running",
     "details": {
       "node-ip": "Node IP",
+      "node-os": "Node OS",
+      "node-version": "Node Version",
       "manager-ip": "Manager IP",
       "manager-ip-not-found": "Manager not found",
       "connection": "Connection",

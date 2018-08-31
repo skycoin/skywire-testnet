@@ -15,7 +15,7 @@ export class SearchNodesComponent implements OnInit {
   readonly serviceKey = 'sockss';
   readonly limit = 5;
 
-  readonly displayedColumns = ['nodekey', 'appkey', 'versions', 'location', 'connect'];
+  readonly displayedColumns = ['keys', 'versions', 'location', 'connect'];
   dataSource = new MatTableDataSource<SearchResultItem>();
   currentPage = 1;
   pages = 1;

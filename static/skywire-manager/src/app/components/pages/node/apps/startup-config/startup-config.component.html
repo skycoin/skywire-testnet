@@ -1,15 +1,15 @@
 <app-dialog [headline]="'apps.config.title' | translate">
   <mat-dialog-content>
-    <form class="startup-form" *ngIf="autoStartConfig">
+    <form class="startup-form clearfix" *ngIf="autoStartConfig">
       <mat-list>
         <mat-list-item>
-        <span>
-          {{ autoStartTitle | translate }}
-        </span>
-          <mat-slide-toggle
-            id="toggleAutomaticStartBtn"
-            (change)="toggle($event)"
-            [checked]="isAutoStartChecked"></mat-slide-toggle>
+          <span>
+            {{ autoStartTitle | translate }}
+          </span>
+            <mat-slide-toggle
+              id="toggleAutomaticStartBtn"
+              (change)="toggle($event)"
+              [checked]="isAutoStartChecked"></mat-slide-toggle>
         </mat-list-item>
         <mat-list-item *ngIf="hasKeyPair">
           <app-keypair

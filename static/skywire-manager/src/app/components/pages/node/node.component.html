@@ -38,34 +38,32 @@
     <div class="col-3 d-lg-block d-none">
       <div class="node-right font-smaller d-flex flex-column h-100">
         <!-- IPS -->
-        <div class="node-ips-container d-flex justify-content-between">
+        <div class="node-ips-container d-flex flex-column justify-content-between">
           <div class="section">
             <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
             <span class="font-smaller">{{ nodeData.node.addr }}</span>
           </div>
+          <hr>
+          <div class="section">
+            <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.info.os }}</span>
+          </div>
+          <hr>
+          <div class="section">
+            <span class="section-title">{{ 'node.details.node-version' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.info.version }} ({{ nodeData.info.tag}})</span>
+          </div>
+          <hr>
           <div class="section">
             <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
-            <span class="font-smaller">
-              {{managerIp}}
-            </span>
+            <span class="font-smaller">{{ managerIp }}</span>
           </div>
-        </div>
-        <hr>
-        <!-- Public key -->
-        <div class="node-public-key section">
-          <span class="section-title">{{ 'common.public-key' | translate }}</span>
-          <span class="font-smaller">{{ nodeData.node.key }}</span>
-        </div>
-        <hr>
-        <!-- Connections -->
-        <div class="node-connections justify-content-between">
+          <hr>
           <div class="section">
-            <span class="section-title">
-              <i class="dot-green"></i>
-              {{ 'node.details.connection' | translate }}
-            </span>
-            <span class="font-smaller">xxxxxxxxxxx</span>
+            <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.info.os }}</span>
           </div>
+          <hr>
           <div class="section" matTooltip="{{ 'node.details.operational-nodes-tooltip' | translate: {value: operationalNodesCount} }}">
             <span class="section-title">
               <i class="dot-green"></i>
@@ -76,10 +74,12 @@
               {{ operationalNodesCount }}/{{ nodeData.allNodes.length }} <span class="text-capitalize">{{ 'node.details.operational-nodes' | translate }}</span>
             </span>
           </div>
+          <hr>
         </div>
-        <hr>
         <app-charts
           class="d-flex flex-1 flex-column justify-content-end"
+          *ngIf="nodeData.info.transports.length > 0"
+          [transports]="nodeData.info.transports"
         ></app-charts>
       </div>
     </div>
