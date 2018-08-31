@@ -78,7 +78,7 @@ Additional to that you should look in the Skywire manager web interface for two 
 
 **VM's, servers or personal computers are not allowed in the testnet, i.e. they will not be whitelisted and receive rewards.** 
 
-The following hardware is allowed and can be chosen on the [whitelist application form](skycoin.net/whitelist):
+The following hardware is allowed and can be chosen on the [whitelist application form](https://www.skycoin.net/whitelist/):
 
 #### Orange Pi
      - Prime
