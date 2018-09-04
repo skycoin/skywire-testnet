@@ -157,7 +157,7 @@ docker run -ti --rm \
   skycoin/skywire
 ```
 
-*Note:*
+**Note:**
 The versions 5 and 7 of skywire for ARM are built upon busybox and the versions 6 and 8 upon alpine
 
 Open [http://localhost:8000](http://localhost:8000).
