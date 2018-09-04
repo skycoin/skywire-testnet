@@ -157,6 +157,9 @@ docker run -ti --rm \
   skycoin/skywire
 ```
 
+*Note:*
+The versions 5 and 7 of skywire for ARM are built upon busybox and the versions 6 and 8 upon alpine
+
 Open [http://localhost:8000](http://localhost:8000).
 The default login password for Skywire manager is **1234**.
 
