@@ -79,7 +79,7 @@ Additional to that you should look in the Skywire manager web interface for two 
 
 **VM's, servers or personal computers are not allowed in the testnet, i.e. they will not be whitelisted and receive rewards.** 
 
-The following hardware is allowed and can be chosen on the [whitelist application form](https://www.skycoin.net/whitelist/):
+The following hardware is allowed and can be chosen on the [whitelist application form](https://skycoin.net/whitelist):
 
 #### Orange Pi
      - Prime
@@ -212,7 +212,7 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
 
 ## Whitelist
 
-The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist).
+The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/whitelist).
 
 ### July
 
@@ -245,7 +245,7 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 * Official miners are whitelisted by default, meaning that they are whitelisted as soon as they submit the application form.
 * You are advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)) but if something happens and you have to reflash then simply resubmit the application form including all current active public keys.
 * For email address changes of official miners please send the team an email at support@skycoin.net and contact someone on telegram if you don't receive an answer after some days.
-* Make sure to generate new public keys after ownership transfer on an official miner and to resubmit the [whitelist application form](skycoin.net/whitelist)
+* Make sure to generate new public keys after ownership transfer on an official miner and to resubmit the [whitelist application form](https://skycoin.net/whitelist)
 
 
 ### The form
