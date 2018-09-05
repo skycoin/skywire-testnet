@@ -158,7 +158,7 @@ docker run -ti --rm \
 ```
 
 **Note:**
-The versions 5 and 7 of skywire for ARM are built upon busybox and the versions 6 and 8 upon alpine
+The images of skywire for ARM v5 and v7 are built upon `busybox` whereas the ARM v6 and v8 containers will run on `alpine`.
 
 Open [http://localhost:8000](http://localhost:8000).
 The default login password for Skywire manager is **1234**.
