@@ -45,13 +45,13 @@ The total amount of rewards per month are **30,000 Skycoin**, divided into two s
 
 For now, the rewards for each node that meets [the requirement](https://github.com/skycoin/skywire/wiki/_new#requirements) are as follows:
 
-* **DIY: 6 Skycoin / node with a maximum of 8 nodes; 48 Skycoin maximum**
+* **DIY: 3.784 Skycoin / node with a maximum of 8 nodes; 30.272 Skycoin maximum**
 
-* **Official miner: 12 Skycoin / node**
+* **Official miner: 7.212 Skycoin / node**
 
 *Faulty orange pi's from official miners will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well. Since we are taking care of this manually you are requested to contact one of our team members (@asxtree @MrHodlr @Paperstream).*
 
-As soon as the pool size would be surpassed we will adjust the rewards: We will split up the Skycoin in the pool evenly between all nodes that are eligible for rewards, i.e. the total amount is shared amongst all nodes which meet the uptime requirements, with a maximum of 6 Skycoin per node (DIY) and 12 Skycoin per node (officia).
+As soon as the pool size would be surpassed we will adjust the rewards: We will split up the Skycoin in the pool evenly between all nodes that are eligible for rewards, i.e. the total amount is shared amongst all nodes which meet the uptime requirements, with a maximum of 6 Skycoin per node (DIY) and 12 Skycoin per node (official).
 
 ### Requirement
 
