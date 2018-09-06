@@ -146,6 +146,9 @@ docker run -ti --rm \
   skycoin/skywire
 ```
 
+**Nota:**
+Las imágenes de Skywire para ARM v5 y v7 están basadas en `busybox`. Los contenedores para las arquitecturas v6 y v8 corren sobre `alpine`.
+
 Abrir [http://localhost:8000](http://localhost:8000).
 La contraseña de inicio de sesión predeterminada para Skywire Manager es ** 1234 **.
 

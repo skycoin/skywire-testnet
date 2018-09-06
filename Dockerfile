@@ -1,14 +1,19 @@
 # skywire build binaries
 # reference https://github.com/skycoin/skywire
 ARG IMAGE_FROM=alpine:3.7
-FROM golang:1.9-alpine AS build-go
+FROM golang:1.10-stretch AS build-go
 ARG ARCH=amd64
 ARG GOARM
+ARG CC=gcc
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
+RUN apt-get update \
+    && apt-get -y install build-essential crossbuild-essential-armhf crossbuild-essential-arm64 automake gcc-arm-linux-gnueabihf
+
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-    GOARCH=$ARCH GOARM=$GOARM CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./... && \
+    GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 CC=$CC \
+    go install -a -installsuffix cgo ./... && \
     sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \
            if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
 
