@@ -15,6 +15,7 @@
 This article represents the central source of information for the ongoing Skywire testnet. All information about rewards and potential changes will be published here, so check in regularely.
 
 Read this information thoroughly and ask in the [Skywire](https://t.me/skywire) telegram channel if some things are not covered. 
+Please join [SkywirePSA](https://t.me/SkywirePSA) as well to get structured public service announcements (PSA) about the Skywire project & testnet.
 
 ***
 
@@ -38,9 +39,9 @@ As previously stated 1 person can receive rewards for 1 official miner and 1 DIY
 The rewards are paid every month around the 5th or with a delay, depending if other things delay the process.
 They are paid on a node by node basis and are subject to change, meaning they may be different for the months to come. 
 
-The total amount of rewards per month are **25,000 Skycoin**, divided into two separate pools
-* **15,000 Skycoin for the official miners**
-* **10,000 Skycoin for the whitelisted DIY miners**
+The total amount of rewards per month are **30,000 Skycoin**, divided into two separate pools
+* **18,000 Skycoin for the official miners**
+* **12,000 Skycoin for the whitelisted DIY miners**
 
 For now, the rewards for each node that meets [the requirement](https://github.com/skycoin/skywire/wiki/_new#requirements) are as follows:
 
@@ -58,7 +59,7 @@ As soon as the pool size would be surpassed we will adjust the rewards: We will 
 
 As of now, you are provided with two tools to check whether or not you're online and generating uptime:
 * The [discovery website](http://discovery.skycoin.net:8001/)
-* The [node checker tool](http://167.99.207.153:8001/)
+* The [node checker tool](https://skywirenc.com/)
 
 Additional to that you should look in the Skywire manager web interface for two things:
 
@@ -78,7 +79,7 @@ Additional to that you should look in the Skywire manager web interface for two 
 
 **VM's, servers or personal computers are not allowed in the testnet, i.e. they will not be whitelisted and receive rewards.** 
 
-The following hardware is allowed and can be chosen on the [whitelist application form](https://www.skycoin.net/whitelist/):
+The following hardware is allowed and can be chosen on the [whitelist application form](https://skycoin.net/whitelist):
 
 #### Orange Pi
      - Prime
@@ -211,13 +212,13 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
 
 ## Whitelist
 
-The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist).
+The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/whitelist).
 
 ### July
 
-    - LAST WHITELISTED QUEUE POSITION: 411
-    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-05-31 21:18:02
-    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 360
+    - LAST WHITELISTED QUEUE POSITION: 676
+    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-06-30 17:14:10
+    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 392
 
 #### Updates
     - The whitelist is updated on a monthly basis, meaning that we are whitelisting 200 applications each month.
@@ -226,16 +227,15 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 #### Position
     - You can request your actual queue position by contacting one of our team members on telegram
     - Calculate your individual waiting period based on this queue position
-    - The application ID is not representative of your queue position
-    - Multiple submitted applications by the same email each have an application ID
     
 #### Get your data
     - Contact @asxtree @MrHodlr @Paperstream to obtain your queue position, your submitted data etc.
     - You can double check with our team members (see above) if we received your application.
-    - Unlike the whitelist data, the team receives *weekly updates* on the application data
 
 
 ### Facts
+
+**Updates of any submitted data have to be done by resubmitting the [whitelist form](https://skycoin.net/whitelist). No manual adjustments on the submitted data are being made from now on.**
 
 * The whitelist is not going to be updated on a weekly basis as previously stated but on a monthly basis.
 * The whitelist is a queue based on a first come first serve basis. Each month we are & have been whitelisting 200 applications, the benchmark for applications is the hardware list above + the official miner specifications.
@@ -244,9 +244,9 @@ The whitelist form can be found at [skycoin.net/whitelist](skycoin.net/whitelist
 * Official miners need to submit the form using their purchasing email, as this is the only way for us to identify them 
 * Official miners are whitelisted by default, meaning that they are whitelisted as soon as they submit the application form.
 * You are advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)) but if something happens and you have to reflash then simply resubmit the application form including all current active public keys.
-* If you need to update the Skycoin wallet address for receiving the rewards please submit the form again, send support@skycoin.net an email notification about the change and contact someone on telegram if you don't receive an answer after some days.
 * For email address changes of official miners please send the team an email at support@skycoin.net and contact someone on telegram if you don't receive an answer after some days.
-* Make sure to generate new public keys after ownership transfer on an official miner and to resubmit the [whitelist application form](skycoin.net/whitelist)
+* Make sure to generate new public keys after ownership transfer on an official miner and to resubmit the [whitelist application form](https://skycoin.net/whitelist)
+
 
 ### The form
 The following information needs to be submitted for each type of miner.
