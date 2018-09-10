@@ -151,7 +151,8 @@
     },
     "log": {
       "title": "Log",
-      "empty": "There are no log messages"
+      "empty": "There are no log messages",
+      "loading": "Loading log messages..."
     },
     "config": {
       "title": "Startup configuration"
