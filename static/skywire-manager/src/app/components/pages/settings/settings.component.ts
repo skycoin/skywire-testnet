@@ -3,11 +3,10 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { TranslateService } from '@ngx-translate/core';
-import {StorageService} from "../../../services/storage.service";
-import {getNativeName} from "../../../utils/languageUtils";
+import {StorageService} from '../../../services/storage.service';
+import {getNativeName} from '../../../utils/languageUtils';
 
-interface LangOption
-{
+interface LangOption {
   id: string;
   name: string;
 }
@@ -17,10 +16,9 @@ interface LangOption
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss']
 })
-export class SettingsComponent implements OnInit
-{
+export class SettingsComponent implements OnInit {
   form: FormGroup;
-  readonly timesList = ["3", "4", "5", "10", "15", "20", "30", "60"];
+  readonly timesList = ['3', '4', '5', '10', '15'];
   langList: LangOption[] = [];
 
   currentLang: string;
@@ -31,23 +29,20 @@ export class SettingsComponent implements OnInit
     private location: Location,
     private translate: TranslateService,
     private storage: StorageService,
-  )
-  {
+  ) {
     this.buildLangOptions();
   }
 
-  ngOnInit()
-  {
-    let currentLang = this.storage.getDefaultLanguage();
+  ngOnInit() {
+    const currentLang = this.storage.getDefaultLanguage();
     this.currentRefreshRate = this.storage.getRefreshTime().toString();
 
     this.form = new FormGroup({
-      'refreshRate': new FormControl(this.currentRefreshRate || "5"),
+      'refreshRate': new FormControl(this.currentRefreshRate || '5'),
       'language': new FormControl(currentLang),
     });
 
-    this.form.valueChanges.subscribe(({refreshRate, language}) =>
-    {
+    this.form.valueChanges.subscribe(({refreshRate, language}) => {
       this.changeRefreshRate(refreshRate);
       this.changeLanguage(language);
     });
@@ -57,8 +52,7 @@ export class SettingsComponent implements OnInit
     this.router.navigate(['settings/password']);
   }
 
-  changeLanguage(lang: string)
-  {
+  changeLanguage(lang: string) {
     this.translate.use(lang);
     this.translate.setDefaultLang(lang);
   }
@@ -67,16 +61,13 @@ export class SettingsComponent implements OnInit
     this.location.back();
   }
 
-  private changeRefreshRate(refreshRate: number): void
-  {
+  private changeRefreshRate(refreshRate: number): void {
     this.storage.setRefreshTime(refreshRate);
   }
 
-  private buildLangOptions()
-  {
-    let langCodes = this.translate.getLangs();
-    langCodes.forEach((code) =>
-    {
+  private buildLangOptions() {
+    const langCodes = this.translate.getLangs();
+    langCodes.forEach((code) => {
       this.langList.push({
         id: code,
         name: getNativeName(code)
@@ -84,8 +75,7 @@ export class SettingsComponent implements OnInit
     });
   }
 
-  onChangePasswordClicked()
-  {
+  onChangePasswordClicked() {
     this.password();
   }
 }

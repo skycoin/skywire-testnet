@@ -8,8 +8,7 @@ import { MatSnackBar } from '@angular/material';
 @Component({
   selector: 'app-password',
   templateUrl: './password.component.html',
-  styleUrls: ['./password.component.scss'],
-  host: {class: 'password-container'}
+  styleUrls: ['./password.component.scss']
 })
 export class PasswordComponent implements OnInit {
   form: FormGroup;
@@ -39,8 +38,7 @@ export class PasswordComponent implements OnInit {
             this.router.navigate(['login']);
             this.snackbar.open('Log in with your new password');
           },
-          (err) =>
-          {
+          (err) => {
             this.snackbar.open(err.message);
           },
         );
@@ -51,15 +49,11 @@ export class PasswordComponent implements OnInit {
     this.location.back();
   }
 
-  private validatePasswords(control: AbstractControl)
-  {
-    if (this.form)
-    {
+  private validatePasswords() {
+    if (this.form) {
       return this.form.get('newPassword').value !== this.form.get('newPasswordConfirmation').value
         ? { invalid: true } : null;
-    }
-    else
-    {
+    } else {
       return null;
     }
   }

@@ -1,8 +1,10 @@
 <div class="container-elevated-translucid">
-  <table class="table-translucid align-center" mat-table [dataSource]="dataSource" *ngIf="dataSource.data?.length > 0">
-    <ng-container matColumnDef="index" class="index-col">
+  <table
+    id="nodeRunningAppsTable"
+    class="table-translucid align-center" mat-table [dataSource]="dataSource" *ngIf="dataSource.data?.length > 0">
+    <ng-container matColumnDef="index">
       <th mat-header-cell *matHeaderCellDef class="bold">#</th>
-      <td mat-cell *matCellDef="let app;let i=index;" class="bold"> {{i+1}}</td>
+      <td mat-cell *matCellDef="let app; let i=index;" class="bold"> {{i+1}}</td>
     </ng-container>
     <ng-container matColumnDef="key">
       <th mat-header-cell *matHeaderCellDef class="bold">{{ 'common.key' | translate }}</th>
@@ -15,11 +17,15 @@
       <td mat-cell *matCellDef="let app;">
         <div style="margin-left: 15px;" class="d-flex flex-row align-items-center justify-content-end">
           <mat-chip-list class="align-end">
-            <mat-chip *ngFor="let attr of app.attributes" color="accent" selected [matTooltip]="attr">
+            <mat-chip class="node-app-attr" *ngFor="let attr of app.attributes" color="accent" selected [matTooltip]="attr">
               {{ attr }}
             </mat-chip>
           </mat-chip-list>
-          <button mat-icon-button matTooltip="{{ 'Close app' | translate }}" (click)="onCloseAppClicked(app.attributes[0])">
+          <button
+            id="stopAppBtn"
+            mat-icon-button
+            matTooltip="{{ 'apps.close-app' | translate }}"
+            (click)="onCloseAppClicked(app.attributes[0])">
             <mat-icon>close</mat-icon>
           </button>
         </div>

@@ -1,8 +1,8 @@
 import {Component, Input, OnInit} from '@angular/core';
 import {MatDialogRef, MatSlideToggleChange} from '@angular/material';
 import {NodeService} from '../../../../../services/node.service';
-import {KeyPairState} from '../../../../layout/keypair/keypair.component';
 import {AutoStartConfig, Keypair} from '../../../../../app.datatypes';
+import {KeyPairState} from "../../../../layout/keypair/keypair.component";
 
 @Component({
   selector: 'app-startup-config',
@@ -10,7 +10,7 @@ import {AutoStartConfig, Keypair} from '../../../../../app.datatypes';
   styleUrls: ['./startup-config.component.css']
 })
 export class StartupConfigComponent implements OnInit {
-  private validKeyPair = true;
+  private validKeyPair = false;
   private autoStartConfig: AutoStartConfig;
   protected hasKeyPair = true;
 
@@ -31,11 +31,22 @@ export class StartupConfigComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  private get keyPair(): Keypair {
+  get keyPair(): Keypair {
     return {
       nodeKey: this.nodeKey,
       appKey: this.appKey
     };
+  }
+
+  keypairChange({ keyPair, valid}: KeyPairState) {
+    if (valid) {
+      this.autoStartConfig[this.nodeKeyConfigField] = keyPair.nodeKey;
+      this.autoStartConfig[this.appKeyConfigField] = keyPair.appKey;
+    }
+
+    this.validKeyPair = valid;
+
+    console.log(`validKeyPair: ${this.validKeyPair}`);
   }
 
   protected get nodeKey(): string {
@@ -46,28 +57,19 @@ export class StartupConfigComponent implements OnInit {
     return this.autoStartConfig[this.appKeyConfigField];
   }
 
-  protected get isAutoStartChecked(): boolean {
+  get isAutoStartChecked(): boolean {
     return this.autoStartConfig[this.appConfigField];
   }
 
-  private keypairChange({ keyPair, valid}: KeyPairState) {
-    if (valid) {
-      this.autoStartConfig[this.nodeKeyConfigField] = keyPair.nodeKey;
-      this.autoStartConfig[this.appKeyConfigField] = keyPair.appKey;
-    }
-
-    this.validKeyPair = valid;
-  }
-
-  protected get isFormValid() {
-    return this.validKeyPair;
-  }
-
-  private toggle(event: MatSlideToggleChange) {
+  toggle(event: MatSlideToggleChange) {
     this.autoStartConfig[this.appConfigField] = event.checked;
   }
 
   ngOnInit() {
     this.nodeService.getAutoStartConfig().subscribe(config => this.autoStartConfig = config);
+  }
+
+  get formValid() {
+    return this.hasKeyPair ? this.validKeyPair : true;
   }
 }

@@ -1,75 +1,94 @@
-import { Injectable } from '@angular/core';
-import { forkJoin, interval, Observable, Subject, throwError, timer, Unsubscribable } from 'rxjs';
-import { AutoStartConfig, Node, NodeApp, NodeData, NodeInfo, SearchResult } from '../app.datatypes';
+import {Injectable, NgZone} from '@angular/core';
+import {bindCallback, forkJoin, interval, Observable, of, Subject, timer, Unsubscribable} from 'rxjs';
+import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, SearchResult} from '../app.datatypes';
 import { ApiService } from './api.service';
-import { filter, flatMap, map, switchMap, take, timeout } from 'rxjs/operators';
+import {delay, filter, finalize, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
 import {StorageService} from './storage.service';
-import {Subscription} from 'rxjs/internal/Subscription';
-import {Observer} from 'rxjs/internal/types';
+import {getNodeLabel, isOnline} from '../utils/nodeUtils';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NodeService {
-  private nodes = new Subject<Node[]>();
+  private nodes = new Subject<NodeStatusInfo[]>();
   private nodesSubscription: Unsubscribable;
-  private refreshNodeObservable: Observable<Node>;
-  private refresNodeTimerSubscription: Subscription;
   private currentNode: Node;
   private currentNodeData = new Subject<NodeData>();
   private nodeDataSubscription: Unsubscribable;
-
-  /**
-   * (1) Return a name corresponding to the node's IP
-   *
-   * Manager (IP:192.168.0.2)
-   * Node1 (IP:192.168.0.3)
-   * Node2 (IP:192.168.0.4)
-   * Node3 (IP:192.168.0.5)
-   * Node4 (IP:192.168.0.6)
-   * Node5 (IP:192.168.0.7)
-   * Node6 (IP:192.168.0.8)
-   * Node7 (IP:192.168.0.9)
-   *
-   * @param {Node} node
-   * @returns {string}
-   */
-  public static getDefaultNodeLabel(node: Node): string {
-    let nodeLabel = null;
-    try {
-      const ipWithourPort = node.addr.split(':')[0],
-        nodeNumber = parseInt(ipWithourPort.split('.')[3], 10);
-
-      if (nodeNumber === 2) {
-        nodeLabel = 'Manager';
-      } else if (nodeNumber > 2 && nodeNumber < 8) {
-        nodeLabel = `Node ${nodeNumber - 2}`;
-      } else {
-        nodeLabel = ipWithourPort;
-      }
-    } catch (e) {}
-
-    return nodeLabel;
-  }
 
   constructor(
     private apiService: ApiService,
     private storageService: StorageService
   ) {}
 
-  allNodes(): Observable<Node[]> {
+  allNodes(): Observable<NodeStatusInfo[]> {
     return this.nodes.asObservable();
   }
+
+  /**
+   * Fetch getAll endpoint and then for each node, call:
+   *
+   * 1 - node endpoint
+   * 2 - nodeInfo endpoint
+   *
+   * And join all the information
+   */
+  getAllNodes(): Observable<NodeStatusInfo[]> {
+    return this.apiService.get('conn/getAll').pipe(
+      flatMap(
+        nodes => forkJoin(
+          nodes.map(
+            node =>
+              this.node(node.key).pipe(
+                map(nodeWithAddress => ({...node, ...nodeWithAddress})
+              )
+            )
+          )
+        )
+      )
+    ).pipe(
+      flatMap(
+        nodes => forkJoin(
+          nodes.map(
+            (node: Node) => this.nodeInfo(node).pipe(
+              map(nodeInfo => ({...node, ...nodeInfo, online: isOnline(nodeInfo)}))
+            )
+          )
+        )
+      )
+    );
+  }
+
+  /*refreshNodes(successCallback: any = null, errorCallback: any = null): void {
+    this.ngZone.runOutsideAngular(() => {
+      if (this.nodesSubscription) {
+        this.nodesSubscription.unsubscribe();
+      }
+      this.nodesSubscription = timer(0, this.storageService.getRefreshTime() * 1000).pipe(flatMap(() => {
+        return this.getAllNodes();
+      })).subscribe(
+        (allNodes: NodeStatusInfo[]) => {
+          this.ngZone.run(() => {
+            this.nodes.next(allNodes);
+            if (successCallback) {
+              successCallback();
+            }
+          });
+        },
+        errorCallback,
+      );
+    });
+  }*/
 
   refreshNodes(successCallback: any = null, errorCallback: any = null): Unsubscribable {
     if (this.nodesSubscription) {
       this.nodesSubscription.unsubscribe();
     }
 
-    return this.nodesSubscription = timer(0, 10000).pipe(flatMap(() => {
-      return this.apiService.get('conn/getAll');
+    return this.nodesSubscription = timer(0, this.storageService.getRefreshTime() * 1000).pipe(flatMap(() => {
+      return this.getAllNodes();
     })).subscribe(
-      (allNodes: Node[]) => {
+      (allNodes: NodeStatusInfo[]) => {
         this.nodes.next(allNodes);
 
         if (successCallback) {
@@ -91,17 +110,35 @@ export class NodeService {
 
     const refreshMilliseconds = this.storageService.getRefreshTime() * 1000;
 
-    return this.nodeDataSubscription = timer(0, refreshMilliseconds).pipe(flatMap(() => forkJoin(
+    return this.nodeDataSubscription = timer(0, refreshMilliseconds).subscribe(() =>
+    {
+      this.requestRefreshNodeData().subscribe(this.notifyNodeDataRefreshed.bind(this), errorCallback);
+    });
+  }
+
+  notifyNodeDataRefreshed(data: any)
+  {
+    this.currentNodeData.next({
+        node: { ...data[0], key: this.currentNode.key },
+        apps: data[1] || [],
+        info: { ...data[2], transports: data[2].transports || [] },
+        allNodes: data[3] || []
+      });
+  }
+
+  requestRefreshNodeData()
+  {
+    return forkJoin(
       this.node(this.currentNode.key),
       this.nodeApps(),
       this.nodeInfo(),
-    ))).subscribe(data => {
-      this.currentNodeData.next({
-        node: { ...data[0], key: this.currentNode.key },
-        apps: data[1] || [],
-        info: { ...data[2], transports: data[2].transports || [] }
-      });
-    }, errorCallback);
+      this.getAllNodes()
+    );
+  }
+
+  refreshAppData()
+  {
+    this.requestRefreshNodeData().subscribe(this.notifyNodeDataRefreshed.bind(this));
   }
 
   /**
@@ -116,7 +153,7 @@ export class NodeService {
   getLabel(node: Node): string | null {
     let nodeLabel = this.storageService.getNodeLabel(node.key);
     if (nodeLabel === null) {
-      nodeLabel = NodeService.getDefaultNodeLabel(node);
+      nodeLabel = getNodeLabel(node);
       if (nodeLabel !== null) {
         this.setLabel(node, nodeLabel);
       }
@@ -133,25 +170,6 @@ export class NodeService {
     return this.apiService.post('conn/getNode', {key});
   }
 
-  refreshNode(key: string, refreshSeconds: number): Observable<Node> {
-    const refreshMillis = refreshSeconds * 1000;
-
-    if (this.refresNodeTimerSubscription) {
-      this.refresNodeTimerSubscription.unsubscribe();
-    }
-
-    this.refreshNodeObservable = Observable.create((observer: Observer<Node>) => {
-
-      this.refresNodeTimerSubscription = timer(0, refreshMillis).subscribe(
-        () => this.node(key).subscribe(
-          (node) => observer.next(node),
-          (err) => observer.error(err)
-        ));
-    });
-
-    return this.refreshNodeObservable;
-  }
-
   setCurrentNode(node: Node) {
     this.currentNode = node;
   }
@@ -160,8 +178,8 @@ export class NodeService {
     return this.nodeRequest('getApps');
   }
 
-  nodeInfo(): Observable<NodeInfo> {
-    return this.nodeRequest('getInfo');
+  nodeInfo(node?: Node): Observable<NodeInfo> {
+    return this.nodeRequest('getInfo', undefined, undefined, node);
   }
 
   setNodeConfig(data: any) {
@@ -224,8 +242,18 @@ export class NodeService {
     return this.apiService.get('conn/getServerInfo', { responseType: 'text' });
   }
 
-  nodeRequest(endpoint: string, body: any = {}, options: any = {}) {
-    const nodeAddress = this.currentNode.addr;
+  /**
+   * Calls nodeRequest and after the request has completed, it refreshes the app status. This is intended
+   * to force the UI update when a large refresh interval is selected (if it's 60 seconds, the user wouldn't see
+   * any change in 1 minute, which would be a very bad user experience).
+   *
+   */
+  nodeRequestWithRefresh(endpoint: string, body: any = {}, options: any = {}, node = this.currentNode) {
+    return this.nodeRequest(endpoint, body, options, node).pipe(delay(5000), finalize(() => this.refreshAppData()));
+  }
+
+  nodeRequest(endpoint: string, body: any = {}, options: any = {}, node = this.currentNode) {
+    const nodeAddress = node.addr;
 
     options.params = Object.assign(options.params || {}, {
       addr: this.nodeRequestAddress(nodeAddress, endpoint),

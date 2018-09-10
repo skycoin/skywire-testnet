@@ -1,5 +1,12 @@
+@import "~bootstrap/scss/mixins/text-truncate";
+
 .mat-chip
 {
   max-width: 70px;
   text-transform: lowercase;
+}
+
+td
+{
+  vertical-align: top;
 }

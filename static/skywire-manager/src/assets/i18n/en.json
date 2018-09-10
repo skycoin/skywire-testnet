@@ -11,7 +11,9 @@
     "app-key": "App Key",
     "key": "Key",
     "discovery": "Discovery",
-    "port": "Port"
+    "port": "Port",
+    "back": "Back",
+    "cancel": "Cancel"
   },
 
   "inputs": {
@@ -41,7 +43,12 @@
       "node-ip": "Node IP",
       "node-os": "Node OS",
       "node-version": "Node Version",
-      "manager-ip": "Manager IP"
+      "manager-ip": "Manager IP",
+      "manager-ip-not-found": "Manager not found",
+      "connection": "Connection",
+      "nodes": "nodes",
+      "operational-nodes": "operational",
+      "operational-nodes-tooltip": "{{value}} nodes discovered by Skycoin network."
     },
     "error-load": "An error occurred while refreshing node data"
   },
@@ -57,7 +64,20 @@
   },
 
   "settings": {
-
+    "password" : {
+      "old-password": "Old password",
+      "new-password": "New password",
+      "repeat-password": "Repeat password",
+      "errors": {
+        "old-password-required": "Old password is required",
+        "new-password-error": "Password must be 4-20 characters long",
+        "passwords-not-match": "Passwords do not match"
+      }
+    },
+    "seconds": "seconds",
+    "change-password": "Change password",
+    "refresh-rate": "Refresh rate",
+    "language": "Language"
   },
 
   "login": {
@@ -86,6 +106,14 @@
     "terminal": {
       "title": "Terminal",
       "exitting": "Exitting terminal..."
+    },
+    "update": {
+      "title": "Check node update",
+      "no-update": "Currently there is no update for the node.",
+      "update-available": "There is an update available for the node. Click the 'Install update' button to continue.",
+      "update-error": "Could not install node update. Please, try again later.",
+      "install": "Install update",
+      "update-success": "Node updated successfully"
     }
   },
 
@@ -113,7 +141,11 @@
         "header": "Key",
         "add": "Add to list",
         "remove": "Remove key",
-        "enter-key": "Enter node key"
+        "enter-key": "Enter node key",
+        "errors": {
+          "cant-save": "Could not save whitelist changes"
+        },
+        "saved-correctly": "Whitelist changes saved successfully"
       },
       "auto-startup": "Automatically start SSH server"
     },
@@ -131,8 +163,9 @@
     },
     "errors": {
       "fail": "Failed",
-      "fail-tooltip": "Something was wrong. Check the app's messages for more information"
-    }
+      "fail-tooltip": "Something went wrong. Check the app's messages for more information"
+    },
+    "close-app": "Close app"
   },
 
   "charts": {

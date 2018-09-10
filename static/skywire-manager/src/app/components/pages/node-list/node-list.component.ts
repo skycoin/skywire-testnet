@@ -1,12 +1,13 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {NodeService} from '../../../services/node.service';
-import {Node} from '../../../app.datatypes';
+import {Node, NodeStatusInfo} from '../../../app.datatypes';
 import { Subscription } from 'rxjs';
-import { MatDialog, MatSnackBar, MatTableDataSource } from '@angular/material';
+import { MatDialog, MatTableDataSource } from '@angular/material';
 import {Router} from '@angular/router';
 import { ButtonComponent } from '../../layout/button/button.component';
 import { EditLabelComponent } from './edit-label/edit-label.component';
 import { TranslateService } from '@ngx-translate/core';
+import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
 
 @Component({
   selector: 'app-node-list',
@@ -15,7 +16,7 @@ import { TranslateService } from '@ngx-translate/core';
 })
 export class NodeListComponent implements OnInit, OnDestroy {
   @ViewChild('refreshButton') refreshButton: ButtonComponent;
-  dataSource = new MatTableDataSource<Node>();
+  dataSource = new MatTableDataSource<NodeStatusInfo>();
   displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'actions'];
 
   private subscriptions: Subscription;
@@ -23,14 +24,13 @@ export class NodeListComponent implements OnInit, OnDestroy {
   constructor(
     private nodeService: NodeService,
     private router: Router,
-    private snackbar: MatSnackBar,
+    private errorSnackBar: ErrorsnackbarService,
     private dialog: MatDialog,
     private translate: TranslateService,
   ) { }
 
   ngOnInit() {
     this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
-      this.fetchNodesLabelsIfNeeded(allNodes);
       this.dataSource.data = allNodes;
     });
 
@@ -61,52 +61,13 @@ export class NodeListComponent implements OnInit, OnDestroy {
     return this.nodeService.getLabel(node);
   }
 
-  editLabel(value: string, node: Node) {
-    this.nodeService.setLabel(node, value);
-  }
-
   viewNode(node) {
     this.router.navigate(['nodes', node.key]);
   }
 
-  private fetchNodeInfo(key: string) {
-    this.nodeService.node(key).subscribe(node => {
-        const dataCopy = [].concat(this.dataSource.data),
-            updateNode = dataCopy.find(n => n.key === key);
-
-        if (updateNode) {
-          updateNode.addr = node.addr;
-          this.refreshList(dataCopy);
-        }
-      },
-      () => this.router.navigate(['login']));
-  }
-
-  private refreshList(data: Node[]) {
-    this.dataSource.data = data;
-  }
-
-  /**
-   * A call to fetchNodeInfo is needed in order to obtain the node's IP from
-   * which we will get the default label.
-   *
-   * The the endpoint will only be called once for each node, as the labels are
-   * stored in the localStorage afterwards.
-   *
-   * @param {Node[]} allNodes
-   */
-  private fetchNodesLabelsIfNeeded(allNodes: Node[]): void {
-    allNodes.forEach((node) => {
-      const nodeLabel = this.nodeService.getLabel(node);
-      if (nodeLabel === null) {
-        this.fetchNodeInfo(node.key);
-      }
-    });
-  }
-
   private onError() {
     this.translate.get('nodes.error-load').subscribe(str => {
-      this.snackbar.open(str);
+      this.errorSnackBar.open(str);
     });
   }
 }

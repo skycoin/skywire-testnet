@@ -13,18 +13,4 @@ describe('NodeService', () => {
   it('should be created', inject([NodeService], (service: NodeService) => {
     expect(service).toBeTruthy();
   }));
-
-  it('test getDefaultNodeLabel', inject([NodeService], (service: NodeService) => {
-    const node: Node = {
-      addr: '192.168.1.2',
-      type: '', send_bytes: null,
-      key: null,
-      last_ack_time: null,
-      recv_bytes: null,
-      start_time: null
-    },
-    label = NodeService.getDefaultNodeLabel(node);
-
-    expect(label).toEqual('Manager');
-  }));
 });

@@ -23,10 +23,15 @@ export interface NodeInfo {
   version: string;
 }
 
+export interface NodeStatusInfo extends Node, NodeInfo {
+  online: boolean;
+}
+
 export interface NodeData {
   node: Node;
   info: NodeInfo;
   apps: NodeApp[];
+  allNodes: NodeStatusInfo[];
 }
 
 export interface NodeDiscovery {

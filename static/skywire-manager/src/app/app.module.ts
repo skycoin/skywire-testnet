@@ -40,7 +40,6 @@ import { CopyToClipboardTextComponent } from './components/layout/copy-to-clipbo
 import { ActionsComponent } from './components/pages/node/actions/actions.component';
 import { TerminalComponent } from './components/pages/node/actions/terminal/terminal.component';
 import { ConfigurationComponent } from './components/pages/node/actions/configuration/configuration.component';
-import { TransportsComponent } from './components/pages/node/transports/transports.component';
 import { AppsComponent } from './components/pages/node/apps/apps.component';
 import { LogComponent } from './components/pages/node/apps/log/log.component';
 import { AppSshsComponent } from './components/pages/node/apps/app-sshs/app-sshs.component';
@@ -76,8 +75,12 @@ import {EditableDiscoveryAddressComponent} from './components/layout/editable-di
 import {SearchNodesComponent} from './components/pages/node/apps/app-socksc/search-nodes/search-nodes.component';
 import { LineChartComponent } from './components/layout/line-chart/line-chart.component';
 import { ChartsComponent } from './components/pages/node/charts/charts.component';
-import {ToolbarComponent} from "./components/layout/toolbar/toolbar.component";
-import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/update-node.component";
+import {ToolbarComponent} from './components/layout/toolbar/toolbar.component';
+import {UpdateNodeComponent} from './components/pages/node/actions/update-node/update-node.component';
+import {NodeStatusBarComponent} from './components/pages/node/node-status-bar/node-status-bar.component';
+import {SkycoinLogoComponent} from './components/layout/skycoin-logo/skycoin-logo.component';
+import {ErrorsnackbarService} from './services/errorsnackbar.service';
+import {BackButtonComponent} from './components/layout/back-button/back-button.component';
 
 @NgModule({
   declarations: [
@@ -89,7 +92,6 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
     ActionsComponent,
     TerminalComponent,
     ConfigurationComponent,
-    TransportsComponent,
     FooterComponent,
     AppsComponent,
     LogComponent,
@@ -129,6 +131,9 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
     UpdateNodeComponent,
     LineChartComponent,
     ChartsComponent,
+    NodeStatusBarComponent,
+    SkycoinLogoComponent,
+    BackButtonComponent
   ],
   entryComponents: [
     ConfigurationComponent,
@@ -145,7 +150,7 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
     KeyInputComponent,
     DiscoveryAddressInputComponent,
     EditableDiscoveryAddressComponent,
-    UpdateNodeComponent,
+    UpdateNodeComponent
   ],
   imports: [
     BrowserModule,
@@ -178,6 +183,7 @@ import {UpdateNodeComponent} from "./components/pages/node/actions/update-node/u
   ],
   providers: [
     ClipboardService,
+    ErrorsnackbarService,
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500, verticalPosition: 'top'}},
     {provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: {duration: 2500}},
     {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: {width: '600px', hasBackdrop: true}},

@@ -1,10 +1,13 @@
-<app-dialog [headline]="'apps.sshc.title' | translate" [dialogRef]="dialogRef">
+<app-dialog
+  id="sshcConnectContainer"
+  [headline]="'apps.sshc.title' | translate">
   <div class="clearfix">
     <app-keypair
       [required]="true"
       (keypairChange)="keypairChange($event)"
     ></app-keypair>
     <button
+      id="startSshcAppBtn"
       class="float-right"
       (click)="connect()"
       mat-raised-button

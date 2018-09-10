@@ -1,44 +1,25 @@
-<div class="container-fluid h-100" *ngIf="nodeData">
+<div id="nodeDetailView" class="container-fluid h-100" *ngIf="nodeData">
   <div class="row h-100" style="padding-bottom: 40px;">
     <div class="col-xl-2 col-lg-3">
       <div class="d-flex flex-column justify-content-between h-100">
-        <div>
-            <img style="margin-left: 20px; margin-top: 55px;" src="/assets/img/logo.png" class="skycoin-logo"/>
-        </div>
+        <app-toolbar></app-toolbar>
         <app-actions [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
       </div>
     </div>
     <div class="col-lg-6 col-xl-7">
       <div class="d-flex flex-column h-100">
         <div class="mt-5">
-          <ul class="node-status-bar list-inline d-flex justify-content-around">
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between"
-                matTooltip="{{onlineTooltip}}">
-              <mat-icon>network_check</mat-icon>
-              <span>{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
-            </li>
-            <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.protocol' | translate">
-              <mat-icon>layers</mat-icon>
-              <span class="text-uppercase">
-                {{ nodeData.node.type }}
-              </span>
-            </li>
-            <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.last-ack' | translate">
-              <mat-icon>timelapse</mat-icon>
-              {{ nodeData.node.last_ack_time | relativeTime }}
-            </li>
-            <li class="separator"></li>
-            <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.running' | translate">
-              <mat-icon>av_timer</mat-icon>
-              {{ nodeData.node.start_time | relativeTime:true }}
-            </li>
-          </ul>
+          <app-node-status-bar
+            [nodeData]="nodeData"></app-node-status-bar>
         </div>
-        <div style="margin-top: 30px;" class="container-elevated-translucid d-flex justify-content-between align-items-center">
-          {{ 'common.public-key' | translate }}
-          <span class="font-smaller">{{ nodeData.node.key }}</span>
+        <div
+          style="margin-top: 30px; padding: 20px;"
+          class="container-elevated-translucid d-flex justify-content-between align-items-center">
+            <span class="mr-2">{{ 'common.public-key' | translate }}</span>
+            <app-copy-to-clipboard-text
+              id="nodePublicKey"
+              class="flex-1 font-smaller text-truncate"
+              [text]="nodeData.node.key"></app-copy-to-clipboard-text>
         </div>
         <app-node-transports-list
           *ngIf="nodeData.info.transports.length > 0"
@@ -46,35 +27,57 @@
         <app-node-app-list
           *ngIf="nodeData.apps.length > 0"
           [apps]="nodeData.apps"
-          style="margin-top: 25px;">
+          class="mt-3 mb-5">
         </app-node-app-list>
-        <app-apps [apps]="nodeData.apps" [nodeInfo]="nodeData.info"></app-apps>
+        <app-apps
+          style="margin-top: auto;"
+          [apps]="nodeData.apps"
+          [nodeInfo]="nodeData.info"></app-apps>
       </div>
     </div>
-    <div class="col-3">
+    <div class="col-3 d-lg-block d-none">
       <div class="node-right font-smaller d-flex flex-column h-100">
-        <div class="section">
-          <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
-          <span class="font-smaller">{{ nodeData.node.addr }}</span>
+        <!-- IPS -->
+        <div class="node-ips-container d-flex flex-column justify-content-between">
+          <div class="section">
+            <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.node.addr }}</span>
+          </div>
+          <hr>
+          <div class="section">
+            <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.info.os }}</span>
+          </div>
+          <hr>
+          <div class="section">
+            <span class="section-title">{{ 'node.details.node-version' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.info.version }} ({{ nodeData.info.tag}})</span>
+          </div>
+          <hr>
+          <div class="section">
+            <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
+            <span class="font-smaller">{{ managerIp }}</span>
+          </div>
+          <hr>
+          <div class="section">
+            <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
+            <span class="font-smaller">{{ nodeData.info.os }}</span>
+          </div>
+          <hr>
+          <div class="section" matTooltip="{{ 'node.details.operational-nodes-tooltip' | translate: {value: operationalNodesCount} }}">
+            <span class="section-title">
+              <i class="dot-green"></i>
+              {{ 'node.details.nodes' | translate }}
+            </span>
+            <span
+              class="font-smaller">
+              {{ operationalNodesCount }}/{{ nodeData.allNodes.length }} <span class="text-capitalize">{{ 'node.details.operational-nodes' | translate }}</span>
+            </span>
+          </div>
+          <hr>
         </div>
-        <hr>
-        <div class="section">
-          <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
-          <span class="font-smaller">{{ nodeData.info.os }}</span>
-        </div>
-        <hr>
-        <div class="section">
-          <span class="section-title">{{ 'node.details.node-version' | translate }}</span>
-          <span class="font-smaller">{{ nodeData.info.version }} ({{ nodeData.info.tag}})</span>
-        </div>
-        <hr>
-        <div class="section">
-          <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
-          <span class="font-smaller">{{ managerIp }}</span>
-        </div>
-        <hr>
-
         <app-charts
+          class="d-flex flex-1 flex-column justify-content-end"
           *ngIf="nodeData.info.transports.length > 0"
           [transports]="nodeData.info.transports"
         ></app-charts>

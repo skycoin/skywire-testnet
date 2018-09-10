@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostBinding, Input, OnInit, Output } from '@angular/core';
+import {Component, EventEmitter, HostBinding, Input, OnChanges, OnInit, Output, SimpleChanges} from '@angular/core';
 import { Keypair } from '../../../app.datatypes';
 import {KeyInputEvent} from '../key-input/key-input.component';
 
@@ -12,7 +12,7 @@ export interface KeyPairState {
   templateUrl: './keypair.component.html',
   styleUrls: ['./keypair.component.css'],
 })
-export class KeypairComponent implements OnInit {
+export class KeypairComponent implements OnInit, OnChanges {
   @HostBinding('attr.class') hostClass = 'keypair-component';
   @Input() keypair: Keypair = {
     nodeKey: '',
@@ -20,8 +20,8 @@ export class KeypairComponent implements OnInit {
   };
   @Output() keypairChange = new EventEmitter<KeyPairState>();
   @Input() required = false;
-  private nodeKeyValid = true;
-  private appKeyValid = true;
+  private nodeKeyValid = false;
+  private appKeyValid = false;
 
   onNodeValueChanged({value, valid}: KeyInputEvent) {
     this.keypair.nodeKey = value;
@@ -50,5 +50,15 @@ export class KeypairComponent implements OnInit {
     if (this.keypair) {
       this.onPairChanged();
     }
+    else {
+      this.keypair = {
+        nodeKey: '',
+        appKey: ''
+      }
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    //console.log(`keypair on changes ${JSON.stringify(changes)}`);
   }
 }
