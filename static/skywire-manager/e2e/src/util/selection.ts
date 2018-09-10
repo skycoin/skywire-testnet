@@ -29,3 +29,7 @@ export function getKeyPair(parentElement: ElementFinder) {
     });
   });
 }
+
+export function snackBarContainsText(text) {
+  return element(by.cssContainingText('.mat-simple-snackbar', text)).isPresent();
+}
