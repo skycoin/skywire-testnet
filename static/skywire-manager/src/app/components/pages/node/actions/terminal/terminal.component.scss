@@ -13,4 +13,9 @@
     background: black;
     padding: 20px;
   }
+
+  ::-webkit-scrollbar {
+    width: 0;  /* remove scrollbar space */
+    background: rgba(255, 255, 255,0.2);  /* optional: just make scrollbar invisible */
+  }
 }
