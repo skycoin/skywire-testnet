@@ -14,7 +14,6 @@ export class NodeAppButtonComponent implements OnChanges {
   protected title: string;
   protected icon: string;
   @Input() enabled = true;
-  @Input() subtitle: string;
   @Input() active = false;
   @Input() hasMessages = false;
   @Input() showMore = true;
@@ -23,7 +22,6 @@ export class NodeAppButtonComponent implements OnChanges {
   @Input() appFeedback: NodeFeedback | null;
   private containerClass: string;
   protected menuItems: MenuItem[] = [];
-  private failed: boolean;
 
   public constructor(
     protected dialog: MatDialog,
@@ -63,7 +61,6 @@ export class NodeAppButtonComponent implements OnChanges {
     this.menuItems = this.getMenuItems();
 
     if (this.isRunning) {
-      this.getSubtitle();
       this.hasMessages = this.appFeedback && this.appFeedback.unread ? this.appFeedback.unread > 0 : false;
     }
   }
@@ -76,23 +73,6 @@ export class NodeAppButtonComponent implements OnChanges {
       port = this.appFeedback.port.toString()
     } catch (e) {}
     return port;
-  }
-
-  private getPortString() {
-    return `${this.translate.instant('common.port')}: ${this.appFeedback.port.toString()}`;
-  }
-
-  private getSubtitle() {
-    this.failed = false;
-    this.subtitle = null;
-
-    if (this.appFeedback) {
-      if (this.appFeedback.failed) {
-        this.failed = true;
-      } else if (this.appFeedback.port) {
-        this.subtitle = this.getPortString();
-      }
-    }
   }
 
   get appName() {
@@ -149,7 +129,7 @@ export class NodeAppButtonComponent implements OnChanges {
     let text = this.translate.instant(key);
 
     if (addPort) {
-      text.concat(`: ${this.port}`);
+      text = text.concat(`: ${this.port}`);
     }
 
     return text;
