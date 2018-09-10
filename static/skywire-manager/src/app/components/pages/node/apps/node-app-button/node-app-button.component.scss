@@ -19,6 +19,12 @@
   align-items: center;
   justify-content: center;
 
+  mat-spinner {
+    position: absolute;
+    right: 10px;
+    top: 7px;
+    display: inline-block;
+  }
   .active .app-icon
   {
     color: theme-color(blue-dark) !important;
@@ -27,12 +33,6 @@
   .mat-flat-button.mat-primary, .mat-raised-button.mat-primary, .mat-fab.mat-primary, .mat-mini-fab.mat-primary
   {
     background-color: #0F619C !important;
-  }
-
-  .ic-app-failed
-  {
-    color: theme-color(red);
-    text-shadow: 0 1px 1px #ddd;
   }
 }
 
@@ -52,7 +52,7 @@
 {
   font-size: theme-font-size(lg);
   position: absolute;
-  right: -30px;
+  right: -5px;
   top: -12px;
 }
 

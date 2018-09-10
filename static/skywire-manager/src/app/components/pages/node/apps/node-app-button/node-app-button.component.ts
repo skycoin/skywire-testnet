@@ -1,4 +1,4 @@
-import {Component, Input, OnChanges} from '@angular/core';
+import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
 import {Node, NodeApp, NodeFeedback} from '../../../../../app.datatypes';
 import {LogComponent} from '../log/log.component';
 import {MatDialog} from '@angular/material';
@@ -22,6 +22,7 @@ export class NodeAppButtonComponent implements OnChanges {
   @Input() appFeedback: NodeFeedback | null;
   containerClass: string;
   protected menuItems: MenuItem[] = [];
+  protected loading = false;
 
   public constructor(
     protected dialog: MatDialog,
@@ -35,6 +36,7 @@ export class NodeAppButtonComponent implements OnChanges {
   }
 
   toggleAppRun() {
+    this.loading = true;
     if (this.isRunning) {
       this.stopApp();
     }
@@ -56,7 +58,12 @@ export class NodeAppButtonComponent implements OnChanges {
     });
   }
 
-  ngOnChanges(): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    let appChanges = changes['app'];
+    if (appChanges && appChanges.previousValue !== appChanges.currentValue) {
+      this.loading = false;
+    }
+
     this.containerClass = `${'d-flex flex-column align-items-center justify-content-center'} ${this.isRunning ? 'active' : ''}`;
     this.menuItems = this.getMenuItems();
 

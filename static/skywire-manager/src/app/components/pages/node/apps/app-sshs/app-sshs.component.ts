@@ -23,7 +23,7 @@ export class AppSshsComponent extends NodeAppButtonComponent implements OnChange
         app: this.app,
       },
       width: '700px'
-    });
+    }).beforeClose().subscribe(() => this.loading = true);
   }
 
   getMenuItems() {

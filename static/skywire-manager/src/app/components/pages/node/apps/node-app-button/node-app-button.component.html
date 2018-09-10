@@ -1,7 +1,7 @@
 <div [ngClass]="containerClass" id="nodeApps">
   <div class="info-container d-flex align-items-center w-100 justify-content-center">
     <mat-icon class="ic-big mr-3" >{{ icon }}</mat-icon>
-    <div class="d-flex flex-column justify-content-start">
+    <div class="d-flex flex-column justify-content-start position-relative">
       <span class="font-sm" translate>
         <button
             *ngIf="showMore"
@@ -28,13 +28,15 @@
     </div>
   </div>
   <button
+    [disabled]="loading"
     id="toggleAppButton"
-    class="mt-2 text-uppercase"
+    class="mt-2 text-uppercase d-flex justify-content-center flex-row"
     style="width: 140px;"
     color="{{ isRunning ? 'primary' : '' }}"
     mat-raised-button
     (click)="onAppClicked($event)">
     {{ (isRunning ? 'apps.stop-app' : 'apps.start-app') | translate }}
+    <mat-spinner *ngIf="loading" [diameter]="24"></mat-spinner>
   </button>
 </div>
 <mat-menu
