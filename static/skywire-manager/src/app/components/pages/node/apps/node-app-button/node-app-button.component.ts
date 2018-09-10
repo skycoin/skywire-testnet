@@ -31,8 +31,18 @@ export class NodeAppButtonComponent implements OnChanges {
     protected translate: TranslateService,
   ) { }
 
-  onAppClicked(): void {
-    this.startApp();
+  onAppClicked(): void
+  {
+    this.toggleAppRun();
+  }
+
+  toggleAppRun() {
+    if (this.isRunning) {
+      this.stopApp();
+    }
+    else {
+      this.startApp();
+    }
   }
 
   get isRunning(): boolean {
@@ -49,7 +59,7 @@ export class NodeAppButtonComponent implements OnChanges {
   }
 
   ngOnChanges(): void {
-    this.containerClass = `${'d-flex flex-column align-items-center justify-content-center w-100'} ${this.isRunning ? 'active' : ''}`;
+    this.containerClass = `${'d-flex flex-column align-items-center justify-content-center'} ${this.isRunning ? 'active' : ''}`;
     this.menuItems = this.getMenuItems();
 
     if (this.isRunning) {
@@ -59,6 +69,14 @@ export class NodeAppButtonComponent implements OnChanges {
   }
 
   protected getMenuItems(): MenuItem[] { return []; }
+
+  get port() {
+    let port = null;
+    try {
+      port = this.appFeedback.port.toString()
+    } catch (e) {}
+    return port;
+  }
 
   private getPortString() {
     return `${this.translate.instant('common.port')}: ${this.appFeedback.port.toString()}`;
@@ -77,7 +95,65 @@ export class NodeAppButtonComponent implements OnChanges {
     }
   }
 
+  get appName() {
+    return this.app.attributes[0];
+  }
+
   protected startApp() {}
+
+  protected stopApp(): void {
+    this.appsService.closeApp(this.appName).subscribe();
+  };
+
+  get isFailed() {
+    return this.appFeedback && this.appFeedback.failed;
+  }
+
+  get statusIconName(): string {
+    let statusName = 'stop';
+    if (this.isFailed) {
+      statusName = 'close';
+    }
+    else if (this.isRunning) {
+      statusName = 'play_arrow';
+    }
+    return statusName;
+  }
+
+  get statusTooltip(): string {
+    let key = 'apps.status-stopped-tooltip';
+
+    if (this.isFailed) {
+      key = 'apps.status-failed-tooltip';
+    }
+    else if (this.isRunning) {
+      key = 'apps.status-running-tooltip';
+    }
+    return this.translate.instant(key);
+  }
+
+  get status(): string {
+    let key = 'apps.status-stopped',
+        addPort = false;
+
+    if (this.isFailed) {
+      key = 'apps.status-failed';
+    }
+    else if (this.isRunning) {
+      key = 'apps.status-running';
+      if (this.port) {
+        addPort = true;
+      }
+    }
+
+    let text = this.translate.instant(key);
+
+    if (addPort) {
+      text.concat(`: ${this.port}`);
+    }
+
+    return text;
+  }
 }
 
 export interface MenuItem {

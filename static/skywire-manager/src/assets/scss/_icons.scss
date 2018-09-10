@@ -1,5 +1,6 @@
 $icon-sizes: (
-  small: 20px
+  small: 20px,
+  big: 30px
 );
 
 @each $size-name, $size-value in $icon-sizes

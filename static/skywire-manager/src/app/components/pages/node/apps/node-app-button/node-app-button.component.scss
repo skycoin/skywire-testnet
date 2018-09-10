@@ -14,27 +14,25 @@
 :host ::ng-deep
 {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
   .active .app-icon
   {
     color: theme-color(blue-dark) !important;
   }
 
-  .ic-app-failed, .app-button-port
+  .mat-flat-button.mat-primary, .mat-raised-button.mat-primary, .mat-fab.mat-primary, .mat-mini-fab.mat-primary
   {
-    position: absolute !important;
-    text-align: center;
-    top: 60px;
-    width: 150px;
+    background-color: #0F619C !important;
   }
 
   .ic-app-failed
   {
-    display: flex;
-    justify-content: center;
     color: theme-color(red);
     text-shadow: 0 1px 1px #ddd;
-    font-size: theme-font-size(md);
-    font-weight: $font-weight-normal !important;
   }
 }
 
@@ -61,9 +59,4 @@
 .separator
 {
   height: 40px;
-}
-
-span
-{
-  position: relative;
 }
