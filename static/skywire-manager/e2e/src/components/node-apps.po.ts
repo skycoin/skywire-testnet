@@ -6,27 +6,26 @@ export class NodeAppsButtons {
 
   private SSHS_BTN: string = 'sshsAppBtn';
   private SOCKSC_BTN: string = 'sockscAppBtn';
+  private SSHC_BTN: string = 'sshcAppBtn';
 
-  private clickElement(elId: string) {
-    const el = findById(elId);
-    waitForVisibility(el);
-    return el.click();
+  getToggleAppButton(appBtnId) {
+    return findById(appBtnId).element(by.id('toggleAppButton'));
   }
 
-  clickStartSshsApp() {
-    this.clickElement(this.SSHS_BTN);
+  clickToggleSshsApp() {
+    clickElement(this.getToggleAppButton(this.SSHS_BTN));
   }
 
-  clickStartSshcApp() {
-    this.clickElement('sshcAppBtn');
+  clickToggleSshcApp() {
+    clickElement(this.getToggleAppButton(this.SSHC_BTN));
   }
 
-  clickStartSockscApp() {
-    this.clickElement('sockscAppBtn');
+  clickToggleSockscApp() {
+    clickElement(this.getToggleAppButton(this.SOCKSC_BTN));
   }
 
   startSockscApp() {
-    this.clickStartSockscApp();
+    this.clickToggleSockscApp();
 
     const dialog = findById('sockscConnectContainer');
     waitForVisibility(dialog);
@@ -37,7 +36,7 @@ export class NodeAppsButtons {
   }
 
   startSshcApp() {
-    this.clickStartSshcApp();
+    this.clickToggleSshcApp();
     const dialog = findById('sshcConnectContainer');
     waitForVisibility(dialog);
 

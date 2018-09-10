@@ -18,11 +18,13 @@ describe('Apps start/stop', () => {
     browser.waitForAngularEnabled(false);
     page.navigateTo();
 
-    page.clickStartSshsApp();
+    page.clickToggleSshsApp();
 
     expect(page.isSshsAppRunning()).toBeTruthy();
 
-    page.clickStopApp();
+    page.clickToggleSshsApp();
+
+    page.waitAppCount0();
 
     expect(page.runningAppsCount()).toEqual(0);
   });
@@ -37,7 +39,9 @@ describe('Apps start/stop', () => {
 
     expect(page.isSockscAppRunning()).toBeTruthy();
 
-    page.clickStopApp();
+    page.clickToggleSocksApp();
+
+    page.waitAppCount0();
 
     expect(page.runningAppsCount()).toEqual(0);
   });
@@ -51,7 +55,9 @@ describe('Apps start/stop', () => {
 
     expect(page.isSshcAppRunning()).toBeTruthy();
 
-    page.clickStopApp();
+    page.clickToggleSshcApp();
+
+    page.waitAppCount0();
 
     expect(page.runningAppsCount()).toEqual(0);
   });

@@ -20,7 +20,7 @@ export class NodeAppButtonComponent implements OnChanges {
   @Input() node: Node;
   @Input() app: NodeApp | null;
   @Input() appFeedback: NodeFeedback | null;
-  private containerClass: string;
+  containerClass: string;
   protected menuItems: MenuItem[] = [];
 
   public constructor(
@@ -138,6 +138,6 @@ export class NodeAppButtonComponent implements OnChanges {
 
 export interface MenuItem {
   name: string;
-  callback: Function;
+  callback: () => any;
   enabled: boolean;
 }

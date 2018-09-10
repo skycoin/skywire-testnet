@@ -8,7 +8,7 @@ export class LoginPage extends BasePage {
 
   login()
   {
-    findById('passwordInput').sendKeys('12341234');
+    findById('passwordInput').sendKeys('123123123');
     return findById('loginButton').click();
   }
 }
