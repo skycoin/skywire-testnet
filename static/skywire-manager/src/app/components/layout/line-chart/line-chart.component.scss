@@ -2,6 +2,8 @@
   position: relative;
   height: 100px;
   width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
 
   canvas {
     width: 100%;

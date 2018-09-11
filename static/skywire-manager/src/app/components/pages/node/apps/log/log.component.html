@@ -10,7 +10,7 @@
       {{ message.msg }}
     </span>
   </div>
-  <div class="app-log-empty mt-3" *ngIf="!loading && logMessages.length === 0">
+  <div class="app-log-empty mt-3" *ngIf="!loading && (!logMessages || logMessages.length === 0)">
     {{ 'apps.log.empty' | translate }}
   </div>
   <div class="app-log-empty mt-4 d-flex flex-row justify-content-center" *ngIf="loading">

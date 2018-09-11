@@ -54,6 +54,20 @@ $tables-colors: (
       @include text-truncate;
     }
 
+    tr.mat-header-row {
+      height: 35px;
+
+      th.mat-header-cell {
+        vertical-align: top;
+        padding-top: 0 !important;
+      }
+    }
+
+    tr:last-child td.mat-cell {
+      padding-bottom: 0 !important;
+      border-bottom: none;
+    }
+
     td
     {
       padding-right: 16px;

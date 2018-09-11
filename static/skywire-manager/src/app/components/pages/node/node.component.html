@@ -8,60 +8,58 @@
     </div>
     <div class="col-lg-6 col-xl-7">
       <div class="d-flex flex-column h-100">
-        <div class="mt-5">
-          <app-node-status-bar
-            [nodeData]="nodeData"></app-node-status-bar>
+        <div class="mt-4.5">
+          <app-node-status-bar [nodeData]="nodeData"></app-node-status-bar>
         </div>
-        <div
-          style="margin-top: 30px; padding: 20px;"
-          class="container-elevated-translucid d-flex justify-content-between align-items-center">
+        <div class="container-elevated-translucid d-flex justify-content-between align-items-center mt-4 p-3">
             <span class="mr-2">{{ 'common.public-key' | translate }}</span>
             <app-copy-to-clipboard-text
               id="nodePublicKey"
-              class="flex-1 font-smaller text-truncate"
-              [text]="nodeData.node.key"></app-copy-to-clipboard-text>
+              class="font-smaller text-truncate"
+              [text]="nodeData.node.key">
+            </app-copy-to-clipboard-text>
         </div>
         <app-node-transports-list
           *ngIf="nodeData.info.transports.length > 0"
-          [connections]="nodeData.info.transports" style="margin-top: 25px;"></app-node-transports-list>
+          [connections]="nodeData.info.transports">
+        </app-node-transports-list>
         <app-node-app-list
           *ngIf="nodeData.apps.length > 0"
-          [apps]="nodeData.apps"
-          class="mt-3 mb-5">
+          [apps]="nodeData.apps">
         </app-node-app-list>
         <app-apps
           style="margin-top: auto;"
           [apps]="nodeData.apps"
-          [nodeInfo]="nodeData.info"></app-apps>
+          [nodeInfo]="nodeData.info">
+        </app-apps>
       </div>
     </div>
     <div class="col-3 d-lg-block d-none">
-      <div class="node-right font-smaller d-flex flex-column h-100">
+      <div class="node-right font-smaller d-flex flex-column h-100 mt-4.5">
         <!-- IPS -->
         <div class="node-ips-container d-flex flex-column justify-content-between">
           <div class="section">
-            <span class="section-title">{{ 'node.details.node-ip' | translate }}</span>
-            <span class="font-smaller">{{ nodeData.node.addr }}</span>
+            <span class="section-title">{{ 'node.details.node-info' | translate }}</span>
+            <span class="font-smaller">
+              {{ nodeData.node.addr }}
+              |
+              {{ nodeData.info.os }}
+              |
+              {{ nodeData.info.version }} ({{ nodeData.info.tag}})
+            </span>
           </div>
           <hr>
           <div class="section">
-            <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
-            <span class="font-smaller">{{ nodeData.info.os }}</span>
-          </div>
-          <hr>
-          <div class="section">
-            <span class="section-title">{{ 'node.details.node-version' | translate }}</span>
-            <span class="font-smaller">{{ nodeData.info.version }} ({{ nodeData.info.tag}})</span>
-          </div>
-          <hr>
-          <div class="section">
-            <span class="section-title">{{ 'node.details.manager-ip' | translate }}</span>
-            <span class="font-smaller">{{ managerIp }}</span>
-          </div>
-          <hr>
-          <div class="section">
-            <span class="section-title">{{ 'node.details.node-os' | translate }}</span>
-            <span class="font-smaller">{{ nodeData.info.os }}</span>
+            <span class="section-title">{{ 'node.details.manager-info' | translate }}</span>
+            <span class="font-smaller">
+              {{ managerIp }}
+              |
+              <app-copy-to-clipboard-text
+                [short]="true"
+                [text]="managerKey"
+                class="d-inline-block">
+              </app-copy-to-clipboard-text>
+            </span>
           </div>
           <hr>
           <div class="section" matTooltip="{{ 'node.details.operational-nodes-tooltip' | translate: {value: operationalNodesCount} }}">
@@ -74,11 +72,10 @@
               {{ operationalNodesCount }}/{{ nodeData.allNodes.length }} <span class="text-capitalize">{{ 'node.details.operational-nodes' | translate }}</span>
             </span>
           </div>
-          <hr>
         </div>
         <app-charts
-          class="d-flex flex-1 flex-column justify-content-end"
-          *ngIf="nodeData.info.transports.length > 0"
+          class="d-flex flex-column justify-content-end mt-5"
+
           [transports]="nodeData.info.transports"
         ></app-charts>
       </div>

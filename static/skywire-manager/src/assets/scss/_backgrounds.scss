@@ -23,7 +23,7 @@ $elevated-containers-colors: (
   {
     @include mat-elevation(8);
     border-radius: 16px;
-    padding: 15px 30px 15px 30px;
+    padding: 20px;
     background-color: $color-value !important;
   }
 }
