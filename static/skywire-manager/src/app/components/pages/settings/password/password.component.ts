@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../../services/auth.service';
 import { Location } from '@angular/common';
 import { MatSnackBar } from '@angular/material';
+import {ErrorsnackbarService} from "../../../../services/errorsnackbar.service";
+import {TranslateService} from "@ngx-translate/core";
 
 @Component({
   selector: 'app-password',
@@ -18,6 +20,8 @@ export class PasswordComponent implements OnInit {
     private router: Router,
     private location: Location,
     private snackbar: MatSnackBar,
+    private translate: TranslateService,
+    private errorSnack: ErrorsnackbarService
   ) { }
 
   ngOnInit() {
@@ -39,7 +43,7 @@ export class PasswordComponent implements OnInit {
             this.snackbar.open('Log in with your new password');
           },
           (err) => {
-            this.snackbar.open(err.message);
+            this.errorSnack.open(this.translate.instant('settings.password.errors.bad-old-password'));
           },
         );
     }

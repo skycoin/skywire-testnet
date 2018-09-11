@@ -1,34 +1,43 @@
-<div [ngClass]="containerClass">
-  <span class="font-sm">
-    <button
-      id="showMoreBtn"
-      *ngIf="showMore"
-      [matMenuTriggerFor]="appMenu"
-      [disabled]="menuItems.length === 0"
-      mat-icon-button
-      class="link btn-more">
-      <mat-icon> more_vert</mat-icon>
-      <i *ngIf="isRunning && hasMessages" class="dot-red sm"></i>
-    </button>
-    {{ title | translate }}
-  </span>
-  <button
-    class="app-icon"
-    mat-icon-button
-    (click)="onAppClicked($event)">
-    <mat-icon>{{ icon }}</mat-icon>
-  </button>
-  <span *ngIf="isRunning && subtitle" class="app-button-port font-smaller">
-    {{ subtitle }}
-  </span>
-  <div
-    *ngIf="isRunning && appFeedback?.failed"
-    disabled
-    [matTooltip]="'apps.errors.fail-tooltip' | translate"
-    class="ic-app-failed link md">
-    <mat-icon>highlight_off</mat-icon>
-    {{ 'apps.errors.fail' | translate }}
+<div [ngClass]="containerClass" id="nodeApps">
+  <div class="info-container d-flex align-items-center w-100 justify-content-center">
+    <mat-icon class="ic-big mr-3" >{{ icon }}</mat-icon>
+    <div class="d-flex flex-column justify-content-start position-relative">
+      <span class="font-sm" translate style="position: relative;">
+        <button
+            *ngIf="showMore"
+            [matMenuTriggerFor]="appMenu"
+            [disabled]="menuItems.length === 0"
+            mat-icon-button
+            class="link btn-more">
+          <mat-icon> more_vert</mat-icon>
+          <i *ngIf="isRunning && hasMessages" class="dot-red sm"></i>
+        </button>
+        {{ title }}
+      </span>
+      <div
+        matTooltip="{{ statusTooltip }}"
+        class="d-flex align-items-center"
+        style="margin-left: -7px; margin-top: -5px;">
+        <mat-icon class="ic-small" color="{{ isFailed ? 'warn' : '' }}">
+          {{ statusIconName }}
+        </mat-icon>
+        <span class="text-uppercase font-mini" translate style="transform: translateY(1px); translateX(-1px);">
+          {{ status }}
+        </span>
+      </div>
+    </div>
   </div>
+  <button
+    [disabled]="loading"
+    id="toggleAppButton"
+    class="mt-2 text-uppercase d-flex justify-content-center flex-row"
+    style="width: 140px;"
+    color="{{ isRunning ? 'primary' : '' }}"
+    mat-raised-button
+    (click)="onAppClicked($event)">
+    {{ (isRunning ? 'apps.stop-app' : 'apps.start-app') | translate }}
+    <mat-spinner *ngIf="loading" [diameter]="24"></mat-spinner>
+  </button>
 </div>
 <mat-menu
   [overlapTrigger]="false"
@@ -37,7 +46,7 @@
        mat-menu-item
        disabled="{{ !item.enabled }}"
        (click)="item.enabled ? item.callback() : null">
-    {{ item.name | translate }}
+    <span translate>{{ item.name }}</span>
   </div>
 </mat-menu>
 

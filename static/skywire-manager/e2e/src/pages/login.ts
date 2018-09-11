@@ -8,7 +8,15 @@ export class LoginPage extends BasePage {
 
   login()
   {
-    findById('passwordInput').sendKeys('12341234');
+    return this.loginWithPassword('123123123');
+  }
+
+  badLogin() {
+    return this.loginWithPassword('badpassword');
+  }
+
+  loginWithPassword(password: string) {
+    findById('passwordInput').sendKeys(password);
     return findById('loginButton').click();
   }
 }

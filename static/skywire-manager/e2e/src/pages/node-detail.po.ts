@@ -52,8 +52,8 @@ export class NodeDetailPage extends BasePage {
     return el.click();
   }
 
-  clickStartSshsApp() {
-    this.appsButtons.clickStartSshsApp();
+  clickToggleSshsApp() {
+    this.appsButtons.clickToggleSshsApp();
   }
 
   runningAppsCount() {
@@ -90,8 +90,7 @@ export class NodeDetailPage extends BasePage {
     this.appsButtons.startSshcApp();
   }
 
-  clickStopApp() {
-    this.clickFirstAppCloseButton();
+  waitAppCount0() {
     waitForInvisibility(this.runningApp(APP_SOCKSC));
     waitForInvisibility(this.runningApp(APP_SSHC));
     waitForInvisibility(this.runningApp(APP_SSHS));
@@ -109,13 +108,11 @@ export class NodeDetailPage extends BasePage {
     return this.getRunningAppsTable().all(by.tagName('tr')).get(1);
   }
 
-  openSshStartupConfig() {
-    this.appsButtons.clickSshsStartupConfig();
-    return new StartupConfigDialog();
+  clickToggleSocksApp() {
+    this.appsButtons.clickToggleSockscApp();
   }
 
-  openSockscsStartupConfig() {
-    this.appsButtons.clickSockscStartupConfig();
-    return new StartupConfigDialog();
+  clickToggleSshcApp() {
+    this.appsButtons.clickToggleSshcApp();
   }
 }

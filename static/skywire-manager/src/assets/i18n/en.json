@@ -69,6 +69,7 @@
       "new-password": "New password",
       "repeat-password": "Repeat password",
       "errors": {
+        "bad-old-password": "The provided old password is not correct.",
         "old-password-required": "Old password is required",
         "new-password-error": "Password must be 4-20 characters long",
         "passwords-not-match": "Passwords do not match"
@@ -151,7 +152,8 @@
     },
     "log": {
       "title": "Log",
-      "empty": "There are no log messages"
+      "empty": "There are no log messages",
+      "loading": "Loading log messages..."
     },
     "config": {
       "title": "Startup configuration"
@@ -161,13 +163,15 @@
       "log": "Log messages",
       "whitelist": "Whitelist"
     },
-    "errors": {
-      "fail": "Failed",
-      "fail-tooltip": "Something went wrong. Check the app's messages for more information"
-    },
-    "close-app": "Close app"
+    "stop-app": "Stop",
+    "start-app": "Start",
+    "status-running": "Running",
+    "status-stopped": "Stopped",
+    "status-failed": "Failed",
+    "status-running-tooltip": "App is currently running.",
+    "status-stopped-tooltip": "App is currently stopped.",
+    "status-failed-tooltip": "Something went wrong. Check the app's messages for more information."
   },
-
   "charts": {
     "receiving": "Receiving",
     "sending": "Sending"

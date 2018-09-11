@@ -12,6 +12,7 @@ export class LogComponent implements OnInit {
   @HostBinding('attr.class') hostClass = 'app-log-container';
   app: NodeApp;
   logMessages: LogMessage[] = [];
+  loading = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: any,
@@ -21,6 +22,16 @@ export class LogComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.appsService.getLogMessages(this.app.key).subscribe(log => this.logMessages = log || []);
+    this.loading = true;
+    this.appsService.getLogMessages(this.app.key).subscribe((log) => this.onLogsReceived(log), this.onLogsError.bind(this));
+  }
+
+  private onLogsReceived(log: LogMessage[] = []) {
+    this.loading = false;
+    this.logMessages = log;
+  }
+
+  private onLogsError() {
+    this.loading = false;
   }
 }
