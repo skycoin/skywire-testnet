@@ -23,7 +23,7 @@ export class AppSshsComponent extends NodeAppButtonComponent implements OnChange
         app: this.app,
       },
       width: '700px'
-    }).beforeClose().subscribe(() => this.loading = true);
+    }).beforeClose().subscribe(() => this.setLoading());
   }
 
   getMenuItems() {
@@ -43,6 +43,7 @@ export class AppSshsComponent extends NodeAppButtonComponent implements OnChange
   }
 
   startApp(): void {
+    this.setLoading();
     this.appsService.startSshServerWithoutWhitelist().subscribe();
   }
 }

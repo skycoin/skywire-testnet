@@ -22,7 +22,7 @@ export class NodeAppButtonComponent implements OnChanges {
   @Input() appFeedback: NodeFeedback | null;
   containerClass: string;
   protected menuItems: MenuItem[] = [];
-  protected loading = false;
+  private loading = false;
 
   public constructor(
     protected dialog: MatDialog,
@@ -36,7 +36,6 @@ export class NodeAppButtonComponent implements OnChanges {
   }
 
   toggleAppRun() {
-    this.loading = true;
     if (this.isRunning) {
       this.stopApp();
     }
@@ -140,6 +139,10 @@ export class NodeAppButtonComponent implements OnChanges {
     }
 
     return text;
+  }
+
+  protected setLoading(loading: boolean = true) {
+    this.loading = loading;
   }
 }
 
