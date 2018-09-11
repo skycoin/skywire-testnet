@@ -49,16 +49,15 @@ export class KeypairComponent implements OnInit, OnChanges {
   ngOnInit() {
     if (this.keypair) {
       this.onPairChanged();
-    }
-    else {
+    } else {
       this.keypair = {
         nodeKey: '',
         appKey: ''
-      }
+      };
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    //console.log(`keypair on changes ${JSON.stringify(changes)}`);
+    // console.log(`keypair on changes ${JSON.stringify(changes)}`);
   }
 }

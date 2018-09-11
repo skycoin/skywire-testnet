@@ -25,8 +25,7 @@ export class SockscConnectComponent implements OnInit {
   keypairChange({keyPair, valid}: KeyPairState) {
     if (valid) {
       this.keypair = keyPair;
-    }
-    else {
+    } else {
       this.keypair = null;
     }
   }

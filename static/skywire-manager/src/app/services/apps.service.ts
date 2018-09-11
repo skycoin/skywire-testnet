@@ -3,7 +3,7 @@ import { NodeService } from './node.service';
 import { ClientConnectionService } from './client-connection.service';
 import {finalize, switchMap} from 'rxjs/operators';
 import { ClientConnection } from '../app.datatypes';
-import {Observable} from "rxjs";
+import {Observable} from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -19,7 +19,7 @@ export class AppsService {
   }
 
   getLogMessages(key: string) {
-    return this.nodeService.nodeRequestWithRefresh('getMsg', {key})
+    return this.nodeService.nodeRequestWithRefresh('getMsg', {key});
   }
 
   startSshServer(whitelistedKeys?: string[]) {

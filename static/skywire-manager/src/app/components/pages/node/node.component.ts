@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog} from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { TranslateService } from '@ngx-translate/core';
-import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
+import {ErrorsnackbarService} from '../../../services/errorsnackbar.service';
 
 @Component({
   selector: 'app-node',
