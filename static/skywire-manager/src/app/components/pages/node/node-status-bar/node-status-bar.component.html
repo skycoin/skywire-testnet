@@ -3,7 +3,7 @@
       matTooltip="{{onlineTooltip}}">
     <mat-icon>network_check</mat-icon>
     <div class="d-flex flex-column">
-      <span class="font-mini">STATUS</span>
+      <span class="font-mini">{{ 'node.status' | translate }}</span>
       <span id="nodeOnlineStatus">{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
     </div>
   </li>
@@ -11,7 +11,7 @@
   <li class="status-text list-inline-item d-flex align-items-center justify-content-between">
     <mat-icon>layers</mat-icon>
     <div class="d-flex flex-column">
-      <span class="font-mini">PROTOCOL</span>
+      <span class="font-mini">{{ 'node.protocol' | translate }}</span>
       <span
         id="nodeProtocol"
         class="text-uppercase">
@@ -23,7 +23,7 @@
   <li class="status-text list-inline-item d-flex align-items-center justify-content-between">
     <mat-icon>timelapse</mat-icon>
     <div class="d-flex flex-column">
-      <span class="font-mini">LAST PING</span>
+      <span class="font-mini">{{ 'node.last-ping' | translate }}</span>
       <span>{{ nodeData.node.last_ack_time | relativeTime }}</span>
     </div>
   </li>
@@ -31,7 +31,7 @@
   <li class="status-text list-inline-item d-flex align-items-center justify-content-between">
     <mat-icon>av_timer</mat-icon>
     <div class="d-flex flex-column">
-      <span class="font-mini">RUNNING</span>
+      <span class="font-mini">{{ 'node.running' | translate }}</span>
       <span>{{ nodeData.node.start_time | relativeTime:true }}</span>
     </div>
   </li>

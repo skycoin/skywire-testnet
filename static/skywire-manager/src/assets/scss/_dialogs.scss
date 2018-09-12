@@ -12,6 +12,7 @@
   .mat-dialog-container
   {
     @extend .container-elevated-translucid-dark;
+    padding: 24px;
     color: theme-color(white);
     border-radius: $mat-dialog-radius;
   }

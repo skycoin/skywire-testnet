@@ -37,6 +37,10 @@
     "online-tooltip": "Online: the node is correctly detected by the Skycoin network.",
     "offline": "Offline",
     "offline-tooltip": "Offline: the node is not detected by the Skycoin network. Probably it has no internet connectivity.",
+    "status": "STATUS",
+    "protocol": "PROTOCOL",
+    "last-ping": "LAST-PING",
+    "running": "RUNNING",
     "details": {
       "node-info": "Node Info",
       "manager-info": "Manager Info",
