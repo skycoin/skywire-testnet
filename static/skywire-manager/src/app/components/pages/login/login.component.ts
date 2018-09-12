@@ -12,7 +12,6 @@ import {ErrorsnackbarService} from '../../../services/errorsnackbar.service';
 })
 export class LoginComponent implements OnInit {
   form: FormGroup;
-  error: string;
   loading = false;
 
   constructor(
@@ -20,8 +19,7 @@ export class LoginComponent implements OnInit {
     private translate: TranslateService,
     private router: Router,
     private snackbar: ErrorsnackbarService,
-  ) {
-  }
+  ) { }
 
   ngOnInit() {
     this.form = new FormGroup({
@@ -43,6 +41,10 @@ export class LoginComponent implements OnInit {
   }
 
   login() {
+    if (!this.form.valid) {
+      return;
+    }
+
     this.loading = true;
     this.authService.login(this.form.get('password').value).subscribe(
       () => this.onLoginSuccess(),

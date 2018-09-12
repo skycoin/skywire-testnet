@@ -12,16 +12,8 @@
   .mat-dialog-container
   {
     @extend .container-elevated-translucid-dark;
-    padding: 0;
     color: theme-color(white);
-  }
-
-  .app-log-title
-  {
-    color: theme-color(blue-dark);
-    background: theme-color(white);
-    padding: 7px 10px 5px 15px;
-    margin: 0;
+    border-radius: $mat-dialog-radius;
   }
 
   .app-log-content

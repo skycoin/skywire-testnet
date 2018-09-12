@@ -17,11 +17,11 @@ export class StorageService {
     return `${nodeKey}-label`;
   }
 
-  public setNodeLabel(nodeKey: string, nodeLabel: string): void {
+  setNodeLabel(nodeKey: string, nodeLabel: string): void {
     this.storage.setItem(StorageService.nodeLabelNamespace(nodeKey), nodeLabel);
   }
 
-  public getNodeLabel(nodeKey: string): string {
+  getNodeLabel(nodeKey: string): string {
     return this.storage.getItem(StorageService.nodeLabelNamespace(nodeKey));
   }
 

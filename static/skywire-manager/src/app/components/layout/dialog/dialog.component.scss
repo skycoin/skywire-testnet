@@ -13,11 +13,19 @@
     text-transform: uppercase;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
+    background-color: white;
 
-    mat-icon {
+    span {
+      line-height: 16px;
+    }
+
+    .mat-icon-button {
       cursor: pointer;
-      color: darken($white, 30%)
+      color: darken($white, 30%);
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
     }
   }
 }
