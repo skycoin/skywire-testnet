@@ -4,8 +4,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../../services/auth.service';
 import { Location } from '@angular/common';
 import { MatSnackBar } from '@angular/material';
-import {ErrorsnackbarService} from "../../../../services/errorsnackbar.service";
-import {TranslateService} from "@ngx-translate/core";
+import {ErrorsnackbarService} from '../../../../services/errorsnackbar.service';
+import {TranslateService} from '@ngx-translate/core';
 
 @Component({
   selector: 'app-password',

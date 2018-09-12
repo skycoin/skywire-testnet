@@ -110,14 +110,12 @@ export class NodeService {
 
     const refreshMilliseconds = this.storageService.getRefreshTime() * 1000;
 
-    return this.nodeDataSubscription = timer(0, refreshMilliseconds).subscribe(() =>
-    {
+    return this.nodeDataSubscription = timer(0, refreshMilliseconds).subscribe(() => {
       this.requestRefreshNodeData().subscribe(this.notifyNodeDataRefreshed.bind(this), errorCallback);
     });
   }
 
-  notifyNodeDataRefreshed(data: any)
-  {
+  notifyNodeDataRefreshed(data: any) {
     this.currentNodeData.next({
         node: { ...data[0], key: this.currentNode.key },
         apps: data[1] || [],
@@ -126,8 +124,7 @@ export class NodeService {
       });
   }
 
-  requestRefreshNodeData()
-  {
+  requestRefreshNodeData() {
     return forkJoin(
       this.node(this.currentNode.key),
       this.nodeApps(),
@@ -136,8 +133,7 @@ export class NodeService {
     );
   }
 
-  refreshAppData()
-  {
+  refreshAppData() {
     this.requestRefreshNodeData().subscribe(this.notifyNodeDataRefreshed.bind(this));
   }
 

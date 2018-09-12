@@ -7,7 +7,7 @@ import {Router} from '@angular/router';
 import { ButtonComponent } from '../../layout/button/button.component';
 import { EditLabelComponent } from './edit-label/edit-label.component';
 import { TranslateService } from '@ngx-translate/core';
-import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
+import {ErrorsnackbarService} from '../../../services/errorsnackbar.service';
 
 @Component({
   selector: 'app-node-list',

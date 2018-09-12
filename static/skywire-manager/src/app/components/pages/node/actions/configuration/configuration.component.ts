@@ -36,9 +36,8 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
   }
 
   ngOnInit() {
-    this.dialogRef.beforeClose().subscribe(() =>
-    {
-      this._save()
+    this.dialogRef.beforeClose().subscribe(() => {
+      this._save();
     });
 
     return Object.keys(this.discoveries).map(key => {
@@ -52,8 +51,7 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
   }
 
   _save() {
-    if (this.currentDiscoveries.length > 0)
-    {
+    if (this.currentDiscoveries.length > 0) {
       const stringValues = [];
       this.currentDiscoveries.map(({domain, publicKey}) => {
         stringValues.push(`${domain}-${publicKey}`);

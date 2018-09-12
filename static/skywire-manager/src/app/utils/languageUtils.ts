@@ -3,10 +3,10 @@ const LANGUAGES_LIST = {
     name: 'English',
     nativeName: 'English',
   },
-  es: {
-    name: 'Spanish',
-    nativeName: 'Español',
-  }
+  // es: {
+  //   name: 'Spanish',
+  //   nativeName: 'Español',
+  // }
 };
 
 function getNativeName(langCode: string): string {

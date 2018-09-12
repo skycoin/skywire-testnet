@@ -20,7 +20,6 @@ export class LineChartComponent implements OnInit, DoCheck {
   }
 
   ngOnInit() {
-    console.log(this.chartElement)
     this.chart = new Chart(this.chartElement.nativeElement, {
       type: 'line',
       data: {
@@ -33,6 +32,7 @@ export class LineChartComponent implements OnInit, DoCheck {
         }],
       },
       options: {
+        events: [],
         legend: { display: false },
         tooltips: { enabled: false },
         scales: {

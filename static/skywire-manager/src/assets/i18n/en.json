@@ -13,7 +13,9 @@
     "discovery": "Discovery",
     "port": "Port",
     "back": "Back",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "download": "Download",
+    "upload": "Upload"
   },
 
   "inputs": {
@@ -35,15 +37,13 @@
     "online-tooltip": "Online: the node is correctly detected by the Skycoin network.",
     "offline": "Offline",
     "offline-tooltip": "Offline: the node is not detected by the Skycoin network. Probably it has no internet connectivity.",
-    "status": "Status",
-    "protocol": "Protocol",
-    "last-ack": "Last ack time",
-    "running": "Running",
+    "status": "STATUS",
+    "protocol": "PROTOCOL",
+    "last-ping": "LAST-PING",
+    "running": "RUNNING",
     "details": {
-      "node-ip": "Node IP",
-      "node-os": "Node OS",
-      "node-version": "Node Version",
-      "manager-ip": "Manager IP",
+      "node-info": "Node Info",
+      "manager-info": "Manager Info",
       "manager-ip-not-found": "Manager not found",
       "connection": "Connection",
       "nodes": "nodes",
@@ -172,18 +172,10 @@
     "status-stopped-tooltip": "App is currently stopped.",
     "status-failed-tooltip": "Something went wrong. Check the app's messages for more information."
   },
-  "charts": {
-    "receiving": "Receiving",
-    "sending": "Sending"
-  },
 
   "transports": {
-    "sent": "Sent",
-    "received": "Received",
-    "from-node": "From node",
-    "from-app": "From app",
-    "to-node": "To node",
-    "to-app": "To app"
+    "from": "From node/app",
+    "to": "To node/app"
   },
 
   "copy": {

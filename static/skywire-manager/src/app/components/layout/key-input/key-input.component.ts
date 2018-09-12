@@ -12,7 +12,7 @@ import {
 import {publicKeyValidator} from '../../../forms/validators';
 import {FormControl} from '@angular/forms';
 import {MatInput} from '@angular/material';
-import {Observable} from "rxjs";
+import {Observable} from 'rxjs';
 
 export interface KeyInputEvent {
   value: string;
@@ -62,15 +62,14 @@ export class KeyInputComponent implements OnInit, AfterViewInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    //console.log(`keyinput onchanges ${JSON.stringify(changes)}`);
+    // console.log(`keyinput onchanges ${JSON.stringify(changes)}`);
     this.createFormControl();
 
     // setTimeout to avoid "ExpressionChangedAfterItHasBeenCheckedError" error...
     setTimeout(() => this.emitState(), 0);
   }
 
-  createFormControl()
-  {
+  createFormControl() {
     this.validator = new FormControl(this.value, [publicKeyValidator(this.required)]);
   }
 

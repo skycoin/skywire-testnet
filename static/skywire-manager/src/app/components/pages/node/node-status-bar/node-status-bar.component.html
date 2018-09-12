@@ -2,25 +2,37 @@
   <li class="status-text list-inline-item d-flex align-items-center justify-content-between"
       matTooltip="{{onlineTooltip}}">
     <mat-icon>network_check</mat-icon>
-    <span id="nodeOnlineStatus">{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
+    <div class="d-flex flex-column">
+      <span class="font-mini">{{ 'node.status' | translate }}</span>
+      <span id="nodeOnlineStatus">{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
+    </div>
   </li>
   <li class="separator"></li>
-  <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.protocol' | translate">
+  <li class="status-text list-inline-item d-flex align-items-center justify-content-between">
     <mat-icon>layers</mat-icon>
-    <span
-      id="nodeProtocol"
-      class="text-uppercase">
-      {{ nodeData.node.type }}
-    </span>
+    <div class="d-flex flex-column">
+      <span class="font-mini">{{ 'node.protocol' | translate }}</span>
+      <span
+        id="nodeProtocol"
+        class="text-uppercase">
+        {{ nodeData.node.type }}
+      </span>
+    </div>
   </li>
   <li class="separator"></li>
-  <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.last-ack' | translate">
+  <li class="status-text list-inline-item d-flex align-items-center justify-content-between">
     <mat-icon>timelapse</mat-icon>
-    {{ nodeData.node.last_ack_time | relativeTime }}
+    <div class="d-flex flex-column">
+      <span class="font-mini">{{ 'node.last-ping' | translate }}</span>
+      <span>{{ nodeData.node.last_ack_time | relativeTime }}</span>
+    </div>
   </li>
   <li class="separator"></li>
-  <li class="status-text list-inline-item d-flex align-items-center justify-content-between" [matTooltip]="'node.running' | translate">
+  <li class="status-text list-inline-item d-flex align-items-center justify-content-between">
     <mat-icon>av_timer</mat-icon>
-    {{ nodeData.node.start_time | relativeTime:true }}
+    <div class="d-flex flex-column">
+      <span class="font-mini">{{ 'node.running' | translate }}</span>
+      <span>{{ nodeData.node.start_time | relativeTime:true }}</span>
+    </div>
   </li>
 </ul>

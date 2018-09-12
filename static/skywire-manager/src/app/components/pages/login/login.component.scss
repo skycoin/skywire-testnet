@@ -2,41 +2,40 @@
 
 :host::ng-deep
 {
-  button
-  {
-    width: 130px;
-    align-self: flex-end;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    mat-spinner {
-      position: absolute;
-      right: 10px;
-      top: 5px;
-      display: inline-block;
-    }
-  }
-
   form {
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  input[type='password'] {
+  .input-icon {
     height: 35px;
     width: 300px;
-    border-radius: 5px;
-    font-size: 14px;
-    border: none;
-    padding-left: 10px;
-    padding-right: 10px;
-    box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.10), 0 6px 20px 0 rgba(0, 0, 0, 0.10);
+    position: relative;
 
-    &:focus {
-      outline: none;
+    input[type='password'] {
+      width: 100%;
+      height: 100%;
+      border-radius: 5px;
+      font-size: 14px;
+      border: none;
+      padding-left: 10px;
+      padding-right: 10px;
+      box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.10), 0 6px 20px 0 rgba(0, 0, 0, 0.10);
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      color: $black;
+      width: 35px;
+      height: 35px;
+      line-height: 35px;
     }
   }
 
@@ -45,5 +44,7 @@
     position: absolute;
     bottom: 60px;
     margin: 0;
+    font-size: 20px;
+    font-weight: 400;
   }
 }

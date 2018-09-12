@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog} from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { TranslateService } from '@ngx-translate/core';
-import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
+import {ErrorsnackbarService} from '../../../services/errorsnackbar.service';
 
 @Component({
   selector: 'app-node',
@@ -15,6 +15,7 @@ import {ErrorsnackbarService} from "../../../services/errorsnackbar.service";
 export class NodeComponent implements OnInit, OnDestroy {
   nodeData: NodeData;
   managerIp: string;
+  managerKey: string;
 
   private refreshSubscription: Subscription;
   constructor(
@@ -36,17 +37,17 @@ export class NodeComponent implements OnInit, OnDestroy {
         this.refreshSubscription = this.nodeService.nodeData().subscribe((nodeData: NodeData) => {
           // Fake data used to style the list because it is
           // difficult to see real transports while developing.
-          /*let transport: NodeTransport = {
-            download_bandwidth: 1333323,
-            download_total: 4323331,
-            from_app: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
-            to_app: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
-            from_node: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
-            to_node: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
-            upload_bandwidth: 333333333,
-            upload_total: 33333333
-          };
-          nodeData.info.transports = [transport, transport, transport];*/
+          // const transport = {
+          //   download_bandwidth: 1333323,
+          //   download_total: 4323331,
+          //   from_app: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
+          //   to_app: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
+          //   from_node: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
+          //   to_node: '02746d5570118259d98e0ee445bc4ae82ecda258cb64e87d5f1f48cc29badb492f',
+          //   upload_bandwidth: 100,
+          //   upload_total: 33333333
+          // };
+          // nodeData.info.transports = [transport, transport, transport];
           this.nodeData = nodeData;
         });
 
@@ -55,7 +56,10 @@ export class NodeComponent implements OnInit, OnDestroy {
         );
 
         this.nodeService.serverInfo().subscribe(info => {
-          this.managerIp = info.split('-')[0].replace('localhost', '127.0.0.1');
+          const data = info.split('-');
+
+          this.managerIp = data[0].replace('localhost', '127.0.0.1');
+          this.managerKey = data[1];
         });
       },
       () => this.router.navigate(['nodes'])

@@ -30,16 +30,14 @@ export class NodeAppButtonComponent implements OnChanges {
     protected translate: TranslateService,
   ) { }
 
-  onAppClicked(): void
-  {
+  onAppClicked(): void {
     this.toggleAppRun();
   }
 
   toggleAppRun() {
     if (this.isRunning) {
       this.stopApp();
-    }
-    else {
+    } else {
       this.startApp();
     }
   }
@@ -58,7 +56,7 @@ export class NodeAppButtonComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    let appChanges = changes['app'];
+    const appChanges = changes['app'];
     if (appChanges && appChanges.previousValue !== appChanges.currentValue) {
       this.loading = false;
     }
@@ -76,7 +74,7 @@ export class NodeAppButtonComponent implements OnChanges {
   get port() {
     let port = null;
     try {
-      port = this.appFeedback.port.toString()
+      port = this.appFeedback.port.toString();
     } catch (e) {}
     return port;
   }
@@ -89,7 +87,7 @@ export class NodeAppButtonComponent implements OnChanges {
 
   protected stopApp(): void {
     this.appsService.closeApp(this.appName).subscribe();
-  };
+  }
 
   get isFailed() {
     return this.appFeedback && this.appFeedback.failed;
@@ -99,8 +97,7 @@ export class NodeAppButtonComponent implements OnChanges {
     let statusName = 'stop';
     if (this.isFailed) {
       statusName = 'close';
-    }
-    else if (this.isRunning) {
+    } else if (this.isRunning) {
       statusName = 'play_arrow';
     }
     return statusName;
@@ -111,8 +108,7 @@ export class NodeAppButtonComponent implements OnChanges {
 
     if (this.isFailed) {
       key = 'apps.status-failed-tooltip';
-    }
-    else if (this.isRunning) {
+    } else if (this.isRunning) {
       key = 'apps.status-running-tooltip';
     }
     return this.translate.instant(key);
@@ -124,8 +120,7 @@ export class NodeAppButtonComponent implements OnChanges {
 
     if (this.isFailed) {
       key = 'apps.status-failed';
-    }
-    else if (this.isRunning) {
+    } else if (this.isRunning) {
       key = 'apps.status-running';
       if (this.port) {
         addPort = true;

@@ -5,7 +5,7 @@ import {KeyInputComponent} from '../../../../../layout/key-input/key-input.compo
 import {EditableKeyComponent} from '../../../../../layout/editable-key/editable-key.component';
 import {DatatableProvider} from '../../../../../layout/datatable/datatable.component';
 import { TranslateService } from '@ngx-translate/core';
-import {ErrorsnackbarService} from "../../../../../../services/errorsnackbar.service";
+import {ErrorsnackbarService} from '../../../../../../services/errorsnackbar.service';
 
 @Component({
   selector: 'app-sshs-whitelist',
@@ -24,9 +24,8 @@ export class SshsWhitelistComponent implements DatatableProvider<string>, OnInit
   ) {}
 
   ngOnInit(): void {
-    this.dialogRef.beforeClose().subscribe(() =>
-    {
-      this._save()
+    this.dialogRef.beforeClose().subscribe(() => {
+      this._save();
     });
   }
 
@@ -35,8 +34,7 @@ export class SshsWhitelistComponent implements DatatableProvider<string>, OnInit
   }
 
   _save() {
-    if (this.currentWhiteList.length > 0)
-    {
+    if (this.currentWhiteList.length > 0) {
       this.appsService.startSshServer(this.currentWhiteList).subscribe(
         () => this.snackbar.open(this.translate.instant('apps.sshs.whitelist.saved-correctly')),
         () => this.errorSnackbar.open(this.translate.instant('apps.sshs.whitelist.errors.cant-save'))

@@ -8,7 +8,7 @@ import {MatTableDataSource} from '@angular/material';
   styleUrls: ['./node-transports-list.scss']
 })
 export class NodeTransportsListComponent implements OnChanges, OnInit {
-  displayedColumns: string[] = ['index', 'upload_total', 'download_total', 'from_node', 'from_app', 'to_node', 'to_app'];
+  displayedColumns: string[] = ['index', 'upload_total', 'download_total', 'from', 'to'];
   dataSource = new MatTableDataSource<NodeTransport>();
   @Input() connections: NodeTransport[] = [];
 
