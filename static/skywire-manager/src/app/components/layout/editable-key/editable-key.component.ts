@@ -13,7 +13,7 @@ export class EditableKeyComponent {
   @Input() required = false;
   @Output() valueEdited = new EventEmitter<string>();
   editMode = false;
-  private valid = true;
+  valid = true;
 
   onAppKeyChanged({value, valid}: KeyInputEvent) {
     this.valid = valid;

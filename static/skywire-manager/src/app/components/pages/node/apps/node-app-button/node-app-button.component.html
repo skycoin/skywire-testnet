@@ -34,7 +34,7 @@
     style="width: 140px;"
     color="{{ isRunning ? 'primary' : '' }}"
     mat-raised-button
-    (click)="onAppClicked($event)">
+    (click)="onAppClicked()">
     {{ (isRunning ? 'apps.stop-app' : 'apps.start-app') | translate }}
     <mat-spinner *ngIf="loading" [diameter]="24"></mat-spinner>
   </button>

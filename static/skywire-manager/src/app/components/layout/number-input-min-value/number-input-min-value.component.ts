@@ -22,8 +22,7 @@ export class NumberInputMinValueComponent implements OnInit {
   @Input() value: number;
   @Input() fieldName: string;
   matcher = new MyErrorStateMatcher();
-
-  private validator: FormControl;
+  validator: FormControl;
 
   ngOnInit() {
     this.validator = new FormControl('', [

@@ -10,7 +10,7 @@ import {KeyPairState} from '../../../../../layout/keypair/keypair.component';
 })
 export class SshcKeysComponent {
   keypair: Keypair;
-  private valid = true;
+  valid = true;
 
   constructor(
     public dialogRef: MatDialogRef<SshcKeysComponent>,

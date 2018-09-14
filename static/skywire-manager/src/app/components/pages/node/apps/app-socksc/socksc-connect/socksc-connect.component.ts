@@ -10,8 +10,7 @@ import {KeyPairState} from '../../../../../layout/keypair/keypair.component';
 })
 export class SockscConnectComponent implements OnInit {
   keypair: Keypair;
-
-  private discoveries = [];
+  discoveries = [];
 
   constructor(
     public dialogRef: MatDialogRef<SockscConnectComponent>,

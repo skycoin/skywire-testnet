@@ -6,7 +6,7 @@
     mat-menu-item
     [clipboard]="fullText"
     [matTooltip]="'copy.tooltip' | translate"
-    (copyEvent)="onCopyToClipboardClicked($event)">
+    (copyEvent)="onCopyToClipboardClicked()">
     {{ fullText }}
     <button style="margin-left: 15px;" color="accent" mat-icon-button>
       <mat-icon aria-label="content_copy">content_copy</mat-icon>

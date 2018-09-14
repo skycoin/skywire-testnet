@@ -11,8 +11,6 @@ import { TranslateService } from '@ngx-translate/core';
   styleUrls: ['./node-app-button.component.scss']
 })
 export class NodeAppButtonComponent implements OnChanges {
-  protected title: string;
-  protected icon: string;
   @Input() enabled = true;
   @Input() active = false;
   @Input() hasMessages = false;
@@ -20,9 +18,11 @@ export class NodeAppButtonComponent implements OnChanges {
   @Input() node: Node;
   @Input() app: NodeApp | null;
   @Input() appFeedback: NodeFeedback | null;
+  title: string;
+  icon: string;
   containerClass: string;
-  protected menuItems: MenuItem[] = [];
-  private loading = false;
+  menuItems: MenuItem[] = [];
+  loading = false;
 
   public constructor(
     protected dialog: MatDialog,
