@@ -5,7 +5,7 @@
 
 $tables-colors: (
   // Background, background:hover, font color
-  white: (theme-color(white), theme-color(white-hover), theme-color(black)),
+  white: (theme-color(white), theme-color(white-hover), theme-color(light-gray)),
   translucid: (transparent, theme-color(translucid-hover), theme-color(white)),
   abs-white: (white, theme-color(white-hover), theme-color(black))
 );
@@ -42,6 +42,10 @@ $tables-colors: (
       }
     }
 
+    &.fit {
+      margin: -16px 0;
+    }
+
     td, th
     {
       color: nth($colors, 3) !important;
@@ -55,17 +59,22 @@ $tables-colors: (
     }
 
     tr.mat-header-row {
-      height: 35px;
-
-      th.mat-header-cell {
-        vertical-align: top;
-        padding-top: 0 !important;
-      }
+      height: 48px;
     }
 
     tr:last-child td.mat-cell {
-      padding-bottom: 0 !important;
+      //padding-bottom: 0 !important;
       border-bottom: none;
+    }
+
+    tr {
+      th:first-child, td:first-child {
+        padding-left: 0 !important;
+      }
+
+      th:first-child, td:last-child {
+        padding-right: 0 !important;
+      }
     }
 
     td

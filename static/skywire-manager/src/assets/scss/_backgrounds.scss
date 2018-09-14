@@ -22,7 +22,7 @@ $elevated-containers-colors: (
   .container-elevated-#{$color-name}
   {
     @include mat-elevation(8);
-    border-radius: 16px;
+    border-radius: $mat-dialog-radius;
     padding: 20px;
     background-color: $color-value !important;
   }

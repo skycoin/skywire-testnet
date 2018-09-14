@@ -35,10 +35,7 @@
   }
 }
 
-//
-// General dialog
-//
-mat-dialog-container.mat-dialog-container
+.mat-menu-panel, mat-dialog-container.mat-dialog-container
 {
-  border-radius: $mat-dialog-radius;
+  border-radius: $mat-dialog-radius !important;
 }
