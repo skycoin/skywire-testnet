@@ -1,6 +1,6 @@
 # skywire build binaries
 # reference https://github.com/skycoin/skywire
-ARG IMAGE_FROM=alpine:3.7
+ARG IMAGE_FROM=busybox:1.29-glibc
 FROM golang:1.10-stretch AS build-go
 ARG ARCH=amd64
 ARG GOARM
