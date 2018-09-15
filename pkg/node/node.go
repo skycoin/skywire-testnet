@@ -160,13 +160,14 @@ func (n *Node) connectDiscovery(addr string) (err error) {
 	return
 }
 
-func (n *Node) ConnectManager(managerAddr string) (err error) {
+func (n *Node) ConnectManager(managerAddr string, onConnection func()) (err error) {
 	err = n.manager.ConnectWithConfig(managerAddr, &factory.ConnConfig{
 		Context:       map[string]string{"node-api": n.webPort},
 		Reconnect:     true,
 		ReconnectWait: 10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
 			go func() {
+				go onConnection()
 				for {
 					select {
 					case m, ok := <-connection.GetChanIn():
