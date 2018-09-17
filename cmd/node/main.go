@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/file"
@@ -97,30 +96,30 @@ func main() {
 		tokenUrl = fmt.Sprintf("http://%s/getToken", config.ManagerWeb)
 	}
 	if config.ConnectManager {
-		var setupNode = func() {
-			for true {
-				resp, err := http.Get(tokenUrl)
-				if err != nil {
-					log.Error(err)
-					fmt.Println("Connect to manager failed,Sleep 5 second then reconnect...")
-					time.Sleep(5 * time.Second)
-				} else {
-					defer resp.Body.Close()
-					token, err := ioutil.ReadAll(resp.Body)
-					if err != nil {
-						log.Error(err)
-					}
-					if na == nil {
-						// na doesn't exist yet, create it and start the server
-						na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
-						na.StartSrv()
-					} else {
-						// na already exists, just update token
-						na.SetToken(string(token))
-					}
-					break
-				}
+		var setupNode = func() (success bool) {
+			resp, err := http.Get(tokenUrl)
+			if err != nil {
+				log.Error(err)
+				// failure
+				return false
 			}
+			defer resp.Body.Close()
+			token, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Error(err)
+				// failure
+				return false
+			}
+			if na == nil {
+				// na doesn't exist yet, create it and start the server
+				na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
+				na.StartSrv()
+			} else {
+				// na already exists, just update token
+				na.SetToken(string(token))
+			}
+			// success
+			return true
 		}
 		err = n.ConnectManager(config.ManagerAddr, setupNode)
 		if err != nil {
