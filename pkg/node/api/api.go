@@ -39,6 +39,10 @@ type NodeApi struct {
 	shell
 }
 
+func (na *NodeApi) SetToken(newToken string) {
+	na.token = newToken
+}
+
 type appCxt struct {
 	cxt    context.Context
 	cancel context.CancelFunc

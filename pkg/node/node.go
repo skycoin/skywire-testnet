@@ -160,12 +160,19 @@ func (n *Node) connectDiscovery(addr string) (err error) {
 	return
 }
 
-func (n *Node) ConnectManager(managerAddr string) (err error) {
+func (n *Node) ConnectManager(managerAddr string, onConnection func()(success bool)) (err error) {
 	err = n.manager.ConnectWithConfig(managerAddr, &factory.ConnConfig{
 		Context:       map[string]string{"node-api": n.webPort},
 		Reconnect:     true,
 		ReconnectWait: 10 * time.Second,
 		OnConnected: func(connection *factory.Connection) {
+			go func() {
+				// try to run the function until the connection is closed or it is successful
+				for !connection.IsClosed() && !onConnection() {
+					// if the function is not successful, wait and try again
+					time.Sleep(5 * time.Second)
+				}
+			}()
 			go func() {
 				for {
 					select {

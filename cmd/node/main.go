@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/file"
@@ -90,35 +89,48 @@ func main() {
 	defer n.Close()
 	log.Debugf("listen on %s", config.Address)
 	var na *api.NodeApi
+	var tokenUrl string
+	if len(strings.Split(config.ManagerWeb, ":")) == 1 {
+		tokenUrl = fmt.Sprintf("http://127.0.0.1%s/getToken", config.ManagerWeb)
+	} else {
+		tokenUrl = fmt.Sprintf("http://%s/getToken", config.ManagerWeb)
+	}
 	if config.ConnectManager {
-		err = n.ConnectManager(config.ManagerAddr)
-		if err != nil {
-			log.Error(err)
-		}
-		var tokenUrl string
-		if len(strings.Split(config.ManagerWeb, ":")) == 1 {
-			tokenUrl = fmt.Sprintf("http://127.0.0.1%s/getToken", config.ManagerWeb)
-		} else {
-			tokenUrl = fmt.Sprintf("http://%s/getToken", config.ManagerWeb)
-		}
-		for true {
+		var setupNode = func() (success bool) {
 			resp, err := http.Get(tokenUrl)
 			if err != nil {
 				log.Error(err)
-				fmt.Println("Connect to manager failed,Sleep 5 second then reconnect...")
-				time.Sleep(5 * time.Second)
-			} else {
-				defer resp.Body.Close()
-				token, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					log.Error(err)
-				}
+				// failure
+				return false
+			}
+			defer resp.Body.Close()
+			token, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Error(err)
+				// failure
+				return false
+			}
+			if na == nil {
+				// na doesn't exist yet, create it and start the server
 				na = api.New(config.WebPort, string(token), n, &config, confPath, osSignal)
 				na.StartSrv()
-				defer na.Close()
-				break
+			} else {
+				// na already exists, just update token
+				na.SetToken(string(token))
 			}
+			// success
+			return true
 		}
+		err = n.ConnectManager(config.ManagerAddr, setupNode)
+		if err != nil {
+			log.Error(err)
+		}
+		// close node connection upon termination if na exists
+		defer func() {
+			if na != nil {
+				na.Close()
+			}
+		}()
 	}
 	select {
 	case signal := <-osSignal:
