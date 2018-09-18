@@ -2,6 +2,7 @@ language: go
 go:
   - "1.9.x"
   - "1.10.x"
+  - "1.11.x"
 
 matrix:
   include:
@@ -12,4 +13,3 @@ install: true
 
 script:
   - go install cmd/...
-  - go install cmdx/...
