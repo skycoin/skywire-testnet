@@ -6,15 +6,14 @@
       [required]="true"
       (keypairChange)="keypairChange($event)"
     ></app-keypair>
-    <button
-      id="startSshcAppBtn"
+    <app-button
+      type="mat-raised-button"
       class="float-right"
-      (click)="connect()"
-      mat-raised-button
-      color="primary"
+      (action)="connect()"
       [disabled]="!(valid && keypair && keypair.nodeKey && keypair.appKey)"
+      color="primary"
     >
       {{ 'apps.sshc.connect' | translate }}
-    </button>
+    </app-button>
   </div>
 </app-dialog>

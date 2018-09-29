@@ -54,7 +54,7 @@
   },
 
   "nodes": {
-    "refresh": "Refresh nodes",
+    "refresh": "Refresh",
     "label": "Label",
     "running": "Running",
     "edit-label": "Edit label",

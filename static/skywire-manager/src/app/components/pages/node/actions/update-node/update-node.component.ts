@@ -45,9 +45,7 @@ export class UpdateNodeComponent implements OnInit {
   onUpdateSuccess(updated: boolean) {
     this.isLoading = false;
     if (updated) {
-      this.dialogRef.close({
-        updated: true
-      });
+      this.dialogRef.close(true);
     } else {
       this.onUpdateError();
     }

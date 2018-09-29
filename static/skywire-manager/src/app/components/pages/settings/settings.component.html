@@ -1,5 +1,5 @@
 <app-toolbar>
-  <app-back-button (click)="back()"></app-back-button>
+  <app-button (action)="back()" icon="chevron_left">Back</app-button>
 </app-toolbar>
 <div class="container-fluid mt-5">
   <div class="row justify-content-center">
@@ -34,13 +34,14 @@
               </mat-form-field>
             </mat-list-item>
             <mat-list-item>
-                <button
-                  class="ml-0"
-                  mat-raised-button
-                  color="primary"
-                  (click)="onChangePasswordClicked()">
-                    {{ "settings.change-password" | translate }}
-                </button>
+              <app-button
+                class="ml-0"
+                type="mat-raised-button"
+                color="primary"
+                (action)="onChangePasswordClicked()"
+              >
+                {{ "settings.change-password" | translate }}
+              </app-button>
             </mat-list-item>
           </mat-list>
         </form>

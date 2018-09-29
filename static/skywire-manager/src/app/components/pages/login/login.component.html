@@ -4,7 +4,7 @@
     class="position-relative row flex-column align-items-center h-100 justify-content-center">
     <app-skycoin-logo [direction]="'vertical'"></app-skycoin-logo>
     <form class="mt-5" [formGroup]="form">
-      <div class="input-icon">
+      <div class="login-input">
         <input
           id="passwordInput"
           type="password"
@@ -13,7 +13,7 @@
           [placeholder]="'login.password' | translate"
           (keydown.enter)="login()"
         >
-        <button mat-icon-button [disabled]="!form.valid || loading" (click)="login()">
+        <button [disabled]="!form.valid || loading" (click)="login()">
           <mat-icon>chevron_right</mat-icon>
         </button>
       </div>

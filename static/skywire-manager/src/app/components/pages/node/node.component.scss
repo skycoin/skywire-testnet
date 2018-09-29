@@ -4,6 +4,10 @@
 
 :host::ng-deep
 {
+  app-toolbar {
+    padding: 20px 0;
+  }
+
   .mat-form-field
   {
     width: 50px;
@@ -27,6 +31,16 @@
 
   .mat-input-element {
     caret-color: theme-color(translucid-white);
+  }
+
+  .menu-button {
+    color: theme-color(white);
+    margin-right: 15px;
+    cursor: pointer;
+  }
+
+  .mw-0 {
+    min-width: 0;
   }
 }
 

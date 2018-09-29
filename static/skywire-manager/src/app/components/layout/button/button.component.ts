@@ -10,9 +10,12 @@ enum BUTTON_STATE {
   styleUrls: ['./button.component.scss']
 })
 export class ButtonComponent {
+  @Input() type = 'mat-button';
   @Input() disabled = false;
   @Input() icon = null;
   @Input() dark = false;
+  @Input() color = '';
+  @Input() loadingSize = 24;
   @Output() action = new EventEmitter();
   tooltip = '';
   state = BUTTON_STATE.NORMAL;

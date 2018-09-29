@@ -13,7 +13,7 @@ export class AppSockscComponent extends NodeAppButtonComponent {
   @Input() nodeInfo: NodeInfo;
 
   title = 'apps.socksc.title';
-  icon = 'near_me';
+  name = 'socksc';
 
   get parsedDiscoveries() {
     return Object.keys(this.nodeInfo.discoveries).map(disc => disc.split('-')[1]);

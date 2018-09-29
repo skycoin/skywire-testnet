@@ -8,20 +8,21 @@
     justify-content: center;
   }
 
-  .input-icon {
+  .login-input {
     height: 35px;
     width: 300px;
-    position: relative;
+    overflow: hidden;
+    border-radius: 5px;
+    box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.10), 0 6px 20px 0 rgba(0, 0, 0, 0.10);
+    display: flex;
 
     input[type='password'] {
-      width: 100%;
+      width: calc(100% - 35px);
       height: 100%;
-      border-radius: 5px;
       font-size: 14px;
       border: none;
       padding-left: 10px;
       padding-right: 10px;
-      box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.10), 0 6px 20px 0 rgba(0, 0, 0, 0.10);
 
       &:focus {
         outline: none;
@@ -29,13 +30,18 @@
     }
 
     button {
-      position: absolute;
-      top: 0;
-      right: 0;
+      background: #fff;
       color: $black;
       width: 35px;
       height: 35px;
       line-height: 35px;
+      border: none;
+      display: flex;
+      cursor: pointer;
+
+      &:disabled {
+        color: $light-gray;
+      }
     }
   }
 

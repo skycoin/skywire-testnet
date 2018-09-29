@@ -38,4 +38,8 @@
 .mat-menu-panel, mat-dialog-container.mat-dialog-container
 {
   border-radius: $mat-dialog-radius !important;
+
+  .mat-dialog-actions {
+    padding-bottom: 24px;
+  }
 }

@@ -1,10 +1,10 @@
-import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { NodeService } from '../../../../../services/node.service';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../../../services/auth.service';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
 import { Terminal } from 'xterm';
-import { fit } from 'xterm/lib/addons/fit/fit';
+import { proposeGeometry } from 'xterm/lib/addons/fit/fit';
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
@@ -12,7 +12,7 @@ import { TranslateService } from '@ngx-translate/core';
   templateUrl: './terminal.component.html',
   styleUrls: ['./terminal.component.scss']
 })
-export class TerminalComponent implements OnInit {
+export class TerminalComponent implements OnInit, OnDestroy {
   @ViewChild('terminal') terminalElement: ElementRef;
   ws: WebSocket;
   xterm: Terminal;
@@ -45,6 +45,10 @@ export class TerminalComponent implements OnInit {
     });
   }
 
+  ngOnDestroy() {
+    this.ws.close();
+  }
+
   private initXterm() {
     this.xterm = new Terminal({
       cursorBlink: true,
@@ -54,7 +58,9 @@ export class TerminalComponent implements OnInit {
     this.xterm.on('data', data => this.ws.send('\x00' + data));
     this.xterm.focus();
 
-    fit(this.xterm);
+    const geometry = proposeGeometry(this.xterm);
+    this.xterm.resize(geometry.cols, geometry.rows);
+    this.ws.send(`\x00stty rows ${geometry.rows} cols ${geometry.cols}\nclear\n`);
   }
 
   private close() {
@@ -62,16 +68,12 @@ export class TerminalComponent implements OnInit {
       const hasXterm = !!this.xterm;
 
       if (hasXterm) {
-        this.disableInput();
+        this.xterm.setOption('disableStdin', true);
         this.xterm.writeln(str);
       }
 
       setTimeout(() => this.dialogRef.close(), hasXterm ? 2000 : 0);
     });
-  }
-
-  private disableInput() {
-    this.xterm.setOption('disableStdin', true);
   }
 
   private buildUrl(port, token) {

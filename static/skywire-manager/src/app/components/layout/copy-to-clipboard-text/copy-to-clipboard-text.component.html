@@ -1,15 +1,25 @@
-<div class="cursor-pointer" [matMenuTriggerFor]="appMenu" [matTooltip]="tooltipText | translate">
-  {{ text }}
+<div class="cursor-pointer"
+     [clipboard]="fullText"
+     (copyEvent)="onCopyToClipboardClicked()"
+     [matTooltip]="'copy.tooltip' | translate"
+>
+  <ng-container *ngIf="short">
+    <span class="nowrap">{{ shortText }}</span>
+  </ng-container>
+  <ng-container *ngIf="!short">
+    <span class="d-none d-md-block">{{ text }}</span>
+    <span class="d-md-none nowrap">{{ shortText }}</span>
+  </ng-container>
 </div>
-<mat-menu [overlapTrigger]="false" #appMenu="matMenu">
-  <div
-    mat-menu-item
-    [clipboard]="fullText"
-    [matTooltip]="'copy.tooltip' | translate"
-    (copyEvent)="onCopyToClipboardClicked()">
-    {{ fullText }}
-    <button style="margin-left: 15px;" color="accent" mat-icon-button>
-      <mat-icon aria-label="content_copy">content_copy</mat-icon>
-    </button>
-  </div>
-</mat-menu>
+<!--<mat-menu [overlapTrigger]="false" #appMenu="matMenu">-->
+  <!--<div-->
+    <!--mat-menu-item-->
+    <!--[clipboard]="fullText"-->
+    <!--[matTooltip]="'copy.tooltip' | translate"-->
+    <!--(copyEvent)="onCopyToClipboardClicked()">-->
+    <!--{{ fullText }}-->
+    <!--<button style="margin-left: 15px;" color="accent" mat-icon-button>-->
+      <!--<mat-icon aria-label="content_copy">content_copy</mat-icon>-->
+    <!--</button>-->
+  <!--</div>-->
+<!--</mat-menu>-->

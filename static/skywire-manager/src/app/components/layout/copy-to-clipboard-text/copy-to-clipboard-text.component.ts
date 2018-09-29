@@ -8,12 +8,20 @@ import { TranslateService } from '@ngx-translate/core';
   styleUrls: ['./copy-to-clipboard-text.component.css']
 })
 export class CopyToClipboardTextComponent implements OnInit {
-  @ViewChild(MatMenuTrigger) trigger: MatMenuTrigger;
+  @Input() public short = false;
   @Input() text: string;
   @Input() shortTextLength = 6;
-  @Input() short = false;
+  // @ViewChild(MatMenuTrigger) trigger: MatMenuTrigger;
   tooltipText: string;
   fullText: string;
+
+  get shortText() {
+    const lastTextIndex = this.text.length,
+      prefix = this.text.slice(0, this.shortTextLength),
+      sufix = this.text.slice((lastTextIndex - this.shortTextLength), lastTextIndex);
+
+    return `${prefix}...${sufix}`;
+  }
 
   constructor(
     public snackBar: MatSnackBar,
@@ -30,23 +38,14 @@ export class CopyToClipboardTextComponent implements OnInit {
     this.fullText = this.text;
     if (this.short) {
       this.tooltipText = 'copy.click-to-see';
-      this.shortenText();
     } else {
       this.tooltipText = 'copy.click-to-copy';
     }
   }
 
-  private shortenText() {
-    const lastTextIndex = this.text.length,
-        prefix = this.text.slice(0, 6),
-        sufix = this.text.slice((lastTextIndex - this.shortTextLength), lastTextIndex);
-
-    this.text = `${prefix}...${sufix}`;
-  }
-
-  @HostListener('click') onClick() {
-    this.trigger.openMenu();
-  }
+  // @HostListener('click') onClick() {
+  //   this.trigger.openMenu();
+  // }
 
   public onCopyToClipboardClicked() {
     this.translate.get('copy.copied').subscribe(str => {

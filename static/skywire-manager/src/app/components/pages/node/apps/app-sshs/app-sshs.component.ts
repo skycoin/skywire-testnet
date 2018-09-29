@@ -10,7 +10,7 @@ import {NodeAppButtonComponent} from '../node-app-button/node-app-button.compone
 })
 export class AppSshsComponent extends NodeAppButtonComponent implements OnChanges {
   title = 'apps.sshs.title';
-  icon = 'laptop';
+  name = 'sshs';
 
   showStartupConfig() {
     this.dialog.open(SshsStartupComponent);

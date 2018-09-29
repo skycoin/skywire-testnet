@@ -18,7 +18,7 @@ export class NodeListComponent implements OnInit, OnDestroy {
   @ViewChild('refreshButton') refreshButton: ButtonComponent;
   dataSource = new MatTableDataSource<NodeStatusInfo>();
   displayedColumns: string[] = ['enabled', 'index', 'label', 'key', 'start_time', 'actions'];
-
+  nodes: NodeStatusInfo[] = [];
   private subscriptions: Subscription;
 
   constructor(
@@ -32,6 +32,7 @@ export class NodeListComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.subscriptions = this.nodeService.allNodes().subscribe(allNodes => {
       this.dataSource.data = allNodes;
+      this.nodes = allNodes;
     });
 
     this.refresh();

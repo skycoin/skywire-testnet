@@ -11,7 +11,7 @@ import {MenuItem, NodeAppButtonComponent} from '../node-app-button/node-app-butt
 })
 export class AppSshcComponent extends NodeAppButtonComponent {
   title = 'apps.sshc.title';
-  icon = 'laptop';
+  name = 'sshc';
 
   startApp(): void {
     this.dialog.open(SshcKeysComponent).afterClosed().subscribe((keypair: Keypair) => {
