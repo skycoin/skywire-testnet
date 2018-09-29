@@ -44,3 +44,14 @@
 .table-white {
   padding: 15px 30px;
 }
+
+.node-key {
+  position: relative;
+
+  .cover {
+    position: absolute;
+    width: 100%;
+    height: 20px;
+    z-index: 1000;
+  }
+}

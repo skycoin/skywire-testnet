@@ -13,13 +13,13 @@
               <span
                 class="dot-green"
                 *ngIf="node.online === true"
-                title="{{'node.online-tooltip' | translate}}"
-                matTooltip="{{'node.online-tooltip' | translate}}"
+                [title]="'node.online-tooltip' | translate"
+                [matTooltip]="'node.online-tooltip' | translate"
               ></span>
               <span
                 class="dot-red"
                 *ngIf="node.online === false"
-                matTooltip="{{'node.offline-tooltip' | translate}}"
+                [matTooltip]="'node.offline-tooltip' | translate"
               ></span>
             </td>
           </ng-container>
@@ -32,17 +32,15 @@
           <ng-container matColumnDef="label">
             <th mat-header-cell *matHeaderCellDef class="bold">{{ 'nodes.label' | translate }}</th>
             <td id="nodeLabel" mat-cell *matCellDef="let node;">
-              <!--{{ getLabel(node) }}-->
-              N1
+              {{ getLabel(node) }}
             </td>
           </ng-container>
 
           <ng-container matColumnDef="key">
             <th mat-header-cell *matHeaderCellDef class="bold">{{ 'common.key' | translate }}</th>
-            <td id="nodeKey" mat-cell *matCellDef="let node;">
-              <app-copy-to-clipboard-text
-                [text]="node.key">
-              </app-copy-to-clipboard-text>
+            <td class="node-key" id="nodeKey" mat-cell *matCellDef="let node;">
+              <div class="cover"></div>
+              <app-copy-to-clipboard-text [text]="node.key"></app-copy-to-clipboard-text>
             </td>
           </ng-container>
 
