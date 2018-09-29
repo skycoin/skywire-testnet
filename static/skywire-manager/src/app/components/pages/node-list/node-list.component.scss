@@ -9,31 +9,21 @@
   cursor: pointer;
 }
 
-.reload-button
-{
-  display: flex;
-  align-items: center;
-  background: transparent no-repeat;
-  border: none;
-  cursor: pointer;
-  overflow: hidden;
-  outline: none;
-  color: white;
-  font-size: 16px;
-
-  .reload-icon {
-    margin-left: 8px;
-  }
-}
-
 .node-list-container
 {
+  width: 100%;
+  overflow-x: auto;
+
   .mat-form-field-infix{
     width: 50px !important;
   }
 
   .bold {
     font-weight: bold;
+  }
+
+  table {
+    box-shadow: none !important;
   }
 }
 
@@ -49,4 +39,8 @@
       margin-left: 15px;
     }
   }
+}
+
+.table-white {
+  padding: 15px 30px;
 }

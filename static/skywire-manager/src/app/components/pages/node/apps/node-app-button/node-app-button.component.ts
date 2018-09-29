@@ -1,9 +1,10 @@
-import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import {Node, NodeApp, NodeFeedback} from '../../../../../app.datatypes';
 import {LogComponent} from '../log/log.component';
 import {MatDialog} from '@angular/material';
 import {AppsService} from '../../../../../services/apps.service';
 import { TranslateService } from '@ngx-translate/core';
+import { ButtonComponent } from '../../../../layout/button/button.component';
 
 @Component({
   selector: 'app-node-app-button',
@@ -11,8 +12,6 @@ import { TranslateService } from '@ngx-translate/core';
   styleUrls: ['./node-app-button.component.scss']
 })
 export class NodeAppButtonComponent implements OnChanges {
-  protected title: string;
-  protected icon: string;
   @Input() enabled = true;
   @Input() active = false;
   @Input() hasMessages = false;
@@ -20,9 +19,11 @@ export class NodeAppButtonComponent implements OnChanges {
   @Input() node: Node;
   @Input() app: NodeApp | null;
   @Input() appFeedback: NodeFeedback | null;
+  @ViewChild('button') button: ButtonComponent;
+  title: string;
+  name: string;
   containerClass: string;
-  protected menuItems: MenuItem[] = [];
-  private loading = false;
+  menuItems: MenuItem[] = [];
 
   public constructor(
     protected dialog: MatDialog,
@@ -58,7 +59,7 @@ export class NodeAppButtonComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     const appChanges = changes['app'];
     if (appChanges && appChanges.previousValue !== appChanges.currentValue) {
-      this.loading = false;
+      this.setLoading(false);
     }
 
     this.containerClass = `${'d-flex flex-column align-items-center justify-content-center'} ${this.isRunning ? 'active' : ''}`;
@@ -86,7 +87,10 @@ export class NodeAppButtonComponent implements OnChanges {
   protected startApp() {}
 
   protected stopApp(): void {
-    this.appsService.closeApp(this.appName).subscribe();
+    this.setLoading(true);
+    this.appsService.closeApp(this.appName).subscribe(() => {
+      this.setLoading(false);
+    });
   }
 
   get isFailed() {
@@ -137,7 +141,11 @@ export class NodeAppButtonComponent implements OnChanges {
   }
 
   protected setLoading(loading: boolean = true) {
-    this.loading = loading;
+    this.button.reset();
+
+    if (loading) {
+      this.button.loading();
+    }
   }
 }
 

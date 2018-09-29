@@ -36,11 +36,13 @@
     [data]="_getAddRowData()"
     [componentClass]="getAddRowComponentClass()">
   </app-host>
-  <button
-    disabled="{{ !valueToAdd }}"
-    (click)="onAddBtnClicked()"
+  <app-button
+    [disabled]="!valueToAdd"
+    (action)="onAddBtnClicked()"
     class="ml-3"
-    color="accent" mat-raised-button>
+    color="accent"
+    type="mat-raised-button"
+  >
     {{ meta.addButtonTitle }}
-  </button>
+  </app-button>
 </div>

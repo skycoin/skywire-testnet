@@ -16,17 +16,14 @@
   </span>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button translate mat-raised-button mat-dialog-close>
-      {{ 'common.cancel' | translate }}
-    </button>
-    <button
-      translate
-      mat-raised-button
-      (click)="onUpdateClicked($event)"
+    <app-button
+      type="mat-raised-button"
+      (action)="onUpdateClicked()"
       color="primary"
       [disabled]="!isUpdateAvailable"
-      cdkFocusInitial>
+      cdkFocusInitial
+    >
         {{ 'actions.update.install' | translate }}
-    </button>
+    </app-button>
   </mat-dialog-actions>
 </app-dialog>

@@ -15,7 +15,7 @@ import {ErrorsnackbarService} from '../../../../../../services/errorsnackbar.ser
 export class SshsWhitelistComponent implements DatatableProvider<string>, OnInit {
   private currentWhiteList: string[] = [];
   constructor(
-    @Inject(MAT_DIALOG_DATA) private data: any,
+    @Inject(MAT_DIALOG_DATA) public data: any,
     public dialogRef: MatDialogRef<SshsWhitelistComponent>,
     private appsService: AppsService,
     private translate: TranslateService,

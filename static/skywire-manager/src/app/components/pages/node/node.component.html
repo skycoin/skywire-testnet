@@ -1,9 +1,12 @@
 <div id="nodeDetailView" class="container-fluid h-100" *ngIf="nodeData">
-  <div class="row h-100" style="padding-bottom: 40px;">
+  <div class="row h-100" style="padding-bottom: 20px;">
     <div class="col-xl-2 col-lg-3">
       <div class="d-flex flex-column justify-content-between h-100">
-        <app-toolbar></app-toolbar>
-        <app-actions [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
+        <app-toolbar>
+          <mat-icon class="menu-button d-lg-none" (click)="toggleMenu()">menu</mat-icon>
+        </app-toolbar>
+        <app-actions *ngIf="showMenu" class="d-lg-none" [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
+        <app-actions class="d-none d-lg-block" [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
       </div>
     </div>
     <div class="col-lg-6 col-xl-7">
@@ -11,11 +14,10 @@
         <div class="mt-4.5">
           <app-node-status-bar [nodeData]="nodeData"></app-node-status-bar>
         </div>
-        <div class="container-elevated-translucid d-flex justify-content-between align-items-center mt-4 p-3">
-            <span class="mr-2">{{ 'common.public-key' | translate }}</span>
+        <div class="container-elevated-translucid d-flex justify-content-between align-items-center mt-4">
+            <span class="mr-2 flex-shrink-0">{{ 'common.public-key' | translate }}</span>
             <app-copy-to-clipboard-text
-              id="nodePublicKey"
-              class="font-smaller text-truncate"
+              class="font-smaller text-truncate mw-0"
               [text]="nodeData.node.key">
             </app-copy-to-clipboard-text>
         </div>
@@ -34,7 +36,7 @@
         </app-apps>
       </div>
     </div>
-    <div class="col-3 d-lg-block d-none">
+    <div class="col-12 col-lg-3">
       <div class="node-right font-smaller d-flex flex-column h-100 mt-4.5">
         <!-- IPS -->
         <div class="node-ips-container d-flex flex-column justify-content-between">

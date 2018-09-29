@@ -22,14 +22,13 @@
     </form>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button
-      id="saveStartupConfigBtn"
+    <app-button
+      type="mat-raised-button"
       [disabled]="!formValid"
-      class="submit-btn"
+      (action)="save()"
       color="primary"
-      mat-raised-button
-      (click)="save()">
+    >
       {{ 'common.save' | translate }}
-    </button>
+    </app-button>
   </mat-dialog-actions>
 </app-dialog>

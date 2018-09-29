@@ -6,19 +6,17 @@
     <div class="col-md-1"></div>
     <div class="col-md-10">
       <div class="node-list-container">
-        <table id="nodeListTable" mat-table [dataSource]="dataSource" class="table-white selectable container-elevated-white" *ngIf="dataSource.data.length > 0">
+        <table id="nodeListTable" mat-table [dataSource]="dataSource" class="table-white container-elevated-white" *ngIf="dataSource.data.length > 0">
           <ng-container matColumnDef="enabled">
             <th mat-header-cell *matHeaderCellDef class="bold"></th>
             <td mat-cell *matCellDef="let node;">
               <span
-                id="nodeStatusOnline"
                 class="dot-green"
                 *ngIf="node.online === true"
                 title="{{'node.online-tooltip' | translate}}"
                 matTooltip="{{'node.online-tooltip' | translate}}"
               ></span>
               <span
-                id="nodeStatusOffline"
                 class="dot-red"
                 *ngIf="node.online === false"
                 matTooltip="{{'node.offline-tooltip' | translate}}"
@@ -34,13 +32,18 @@
           <ng-container matColumnDef="label">
             <th mat-header-cell *matHeaderCellDef class="bold">{{ 'nodes.label' | translate }}</th>
             <td id="nodeLabel" mat-cell *matCellDef="let node;">
-              {{ getLabel(node) }}
+              <!--{{ getLabel(node) }}-->
+              N1
             </td>
           </ng-container>
 
           <ng-container matColumnDef="key">
             <th mat-header-cell *matHeaderCellDef class="bold">{{ 'common.key' | translate }}</th>
-            <td id="nodeKey" mat-cell *matCellDef="let node;">{{node.key}}</td>
+            <td id="nodeKey" mat-cell *matCellDef="let node;">
+              <app-copy-to-clipboard-text
+                [text]="node.key">
+              </app-copy-to-clipboard-text>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="start_time">
@@ -61,7 +64,7 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let node; columns: displayedColumns;" (click)="viewNode(node)"></tr>
+          <tr mat-row *matRowDef="let node; columns: displayedColumns;" (click)="viewNode(node)" class="cursor-pointer"></tr>
         </table>
       </div>
     </div>

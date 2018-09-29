@@ -1,7 +1,15 @@
+@import '~bootstrap/scss/mixins/breakpoints';
+@import '~bootstrap/scss/functions';
+@import 'bootstrap_overrides';
+
 :host
 {
   display: flex;
-  padding: 20px 0 20px 0;
+  padding: 20px;
+
+  @include media-breakpoint-down(xs) {
+    padding: 20px 0;
+  }
 }
 
 :host::ng-deep
@@ -10,5 +18,6 @@
   {
     background-color: transparent;
     justify-content: space-between;
+    padding: 0;
   }
 }

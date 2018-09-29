@@ -1,9 +1,11 @@
 @import "~bootstrap/scss/mixins/text-truncate";
 
-.mat-chip
+mat-chip
 {
   max-width: 70px;
   text-transform: lowercase;
+  margin: 0 4px;
+  padding: 4px 12px;
 }
 
 td

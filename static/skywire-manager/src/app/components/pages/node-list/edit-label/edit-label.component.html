@@ -3,6 +3,6 @@
     <mat-form-field>
       <input [placeholder]="'nodes.label' | translate" [(ngModel)]="label" class="input-label" maxlength="20" matInput>
     </mat-form-field>
-    <app-button (action)="save()" [dark]="true">{{ 'common.save' | translate }}</app-button>
+    <app-button type="mat-raised-button" (action)="save()" [dark]="true">{{ 'common.save' | translate }}</app-button>
   </div>
 </app-dialog>

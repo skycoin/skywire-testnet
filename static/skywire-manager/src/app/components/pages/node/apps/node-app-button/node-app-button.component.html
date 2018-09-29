@@ -1,43 +1,52 @@
-<div [ngClass]="containerClass" id="nodeApps">
-  <div class="info-container d-flex align-items-center w-100 justify-content-center">
-    <mat-icon class="ic-big mr-3" >{{ icon }}</mat-icon>
-    <div class="d-flex flex-column justify-content-start position-relative">
-      <span class="font-sm" translate style="position: relative;">
-        <button
-            *ngIf="showMore"
-            [matMenuTriggerFor]="appMenu"
-            [disabled]="menuItems.length === 0"
-            mat-icon-button
-            class="link btn-more">
-          <mat-icon> more_vert</mat-icon>
-          <i *ngIf="isRunning && hasMessages" class="dot-red sm"></i>
-        </button>
-        {{ title }}
-      </span>
-      <div
-        matTooltip="{{ statusTooltip }}"
-        class="d-flex align-items-center"
-        style="margin-left: -7px; margin-top: -5px;">
-        <mat-icon class="ic-small" color="{{ isFailed ? 'warn' : '' }}">
-          {{ statusIconName }}
-        </mat-icon>
-        <span class="text-uppercase font-mini" translate style="transform: translateY(1px); translateX(-1px);">
-          {{ status }}
+<div [ngClass]="containerClass" class="node-app">
+  <div>
+    <div class="info-container d-flex align-items-center w-100 justify-content-center">
+      <div class="icon">
+        <ng-container *ngIf="name === 'sshc'">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 335 328.5"><path d="M330.5 255.8c0-6.9-5.6-12.6-12.6-12.6h-15.2v-1.5c.3-25.2.8-50.4.5-75.5-.1-5-.2-10-.2-15V73.5c0-11.3-9.2-20.5-20.5-20.5H51.8c-11.3 0-20.5 9.2-20.5 20.5V200.7c0 12.5.1 25 .1 37.6 0 2.6-.6 4.2-2 4.9H17.6c0 .1-.1.2-.1.2h-.4c-6.8.2-11.8 3.4-12.1 8.5-.1 1.3-.1 2.6 0 3.9v.2c0 .5 0 1 .1 1.5.2 3.7.6 7.4.8 11.1h323.2c.5-3.7 1.2-7.1 1.4-10.6 0-.1-.1-.2-.1-.3.1-.5.1-1.1.1-1.6v-.3zM274 214.9H61V83h213v131.9z"/></svg>
+        </ng-container>
+        <ng-container *ngIf="name === 'sshs'">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 335 328.5"><path d="M170.6 115.8H69.4c-9 0-14.3-5.4-14.3-14.4V61.5c0-8.4 5.5-14.1 13.9-14.1h203.8c7.9.1 13.6 5.7 13.6 13.5v41.6c0 7.7-5.6 13.3-13.4 13.3H170.6zm30.5-34.6c.1-6.1-4.7-11.1-10.6-11.2-6.4-.1-11.4 4.7-11.6 11-.1 5.9 4.8 11.1 10.8 11.1 6.5.1 11.3-4.5 11.4-10.9zm23.5 10.9c6.2.1 11.2-4.7 11.3-10.9.1-6.1-5-11.3-11-11.3-6.4 0-11.2 4.8-11.2 11.2.1 6.2 4.8 11 10.9 11zm44.9-10.9c0-6.2-4.8-11.2-10.9-11.2-6.3 0-11.3 5-11.3 11.3.1 5.9 5 10.8 11 10.9 6.4 0 11.2-4.7 11.2-11zM170.4 195H69.2c-8.8 0-14.2-5.5-14.1-14.3v-40.1c0-8.2 5.6-13.9 13.8-13.9h203.5c8.5 0 14 5.5 14 14v40.7c0 8.3-5.5 13.7-13.9 13.7-34.1-.1-68.1-.1-102.1-.1zm30.7-34.4c.2-6.1-4.5-11.2-10.4-11.4-6.5-.2-11.7 4.7-11.8 11-.1 5.8 4.8 10.9 10.5 11.1 6.7.2 11.5-4.3 11.7-10.7zm23.7 10.7c6.2 0 11.2-5 11.2-11 0-6.1-5.1-11.2-11.2-11.1-6.2 0-11 4.8-11.1 11.1 0 6.2 4.8 11 11.1 11zm33.5 0c6.3.1 11.1-4.6 11.2-10.9.1-6.2-4.8-11.3-10.8-11.3-6.3 0-11.4 5-11.3 11.2 0 6 4.9 11 10.9 11zM170.7 274.2H69.2c-8.8 0-14.2-5.5-14.2-14.3v-40.1c0-8.2 5.6-13.9 13.7-13.9h203.2c8.9 0 14.3 5.4 14.3 14.2v41c0 7.5-5.7 13.1-13.3 13.1H170.7zm30.4-34.5c.1-6.1-4.5-11.2-10.5-11.4-6.5-.2-11.7 4.7-11.7 11.1 0 5.8 4.8 10.9 10.6 11 6.6.2 11.5-4.3 11.6-10.7zm23.6 10.8c6.2 0 11.2-4.9 11.2-11s-5.1-11.2-11.1-11.2c-6.2 0-11 4.8-11.1 11 0 6.3 4.8 11.2 11 11.2zm44.9-11.1c0-6.2-5-11.1-11.1-11-6.2.1-11.1 5-11.1 11.2 0 6 5.1 11 11.3 11 6.1-.1 10.9-5 10.9-11.2z"/></svg>
+        </ng-container>
+        <ng-container *ngIf="name === 'socksc'">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180"><path d="M102.3 141.2h-10c-4.2 0-6.5-2.2-6.5-6.4-.1-6.8 0-13.6 0-20.5 0-4.2 2.1-6.6 6.3-6.7 7-.1 14-.1 21 0 4 .1 6.2 2.3 6.3 6.2.1 7 .1 14 0 21-.1 4.2-2.3 6.4-6.6 6.4h-10.5zM102.9 33.4h10c4.3 0 6.5 2.3 6.5 6.5.1 6.8.1 13.6 0 20.5 0 4.2-2.2 6.6-6.4 6.7-7 .1-14 .1-21 0-3.9-.1-6.2-2.2-6.2-6.3-.1-7-.1-14 0-21 0-4.3 2.3-6.4 6.6-6.4h10.5zM51.4 141.2c-3.5 0-7 .1-10.5 0-4-.1-6.2-2.2-6.2-6.2v-21c0-4.4 2.4-6.4 6.6-6.4 6.8-.1 13.6-.1 20.5 0 4 0 6.4 2.1 6.5 6 .2 7.1.2 14.3 0 21.5-.1 3.9-2.3 6.1-6.4 6.1H51.4zM170.6 124.7c0 3.5.1 7 0 10.5-.1 3.8-2.2 5.9-6 5.9-7.2.1-14.3.1-21.5 0-3.8 0-6-2.2-6.1-5.9-.2-7.3-.2-14.6 0-22 .1-3.7 2.5-5.7 6.2-5.8 7-.1 14-.1 21 0 4.2.1 6.4 2.4 6.3 6.7 0 3.6.1 7.1.1 10.6zM100.4 85.1c0-3.9-.2-6.9.1-9.8.1-1.3 1.3-2.5 2-3.7.8 1.2 2 2.3 2.2 3.5.3 3.1.1 6.2.1 9.8h49c0 5.6.1 10.7-.1 15.7 0 .8-1.2 1.5-1.9 2.3-.8-.8-2.2-1.5-2.3-2.4-.3-3.4-.1-6.9-.1-10.7h-44.7c0 3 .2 6.1-.1 9.1-.2 1.4-1.4 2.7-2.2 4-.7-1.4-1.9-2.7-2-4.2-.3-2.8-.1-5.6-.1-8.8H55.7c0 3.5.1 6.9-.1 10.4-.1.9-1.3 1.8-2 2.7-.8-.8-2.2-1.6-2.2-2.5-.2-4.9-.1-9.9-.1-15.4h49.1z"/></svg>
+        </ng-container>
+      </div>
+      <div class="d-flex flex-column justify-content-start position-relative">
+        <span class="font-sm" translate style="position: relative;">
+          <button
+              *ngIf="showMore"
+              [matMenuTriggerFor]="appMenu"
+              [disabled]="menuItems.length === 0"
+              mat-icon-button
+              class="link btn-more">
+            <mat-icon> more_vert</mat-icon>
+            <i *ngIf="isRunning && hasMessages" class="dot-red sm"></i>
+          </button>
+          {{ title }}
         </span>
+        <div
+          matTooltip="{{ statusTooltip }}"
+          class="d-flex align-items-center"
+          style="margin-left: -7px; margin-top: -5px;">
+          <mat-icon class="ic-small" color="{{ isFailed ? 'warn' : '' }}">
+            {{ statusIconName }}
+          </mat-icon>
+          <span class="text-uppercase font-mini" translate style="transform: translateY(1px); translateX(-1px);">
+            {{ status }}
+          </span>
+        </div>
       </div>
     </div>
+    <app-button
+      #button
+      type="mat-raised-button"
+      (action)="onAppClicked()"
+      [loadingSize]="16"
+    >
+      {{ (isRunning ? 'apps.stop-app' : 'apps.start-app') | translate }}
+    </app-button>
   </div>
-  <button
-    [disabled]="loading"
-    id="toggleAppButton"
-    class="mt-2 text-uppercase d-flex justify-content-center flex-row"
-    style="width: 140px;"
-    color="{{ isRunning ? 'primary' : '' }}"
-    mat-raised-button
-    (click)="onAppClicked($event)">
-    {{ (isRunning ? 'apps.stop-app' : 'apps.start-app') | translate }}
-    <mat-spinner *ngIf="loading" [diameter]="24"></mat-spinner>
-  </button>
 </div>
 <mat-menu
   [overlapTrigger]="false"

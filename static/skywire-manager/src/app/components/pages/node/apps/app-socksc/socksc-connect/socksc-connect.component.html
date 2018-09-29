@@ -5,15 +5,15 @@
     <mat-tab [label]="'apps.socksc.connect-keypair' | translate">
       <div class="pt-4">
         <app-keypair [required]="true" (keypairChange)="keypairChange($event)"></app-keypair>
-        <button
-          id="startSockscAppBtn"
+        <app-button
+          (action)="connect()"
+          type="mat-raised-button"
           [disabled]="!keypair"
-          class="float-right"
-          mat-raised-button
           color="primary"
-          (click)="connect()">
+          class="float-right"
+        >
           {{ 'apps.socksc.connect' | translate }}
-        </button>
+        </app-button>
       </div>
     </mat-tab>
     <mat-tab [label]="'apps.socksc.connect-search' | translate">

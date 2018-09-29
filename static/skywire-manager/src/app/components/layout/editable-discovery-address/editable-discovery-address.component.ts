@@ -12,7 +12,7 @@ export class EditableDiscoveryAddressComponent {
   @Input() autofocus: boolean;
   @Output() valueEdited = new EventEmitter<DiscoveryAddress>();
   editMode = false;
-  private valid = true;
+  valid = true;
 
   onValueChanged({valid, value}: {valid: boolean, value: DiscoveryAddress}) {
     this.valid = valid;
@@ -32,7 +32,7 @@ export class EditableDiscoveryAddressComponent {
     this.toggleEditMode();
   }
 
-  private toggleEditMode() {
+  toggleEditMode() {
     this.editMode = !this.editMode;
     this.triggerValueChanged();
   }

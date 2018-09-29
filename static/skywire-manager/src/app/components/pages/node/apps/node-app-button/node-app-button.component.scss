@@ -19,20 +19,32 @@
   align-items: center;
   justify-content: center;
 
-  mat-spinner {
-    position: absolute;
-    right: 10px;
-    top: 7px;
-    display: inline-block;
-  }
-  .active .app-icon
-  {
-    color: theme-color(blue-dark) !important;
+  .icon {
+    width: 40px;
+    margin-right: 10px;
+
+    svg {
+      fill: currentColor;
+    }
   }
 
-  .mat-flat-button.mat-primary, .mat-raised-button.mat-primary, .mat-fab.mat-primary, .mat-mini-fab.mat-primary
-  {
-    background-color: #0F619C !important;
+  app-button {
+    display: block;
+    margin-top: 10px;
+
+    ::ng-deep button {
+      background-color: $blue-panel;
+      text-transform: uppercase;
+      padding: 0 40px;
+      border-radius: 6px;
+      height: 30px;
+      line-height: 29px;
+      font-size: 12px;
+    }
+  }
+
+  .active app-button ::ng-deep button {
+    background-color: $blue-dark;
   }
 }
 

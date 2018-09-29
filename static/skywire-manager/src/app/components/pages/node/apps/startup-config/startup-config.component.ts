@@ -10,10 +10,9 @@ import {KeyPairState} from '../../../../layout/keypair/keypair.component';
   styleUrls: ['./startup-config.component.css']
 })
 export class StartupConfigComponent implements OnInit {
+  autoStartConfig: AutoStartConfig;
   private validKeyPair = false;
-  private autoStartConfig: AutoStartConfig;
   protected hasKeyPair = true;
-
   protected appConfigField: string;
   protected nodeKeyConfigField: string;
   protected appKeyConfigField: string;
