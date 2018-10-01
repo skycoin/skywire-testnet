@@ -39,15 +39,15 @@ As previously stated 1 person can receive rewards for 1 official miner and 1 DIY
 The rewards are paid every month around the 5th or with a delay, depending if other things delay the process.
 They are paid on a node by node basis and are subject to change, meaning they may be different for the months to come. 
 
-The total amount of rewards for August are **30,000 Skycoin**, divided into two separate pools
+The total amount of rewards for September are **30,000 Skycoin**, divided into two separate pools
 * **18,000 Skycoin for the official miners**
 * **12,000 Skycoin for the whitelisted DIY miners**
 
 For now, the rewards for each node that meets [the requirement](https://github.com/skycoin/skywire/wiki/_new#requirements) are as follows:
 
-* **DIY: 3.784 Skycoin / node with a maximum of 8 nodes; 30.272 Skycoin maximum**
+* **DIY: 2.901 Skycoin / node with a maximum of 8 nodes; 23.208 Skycoin maximum**
 
-* **Official miner: 7.212 Skycoin / node**
+* **Official miner: 6.689 Skycoin / node**
 
 *Faulty orange pi's from official miners will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well. Since we are taking care of this manually you are requested to contact one of our team members (@asxtree @MrHodlr @Paperstream).*
 
@@ -216,9 +216,9 @@ The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/w
 
 ### July
 
-    - LAST WHITELISTED QUEUE POSITION: 676
-    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-06-30 17:14:10
-    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 392
+    - LAST WHITELISTED QUEUE POSITION: 923
+    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-08-16 17:01:11
+    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 399
 
 #### Updates
     - The whitelist is updated on a monthly basis, meaning that we are whitelisting 200 applications each month.
