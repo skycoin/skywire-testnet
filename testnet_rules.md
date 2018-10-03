@@ -214,7 +214,7 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
 
 The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/whitelist).
 
-### July
+### September
 
     - LAST WHITELISTED QUEUE POSITION: 923
     - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-08-16 17:01:11
