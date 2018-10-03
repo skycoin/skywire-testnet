@@ -1,0 +1,45 @@
+@import "variables";
+@import "utilities/theme";
+@import "fonts";
+@import "backgrounds";
+@import "~bootstrap/scss/functions";
+
+.app-log-dialog
+{
+  @extend .font-smaller;
+  width: 800px !important;
+
+  .mat-dialog-container
+  {
+    @extend .container-elevated-translucid-dark;
+    padding: 24px;
+    color: theme-color(white);
+    border-radius: $mat-dialog-radius;
+  }
+
+  .app-log-content
+  {
+    padding: 0 20px 20px 20px;
+    margin: 0;
+  }
+
+  .app-log-timestamp
+  {
+    color: theme-color(yellow);
+  }
+
+  .app-log-empty
+  {
+    @extend .font-base;
+    text-align: center;
+  }
+}
+
+.mat-menu-panel, mat-dialog-container.mat-dialog-container
+{
+  border-radius: $mat-dialog-radius !important;
+
+  .mat-dialog-actions {
+    padding-bottom: 24px;
+  }
+}
