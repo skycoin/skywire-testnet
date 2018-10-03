@@ -1,0 +1,20 @@
+<div class="banner">
+  <img src="../../../assets/login-logo.png" alt="SkyCoin">
+  <span class="text">Skywire Manager</span>
+</div>
+<div class="login-box">
+  <p>Please enter management password.</p>
+  <form class="example-form" [formGroup]="loginForm">
+    <mat-form-field class="field-full-width">
+      <input matInput placeholder="Password" type="password" formControlName="pass" autocomplete="off" (focus)="init()" autofocus>
+      <mat-error *ngIf="loginForm?.get('pass')?.hasError('required')">
+        Please enter a valid Password!
+      </mat-error>
+      <mat-error *ngIf="loginForm?.get('pass')?.hasError('minlength') || loginForm?.get('pass')?.hasError('maxlength')">
+        The password is between 4 and 20 characters.
+      </mat-error>
+    </mat-form-field>
+    <button mat-raised-button color="primary" class="field-full-width" [disabled]="!loginForm.valid" (click)="login($event)">Login</button>
+    <p style="color: red" class="text-center" *ngIf="status === 1">Please confirm that the password is correct and then try to login again.</p>
+  </form>
+</div>

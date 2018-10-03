@@ -1,0 +1,120 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import 'variables';
+@import "~@angular/material/prebuilt-themes/indigo-pink.css";
+@import '../node_modules/font-awesome/scss/font-awesome';
+body {
+  background: linear-gradient(-35deg, #00d2ff, #5895e8);
+  font-size: 62.5%;
+  font: 14px/20px "Lato", Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.single-line {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.break-line {
+  word-break: break-all;
+}
+
+.break-word {
+  word-wrap: break-word;
+}
+
+.alert-dialog-panel {
+  .mat-dialog-container {
+    border-radius: .5rem;
+  }
+}
+
+.create-backdrop {
+  .cdk-overlay-pane {
+    md-dialog-container {
+      border-radius: .5rem !important;
+    }
+  }
+}
+
+.float-right {
+  float: right;
+}
+
+.float-left {
+  float: left;
+}
+
+.alert-backdrop {
+  background: transparent;
+}
+
+.flex-center {
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltip-top[aria-label],
+.tooltip[aria-label] {
+  position: relative;
+  &:after {
+    content: attr(aria-label);
+    display: none;
+    position: absolute;
+    pointer-events: none;
+    padding: .75rem 1rem;
+    line-height: .75rem;
+    white-space: nowrap;
+    text-decoration: none;
+    text-indent: 0;
+    overflow: visible;
+    font-size: .9em;
+    font-weight: normal;
+    color: #fff; // text-shadow: 1px 0 1px #888;
+    background-color: rgba(27, 31, 35, 0.8);
+    border-radius: 2px;
+    box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.3);
+  }
+  &:hover:after,
+  &:focus:after {
+    display: block;
+  }
+}
+
+.tooltip-top[aria-label] {
+  &:after {
+    bottom: 150%;
+    right: -100%;
+  }
+}
+
+.tooltip[aria-label] {
+  &:after {
+    top: 110%;
+    left: 10%;
+  }
+}
+
+img.emojione {
+  width: 22px;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+.mat-dialog-container {
+  border-radius: .5rem;
+}

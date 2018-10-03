@@ -3,14 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/net/skycoin-messenger/factory"
-	"github.com/skycoin/net/skycoin-messenger/monitor"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/manager"
 	"os"
 	"os/signal"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/file"
+	"github.com/skycoin/skywire/pkg/manager"
+	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/factory"
+	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/monitor"
 )
 
 var (
@@ -23,7 +24,7 @@ var (
 )
 
 func parseFlags() {
-	var dir = "/src/github.com/skycoin/net/skycoin-messenger/monitor/web/dist-manager"
+	var dir = "/src/github.com/skycoin/skywire/pkg/net/skycoin-messenger/monitor/web/dist-manager"
 	flag.StringVar(&webDir, "web-dir", filepath.Join(os.Getenv("GOPATH"), dir), "monitor web page")
 	flag.StringVar(&webPort, "web-port", ":8000", "monitor web page port")
 	flag.StringVar(&address, "address", ":5998", "address to listen on")

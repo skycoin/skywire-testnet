@@ -1,0 +1,57 @@
+@import "variables";
+@import "utilities/theme";
+@import "text";
+@import "~bootstrap/scss/functions";
+//
+// Input
+//
+
+.startup-form, .dialog-form
+{
+  .keypair-component, textarea, .mat-form-field
+  {
+    width: 100%;
+  }
+}
+
+.startup-form, .dialog-form, .settings-form
+{
+  .mat-list-item
+  {
+    min-height: 48px;
+    height: auto !important;
+  }
+
+  .mat-list-item-content
+  {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 !important;
+
+    @extend .font-base;
+
+    &.margin-bottom
+    {
+      margin-bottom: 20px;
+    }
+
+    label
+    {
+      margin-bottom: 0;
+    }
+  }
+
+  .submit-btn
+  {
+    margin-top: 15px;
+    float: right;
+  }
+
+  .keypair-container
+  {
+    display: flex;
+    flex-direction: column;
+  }
+}
+

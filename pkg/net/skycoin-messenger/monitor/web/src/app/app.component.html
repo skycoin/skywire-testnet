@@ -1,0 +1,21 @@
+<div class="root">
+  <ng-container *ngIf="isManager">
+    <nav class="nav">
+      <mat-nav-list>
+        <img src="../assets/logo.png" alt="Sky Wire" class="nav-logo">
+        <a mat-list-item matLine [routerLink]="item?.link" *ngFor="let item of listitems" [routerLinkActiveOptions]="{exact: true}"
+          routerLinkActive="active">
+          <mat-icon>{{item?.icon}}</mat-icon>
+          <span class="list-item-text">{{ item?.text }}</span>
+        </a>
+      </mat-nav-list>
+    </nav>
+    <div class="content">
+      <router-outlet></router-outlet>
+    </div>
+    <router-outlet name="user"></router-outlet>
+  </ng-container>
+  <ng-container *ngIf="!isManager">
+    <router-outlet></router-outlet>
+  </ng-container>
+</div>
