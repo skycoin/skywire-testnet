@@ -1,0 +1,25 @@
+<div class="form-box">
+  <h3>Update Password</h3>
+  <form [formGroup]="updateForm">
+    <mat-form-field class="field-full-width">
+      <input matInput placeholder="Old Password" type="password" formControlName="oldpass" autocomplete="off" (focus)="init()">
+      <mat-error *ngIf="updateForm.get('oldpass').hasError('required')">
+        Please enter a valid original Password!
+      </mat-error>
+      <mat-error *ngIf="updateForm.get('oldpass').hasError('minlength') || updateForm.get('oldpass').hasError('maxlength')">
+        The old password is between 6 and 20 characters.
+      </mat-error>
+    </mat-form-field>
+    <mat-form-field class="field-full-width">
+      <input matInput placeholder="New Password" type="password" formControlName="newpass" autocomplete="off" (focus)="init()">
+      <mat-error *ngIf="updateForm.get('newpass').hasError('required')">
+        Please enter a valid New Password!
+      </mat-error>
+      <mat-error *ngIf="updateForm.get('newpass').hasError('minlength') || updateForm.get('newpass').hasError('maxlength')">
+        The new password is between 6 and 20 characters.
+      </mat-error>
+    </mat-form-field>
+    <button mat-raised-button color="primary" class="field-full-width" (click)="update($event)" [disabled]="!updateForm.valid">Update</button>
+    <p style="color: red" class="text-center" *ngIf="status === 1">{{serverHint}}</p>
+  </form>
+</div>

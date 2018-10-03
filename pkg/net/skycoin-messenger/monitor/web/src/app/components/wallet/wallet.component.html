@@ -1,0 +1,58 @@
+<div class="wallet-box">
+  <h3 class="text-center title">SkyCoin Wallet</h3>
+  <div class="wallet-content">
+    <div class="item" style="margin-top:1.5rem;">
+      <div class="item-content">
+        <img src="../../../assets/key.png" alt="key">
+        <span>Recharge Key:</span>
+        <strong>{{key}}</strong>
+      </div>
+    </div>
+    <div class="item">
+      <div class="item-content">
+        <img src="../../../assets/sky.png" alt="sky">
+        <span>Balance:</span>
+        <strong>{{balance}}</strong>
+      </div>
+    </div>
+    <div class="item" style="margin:1.5rem 0;">
+      <div class="item-content text-center">
+        <strong>Recharge Address:</strong>
+        <span class="address">{{address}}</span>
+        <!--  matTooltip="Get New Address!" -->
+        <mat-icon>refresh</mat-icon>
+        <mat-icon aria-label="content_copy" clipboard clipboardText="2JkY7RnTT14A3n6ZAt68526b4331a8GPX72" matTooltipDisabled matTooltip="Copy"
+          (copySuccess)="copy($event)" #copyTooltip="matTooltip">content_copy</mat-icon>
+        <!-- Qr Code -->
+        <!-- <mat-icon aria-label="qrcode" fontSet="fa" fontIcon="fa-qrcode" style="font-size:24px"></mat-icon> -->
+      </div>
+    </div>
+    <div class="record-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Index</th>
+            <th>Time</th>
+            <th>Count</th>
+            <th>Address</th>
+            <th>Operation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- <tr>
+            <td>1</td>
+            <td>11-01-2018 15:10:33</td>
+            <td>100</td>
+            <td>2JkY7RnTT14A3n6ZAt68526b4331a8GPX72</td>
+            <td>
+              <mat-icon>delete</mat-icon>
+            </td>
+          </tr> -->
+          <tr *ngIf="records?.length === 0" style="border-bottom:0;">
+            <td colspan="5" class="text-center">No Recharge Records</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

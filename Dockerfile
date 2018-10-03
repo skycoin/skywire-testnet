@@ -1,14 +1,19 @@
 # skywire build binaries
 # reference https://github.com/skycoin/skywire
-ARG IMAGE_FROM=alpine:3.7
-FROM golang:1.9-alpine AS build-go
+ARG IMAGE_FROM=busybox:1.29-glibc
+FROM golang:1.10-stretch AS build-go
 ARG ARCH=amd64
 ARG GOARM
+ARG CC=gcc
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
+RUN apt-get update \
+    && apt-get -y install build-essential crossbuild-essential-armhf crossbuild-essential-arm64 automake gcc-arm-linux-gnueabihf
+
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-    GOARCH=$ARCH GOARM=$GOARM CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./... && \
+    GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 CC=$CC \
+    go install -a -installsuffix cgo ./... && \
     sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \
            if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
 
@@ -33,8 +38,8 @@ ENV DATA_DIR=/root/.skywire
 
 #USER skywire
 
-# copy binaries and assets
-COPY --from=build-go /go/bin/* /usr/bin/
+# copy binaries and asset
+COPY --from=build-go /go/bin/* /bin/
 COPY --from=build-go /go/bin/sockss .
 COPY --from=build-node /home/node/net/skycoin-messenger/monitor/web/dist-manager /usr/local/skycoin/net/skycoin-messenger/monitor/web/dist-manager
 

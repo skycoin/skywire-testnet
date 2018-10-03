@@ -1,0 +1,14 @@
+create-chat-dialog {
+  .full-input-container {
+    width: 100%;
+  }
+  .content {
+    padding: 12px 24px;
+  }
+  .mat-dialog-actions {
+    justify-content: flex-end;
+    button {
+      margin: 0 .5rem;
+    }
+  }
+}

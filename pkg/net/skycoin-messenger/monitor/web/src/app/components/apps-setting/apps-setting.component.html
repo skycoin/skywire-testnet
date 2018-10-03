@@ -1,0 +1,71 @@
+<div class="apps-setting">
+  <form [formGroup]="settingForm">
+    <mat-list>
+      <h3 mat-subheader>Automatic start configuration</h3>
+      <ng-container *ngIf="client === 'sock'">
+        <!-- <mat-list-item>
+          <h4 mat-line>Node Server</h4>
+          <mat-slide-toggle formControlName="sockss"></mat-slide-toggle>
+        </mat-list-item> -->
+        <mat-list-item>
+          <h4 mat-line>Node Client</h4>
+          <mat-slide-toggle formControlName="socksc"></mat-slide-toggle>
+        </mat-list-item>
+        <mat-list-item>
+          <h4 mat-line>Node Client Config</h4>
+          <mat-select placeholder="Select Node Server Client App" formControlName="socksc_conf" (change)="setKey(socksc)">
+            <mat-option *ngFor="let opt of socksc_opts" [value]="opt">
+              {{opt?.nodeKey | ellipsis:'center':8}}---{{opt?.appKey | ellipsis:'center':8}}
+            </mat-option>
+          </mat-select>
+        </mat-list-item>
+        <mat-list-item>
+          <div class="custom-input-box">
+            <span class="text">Node Key</span>
+            <input type="text" class="custom-input" formControlName="socksc_conf_nodeKey">
+          </div>
+        </mat-list-item>
+        <mat-list-item>
+          <div class="custom-input-box">
+            <span class="text">App Key</span>
+            <input type="text" class="custom-input" formControlName="socksc_conf_appKey">
+          </div>
+        </mat-list-item>
+      </ng-container>
+      <ng-container  *ngIf="client === 'ssh'">
+        <mat-list-item>
+          <h4 mat-line>SSH Server</h4>
+          <mat-slide-toggle formControlName="sshs"></mat-slide-toggle>
+        </mat-list-item>
+        <mat-list-item>
+          <h4 mat-line>SSH Client</h4>
+          <mat-slide-toggle formControlName="sshc"></mat-slide-toggle>
+        </mat-list-item>
+        <mat-list-item>
+          <h4 mat-line>SSH Client Config</h4>
+          <mat-select placeholder="Select SSH Client App" formControlName="sshc_conf" (change)="setKey(sshc)">
+            <mat-option *ngFor="let opt of sshc_opts" [value]="opt">
+              {{opt?.nodeKey | ellipsis:'center':8}}---{{opt?.appKey | ellipsis:'center':8}}
+            </mat-option>
+          </mat-select>
+        </mat-list-item>
+        <mat-list-item>
+          <div class="custom-input-box">
+            <span class="text">Node Key</span>
+            <input type="text" class="custom-input" formControlName="sshc_conf_nodeKey">
+          </div>
+        </mat-list-item>
+        <mat-list-item>
+          <div class="custom-input-box">
+            <span class="text">App Key</span>
+            <input type="text" class="custom-input" formControlName="sshc_conf_appKey">
+          </div>
+        </mat-list-item>
+      </ng-container>
+
+    </mat-list>
+  </form>
+  <p class="text-right">
+    <button mat-raised-button color="primary" (click)="save()">save</button>
+  </p>
+</div>
