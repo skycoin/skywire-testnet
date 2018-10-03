@@ -1,0 +1,37 @@
+<!-- Node Table -->
+<div class="table-extran-header">
+  <p class="header-col header-text">
+    <span>All Node</span>
+    <mat-icon (click)="refresh($event)">refresh</mat-icon>
+  </p>
+</div>
+<mat-table #table [dataSource]="dataSource" [trackBy]="transportsNodeBy">
+  <ng-container matColumnDef="index">
+    <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 3rem'"> # </mat-header-cell>
+    <mat-cell *matCellDef="let i = index;" [style.flex]="'0 0 3rem'"> {{i+1}} </mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="label">
+    <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 5rem'"> Label </mat-header-cell>
+    <mat-cell *matCellDef="let data" [style.flex]="'0 0 5rem'">
+      <span>
+        <input type="text" shortcut-input [text]="getLabel(data?.key)" maxlength="5" (onEdit)="editLabel($event,data.key)">
+      </span>
+    </mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="status">
+    <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 5rem'"> Status </mat-header-cell>
+    <mat-cell *matCellDef="let data" [style.flex]="'0 0 5rem'">
+      Online
+    </mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="key">
+    <mat-header-cell *matHeaderCellDef [style.flex]="'0 0 33rem'"> Key </mat-header-cell>
+    <mat-cell *matCellDef="let data" [style.flex]="'0 0 33rem'"> {{data.key}} </mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="seen">
+    <mat-header-cell *matHeaderCellDef> Started </mat-header-cell>
+    <mat-cell *matCellDef="let data"> {{data.start_time | timeAgo}} </mat-cell>
+  </ng-container>
+  <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+  <mat-row *matRowDef="let row; columns: displayedColumns;" class="mat-row-hover" (click)="openStatus($event,row)"></mat-row>
+</mat-table>

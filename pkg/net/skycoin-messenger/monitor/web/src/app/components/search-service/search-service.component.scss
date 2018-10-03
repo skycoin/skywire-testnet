@@ -1,0 +1,68 @@
+  app-search-service {
+    width: 100%;
+    position: relative;
+    .search-page {
+      height: 90%;
+      .search-title {
+        color: #36304a;
+        margin-bottom: 1em;
+        .text {
+          font-size: 1.5em;
+        }
+        .refresh {
+          color: blue;
+          cursor: pointer;
+          vertical-align: sub;
+        }
+        .refresh-process {
+          animation: rotating 1s linear infinite;
+        }
+      }
+      .table-container {
+        min-width: 400px;
+        .table-content {
+          height: 400px;
+          .search-table {
+            width: 100%;
+            border-collapse: collapse;
+            .no-found {
+              text-align: center !important;
+            }
+            td,
+            th {
+              padding: 15px 10px;
+              display: table-cell;
+              text-align: left;
+              vertical-align: middle;
+              border-radius: 2px;
+            }
+            thead {
+              background-color: #706790;
+              color: #fff;
+            }
+            tbody {
+              font-size: xx-small;
+              font-family: Consolas, Monaco, monospace;
+              tr {
+                border-bottom: 1px solid #d0d0d0;
+              }
+              .version {
+                text-align: left;
+              }
+            }
+          }
+        }
+      }
+      @keyframes rotating {
+        0% {
+          transform: rotate(0)
+        }
+        50% {
+          transform: rotate(180deg)
+        }
+        100% {
+          transform: rotate(360deg)
+        }
+      }
+    }
+  }

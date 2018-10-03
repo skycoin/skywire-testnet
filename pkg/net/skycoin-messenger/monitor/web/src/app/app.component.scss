@@ -1,0 +1,38 @@
+@import '../app.scss';
+.root {
+  width: 100vw;
+  height: 100vh;
+  min-width: 1250px;
+  .nav {
+    width: 20%;
+    height: 100%;
+    padding-top: 10rem;
+    float: left;
+    background-color: $nav-bg;
+    .nav-logo {
+      max-width: 75%;
+      margin: 12.5%;
+    }
+    .mat-nav-list {
+      .active {
+        background-color: $nav-list-item-focus;
+        border-right: .3rem solid #78abea;
+      }
+      .mat-list-item {
+        color: $nav-text-color;
+        .list-item-text {
+          padding-top: 5px;
+          margin-left: 5px;
+        }
+      }
+    }
+  }
+  .content {
+    width: 80%;
+    height: 100%;
+    overflow: auto;
+    padding: 1rem;
+    float: left;
+    background-color: $content-bg;
+  }
+}
