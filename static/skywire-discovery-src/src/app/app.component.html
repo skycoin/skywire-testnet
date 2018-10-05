@@ -1,20 +1,40 @@
-<!--The content below is only a placeholder and can be replaced.-->
-<div style="text-align:center">
-  <h1>
-    Welcome to {{ title }}!
-  </h1>
-  <img width="300" alt="Angular Logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgMjUwIj4KICAgIDxwYXRoIGZpbGw9IiNERDAwMzEiIGQ9Ik0xMjUgMzBMMzEuOSA2My4ybDE0LjIgMTIzLjFMMTI1IDIzMGw3OC45LTQzLjcgMTQuMi0xMjMuMXoiIC8+CiAgICA8cGF0aCBmaWxsPSIjQzMwMDJGIiBkPSJNMTI1IDMwdjIyLjItLjFWMjMwbDc4LjktNDMuNyAxNC4yLTEyMy4xTDEyNSAzMHoiIC8+CiAgICA8cGF0aCAgZmlsbD0iI0ZGRkZGRiIgZD0iTTEyNSA1Mi4xTDY2LjggMTgyLjZoMjEuN2wxMS43LTI5LjJoNDkuNGwxMS43IDI5LjJIMTgzTDEyNSA1Mi4xem0xNyA4My4zaC0zNGwxNy00MC45IDE3IDQwLjl6IiAvPgogIDwvc3ZnPg==">
-</div>
-<h2>Here are some links to help you start: </h2>
-<ul>
-  <li>
-    <h2><a target="_blank" rel="noopener" href="https://angular.io/tutorial">Tour of Heroes</a></h2>
-  </li>
-  <li>
-    <h2><a target="_blank" rel="noopener" href="https://github.com/angular/angular-cli/wiki">CLI Documentation</a></h2>
-  </li>
-  <li>
-    <h2><a target="_blank" rel="noopener" href="https://blog.angular.io/">Angular blog</a></h2>
-  </li>
-</ul>
+<header>
+  <img src="assets/img/skycoin-logo.png" alt="Skycoin">
+  <h1>Skywire Discovery</h1>
+</header>
 
+<main>
+  <div class="block">
+    <div class="title">Discovery Public Key</div>
+    <div>
+      <span>{{ discoveryPublicKey }}</span>
+      <svg [clipboard]="discoveryPublicKey" class="copy" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4l6 6v10c0 1.1-.9 2-2 2H7.99C6.89 23 6 22.1 6 21l.01-14c0-1.1.89-2 1.99-2h7zm-1 7h5.5L14 6.5V12z"/></svg>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="title">Discovered Nodes</div>
+    <div>
+      <ng-container *ngIf="!nodesLoaded">
+        <span>Loading...</span>
+      </ng-container>
+      <ng-container *ngIf="nodesLoaded">
+        <span>{{ nodes.length }}</span>
+        <a href="#" class="show" (click)="showNodes()" *ngIf="!nodesVisible">[Show Nodes]</a>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="block" *ngIf="nodesVisible">
+    <table class="nodes" cellpadding="0" cellspacing="0">
+      <tr>
+        <th>#</th>
+        <th>Node Public Key</th>
+      </tr>
+      <tr *ngFor="let node of nodes; let i = index">
+        <td>{{ i + 1 }}</td>
+        <td>{{ node.key }}</td>
+      </tr>
+    </table>
+  </div>
+</main>

@@ -1,0 +1,84 @@
+$blue: #1D5FFF;
+$grey: #FBFBFB;
+$grey-dark: darken($grey, 50%);
+
+header {
+  background: $grey;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  img {
+    width: 200px;
+    height: 200px;
+  }
+
+  h1 {
+    font-size: 36px;
+  }
+}
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 60px;
+  word-break: break-all;
+
+  .title {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: $grey-dark;
+    margin-bottom: 5px;
+  }
+
+  .block:not(:last-child) {
+    margin-bottom: 30px;
+  }
+
+  @media (max-width: 600px) {
+    padding: 30px;
+  }
+}
+
+table.nodes {
+  tr {
+    &:not(:last-child) {
+      td {
+        border-bottom: 1px solid $grey;
+      }
+    }
+  }
+
+  th, td:first-child {
+    text-align: left;
+    font-weight: 400;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: $grey-dark;
+
+    &:first-child {
+      width: 50px;
+    }
+  }
+
+  th, td {
+    padding: 5px 0;
+  }
+}
+
+a.show {
+  color: $blue;
+  font-size: 14px;
+  text-decoration: none;
+  padding-left: 10px;
+}
+
+svg.copy {
+  width: 15px;
+  height: 15px;
+  vertical-align: top;
+  color: $blue;
+  fill: currentColor;
+  padding-left: 10px;
+  cursor: pointer;
+}
