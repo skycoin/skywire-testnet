@@ -1,0 +1,14 @@
+@import "bootstrap_overrides";
+@import "variables";
+@import "~bootstrap/scss/functions";
+
+.error-snack-bar
+{
+  background-color: theme-color-level(red, -2) !important;
+  color: theme-color-level(red, 6) !important;
+
+  .mat-simple-snackbar
+  {
+    justify-content: center;
+  }
+}
