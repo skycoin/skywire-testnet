@@ -1,0 +1,41 @@
+@import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
+@import '~@angular/material/theming';
+
+//
+// Containers
+//
+.mat-app-background
+{
+  background: linear-gradient($blue, $blue-light) no-repeat fixed !important;
+}
+
+$elevated-containers-colors: (
+  translucid: map_get($theme-colors, translucid),
+  white:      map_get($theme-colors, white),
+  translucid-dark: map_get($theme-colors, translucid-dark)
+);
+
+@each $color-name, $color-value in $elevated-containers-colors
+{
+  .container-elevated-#{$color-name}
+  {
+    @include mat-elevation(8);
+    border-radius: $mat-dialog-radius;
+    padding: 20px;
+    background-color: $color-value !important;
+  }
+}
+
+//
+// Backgrounds
+//
+
+@each $color-name, $color-value in $theme-colors
+{
+  .sky-bg-#{$color-name}
+  {
+    background-color: $color-value !important;
+  }
+}
