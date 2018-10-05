@@ -1,21 +1,40 @@
-<div class="root">
-  <ng-container *ngIf="isManager">
-    <nav class="nav">
-      <mat-nav-list>
-        <img src="../assets/logo.png" alt="Sky Wire" class="nav-logo">
-        <a mat-list-item matLine [routerLink]="item?.link" *ngFor="let item of listitems" [routerLinkActiveOptions]="{exact: true}"
-          routerLinkActive="active">
-          <mat-icon>{{item?.icon}}</mat-icon>
-          <span class="list-item-text">{{ item?.text }}</span>
-        </a>
-      </mat-nav-list>
-    </nav>
-    <div class="content">
-      <router-outlet></router-outlet>
+<header>
+  <img src="assets/img/skycoin-logo.png" alt="Skycoin">
+  <h1>Skywire Discovery</h1>
+</header>
+
+<main>
+  <div class="block">
+    <div class="title">Discovery Public Key</div>
+    <div>
+      <span>{{ discoveryPublicKey }}</span>
+      <svg [clipboard]="discoveryPublicKey" class="copy" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4l6 6v10c0 1.1-.9 2-2 2H7.99C6.89 23 6 22.1 6 21l.01-14c0-1.1.89-2 1.99-2h7zm-1 7h5.5L14 6.5V12z"/></svg>
     </div>
-    <router-outlet name="user"></router-outlet>
-  </ng-container>
-  <ng-container *ngIf="!isManager">
-    <router-outlet></router-outlet>
-  </ng-container>
-</div>
+  </div>
+
+  <div class="block">
+    <div class="title">Discovered Nodes</div>
+    <div>
+      <ng-container *ngIf="!nodesLoaded">
+        <span>Loading...</span>
+      </ng-container>
+      <ng-container *ngIf="nodesLoaded">
+        <span>{{ nodes.length }}</span>
+        <a href="#" class="show" (click)="showNodes()" *ngIf="!nodesVisible">[Show Nodes]</a>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="block" *ngIf="nodesVisible">
+    <table class="nodes" cellpadding="0" cellspacing="0">
+      <tr>
+        <th>#</th>
+        <th>Node Public Key</th>
+      </tr>
+      <tr *ngFor="let node of nodes; let i = index">
+        <td>{{ i + 1 }}</td>
+        <td>{{ node.key }}</td>
+      </tr>
+    </table>
+  </div>
+</main>

@@ -23,11 +23,9 @@
               "src/assets"
             ],
             "styles": [
-              "src/styles.scss"
+              "src/assets/scss/styles.scss"
             ],
-            "scripts": [
-              "./node_modules/clipboard/dist/clipboard.min.js"
-            ]
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -57,8 +55,6 @@
           "configurations": {
             "production": {
               "browserTarget": "skywire-discovery:build:production"
-            },
-            "discovery-dev": {
             }
           }
         },
@@ -76,7 +72,7 @@
             "tsConfig": "src/tsconfig.spec.json",
             "karmaConfig": "src/karma.conf.js",
             "styles": [
-              "src/styles.scss"
+              "src/assets/scss/styles.scss"
             ],
             "scripts": [],
             "assets": [
