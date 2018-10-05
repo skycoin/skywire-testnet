@@ -1,14 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { environment as env } from '../environments/environment';
+import { Component } from '@angular/core';
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  isManager = env.isManager;
-  listitems = [{ text: 'Node List', link: '/', icon: 'list' }, { text: 'Update Password', link: '/updatePass', icon: 'lock' }];
-  option = { selected: true };
-  constructor() {
-  }
+  title = 'skywire-discovery';
 }
