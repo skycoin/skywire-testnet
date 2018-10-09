@@ -227,7 +227,7 @@ export class NodeService {
   }
 
   update(): Observable<boolean> {
-    return this.nodeRequest('update');
+    return this.nodeRequest('run/update');
   }
 
   getManagerPort() {

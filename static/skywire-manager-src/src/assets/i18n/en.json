@@ -114,7 +114,7 @@
       "update-available": "There is an update available for the node. Click the 'Install update' button to continue.",
       "update-error": "Could not install node update. Please, try again later.",
       "install": "Install update",
-      "update-success": "Node updated successfully"
+      "update-success": "Node updated successfully, reboot the node and refresh this site to apply changes"
     }
   },
 

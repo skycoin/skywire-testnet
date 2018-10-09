@@ -20,7 +20,7 @@
       type="mat-raised-button"
       (action)="onUpdateClicked()"
       color="primary"
-      [disabled]="!isUpdateAvailable"
+      [disabled]="!isUpdateAvailable || isLoading"
       cdkFocusInitial
     >
         {{ 'actions.update.install' | translate }}

@@ -40,7 +40,9 @@ export class ActionsComponent {
   update() {
     this.dialog.open(UpdateNodeComponent).afterClosed().subscribe((updated) => {
       if (updated) {
-        this.snackbar.open(this.translate.instant('actions.update.update-success'));
+        this.snackbar.open(this.translate.instant('actions.update.update-success'), undefined, {
+          duration: 10000,
+        });
       }
     });
   }

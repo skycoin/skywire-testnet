@@ -9,13 +9,13 @@ import {MatDialogRef} from '@angular/material';
 })
 export class UpdateNodeComponent implements OnInit {
   updateError = false;
+  isLoading = false;
+  isUpdateAvailable = false;
+
   constructor(
     private nodeService: NodeService,
     private dialogRef: MatDialogRef<UpdateNodeComponent>,
   ) { }
-
-  isLoading = false;
-  isUpdateAvailable = false;
 
   ngOnInit() {
     this.fetchUpdate();
