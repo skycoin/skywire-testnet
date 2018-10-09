@@ -1,0 +1,16 @@
+app-im-head {
+  display: inline-block;
+  cursor: pointer;
+  img {
+    border-radius: .25rem;
+  }
+  .inner {
+    width: 52px;
+    height: 52px;
+    margin: .25rem auto;
+    line-height: 50px;
+    font-size: 2rem;
+    text-align: center;
+    border: 2px solid #fff;
+  }
+}

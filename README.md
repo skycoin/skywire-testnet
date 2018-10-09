@@ -19,8 +19,11 @@ Skywire is still under heavy development.
 * [Run Skywire](#run-skywire)
 * [Docker](#docker)
 * [System Images Download Url](#images)
+* Developers Guide
+  * [Manager API](docs/api/ManagerAPI.md)
+  * [Node API](docs/api/NodeAPI.md)
 
-### Requirements
+## Requirements
 
 * golang 1.9+
 
@@ -103,7 +106,7 @@ pkill -F node.pid
 Open [http://localhost:8000](http://localhost:8000).
 The default login password for Skywire manager is **1234**.
 
-### Conect to node
+### Connect to node
 1) Connect to node —— Search services —— Connect
 
 2) Connect to node —— Enter the key for node and app —— Connect
@@ -154,6 +157,9 @@ docker run -ti --rm \
   skycoin/skywire
 ```
 
+**Note:**
+The images of skywire for ARM v5 and v7 are built upon `busybox` whereas the ARM v6 and v8 containers will run on `alpine`.
+
 Open [http://localhost:8000](http://localhost:8000).
 The default login password for Skywire manager is **1234**.
 
@@ -173,7 +179,8 @@ docker run -ti --rm \
       -manager-address skywire-manager:5998 \
       -manager-web skywire-manager:8000 \
       -address :5000 \
-      -web-port :6001
+      -web-port :6001 \
+      -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
 ```
 
 ### Docker Compose

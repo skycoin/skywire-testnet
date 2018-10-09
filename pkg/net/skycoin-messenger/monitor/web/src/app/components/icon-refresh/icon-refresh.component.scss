@@ -1,0 +1,19 @@
+.refresh {
+  cursor: pointer;
+}
+
+.refresh-process {
+  animation: rotating 1s linear infinite;
+}
+
+@keyframes rotating {
+  0% {
+    transform: rotate(0)
+  }
+  50% {
+    transform: rotate(180deg)
+  }
+  100% {
+    transform: rotate(360deg)
+  }
+}
