@@ -183,7 +183,7 @@ export class NodeService {
   }
 
   updateNodeConfig() {
-    return this.nodeRequest('run/updateNodeConfig');
+    return this.nodeRequest('run/updateNode');
   }
 
   getAutoStartConfig(): Observable<AutoStartConfig> {

@@ -89,6 +89,7 @@ export class NodeComponent implements OnInit, OnDestroy {
   private onError() {
     this.translate.get('node.error-load').subscribe(str => {
       this.errorSnackBar.open(str);
+      this.router.navigate(['nodes']);
     });
   }
 

@@ -3,6 +3,7 @@ import { ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot } from
 import { Observable } from 'rxjs';
 import { AUTH_STATE, AuthService } from './auth.service';
 import { map } from 'rxjs/operators';
+import { MatDialog } from '@angular/material';
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +12,7 @@ export class AuthGuardService implements CanActivate {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private matDialog: MatDialog,
   ) { }
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> {
@@ -27,6 +29,7 @@ export class AuthGuardService implements CanActivate {
       // redirect him to "Login" page
       if (route.routeConfig.path !== 'login' && authState === AUTH_STATE.LOGIN_FAIL) {
         this.router.navigate(['login']);
+        this.matDialog.closeAll();
 
         return false;
       }

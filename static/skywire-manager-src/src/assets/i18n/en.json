@@ -34,9 +34,9 @@
 
   "node": {
     "online": "Online",
-    "online-tooltip": "Online: the node is correctly detected by the Skycoin network.",
+    "online-tooltip": "Online: Node is correctly detected by the Skywire network",
     "offline": "Offline",
-    "offline-tooltip": "Offline: the node is not detected by the Skycoin network. Probably it has no internet connectivity.",
+    "offline-tooltip": "Offline: Node is not detected by the Skywire network",
     "status": "STATUS",
     "protocol": "PROTOCOL",
     "last-ping": "LAST PING",
@@ -101,8 +101,7 @@
       "remove": "Remove address",
       "add": "Add address",
       "cant-store": "Unable to store node configuration",
-      "cant-reboot": "Unable to reboot node",
-      "success": "Rebooting node, please wait"
+      "success": "Applying discovery configuration by restarting node process"
     },
     "terminal": {
       "title": "Terminal",
