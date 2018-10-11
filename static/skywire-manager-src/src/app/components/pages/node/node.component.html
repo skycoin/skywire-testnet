@@ -1,0 +1,86 @@
+<div id="nodeDetailView" class="container-fluid h-100" *ngIf="nodeData">
+  <div class="row h-100" style="padding-bottom: 20px;">
+    <div class="col-xl-2 col-lg-3">
+      <div class="d-flex flex-column justify-content-between h-100">
+        <app-toolbar>
+          <mat-icon class="menu-button d-lg-none" (click)="toggleMenu()">menu</mat-icon>
+        </app-toolbar>
+        <app-actions *ngIf="showMenu" class="d-lg-none" [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
+        <app-actions class="d-none d-lg-block" [node]="nodeData.node" [nodeInfo]="nodeData.info"></app-actions>
+      </div>
+    </div>
+    <div class="col-lg-6 col-xl-7">
+      <div class="d-flex flex-column h-100">
+        <div class="mt-4.5">
+          <app-node-status-bar [nodeData]="nodeData"></app-node-status-bar>
+        </div>
+        <div class="container-elevated-translucid d-flex justify-content-between align-items-center mt-4">
+            <span class="mr-2 flex-shrink-0">{{ 'common.public-key' | translate }}</span>
+            <app-copy-to-clipboard-text
+              class="font-smaller text-truncate mw-0"
+              [text]="nodeData.node.key">
+            </app-copy-to-clipboard-text>
+        </div>
+        <app-node-transports-list
+          *ngIf="nodeData.info.transports.length > 0"
+          [connections]="nodeData.info.transports">
+        </app-node-transports-list>
+        <app-node-app-list
+          *ngIf="nodeData.apps.length > 0"
+          [apps]="nodeData.apps">
+        </app-node-app-list>
+        <app-apps
+          style="margin-top: auto;"
+          [apps]="nodeData.apps"
+          [nodeInfo]="nodeData.info">
+        </app-apps>
+      </div>
+    </div>
+    <div class="col-12 col-lg-3">
+      <div class="node-right font-smaller d-flex flex-column h-100 mt-4.5">
+        <!-- IPS -->
+        <div class="node-ips-container d-flex flex-column justify-content-between">
+          <div class="section">
+            <span class="section-title">{{ 'node.details.node-info' | translate }}</span>
+            <span class="font-smaller">
+              {{ nodeData.node.addr }}
+              |
+              {{ nodeData.info.os }}
+              |
+              {{ nodeData.info.version }} ({{ nodeData.info.tag}})
+            </span>
+          </div>
+          <hr>
+          <div class="section">
+            <span class="section-title">{{ 'node.details.manager-info' | translate }}</span>
+            <span class="font-smaller">
+              {{ managerIp }}
+              |
+              <app-copy-to-clipboard-text
+                [short]="true"
+                [text]="managerKey"
+                class="d-inline-block">
+              </app-copy-to-clipboard-text>
+            </span>
+          </div>
+          <hr>
+          <div class="section" matTooltip="{{ 'node.details.operational-nodes-tooltip' | translate: {value: operationalNodesCount} }}">
+            <span class="section-title">
+              <i class="dot-green"></i>
+              {{ 'node.details.nodes' | translate }}
+            </span>
+            <span
+              class="font-smaller">
+              {{ operationalNodesCount }}/{{ nodeData.allNodes.length }} <span class="text-capitalize">{{ 'node.details.operational-nodes' | translate }}</span>
+            </span>
+          </div>
+        </div>
+        <app-charts
+          class="d-flex flex-column justify-content-end mt-5"
+
+          [transports]="nodeData.info.transports"
+        ></app-charts>
+      </div>
+    </div>
+  </div>
+</div>

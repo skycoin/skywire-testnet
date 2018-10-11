@@ -1,0 +1,7 @@
+.nowrap {
+  white-space: nowrap;
+}
+
+.wrapper {
+  display: inline-block;
+}

@@ -1,0 +1,21 @@
+$list-group-bg:               transparent;
+$list-group-border-width:     0px;
+$list-group-item-padding-y:   .3rem;
+$list-inline-padding:         0px;
+
+//
+// Theme colors
+//
+$theme-color-interval: 8%;
+
+//
+// Grid
+//
+
+$grid-breakpoints: (
+  xs: 0,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1500px
+) !default;

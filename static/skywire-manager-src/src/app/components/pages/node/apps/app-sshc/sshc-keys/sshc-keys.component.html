@@ -1,0 +1,19 @@
+<app-dialog
+  id="sshcConnectContainer"
+  [headline]="'apps.sshc.title' | translate">
+  <div class="clearfix">
+    <app-keypair
+      [required]="true"
+      (keypairChange)="keypairChange($event)"
+    ></app-keypair>
+    <app-button
+      type="mat-raised-button"
+      class="float-right"
+      (action)="connect()"
+      [disabled]="!(valid && keypair && keypair.nodeKey && keypair.appKey)"
+      color="primary"
+    >
+      {{ 'apps.sshc.connect' | translate }}
+    </app-button>
+  </div>
+</app-dialog>

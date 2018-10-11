@@ -1,0 +1,18 @@
+<ul class="list-group">
+  <li class="list-group-item">
+    <app-button id="nodeListBtn" (action)="back()" icon="chevron_left">{{ 'actions.menu.nodes' | translate }}</app-button>
+  </li>
+  <li class="list-group-item">
+    <app-button (action)="terminal()" icon="laptop">{{ 'actions.menu.terminal' | translate }}</app-button>
+  </li>
+  <li class="list-group-item">
+    <app-button (action)="configuration()" icon="settings">{{ 'actions.menu.config' | translate }}</app-button>
+  </li>
+  <li class="list-group-item">
+    <app-button (action)="update()" icon="get_app">{{ 'actions.menu.update' | translate }}</app-button>
+  </li>
+  <li class="list-group-item">
+    <app-button (action)="reboot()" icon="rotate_right">{{ 'actions.menu.reboot' | translate }}</app-button>
+  </li>
+</ul>
+<hr class="d-lg-none">

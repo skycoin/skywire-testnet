@@ -1,0 +1,22 @@
+<app-dialog [headline]="'apps.log.title' | translate">
+  <mat-dialog-content>
+    <div *ngFor="let message of logMessages" style="margin-top: 15px;">
+      <span class="app-log-timestamp">
+        [{{ message.time * 1000 | date:'yyyy-MM-dd HH:mm:ss' }}]
+      </span>
+      <span class="app-log-message">
+        {{ message.msg }}
+      </span>
+    </div>
+    <div class="app-log-empty mt-3" *ngIf="!loading && (!logMessages || logMessages.length === 0)">
+      {{ 'apps.log.empty' | translate }}
+    </div>
+    <div class="app-log-empty mt-4 d-flex flex-row justify-content-center" *ngIf="loading">
+      {{ 'apps.log.loading' | translate }}
+      <mat-spinner
+        class="ml-4"
+        [diameter]="30"
+      ></mat-spinner>
+    </div>
+  </mat-dialog-content>
+</app-dialog>

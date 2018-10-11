@@ -1,0 +1,26 @@
+@import "variables";
+
+.manager-footer-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 20px;
+  background-color: $blue-dark;
+  color: $white;
+
+  .title {
+    font-size: 14px;
+  }
+
+  .buttons {
+    display: flex;
+    align-items: center;
+
+    mat-icon {
+      margin-left: 20px;
+      font-size: 20px;
+      color: $white;
+    }
+  }
+}

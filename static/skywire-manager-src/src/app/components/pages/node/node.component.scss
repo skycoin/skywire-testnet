@@ -1,0 +1,73 @@
+@import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
+
+:host::ng-deep
+{
+  app-toolbar {
+    padding: 20px 0;
+  }
+
+  .mat-form-field
+  {
+    width: 50px;
+    transition: width .4s cubic-bezier(.25,.8,.25,1);
+
+    &.mat-form-field-invalid
+    {
+      width: 180px;
+    }
+  }
+
+  .mat-form-field-underline
+  {
+    background-color: theme-color(translucid-white);
+  }
+
+  .mat-form-field-ripple
+  {
+    background-color: theme-color(translucid-white);
+  }
+
+  .mat-input-element {
+    caret-color: theme-color(translucid-white);
+  }
+
+  .menu-button {
+    color: theme-color(white);
+    margin-right: 15px;
+    cursor: pointer;
+  }
+
+  .mw-0 {
+    min-width: 0;
+  }
+}
+
+.separator
+{
+  width: 0;
+  height: 30px;
+  border: solid 1px theme-color(translucid-white);
+  align-self: center;
+}
+
+.node-right
+{
+  div
+  {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .section
+  {
+    flex-direction: column;
+
+    .section-title
+    {
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+    }
+  }
+}

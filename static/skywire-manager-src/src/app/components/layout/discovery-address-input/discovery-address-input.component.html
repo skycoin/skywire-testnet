@@ -1,0 +1,14 @@
+<app-domain-input
+  id="domainInput"
+  [required]="required"
+  [autofocus]="autofocus"
+  (domainChange)="onDomainChange($event)"
+  [value]="value?.domain">
+</app-domain-input>
+<app-key-input
+  id="keyInput"
+  [required]="required"
+  [value]="value?.publicKey"
+  (keyChange)="onKeyChange($event)"
+  [placeholder]="'common.public-key' | translate">
+</app-key-input>

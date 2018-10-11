@@ -1,0 +1,60 @@
+span
+{
+  overflow-wrap: break-word;
+}
+
+//
+// Color
+//
+@each $color-name, $color-value in $theme-colors
+{
+  .sky-color-#{$color-name}
+  {
+    color: $color-value !important;
+  }
+}
+
+//
+// Size
+//
+@each $size-name, $size-value in $theme-font-sizes
+{
+  .font-size-#{$size-name}
+  {
+    font-size: $size-value !important;
+  }
+}
+
+.font-weight-light
+{
+  font-weight: $font-weight-light !important;
+}
+
+.font-base
+{
+  @extend .font-size-base;
+}
+
+.font-base-light
+{
+  @extend .font-base;
+  @extend .font-weight-light;
+}
+
+.font-sm
+{
+  @extend .font-size-sm;
+  @extend .font-weight-light;
+}
+
+.font-smaller
+{
+  @extend .font-size-smaller;
+  @extend .font-weight-light;
+}
+
+.font-mini
+{
+  @extend .font-size-mini;
+  @extend .font-weight-light;
+}

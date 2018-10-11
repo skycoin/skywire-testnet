@@ -1,0 +1,29 @@
+<app-dialog
+  class="position-relative"
+  [headline]="'actions.update.title' | translate">
+  <mat-progress-bar *ngIf="isLoading"
+                    style="position: relative; top: 0;"
+                    mode="indeterminate"></mat-progress-bar>
+  <mat-dialog-content>
+  <span translate class="font-base text-danger" *ngIf="!isLoading && !isUpdateAvailable && !updateError">
+    {{ 'actions.no-update' | translate }}
+  </span>
+  <span class=" font-base sky-color-blue-dark" *ngIf="!isLoading && isUpdateAvailable && !updateError">
+    {{ 'actions.update.update-available' | translate }}
+  </span>
+  <span translate class=" font-base text-danger" *ngIf="!isLoading && updateError">
+    {{ 'actions.update.update-error' | translate }}
+  </span>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <app-button
+      type="mat-raised-button"
+      (action)="onUpdateClicked()"
+      color="primary"
+      [disabled]="!isUpdateAvailable || isLoading"
+      cdkFocusInitial
+    >
+        {{ 'actions.update.install' | translate }}
+    </app-button>
+  </mat-dialog-actions>
+</app-dialog>

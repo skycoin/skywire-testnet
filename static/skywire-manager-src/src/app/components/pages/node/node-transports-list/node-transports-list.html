@@ -1,0 +1,38 @@
+<div class="container-elevated-translucid mt-4.5 overflow">
+  <table class="table-translucid align-top fit" mat-table [dataSource]="dataSource" *ngIf="dataSource.data.length > 0">
+    <ng-container matColumnDef="index" class="index-col">
+      <th mat-header-cell *matHeaderCellDef class="bold">#</th>
+      <td mat-cell *matCellDef="let i=index;" class="bold index-col"> {{i+1}}</td>
+    </ng-container>
+    <ng-container matColumnDef="upload_total">
+      <th mat-header-cell *matHeaderCellDef class="bold">{{ 'common.upload' | translate }}</th>
+      <td mat-cell *matCellDef="let conn;">
+        <b>{{ (conn.upload_bandwidth / 128).toFixed(2) }} Kb</b> <br>
+        ({{ (conn.upload_total / 128).toFixed(0) }} Kb total)
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="download_total">
+      <th mat-header-cell *matHeaderCellDef class="bold">{{ 'common.download' | translate }}</th>
+      <td mat-cell *matCellDef="let conn;">
+        <b>{{ (conn.download_bandwidth / 128).toFixed(2) }} Kb</b> <br>
+        ({{ (conn.download_total / 128).toFixed(0) }} Kb total)
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="from">
+      <th mat-header-cell *matHeaderCellDef class="bold">{{ 'transports.from' | translate }}</th>
+      <td mat-cell *matCellDef="let conn;">
+        <app-copy-to-clipboard-text [short]="true" text="{{ conn.from_node }}"></app-copy-to-clipboard-text>
+        <app-copy-to-clipboard-text [short]="true" text="{{ conn.from_app }}"></app-copy-to-clipboard-text>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="to">
+      <th mat-header-cell *matHeaderCellDef class="bold">{{ 'transports.to' | translate }}</th>
+      <td mat-cell *matCellDef="let conn;">
+        <app-copy-to-clipboard-text [short]="true" text="{{ conn.to_node }}"></app-copy-to-clipboard-text>
+        <app-copy-to-clipboard-text [short]="true" text="{{ conn.to_app }}"></app-copy-to-clipboard-text>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+</div>

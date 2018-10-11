@@ -1,0 +1,16 @@
+<footer class="manager-footer-container">
+  <span class="title">{{ 'common.skywire-manager' | translate }}</span>
+  <div class="buttons">
+    <mat-icon
+      (click)="nodes()"
+      class="cursor-pointer"
+      [matTooltip]="'common.nodes' | translate"
+    >view_list</mat-icon>
+
+    <mat-icon
+      (click)="settings()"
+      class="cursor-pointer"
+      [matTooltip]="'common.settings' | translate"
+    >settings</mat-icon>
+  </div>
+</footer>

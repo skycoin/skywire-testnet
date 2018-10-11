@@ -1,0 +1,17 @@
+<div class="keypair-container">
+  <app-key-input
+    id="nodeKeyField"
+    [required]="required"
+    [value]="keypair ? keypair.nodeKey : ''"
+    (keyChange)="onNodeValueChanged($event)"
+    [placeholder]="'common.node-key' | translate"
+  ></app-key-input>
+
+  <app-key-input
+    id="appKeyField"
+    [required]="required"
+    [value]="keypair ? keypair.appKey : ''"
+    (keyChange)="onAppValueChanged($event)"
+    [placeholder]="'common.app-key' | translate"
+  ></app-key-input>
+</div>

@@ -1,0 +1,11 @@
+<app-dialog [headline]="'apps.sshs.whitelist.title' | translate">
+  <app-datatable
+    [data]="data.app.allow_nodes || []"
+    [meta]="{headerTitle: ('apps.sshs.whitelist.header' | translate), removeRowTooltipText: ('apps.sshs.whitelist.remove' | translate), addButtonTitle: ('apps.sshs.whitelist.add' | translate) }"
+    [getEditableRowData]="getEditableRowData.bind(this)"
+    [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
+    [getAddRowData]="getAddRowData.bind(this)"
+    [getAddRowComponentClass]="getAddRowComponentClass.bind(this)"
+    (save)="save($event)">
+  </app-datatable>
+</app-dialog>

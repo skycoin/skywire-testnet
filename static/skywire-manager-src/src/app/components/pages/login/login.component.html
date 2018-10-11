@@ -1,0 +1,23 @@
+<div class="container-fluid h-100 d-flex justify-content-center">
+  <div
+    style="top: -10%;"
+    class="position-relative row flex-column align-items-center h-100 justify-content-center">
+    <app-skycoin-logo [direction]="'vertical'"></app-skycoin-logo>
+    <form class="mt-5" [formGroup]="form">
+      <div class="login-input">
+        <input
+          id="passwordInput"
+          type="password"
+          formControlName="password"
+          autocomplete="off"
+          [placeholder]="'login.password' | translate"
+          (keydown.enter)="login()"
+        >
+        <button [disabled]="!form.valid || loading" (click)="login()">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    </form>
+  </div>
+  <h4 class="manager-title">{{ 'common.skywire-manager' | translate }}</h4>
+</div>

@@ -1,0 +1,34 @@
+<app-dialog [headline]="'apps.config.title' | translate">
+  <mat-dialog-content>
+    <form class="startup-form clearfix" *ngIf="autoStartConfig">
+      <mat-list>
+        <mat-list-item>
+          <span>
+            {{ autoStartTitle | translate }}
+          </span>
+            <mat-slide-toggle
+              id="toggleAutomaticStartBtn"
+              (change)="toggle($event)"
+              [checked]="isAutoStartChecked"></mat-slide-toggle>
+        </mat-list-item>
+        <mat-list-item *ngIf="hasKeyPair">
+          <app-keypair
+            [required]="isAutoStartChecked"
+            (keypairChange)="keypairChange($event)"
+            [keypair]="keyPair"
+          ></app-keypair>
+        </mat-list-item>
+      </mat-list>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <app-button
+      type="mat-raised-button"
+      [disabled]="!formValid"
+      (action)="save()"
+      color="primary"
+    >
+      {{ 'common.save' | translate }}
+    </app-button>
+  </mat-dialog-actions>
+</app-dialog>

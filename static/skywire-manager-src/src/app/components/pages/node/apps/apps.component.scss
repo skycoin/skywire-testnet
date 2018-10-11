@@ -1,0 +1,58 @@
+@import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
+@import '~bootstrap/scss/mixins/breakpoints';
+@import 'bootstrap_overrides';
+
+:host::ng-deep
+{
+  .mat-flat-button
+  {
+    line-height: 15px;
+  }
+
+  .separator
+  {
+    width: 1px;
+    height: 40px;
+    background-color: theme-color(translucid-white);
+    align-self: center;
+  }
+
+  @include media-breakpoint-down(sm) {
+    ul {
+      flex-direction: column;
+      align-items: flex-start !important;
+
+      li {
+        width: 100%;
+      }
+
+      .node-app {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        margin-bottom: 15px;
+        width: 100%;
+
+        & > div {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          app-button {
+            margin-top: 0;
+          }
+        }
+
+        .info-container {
+          justify-content: flex-start !important;
+        }
+      }
+    }
+
+    .separator {
+      display: none;
+    }
+  }
+}

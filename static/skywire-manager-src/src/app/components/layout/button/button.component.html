@@ -1,0 +1,35 @@
+<ng-template #contentTpl><ng-content></ng-content></ng-template>
+
+<button
+  *ngIf="type === 'mat-button'"
+  mat-button
+  [disableRipple]="true"
+  (click)="click()"
+  [matTooltip]="tooltip"
+  [disabled]="disabled"
+  [ngClass]="dark ? 'dark' : ''"
+  [color]="color"
+>
+  <mat-spinner *ngIf="state === buttonStates.LOADING" [diameter]="loadingSize" color="white"></mat-spinner>
+  <mat-icon *ngIf="state === buttonStates.SUCCESS">done</mat-icon>
+  <mat-icon *ngIf="state === buttonStates.ERROR">error_outline</mat-icon>
+  <mat-icon *ngIf="state === buttonStates.NORMAL && icon">{{ icon }}</mat-icon>
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</button>
+
+<button
+  *ngIf="type === 'mat-raised-button'"
+  mat-raised-button
+  [disableRipple]="true"
+  (click)="click()"
+  [matTooltip]="tooltip"
+  [disabled]="disabled"
+  [ngClass]="dark ? 'dark' : ''"
+  [color]="color"
+>
+  <mat-spinner *ngIf="state === buttonStates.LOADING" [diameter]="loadingSize" color="white"></mat-spinner>
+  <mat-icon *ngIf="state === buttonStates.SUCCESS">done</mat-icon>
+  <mat-icon *ngIf="state === buttonStates.ERROR">error_outline</mat-icon>
+  <mat-icon *ngIf="state === buttonStates.NORMAL && icon">{{ icon }}</mat-icon>
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</button>

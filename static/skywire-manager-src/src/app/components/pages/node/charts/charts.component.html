@@ -1,0 +1,19 @@
+<div class="chart">
+  <app-line-chart [data]="sendingHistory"></app-line-chart>
+  <div class="info">
+    <span class="text">{{ 'common.upload' | translate }}</span>
+    <span class="rate">
+      <span class="value">{{ (sendingTotal / 128).toFixed(2) }}</span>
+      <span class="unit">Kb</span></span>
+  </div>
+</div>
+
+<div class="chart">
+  <app-line-chart [data]="receivingHistory"></app-line-chart>
+  <div class="info">
+    <span class="text">{{ 'common.download' | translate }}</span>
+    <span class="rate">
+      <span class="value">{{ (receivingTotal / 128).toFixed(2) }}</span>
+      <span class="unit">Kb</span></span>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+<mat-form-field>
+  <input
+    [value]="value"
+    (input)="onInput($event)"
+    matInput
+    [formControl]="validator"
+    type="text"
+    [placeholder]="placeholder">
+  <mat-error *ngIf="validator.errors?.required && (validator.dirty || validator.touched)">
+    {{ 'inputs.errors.key-required' | translate }}
+  </mat-error>
+  <mat-error *ngIf="validator.errors?.invalid && (validator.dirty || validator.touched)">
+    {{ 'inputs.errors.key-length' | translate }}
+  </mat-error>
+</mat-form-field>

@@ -1,0 +1,31 @@
+@import 'variables';
+
+:host
+{
+  .header {
+    margin-top: -$mat-dialog-padding;
+    margin-left: -$mat-dialog-padding;
+    margin-right: -$mat-dialog-padding;
+    margin-bottom: 0;
+    color: $blue-dark;
+    padding: 15px $mat-dialog-padding;
+    font-size: 16px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    background-color: white;
+
+    span {
+      line-height: 16px;
+    }
+
+    .mat-icon-button {
+      cursor: pointer;
+      color: darken($white, 30%);
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+    }
+  }
+}
