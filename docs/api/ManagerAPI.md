@@ -210,6 +210,14 @@ Response:
 ```
 
 ### Manager Term
+Establishes a Terminal session on the Manager Node.
+
+The request requires the following parameters to be provided as URL query strings:
+* `token` - must be a valid token provided by the Manager
+* `url` - provides the request to be performed by the target Node. In this case (Term), it is expected to be in the form `ws://127.0.0.1:8000/node/run/term`
+
+Once the provided `token` and `url` are validated, a WebSocket is established to the remote endpoint provided in the `url` parameter. The request header is populated with the `manager-token`.
+
 #### Usage
 ```
 URI: /term
@@ -217,6 +225,7 @@ Method: Post
 ```
 Example:
 ```sh
+
 ```
 
 Response:
@@ -395,7 +404,7 @@ Response:
 #### Usage
 ```
 URI: /conn/setNodeConfig
-Method: TBA
+Method: POST
 ```
 Example:
 ```sh
@@ -403,27 +412,60 @@ Example:
 
 Response:
 ```json
-```
+```        
 
 ### Get Node Configuration
+Get the configuration of a specified Node.
+The following form values are expected:
+* `key` - the key of the Node the request is being made for.
+
+This operation is performed locally on the Manager. A Mutex is obtained to lock the configuration file before reading. The Manager will perform a look-up of the provided Node key in the config file and return a JSON structure contianing the configuraiton if found. If not found the response will be `no found`
+
 #### Usage
 ```
 URI: /conn/getNodeConfig
-Method: TBA
+Method: POST
 ```
-Example:
+Example (**Incomplete**):
 ```sh
+curl -X "POST" "http://127.0.0.1:8888/term?url=ws://192.168.0.101:6001/node/run/term&token=889cc2bd9590dc94aa1e772c84fade844e58e01f092a60376b6af2c6e5fb16c6"
 ```
 
-Response:
-```json
+500 (Not Found) Response:
+```
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/plain; charset=utf-8
+X-Content-Type-Options: nosniff
+Date: Sun, 14 Oct 2018 20:41:35 GMT
+Content-Length: 9
+Connection: close
+
+no found
+```
+
+302 (Unauthorised) Response:
+```
+HTTP/1.1 302 Found
+Content-Type: text/plain; charset=utf-8
+X-Content-Type-Options: nosniff
+Date: Mon, 15 Oct 2018 19:17:09 GMT
+Content-Length: 13
+Connection: close
+
+Unauthorized
 ```
 
 ### Save Client Connection
+**Note:** You must have already logged into the Manager using the `/login` API.
+
+The request must contain the following data in the body of the form that is posted:
+* `data` - this is a JSON structure representing the Client configuration to be saved and is expected to be of type `ClientConnection`.
+* `client` - is the Node Key (TBC)
+
 #### Usage
 ```
 URI: /conn/saveClientConnection
-Method: TBA
+Method: POST
 ```
 Example:
 ```sh
@@ -448,29 +490,61 @@ Response:
 ```
 
 ### Edit Client Connection
+Edits information about the specified client connection.
+
+The following parameters must be passed as form data:
+* `client` - The client (Node Key) that the configuration is being requested for. **TODO:** Need to verify this is the Node Key.
+* `label` - The new label for the Node
+* `index` - The new Index (TODO: not sure what this is) for the Node.
+
+**Note:** You must have already logged into the Manager using the `/login` API.
 #### Usage
 ```
 URI: /conn/editClientConnection
-Method: TBA
+Method: POST
 ```
 Example:
 ```sh
+curl -X "POST" "http://127.0.0.1:8000/conn/editClientConnection" \
+     -H 'Content-Type: application/x-www-form-urlencoded; charset=utf-8' \
+     -H 'Cookie: SWSId=46b173f2035a87ff42ee905e8b9533d8' \
+     --data-urlencode "client=06bfac57c217b77c70c2c71b78e2445f14a9fc6397341eaab23fec62c6bac42c1c" \
+     --data-urlencode "label=Node1" \
+     --data-urlencode "index=1"
 ```
 
 Response:
 ```json
 ```
 
-### GetClientConnection
+### Get Client Connection
+Retrieves information about the specified client connection from the Manager.
+
+The following parameters must be passed as form data:
+* `client` - The client (Node Key) that the configuration is being requested for. **TODO:** Need to verify that this is the Node Key.
+
+**Note:** You must have already logged into the Manager using the `/login` API.
+
 #### Usage
 ```
 URI: /conn/getClientConnection
-Method: TBA
+Method: GET
 ```
 Example:
 ```sh
+curl -X "POST" "http://127.0.0.1:8888/conn/getClientConnection" \
+     -H 'Content-Type: application/x-www-form-urlencoded; charset=utf-8' \
+     -H 'Cookie: SWSId=ec2c446717fefeba98a2ab791bcea66c' \
+     --data-urlencode "client=t06bfac57c217b77c70c2c71b78e2445f14a9fc6397341eaab23fec62c6bac42c1ccp"
 ```
 
 Response:
-```json
+```sh
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Sun, 14 Oct 2018 20:37:47 GMT
+Content-Length: 4
+Connection: close
+
+null
 ```
