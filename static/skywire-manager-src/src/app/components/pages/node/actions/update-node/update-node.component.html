@@ -6,7 +6,7 @@
                     mode="indeterminate"></mat-progress-bar>
   <mat-dialog-content>
   <span translate class="font-base text-danger" *ngIf="!isLoading && !isUpdateAvailable && !updateError">
-    {{ 'actions.no-update' | translate }}
+    {{ 'actions.update.no-update' | translate }}
   </span>
   <span class=" font-base sky-color-blue-dark" *ngIf="!isLoading && isUpdateAvailable && !updateError">
     {{ 'actions.update.update-available' | translate }}
