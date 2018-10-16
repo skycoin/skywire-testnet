@@ -629,7 +629,7 @@ func (m *Monitor) UpdatePass(w http.ResponseWriter, r *http.Request) (result []b
 		result = []byte("A new password must be provided.")
 		return
 	}
-	if isDefaultPassCleartext(newPass) {
+	if isDefaultPass(newPass) {
 		result = []byte("The default password cannot be used.")
 		return
 	}
