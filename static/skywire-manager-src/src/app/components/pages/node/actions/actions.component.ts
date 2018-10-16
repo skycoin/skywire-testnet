@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { NodeService } from '../../../../services/node.service';
 import { Node, NodeInfo } from '../../../../app.datatypes';
 import { MatDialog, MatSnackBar } from '@angular/material';
@@ -7,15 +7,18 @@ import { TerminalComponent } from './terminal/terminal.component';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import {UpdateNodeComponent} from './update-node/update-node.component';
+import { environment } from '../../../../../environments/environment';
+import { ButtonComponent } from '../../../layout/button/button.component';
 
 @Component({
   selector: 'app-actions',
   templateUrl: './actions.component.html',
   styleUrls: ['./actions.component.scss']
 })
-export class ActionsComponent {
+export class ActionsComponent implements OnInit {
   @Input() node: Node;
   @Input() nodeInfo: NodeInfo;
+  @ViewChild('update') updateButton: ButtonComponent;
 
   constructor(
     private nodeService: NodeService,
@@ -24,6 +27,17 @@ export class ActionsComponent {
     private router: Router,
     private translate: TranslateService
   ) { }
+
+  ngOnInit() {
+    if (environment.production) {
+      this.updateButton.loading();
+
+      this.nodeService.checkUpdate().subscribe(hasUpdate => {
+        this.updateButton.reset();
+        this.updateButton.notify(hasUpdate);
+      });
+    }
+  }
 
   reboot() {
     this.nodeService.reboot().subscribe(

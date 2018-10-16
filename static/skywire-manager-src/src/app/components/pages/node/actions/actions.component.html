@@ -9,7 +9,7 @@
     <app-button (action)="configuration()" icon="settings">{{ 'actions.menu.config' | translate }}</app-button>
   </li>
   <li class="list-group-item">
-    <app-button (action)="update()" icon="get_app">{{ 'actions.menu.update' | translate }}</app-button>
+    <app-button #update (action)="update()" icon="get_app">{{ 'actions.menu.update' | translate }}</app-button>
   </li>
   <li class="list-group-item">
     <app-button (action)="reboot()" icon="rotate_right">{{ 'actions.menu.reboot' | translate }}</app-button>
