@@ -29,7 +29,7 @@ export class AppSockscComponent extends NodeAppButtonComponent {
         data: {
           discoveries: this.parsedDiscoveries,
         },
-        width: 'auto'
+        width: '800px'
       })
       .afterClosed()
       .subscribe((keypair: Keypair) => {

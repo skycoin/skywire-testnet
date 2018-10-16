@@ -10,15 +10,17 @@
         {{ 'common.node-key' | translate }} / {{ 'common.app-key' | translate }}
       </th>
       <td mat-cell *matCellDef="let item;">
-        {{ item.node_key }}<br>{{ item.app_key }}
+        <span class="nowrap">{{ item.node_key }}</span>
+        <br>
+        <span class="nowrap">{{ item.app_key }}</span>
       </td>
     </ng-container>
     <ng-container matColumnDef="versions">
       <th mat-header-cell *matHeaderCellDef>{{ 'apps.socksc.versions' | translate }}</th>
       <td mat-cell *matCellDef="let item;">
-        <span>Node: {{ item.node_version[0] }}</span>
+        <span class="nowrap">Node: {{ item.node_version[0] }}</span>
         <br>
-        <span>App: {{ item.version }}</span>
+        <span class="nowrap">App: {{ item.version }}</span>
       </td>
     </ng-container>
     <ng-container matColumnDef="location">
