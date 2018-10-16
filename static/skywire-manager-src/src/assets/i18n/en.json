@@ -106,7 +106,7 @@
     },
     "terminal": {
       "title": "Terminal",
-      "exitting": "Exitting terminal..."
+      "exiting": "Exiting terminal..."
     },
     "update": {
       "title": "Check node update",
