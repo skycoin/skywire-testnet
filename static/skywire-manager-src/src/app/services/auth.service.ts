@@ -1,7 +1,8 @@
 import {Injectable} from '@angular/core';
 import {ApiService} from './api.service';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
+import { TranslateService } from '@ngx-translate/core';
 
 export enum AUTH_STATE {
   LOGIN_OK, LOGIN_FAIL, CHANGE_PASSWORD
@@ -13,6 +14,7 @@ export enum AUTH_STATE {
 export class AuthService {
   constructor(
     private apiService: ApiService,
+    private translateService: TranslateService,
   ) { }
 
   login(password: string) {
@@ -52,7 +54,11 @@ export class AuthService {
         if (result === 'true') {
           return true;
         } else {
-          throw new Error(result);
+          if (result === 'Please do not change the default password.') {
+            throw new Error(this.translateService.instant('settings.password.errors.default-password'));
+          }
+
+          throw new Error(this.translateService.instant('settings.password.errors.bad-old-password'));
         }
       }));
   }

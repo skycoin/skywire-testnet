@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../services/auth.service';
 import { Location } from '@angular/common';
@@ -43,7 +43,7 @@ export class PasswordComponent implements OnInit {
             this.snackbar.open('Log in with your new password');
           },
           (err) => {
-            this.errorSnack.open(this.translate.instant('settings.password.errors.bad-old-password'));
+            this.errorSnack.open(err);
           },
         );
     }

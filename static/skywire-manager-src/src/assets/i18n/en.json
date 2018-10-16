@@ -72,7 +72,8 @@
         "bad-old-password": "The provided old password is not correct.",
         "old-password-required": "Old password is required",
         "new-password-error": "Password must be 4-20 characters long",
-        "passwords-not-match": "Passwords do not match"
+        "passwords-not-match": "Passwords do not match",
+        "default-password": "Don't use the default password (1234)"
       }
     },
     "seconds": "seconds",
