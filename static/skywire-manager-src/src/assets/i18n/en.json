@@ -50,7 +50,9 @@
       "operational-nodes": "operational",
       "operational-nodes-tooltip": "{{value}} nodes discovered by Skycoin network."
     },
-    "error-load": "An error occurred while refreshing node data"
+    "error-load": "An error occurred while refreshing node data",
+    "discovered": "Node is discovered by this discovery server",
+    "not-discovered": "Node is not discovered by this discovery server"
   },
 
   "nodes": {

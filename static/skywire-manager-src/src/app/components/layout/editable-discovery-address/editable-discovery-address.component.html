@@ -7,7 +7,16 @@
     [value]="value">
   </app-discovery-address-input>
   <span (click)="onValueClicked($event)" *ngIf="!editMode">
-    {{ value.domain }}<br>{{ value.publicKey }}
+    {{ value.domain }}
+    <br>
+    {{ value.publicKey }}
+    <br>
+    <ng-container *ngIf="discovered !== undefined">
+      <i class="sm" [ngClass]="{'dot-green': discovered, 'dot-red': !discovered}"></i>
+      <span class="text-muted pl-1">
+        {{ (discovered ? 'node.discovered' : 'node.not-discovered') | translate }}
+      </span>
+    </ng-container>
   </span>
   <button
     [color]="editMode ? 'primary' : ''"

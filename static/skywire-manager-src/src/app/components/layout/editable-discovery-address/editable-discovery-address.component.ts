@@ -10,12 +10,15 @@ export class EditableDiscoveryAddressComponent {
   @Input() value: DiscoveryAddress;
   @Input() required = false;
   @Input() autofocus: boolean;
+  @Input() discovered: boolean;
   @Output() valueEdited = new EventEmitter<DiscoveryAddress>();
   editMode = false;
   valid = true;
 
   onValueChanged({valid, value}: {valid: boolean, value: DiscoveryAddress}) {
     this.valid = valid;
+    this.discovered = undefined;
+
     if (valid) {
       this.value = value;
     }
@@ -24,6 +27,7 @@ export class EditableDiscoveryAddressComponent {
   set data(data: Data) {
     this.required = data.required;
     this.autofocus = data.autofocus;
+    this.discovered = data.discovered;
     this.value = data.value;
     this.valueEdited.subscribe(data.subscriber);
   }
@@ -47,6 +51,7 @@ export class EditableDiscoveryAddressComponent {
 interface Data {
   required: boolean;
   autofocus: boolean;
+  discovered: boolean;
   value: DiscoveryAddress;
   subscriber: (next: DiscoveryAddress) => void;
 }
