@@ -96,4 +96,18 @@ export class NodeComponent implements OnInit, OnDestroy {
   get operationalNodesCount(): number {
     return this.nodeData.allNodes.filter((node) => node.online === true).length;
   }
+
+  get operationalNodesClass(): string {
+    const count = this.operationalNodesCount;
+
+    if (count === 0) {
+      return 'dot-red';
+    }
+
+    if (count < this.nodeData.allNodes.length) {
+      return 'dot-yellow';
+    }
+
+    return 'dot-green';
+  }
 }
