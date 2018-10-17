@@ -619,21 +619,23 @@ func (m *Monitor) UpdatePass(w http.ResponseWriter, r *http.Request) (result []b
 	}
 	oldPass := r.FormValue("oldPass")
 	newPass := r.FormValue("newPass")
-	if len(oldPass) < 4 || len(oldPass) > 20 {
-		result = []byte("Old password length is 4~20.")
+	// Check that the old password was provided. We dont care about its length, as long as its not zero.
+	if len(oldPass) < 1 {
+		result = []byte("Your existing (old) password must be provided.")
 		return
 	}
-	if len(newPass) < 4 || len(newPass) > 20 {
-		result = []byte("New password length is 4~20.")
+	// Check the length of the new password. We dont care about how long the user makes it, as long as its not zero
+	if len(newPass) < 1 {
+		result = []byte("A new password must be provided.")
 		return
 	}
-	if newPass == "1234" {
-		result = []byte("Please do not change the default password.")
+	if isDefaultPass(newPass) {
+		result = []byte("The default password cannot be used.")
 		return
 	}
 	err = checkPass(oldPass)
 	if err != nil {
-		result = []byte("The original password is wrong, please confirm again and try again.")
+		result = []byte("The original password is wrong, please confirm and try again.")
 		return
 	}
 	err = WriteConfig(&User{Pass: getBcrypt(newPass)}, userPath)
@@ -682,7 +684,7 @@ func verifyLogin(w http.ResponseWriter, r *http.Request, checkDefaultPass bool) 
 		return false
 	}
 	hash := sess.Get("pass")
-	if pass == nil {
+	if hash == nil {
 		http.Error(w, "Unauthorized", http.StatusFound)
 		return false
 	}
@@ -700,7 +702,7 @@ func verifyLogin(w http.ResponseWriter, r *http.Request, checkDefaultPass bool) 
 		http.Error(w, "Unauthorized", http.StatusFound)
 		return false
 	}
-	if !checkDefaultPass && isDefaultPass() {
+	if !checkDefaultPass && userHasDefaultPass() {
 		http.Error(w, "Forced change password", http.StatusTemporaryRedirect)
 		return false
 	}
