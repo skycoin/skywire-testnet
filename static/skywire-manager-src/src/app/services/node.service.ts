@@ -2,7 +2,17 @@ import {Injectable, NgZone} from '@angular/core';
 import {bindCallback, forkJoin, interval, Observable, of, Subject, timer, Unsubscribable} from 'rxjs';
 import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, SearchResult} from '../app.datatypes';
 import { ApiService } from './api.service';
-import {delay, filter, finalize, flatMap, map, switchMap, take, timeout} from 'rxjs/operators';
+import {
+  catchError,
+  delay,
+  filter,
+  finalize,
+  flatMap,
+  map,
+  switchMap,
+  take,
+  timeout
+} from 'rxjs/operators';
 import {StorageService} from './storage.service';
 import {getNodeLabel, isOnline} from '../utils/nodeUtils';
 
@@ -36,25 +46,16 @@ export class NodeService {
   getAllNodes(): Observable<NodeStatusInfo[]> {
     return this.apiService.get('conn/getAll').pipe(
       flatMap(
-        nodes => forkJoin(
-          nodes.map(
-            node =>
-              this.node(node.key).pipe(
-                map(nodeWithAddress => ({...node, ...nodeWithAddress})
-              )
-            )
-          )
-        )
-      )
-    ).pipe(
+        nodes => forkJoin(nodes.map(node => this.node(node.key).pipe(
+          map(nodeWithAddress => ({...node, ...nodeWithAddress})),
+          catchError(() => of({...node}))
+        )))
+      ),
       flatMap(
-        nodes => forkJoin(
-          nodes.map(
-            (node: Node) => this.nodeInfo(node).pipe(
-              map(nodeInfo => ({...node, ...nodeInfo, online: isOnline(nodeInfo)}))
-            )
-          )
-        )
+        nodes => forkJoin(nodes.map((node: Node) => this.nodeInfo(node).pipe(
+          map(nodeInfo => ({...node, online: isOnline(nodeInfo)})),
+          catchError(() => of({...node, online: undefined})),
+        )))
       )
     );
   }

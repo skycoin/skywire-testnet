@@ -19,6 +19,7 @@ export class NodeComponent implements OnInit, OnDestroy {
   managerKey: string;
 
   private refreshSubscription: Subscription;
+
   constructor(
     private nodeService: NodeService,
     private route: ActivatedRoute,
@@ -63,7 +64,7 @@ export class NodeComponent implements OnInit, OnDestroy {
           this.managerKey = data[1];
         });
       },
-      () => this.router.navigate(['nodes'])
+      () => this.onError(),
     );
   }
 
@@ -79,7 +80,9 @@ export class NodeComponent implements OnInit, OnDestroy {
   }*/
 
   ngOnDestroy() {
-    this.refreshSubscription.unsubscribe();
+    if (this.refreshSubscription) {
+      this.refreshSubscription.unsubscribe();
+    }
   }
 
   public toggleMenu() {

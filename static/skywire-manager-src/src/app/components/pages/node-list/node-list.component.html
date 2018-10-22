@@ -13,13 +13,17 @@
               <span
                 class="dot-green"
                 *ngIf="node.online === true"
-                [title]="'node.online-tooltip' | translate"
                 [matTooltip]="'node.online-tooltip' | translate"
               ></span>
               <span
                 class="dot-red"
                 *ngIf="node.online === false"
                 [matTooltip]="'node.offline-tooltip' | translate"
+              ></span>
+              <span
+                class="dot-gray"
+                *ngIf="node.online === undefined"
+                [matTooltip]="'node.unknown-tooltip' | translate"
               ></span>
             </td>
           </ng-container>

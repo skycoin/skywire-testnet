@@ -37,6 +37,7 @@
     "online-tooltip": "Online: Node is correctly detected by the Skywire network",
     "offline": "Offline",
     "offline-tooltip": "Offline: Node is not detected by the Skywire network",
+    "unknown-tooltip": "Node status is unknown",
     "status": "STATUS",
     "protocol": "PROTOCOL",
     "last-ping": "LAST PING",

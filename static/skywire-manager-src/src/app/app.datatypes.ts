@@ -23,7 +23,7 @@ export interface NodeInfo {
   version: string;
 }
 
-export interface NodeStatusInfo extends Node, NodeInfo {
+export interface NodeStatusInfo extends Node {
   online: boolean;
 }
 
