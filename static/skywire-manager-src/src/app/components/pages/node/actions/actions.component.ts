@@ -18,7 +18,7 @@ import { ButtonComponent } from '../../../layout/button/button.component';
 export class ActionsComponent implements OnInit {
   @Input() node: Node;
   @Input() nodeInfo: NodeInfo;
-  @ViewChild('update') updateButton: ButtonComponent;
+  @ViewChild('updateButton') updateButton: ButtonComponent;
 
   constructor(
     private nodeService: NodeService,
