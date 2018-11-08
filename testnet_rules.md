@@ -21,9 +21,12 @@ Please join [SkywirePSA](https://t.me/SkywirePSA) as well to get structured publ
 
 ## Rules
 
+
 **Each whitelisted person is eligible of receiving rewards for 1 official miner or 1 DIY miner with up to 8 nodes, in the case that either the official or the DIY miner are running at a different location the person will receive rewards for both if the requirement is met.**
 
 * The demand for a different location is due to the fact that we want to spread out the meshnet and not concentrate the location of nodes to specific central points, which would result in paying people to run orange pi's and not to reward them for providing a useful service to the network.
+
+* If you are running two separate miners in the same location because you're joining the network living in the same house you still have to move one of your miners to another location. 
 
 * *Submitting applications under multiple email addresses is illegal and likely to be detected - measures will be taken if such actions are recognized.*
 
