@@ -5,7 +5,7 @@ import { Subscription } from 'rxjs';
 import { MatDialog, MatTableDataSource } from '@angular/material';
 import {Router} from '@angular/router';
 import { ButtonComponent } from '../../layout/button/button.component';
-import { EditLabelComponent } from './edit-label/edit-label.component';
+import { EditLabelComponent } from '../../layout/edit-label/edit-label.component';
 import { TranslateService } from '@ngx-translate/core';
 import {ErrorsnackbarService} from '../../../services/errorsnackbar.service';
 
@@ -52,7 +52,9 @@ export class NodeListComponent implements OnInit, OnDestroy {
 
   showEditLabelDialog(node: Node) {
     this.dialog.open(EditLabelComponent, {
-      data: { node },
+      data: { label: this.nodeService.getLabel(node) },
+    }).afterClosed().subscribe((label: string) => {
+      this.nodeService.setLabel(node, label);
     });
   }
 

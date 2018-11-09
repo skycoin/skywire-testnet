@@ -1,0 +1,37 @@
+<table mat-table class="table-abs-white sm" [dataSource]="dataSource">
+  <ng-container matColumnDef="label">
+    <th mat-header-cell *matHeaderCellDef>{{ 'nodes.label' | translate }}</th>
+    <td mat-cell *matCellDef="let item;">
+      <span [ngClass]="{'text-muted': !item.label}">{{ item.label || ('apps.socksc.unknown' | translate) }}</span>
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="keys">
+    <th mat-header-cell *matHeaderCellDef>
+      {{ 'common.node-key' | translate }} / {{ 'common.app-key' | translate }}
+    </th>
+    <td mat-cell *matCellDef="let item;">
+      <span class="nowrap">{{ item.nodeKey }}</span>
+      <br>
+      <span class="nowrap">{{ item.appKey }}</span>
+    </td>
+  </ng-container>
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef></th>
+    <td mat-cell *matCellDef="let item; let i = index" class="text-right actions">
+      <i class="material-icons"
+         (click)="edit(i, item.label)"
+         [matTooltip]="'nodes.edit-label' | translate"
+      >edit</i>
+      <i class="material-icons"
+         (click)="delete(i)"
+         [matTooltip]="'common.delete' | translate"
+      >delete</i>
+      <app-button color="primary" type="mat-raised-button" (action)="connect.emit({nodeKey: item.nodeKey, appKey: item.appKey})">
+        {{ 'apps.socksc.connect' | translate }}
+      </app-button>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>

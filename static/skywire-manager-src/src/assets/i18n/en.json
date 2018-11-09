@@ -15,7 +15,8 @@
     "back": "Back",
     "cancel": "Cancel",
     "download": "Download",
-    "upload": "Upload"
+    "upload": "Upload",
+    "delete": "Delete"
   },
 
   "inputs": {
@@ -61,7 +62,6 @@
     "label": "Label",
     "running": "Running",
     "edit-label": "Edit label",
-    "edit-label-title": "Edit node label",
     "view-node": "View node",
     "error-load": "An error occurred while refreshing nodes"
   },
@@ -113,7 +113,7 @@
     },
     "update": {
       "title": "Check node update",
-      "no-update": "Currently there is no update for the node.",
+      "no-update": "Currently, there is no update for the node.",
       "update-available": "There is an update available for the node. Click the 'Install update' button to continue.",
       "update-error": "Could not install node update. Please, try again later.",
       "install": "Install update",
@@ -126,12 +126,14 @@
       "title": "Connect to Node",
       "connect-keypair": "Enter keypair",
       "connect-search": "Search node",
+      "connect-history": "History",
       "versions": "Versions",
       "location": "Location",
       "connect": "Connect",
       "next-page": "Next page",
       "prev-page": "Previous page",
-      "auto-startup": "Automatically connect to Node"
+      "auto-startup": "Automatically connect to Node",
+      "unknown": "None"
     },
     "sshc": {
       "title": "SSH Client",

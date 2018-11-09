@@ -62,7 +62,7 @@ import { StartupConfigComponent } from './components/pages/node/apps/startup-con
 import { KeyInputComponent } from './components/layout/key-input/key-input.component';
 import { AppTranslationModule } from './app-translation.module';
 import { ButtonComponent } from './components/layout/button/button.component';
-import { EditLabelComponent } from './components/pages/node-list/edit-label/edit-label.component';
+import { EditLabelComponent } from './components/layout/edit-label/edit-label.component';
 import { DialogComponent } from './components/layout/dialog/dialog.component';
 import {EditableKeyComponent} from './components/layout/editable-key/editable-key.component';
 import {DiscoveryAddressInputComponent} from './components/layout/discovery-address-input/discovery-address-input.component';
@@ -72,7 +72,7 @@ import {ComponentHostDirective} from './directives/component-host.directive';
 import {HostComponent} from './components/layout/host/host.component';
 import {DatatableComponent} from './components/layout/datatable/datatable.component';
 import {EditableDiscoveryAddressComponent} from './components/layout/editable-discovery-address/editable-discovery-address.component';
-import {SearchNodesComponent} from './components/pages/node/apps/app-socksc/search-nodes/search-nodes.component';
+import {SearchNodesComponent} from './components/pages/node/apps/app-socksc/socksc-connect/search-nodes/search-nodes.component';
 import { LineChartComponent } from './components/layout/line-chart/line-chart.component';
 import { ChartsComponent } from './components/pages/node/charts/charts.component';
 import {ToolbarComponent} from './components/layout/toolbar/toolbar.component';
@@ -80,6 +80,7 @@ import {UpdateNodeComponent} from './components/pages/node/actions/update-node/u
 import {NodeStatusBarComponent} from './components/pages/node/node-status-bar/node-status-bar.component';
 import {SkycoinLogoComponent} from './components/layout/skycoin-logo/skycoin-logo.component';
 import {ErrorsnackbarService} from './services/errorsnackbar.service';
+import { HistoryComponent } from './components/pages/node/apps/app-socksc/socksc-connect/history/history.component';
 
 @NgModule({
   declarations: [
@@ -132,6 +133,7 @@ import {ErrorsnackbarService} from './services/errorsnackbar.service';
     ChartsComponent,
     NodeStatusBarComponent,
     SkycoinLogoComponent,
+    HistoryComponent,
   ],
   entryComponents: [
     ConfigurationComponent,

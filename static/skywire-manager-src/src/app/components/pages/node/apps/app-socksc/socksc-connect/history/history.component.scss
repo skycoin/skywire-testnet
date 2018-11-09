@@ -1,0 +1,21 @@
+@import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
+
+.nowrap {
+  word-break: keep-all;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+
+  i {
+    display: inline-block;
+    font-size: 16px;
+    margin-right: 10px;
+    cursor: pointer;
+    color: theme-color(gray);
+  }
+}
