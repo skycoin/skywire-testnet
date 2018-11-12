@@ -145,6 +145,9 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - 2
      - 4
 
+#### Geniatech
+     - Developer Board IV
+
 #### Helios
      - 4
 
@@ -167,6 +170,7 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - M2
      - M2A
      - M3
+     - M4
      - NEO
      - NEO-Air
      - NEO-Core
@@ -211,6 +215,9 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - Neo
      - Quad
      - X86
+     
+#### X96 Android TV Box
+     - X96 mini
 
 **If you like to use other boards please contact the team first to be approved before you buy them, only the boards on the list are guaranteed to be whitelisted.**
 
