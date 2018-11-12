@@ -180,6 +180,7 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - Smart4418
 
 #### Odroid
+     - C2
      - HC1
      - HC2
      - MC1
