@@ -80,7 +80,7 @@ import {UpdateNodeComponent} from './components/pages/node/actions/update-node/u
 import {NodeStatusBarComponent} from './components/pages/node/node-status-bar/node-status-bar.component';
 import {SkycoinLogoComponent} from './components/layout/skycoin-logo/skycoin-logo.component';
 import {ErrorsnackbarService} from './services/errorsnackbar.service';
-import { HistoryComponent } from './components/pages/node/apps/app-socksc/socksc-connect/history/history.component';
+import { HistoryComponent } from './components/pages/node/apps/history/history.component';
 
 @NgModule({
   declarations: [

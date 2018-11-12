@@ -54,7 +54,9 @@ export class NodeListComponent implements OnInit, OnDestroy {
     this.dialog.open(EditLabelComponent, {
       data: { label: this.nodeService.getLabel(node) },
     }).afterClosed().subscribe((label: string) => {
-      this.nodeService.setLabel(node, label);
+      if (label !== undefined) {
+        this.nodeService.setLabel(node, label);
+      }
     });
   }
 

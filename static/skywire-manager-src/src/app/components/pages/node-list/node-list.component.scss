@@ -1,4 +1,6 @@
 @import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
 
 .mat-app-background {
   padding: 0;
@@ -54,4 +56,8 @@
     height: 20px;
     z-index: 1000;
   }
+}
+
+.none {
+  color: lighten(theme-color(light-gray), 20%);
 }

@@ -2,7 +2,7 @@
   <ng-container matColumnDef="label">
     <th mat-header-cell *matHeaderCellDef>{{ 'nodes.label' | translate }}</th>
     <td mat-cell *matCellDef="let item;">
-      <span [ngClass]="{'text-muted': !item.label}">{{ item.label || ('apps.socksc.unknown' | translate) }}</span>
+      <span [ngClass]="{'text-muted': !item.label}">{{ item.label || ('common.none' | translate) }}</span>
     </td>
   </ng-container>
   <ng-container matColumnDef="keys">
@@ -17,7 +17,7 @@
   </ng-container>
   <ng-container matColumnDef="actions">
     <th mat-header-cell *matHeaderCellDef></th>
-    <td mat-cell *matCellDef="let item; let i = index" class="text-right actions">
+    <td mat-cell *matCellDef="let item; let i = index" class="actions">
       <i class="material-icons"
          (click)="edit(i, item.label)"
          [matTooltip]="'nodes.edit-label' | translate"

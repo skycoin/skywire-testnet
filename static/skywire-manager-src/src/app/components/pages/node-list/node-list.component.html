@@ -36,7 +36,7 @@
           <ng-container matColumnDef="label">
             <th mat-header-cell *matHeaderCellDef class="bold">{{ 'nodes.label' | translate }}</th>
             <td id="nodeLabel" mat-cell *matCellDef="let node;">
-              {{ getLabel(node) }}
+              <span [ngClass]="{'none': !getLabel(node)}">{{ getLabel(node) || ('common.none' | translate) }}</span>
             </td>
           </ng-container>
 

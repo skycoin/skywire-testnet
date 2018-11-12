@@ -31,7 +31,7 @@
       </mat-tab-group>
     </mat-tab>
     <mat-tab [label]="'apps.socksc.connect-history' | translate">
-      <app-history (connect)="connect($event)"></app-history>
+      <app-history app="socksc" (connect)="connect($event)"></app-history>
     </mat-tab>
   </mat-tab-group>
 </app-dialog>

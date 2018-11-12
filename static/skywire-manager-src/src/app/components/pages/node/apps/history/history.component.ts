@@ -1,11 +1,11 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import {
   ClientConnection,
   Keypair,
-} from '../../../../../../../app.datatypes';
-import { ClientConnectionService } from '../../../../../../../services/client-connection.service';
+} from '../../../../../app.datatypes';
+import { ClientConnectionService } from '../../../../../services/client-connection.service';
 import { MatDialog, MatTableDataSource } from '@angular/material';
-import { EditLabelComponent } from '../../../../../../layout/edit-label/edit-label.component';
+import { EditLabelComponent } from '../../../../layout/edit-label/edit-label.component';
 
 @Component({
   selector: 'app-history',
@@ -13,10 +13,10 @@ import { EditLabelComponent } from '../../../../../../layout/edit-label/edit-lab
   styleUrls: ['./history.component.scss']
 })
 export class HistoryComponent implements OnInit {
+  @Input() app: string;
   @Output() connect = new EventEmitter<Keypair>();
   dataSource = new MatTableDataSource<ClientConnection>();
   readonly displayedColumns = ['label', 'keys', 'actions'];
-  readonly app = 'socksc';
 
   constructor(
     private connectionService: ClientConnectionService,
@@ -32,7 +32,9 @@ export class HistoryComponent implements OnInit {
       .open(EditLabelComponent, { data: { label: oldLabel }})
       .afterClosed()
       .subscribe((label: string) => {
-        this.connectionService.edit(this.app, index, label).subscribe(() => this.fetchData());
+        if (label !== undefined) {
+          this.connectionService.edit(this.app, index, label).subscribe(() => this.fetchData());
+        }
       });
   }
 

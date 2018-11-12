@@ -14,7 +14,9 @@ export class AppSshcComponent extends NodeAppButtonComponent {
   name = 'sshc';
 
   startApp(): void {
-    this.dialog.open(SshcKeysComponent).afterClosed().subscribe((keypair: Keypair) => {
+    this.dialog.open(SshcKeysComponent, {
+      width: '800px',
+    }).afterClosed().subscribe((keypair: Keypair) => {
       if (keypair) {
         this.setLoading();
         this.appsService.startSshClient(keypair.nodeKey, keypair.appKey).subscribe(undefined, () => {
