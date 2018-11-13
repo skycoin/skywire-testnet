@@ -208,18 +208,20 @@ Note: these images can only be run on [Orange Pi Prime](http://www.orangepi.cn/O
 
 Default password is 'samos'.
 
-Run this **once if you're using the official images** to change the remote repository:
-```
-git remote set-url origin https://github.com/skycoin/skywire.git
-```
-Stay up to date by updating via git:
+Run this **once if you're using the official images** to update to the last version of the code:
+
 ```
 cd $GOPATH/src/github.com/skycoin/skywire
+git remote set-url origin https://github.com/skycoin/skywire.git
 git reset --hard
 git clean -f -d
 git pull origin master
 go install -v ./...
 ```
+
+### Important:
+
+The base images (all) has a known bug, please see [this issue](https://github.com/skycoin/skywire/issues/80) once you update to know how to fix; it in the mean time we update the images.
 
 Manager system image package contains Skywire Manager and a Skywire Node, other Node system image package only launch a Node.
 

@@ -191,18 +191,20 @@ Note: estas imágenes solo se pueden ejecutar en [Orange Pi Prime](http://www.or
 
 La contraseña predeterminada es 'samos'.
 
-Ejecuta esto **una vez si estás usando las imágenes oficiales** para cambiar el repositorio remoto:
-```
-git remote set-url origin https://github.com/skycoin/skywire.git
-```
-Mantente al día actualizando a través de git:
+Ejecuta esto **una vez si estás usando las imágenes oficiales** para actualizar a la última versión del código:
+
 ```
 cd $GOPATH/src/github.com/skycoin/skywire
+git remote set-url origin https://github.com/skycoin/skywire.git
 git reset --hard
 git clean -f -d
 git pull origin master
 go install -v ./...
 ```
+
+### Importante:
+
+Estas imágenes bases (todas) tienen un fallo conocido, por favor [lee aquí](https://github.com/skycoin/skywire/issues/80) una vez que hallas actualizado el código para saber como solucionarlo hasta tanto se actualizan las imágenes.
 
 El paquete de imagen del sistema administrador contiene un administrador Skywire y un nodo Skywire, otro paquete de imagen del sistema Nodo solo inicia un nodo.
 
