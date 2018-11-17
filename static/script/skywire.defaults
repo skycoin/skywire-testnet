@@ -11,7 +11,9 @@ TMP_DIR=/tmp/skywire-info
 INSTALL_LOG=${TMP_DIR}/skywire_install_errors.log
 Manager_Pid_FILE=${TMP_DIR}/manager.pid
 Node_Pid_FILE=${TMP_DIR}/node.pid
-Web_Dir=${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+SKYCOIN_DIR=${GOPATH}/src/github.com/skycoin/
+SKYWIRE_DIR=${GOPATH}/src/github.com/skycoin/skywire
+Web_Dir=${SKYWIRE_DIR}/static/skywire-manager
 DISCOVERY_ADDR=discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
 
 # export them all
