@@ -26,17 +26,17 @@ if [ "$Need_Kill" == "yes" ] ; then
 fi
 
 # check if we have the bins in place, otherwise compile it from source and if old bins are found remove them
-command -v "${GOBIN_DIR}/bin/manager" && command -v "${GOBIN_DIR}/bin/node" && command -v "${GOBIN_DIR}/bin/socksc" && command -v "${GOBIN_DIR}/bin/sockss" && command -v "${GOBIN_DIR}/bin/sshc" && command -v "${GOBIN_DIR}/bin/sshs" > /dev/null || {
-	  [[ -d ${GOBIN_DIR}/pkg/linux_arm64/github.com/skycoin ]] && rm -rf ${GOBIN_DIR}/pkg/linux_arm64/github.com/skycoin
-			  cd ${GOBIN_DIR}/src/github.com/skycoin/skywire/cmd
-			  ${GOEXEC_DIR}/bin/go install ./... 2>> /tmp/skywire_install_errors.log
+command -v "${GOPATH}/bin/manager" && command -v "${GOPATH}/bin/node" && command -v "${GOPATH}/bin/socksc" && command -v "${GOPATH}/bin/sockss" && command -v "${GOPATH}/bin/sshc" && command -v "${GOPATH}/bin/sshs" > /dev/null || {
+	  [[ -d ${GOPATH}/pkg/linux_arm64/github.com/skycoin ]] && rm -rf ${GOPATH}/pkg/linux_arm64/github.com/skycoin
+			  cd ${GOPATH}/src/github.com/skycoin/skywire/cmd
+			  ${GOROOT}/bin/go install ./... 2>> /tmp/skywire_install_errors.log
 }
 
 # start routine only node
 echo "Starting SkyWire Node"
-cd ${GOBIN_DIR}/bin/
+cd ${GOPATH}/bin/
 nohup ./node -connect-manager -manager-address 192.168.0.2:5998 -manager-web 192.168.0.2:8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001  > /dev/null 2>&1  &
-echo $! > "${TMP_DIR}/${Node_Pid_FILE}"
-cat "${TMP_DIR}/${Node_Pid_FILE}"
+echo $! > "${Node_Pid_FILE}"
+cat "${Node_Pid_FILE}"
 cd /root
 echo "SkyWire Node Done"
