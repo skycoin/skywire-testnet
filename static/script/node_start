@@ -2,27 +2,25 @@
 
 ### SkyWire Start script, only node
 
-# ENV vars
-Node_Pid_FILE=node.pid
-GOBIN_DIR=/usr/local/skywire/go
-GOEXEC_DIR=/usr/local/go
-TMP_DIR=/tmp/skywire-pids
-Need_Kill=no
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+	# does not exist, link it
+	ln -s /usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/skywire.defaults /etc/default/skywire
+fi 
 
-# export/expose some of the vars to go (os.Getenv("GOPATH"))
-export HOME=/root
-export GOPATH=${GOBIN_DIR}
+# now load it
+. /etc/default/skywire
 
 # check for temp dir to hold the pids
-if [[ ! -d ${TMP_DIR} ]]; then
-	  mkdir -p ${TMP_DIR}
+if [[ ! -d ${TMP_DIR} ]] ; then
+	mkdir -p ${TMP_DIR}
 fi
 
 # Catch one optional argument: "yes" (to kill previous instances before start)
 [[ ! -z $1 ]] && Need_Kill=$1
 
 # kill previous instances before start is intructed to.
-if [ $Need_Kill = "yes" ];then
+if [ $Need_Kill = "yes" ] ; then
 	# only node
 	[[ -f ${TMP_DIR}/${Node_Pid_FILE} ]] && pkill -F "${TMP_DIR}/${Node_Pid_FILE}" && rm "${TMP_DIR}/${Node_Pid_FILE}"
 fi
