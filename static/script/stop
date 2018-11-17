@@ -19,11 +19,13 @@ fi
 if [ -f "$Manager_Pid_FILE" ] ; then
     pkill -F "$Manager_Pid_FILE"
     echo "Manager killed"
+    rm "$Manager_Pid_FILE"
 fi
 # kill node
 if [ -f "$Node_Pid_FILE" ] ; then
     pkill -F "$Node_Pid_FILE"
     echo "Node killed"
+    rm "$Node_Pid_FILE"
 fi
 
 
