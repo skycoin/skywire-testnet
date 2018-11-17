@@ -2,11 +2,17 @@
 
 ### SkyWire Start script, manager & node
 
-# ENV vars
-. ./skywire.defaults
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+	# does not exist, link it
+	ln -s /usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/skywire.defaults /etc/default/skywire
+fi 
+
+# now load it
+. /etc/default/skywire
 
 # check for temp dir to hold the pids
-if [[ ! -d ${TMP_DIR} ]]; then
+if [[ ! -d ${TMP_DIR} ]] ; then
 	mkdir -p ${TMP_DIR}
 fi
 
@@ -14,7 +20,7 @@ fi
 [[ ! -z $1 ]] && Need_Kill=$1
 
 # kill previous instances before start is intructed to.
-if [ $Need_Kill = "yes" ];then
+if [ $Need_Kill = "yes" ] ; then
 	# manager
 	[[ -f ${Manager_Pid_FILE} ]] && pkill -F "${Manager_Pid_FILE}" && rm "${Manager_Pid_FILE}"
 	# node
