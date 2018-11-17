@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Script to start the skywire apps, depending on the IPs of the miner.
+
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+	# does not exist, link it
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+fi 
+
+# now load it
+. /etc/default/skywire
+
+
+# Function to return the manager/node argument based on the IP
+# we get it from the ifconfig command beacuse se the IP config may
+# vary in the future (dhcp|static_interface|static-interface.d/*)
+function get_mode() {
+    # get the IP
+    local IP=`ifconfig eth0 | grep "inet " | awk '{ print $2 }'`
+    # extract the last digit
+    local last=`echo $IP | rev | cut -d "." -f1 | rev`
+
+    # output the needed argument
+    if [ "$last" == "2" ] ; then
+        # we are in a manager miner
+        echo "manager"
+    else
+        # we are in a miner
+        echo "node"
+    fi
+}
+
+# now we call it.
+RUN_MODE=$(get_mode)
+echo "Starting node in '$RUN_MODE' mode"
+${SKYWIRE_UNIX_SCRIPTS}/${RUN_MODE}_start
