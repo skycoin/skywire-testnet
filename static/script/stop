@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Script to stop the skywire apps
+
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+	# does not exist, link it
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+fi 
+
+# now load it
+. /etc/default/skywire
+
+## action goes here
+# kill manager
+if [ -f "$Manager_Pid_FILE" ] ; then
+    pkill -F "$Manager_Pid_FILE"
+    echo "Manager killed"
+fi
+# kill node
+if [ -f "$Node_Pid_FILE" ] ; then
+    pkill -F "$Node_Pid_FILE"
+    echo "Node killed"
+fi
+
+
