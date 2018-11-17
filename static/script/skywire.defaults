@@ -1,0 +1,24 @@
+# Default variables for the entire skywire work, this needs to be in 
+# the environment to make it work properly
+
+# Go related variables
+GOROOT=/usr/local/go
+GOPATH=/usr/local/skywire/go
+
+# Runtime variables
+HOME=/root
+TMP_DIR=/tmp/skywire-info
+INSTALL_LOG=${TMP_DIR}/skywire_install_errors.log
+Manager_Pid_FILE=${TMP_DIR}/manager.pid
+Node_Pid_FILE=${TMP_DIR}/node.pid
+Web_Dir=${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+
+# export them all
+export GOROOT
+export GOPATH
+export HOME
+export TMP_DIR
+export INSTALL_LOG
+export Manager_Pid_FILE
+export Node_Pid_FILE
+export Web_Dir
