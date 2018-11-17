@@ -20,7 +20,7 @@ fi
 [[ ! -z $1 ]] && Need_Kill=$1
 
 # kill previous instances before start is intructed to.
-if [ $Need_Kill = "yes" ] ; then
+if [ "$Need_Kill" == "yes" ] ; then
 	# manager
 	[[ -f ${Manager_Pid_FILE} ]] && pkill -F "${Manager_Pid_FILE}" && rm "${Manager_Pid_FILE}"
 	# node
