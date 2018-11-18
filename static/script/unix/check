@@ -5,8 +5,8 @@ SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static
 
 # check for the env vars
 if [ ! -f /etc/default/skywire ] ; then
-	# does not exist, link it
-	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+    # does not exist, link it
+    ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
 fi 
 
 # now load it
