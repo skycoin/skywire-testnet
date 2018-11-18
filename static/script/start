@@ -14,7 +14,6 @@ fi
 # now load it
 . /etc/default/skywire
 
-
 # Function to return the manager/node argument based on the IP
 # we get it from the ifconfig command beacuse se the IP config may
 # vary in the future (dhcp|static_interface|static-interface.d/*)

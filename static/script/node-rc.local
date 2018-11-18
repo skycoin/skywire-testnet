@@ -1,3 +1,0 @@
-#!/bin/sh -e
-/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/node_start
-exit 0
