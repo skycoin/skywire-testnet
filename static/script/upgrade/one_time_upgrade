@@ -29,11 +29,33 @@ MANAGER_IP="192.168.0.2"
 NODES_IPS="192.168.0.3 192.168.0.4 192.168.0.5 192.168.0.6 192.168.0.7 192.168.0.8 192.168.0.9"
 MANAGER_n_NODE='yes'
 ROOT=`pwd`
+LOG=${ROOT}/log.txt
+
+
+# log everyting to a file & show it to the user
+function log() {
+    # the log is $LOG file
+    local DATE=`date -u +%Y%m%d-%H:%mZ`
+    echo "" | tee -a $LOG
+    echo "[${DATE}]" | tee -a $LOG
+    echo "##################################################################" | tee -a $LOG
+    echo "# $@" | tee -a $LOG
+    echo "##################################################################" | tee -a $LOG
+    echo "" | tee -a $LOG
+}
+
 
 # get the local IP, will assume eth0 as the net device
-# TODO update this
 function get_local_ip() {
-    echo "192.168.0.2"
+    # get it
+    # TODO restore to eth0 on RELEASE, for now testing on a virtual env
+    IP=`ifconfig enp0s3 | grep "inet " | awk '{ print $2 }'`
+    
+    # log
+    log "Local IP is: ${IP}"
+    
+    # set this as the MANAGER_IP
+    MANAGER_IP=${IP}
 }
 
 
@@ -50,9 +72,9 @@ function dialog_host_stop_next() {
     local text=${3}
     
     if (whiptail --backtitle "Skywire Upgrade" --title "${title}" --yesno "${text}\n\nTo stop now and verify node $node, press the STOP button.\n\nOtherwise continue with the next node by pressing NEXT and retry after you have verified your node by re-running the script and choosing the Retry Node option" --yes-button "[NEXT]" --no-button "[STOP]" 20 60 3>&1 1>&2 2>&3); then
-        echo "User selected NEXT, exit status was $?. Upgrade will continue with the next node."	
+        log "User selected NEXT, exit status was $?. Upgrade will continue with the next node."	
     else
-        echo "User selected STOP, exit status was $?. Upgrade will stop now."
+        log "User selected STOP, exit status was $?. Upgrade will stop now."
         exit
     fi
 }
@@ -101,30 +123,28 @@ function get_network_info() {
     # exit by choice
     if [ $exitstatus -ne 0 ] ; then
         dialog_advice "Exit" "You selected [CANCEL], bye."
-        echo ""
-        echo "Exit by users choice"; exit 1
+        log "Exit by users choice"; exit 1
     fi
 
     # switch on each case
     case "${OPT}" in
         "Exit upgrade:")
             # exit
+            log "User choose exit the upgrade proccess"
             dialog_advice "Exit upgrade" "You selected Cancel, bye."
-            echo ""
-            echo "Exit by users choice"; exit 1
+            log "Exit by users choice"; exit 1
         ;;
 
         "Default IPs:")
             # defaults ip, it users the IP on the environment
             # no more to see here
-            echo ""
-            echo "The IPs set are the default ones:"
-            echo "    Manager: $MANAGER_IP"
-            echo "    Nodes: $NODES_IPS"
+            log "User choose default IP set"
+            log "The IPs set are the default ones: Manager: $MANAGER_IP, Nodes: $NODES_IPS"
         ;;
 
         "Custom IPs:")
             # need to catch manager and nodes IP and set it on the env vars
+            log "User choose custom IP set"
 
             # get it
             nodes=$(whiptail --backtitle "Skywire Upgrade" --title "Custom IPs - Enter IPs" --inputbox "Enter only the nodes IPs that have been changed separated by space.\nPLEASE: DO NOT ENTER THE MANAGER IP!"  --ok-button "[OK]" --cancel-button "[CANCEL]" 16 70 3>&1 1>&2 2>&3)
@@ -133,23 +153,20 @@ function get_network_info() {
             # user cancels
             if [ ! $exitstatus -eq 0 ]; then
                 whiptail --backtitle "Skywire Upgrade" --title "Custom IPs - Enter IPs" --msgbox "You selected Cancel. Press OK to get out." --ok-button "[OK]" 15 60 3>&1 1>&2 2>&3
-                echo ""
-                echo "Exit status was $exitstatus"; exit 1
+                log"Exit status was $exitstatus"
+                exit 1
             fi
 
             # manager IP is local IP
-            MANAGER_IP=`get_local_ip`
             NODES_IPS=${nodes}
 
             # feedback
-            echo ""
-            echo "Your IPs set is this:"
-            echo "    Manager: $MANAGER_IP"
-            echo "    Nodes: $NODES_IPS"
+            log "Your IPs set is this: Manager: $MANAGER_IP, Nodes: $NODES_IPS"
         ;;
 
         "Retry a Node:")
             # work on just a node
+            log "User choose retry a single node"
 
             # get it
             nodes=$(whiptail --backtitle "Skywire Upgrade" --title "Retry a node - Enter IPs" --inputbox "Enter only the IP of the node you want to upgrade."  --ok-button "[OK]" --cancel-button "[CANCEL]" 16 70 3>&1 1>&2 2>&3)
@@ -158,17 +175,15 @@ function get_network_info() {
             # user cancels
             if [ ! $exitstatus -eq 0 ]; then
                 dialog_advice "Custom IPs - Enter IPs" "You selected Cancel, bye"
-                echo ""
-                echo "Exit status was $exitstatus"; exit 1
+                log "Exit status was $exitstatus"
+                exit 1
             fi
 
             # manager IP is local IP
-            MANAGER_IP=`get_local_ip`
             NODES_IPS=${nodes}
 
-            echo ""
-            echo "Your will upgrade just a node:"
-            echo "    Node: $NODES_IPS"
+            # log
+            log "Retry node is $NODES_IPS"
 
             # rise flag
             MANAGER_n_NODE='no'
@@ -182,48 +197,50 @@ function manager_ssh_key_distribution() {
     # advice, generate the key, iterate over the nodes and push it.
     # we will use the manager as a regular node, this has its advanteges
 
+    # log
+    log "Generating SSH keys on manager"
+
     # advice
     dialog_advice "Manager - SSH key generation" "Creating the ssh rsa key on the manager node $MANAGER_IP for passwordless login."
 
     # log 
-    echo "Creating the ssh rsa key on the manager node $MANAGER_IP for passwordless login."
+    log "Creating the ssh rsa key on the manager node $MANAGER_IP for passwordless login."
 
-    ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa -C "$MANAGER_IP";
+    ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa -C "$MANAGER_IP" 2>&1 | tee -a $LOG
     exitstatus=$?
 
     # verify
     if [ $exitstatus -eq 0 ]; then
-        echo "Manager rsa key created."
+        log "Manager rsa key created."
     else
-        echo "Could not create the manager rsa key. Upgrade will stop now.";
+        log "Could not create the manager rsa key. Upgrade will stop now.";
         exit
     fi
 
-    echo "## Starting to copy the rsa key of the manager node to the nodes ##"
+    log "Starting to copy the rsa key of the manager node to the nodes"
 
     local NODES="${MANAGER_IP} ${NODES_IPS}"
 
     # iterate over the node/s
     for node in ${NODES}; do
         echo "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 $node 2>&1
+        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
         
         if [ $? -ne 0 ] ; then
             dialog_host_unreachable "$node" "SSH key distribution - ssh-copy-id"
         else
             # log
-            echo "Ping reply received from" $node
-            echo "Copying the rsa key of the manager node to it:"
+            log "Ping reply received from $node, Copying the rsa key of the manager node to it:"
 
             # feedback
             dialog_advice "SSH key distribution - ssh-copy-id" "The node $node is reachable. Start copying the rsa key of the manager node to it.\n\nYou'll now be prompted to enter the root user password for authentication on the remote node. Press OK to continue and enter the root password, default is 'samos' or use the password you set if you changed it."
             
-            ssh-copy-id -i /root/.ssh/id_rsa.pub "root@$node"
+            ssh-copy-id -i /root/.ssh/id_rsa.pub "root@$node" 2>&1 | tee -a $LOG
             exitstatus=$?
 
             if [ $exitstatus -eq 0 ]; then
                 # log
-                echo "Copied the manager rsa key on node $node."
+                log "Copied the manager rsa key on node $node."
             else
                 dialog_host_stop_next "${node}" "SSH key distribution - ssh-copy-id" "Could not copy the manager rsa key on node $node."
             fi
@@ -237,10 +254,16 @@ function install_ntp() {
     # install NTP on the manager &/|| nodes
     # will handle the manager as a simple node via ssh
 
+    # log
+    log "Installing ntp"
+
     local NODES="${NODES_IPS}"
     if [ "$MANAGER_n_NODE" == "yes" ] ; then
         # add the manager to the nodes pool
         NODES="${MANAGER_IP} ${NODES}"
+
+        # log
+        log "List of nodes to process: $NODES"
     fi
 
     # advice
@@ -248,34 +271,33 @@ function install_ntp() {
      
     # iterate over the clients installing ntp on every one
     for node in ${NODES}; do
-        echo "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 $node 2>&1
+        log "Verify that the node $node is online by pinging."
+        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
         exitstatus=$?
 
         if [ $exitstatus -ne 0 ]; then
             # log
-            echo "Node $node is not online"
+            log "Node $node is not online"
 
             # user info
             dialog_host_unreachable "${node}" "Base Software Upgrade - Installing NTP"
         else
             # log
-            echo "Ping reply received from" $node
-            echo "Upgrading node $node & install NTP"
+            log "Ping reply received from $node, upgrading node $node & install NTP"
 
             # user info
             dialog_advice "Base Software Upgrade - apt-get + ntp" "The node $node is reachable. Start the system upgrade + ntp install; this may take a while"
 
             # run it
-            ssh "root@$node" "apt update && apt upgrade -y && apt install ntp -y"
+            ssh "root@$node" "apt update && apt upgrade -y && apt install ntp -y" 2>&1 | tee -a $LOG
             exitstatus=$?
 
             if [ $exitstatus -eq 0 ] ; then
                 # log
-                echo "Node $node upgraded and ntp installed."
+                log "Node $node upgraded and ntp installed."
             else
                 # log
-                echo "Troubles upgrading and installing ntp"
+                log "Troubles upgrading and installing ntp"
 
                 # user info
                 dialog_host_stop_next "${node}" "Base Software Upgrade - apt-get + ntp" "Could not upgrade sysytem on node $node or install ntp."
@@ -298,38 +320,37 @@ function change_to_systemd() {
     fi
 
     # log
-    echo "Upgrade startup scripts"
+    log "Upgrade startup scripts"
 
     # userinfo
     dialog_advice "Upgrade startup scripts - change to systemd" "Previous versions used a old unix startup technique and introduced potential bugs, now we will switch to the state of the art: systemd"
 
     # iterate over the clients
     for node in ${NODES} ; do
-        echo "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 -q $node 2>&1
+        log "Verify that the node $node is online by pinging."
+        ping -W1 -c3 -i0.5 -q $node 2>&1 | tee -a $LOG
         exitstatus=$?
 
         if [ $exitstatus -ne 0 ] ; then
             # log
-            echo "Node $node is not online"
+            log "Node $node is not online"
 
             # user info
             dialog_host_unreachable "${node}" "Upgrade startup scripts - change to systemd"
         else
             # log
-            echo "Ping reply received from $node"
-            echo "Upgrading startup scripts in node $node"
+            log "Ping reply received, upgrading startup scripts in node $node"
 
             # user info
             dialog_advice "Upgrade startup scripts - change to systemd" "We will copy the scripts now to node $node"
 
             # rc.local
-            echo "Copy rc.local to node: $node"
-            scp "${ROOT}/data/rc.local" "root@${node}:/etc/"
+            log "Copy rc.local to node: $node"
+            scp "${ROOT}/data/rc.local" "root@${node}:/etc/" 2>&1 | tee -a $LOG
             exitstatus=$?
 
             if [ $exitstatus -ne 0 ] ; then
-                echo "Error with the copy of rc.local to node $node"
+                log "Error with the copy of rc.local to node $node"
                 dialog_host_stop_next "${node}" "Upgrade startup scripts - copy rc.local" \
                     "Could not copy the file skywire-manager.service to the node $node"
             fi
@@ -338,8 +359,8 @@ function change_to_systemd() {
             if [ "$node" == "${MANAGER_IP}" ] ; then
                 # copy manager unit    
                 # skywire-manager.service
-                echo "Copy systemd unit to Manager: $node"
-                scp "${ROOT}/data/skywire-manager.service" "root@${node}:/etc/systemd/system/"
+                log "Copy systemd unit to Manager in $node"
+                scp "${ROOT}/data/skywire-manager.service" "root@${node}:/etc/systemd/system/" 2>&1 | tee -a $LOG
                 exitstatus=$?
 
                 if [ $exitstatus -ne 0 ] ; then
@@ -348,8 +369,8 @@ function change_to_systemd() {
                 fi
 
                 # install service
-                echo "Install skywire manager service"
-                ssh "root@${node}" "sudo systemctl enable skywire-manager.service"
+                log "Install skywire manager service on $node"
+                ssh "root@${node}" "sudo systemctl enable skywire-manager.service" 2>&1 | tee -a $LOG
                 exitstatus=$?
 
                 if [ $exitstatus -ne 0 ] ; then
@@ -359,8 +380,8 @@ function change_to_systemd() {
             else
                 # copy node unit 
                 # skywire-node.service
-                echo "Copy systemd unit to Node: $node"
-                scp "${ROOT}/data/skywire-node.service" "root@${node}:/etc/systemd/system/"
+                log "Copy systemd unit to node $node"
+                scp "${ROOT}/data/skywire-node.service" "root@${node}:/etc/systemd/system/" 2>&1 | tee -a $LOG
                 exitstatus=$?
 
                 if [ $exitstatus -ne 0 ] ; then
@@ -369,8 +390,8 @@ function change_to_systemd() {
                 fi
 
                 # install service
-                echo "Install skywire node service"
-                ssh "root@${node}" "sudo systemctl enable skywire-node.service"
+                log "Install skywire node service to $node"
+                ssh "root@${node}" "sudo systemctl enable skywire-node.service" 2>&1 | tee -a $LOG
                 exitstatus=$?
 
                 if [ $exitstatus -ne 0 ] ; then
@@ -388,27 +409,26 @@ function collect_keys() {
     # Collecting the public keys of the nodes connected to the manager 
 
     # log
-    echo "Collecting the public keys of the nodes connected to the manager"
+    log "Collecting the public keys of the nodes connected to the manager"
 
     # user info
     dialog_advice "Collecting public keys - info" "Collecting the public keys of the nodes connected to the manager node for further use in case they change"
     
     # get it
-    curl http://${MANAGER_IP}:8000/conn/getAll > dikeys;
+    curl http://${MANAGER_IP}:8000/conn/getAll > dikeys 
     exitstatus=$?
 
     if [ $exitstatus -eq 0 ] ; then
-        echo ""
-		echo "Found the following public keys of the online nodes:"
-
         allkeys=`sed -i 's/\(\([^,]\+,\)\{6\}\)/\1\n/g;s/,\n/\n/g' dikeys && sed -e 's/\(^.*key":"\)\(.*\)\(","typ.*$\)/\2/' dikeys`
-
+        
+        # log
+        log "Found the following public keys of the online nodes:"
+        
         for dikeys in ${allkeys}; do
-			echo $dikeys
+			echo $dikeys | tee -a $LOG
 		done
-
 	else
-		echo "Could not find any node connected to the manager node. The upgrade will stop now, check if the nodes are online and retry the upgrade script."
+		log "Could not find any node connected to the manager node. The upgrade will stop now, check if the nodes are online and retry the upgrade script."
 
         dialog_advice "Collecting public keys - No keys?" "There is no keys, so there is no nodes connected to this manager; script will stop, check your node and try again."
         exit
@@ -421,6 +441,9 @@ function stop_apps() {
     # will search in each node (including manager) and stop all 
     # instances of managers/nodes
 
+    # log
+    log "Stopping services on all nodes"
+
     local NODES="${NODES_IPS}"
     if [ "$MANAGER_n_NODE" == "yes" ] ; then
         # add the manager to the nodes pool
@@ -428,34 +451,33 @@ function stop_apps() {
     fi
 
     # log
-    echo "Stoping all instances of managers and nodes"
+    log "Stoping all instances of managers and nodes"
 
     # user info
     dialog_advice "Stop processes - killall" "Now we will search for manager and nodes instances on every node and will stop them in preparation for the real upgrade."
 
     # iterate over the clients 
     for node in ${NODES}; do
-        echo "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 -q $node 2>&1
+        log "Verify that the node $node is online by pinging."
+        ping -W1 -c3 -i0.5 -q $node 2>&1 | tee -a $LOG
         exitstatus=$?
 
         if [ $exitstatus -ne 0 ] ; then
             # log
-            echo "Node $node is not online"
+            log "Node $node is not online"
 
             # user info
             dialog_host_unreachable "${node}" "Stop processes - killall"
         else
             # log
-            echo "Ping reply received from $node"
-            echo "Stoping services in node $node"
+            log "Ping reply received, stoping services in node $node"
 
             # user info
             dialog_advice "Stop processes - killall" "Will stop services on node ${node}."
             
             # Copy the killall script
-            echo "Copy the assasin script to $node"
-            scp "${ROOT}/data/killall.sh" "root@${node}:/tmp/"
+            log "Copy the assasin script to $node"
+            scp "${ROOT}/data/killall.sh" "root@${node}:/tmp/" 2>&1 | tee -a $LOG
             exitstatus=$?
 
             if [ $exitstatus -ne 0 ] ; then
@@ -464,8 +486,8 @@ function stop_apps() {
             fi
 
             # hire the assasin script
-            echo "Running the assasin script to $node"
-            ssh "root@${node}" "chmod +x /tmp/killall.sh && /tmp/killall.sh"
+            log "Running the assasin script on $node"
+            ssh "root@${node}" "chmod +x /tmp/killall.sh && /tmp/killall.sh" 2>&1 | tee -a $LOG
             exitstatus=$?
 
             if [ $exitstatus -ne 0 ] ; then
@@ -482,73 +504,93 @@ function upgrade_skywire() {
     # upgrade skywire, this will be made via a script
     # it's located on ./data/upsky.sh
 
+    # log
+    log "Skywire Upgrade"
+
     local NODES="${NODES_IPS}"
     if [ "$MANAGER_n_NODE" == "yes" ] ; then
         # add the manager to the nodes pool
         NODES="${MANAGER_IP} ${NODES}"
-    fi
 
-    # log
-    echo "Upgrading skywire..."
+        # log
+        logs "List of nodes to upgrade: $NODES"
+    fi
 
     # user info
     dialog_advice "Upgrading skywire - setup" "We will iterate over each node (even manager) upgrading every one of it."
 
+    # Password change
+    dialog_advice "Upgrading skywire - root Password" "WARNING! for all nodes processed ok, the default password will changed from 'samos' to 'skywire' you has been warned."
+
     # iterate over the clients 
     for node in ${NODES}; do
-        echo "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 -q $node 2>&1
+        log "Verify that the node $node is online by pinging."
+        ping -W1 -c3 -i0.5 -q $node 2>&1 | tee -a $LOG
         exitstatus=$?
 
         if [ $exitstatus -ne 0 ]; then
             # log
-            echo "Node $node is not online"
+            log "Node $node is not online"
 
             # user info
             dialog_host_unreachable "${node}" "Upgrading skywire - offline node"
         else
             # log
-            echo "Ping reply received from $node"
-            echo "Upgrade start now for $node"
+            log "Ping reply received, upgrade start now for $node"
+
+            # status var
+            local RESULT="ok"
 
             # user info
             dialog_advice "Upgrading skywire - git pull" "Upgrading skywire node ${node}."
             
             # copy script
-            echo "Copy upgrade script to: $node"
-            scp "${ROOT}/data/upsky.sh" "root@${node}:/tmp/"
+            log "Copy upgrade script to: $node"
+            scp "${ROOT}/data/upsky.sh" "root@${node}:/tmp/" 2>&1 | tee -a $LOG
             exitstatus=$?
 
             if [ $exitstatus -ne 0 ] ; then
                 dialog_host_stop_next "${node}" "Upgrading skywire - copy script" \
                     "Could not copy the upgrade script to $node"
+                RESULT="no"
             fi
 
             # run script
-            echo "Upgrading node: $node"
-            ssh "root@${node}" "/tmp/upsky.sh"
+            log "Upgrading node: $node"
+            ssh "root@${node}" "/tmp/upsky.sh" 2>&1 | tee -a $LOG
             exitstatus=$?
 
             if [ $exitstatus -ne 0 ] ; then
                 dialog_host_stop_next "${node}" "Upgrading skywire - run update" \
                     "Update script on $node failed."
+                RESULT="no"
             fi
 
             # restart services
-            echo "Starting services on $node"
+            log "Starting services on $node"
             if [ "$node" == "$MANAGER_IP" ] ; then
                 # start node
-                ssh "root@${node}" "systemctl start skywire-manager && systemctl status skywire-manager"
+                ssh "root@${node}" "systemctl start skywire-manager && systemctl status skywire-manager" 2>&1 | tee -a $LOG
                 exitstatus=$?
             else
                 # start node
-                ssh "root@${node}" "systemctl start skywire-node && systemctl status skywire-node"
+                ssh "root@${node}" "systemctl start skywire-node && systemctl status skywire-node" 2>&1 | tee -a $LOG
                 exitstatus=$?
             fi
 
             if [ $exitstatus -ne 0 ] ; then
                 dialog_host_stop_next "${node}" "Upgrading skywire - starting services" \
                     "Start of services on node $node failed."
+                RESULT="no"
+            fi
+
+            # verify result
+            if [ "$RESULT" == "yes" ] ; then
+                # log
+                log "Node $node upgraded OK"
+
+                # warn the user about password change
+                dialog_advice "Upgrading skywire - Results" "Node $node processed ok, remember root password is now 'skywire'."
             fi
         fi
     done
@@ -560,7 +602,7 @@ function check_repair_keys() {
     # iterate and check for every saved keys
 
     # log
-    echo "Now we will check the keys of the nodes and repair them if needed"
+    log "Now we will check the keys of the nodes and repair them if needed"
 
     # user info
     dialog_advice "Upgrading skywire - post upgrade" "Checking the keys of the nodes and fixing them is needed"
@@ -593,13 +635,13 @@ function check_repair_keys() {
 } 
 
 
-
 # main function
 function main() {
     # show the main notice
     main_notice
 
     # get network info
+    get_local_ip
     get_network_info
 
     # generate manager ssh key and copy it to the nodes
