@@ -1,5 +1,7 @@
 dist*
 *.sh
+!static/script/upgrade/*.sh
+!static/script/upgrade/data/*.sh
 keys
 main
 keys.json
