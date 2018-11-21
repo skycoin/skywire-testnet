@@ -4,6 +4,7 @@
 # Go related variables
 GOROOT=/usr/local/go
 GOPATH=/usr/local/skywire/go
+PATH="/usr/local/go/bin:/usr/local/skywire/go/bin:${PATH}"
 
 # Runtime variables
 HOME=/root
