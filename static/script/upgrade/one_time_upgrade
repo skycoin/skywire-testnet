@@ -289,10 +289,9 @@ function install_ntp() {
             dialog_advice "Base Software Upgrade - apt-get + ntp" "The node $node is reachable. Start the system upgrade + ntp install; this may take a while"
 
             # run it
-            ssh "root@$node" "apt update && apt upgrade -y && apt install ntp -y" 2>&1 | tee -a $LOG
-            exitstatus=$?
+            local OUT=`ssh "root@$node" "apt update && apt upgrade -y && apt install ntp -y 2>&1" 2>&1 | tee -a $LOG | grep -E '^E:'` 
 
-            if [ $exitstatus -eq 0 ] ; then
+            if [ -z "$OUT" ] ; then
                 # log
                 log "Node $node upgraded and ntp installed."
             else
