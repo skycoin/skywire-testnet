@@ -290,9 +290,11 @@ function install_ntp() {
             dialog_advice "Base Software Upgrade - apt-get + ntp" "The node $node is reachable. Start the system upgrade + ntp install; this may take a while"
 
             # run it
-            local OUT=`ssh "root@$node" "apt update && apt upgrade -y && apt install ntp -y 2>&1" 2>&1 | tee -a $LOG | grep -E '^E:'` 
+            local OUT=`ssh "root@$node" "apt update && apt upgrade -y && apt install ntp -y 2>&1"`
+            echo $OUT | tee -a $LOG
+            local FOUT=`echo $OUT | grep ' E: '` 
 
-            if [ -z "$OUT" ] ; then
+            if [ -z "$FOUT" ] ; then
                 # log
                 log "Node $node upgraded and ntp installed."
             else
@@ -634,7 +636,7 @@ function upgrade_skywire() {
         NODES="${MANAGER_IP} ${NODES}"
 
         # log
-        logs "List of nodes to upgrade: $NODES"
+        log "List of nodes to upgrade: $NODES"
     fi
 
     # user info
