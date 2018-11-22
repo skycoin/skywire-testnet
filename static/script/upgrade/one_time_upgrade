@@ -20,8 +20,8 @@
 
 echo "#########################################################################"
 echo "### Skyminer cluster upgrade, please read every text dialog an choose ###"
-echo "### the right option, keep a notebook and pencil to take notes when   ###"
-echo "### instructed to if necessary.                                       ###"
+echo "### the right option, keep a notebook and pencil to take notes if you ###"
+echo "### think it's necessary.                                             ###"
 echo "#########################################################################"
 
 # vars
@@ -199,23 +199,34 @@ function manager_ssh_key_distribution() {
     # we will use the manager as a regular node, this has its advanteges
 
     # log
-    log "Generating SSH keys on manager"
+    log "Checking for a SSH keys on manager"
 
-    # advice
-    dialog_advice "Manager - SSH key generation" "Creating the ssh rsa key on the manager node $MANAGER_IP for passwordless login."
+    # check if we have already a key in place to use
+    if [ -f "/root/.ssh/id_rsa" ] ; then
+        # log
+        log "There is already a key in the manager, reuse it"
 
-    # log 
-    log "Creating the ssh rsa key on the manager node $MANAGER_IP for passwordless login."
-
-    ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa -C "$MANAGER_IP" 2>&1 | tee -a $LOG
-    exitstatus=$?
-
-    # verify
-    if [ $exitstatus -eq 0 ]; then
-        log "Manager rsa key created."
+        # advice
+        dialog_advice "Manager - SSH key generation" "There is no need to create the ssh keys as the manager has one in place, we will re use it."
     else
-        log "Could not create the manager rsa key. Upgrade will stop now.";
-        exit
+        # need to crete a key
+        
+        log "There is no key in the manager, create it"
+
+        # advice
+        dialog_advice "Manager - SSH key generation" "Creating the ssh rsa key on the manager node $MANAGER_IP for passwordless login."
+
+        ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa -C "$MANAGER_IP" 2>&1 | tee -a $LOG
+        exitstatus=$?
+
+        # verify
+        if [ $exitstatus -eq 0 ]; then
+            log "Manager rsa key created."
+        else
+            log "Could not create the manager rsa key. Upgrade will stop now.";
+            dialog_advice "Manager - SSH key generation" "Need to generate a new key and that was no possible, will terminate the script."
+            exit
+        fi
     fi
 
     log "Starting to copy the rsa key of the manager node to the nodes"
@@ -236,10 +247,11 @@ function manager_ssh_key_distribution() {
             # feedback
             dialog_advice "SSH key distribution - ssh-copy-id" "The node $node is reachable. Start copying the rsa key of the manager node to it.\n\nYou'll now be prompted to enter the root user password for authentication on the remote node. Press OK to continue and enter the root password, default is 'samos' or use the password you set if you changed it."
             
-            ssh-copy-id -i /root/.ssh/id_rsa.pub "root@$node" 2>&1 | tee -a $LOG
-            exitstatus=$?
+            R=`ssh-copy-id -i /root/.ssh/id_rsa.pub "root@$node" 2>&1`
+            echo $R | tee -a $LOG
+            exitstatus=`echo $R | grep 'ERROR: '`
 
-            if [ $exitstatus -eq 0 ]; then
+            if [ -z "$exitstatus" ]; then
                 # log
                 log "Copied the manager rsa key on node $node."
             else
@@ -290,9 +302,9 @@ function install_ntp() {
             dialog_advice "Base Software Upgrade - apt-get + ntp" "The node $node is reachable. Start the system upgrade + ntp install; this may take a while"
 
             # run it
-            local OUT=`ssh "root@$node" "apt update && apt upgrade -y && apt install ntp -y && apt clean 2>&1"`
+            local OUT=`ssh "root@$node" "apt-get update && apt-get upgrade -y && apt-get install ntp -y && apt clean 2>&1"`
             echo $OUT | tee -a $LOG
-            local FOUT=`echo $OUT | grep ' E: '` 
+            local FOUT=`echo $OUT | grep 'E: '` 
 
             if [ -z "$FOUT" ] ; then
                 # log
@@ -640,7 +652,7 @@ function upgrade_skywire() {
     fi
 
     # user info
-    dialog_advice "Upgrading skywire - setup" "We will iterate over each node (even manager) upgrading every one of it."
+    dialog_advice "Upgrading skywire - setup" "We will iterate over each node (even manager) upgrading every one of them."
 
     # Password change
     dialog_advice "Upgrading skywire - root Password" "WARNING! for all nodes processed ok, the default password will changed from 'samos' to 'skywire' you has been warned."
