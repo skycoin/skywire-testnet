@@ -457,26 +457,37 @@ function backup_keys() {
             # user info
             dialog_advice "App keys backups - Node ${node}" "We are ready to do a backup of the .skywire folder on ${node}."
 
-            # logg
+            # log
             log "Locate .skywire inside node $node"
 
             # found path
-            local found="no"
+            local found=""
 
             # try each one
-            for p in "/usr/local/skywire/go/bin /root" ; do
+            for p in "/usr/local/skywire/go/bin" "/root" ; do
+                # reset var
+                found="no"
+
                 # try to list it
-                tp=`ssh root@${node} "ls -a ${p}" | grep '.skywire'` 2>&1 | tee -a $LOG 
+                echo "Directory $p list:" | tee -a $LOG
+                tp=`ssh root@${node} "ls -a ${p}"` && echo $tp | tee -a $LOG
+                ft=`echo $tp | grep '.skywire'`
 
                 # check
-                if [ "$tp" == ".skywire" ] ; then
+                if [ "$ft" != "" ] ; then
                     # rise flag
                     found="yes"
 
+                    # log
+                    log "Found $p/.skywire inside node $node"
+
                     # copy it here
                     mkdir -p ${BKP}/${node}
-                    scp "root@${node}:${p}/.skywire" "${BKP}/${node}" 2>&1 | tee -a $LOG 
+                    R=`rsync -av "root@${node}:${p}/.skywire" "${BKP}/${node}/"`
                     exitstatus=$?
+
+                    # log
+                    echo $R | tee -a $LOG
 
                     if [ $exitstatus -ne 0 ] ; then
                         # problems
@@ -487,15 +498,20 @@ function backup_keys() {
                         "Could not copy the .skywire folder from $node"
                     else
                         # ok
-                        log "Copied .skywire folder from node $node"
+                        log "Copied .skywire folder from node $node, making a .tar.gz solid file"
 
                         # compress
                         cd ${BKP}/
-                        tar -cvzf $node_skybkp.tar.gz "./${node}"
+                        T=`tar -cvzf $node_skybkp.tar.gz "./${node}" 2>&1`
 
-                        # done here
+                        # log
+                        echo $T | tee -a $LOG
+
+                        # done here, break the for loop
                         break
                     fi
+                else 
+                    echo "Folder not found here" | tee -a $LOG
                 fi
             done
 
