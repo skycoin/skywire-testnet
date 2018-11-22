@@ -440,7 +440,7 @@ function backup_keys() {
         log "List of nodes to process: $NODES"
     fi
      
-    # iterate over the clients installing ntp on every one
+    # iterate over the clients
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
         ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
@@ -504,7 +504,7 @@ function backup_keys() {
 
                         # compress
                         cd ${BKP}/
-                        T=`tar -cvzf $node_skybkp.tar.gz "./${node}" 2>&1`
+                        T=`tar -cvzf ${node}.tar.gz "./${node}" 2>&1`
 
                         # log
                         echo $T | tee -a $LOG
@@ -720,6 +720,82 @@ function upgrade_skywire() {
 }
 
 
+# restore all node keys 
+function restore_keys() {
+    # This is the opposite to backup_keys
+    # this script will iterate by the nodes and it's backups
+    # restoring the .skywire folder
+
+    # log
+    log "Starting restoration of all '.skywire' folders on every node"
+
+    # user info
+    dialog_advice "Upgrade - App keys restore" "It's time to restore all the keys for the nodes we backup a time ago."
+
+    local NODES="${NODES_IPS}"
+    if [ "$MANAGER_n_NODE" == "yes" ] ; then
+        # add the manager to the nodes pool
+        NODES="${MANAGER_IP} ${NODES}"
+
+        # log
+        log "List of nodes to process: $NODES"
+    fi
+     
+    # iterate over the clients
+    for node in ${NODES}; do
+        log "Verify that the node $node is online by pinging."
+        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
+        exitstatus=$?
+
+        if [ $exitstatus -ne 0 ]; then
+            # log
+            log "Node $node is not online"
+
+            # user info
+            dialog_host_unreachable "${node}" "Base Software Upgrade - Installing NTP"
+        else
+            # log
+            log "Node $node is online, looking for it's backup folder"
+
+            # user info
+            dialog_advice "App keys restore - Node ${node}" "We are ready to retore the .skywire folder on ${node}."
+
+            # log
+            log "Check for $node backups"
+
+            if [ -d "${BKP}/${node}/.skywire"] ;  then
+                # folder exist 
+                log "Found .skywire folder for $node, starting backup to the node"
+
+                # find and disable old folder if there
+                # go/bin
+                log "Disabling and moving to /root the old config in /usr/local/skywire/go/bin, if found there"
+                ssh "root@${node}" "if [ -d /usr/local/skywire/go/bin/.skywire ] ; then mv /usr/local/skywire/go/bin/.skywire /root/.skywire.gobin.old; echo 'Moved old config on /usr/local/skywire/go/bin/'; else echo 'No old config on /usr/local/skywire/go/bin/'; fi 2>&1" | tee -a $LOG
+                # root
+                log "Disabling the old config in /root, if found there"
+                ssh "root@${node}" "if [ -d /root/.skywire ] ; then mv /root/.skywire /root/.skywire.old;  echo 'Moved old config on /usr/root'; else echo 'No old config on /root'; fi 2>&1" | tee -a $LOG
+
+                # restore
+                rsync -av ${BKP}/${node}/ root@${node}:/root/ 2>&1 | tee -a $LOG 
+                exitstatus=$?
+
+                if [ $exitstatus -ne 0 ] ; then
+                    # log
+                    log "There was a problem restoring the data to $node."
+
+                    # user info
+                    dialog_host_stop_next "${node}" "Restore keys - node $node" \
+                        "Could not restore the .skywire folder to $node"
+                else
+                    # log
+                    log "Ok restoring the data to $node."
+                fi
+            fi
+        fi
+    done
+}
+
+
 # main function
 function main() {
     # show the main notice
@@ -746,6 +822,15 @@ function main() {
 
     # upgrade the nodes
     upgrade_skywire
+
+    # restore backups
+    restore_keys
+
+    # restart services
+    # restart_apps
+
+    # testing the restored keys
+    # test_keys
 }
 
 # the fun goes here

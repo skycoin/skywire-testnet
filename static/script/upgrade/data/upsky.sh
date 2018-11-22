@@ -45,10 +45,6 @@ cp ${SKYWIRE_SCRIPTS}/skywire.defaults /etc/default/skywire
 cd ${SKYWIRE_DIR}/cmd
 go install -v ./... &>1 
 
-# restarting services
-systemctl restart skywire-manager
-systemctl restart skywire-node
-
 # reset root password
 echo "root:skywire" | chpasswd
 
