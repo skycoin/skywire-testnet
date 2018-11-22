@@ -1,6 +1,11 @@
 # Default variables for the entire skywire work, this needs to be in 
 # the environment to make it work properly
 
+# IP of the manager, by default 192.168.0.2
+# if you use a custom IP set just change the manager IP
+# here to apply it system wide.
+MANAGER_IP=192.168.0.2
+
 # Go related variables
 GOROOT=/usr/local/go
 GOPATH=/usr/local/skywire/go
@@ -21,6 +26,7 @@ SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
 DISCOVERY_ADDR=discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
 
 # export them all
+export MANAGER_IP
 export GOROOT
 export GOPATH
 export HOME
