@@ -30,6 +30,7 @@ NODES_IPS="192.168.0.3 192.168.0.4 192.168.0.5 192.168.0.6 192.168.0.7 192.168.0
 MANAGER_n_NODE='yes'
 ROOT=`pwd`
 LOG=${ROOT}/log.txt
+BKP="/root/backup"
 
 
 # log everyting to a file & show it to the user
@@ -403,33 +404,138 @@ function change_to_systemd() {
 }
 
 
-# collect all keys in the master to preserve it
-function collect_keys() {
-    # Collecting the public keys of the nodes connected to the manager 
+# backup all node keys 
+function backup_keys() {
+    # Collecting the keys data for all nodes, including master
+    # data keys = "~/.skywire folder", depending on where it's defined
+    # it can be located on this two folders:
+    #  
+    # OLD: $GOPATH/bin = /usr/local/skywire/go/bin
+    # NEW: ~/ = /root
+    # 
+    # Will backup to $BPK (/root/backup/) with the following 
+    # name pattern 
+    # 
+    # ${IP}_skybkp.tar.gz 
+    # 
+    # we will also query the manager about the known node keys.
+
+    # log
+    log "Starting backup of all '.skywire' folders on every node"
+
+    # clean bakup data
+    rm -rdf ${BKP} &> /dev/null
+
+    # user info
+    dialog_advice "Upgrade - App keys backups" "It's time to make a backup of all the keys from the nodes, we will pickup de data from every node and from the manager."
+
+    local NODES="${NODES_IPS}"
+    if [ "$MANAGER_n_NODE" == "yes" ] ; then
+        # add the manager to the nodes pool
+        NODES="${MANAGER_IP} ${NODES}"
+
+        # log
+        log "List of nodes to process: $NODES"
+    fi
+     
+    # iterate over the clients installing ntp on every one
+    for node in ${NODES}; do
+        log "Verify that the node $node is online by pinging."
+        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
+        exitstatus=$?
+
+        if [ $exitstatus -ne 0 ]; then
+            # log
+            log "Node $node is not online"
+
+            # user info
+            dialog_host_unreachable "${node}" "Base Software Upgrade - Installing NTP"
+        else
+            # log
+            log "Node $node is online, find where it stores the .skywire folder"
+
+            # user info
+            dialog_advice "App keys backups - Node ${node}" "We are ready to do a backup of the .skywire folder on ${node}."
+
+            # logg
+            log "Locate .skywire inside node $node"
+
+            # found path
+            local found="no"
+
+            # try each one
+            for p in "/usr/local/skywire/go/bin /root" ; do
+                # try to list it
+                tp=`ssh root@${node} "ls -a ${p}" | grep '.skywire'` 2>&1 | tee -a $LOG 
+
+                # check
+                if [ "$tp" == ".skywire" ] ; then
+                    # rise flag
+                    found="yes"
+
+                    # copy it here
+                    mkdir -p ${BKP}/${node}
+                    scp "root@${node}:${p}/.skywire" "${BKP}/${node}" 2>&1 | tee -a $LOG 
+                    exitstatus=$?
+
+                    if [ $exitstatus -ne 0 ] ; then
+                        # problems
+                        log "Cant backup node $node folder $p/.skywire to manager."
+
+                        # user info
+                        dialog_host_stop_next "${node}" "Backup keys - node $node" \
+                        "Could not copy the .skywire folder from $node"
+                    else
+                        # ok
+                        log "Copied .skywire folder from node $node"
+
+                        # compress
+                        cd ${BKP}/
+                        tar -cvzf $node_skybkp.tar.gz "./${node}"
+
+                        # done here
+                        break
+                    fi
+                fi
+            done
+
+            # check if the backup was ok
+            if [ "$found" == "no" ] ; then
+                # can't find .skywire
+                log "Can't find the .skywire folder on the expected paths on node $node"
+
+                # user info
+                dialog_host_stop_next "${node}" "Backup keys - node $node" "Can't find the .skywire folder on the expected paths on node $node"
+            else
+                # backup ok
+                log "Backup for node $node ok."
+            fi 
+        fi
+    done
 
     # log
     log "Collecting the public keys of the nodes connected to the manager"
 
     # user info
-    dialog_advice "Collecting public keys - info" "Collecting the public keys of the nodes connected to the manager node for further use in case they change"
+    dialog_advice "Backups keys - Collecting public keys" "Collecting the public keys of the nodes connected to the manager node."
     
     # get it
-    curl http://${MANAGER_IP}:8000/conn/getAll > dikeys 
+    curl http://${MANAGER_IP}:8000/conn/getAll > ${BKP}/dikeys
     exitstatus=$?
 
     if [ $exitstatus -eq 0 ] ; then
-        allkeys=`sed -i 's/\(\([^,]\+,\)\{6\}\)/\1\n/g;s/,\n/\n/g' dikeys && sed -e 's/\(^.*key":"\)\(.*\)\(","typ.*$\)/\2/' dikeys`
+        allkeys=`sed -i 's/\(\([^,]\+,\)\{6\}\)/\1\n/g;s/,\n/\n/g' ${BKP}/dikeys && sed -e 's/\(^.*key":"\)\(.*\)\(","typ.*$\)/\2/' ${BKP}/dikeys`
         
         # log
         log "Found the following public keys of the online nodes:"
         
-        for dikeys in ${allkeys}; do
-			echo $dikeys | tee -a $LOG
+        for keys in ${allkeys}; do
+			echo $keys | tee -a $LOG
 		done
 	else
 		log "Could not find any node connected to the manager node. The upgrade will stop now, check if the nodes are online and retry the upgrade script."
 
-        dialog_advice "Collecting public keys - No keys?" "There is no keys, so there is no nodes connected to this manager; script will stop, check your node and try again."
+        dialog_advice "Collecting public keys - No keys?" "There is no keys, so there is no nodes connected to this manager; script will stop, check your nodes and try again."
         exit
 	fi
 }
@@ -596,44 +702,6 @@ function upgrade_skywire() {
 }
 
 
-# check for key node changes and repair
-function check_repair_keys() {
-    # iterate and check for every saved keys
-
-    # log
-    log "Now we will check the keys of the nodes and repair them if needed"
-
-    # user info
-    dialog_advice "Upgrading skywire - post upgrade" "Checking the keys of the nodes and fixing them is needed"
-
-    # iterate over the keys on the file
-    count=0 
-    for dikeys in $(sed -i 's/\(\([^,]\+,\)\{6\}\)/\1\n/g;s/,\n/\n/g' dikeys && sed -e 's/\(^.*key":"\)\(.*\)\(","typ.*$\)/\2/' dikeys); do
-        # catching the keys
-        dikey[c++]="$dikeys";
-        dikey1="${dikey[0]}"
-        dikey2="${dikey[1]}"
-        dikey3="${dikey[2]}"
-        dikey4="${dikey[3]}"
-        dikey5="${dikey[4]}"
-        dikey6="${dikey[5]}"
-        dikey7="${dikey[6]}"
-        dikey8="${dikey[7]}"
-    done
-
-    # build key chain
-    dik="$dikey1 $dikey2 $dikey3 $dikey4 $dikey5 $dikey6 $dikey7 $dikey8"
-
-    # set env vars
-    json0="/root/.skywire/node/keys.json"
-    json1="/usr/local/skywire/go/bin/.skywire/node/keys.json"
-    json="$json0 $json1"
-
-    
-
-} 
-
-
 # main function
 function main() {
     # show the main notice
@@ -652,17 +720,14 @@ function main() {
     # change to systemd 
     change_to_systemd
 
-    # collect keys
-    collect_keys
+    # backup keys
+    backup_keys
 
     # stop all
     stop_apps
 
     # upgrade the nodes
     upgrade_skywire
-
-    # check for key node changes and repair
-    check_repair_keys
 }
 
 # the fun goes here
