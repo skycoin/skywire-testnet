@@ -1,21 +1,20 @@
 #!/bin/bash
 
-# SkyWire upgrader script
+# SkyWire one time upgrader script
 #
-# based on the previous work of [TBD]
+# based on the previous work of asxtree
 # Author: stdevPavelmc / dev0032@simelo.tech 
 # 
 # Main goal is:
 # - Gather information about the network, standard or custom IP config?
 # - Generate ssh id on the server and copy it to every client
-# - Install NTP in the manager and on every node, get sure we have a correct time
-# # for the manger
-# - gather key from the Api [bogus, elaborate]
+# - Install NTP in the manager and on every node
+# - Save private data from nodes to manager
 # - Fix OS scripts on manager
 # - kill manager/node instances
 # - Upgrade skywire
+# - Retore the private data on each node
 # - Setup systemd jobs & start them
-# # do the same on every node
 # 
 
 echo "#########################################################################"
@@ -49,8 +48,7 @@ function log() {
 # get the local IP, will assume eth0 as the net device
 function get_local_ip() {
     # get it
-    # TODO restore to eth0 on RELEASE, for now testing on a virtual env
-    IP=`ifconfig enp0s3 | grep "inet " | awk '{ print $2 }'`
+    IP=`ifconfig eth0 | grep "inet " | awk '{ print $2 }'`
     
     # log
     log "Local IP is: ${IP}"
@@ -900,10 +898,8 @@ function main() {
 
     # restart services
     start_apps
-
-    # testing the restored keys
-    # test_keys
 }
+
 
 # the fun goes here
 main

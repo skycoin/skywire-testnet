@@ -22,17 +22,7 @@ cd ${SKYWIRE_DIR}
 # set remote URL for git
 git reset --hard
 git remote set-url origin ${SKYWIRE_GIT_URL}
-
-# TODO activate this on production
-#git pull || git pull
-
-# TODO remove this on production
-#######################################
-cd ..
-rm -rdf skywire
-tar -xf skywire-new.tar
-cd skywire
-#######################################
+git pull || git pull
 
 # remove old go bins to force a total rebuild
 cd ${GOPATH=/usr/local/skywire/go}
