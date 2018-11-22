@@ -763,7 +763,7 @@ function restore_keys() {
             # log
             log "Check for $node backups"
 
-            if [ -d "${BKP}/${node}/.skywire"] ;  then
+            if [ -d "${BKP}/${node}/.skywire" ] ;  then
                 # folder exist 
                 log "Found .skywire folder for $node, starting backup to the node"
 
