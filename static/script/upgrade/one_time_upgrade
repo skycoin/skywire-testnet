@@ -767,13 +767,16 @@ function restore_keys() {
                 # folder exist 
                 log "Found .skywire folder for $node, starting backup to the node"
 
+                # catch date
+                D=`date +%Y%m%d-%H%m`
+
                 # find and disable old folder if there
                 # go/bin
                 log "Disabling and moving to /root the old config in /usr/local/skywire/go/bin, if found there"
-                ssh "root@${node}" "if [ -d /usr/local/skywire/go/bin/.skywire ] ; then mv /usr/local/skywire/go/bin/.skywire /root/.skywire.gobin.old; echo 'Moved old config on /usr/local/skywire/go/bin/'; else echo 'No old config on /usr/local/skywire/go/bin/'; fi 2>&1" | tee -a $LOG
+                ssh "root@${node}" "if [ -d /usr/local/skywire/go/bin/.skywire ] ; then mv /usr/local/skywire/go/bin/.skywire /root/.skywire.gobin.old.${D}; echo 'Moved old config on /usr/local/skywire/go/bin/'; else echo 'No old config on /usr/local/skywire/go/bin/'; fi 2>&1" | tee -a $LOG
                 # root
                 log "Disabling the old config in /root, if found there"
-                ssh "root@${node}" "if [ -d /root/.skywire ] ; then mv /root/.skywire /root/.skywire.old;  echo 'Moved old config on /usr/root'; else echo 'No old config on /root'; fi 2>&1" | tee -a $LOG
+                ssh "root@${node}" "if [ -d /root/.skywire ] ; then mv /root/.skywire /root/.skywire.old.${D};  echo 'Moved old config on /usr/root'; else echo 'No old config on /root'; fi 2>&1" | tee -a $LOG
 
                 # restore
                 rsync -av ${BKP}/${node}/ root@${node}:/root/ 2>&1 | tee -a $LOG 
