@@ -796,6 +796,63 @@ function restore_keys() {
 }
 
 
+# Start services on each node
+function start_apps() {
+    # This is the opposite to stop_apps
+    # log
+    log "Starting all services on each node"
+
+    # user info
+    dialog_advice "Starting services" "All is ready to restart your nodes, we will doit now."
+
+    local NODES="${NODES_IPS}"
+    if [ "$MANAGER_n_NODE" == "yes" ] ; then
+        # add the manager to the nodes pool
+        NODES="${MANAGER_IP} ${NODES}"
+
+        # log
+        log "List of nodes to process: $NODES"
+    fi
+     
+    # iterate over the clients
+    for node in ${NODES}; do
+        log "Verify that the node $node is online by pinging."
+        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
+        exitstatus=$?
+
+        if [ $exitstatus -ne 0 ]; then
+            # log
+            log "Node $node is not online"
+
+            # user info
+            dialog_host_unreachable "${node}" "Starting services"
+        else
+            # log
+            log "Node $node is online, restarting services"
+
+            # user info
+            dialog_advice "Starting services - Node ${node}" "Now we will restart services on this node, you will be able to see it on the manager list on a few seconds."
+
+            # log
+            log "Check for $node backups"
+
+            # manager or node?
+            if [ "$node" == "$MANAGER_IP" ] ; then
+                # starting manager on node
+                log "Starting manager on node $node"
+
+                ssh "root@${node}" "systemctl restart skywire-manager && systemctl status skywire-manager" | tee -a $LOG
+            else
+                # starting node
+                log "Starting node on $node"
+
+                ssh "root@${node}" "systemctl restart skywire-node && systemctl status skywire-node" | tee -a $LOG
+            fi
+        fi
+    done
+}
+
+
 # main function
 function main() {
     # show the main notice
@@ -827,7 +884,7 @@ function main() {
     restore_keys
 
     # restart services
-    # restart_apps
+    start_apps
 
     # testing the restored keys
     # test_keys
