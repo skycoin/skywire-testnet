@@ -40,6 +40,10 @@ Skywire is still under heavy development.
 
 ## Install
 
+First take a look at the [script integration README](static/script/README.MD) to know a few facts ant tips that will help you to understand how Skywire is integrated to the Unix systems, very important is the part of the Network Policies.
+
+Now if you read that you must realize that if you use a different IP set you will need to change a few things, we will point them out when needed.
+
 ### Unix systems
 
 ```
@@ -55,11 +59,21 @@ cd $GOPATH/src/github.com/skycoin/skywire/cmd
 go install ./...
 ```
 
+#### Set the IP of the manager
+
+If you are using the default network IP set you are set, follow to the next step.
+
+If you uses a different IP set you need to modify the file in ```static/script/skywire.defaults```, in particular the variable called ```MANAGER_IP``` in the default file it points to the default manager IP, in the case of a different IP set this will need to be changed to the manager IP.
+
+Just for a matter of precaution, after modify this file be sure that there isn't a fille called ```/etc/default/skywire``` if it's there erase it. It will be updated once you run skywire.
+
 ## Run Skywire
 
 ### Unix systems
 
 #### Run Skywire Manager
+
+Open a command window on a PC that will act like a manager and follow the install procedure, then to start a node do this:
 
 ```
 ${GOPATH}/src/github.com/skycoin/skywire/static/script/manager_start
@@ -69,7 +83,7 @@ ${GOPATH}/src/github.com/skycoin/skywire/static/script/manager_start
 
 #### Run Skywire Node
 
-Open a new command window on a node only computer
+Open a command window on a node only computer and follow the install procedure, then to start a node:
 
 ```
 ${GOPATH}/src/github.com/skycoin/skywire/static/script/node_start
@@ -100,20 +114,33 @@ If you use a modern Linux OS (released after 2017) you are using systemd as init
 
 Please note that the manager instance will start also a local node, so you must select just a manager on a net and the rest will be nodes.
 
-###### Installing mananger unit on systemd 
+###### Installing & start of mananger unit file on systemd 
 
 ```
 cp ${GOPATH}/src/github.com/skycoin/skywire/static/script/upgrade/data/skywire-manager.service /etc/systemd/system/
-systemctl enable skywire-manager.service
-systemctl start skywire-manager.service
+systemctl enable skywire-manager
+systemctl start skywire-manager
 ```
 
-###### Installing node unit on systemd 
+###### Installing & start of nodes unit file on systemd 
 
 ```
 cp ${GOPATH}/src/github.com/skycoin/skywire/static/script/upgrade/data/skywire-node.service /etc/systemd/system/
-systemctl enable skywire-node.service
-systemctl start skywire-node.service
+systemctl enable skywire-node
+systemctl start skywire-node
+```
+
+From this point forward you can user this services to start/stop your skywire instances via systemd commands:
+
+```
+# for the nodes
+systemctl *start* skywire-node
+systemctl *stop* skywire-node
+systemctl *status* skywire-node
+# for the manager
+systemctl *start* skywire-manager
+systemctl *stop* skywire-manager
+systemctl *status* skywire-manager
 ```
 
 ## Open Skywire Manager View
