@@ -1,8 +1,8 @@
-import {browser} from "protractor";
-import {NodeDetailPage} from "../../../pages/node-detail.po";
-import {assertEqual} from "@angular/core/src/render3/assert";
-import {NODE_PUBLIC_KEY, PUBLIC_KEY_1, PUBLIC_KEY_2} from "../../../util/constants";
-import {getKeyPair} from "../../../util/selection";
+import {browser} from 'protractor';
+import {NodeDetailPage} from '../../../pages/node-detail.po';
+import {assertEqual} from '@angular/core/src/render3/assert';
+import {NODE_PUBLIC_KEY, PUBLIC_KEY_1, PUBLIC_KEY_2} from '../../../util/constants';
+import {getKeyPair} from '../../../util/selection';
 
 /*describe('Apps startup config', () => {
   let page: NodeDetailPage;

@@ -1,13 +1,12 @@
-import {PATHS} from "../../../src/app/app-routing.module";
-import BasePage from "./base-page.po";
-import {findById} from "../util/selection";
+import {PATHS} from '../../../src/app/app-routing.module';
+import BasePage from './base-page.po';
+import {findById} from '../util/selection';
 
 export class LoginPage extends BasePage {
 
   path = PATHS.login;
 
-  login()
-  {
+  login() {
     return this.loginWithPassword('123123123');
   }
 

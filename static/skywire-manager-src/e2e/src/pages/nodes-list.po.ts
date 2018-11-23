@@ -1,24 +1,24 @@
-import {PATHS} from "../../../src/app/app-routing.module";
-import BasePage from "./base-page.po";
-import {findById, waitForVisibility} from "../util/selection";
-import {by, element} from "protractor";
-import {LoginPage} from "./login";
-import {APP_SOCKSC, APP_SSHC, APP_SSHS} from "../util/constants";
+import {PATHS} from '../../../src/app/app-routing.module';
+import BasePage from './base-page.po';
+import {findById, waitForVisibility} from '../util/selection';
+import {by, element} from 'protractor';
+import {LoginPage} from './login';
+import {APP_SOCKSC, APP_SSHC, APP_SSHS} from '../util/constants';
 
 export class NodesListPage extends BasePage {
 
   path = PATHS.nodes;
-  private ROW_INDEX = "nodeIndex";
-  private ROW_LABEL = "nodeLabel";
-  private ROW_KEY = "nodeKey";
-  private ROW_STATUS_ONLINE = "nodeStatusOnline";
+  private ROW_INDEX = 'nodeIndex';
+  private ROW_LABEL = 'nodeLabel';
+  private ROW_KEY = 'nodeKey';
+  private ROW_STATUS_ONLINE = 'nodeStatusOnline';
 
   private getNodesList() {
-    return findById("nodeListTable").element(by.tagName('tbody'));
+    return findById('nodeListTable').element(by.tagName('tbody'));
   }
 
   navigateTo() {
-    let result = new LoginPage().navigateTo();
+    const result = new LoginPage().navigateTo();
     new LoginPage().login();
     return result;
   }
@@ -62,7 +62,7 @@ export class NodesListPage extends BasePage {
   getFirstNodeTooltip() {
     this.waitNodesTablesToBeLoaded();
     waitForVisibility(this.getFirstNodeField(this.ROW_STATUS_ONLINE));
-    return this.getFirstNodeField(this.ROW_STATUS_ONLINE).getAttribute("title");
+    return this.getFirstNodeField(this.ROW_STATUS_ONLINE).getAttribute('title');
   }
 
   clickFirstNode() {

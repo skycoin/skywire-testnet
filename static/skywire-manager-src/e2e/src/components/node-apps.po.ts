@@ -1,12 +1,12 @@
-import {clickElement, fillKeyPair, findById, waitForVisibility} from "../util/selection";
-import {by, element, ElementFinder} from "protractor";
-import {NODE_PUBLIC_KEY} from "../util/constants";
+import {clickElement, fillKeyPair, findById, waitForVisibility} from '../util/selection';
+import {by, element, ElementFinder} from 'protractor';
+import {NODE_PUBLIC_KEY} from '../util/constants';
 
 export class NodeAppsButtons {
 
-  private SSHS_BTN: string = 'sshsAppBtn';
-  private SOCKSC_BTN: string = 'sockscAppBtn';
-  private SSHC_BTN: string = 'sshcAppBtn';
+  private SSHS_BTN = 'sshsAppBtn';
+  private SOCKSC_BTN = 'sockscAppBtn';
+  private SSHC_BTN = 'sshcAppBtn';
 
   getToggleAppButton(appBtnId) {
     return findById(appBtnId).element(by.id('toggleAppButton'));
@@ -56,13 +56,13 @@ export class NodeAppsButtons {
   }
 
   private getSockscButton() {
-    let el = findById(this.SOCKSC_BTN);
+    const el = findById(this.SOCKSC_BTN);
     waitForVisibility(el);
     return el;
   }
 
   private getSshsButton() {
-    let el = findById(this.SSHS_BTN);
+    const el = findById(this.SSHS_BTN);
     waitForVisibility(el);
     return el;
   }

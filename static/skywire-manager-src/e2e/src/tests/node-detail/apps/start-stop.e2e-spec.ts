@@ -1,8 +1,8 @@
-import {browser, by, element, ExpectedConditions} from "protractor";
-import {NodesListPage} from "../../../pages/nodes-list.po";
-import {LoginPage} from "../../../pages/login";
-import {NodeDetailPage} from "../../../pages/node-detail.po";
-import {NODE_PUBLIC_KEY} from "../../../util/constants";
+import {browser, by, element, ExpectedConditions} from 'protractor';
+import {NodesListPage} from '../../../pages/nodes-list.po';
+import {LoginPage} from '../../../pages/login';
+import {NodeDetailPage} from '../../../pages/node-detail.po';
+import {NODE_PUBLIC_KEY} from '../../../util/constants';
 
 describe('Apps start/stop', () => {
   let page: NodeDetailPage;
