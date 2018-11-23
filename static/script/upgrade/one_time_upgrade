@@ -685,8 +685,11 @@ function upgrade_skywire() {
             
             # copy script
             log "Copy upgrade script to: $node"
-            scp "${ROOT}/data/upsky.sh" "root@${node}:/tmp/" 2>&1 | tee -a $LOG
+            local L=`scp "${ROOT}/data/upsky.sh" "root@${node}:/tmp/" 2>&1`
             exitstatus=$?
+
+            # log
+            printf "%s" "$L" | tee -a $LOG ; echo ''
 
             if [ $exitstatus -ne 0 ] ; then
                 dialog_host_stop_next "${node}" "Upgrading skywire - copy script" \
@@ -696,10 +699,16 @@ function upgrade_skywire() {
 
             # run script
             log "Upgrading node: $node"
-            ssh "root@${node}" "/tmp/upsky.sh" 2>&1 | tee -a $LOG
+            L=`ssh "root@${node}" "/tmp/upsky.sh" 2>&1 `
             exitstatus=$?
 
-            if [ $exitstatus -ne 0 ] ; then
+            # log
+            printf "%s" "$L" | tee -a $LOG ; echo ''
+
+            # catching the output of the script to know if it failed.
+            W=`echo $L | grep 'ERROR: '`
+
+            if [ $exitstatus -ne 0 -o -n "$W" ] ; then
                 dialog_host_stop_next "${node}" "Upgrading skywire - run update" \
                     "Update script on $node failed."
                 RESULT="no"

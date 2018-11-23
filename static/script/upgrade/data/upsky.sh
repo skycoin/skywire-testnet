@@ -24,6 +24,12 @@ git reset --hard
 git remote set-url origin ${SKYWIRE_GIT_URL}
 git pull || git pull
 
+# test, if the git failed then it must no have a new file
+if [ ! -f "${SKYWIRE_SCRIPTS}/upgrade/README.md" ] ; then
+    echo "ERROR: clone operation failed."
+    exit
+fi
+
 # remove old go bins to force a total rebuild
 cd ${GOPATH=/usr/local/skywire/go}
 rm -rdf bin
