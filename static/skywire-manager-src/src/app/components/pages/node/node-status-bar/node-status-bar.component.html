@@ -1,10 +1,12 @@
 <ul class="node-status-bar list-inline d-flex justify-content-around mb-0">
   <li class="status-text status-online list-inline-item d-flex align-items-center justify-content-between"
-      matTooltip="{{onlineTooltip}}">
+      [matTooltip]="onlineTooltip">
     <mat-icon>network_check</mat-icon>
     <div class="d-flex flex-column mw-0">
       <span class="font-mini">{{ 'node.status' | translate }}</span>
-      <span id="nodeOnlineStatus">{{(isOnline ? 'node.online' : 'node.offline') | translate }}</span>
+      <span id="nodeOnlineStatus">
+        {{ (isDiscovered ? 'node.statuses.discovered' : 'node.statuses.online') | translate }}
+      </span>
     </div>
   </li>
   <li class="separator"></li>

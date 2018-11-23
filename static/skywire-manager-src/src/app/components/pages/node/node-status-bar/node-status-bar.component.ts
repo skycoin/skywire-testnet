@@ -1,7 +1,7 @@
 import {Component, Input, OnChanges, OnInit} from '@angular/core';
 import {NodeData} from '../../../../app.datatypes';
 import {TranslateService} from '@ngx-translate/core';
-import {isOnline as checkOnline} from '../../../../utils/nodeUtils';
+import {isDiscovered} from '../../../../utils/nodeUtils';
 
 @Component({
   selector: 'app-node-status-bar',
@@ -22,17 +22,12 @@ export class NodeStatusBarComponent implements OnInit, OnChanges {
     this.getOnlineTooltip();
   }
 
-  get isOnline(): boolean {
-    return checkOnline(this.nodeData.info);
+  get isDiscovered(): boolean {
+    return isDiscovered(this.nodeData.info);
   }
 
   getOnlineTooltip(): void {
-    let key;
-    if (this.isOnline) {
-      key = 'node.online-tooltip';
-    } else {
-      key = 'node.offline-tooltip';
-    }
-    this.translate.get(key).subscribe((text) => this.onlineTooltip = text);
+    this.translate.get(this.isDiscovered ? 'node.statuses.discovered-tooltip' : 'node.statuses.online-tooltip')
+      .subscribe((text: string) => this.onlineTooltip = text);
   }
 }

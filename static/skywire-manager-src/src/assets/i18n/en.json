@@ -35,11 +35,15 @@
   },
 
   "node": {
-    "online": "Online",
-    "online-tooltip": "Online: Node is correctly detected by the Skywire network",
-    "offline": "Offline",
-    "offline-tooltip": "Offline: Node is not detected by the Skywire network",
-    "unknown-tooltip": "Node status is unknown",
+    "statuses": {
+      "discovered": "Online",
+      "discovered-tooltip": "Node is online and discovered by the Skywire network",
+      "online": "Online*",
+      "online-tooltip": "Node is online, but not discovered by the Skywire network",
+      "offline": "Offline",
+      "offline-tooltip": "Node is offline",
+      "unknown-tooltip": "Node status is unknown"
+    },
     "status": "STATUS",
     "protocol": "PROTOCOL",
     "last-ping": "LAST PING",
@@ -64,7 +68,9 @@
     "running": "Running",
     "edit-label": "Edit label",
     "view-node": "View node",
-    "error-load": "An error occurred while refreshing nodes"
+    "delete-node": "Delete node",
+    "error-load": "An error occurred while refreshing nodes",
+    "empty": "There aren't any nodes connected to this manager."
   },
 
   "settings": {

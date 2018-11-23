@@ -24,7 +24,14 @@ export interface NodeInfo {
 }
 
 export interface NodeStatusInfo extends Node {
-  online: boolean;
+  status: NodeStatus;
+}
+
+export enum NodeStatus {
+  DISCOVERED = 'discovered',
+  ONLINE = 'online',
+  OFFLINE = 'offline',
+  UNKNOWN = 'unknown',
 }
 
 export interface NodeData {

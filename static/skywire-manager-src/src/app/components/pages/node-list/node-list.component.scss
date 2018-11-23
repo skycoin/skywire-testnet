@@ -24,8 +24,19 @@
     font-weight: bold;
   }
 
-  table {
+  table, .nodes-empty {
     box-shadow: none !important;
+  }
+
+  .nodes-empty {
+    color: theme-color(light-gray);
+    font-size: 13px;
+
+    i {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
   }
 }
 

@@ -1,6 +1,23 @@
-import {Injectable, NgZone} from '@angular/core';
-import {bindCallback, forkJoin, interval, Observable, of, Subject, timer, Unsubscribable} from 'rxjs';
-import {AutoStartConfig, NodeStatusInfo, Node, NodeApp, NodeData, NodeInfo, SearchResult} from '../app.datatypes';
+import { Injectable } from '@angular/core';
+import {
+  forkJoin,
+  interval,
+  Observable,
+  of,
+  Subject,
+  timer,
+  Unsubscribable
+} from 'rxjs';
+import {
+  AutoStartConfig,
+  Node,
+  NodeApp,
+  NodeData,
+  NodeInfo,
+  NodeStatus,
+  NodeStatusInfo,
+  SearchResult
+} from '../app.datatypes';
 import { ApiService } from './api.service';
 import {
   catchError,
@@ -10,11 +27,11 @@ import {
   flatMap,
   map,
   switchMap,
-  take,
+  take, tap,
   timeout
 } from 'rxjs/operators';
-import {StorageService} from './storage.service';
-import {getNodeLabel, isOnline} from '../utils/nodeUtils';
+import { StorageService } from './storage.service';
+import { getNodeLabel, isDiscovered } from '../utils/nodeUtils';
 
 @Injectable({
   providedIn: 'root'
@@ -45,18 +62,44 @@ export class NodeService {
    */
   getAllNodes(): Observable<NodeStatusInfo[]> {
     return this.apiService.get('conn/getAll').pipe(
-      flatMap(
-        nodes => forkJoin(nodes.map(node => this.node(node.key).pipe(
-          map(nodeWithAddress => ({...node, ...nodeWithAddress})),
-          catchError(() => of({...node}))
-        )))
-      ),
-      flatMap(
-        nodes => forkJoin(nodes.map((node: Node) => this.nodeInfo(node).pipe(
-          map(nodeInfo => ({...node, online: isOnline(nodeInfo)})),
-          catchError(() => of({...node, online: undefined})),
-        )))
-      )
+      flatMap(nodes => {
+          if (nodes.length === 0) {
+            return of([]);
+          }
+
+          return forkJoin(nodes.map(node => this.node(node.key).pipe(
+            map(nodeWithAddress => ({...node, ...nodeWithAddress})),
+            catchError(() => of({...node}))
+          )));
+      }),
+      flatMap(nodes => {
+        if (nodes.length === 0) {
+          return of([]);
+        }
+
+        return forkJoin(nodes.map((node: Node) => this.nodeInfo(node).pipe(
+          map(nodeInfo => ({...node, status: isDiscovered(nodeInfo) ? NodeStatus.DISCOVERED : NodeStatus.ONLINE})),
+          catchError(() => of({...node, status: NodeStatus.UNKNOWN})),
+        )));
+      }),
+      map((nodes: Node[]) => {
+        let storedNodes = this.storageService.getNodes();
+
+        if (storedNodes.length === 0) {
+          nodes.forEach(node => this.storageService.addNode(node.key));
+          storedNodes = this.storageService.getNodes();
+        }
+
+        const allNodes = storedNodes.map(nodeKey => ({ key: nodeKey, status: NodeStatus.OFFLINE }));
+
+        return allNodes.reduce((all, current) => {
+          const existing = nodes.find(node => node.key === current.key);
+
+          all.push(existing ? existing : current);
+
+          return all;
+        }, []);
+      })
     );
   }
 
@@ -118,11 +161,11 @@ export class NodeService {
 
   notifyNodeDataRefreshed(data: any) {
     this.currentNodeData.next({
-        node: { ...data[0], key: this.currentNode.key },
-        apps: data[1] || [],
-        info: { ...data[2], transports: data[2].transports || [] },
-        allNodes: data[3] || []
-      });
+      node: { ...data[0], key: this.currentNode.key },
+      apps: data[1] || [],
+      info: { ...data[2], transports: data[2].transports || [] },
+      allNodes: data[3] || []
+    });
   }
 
   requestRefreshNodeData() {

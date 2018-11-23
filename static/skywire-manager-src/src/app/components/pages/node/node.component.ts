@@ -1,11 +1,11 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NodeService } from '../../../services/node.service';
-import {Node, NodeData} from '../../../app.datatypes';
+import { Node, NodeData, NodeStatus } from '../../../app.datatypes';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDialog} from '@angular/material';
+import { MatDialog } from '@angular/material';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { TranslateService } from '@ngx-translate/core';
-import {ErrorsnackbarService} from '../../../services/errorsnackbar.service';
+import { ErrorsnackbarService } from '../../../services/errorsnackbar.service';
 
 @Component({
   selector: 'app-node',
@@ -97,7 +97,7 @@ export class NodeComponent implements OnInit, OnDestroy {
   }
 
   get operationalNodesCount(): number {
-    return this.nodeData.allNodes.filter((node) => node.online === true).length;
+    return this.nodeData.allNodes.filter((node) => node.status === NodeStatus.DISCOVERED).length;
   }
 
   get operationalNodesClass(): string {
