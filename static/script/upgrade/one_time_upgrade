@@ -233,9 +233,9 @@ function manager_ssh_key_distribution() {
 
     # iterate over the node/s
     for node in ${NODES}; do
-        echo "Verify that the node $node is online by pinging."
+        log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
         
         if [ $exitstatus -ne 0 ] ; then
             dialog_host_unreachable "$node" "SSH key distribution - ssh-copy-id"
@@ -247,7 +247,7 @@ function manager_ssh_key_distribution() {
             dialog_advice "SSH key distribution - ssh-copy-id" "The node $node is reachable. Start copying the rsa key of the manager node to it.\n\nYou'll now be prompted to enter the root user password for authentication on the remote node. Press OK to continue and enter the root password, default is 'samos' or use the password you set if you changed it."
             
             R=`ssh-copy-id -i /root/.ssh/id_rsa.pub "root@$node" 2>&1`
-            echo $R | tee -a $LOG
+            printf "%s" "$R" | tee -a $LOG ; echo ''
             exitstatus=`echo $R | grep 'ERROR: '`
 
             if [ -z "$exitstatus" ]; then
@@ -285,7 +285,7 @@ function install_ntp() {
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -301,9 +301,13 @@ function install_ntp() {
             dialog_advice "Base Software Upgrade - apt-get + ntp" "The node $node is reachable. Start the system upgrade + ntp install; this may take a while"
 
             # run it
-            local OUT=`ssh "root@$node" "apt-get update && apt-get upgrade -y && apt-get install ntp -y && apt clean 2>&1"`
-            echo $OUT | tee -a $LOG
+            ssh "root@$node" "apt-get update && apt-get upgrade -y" | tee -a $LOG
+            local OUT=`ssh "root@$node" "apt-get install ntp -y 2>&1 ; echo '' "`
+            printf "%s" "$OUT" | tee -a $LOG ; echo ''
             local FOUT=`echo $OUT | grep 'E: '` 
+
+            # clean the downloaded pkgs
+            ssh "root@$node" "apt clean" | tee -a $LOG 
 
             if [ -z "$FOUT" ] ; then
                 # log
@@ -342,7 +346,7 @@ function change_to_systemd() {
     for node in ${NODES} ; do
         log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
 
         if [ $exitstatus -ne 0 ] ; then
             # log
@@ -455,7 +459,7 @@ function backup_keys() {
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -483,7 +487,8 @@ function backup_keys() {
 
                 # try to list it
                 echo "Directory $p list:" | tee -a $LOG
-                tp=`ssh root@${node} "ls -a ${p}"` && echo $tp | tee -a $LOG
+                tp=`ssh root@${node} "ls -a ${p}"`
+                printf "%s" "$tp" | tee -a $LOG ; echo ''
                 ft=`echo $tp | grep '.skywire'`
 
                 # check
@@ -500,7 +505,7 @@ function backup_keys() {
                     exitstatus=$?
 
                     # log
-                    echo $R | tee -a $LOG
+                    printf "%s" "$R" | tee -a $LOG ; echo ''
 
                     if [ $exitstatus -ne 0 ] ; then
                         # problems
@@ -518,7 +523,7 @@ function backup_keys() {
                         T=`tar -cvzf ${node}.tar.gz "./${node}" 2>&1`
 
                         # log
-                        echo $T | tee -a $LOG
+                        printf "%s" "$T" | tee -a $LOG ; echo ''
 
                         # done here, break the for loop
                         break
@@ -594,7 +599,7 @@ function stop_apps() {
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
 
         if [ $exitstatus -ne 0 ] ; then
             # log
@@ -660,7 +665,7 @@ function upgrade_skywire() {
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -756,7 +761,7 @@ function restore_keys() {
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -832,7 +837,7 @@ function start_apps() {
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
         L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
-        printf "%s" "$L" | tee -a $LOG
+        printf "%s" "$L" | tee -a $LOG ; echo ''
 
         if [ $exitstatus -ne 0 ]; then
             # log
