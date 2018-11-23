@@ -234,9 +234,10 @@ function manager_ssh_key_distribution() {
     # iterate over the node/s
     for node in ${NODES}; do
         echo "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
         
-        if [ $? -ne 0 ] ; then
+        if [ $exitstatus -ne 0 ] ; then
             dialog_host_unreachable "$node" "SSH key distribution - ssh-copy-id"
         else
             # log
@@ -283,8 +284,8 @@ function install_ntp() {
     # iterate over the clients installing ntp on every one
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
-        exitstatus=$?
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -340,8 +341,8 @@ function change_to_systemd() {
     # iterate over the clients
     for node in ${NODES} ; do
         log "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 -q $node 2>&1 | tee -a $LOG
-        exitstatus=$?
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
 
         if [ $exitstatus -ne 0 ] ; then
             # log
@@ -453,8 +454,8 @@ function backup_keys() {
     # iterate over the clients
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
-        exitstatus=$?
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -592,8 +593,8 @@ function stop_apps() {
     # iterate over the clients 
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 -q $node 2>&1 | tee -a $LOG
-        exitstatus=$?
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
 
         if [ $exitstatus -ne 0 ] ; then
             # log
@@ -658,8 +659,8 @@ function upgrade_skywire() {
     # iterate over the clients 
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 -q $node 2>&1 | tee -a $LOG
-        exitstatus=$?
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -754,8 +755,8 @@ function restore_keys() {
     # iterate over the clients
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
-        exitstatus=$?
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
 
         if [ $exitstatus -ne 0 ]; then
             # log
@@ -830,8 +831,8 @@ function start_apps() {
     # iterate over the clients
     for node in ${NODES}; do
         log "Verify that the node $node is online by pinging."
-        ping -W1 -c3 -i0.5 $node 2>&1 | tee -a $LOG
-        exitstatus=$?
+        L=`ping -W1 -c3 -i0.5 $node 2>&1` ; exitstatus=$?
+        printf "%s" "$L" | tee -a $LOG
 
         if [ $exitstatus -ne 0 ]; then
             # log
