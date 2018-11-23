@@ -40,7 +40,7 @@ Skywire is still under heavy development.
 
 ## Install
 
-First take a look at the [script integration README](static/script/README.MD) to know a few facts ant tips that will help you to understand how Skywire is integrated to the Unix systems, very important is the part of the Network Policies.
+First take a look at the [script integration README](static/script/README.md) to know a few facts ant tips that will help you to understand how Skywire is integrated to the Unix systems, very important is the part of the Network Policies.
 
 Now if you read that you must realize that if you use a different IP set you will need to change a few things, we will point them out when needed.
 
