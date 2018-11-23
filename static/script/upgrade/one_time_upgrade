@@ -813,11 +813,11 @@ function restore_keys() {
                 ssh "root@${node}" "if [ -d /usr/local/skywire/go/bin/.skywire ] ; then mv /usr/local/skywire/go/bin/.skywire /root/.skywire.gobin.old.${D}; echo 'Moved old config on /usr/local/skywire/go/bin/'; else echo 'No old config on /usr/local/skywire/go/bin/'; fi 2>&1" | tee -a $LOG
                 # root
                 log "Disabling the old config in /root, if found there"
-                ssh "root@${node}" "if [ -d /root/.skywire ] ; then mv /root/.skywire /root/.skywire.old.${D};  echo 'Moved old config on /usr/root'; else echo 'No old config on /root'; fi 2>&1" | tee -a $LOG
+                ssh "root@${node}" "if [ -d /root/.skywire ] ; then mv /root/.skywire /root/.skywire.old.${D};  echo 'Moved old config on /root'; else echo 'No old config on /root'; fi 2>&1" | tee -a $LOG
 
                 # restore
-                rsync -av ${BKP}/${node}/ root@${node}:/root/ 2>&1 | tee -a $LOG 
-                exitstatus=$?
+                L=`rsync -av ${BKP}/${node}/ root@${node}:/root/ 2>&1` ; exitstatus=$?
+                echo $L  | tee -a $LOG
 
                 if [ $exitstatus -ne 0 ] ; then
                     # log
@@ -872,15 +872,12 @@ function start_apps() {
             # user info
             dialog_advice "Starting services - Node ${node}" "Now we will restart services on this node, you will be able to see it on the manager list on a few seconds."
 
-            # log
-            log "Check for $node backups"
-
             # manager or node?
             if [ "$node" == "$MANAGER_IP" ] ; then
                 # starting manager on node
                 log "Starting manager on node $node"
 
-                ssh "root@${node}" "systemctl restart skywire-manager && systemctl status skywire-manager" | tee -a $LOG
+                ssh "root@${node}" "systemctl restart skywire-manager && systemctl status skywire-manager 2>&1" | tee -a $LOG
             else
                 # starting node
                 log "Starting node on $node"
