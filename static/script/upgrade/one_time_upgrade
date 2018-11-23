@@ -48,7 +48,7 @@ function log() {
 # get the local IP, will assume eth0 as the net device
 function get_local_ip() {
     # get it
-    IP=`ifconfig eth0 | grep "inet " | awk '{ print $2 }'`
+    IP=`hostname -I | awk '{ print $1 }'`
     
     # log
     log "Local IP is: ${IP}"
