@@ -21,9 +21,12 @@ Please join [SkywirePSA](https://t.me/SkywirePSA) as well to get structured publ
 
 ## Rules
 
+
 **Each whitelisted person is eligible of receiving rewards for 1 official miner or 1 DIY miner with up to 8 nodes, in the case that either the official or the DIY miner are running at a different location the person will receive rewards for both if the requirement is met.**
 
 * The demand for a different location is due to the fact that we want to spread out the meshnet and not concentrate the location of nodes to specific central points, which would result in paying people to run orange pi's and not to reward them for providing a useful service to the network.
+
+* If you are running two separate miners in the same location because you're joining the network living in the same house you still have to move one of your miners to another location. 
 
 * *Submitting applications under multiple email addresses is illegal and likely to be detected - measures will be taken if such actions are recognized.*
 
@@ -142,6 +145,9 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - 2
      - 4
 
+#### Geniatech
+     - Developer Board IV
+
 #### Helios
      - 4
 
@@ -164,6 +170,7 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - M2
      - M2A
      - M3
+     - M4
      - NEO
      - NEO-Air
      - NEO-Core
@@ -173,6 +180,7 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - Smart4418
 
 #### Odroid
+     - C2
      - HC1
      - HC2
      - MC1
@@ -208,6 +216,9 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - Neo
      - Quad
      - X86
+     
+#### X96 Android TV Box
+     - X96 mini
 
 **If you like to use other boards please contact the team first to be approved before you buy them, only the boards on the list are guaranteed to be whitelisted.**
 
