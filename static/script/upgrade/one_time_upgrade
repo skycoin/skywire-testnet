@@ -811,24 +811,6 @@ function upgrade_skywire() {
                 RESULT="no"
             fi
 
-            # restart services
-            log "Starting services on $node"
-            if [ "$node" == "$MANAGER_IP" ] ; then
-                # start node
-                ssh "root@${node}" "systemctl start skywire-manager && systemctl status skywire-manager" 2>&1 | tee -a $LOG
-                exitstatus=$?
-            else
-                # start node
-                ssh "root@${node}" "systemctl start skywire-node && systemctl status skywire-node" 2>&1 | tee -a $LOG
-                exitstatus=$?
-            fi
-
-            if [ $exitstatus -ne 0 ] ; then
-                dialog_host_stop_next "${node}" "Upgrading skywire - starting services" \
-                    "Start of services on node $node failed."
-                RESULT="no"
-            fi
-
             # verify result
             if [ "$RESULT" == "yes" ] ; then
                 # log
@@ -966,12 +948,12 @@ function start_apps() {
                 # starting manager on node
                 log "Starting manager on node $node"
 
-                ssh "root@${node}" "systemctl restart skywire-manager && systemctl status skywire-manager 2>&1" | tee -a $LOG
+                ssh "root@${node}" "systemctl restart skywire-manager 2>&1 && systemctl status skywire-manager 2>&1" | tee -a $LOG
             else
                 # starting node
                 log "Starting node on $node"
 
-                ssh "root@${node}" "systemctl restart skywire-node && systemctl status skywire-node" | tee -a $LOG
+                ssh "root@${node}" "systemctl restart skywire-node 2>&1 && systemctl status skywire-node 2>&1" | tee -a $LOG
             fi
         fi
     done
