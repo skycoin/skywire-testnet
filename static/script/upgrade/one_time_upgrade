@@ -128,6 +128,25 @@ function verify_online() {
 }
 
 
+# set a different MANAGER_IP on the skywire.defaults file at the start
+function set_namager_ip() {
+    # switch the default manager IP (192.168.0.2) by the one in the environment
+    log "User selected Custom IP set or Upgrade just a node, updating MANAGER_IP on the config"
+
+    # creating a new one.
+    cat ${ROOT}/../skywire.defaults | sed s/"192.168.0.2"/"${MANAGER_IP}"/ > ${ROOT}/skywire.defaults
+
+    # moving it to the right place
+    mv -f ${ROOT}/skywire.defaults ${ROOT}/../skywire.defaults
+
+    # get data to log
+    MIP=`cat ${ROOT}/../skywire.defaults | grep "MANAGER_IP"`
+
+    # log it
+    log "Manager changed to: $MIP"
+}
+
+
 # get network info
 function get_network_info() {
     # default or custom
@@ -178,6 +197,9 @@ function get_network_info() {
             # manager IP is local IP
             NODES_IPS=${nodes}
 
+            # in this case we need to change the MANAGER_IP on the skywire.defaults file and in the environment.
+            set_namager_ip
+
             # feedback
             log "Your IPs set is this: Manager: $MANAGER_IP, Nodes: $NODES_IPS"
         ;;
@@ -199,6 +221,9 @@ function get_network_info() {
 
             # manager IP is local IP
             NODES_IPS=${nodes}
+
+            # in this case we need to change the MANAGER_IP on the skywire.defaults file and in the environment, just in case the user is using a different IP set.
+            set_namager_ip
 
             # log
             log "Retry node is $NODES_IPS"
@@ -259,7 +284,7 @@ function manager_ssh_key_distribution() {
             dialog_host_unreachable "$node" "SSH key distribution - ssh-copy-id"
         else
             # log
-            log "Ping reply received from $node, Copying the rsa key of the manager node to it:"
+            log "ACK received from $node, Copying the rsa key of the manager node to it:"
 
             # feedback
             dialog_advice "SSH key distribution - ssh-copy-id" "The node $node is reachable. Start copying the rsa key of the manager node to it.\n\nYou'll now be prompted to enter the root user password for authentication on the remote node. Press OK to continue and enter the root password, default is 'samos' or use the password you set if you changed it."
@@ -312,7 +337,7 @@ function install_ntp() {
             dialog_host_unreachable "${node}" "Base Software Upgrade - Installing NTP"
         else
             # log
-            log "Ping reply received from $node, upgrading node $node & install NTP"
+            log "ACK received from $node, upgrading node $node & install NTP"
 
             # user info
             dialog_advice "Base Software Upgrade - apt-get + ntp" "The node $node is reachable. Start the system upgrade + ntp install; this may take a while"
