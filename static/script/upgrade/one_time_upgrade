@@ -833,16 +833,21 @@ function restore_keys() {
                 D=`date +%Y%m%d-%H%m`
 
                 # find and disable old folder if there
-                # go/bin
+
+                ## go/bin
                 log "Disabling and moving to /root the old config in /usr/local/skywire/go/bin, if found there"
-                ssh "root@${node}" "if [ -d /usr/local/skywire/go/bin/.skywire ] ; then mv /usr/local/skywire/go/bin/.skywire /root/.skywire.gobin.old.${D}; echo 'Moved old config on /usr/local/skywire/go/bin/'; else echo 'No old config on /usr/local/skywire/go/bin/'; fi 2>&1" | tee -a $LOG
-                # root
+
+                local L=`ssh "root@${node}" "if [ -d /usr/local/skywire/go/bin/.skywire ] ; then mv /usr/local/skywire/go/bin/.skywire /root/.skywire.gobin.old.${D}; echo 'Saved old config on /usr/local/skywire/go/bin/ to /root'; else echo 'No old config on /usr/local/skywire/go/bin/ was found'; fi 2>&1"`
+                printf "%s" "$L" | tee -a $LOG
+
+                ## root
                 log "Disabling the old config in /root, if found there"
-                ssh "root@${node}" "if [ -d /root/.skywire ] ; then mv /root/.skywire /root/.skywire.old.${D};  echo 'Moved old config on /root'; else echo 'No old config on /root'; fi 2>&1" | tee -a $LOG
+                L=`ssh "root@${node}" "if [ -d /root/.skywire ] ; then mv /root/.skywire /root/.skywire.old.${D}; echo 'Saved old config on /root '; else echo 'No old config on /root was found'; fi 2>&1"`
+                printf "%s" "$L" | tee -a $LOG
 
                 # restore
                 L=`rsync -av ${BKP}/${node}/ root@${node}:/root/ 2>&1` ; exitstatus=$?
-                echo $L  | tee -a $LOG
+                printf "%s" "$L" | tee -a $LOG
 
                 if [ $exitstatus -ne 0 ] ; then
                     # log
@@ -946,6 +951,10 @@ function main() {
 
     # restart services
     start_apps
+
+    # finish.
+    log "Congratulations, you have upgraded your nodes to the last version of skywire." 
+    log "If you found any troubles you has a file named 'log.txt' on this folder with details that may help the developers to figure out what's wrong."
 }
 
 
