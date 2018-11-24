@@ -128,22 +128,81 @@ function verify_online() {
 }
 
 
-# set a different MANAGER_IP on the skywire.defaults file at the start
-function set_namager_ip() {
-    # switch the default manager IP (192.168.0.2) by the one in the environment
-    log "User selected Custom IP set or Upgrade just a node, updating MANAGER_IP on the config"
+# check if we have to change the manager IP on the nodes
+function check_namager_ip() {
+    # this is only in the case the user uses a non default network config.
+    # in that case the IP of the localhost must be different from 192.168.0.2
+    # this function must be called BEFORE runnig the services.
 
-    # creating a new one.
-    cat ${ROOT}/../skywire.defaults | sed s/"192.168.0.2"/"${MANAGER_IP}"/ > ${ROOT}/skywire.defaults
+    # check if we need to change the managers IP
+    if [ "${MANAGER_IP}" == "192.168.0.2" ] ; then
+        # default case
+        log "You are using the default network IP set, no need to touch the MANAGER_IP"
 
-    # moving it to the right place
-    mv -f ${ROOT}/skywire.defaults ${ROOT}/../skywire.defaults
+        # return to main function
+        return
+    fi
 
-    # get data to log
-    MIP=`cat ${ROOT}/../skywire.defaults | grep "MANAGER_IP"`
+    # different IP set.
+    log "You are using a non-default IP set in you nwework, I will update the MANAGER_IP on each node."
 
-    # log it
-    log "Manager changed to: $MIP"
+    # user info
+    dialog_advice "Post upgrade configs - Setting IP of MANAGER" "You are using a non-default IP set, so we will now update the MANAGER_IP env var in each node."
+
+    # getting the list of nodes to process
+    local NODES="${NODES_IPS}"
+    if [ "$MANAGER_n_NODE" == "yes" ] ; then
+        # add the manager to the nodes pool
+        NODES="${MANAGER_IP} ${NODES}"
+
+        # log
+        log "List of nodes to process: $NODES"
+    fi
+
+    # iterate over the clients to change manager ip
+    for node in ${NODES}; do
+        # verify the node is online
+        verify_online $node
+
+        if [ $NODE_ONLINE -ne 0 ]; then
+            # log
+            log "Node $node is not online"
+
+            # user info
+            dialog_host_unreachable "${node}" "Post upgrade configs - Setting IP of MANAGER"
+        else
+            # log
+            log "ACK received from $node, Setting MANAGER_IP to the correct value"
+
+            # user info
+            dialog_advice "Post upgrade configs - Setting IP of MANAGER" "The node $node is reachable. Setting MANAGER_IP to the correct value"
+
+            # set working dir on dest ip
+            local WD="/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script"
+
+            # parse
+            ssh "root@$node" "cat ${WD}/skywire.defaults | sed s/'192.168.0.2'/'${MANAGER_IP}'/g > /tmp/skywire.defaults"
+
+            # copy back
+            ssh "root@$node" "mv -f /tmp/skywire.defaults ${WD}/skywire.defaults"
+
+            # get final value to check it
+            local L=`ssh "root@$node" "cat ${WD}/skywire.defaults | grep MANAGER_IP | grep -v export | cut -d '=' -f 2 "`
+
+            # check 
+            if [ "${L}" != "${MANAGER_IP}" ] ; then
+                # don't match
+                log "Failed to set IP of MANAGER on node $node"
+
+                # user feedback
+                dialog_host_stop_next "${node}" "Post upgrade configs - Setting IP of MANAGER" \
+                    "Could not set the correct IP of the MANAGER in node $node"
+            else
+                # success
+                log "Set IP of MANAGER on node $node was done ok."
+            fi
+        fi
+    done
 }
 
 
@@ -948,6 +1007,10 @@ function main() {
 
     # restore backups
     restore_keys
+
+    # check manager-ip on each node 
+    # if not a defautl network set
+    check_namager_ip
 
     # restart services
     start_apps
