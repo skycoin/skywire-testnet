@@ -36,9 +36,6 @@ fi
 cd ${GOPATH=/usr/local/skywire/go}
 rm -rdf bin
 
-# copy defaults
-cp ${SKYWIRE_SCRIPTS}/skywire.defaults /etc/default/skywire
-
 # compile
 cd ${SKYWIRE_DIR}/cmd
 go install -v ./... &>1 
