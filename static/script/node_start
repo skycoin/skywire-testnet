@@ -10,7 +10,7 @@ if [ ! -f /etc/default/skywire ] ; then
 	# does not exist, link it
 	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
 else
-	# check it, if a file remove and link
+	# check it, if not a link remove and link
 	if [ ! -h /etc/default/skywire ] ; then
 		# not a link, remove it and link
 		rm /etc/default/skywire
