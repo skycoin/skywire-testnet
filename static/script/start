@@ -9,7 +9,14 @@ SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static
 if [ ! -f /etc/default/skywire ] ; then
 	# does not exist, link it
 	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
-fi 
+else
+	# check it, if not a link remove and link
+	if [ ! -h /etc/default/skywire ] ; then
+		# not a link, remove it and link
+		rm /etc/default/skywire
+		ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+	fi
+fi
 
 # now load it
 . /etc/default/skywire
@@ -19,21 +26,19 @@ fi
 # vary in the future (dhcp|static_interface|static-interface.d/*)
 function get_mode() {
     # get the IP
-    local IP=`ifconfig eth0 | grep "inet " | awk '{ print $2 }'`
-    # extract the last digit
-    local last=`echo $IP | rev | cut -d "." -f1 | rev`
+    local IP=`hostname -I | awk '{ print $1 }'`
 
-    # output the needed argument
-    if [ "$last" == "2" ] ; then
-        # we are in a manager miner
+    # check if we are on a manager or a node
+    if [ "$IP" == "$MANAGER_IP" ] ; then
+        # we are in a manager
         echo "manager"
     else
-        # we are in a miner
+        # we are in a node
         echo "node"
     fi
 }
 
 # now we call it.
 RUN_MODE=$(get_mode)
-echo "Starting node in '$RUN_MODE' mode"
+echo "Starting skywire in '$RUN_MODE' mode"
 ${SKYWIRE_UNIX_SCRIPTS}/${RUN_MODE}_start

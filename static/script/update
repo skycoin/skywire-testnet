@@ -2,10 +2,20 @@
 
 # Script to update the skywire apps, beware it will stop and start them. 
 
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+
 # check for the env vars
 if [ ! -f /etc/default/skywire ] ; then
 	# does not exist, link it
-	ln -s /usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/skywire.defaults /etc/default/skywire
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+else
+	# check it, if not a link remove and link
+	if [ ! -h /etc/default/skywire ] ; then
+		# not a link, remove it and link
+		rm /etc/default/skywire
+		ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+	fi
 fi 
 
 # now load it
@@ -39,7 +49,7 @@ else
     # reset any local change
     git reset --hard
 
-    # extra cleanning: remove any untrackef files or folders
+    # extra cleanning: remove any un-traced files or folders
     git clean -f -d
 
     # getting the changes
@@ -51,8 +61,17 @@ else
     echo "[${DATE}] Build and install from a github update." >> ${INSTALL_LOG}
     go install -v ./... >> ${INSTALL_LOG}
 
-    # restarting services
-    ${SKYWIRE_START_CMD}
+    # start service depending of the IP and declared manager ip
+    MYIP=`hostname -I | awk '{ print $1 }'`
+    if [ "$MYIP" == "$MANAGER_IP"] ; then
+        # we are on a manger
+        echo "Starting skywire manager service..."
+        $SKYWIRE_DIR/static/script/manager_start
+    else
+        # we are on a node
+        echo "Starting skywire node service..."
+        $SKYWIRE_DIR/static/script/node_start
+    fi
 
     # user feedback
     echo "Done, SkyWire updated and runnig."

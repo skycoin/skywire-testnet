@@ -2,10 +2,20 @@
 
 ### SkyWire Start script, manager & node
 
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+
 # check for the env vars
 if [ ! -f /etc/default/skywire ] ; then
 	# does not exist, link it
-	ln -s /usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/skywire.defaults /etc/default/skywire
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+else
+	# check it, if a file remove and link
+	if [ ! -h /etc/default/skywire ] ; then
+		# not a link, remove it and link
+		rm /etc/default/skywire
+		ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+	fi
 fi 
 
 # now load it

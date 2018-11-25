@@ -9,6 +9,13 @@ SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static
 if [ ! -f /etc/default/skywire ] ; then
 	# does not exist, link it
 	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+else
+	# check it, if not a link remove and link
+	if [ ! -h /etc/default/skywire ] ; then
+		# not a link, remove it and link
+		rm /etc/default/skywire
+		ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+	fi
 fi 
 
 # now load it
@@ -18,14 +25,32 @@ fi
 # kill manager
 if [ -f "$Manager_Pid_FILE" ] ; then
     pkill -F "$Manager_Pid_FILE"
-    echo "Manager killed"
+    pid=`cat $Manager_Pid_FILE`
+    echo "Manager runnig, pid $pid, killing it"
     rm "$Manager_Pid_FILE"
 fi
+
 # kill node
 if [ -f "$Node_Pid_FILE" ] ; then
     pkill -F "$Node_Pid_FILE"
-    echo "Node killed"
+    pid=`cat $Node_Pid_FILE`
+    echo "Node runnig, pid $pid, killing it"
     rm "$Node_Pid_FILE"
+fi
+
+# try harder if the service was not started by the default way
+# find manager
+PID=`ps aux | grep manager | grep -v grep | grep 'web-dir' | awk '{print $2}'`
+if [ "$PID" != "" ] ; then
+    echo "Manager runnig, pid $PID, killing it"
+    `which kill` -9 $PID
+fi
+
+# find manager
+PID=`ps aux | grep node | grep -v grep | grep 'connect-manager' | awk '{print $2}'`
+if [ "$PID" != "" ] ; then
+    echo "Node runnig, pid $PID, killing it"
+    `which kill` -9 $PID
 fi
 
 
