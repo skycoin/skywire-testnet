@@ -11,9 +11,7 @@ PATH="/usr/local/go/bin:/usr/local/skywire/go/bin:${PATH}"
 SKYCOIN_DIR=${GOPATH}/src/github.com/skycoin
 SKYWIRE_DIR=${SKYCOIN_DIR}/skywire
 SKYWIRE_SCRIPTS=${SKYWIRE_DIR}/static/script/
-# TODO restore to official previous to the merge
-#SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
-SKYWIRE_GIT_URL="https://github.com/simelo/skywire.git"
+SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
 
 export HOME
 export GOPATH
