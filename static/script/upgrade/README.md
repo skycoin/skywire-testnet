@@ -40,7 +40,7 @@ At this point you are ready to execute the upgrade script.
 In the same console, run now the update script, like this:
 
 ```
-./one_time-upgrade
+./one_time_upgrade
 ```
 
 And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your pc you can [follow this procedure](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
