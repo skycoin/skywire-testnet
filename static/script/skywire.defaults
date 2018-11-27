@@ -1,0 +1,43 @@
+# Default variables for the entire skywire work, this needs to be in 
+# the environment to make it work properly
+
+# IP of the manager, by default 192.168.0.2
+# if you use a custom IP set just change the manager IP
+# here to apply it system wide.
+MANAGER_IP=192.168.0.2
+
+# Go related variables
+GOROOT=/usr/local/go
+GOPATH=/usr/local/skywire/go
+PATH="/usr/local/go/bin:/usr/local/skywire/go/bin:${PATH}"
+
+# Runtime variables
+HOME=/root
+TMP_DIR=/tmp/skywire-info
+INSTALL_LOG=${TMP_DIR}/skywire_install_errors.log
+Manager_Pid_FILE=${TMP_DIR}/manager.pid
+Node_Pid_FILE=${TMP_DIR}/node.pid
+SKYCOIN_DIR=${GOPATH}/src/github.com/skycoin
+SKYWIRE_DIR=${SKYCOIN_DIR}/skywire
+SKYWIRE_STOP_CMD=${SKYWIRE_DIR}/static/script/stop
+SKYWIRE_START_CMD=${SKYWIRE_DIR}/static/script/start
+Web_Dir=${SKYWIRE_DIR}/static/skywire-manager
+SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
+DISCOVERY_ADDR=discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+
+# export them all
+export MANAGER_IP
+export GOROOT
+export GOPATH
+export HOME
+export TMP_DIR
+export INSTALL_LOG
+export Manager_Pid_FILE
+export Node_Pid_FILE
+export SKYCOIN_DIR
+export SKYWIRE_DIR
+export SKYWIRE_STOP_CMD
+export SKYWIRE_START_CMD
+export Web_Dir
+export SKYWIRE_GIT_URL
+export DISCOVERY_ADDR

@@ -1,21 +1,45 @@
 #!/usr/bin/env bash
 
+# TODO needs revision, see:
+# https://github.com/skycoin/skywire/issues/161
+
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+    # does not exist, link it
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+fi 
+
+# now load it
+. /etc/default/skywire
+
+# node bin
 NODE_EXEC_FILE=${GOPATH}/bin/node
 
+# function to get MD5 of node binary
 getMd5(){
-   if hash md5 2>/dev/null; then
+    if hash md5 2>/dev/null; then
         echo $(md5 ${NODE_EXEC_FILE})
     else
         echo $(md5sum ${NODE_EXEC_FILE})
     fi
 }
+
+# get md5 for actual (old) bin
 OLDNODE=$(getMd5)
-cd ${GOPATH}/src/github.com/skycoin/skywire/cmd
+
+# install it
+cd ${SKYWIRE_DIR}/cmd
 go install ./...
+
+# now we get the md5 of the "new" node
 NEWNODE=$(getMd5)
 
+# output in consecuence
 if [ "$OLDNODE" = "$NEWNODE" ]; then
-  echo false
+    echo false
 else
-  echo true
+    echo true
 fi

@@ -1,13 +1,36 @@
 #!/bin/bash
 
-MANAGER_PID="manager.pid"
-NODE_PID="node.pid"
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
 
-cd ${GOPATH}/src/github.com/skycoin/skywire
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+	# does not exist, link it
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+fi 
+
+# now load it
+. /etc/default/skywire
+
+# change to work dir
+cd ${SKYWIRE_DIR}
+
+# reset to master
+git checkout master
+
+# reset any local changes
 git reset --hard > /dev/null 2>&1
+
+# clean any untracked file/folder
 git clean -f -d > /dev/null 2>&1
+
+# pull changes
 git pull origin master > /dev/null 2>&1
+
+# once more, there are reports that it need it
+# TODO review this.
 git pull > /dev/null 2>&1
 
-exec ${GOPATH}/src/github.com/skycoin/skywire/static/script/unix/start
-
+# TODO needs revision, see:
+# https://github.com/skycoin/skywire/issues/161
+exec ${SKYWIRE_UNIX_SCRIPTS}/unix/start

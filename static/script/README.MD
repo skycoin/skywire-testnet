@@ -1,1 +1,0 @@
-# The Project is SkyWire Linux Image Script

@@ -1,0 +1,13 @@
+[Unit]
+Description=Skywire Manager node start/stop service
+After=network.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/node_start
+ExecStop=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

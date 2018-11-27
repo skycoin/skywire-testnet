@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Script to update the skywire apps, beware it will stop and start them. 
+
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+	# does not exist, link it
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+else
+	# check it, if not a link remove and link
+	if [ ! -h /etc/default/skywire ] ; then
+		# not a link, remove it and link
+		rm /etc/default/skywire
+		ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+	fi
+fi 
+
+# now load it
+. /etc/default/skywire
+
+# change to skywire base dir
+cd ${SKYWIRE_DIR}
+
+# check if the proper remote url is set, this is priority
+RURL=`git remote -v | grep fetch | grep "${SKYWIRE_GIT_URL}"`
+if [ -z "${RURL}" ] ; then
+    # remote origin not set for skywire
+    git remote set-url origin "${SKYWIRE_GIT_URL}"
+    echo "The remote repository was wrong or not set, that was fixed."
+fi
+
+# check if we **really** has a update pending on github.
+git checkout master
+HEAD_LOCAL=`git rev-parse HEAD` &> /dev/null
+HEAD_REMOTE=`git ls-remote "${SKYWIRE_GIT_URL}" master | awk '{ print $1 }'` &> /dev/null
+if [ "${HEAD_LOCAL}" == "${HEAD_REMOTE}" ] ; then
+    # local and remote heads match, nothing to update
+    echo "Local is at last version, no need to update."
+    echo "Done."
+else
+    # remote != local, sure: need to update
+    echo "There is an update pending, going for it."
+    echo "Stoping services to avoid secondary effects."
+    ${SKYWIRE_STOP_CMD}
+
+    # reset any local change
+    git reset --hard
+
+    # extra cleanning: remove any un-traced files or folders
+    git clean -f -d
+
+    # getting the changes
+    git pull origin master
+
+    # install it...
+    echo "Starting the build, this can take a few minutes..."
+    DATE=`date -u +%Y%m%d-%H:%mZ`
+    echo "[${DATE}] Build and install from a github update." >> ${INSTALL_LOG}
+    go install -v ./... >> ${INSTALL_LOG}
+
+    # start service depending of the IP and declared manager ip
+    MYIP=`hostname -I | awk '{ print $1 }'`
+    if [ "$MYIP" == "$MANAGER_IP"] ; then
+        # we are on a manger
+        echo "Starting skywire manager service..."
+        $SKYWIRE_DIR/static/script/manager_start
+    else
+        # we are on a node
+        echo "Starting skywire node service..."
+        $SKYWIRE_DIR/static/script/node_start
+    fi
+
+    # user feedback
+    echo "Done, SkyWire updated and runnig."
+    echo "If you found any problem check ${INSTALL_LOG} for details."
+fi
