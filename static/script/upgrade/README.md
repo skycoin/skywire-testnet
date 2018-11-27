@@ -22,26 +22,25 @@ On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https
 
 ## Getting the upgrade
 
-Open a console as root **on the manager** node (default IP 192.168.0.2, or your custom one) on the [networking guide](https://github.com/skycoin/skywire/wiki/Networking-guide-for-the-official-router) there is interesting info about that.
+Open a console as _root_ **on the manager** node (default IP 192.168.0.2, or your custom one). You can find some information about opening a console in the web interface in the [networking guide](https://github.com/skycoin/skywire/wiki/Networking-guide-for-the-official-router#obtain-the-ip-address-through-the-web-interface-by-opening-a-terminal-old-ui).
 
-Once you have it write/copy this on it to get the code to start the upgrade:
+Once you opened the terminal, please enter the following commands to start the upgrade:
 
 ```
-root:~# cd /tmp
-root:~# git clone https://github.com/skycoin/skywire.git
-[... downloading skywire from Github process ...]
-root:~# cd skywire/static/script
-root:~# cd upgrade
+cd /tmp
+git clone https://github.com/skycoin/skywire.git
+cd skywire/static/script
+cd upgrade
 ```
 
-At this point you are ready to upgrade
+At this point you are ready to execute the upgrade script.
 
 ## Upgrading
 
 In the same console, run now the update script, like this:
 
 ```
-root:~# ./one_time-upgrade
+./one_time-upgrade
 ```
 
-And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your Pc you can [follow this procedure](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
+And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your pc you can [follow this procedure](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
