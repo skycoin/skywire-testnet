@@ -22,7 +22,7 @@ On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https
 
 ## Getting the upgrade
 
-Open a console as _root_ **on the manager** node (default IP 192.168.0.2, or your custom one). You can find some information about opening a console in the web interface in the [networking guide](https://github.com/skycoin/skywire/wiki/Networking-guide-for-the-official-router#obtain-the-ip-address-through-the-web-interface-by-opening-a-terminal-old-ui).
+Open a console as _root_ **on the manager** node (default IP 192.168.0.2, or your custom one). Do no open a terminal in the web interface, use either Putty if you're on Windows or a terminal if you're on Mac/Linux.
 
 Once you opened the terminal, please enter the following commands to start the upgrade:
 
