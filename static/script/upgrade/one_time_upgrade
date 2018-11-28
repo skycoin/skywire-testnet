@@ -28,7 +28,7 @@ MANAGER_IP="192.168.0.2"
 NODES_IPS="192.168.0.3 192.168.0.4 192.168.0.5 192.168.0.6 192.168.0.7 192.168.0.8 192.168.0.9"
 MANAGER_n_NODE='yes'
 ROOT=`pwd`
-LOG=${ROOT}/log.txt
+LOG="/root/upgrade_log.txt"
 BKP="/root/backup"
 NODE_ONLINE=0
 
