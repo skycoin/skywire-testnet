@@ -68,3 +68,28 @@ ssh-keygen -A
 ```
 
 Now your board should be accessible via SSH again.
+
+#### ERROR: clone operation failed.
+In case you encounter this error it is preceded by */tmp/upsky.sh: line 23: git: command not found*.
+The solution is to install git on your system, to do this please login via SSH or open a terminal of the node in the web interface.
+
+Proceed with installing git & gcc:
+```
+sudo apt-get install git gcc
+```
+Then manually execute the update on the node via 
+```
+cd /usr/local/skywire/go/src/github.com/skycoin/skywire
+
+git reset --hard
+
+git remote set-url origin https://github.com/skycoin/skywire.git
+
+git pull
+
+go install -v ./...
+
+systemctl stop skywire-node.service
+
+systemctl start skywire-node.service
+```
