@@ -46,3 +46,25 @@ In the same console, run now the update script, like this:
 Please make sure to change the root password afterwards via `passwd` command of all boards!
 
 And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your pc you can [follow this procedure](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
+
+***
+
+## Troubleshooting
+All errors of the upgrade procedure are logged in a `log.txt` file, multiple upgrade attempts only append to this file. 
+
+First upgrade attempts of the community revealed some issues:
+
+#### ERROR: Read from socket failed: Connection reset by peer
+Try to reboot the board, if this doesn't help you need to generate new rsa key pairs. 
+In case you cannot access the board via GUI or the web interface of the browser, your only option left is to reflash the image of the board.
+
+To generate new rsa keys and restart the ssh service, please execute:
+```
+rm -rf /etc/ssh/ssh*key.pub
+
+ssh-keygen -A
+
+/etc/init.d/ssh restart
+```
+
+Now your board should be accessible via SSH again.
