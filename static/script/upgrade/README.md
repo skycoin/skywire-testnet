@@ -73,8 +73,9 @@ Now your board should be accessible via SSH again.
 In case you encounter this error it is preceded by */tmp/upsky.sh: line 23: git: command not found*.
 The solution is to install git on your system, to do this please login via SSH or open a terminal of the node in the web interface.
 
-Proceed with installing git & gcc:
+Proceed:
 ```
+sudo dpkg --configure -a
 sudo apt-get install git gcc
 ```
 Then manually execute the update on the node via 
@@ -88,8 +89,17 @@ git remote set-url origin https://github.com/skycoin/skywire.git
 git pull
 
 go install -v ./...
+```
 
+If it is not the manager node you need stop and then restart the Skywire node via:
+```
 systemctl stop skywire-node.service
 
 systemctl start skywire-node.service
+```
+In case it is the manager please stop and restart the Skywire manager via:
+```
+systemctl stop skywire-manager.service
+
+systemctl start skywire-manager.service
 ```
