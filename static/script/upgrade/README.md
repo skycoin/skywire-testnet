@@ -11,6 +11,7 @@ On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https
 * Date & time sync with mainstream internet time servers
 * Updated main upgrade script (this upgrade is a one time upgrade)
 * Many fixed bugs in the Skywire vs. OS integration.
+* **WARNING:** new location of the *.skywire* folder is */root/.skywire/node*
 * **WARNING:** the root password will be changed to ```skywire``` once you update your systems
 
 ## Provisions
