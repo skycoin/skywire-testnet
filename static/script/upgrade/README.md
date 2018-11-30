@@ -11,6 +11,7 @@ On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https
 * Date & time sync with mainstream internet time servers
 * Updated main upgrade script (this upgrade is a one time upgrade)
 * Many fixed bugs in the Skywire vs. OS integration.
+* **WARNING:** new location of the *.skywire* folder is */root/.skywire/node*
 * **WARNING:** the root password will be changed to ```skywire``` once you update your systems
 
 ## Provisions
@@ -22,26 +23,84 @@ On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https
 
 ## Getting the upgrade
 
-Open a console as root **on the manager** node (default IP 192.168.0.2, or your custom one) on the [networking guide](https://github.com/skycoin/skywire/wiki/Networking-guide-for-the-official-router) there is interesting info about that.
+Open a console as _root_ **on the manager** node (default IP 192.168.0.2, or your custom one). Do no open a terminal in the web interface, use either Putty if you're on Windows or a terminal if you're on Mac/Linux.
 
-Once you have it write/copy this on it to get the code to start the upgrade:
+Once you opened the terminal, please enter the following commands to start the upgrade:
 
 ```
-root:~# cd /tmp
-root:~# git clone https://github.com/skycoin/skywire.git
-[... downloading skywire from Github process ...]
-root:~# cd skywire/static/script
-root:~# cd upgrade
+cd /tmp
+git clone https://github.com/skycoin/skywire.git
+cd skywire/static/script
+cd upgrade
 ```
 
-At this point you are ready to upgrade
+At this point you are ready to execute the upgrade script.
 
 ## Upgrading
 
 In the same console, run now the update script, like this:
 
 ```
-root:~# ./one_time-upgrade
+./one_time_upgrade
 ```
 
-And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your Pc you can [follow this procedure](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
+Please make sure to change the root password afterwards via `passwd` command of all boards!
+
+And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your pc you can [follow this procedure](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
+
+***
+
+## Troubleshooting
+All errors of the upgrade procedure are logged in a `log.txt` file, multiple upgrade attempts only append to this file. 
+
+First upgrade attempts of the community revealed some issues:
+
+#### ERROR: Read from socket failed: Connection reset by peer
+Try to reboot the board, if this doesn't help you need to generate new rsa key pairs. 
+In case you cannot access the board via GUI or the web interface of the browser, your only option left is to reflash the image of the board.
+
+To generate new rsa keys and restart the ssh service, please execute:
+```
+rm -rf /etc/ssh/ssh*key.pub
+
+ssh-keygen -A
+
+/etc/init.d/ssh restart
+```
+
+Now your board should be accessible via SSH again.
+
+#### ERROR: clone operation failed.
+In case you encounter this error it is preceded by */tmp/upsky.sh: line 23: git: command not found*.
+The solution is to install git on your system, to do this please login via SSH or open a terminal of the node in the web interface.
+
+Proceed:
+```
+sudo dpkg --configure -a
+sudo apt-get install git gcc
+```
+Then manually execute the update on the node via 
+```
+cd /usr/local/skywire/go/src/github.com/skycoin/skywire
+
+git reset --hard
+
+git remote set-url origin https://github.com/skycoin/skywire.git
+
+git pull
+
+go install -v ./...
+```
+
+If it is not the manager node you need stop and then restart the Skywire node via:
+```
+systemctl stop skywire-node.service
+
+systemctl start skywire-node.service
+```
+In case it is the manager please stop and restart the Skywire manager via:
+```
+systemctl stop skywire-manager.service
+
+systemctl start skywire-manager.service
+```
