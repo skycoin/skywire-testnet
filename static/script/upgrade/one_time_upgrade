@@ -28,7 +28,8 @@ MANAGER_IP="192.168.0.2"
 NODES_IPS="192.168.0.3 192.168.0.4 192.168.0.5 192.168.0.6 192.168.0.7 192.168.0.8 192.168.0.9"
 MANAGER_n_NODE='yes'
 ROOT=`pwd`
-LOG=${ROOT}/log.txt
+DATE=`date -u +%Y%m%d-%H%M%SZ`
+LOG="/root/upgrade_log_${DATE}"
 BKP="/root/backup"
 NODE_ONLINE=0
 
@@ -107,6 +108,10 @@ function dialog_advice() {
 # main notice
 function main_notice() {
     dialog_advice "Skywire software upgrade" "This script is intended to guide you through the Skywire Web UI upgrade process for the official miners that uses the official images.\n\nRead each step carefully as it will explain each step and may ask you for an input."
+
+    # warn about the logfile
+    log "Log file is in ${LOG}"
+    dialog_advice "Skywire software upgrade" "In case of troubles with the upgrade there is a logfile in ${LOG} with details of the process, also there is a telegram channel for support on https://t.me/skywire to help you. Once there describe your problem and attach the logfile."
 } 
 
 
