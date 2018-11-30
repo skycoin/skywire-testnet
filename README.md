@@ -72,6 +72,59 @@ Just for a matter of precaution, after modify this file be sure that there isn't
 ### Unix systems
 
 #### Run Skywire Manager
+```
+cd $GOPATH/bin
+./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+```
+
+`tip: If you run with the above command, you will not be able to close the current window or you will close Skywire Manger.`
+
+If you need to close the current window and continue to run Skywire Manager, you can use
+```
+cd $GOPATH/bin
+nohup ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 &sleep 3
+```
+
+`Note: do not execute the above two commands at the same time, just select one of them.`
+
+#### Run Skywire Node
+
+Open a new command window
+
+```
+cd $GOPATH/bin
+./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 
+```
+
+`tip: If you run with the above command, you will not be able to close the current window or you will close Skywire Node.`
+
+If you need to close the current window and continue to run Skywire Manager, you can use
+```
+cd $GOPATH/bin
+nohup ./node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 > /dev/null 2>&1 &cd /
+```
+
+#### Stop Skywire Manager and Node.
+
+1) If the Skywire Manager and Node are started by using the terminal window, please press Ctrl + c on the respective terminal of Manager and Node.
+
+2) Use the shutdown terminal to keep running, please enter:
+##### Stop Skywire Manager
+```
+cd $GOPATH/bin
+pkill -F manager.pid
+```
+
+##### Stop Skywire Node
+```
+cd $GOPATH/bin
+pkill -F node.pid
+```
+
+
+### Official Images
+
+#### Run Skywire Manager
 
 Open a command window on a PC that will act like a manager and follow the install procedure, then to start a node do this:
 
