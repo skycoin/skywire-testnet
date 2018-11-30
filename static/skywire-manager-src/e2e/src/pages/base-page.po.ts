@@ -1,11 +1,10 @@
-import {browser} from "protractor";
+import {browser} from 'protractor';
 
 export default abstract class BasePage {
 
   protected path: string;
 
-  navigateTo()
-  {
+  navigateTo() {
     return browser.get(`#/${this.path}`);
   }
 }

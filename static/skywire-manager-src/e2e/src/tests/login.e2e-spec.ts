@@ -1,8 +1,8 @@
-import {browser, by, element, ExpectedConditions} from "protractor";
-import {NodesListPage} from "../pages/nodes-list.po";
-import {NodeDetailPage} from "../pages/node-detail.po";
-import {LoginPage} from "../pages/login";
-import {snackBarContainsText} from "../util/selection";
+import {browser, by, element, ExpectedConditions} from 'protractor';
+import {NodesListPage} from '../pages/nodes-list.po';
+import {NodeDetailPage} from '../pages/node-detail.po';
+import {LoginPage} from '../pages/login';
+import {snackBarContainsText} from '../util/selection';
 
 describe('Login view', () => {
   let page: LoginPage;
@@ -21,8 +21,8 @@ describe('Login view', () => {
     page.badLogin();
 
     // This won't always be true, so skip it.
-    //expect(page.getFirstNodeTooltip()).toEqual("Online: the node is correctly detected by the Skycoin network.");
-    snackBarContainsText("Incorrect password");
+    // expect(page.getFirstNodeTooltip()).toEqual("Online: the node is correctly detected by the Skycoin network.");
+    snackBarContainsText('Incorrect password');
   });
 
   it('Login with correct password should bring to nodes list view', () => {

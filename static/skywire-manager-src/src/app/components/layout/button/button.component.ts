@@ -18,6 +18,7 @@ export class ButtonComponent {
   @Input() loadingSize = 24;
   @Output() action = new EventEmitter();
   tooltip = '';
+  notification = false;
   state = BUTTON_STATE.NORMAL;
   buttonStates = BUTTON_STATE;
 
@@ -34,6 +35,7 @@ export class ButtonComponent {
     this.state = BUTTON_STATE.NORMAL;
     this.tooltip = '';
     this.disabled = false;
+    this.notification = false;
   }
 
   enable() {
@@ -58,5 +60,9 @@ export class ButtonComponent {
   error(error: string) {
     this.state = BUTTON_STATE.ERROR;
     this.tooltip = error;
+  }
+
+  notify(notification: boolean) {
+    this.notification = notification;
   }
 }

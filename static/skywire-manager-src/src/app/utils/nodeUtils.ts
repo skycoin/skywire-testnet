@@ -1,10 +1,16 @@
 import {Node, NodeInfo} from '../app.datatypes';
 
 /**
- * Node is online if at least one discovery is seeing it.
+ * Node is "discovered" when every one of its discovery servers can see it
  */
-function isOnline(nodeInfo: NodeInfo): boolean {
-  return Object.keys(nodeInfo.discoveries).some((discovery) => {
+function isDiscovered(nodeInfo: NodeInfo): boolean {
+  const discoveries = Object.keys(nodeInfo.discoveries);
+
+  if (discoveries.length === 0) {
+    return false;
+  }
+
+  return discoveries.every((discovery) => {
     return nodeInfo.discoveries[discovery] === true;
   });
 }
@@ -59,7 +65,7 @@ function isManager(node: Node) {
 
 export
 {
-  isOnline,
+  isDiscovered,
   getNodeLabel,
   isManager
 };

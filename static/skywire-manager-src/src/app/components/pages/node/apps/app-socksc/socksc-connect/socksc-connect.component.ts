@@ -1,6 +1,10 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { Keypair} from '../../../../../../app.datatypes';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogRef,
+  MatTabGroup
+} from '@angular/material';
 import {KeyPairState} from '../../../../../layout/keypair/keypair.component';
 
 @Component({
@@ -9,6 +13,7 @@ import {KeyPairState} from '../../../../../layout/keypair/keypair.component';
   styleUrls: ['./socksc-connect.component.css']
 })
 export class SockscConnectComponent implements OnInit {
+  @ViewChild('searchTabGroup') searchTabGroup: MatTabGroup;
   keypair: Keypair;
   discoveries = [];
 
@@ -35,5 +40,9 @@ export class SockscConnectComponent implements OnInit {
     }
 
     this.dialogRef.close(this.keypair);
+  }
+
+  onSwitchTab() {
+    this.searchTabGroup.realignInkBar();
   }
 }

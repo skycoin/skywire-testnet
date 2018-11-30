@@ -1,3 +1,0 @@
-@function theme-font-size($key: "base") {
-  @return map-get($theme-font-sizes, $key);
-}

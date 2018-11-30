@@ -11,7 +11,7 @@ export class ClientConnectionService {
     private apiService: ApiService,
   ) { }
 
-  get(key: string): Observable<ClientConnection|null> {
+  get(key: string): Observable<ClientConnection[]|null> {
     return this.request('conn/getClientConnection', key);
   }
 
@@ -19,11 +19,11 @@ export class ClientConnectionService {
     return this.request('conn/saveClientConnection', key, {data: JSON.stringify(data)});
   }
 
-  edit(key: string, index: string, label: string) {
+  edit(key: string, index: number, label: string) {
     return this.request('conn/editClientConnection', key, {index, label});
   }
 
-  remove(key: string, index: string) {
+  remove(key: string, index: number) {
     return this.request('conn/removeClientConnection', key, {index});
   }
 

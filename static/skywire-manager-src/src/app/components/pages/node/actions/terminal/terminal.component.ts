@@ -64,7 +64,7 @@ export class TerminalComponent implements OnInit, OnDestroy {
   }
 
   private close() {
-    this.translate.get('actions.terminal.exitting').subscribe(str => {
+    this.translate.get('actions.terminal.exiting').subscribe(str => {
       const hasXterm = !!this.xterm;
 
       if (hasXterm) {

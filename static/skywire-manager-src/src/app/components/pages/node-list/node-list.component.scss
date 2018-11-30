@@ -1,4 +1,6 @@
 @import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
 
 .mat-app-background {
   padding: 0;
@@ -22,8 +24,19 @@
     font-weight: bold;
   }
 
-  table {
+  table, .nodes-empty {
     box-shadow: none !important;
+  }
+
+  .nodes-empty {
+    color: theme-color(light-gray);
+    font-size: 13px;
+
+    i {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
   }
 }
 
@@ -54,4 +67,8 @@
     height: 20px;
     z-index: 1000;
   }
+}
+
+.none {
+  color: lighten(theme-color(light-gray), 20%);
 }

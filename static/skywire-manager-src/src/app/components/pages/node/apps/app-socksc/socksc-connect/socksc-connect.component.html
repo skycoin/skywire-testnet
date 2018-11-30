@@ -1,7 +1,7 @@
 <app-dialog
   id="sockscConnectContainer"
   [headline]="'apps.socksc.title' | translate">
-  <mat-tab-group>
+  <mat-tab-group (selectedIndexChange)="onSwitchTab()">
     <mat-tab [label]="'apps.socksc.connect-keypair' | translate">
       <div class="pt-4">
         <app-keypair [required]="true" (keypairChange)="keypairChange($event)"></app-keypair>
@@ -17,7 +17,7 @@
       </div>
     </mat-tab>
     <mat-tab [label]="'apps.socksc.connect-search' | translate">
-      <mat-tab-group>
+      <mat-tab-group #searchTabGroup>
         <mat-tab
           [label]="('common.discovery' | translate) + ' ' + (i + 1)"
           *ngFor="let discovery of discoveries; let i = index;"
@@ -29,6 +29,9 @@
           </ng-template>
         </mat-tab>
       </mat-tab-group>
+    </mat-tab>
+    <mat-tab [label]="'apps.socksc.connect-history' | translate">
+      <app-history app="socksc" (connect)="connect($event)"></app-history>
     </mat-tab>
   </mat-tab-group>
 </app-dialog>

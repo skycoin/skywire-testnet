@@ -2,7 +2,7 @@ import {Component, Inject, OnInit} from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatSnackBar } from '@angular/material';
 import { FormGroup } from '@angular/forms';
 import { NodeService } from '../../../../../services/node.service';
-import {DiscoveryAddress, Node, NodeDiscovery} from '../../../../../app.datatypes';
+import {DiscoveryAddress, Node} from '../../../../../app.datatypes';
 import {DatatableProvider} from '../../../../layout/datatable/datatable.component';
 import {
   DiscoveryAddressInputComponent
@@ -43,11 +43,11 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
 
       this.originalDiscoveryNodes.push({
         domain: parts[0],
-        publicKey: parts[1]
+        publicKey: parts[1],
       });
     });
 
-    this.discoveryNodes = [...this.originalDiscoveryNodes];
+    this.discoveryNodes = this.originalDiscoveryNodes.map(item => Object.assign({}, item));
   }
 
   _save() {
@@ -108,7 +108,8 @@ export class ConfigurationComponent implements OnInit, DatatableProvider<Discove
   getEditableRowData(index: number, currentValue: DiscoveryAddress) {
     return {
       autofocus: false,
-      value: currentValue
+      value: currentValue,
+      discovered: this.data.discoveries[`${currentValue.domain}-${currentValue.publicKey}`],
     };
   }
 

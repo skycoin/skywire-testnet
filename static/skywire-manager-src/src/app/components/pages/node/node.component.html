@@ -66,7 +66,7 @@
           <hr>
           <div class="section" matTooltip="{{ 'node.details.operational-nodes-tooltip' | translate: {value: operationalNodesCount} }}">
             <span class="section-title">
-              <i class="dot-green"></i>
+              <i [class]="operationalNodesClass"></i>
               {{ 'node.details.nodes' | translate }}
             </span>
             <span

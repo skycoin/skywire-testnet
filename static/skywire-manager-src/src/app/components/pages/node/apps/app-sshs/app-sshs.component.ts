@@ -44,6 +44,8 @@ export class AppSshsComponent extends NodeAppButtonComponent implements OnChange
 
   startApp(): void {
     this.setLoading();
-    this.appsService.startSshServerWithoutWhitelist().subscribe();
+    this.appsService.startSshServerWithoutWhitelist().subscribe(undefined, () => {
+      this.setLoading(false);
+    });
   }
 }

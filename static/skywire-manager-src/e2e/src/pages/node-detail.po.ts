@@ -1,11 +1,11 @@
-import {PATHS} from "../../../src/app/app-routing.module";
-import BasePage from "./base-page.po";
-import {findById, waitForInvisibility, waitForVisibility} from "../util/selection";
-import {NodesListPage} from "./nodes-list.po";
-import {by, element} from "protractor";
-import {APP_SOCKSC, APP_SSHC, APP_SSHS} from "../util/constants";
-import {NodeAppsButtons} from "../components/node-apps.po";
-import {StartupConfigDialog} from "../components/startup-config.po";
+import {PATHS} from '../../../src/app/app-routing.module';
+import BasePage from './base-page.po';
+import {findById, waitForInvisibility, waitForVisibility} from '../util/selection';
+import {NodesListPage} from './nodes-list.po';
+import {by, element} from 'protractor';
+import {APP_SOCKSC, APP_SSHC, APP_SSHS} from '../util/constants';
+import {NodeAppsButtons} from '../components/node-apps.po';
+import {StartupConfigDialog} from '../components/startup-config.po';
 
 export class NodeDetailPage extends BasePage {
 
@@ -13,7 +13,7 @@ export class NodeDetailPage extends BasePage {
   private appsButtons = new NodeAppsButtons();
 
   navigateTo() {
-    let nodeListPage = new NodesListPage(),
+    const nodeListPage = new NodesListPage(),
         result = nodeListPage.navigateTo();
 
     nodeListPage.clickFirstNode();
@@ -71,15 +71,15 @@ export class NodeDetailPage extends BasePage {
   }
 
   isSshsAppRunning() {
-    return this.isAppRunning(APP_SSHS)
+    return this.isAppRunning(APP_SSHS);
   }
 
   isSockscAppRunning() {
-    return this.isAppRunning(APP_SOCKSC)
+    return this.isAppRunning(APP_SOCKSC);
   }
 
   isSshcAppRunning() {
-    return this.isAppRunning(APP_SSHC)
+    return this.isAppRunning(APP_SSHC);
   }
 
   startSockscApp() {

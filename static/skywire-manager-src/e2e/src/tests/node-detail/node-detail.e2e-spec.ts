@@ -1,8 +1,8 @@
-import {browser, by, element, ExpectedConditions} from "protractor";
-import {NodesListPage} from "../../pages/nodes-list.po";
-import {LoginPage} from "../../pages/login";
-import {NodeDetailPage} from "../../pages/node-detail.po";
-import {NODE_PUBLIC_KEY} from "../../util/constants";
+import {browser, by, element, ExpectedConditions} from 'protractor';
+import {NodesListPage} from '../../pages/nodes-list.po';
+import {LoginPage} from '../../pages/login';
+import {NodeDetailPage} from '../../pages/node-detail.po';
+import {NODE_PUBLIC_KEY} from '../../util/constants';
 
 describe('NodeDetail', () => {
   let page: NodeDetailPage;
@@ -21,8 +21,8 @@ describe('NodeDetail', () => {
     expect(page.isVisible()).toBeTruthy();
 
     expect(page.getPublicKey()).toEqual(NODE_PUBLIC_KEY);
-    expect(page.getNodeStatus()).toEqual("Online");
-    expect(page.getNodeProtocol()).toEqual("TCP");
+    expect(page.getNodeStatus()).toEqual('Online');
+    expect(page.getNodeProtocol()).toEqual('TCP');
   });
 
   it('Nodes list button goes back to node list view', () => {

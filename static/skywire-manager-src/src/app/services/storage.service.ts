@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 
 const KEY_REFRESH_SECONDS = 'KEY_REFRESH_SECONDS';
 const KEY_DEFAULT_LANG = 'KEY_DEFAULT_LANG';
+const KEY_NODES = 'KEY_NODES';
 
 @Injectable({
   providedIn: 'root'
@@ -39,5 +40,25 @@ export class StorageService {
 
   getDefaultLanguage(): string {
     return this.storage.getItem(KEY_DEFAULT_LANG) || 'en';
+  }
+
+  addNode(nodeKey: string) {
+    const nodes = new Set<string>(this.getNodes());
+
+    nodes.add(nodeKey);
+
+    this.setNodes(Array.from(nodes));
+  }
+
+  removeNode(nodeKey: string) {
+    this.setNodes(this.getNodes().filter(n => n !== nodeKey));
+  }
+
+  getNodes(): string[] {
+    return JSON.parse(this.storage.getItem(KEY_NODES)) || [];
+  }
+
+  private setNodes(nodes: string[]) {
+    this.storage.setItem(KEY_NODES, JSON.stringify(nodes));
   }
 }

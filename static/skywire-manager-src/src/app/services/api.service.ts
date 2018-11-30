@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 @Injectable({
@@ -32,7 +32,10 @@ export class ApiService {
   }
 
   private request(request) {
-    return request.pipe(catchError(error => this.errorHandler(error)));
+    return request.pipe(
+      map(result => this.successHandler(result)),
+      catchError(error => this.errorHandler(error)),
+    );
   }
 
   private getRequestOptions(options: any) {
@@ -59,8 +62,16 @@ export class ApiService {
     return formData;
   }
 
+  private successHandler(result: any) {
+    if (typeof result === 'string' && result === 'manager token is null') {
+      throw new Error(result);
+    }
+
+    return result;
+  }
+
   private errorHandler(error: HttpErrorResponse) {
-    if (!error.url.includes('checkLogin')) {
+    if (error.url && !error.url.includes('checkLogin')) {
       if (error.error.includes('Unauthorized')) {
         this.router.navigate(['login']);
       }

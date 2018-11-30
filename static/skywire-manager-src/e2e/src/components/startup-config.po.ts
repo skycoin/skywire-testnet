@@ -1,5 +1,5 @@
-import {clickElement, fillKeyPair, findById, getKeyPair} from "../util/selection";
-import {by, element} from "protractor";
+import {clickElement, fillKeyPair, findById, getKeyPair} from '../util/selection';
+import {by, element} from 'protractor';
 
 export class StartupConfigDialog {
 
@@ -12,9 +12,12 @@ export class StartupConfigDialog {
   }
 
   isAutomaticStartToggled() {
-    return element(by.css('mat-dialog-content')).element(by.id('toggleAutomaticStartBtn')).getAttribute('ng-reflect-checked').then((attr) => {
-      return attr !== 'false';
-    });
+    return element(by.css('mat-dialog-content'))
+      .element(by.id('toggleAutomaticStartBtn'))
+      .getAttribute('ng-reflect-checked')
+      .then((attr) => {
+        return attr !== 'false';
+      });
   }
 
   fillKeyPair(nodeKey: string, appKey: string) {

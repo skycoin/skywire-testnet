@@ -29,13 +29,15 @@ export class AppSockscComponent extends NodeAppButtonComponent {
         data: {
           discoveries: this.parsedDiscoveries,
         },
-        width: 'auto'
+        width: '800px'
       })
       .afterClosed()
       .subscribe((keypair: Keypair) => {
         if (keypair) {
           this.setLoading();
-          this.appsService.startSocksc(keypair.nodeKey, keypair.appKey).subscribe();
+          this.appsService.startSocksc(keypair.nodeKey, keypair.appKey).subscribe(undefined, () => {
+            this.setLoading(false);
+          });
         }
       });
   }
