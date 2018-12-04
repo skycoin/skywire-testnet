@@ -42,15 +42,15 @@ As previously stated 1 person can receive rewards for 1 official miner and 1 DIY
 The rewards are paid every month around the 5th or with a delay, depending if other things delay the process.
 They are paid on a node by node basis and are subject to change, meaning they may be different for the months to come. 
 
-The total amount of rewards for October are **60,000 Skycoin**, divided into two separate pools
-* **36,000 Skycoin for the official miners**
-* **24,000 Skycoin for the whitelisted DIY miners**
+The total amount of rewards for November are **40,000 Skycoin**, divided into two separate pools
+* **24,000 Skycoin for the official miners**
+* **16,000 Skycoin for the whitelisted DIY miners**
 
 For now, the rewards for each node that meets [the requirement](https://github.com/skycoin/skywire/wiki/_new#requirements) are as follows:
 
-* **DIY:  5.155 Skycoin / node with a maximum of 8 nodes; 41.24 Skycoin maximum**
+* **DIY:  3.232 Skycoin / node with a maximum of 8 nodes; 25.856 Skycoin maximum**
 
-* **Official miner: 13.274 Skycoin / node**
+* **Official miner: 8.889 Skycoin / node**
 
 *Faulty orange pi's from official miners will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well. Since we are taking care of this manually you are requested to contact one of our team members (@asxtree @MrHodlr @Paperstream).*
 
@@ -70,13 +70,13 @@ Additional to that you should look in the Skywire manager web interface for two 
 
 ![node_app](https://raw.githubusercontent.com/Asgaror/skywire/binary_data_storage/pictures/testnet%20guideline/node_app.png)
 
-#### For a green check mark next to the discovery address on each node under 'Settings':
+#### OLD UI - For a green check mark next to the discovery address on each node under 'Settings':
 
 ![green_check_mark](https://raw.githubusercontent.com/Asgaror/skywire/binary_data_storage/pictures/testnet%20guideline/discovery_address.png)
 
 * Make sure that you are connected to **discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68** as this is the discovery server that is used by us to calculate the uptime.
 
-You may use this guide to verify that your nodes are online & connected to the discovery server:https://github.com/skycoin/skywire/wiki/How-to-verify-that-your-nodes-are-online
+You may use this guide to **verify that your nodes are online & connected to the discovery server**:https://github.com/skycoin/skywire/wiki/How-to-verify-that-your-nodes-are-online
 
 ***
 
@@ -228,11 +228,11 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
 
 The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/whitelist).
 
-### October
+### November
 
-    - LAST WHITELISTED QUEUE POSITION: 1058
-    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-11-02 09:32:44
-    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 406
+    - LAST WHITELISTED QUEUE POSITION: 1161
+    - LAST WHITELISTED APPLICATION DATE (UTC+8): 2018-12-01_15:52:44
+    - AMOUNT OF WHITELISTED OFFICIAL MINERS: 418
 
 #### Updates
     - The whitelist is updated on a monthly basis, meaning that we are whitelisting 200 applications each month.
@@ -251,11 +251,11 @@ The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/w
 
 **Updates of any submitted data have to be done by resubmitting the [whitelist form](https://skycoin.net/whitelist). No manual adjustments on the submitted data are being made from now on.**
 
+* You do not lose your spot by resubmitting the whitelist application form using the same email address!
 * The whitelist is not going to be updated on a weekly basis as previously stated but on a monthly basis.
 * The whitelist is a queue based on a first come first serve basis. Each month we are & have been whitelisting 200 applications, the benchmark for applications is the hardware list above + the official miner specifications.
 * It doesn't matter in terms of rewards in which week you're getting whitelisted.
 * Your spot is recognized by your email address, you can think of that just as you would think of an account. Right now we have no account system for you in place to check your spot, provided bandwidth etc. but this will be done for the mainnet. 
-* You do not lose your spot by resubmitting the whitelist application form using the same email address!
 * Official miners need to submit the form using their purchasing email, as this is the only way for us to identify them 
 * Official miners are whitelisted by default, meaning that they are whitelisted as soon as they submit the application form.
 * You are advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)) but if something happens and you have to reflash then simply resubmit the application form including all current active public keys.
