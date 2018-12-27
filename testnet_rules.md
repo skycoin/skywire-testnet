@@ -114,6 +114,7 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
      - 2-Model-B
      - 3-Model-B
      - 3-Model-B+
+     - Compute Model 3
      - Zero-W
      - Zero
 
