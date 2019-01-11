@@ -21,8 +21,11 @@ Please join [SkywirePSA](https://t.me/SkywirePSA) as well to get structured publ
 
 ## Rules
 
-
-**Each whitelisted person is eligible of receiving rewards for 1 official miner or 1 DIY miner with up to 8 nodes, in the case that either the official or the DIY miner are running at a different location the person will receive rewards for both if the requirement is met.**
+* Each whitelisted person is eligible for receiving rewards for:
+    * one official miner **or**
+    * one DIY miner with up to 8 (eight) nodes
+* If someone wants to run both an official miner and a DIY miner:
+    * one official miner and one DIY miner in case either one of them is running at a different location
 
 * **You must use the [Skywire Whitelisting System](https://whitelist.skycoin.net) to keep your submitted data up to date**
      * Read [this guide](https://github.com/skycoin/skywire/wiki/Skywire-Whitelisting-System) to familiarize yourself with the new system
