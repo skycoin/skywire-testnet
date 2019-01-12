@@ -21,8 +21,14 @@ Please join [SkywirePSA](https://t.me/SkywirePSA) as well to get structured publ
 
 ## Rules
 
+* Each whitelisted person is eligible for receiving rewards for:
+    * one official miner **or**
+    * one DIY miner with up to 8 (eight) nodes
+* If someone wants to run both an official miner and a DIY miner:
+    * one official miner and one DIY miner in case either one of them is running at a different location
 
-**Each whitelisted person is eligible of receiving rewards for 1 official miner or 1 DIY miner with up to 8 nodes, in the case that either the official or the DIY miner are running at a different location the person will receive rewards for both if the requirement is met.**
+* **You must use the [Skywire Whitelisting System](https://whitelist.skycoin.net) to keep your submitted data up to date**
+     * Read [this guide](https://github.com/skycoin/skywire/wiki/Skywire-Whitelisting-System) to familiarize yourself with the new system
 
 * The demand for a different location is due to the fact that we want to spread out the meshnet and not concentrate the location of nodes to specific central points, which would result in paying people to run orange pi's and not to reward them for providing a useful service to the network.
 
@@ -84,7 +90,7 @@ You may use this guide to **verify that your nodes are online & connected to the
 
 **VM's, servers or personal computers are not allowed in the testnet, i.e. they will not be whitelisted and receive rewards.** 
 
-The following hardware is allowed and can be chosen on the [whitelist application form](https://skycoin.net/whitelist):
+The following hardware is accepted in the Skywire testnet:
 
 #### Orange Pi
      - Prime
@@ -227,9 +233,18 @@ The following hardware is allowed and can be chosen on the [whitelist applicatio
 
 ## Whitelist
 
-The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/whitelist).
+Whitelist applications can be submitted using the [Skywire Whitelisting System](https://whitelist.skycoin.net). 
+Start off by [creating an account](https://auth.skycoin.net).
 
-### November
+<div align="center">
+     <p>
+          <em>
+               The previously submitted data using skycoin.net/whitelist was imported. Make sure to double check your data and adjust it if necessary
+          </em>
+     </p>
+</div>
+
+### December
 
     - LAST WHITELISTED QUEUE POSITION: 1245
     - LAST WHITELISTED APPLICATION DATE (UTC+8): 2019-01-02_09:09:31
@@ -239,12 +254,16 @@ The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/w
     - The whitelist is updated on a monthly basis, meaning that we are whitelisting 200 applications each month.
     - The numbers above are getting updated on a monthly basis as well
 
-#### Position
-    - You can request your actual queue position by contacting one of our team members on telegram
-    - Calculate your individual waiting period based on this queue position
+#### Position 
+    - There is no waiting period at the moment
     
-#### Get your data
-    - Contact @asxtree @MrHodlr @Paperstream to obtain your queue position, your submitted data etc.
+#### View & change your data
+    - Login to the [Skywire Whitelisting System](https://whitelist.skycoin.net) to:
+          - review your current application state
+          - view your whitelisted miners 
+          - adjust public keys if necessary
+          - adjust your Skycoin wallet reward address as you like
+    - Contact support@skycoin.net in case your account is disabled or other issues occur
     - You can double check with our team members (see above) if we received your application.
 
 
@@ -252,38 +271,36 @@ The whitelist form can be found at [skycoin.net/whitelist](https://skycoin.net/w
 
 **Updates of any submitted data have to be done by resubmitting the [whitelist form](https://skycoin.net/whitelist). No manual adjustments on the submitted data are being made from now on.**
 
-* You do not lose your spot by resubmitting the whitelist application form using the same email address!
+* Keep your account data up to date using the Skywire Whitelisting System
+     - Update Skycoin Wallet Address
+     - Update public keys if it's necessary (you're still advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)))
+     - Add more boards and include new pictures to receive the verification of an admin
+     - Transfer your whitelisted miner to another email address
 * The whitelist is not going to be updated on a weekly basis as previously stated but on a monthly basis.
 * The whitelist is a queue based on a first come first serve basis. Each month we are & have been whitelisting 200 applications, the benchmark for applications is the hardware list above + the official miner specifications.
 * It doesn't matter in terms of rewards in which week you're getting whitelisted.
-* Your spot is recognized by your email address, you can think of that just as you would think of an account. Right now we have no account system for you in place to check your spot, provided bandwidth etc. but this will be done for the mainnet. 
 * Official miners need to submit the form using their purchasing email, as this is the only way for us to identify them 
-* Official miners are whitelisted by default, meaning that they are whitelisted as soon as they submit the application form.
-* You are advised to [backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)) but if something happens and you have to reflash then simply resubmit the application form including all current active public keys.
-* For email address changes of official miners please send the team an email at support@skycoin.net and contact someone on telegram if you don't receive an answer after some days.
-* Make sure to generate new public keys after ownership transfer on an official miner and to resubmit the [whitelist application form](https://skycoin.net/whitelist)
-
+* For email address changes of official miners please send the team an email at support@skycoin.net and contact the team on telegram if you don't receive an answer after some days.
 
 ### The form
 The following information needs to be submitted for each type of miner.
 
 #### Official Miner
+     - Only valid if the email has a valid ownership record in the system
      - Name
-     - Purchasing email address
      - Telegram account (optional; you should join, there is an exclusive official miner chat waiting for you)
-     - The city doesn't have to be 100% precise
+     - The location doesn't have to be 100% precise
      - Skycoin wallet address
-     - Your 8 public keys. Simply submit 7 public keys if you have a faulty pi (reward will be paid regardless).
+     - Your 8 public keys. Simply submit less public keys if you have DOA components (reward will be paid regardless until you receive your replacement(s)).
 
 #### DIY Miner
      - Name
-     - Email address
      - Telegram account (optional; you should join, there is an awesome community waiting for you)
-     - The city doesn't have to be 100% precise
+     - The location doesn't have to be 100% precise
      - Skycoin wallet address
-     - Node quantity: The number of pis you're running in your miner
-     - Node Hardware: Specify the hardware you're using. Add a note if you have merged more than 1 type of board in your miner
-     - Node OS: The OS you're running on the pis
-     - Node brief description: Describe your setup, the router you're using & the things that you will present on the pictures
-     - Miner photos: At least three photos, each from a different perspective (each one max 3MB in size)
+     - Miner photos: At least three photos, each from a different perspective
+     - Description: Go into detail of the used hardware components (the router, boards etc. which are presented in the pictures
+          - Node quantity: The number of pis you're running in your miner
+          - Node Hardware: Specify the hardware you're using. Add a note if you have merged more than 1 type of board in your miner
+          - Node OS: The OS you're running on the boards
      - Your public keys
