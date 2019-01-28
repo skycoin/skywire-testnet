@@ -62,16 +62,33 @@ There are two different reward categories for official miners:
 
 <em>Faulty orange pi prime's of official Skyminers will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well. Since we are taking care of this manually you are requested to contact one of our team members on telegram (@Paperstream @asxtree) or at support@skycoin.net</em>
 
-* **Official Skyminers -  First & Second Batch**
-<div align="center"><em><u>We are currently revising the reward strucure for our early supporters. Details will be announced very soon.</u></em></div>
+<h4>Official Skyminers -  First & Second Batch</h4>
+<div align="center"><em><u>We are currently revising the reward strucure for our early supporters. Details of the rewards going forward will be announced very soon. </u></em></div><br/>
+
+The reward structure for January will remain the same as in December.
+Rewards are being paid on a node by node basis. The total amount of rewards is limited by a pool size that is subject to change. The pool size for December was 24,000 Skycoin:
+* You can receive a maximum of 12 Skycoin per node
+* Rewards are being calculated on a node by node basis
+* The total pool size is being divided evenly between all nodes eligible for receiving rewards. This implies that you will receive less than 12 Skycoin per-node rewards in case the pool size would be surpassed. 
+
+</div>
 <br>
 
-* **Official Skyminers - New Batches**
+<h4>Official Skyminers - New Batches</h4>
 
 <div align="center">
-<em><u>Fixed Skycoin payments can be claimed within three years after purchase.</u></em><br><br>
-You will receive a fixed Skycoin payments per month <b>in addition</b> to any traffic forwarding payments <br>you will receive in the Skywire mainnet.<br><b>Fixed Skycoin payments per month = USD Miner Price / 24 = $83.30 USD.</b></div>
-<br>
+<em><u>Fixed Skycoin payments can be claimed within three years after purchase.</u></em><br/><br/>
+You will receive a fixed Skycoin payment per month <b>in addition</b> to any traffic forwarding payments <br/> that you will receive in the Skywire mainnet.<br/><strong>
+Fixed Skycoin payments per month = USD Miner Price / 24 = $83.30 USD.</strong></div>
+<br/>
+<div align="center"><i>Your fixed Skycoin payments are dependent on your the uptime of your nodes. All of your 8 nodes must meet the uptime requirement for you to receive the full $83.30 USD, it is therefore <strong>superimportant to keep your nodes online.</strong></i></div>
+
+Summary:
+* You are eligible to receive 24 fixed Skycoin payments ($83.30 USD)
+* The 24 fixed Skycoin payments are comprised of 8 Skycoin node payments ($10.4125 USD)
+* You'll receive up to 8 Skycoin node payments per month based on the individual uptime of your nodes 
+* The uptime of all nodes in your official Skyminer is being evaluated on a node by node basis
+* *You will receive traffic forwarding payments once the Skywire mainnet is live*
 
 
 <h3>DIY Skyminers</h3>
