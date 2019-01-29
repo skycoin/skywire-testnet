@@ -46,11 +46,11 @@ command -v "${GOPATH}/bin/manager" && command -v "${GOPATH}/bin/node" && command
 
 # start routine manager & node
 cd ${GOPATH}/bin/
-nohup ./manager -web-dir ${Web_Dir} > /dev/null 2>&1 &
+nohup ./skywire-manager -web-dir ${Web_Dir} > /dev/null 2>&1 &
 echo $! > "${Manager_Pid_FILE}"
 mpid=`cat "${Manager_Pid_FILE}"`
 echo "SkyWire Manager started, pid: $mpid"
-nohup ./node -connect-manager -manager-address ${MANAGER_IP}:5998 -manager-web ${MANAGER_IP}:8000 -discovery-address ${DISCOVERY_ADDR} -address :5000 -web-port :6001  > /dev/null 2>&1  &
+nohup ./skywire-node -connect-manager -manager-address ${MANAGER_IP}:5998 -manager-web ${MANAGER_IP}:8000 -discovery-address ${DISCOVERY_ADDR} -address :5000 -web-port :6001  > /dev/null 2>&1  &
 echo $! > "${Node_Pid_FILE}"
 npid=`cat "${Node_Pid_FILE}"`
 echo "SkyWire Node started, pid: $npid"

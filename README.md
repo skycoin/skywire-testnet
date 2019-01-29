@@ -74,7 +74,7 @@ Just for a matter of precaution, after modify this file be sure that there isn't
 #### Run Skywire Manager
 ```
 cd $GOPATH/bin
-./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
 ```
 
 `tip: If you run with the above command, you will not be able to close the current window or you will close Skywire Manger.`
@@ -82,7 +82,7 @@ cd $GOPATH/bin
 If you need to close the current window and continue to run Skywire Manager, you can use
 ```
 cd $GOPATH/bin
-nohup ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 &sleep 3
+nohup ./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 &sleep 3
 ```
 
 `Note: do not execute the above two commands at the same time, just select one of them.`
@@ -93,7 +93,7 @@ Open a new command window
 
 ```
 cd $GOPATH/bin
-./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 
+./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 
 ```
 
 `tip: If you run with the above command, you will not be able to close the current window or you will close Skywire Node.`
@@ -101,7 +101,7 @@ cd $GOPATH/bin
 If you need to close the current window and continue to run Skywire Manager, you can use
 ```
 cd $GOPATH/bin
-nohup ./node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 > /dev/null 2>&1 &cd /
+nohup ./skywire-node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 > /dev/null 2>&1 &cd /
 ```
 
 #### Stop Skywire Manager and Node.
