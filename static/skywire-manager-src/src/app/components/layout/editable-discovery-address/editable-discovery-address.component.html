@@ -1,0 +1,32 @@
+<div class="d-flex align-items-center">
+  <app-discovery-address-input
+    [autofocus]="autofocus"
+    *ngIf="editMode"
+    [required]="required"
+    (valueChanged)="onValueChanged($event)"
+    [value]="value">
+  </app-discovery-address-input>
+  <span (click)="onValueClicked($event)" *ngIf="!editMode">
+    {{ value.domain }}
+    <br>
+    {{ value.publicKey }}
+    <br>
+    <ng-container *ngIf="discovered !== undefined">
+      <i class="sm" [ngClass]="{'dot-green': discovered, 'dot-red': !discovered}"></i>
+      <span class="text-muted pl-1">
+        {{ (discovered ? 'node.discovered' : 'node.not-discovered') | translate }}
+      </span>
+    </ng-container>
+  </span>
+  <button
+    [color]="editMode ? 'primary' : ''"
+    (click)="toggleEditMode()"
+    mat-icon-button
+    [matTooltip]="(editMode ? 'common.save' : 'common.edit') | translate"
+    [disabled]="editMode && !valid">
+    <mat-icon>
+      {{editMode ? 'done' : 'edit'}}
+    </mat-icon>
+  </button>
+</div>
+

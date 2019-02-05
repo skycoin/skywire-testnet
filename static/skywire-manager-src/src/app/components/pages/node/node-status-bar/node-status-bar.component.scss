@@ -1,0 +1,51 @@
+@import '~bootstrap/scss/mixins/breakpoints';
+@import '~bootstrap/scss/functions';
+@import 'bootstrap_overrides';
+
+:host::ng-deep
+{
+  .node-status-bar
+  {
+    .status-text
+    {
+      padding-right: 16px;
+      padding-left: 16px;
+      white-space: nowrap;
+    }
+
+    .mat-icon
+    {
+      margin-right: 10px;
+      width: 30px;
+      height: 30px;
+      font-size: 30px;
+    }
+
+    .mw-0 {
+      min-width: 0;
+    }
+
+    @media (max-width: 620px), (min-width: 992px) and (max-width: 1200px) {
+      justify-content: initial !important;
+      flex-wrap: wrap;
+
+      .status-text {
+        box-sizing: border-box;
+        width: 50%;
+        justify-content: initial !important;
+        padding-right: 0;
+
+        &.status-online { order: 1; margin-bottom: 15px; }
+        &.status-protocol { order: 3; }
+        &.status-ping { order: 2; margin-bottom: 15px; }
+        &.status-running { order: 4; }
+
+        & > div > span:last-child {
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+}

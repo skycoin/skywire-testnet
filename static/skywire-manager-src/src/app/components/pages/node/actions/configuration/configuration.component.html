@@ -1,0 +1,11 @@
+<app-dialog [headline]="'actions.config.title' | translate">
+  <app-datatable
+    [data]="discoveryNodes"
+    [meta]="{headerTitle: ('actions.config.header' | translate), removeRowTooltipText: ('actions.config.remove' | translate), addButtonTitle: ('actions.config.add' | translate) }"
+    [getEditableRowData]="getEditableRowData.bind(this)"
+    [getEditableRowComponentClass]="getEditableRowComponentClass.bind(this)"
+    [getAddRowData]="getAddRowData.bind(this)"
+    [getAddRowComponentClass]="getAddRowComponentClass.bind(this)"
+    (save)="save($event)">
+  </app-datatable>
+</app-dialog>

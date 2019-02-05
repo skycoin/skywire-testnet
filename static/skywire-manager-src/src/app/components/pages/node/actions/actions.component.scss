@@ -1,0 +1,19 @@
+@import "bootstrap_overrides";
+@import "~bootstrap/scss/mixins/breakpoints";
+
+:host::ng-deep {
+  .list-group-item {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+app-button
+{
+  width: 100%;
+
+  ::ng-deep button {
+    width: 100%;
+    text-align: left;
+  }
+}

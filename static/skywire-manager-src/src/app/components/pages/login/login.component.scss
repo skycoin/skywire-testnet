@@ -1,0 +1,56 @@
+@import "variables";
+
+:host::ng-deep
+{
+  form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-input {
+    height: 35px;
+    width: 300px;
+    overflow: hidden;
+    border-radius: 5px;
+    box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.10), 0 6px 20px 0 rgba(0, 0, 0, 0.10);
+    display: flex;
+
+    input[type='password'] {
+      width: calc(100% - 35px);
+      height: 100%;
+      font-size: 14px;
+      border: none;
+      padding-left: 10px;
+      padding-right: 10px;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    button {
+      background: #fff;
+      color: $black;
+      width: 35px;
+      height: 35px;
+      line-height: 35px;
+      border: none;
+      display: flex;
+      cursor: pointer;
+
+      &:disabled {
+        color: $light-gray;
+      }
+    }
+  }
+
+  .manager-title {
+    color: white;
+    position: absolute;
+    bottom: 60px;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 400;
+  }
+}

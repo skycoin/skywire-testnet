@@ -1,0 +1,74 @@
+@import "variables";
+@import "utilities/theme";
+@import "backgrounds";
+@import "~bootstrap/scss/functions";
+
+.mat-dialog-container
+{
+  @extend .container-elevated-translucid;
+  overflow: hidden !important;
+  border-radius: 5px !important;
+  padding: 5px !important;
+}
+
+:host ::ng-deep
+{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .icon {
+    width: 40px;
+    margin-right: 10px;
+
+    svg {
+      fill: currentColor;
+    }
+  }
+
+  app-button {
+    display: block;
+    margin-top: 10px;
+
+    ::ng-deep button {
+      background-color: $blue-panel;
+      text-transform: uppercase;
+      padding: 0 40px;
+      border-radius: 6px;
+      height: 30px;
+      line-height: 29px;
+      font-size: 12px;
+    }
+  }
+
+  .active app-button ::ng-deep button {
+    background-color: $blue-dark;
+  }
+}
+
+.mat-flat-button
+{
+  line-height: 15px;
+}
+
+.dot-red
+{
+  position: absolute;
+  right: 12px;
+  top: 7px;
+}
+
+.btn-more
+{
+  font-size: theme-font-size(lg);
+  position: absolute;
+  right: -30px;
+  top: -12px;
+}
+
+.separator
+{
+  height: 40px;
+}

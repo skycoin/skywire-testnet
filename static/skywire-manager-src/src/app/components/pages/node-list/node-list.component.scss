@@ -1,0 +1,74 @@
+@import "variables";
+@import "utilities/theme";
+@import "~bootstrap/scss/functions";
+
+.mat-app-background {
+  padding: 0;
+}
+
+.reload-icon {
+  width: 20px;
+  cursor: pointer;
+}
+
+.node-list-container
+{
+  width: 100%;
+  overflow-x: auto;
+
+  .mat-form-field-infix{
+    width: 50px !important;
+  }
+
+  .bold {
+    font-weight: bold;
+  }
+
+  table, .nodes-empty {
+    box-shadow: none !important;
+  }
+
+  .nodes-empty {
+    color: theme-color(light-gray);
+    font-size: 13px;
+
+    i {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+  }
+}
+
+.actions {
+  text-align: right;
+
+  button {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+
+    &:last-child {
+      margin-left: 15px;
+    }
+  }
+}
+
+.table-white {
+  padding: 15px 30px;
+}
+
+.node-key {
+  position: relative;
+
+  .cover {
+    position: absolute;
+    width: 100%;
+    height: 20px;
+    z-index: 1000;
+  }
+}
+
+.none {
+  color: lighten(theme-color(light-gray), 20%);
+}

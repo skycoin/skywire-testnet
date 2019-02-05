@@ -1,5 +1,7 @@
 dist*
 *.sh
+!static/script/upgrade/*.sh
+!static/script/upgrade/data/*.sh
 keys
 main
 keys.json
@@ -29,6 +31,7 @@ restart.sh
 skycoin-messenger/monitor/web/dist-manager
 package-lock.json
 
+.DS_Store
 *.swo
 *.swp
 

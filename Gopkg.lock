@@ -18,24 +18,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/go-xorm/builder"
-  packages = ["."]
-  revision = "488224409dd8aa2ce7a5baf8d10d55764a913738"
-
-[[projects]]
-  name = "github.com/go-xorm/core"
-  packages = ["."]
-  revision = "da1adaf7a28ca792961721a34e6e04945200c890"
-  version = "v0.5.7"
-
-[[projects]]
-  name = "github.com/go-xorm/xorm"
-  packages = ["."]
-  revision = "1933dd69e294c0a26c0266637067f24dbb25770c"
-  version = "v0.6.4"
-
-[[projects]]
-  branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
   revision = "316fb6d3f031ae8f4d457c6c5186b9e3ded70435"
@@ -63,12 +45,6 @@
   packages = ["."]
   revision = "282ce0e5322c82529687d609ee670fac7c7d917c"
   version = "v1.1.1"
-
-[[projects]]
-  name = "github.com/mattn/go-sqlite3"
-  packages = ["."]
-  revision = "6c771bb9887719704b210e87e934f08be014bdb1"
-  version = "v1.6.0"
 
 [[projects]]
   name = "github.com/op/go-logging"
@@ -154,6 +130,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c5a30054023457c74b9a79582836dfc78fa3a6491ec136347e40314a46da0797"
+  inputs-digest = "31f35cf4054c0f85b1b72e9684a99d7148b4d569902c32c1d9972c0661032834"
   solver-name = "gps-cdcl"
   solver-version = 1

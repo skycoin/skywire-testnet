@@ -1,39 +1,57 @@
 #!/bin/bash
-# SkyWire Install
-Manager_Pid_FILE=manager.pid
-Node_Pid_FILE=node.pid
-GOEXEC_DIR=/usr/local/go
-GOBIN_DIR=/usr/local/skywire/go
-TMP_DIR=/tmp/skywire-pids
-Need_Kill=no
-Web_Dir=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/skywire-manager
 
-export HOME=/root
-export GOPATH=${GOBIN_DIR}
-if [[ ! -d ${TMP_DIR} ]]; then
+### SkyWire Start script, manager & node
+
+# local vars
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+
+# check for the env vars
+if [ ! -f /etc/default/skywire ] ; then
+	# does not exist, link it
+	ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+else
+	# check it, if not a link remove and link
+	if [ ! -h /etc/default/skywire ] ; then
+		# not a link, remove it and link
+		rm /etc/default/skywire
+		ln -s ${SKYWIRE_UNIX_SCRIPTS}/skywire.defaults /etc/default/skywire
+	fi
+fi 
+
+# now load it
+. /etc/default/skywire
+
+# check for temp dir to hold the pids
+if [[ ! -d ${TMP_DIR} ]] ; then
 	mkdir -p ${TMP_DIR}
 fi
 
+# Catch one optional argument: "yes" (to kill previous instances before start)
 [[ ! -z $1 ]] && Need_Kill=$1
 
-if [ $Need_Kill = "yes" ];then
-	[[ -f ${TMP_DIR}/${Manager_Pid_FILE} ]] && pkill -F "${TMP_DIR}/${Manager_Pid_FILE}" && rm "${TMP_DIR}/${Manager_Pid_FILE}"
-	[[ -f ${TMP_DIR}/${Node_Pid_FILE} ]] && pkill -F "${TMP_DIR}/${Node_Pid_FILE}" && rm "${TMP_DIR}/${Node_Pid_FILE}"
+# kill previous instances before start is intructed to.
+if [ "$Need_Kill" == "yes" ] ; then
+	# manager
+	[[ -f ${Manager_Pid_FILE} ]] && pkill -F "${Manager_Pid_FILE}" && rm "${Manager_Pid_FILE}"
+	# node
+	[[ -f ${Node_Pid_FILE} ]] && pkill -F "${Node_Pid_FILE}" && rm "${Node_Pid_FILE}"
 fi
 
-command -v "${GOBIN_DIR}/bin/manager" && command -v "${GOBIN_DIR}/bin/node" && command -v "${GOBIN_DIR}/bin/socksc" && command -v "${GOBIN_DIR}/bin/sockss" && command -v "${GOBIN_DIR}/bin/sshc" && command -v "${GOBIN_DIR}/bin/sshs" > /dev/null || {
-		[[ -d ${GOBIN_DIR}/pkg/linux_arm64/github.com/skycoin ]] && rm -rf ${GOBIN_DIR}/pkg/linux_arm64/github.com/skycoin
-		cd ${GOBIN_DIR}/src/github.com/skycoin/skywire/cmd
-		${GOEXEC_DIR}/bin/go install ./... 2>> /tmp/skywire_install_errors.log
+# check if we have the bins in place, otherwise compile it from source and if old bins are found remove them
+command -v "${GOPATH}/bin/manager" && command -v "${GOPATH}/bin/node" && command -v "${GOPATH}/bin/socksc" && command -v "${GOPATH}/bin/sockss" && command -v "${GOPATH}/bin/sshc" && command -v "${GOPATH}/bin/sshs" > /dev/null || {
+		[[ -d ${GOPATH}/pkg/linux_arm64/github.com/skycoin ]] && rm -rf ${GOPATH}/pkg/linux_arm64/github.com/skycoin
+		cd ${GOPATH}/src/github.com/skycoin/skywire/cmd
+		${GOROOT}/bin/go install ./... 2>> /tmp/skywire_install_errors.log
 }
 
-echo "Starting SkyWire Manager"
-cd ${GOBIN_DIR}/bin/
+# start routine manager & node
+cd ${GOPATH}/bin/
 nohup ./manager -web-dir ${Web_Dir} > /dev/null 2>&1 &
-echo $! > "${TMP_DIR}/${Manager_Pid_FILE}"
-cat "${TMP_DIR}/${Manager_Pid_FILE}"
-nohup ./node -connect-manager -manager-address 192.168.0.2:5998 -manager-web 192.168.0.2:8000 > /dev/null 2>&1 &
-echo $! > "${TMP_DIR}/${Node_Pid_FILE}"
-cat "${TMP_DIR}/${Node_Pid_FILE}"
+echo $! > "${Manager_Pid_FILE}"
+mpid=`cat "${Manager_Pid_FILE}"`
+echo "SkyWire Manager started, pid: $mpid"
+nohup ./node -connect-manager -manager-address ${MANAGER_IP}:5998 -manager-web ${MANAGER_IP}:8000 -discovery-address ${DISCOVERY_ADDR} -address :5000 -web-port :6001  > /dev/null 2>&1  &
+echo $! > "${Node_Pid_FILE}"
+npid=`cat "${Node_Pid_FILE}"`
+echo "SkyWire Node started, pid: $npid"
 cd /root
-echo "SkyWire Manager Done"

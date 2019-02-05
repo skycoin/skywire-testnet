@@ -1,0 +1,86 @@
+// Bootstrap required
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/mixins";
+
+@import "assets/scss/variables";
+@import "assets/scss/utilities/utilities";
+
+@import "assets/scss/fonts";
+@import "assets/scss/text";
+@import "assets/scss/images";
+@import "assets/scss/icons";
+@import "assets/scss/buttons";
+@import "assets/scss/menu";
+@import "assets/scss/chips";
+@import "assets/scss/tables";
+@import "assets/scss/forms";
+@import "assets/scss/backgrounds";
+@import "assets/scss/dialogs";
+@import "assets/scss/snackbar";
+@import '~@angular/material/theming';
+
+/***************************
+* Bootsrap 4
+****+***********************/
+
+// Skywire boostrap overrides
+@import "assets/scss/bootstrap_overrides";
+
+// Bootstrap required
+@import "~bootstrap/scss/variables";
+
+// Bootstrap optional
+@import "~bootstrap/scss/reboot";
+@import "~bootstrap/scss/list-group";
+@import "~bootstrap/scss/type";
+@import "~bootstrap/scss/bootstrap-grid";
+@import "~bootstrap/scss/utilities/sizing";
+@import "~bootstrap/scss/utilities/align";
+@import "~bootstrap/scss/utilities/text";
+@import "~bootstrap/scss/utilities/borders";
+@import "~bootstrap/scss/utilities/float";
+@import "~bootstrap/scss/utilities/spacing";
+@import "~bootstrap/scss/navbar";
+
+
+/***************************
+* Skywire
+****+***********************/
+
+html, body
+{
+  height: 100%;
+  min-height: 100%;
+  font-family: $skywire-font-family;
+  margin:0;
+  color: theme-color(white) !important;
+  font-size: $font-size-base;
+  font-weight: $font-weight-base;
+  line-height: $line-height-base;
+}
+
+button:focus {
+  outline: 0;
+}
+
+//
+// Divider
+//
+hr
+{
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border: 0;
+  border-top: 1px solid theme-color(translucid-white);
+  width: 100%;
+}
+
+//
+// Terminal
+//
+
+@import "~xterm/dist/xterm.css";
+
+#terminal-dialog {
+  padding: 0;
+}

@@ -1,0 +1,48 @@
+$icon-sizes: (
+  small: 20px,
+  big: 30px
+);
+
+@each $size-name, $size-value in $icon-sizes
+{
+  .mat-icon.ic-#{$size-name}
+  {
+    width: $size-value !important;
+    height: $size-value !important;
+    line-height: $size-value !important;
+    font-size: $size-value !important;
+  }
+}
+
+//
+// Solid circles
+//
+
+$dot-icons: (
+  green: theme-color(green),
+  red: theme-color(red),
+  yellow: theme-color(yellow),
+  gray: theme-color(light-gray)
+);
+
+$dot-size:    10px;
+$dot-size-sm: 7px;
+
+@each $color-name, $color-value in $dot-icons
+{
+  .dot-#{$color-name}
+  {
+    height: $dot-size;
+    width: $dot-size;
+    box-shadow: 0 3px 3px -2px rgba(0, 0, 0, 0.2);
+    background-color: $color-value;
+    border-radius: 50%;
+    display: inline-block;
+
+    &.sm
+    {
+      height: $dot-size-sm;
+      width: $dot-size-sm;
+    }
+  }
+}

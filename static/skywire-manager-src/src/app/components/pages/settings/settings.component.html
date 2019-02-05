@@ -1,0 +1,51 @@
+<app-toolbar>
+  <app-button (action)="back()" icon="chevron_left">Back</app-button>
+</app-toolbar>
+<div class="container-fluid mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-sm-8">
+      <div class="container-elevated-white">
+        <form
+          class="settings-form"
+          [formGroup]="form">
+          <mat-list>
+            <mat-list-item>
+              <label translate for="refreshRate">
+                settings.refresh-rate
+              </label>
+              <mat-form-field id="refreshRate">
+                <mat-select formControlName="refreshRate">
+                  <mat-option *ngFor="let time of timesList" value="{{time}}">
+                    {{ time }} {{ 'settings.seconds' | translate }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </mat-list-item>
+            <mat-list-item>
+              <label translate for="lang">
+                settings.language
+              </label>
+              <mat-form-field id="lang">
+                <mat-select formControlName="language">
+                  <mat-option *ngFor="let lang of langList" value="{{lang.id}}">
+                    {{ lang.name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </mat-list-item>
+            <mat-list-item>
+              <app-button
+                class="ml-0"
+                type="mat-raised-button"
+                color="primary"
+                (action)="onChangePasswordClicked()"
+              >
+                {{ "settings.change-password" | translate }}
+              </app-button>
+            </mat-list-item>
+          </mat-list>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

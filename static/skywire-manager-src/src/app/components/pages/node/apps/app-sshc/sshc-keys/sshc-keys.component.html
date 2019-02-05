@@ -1,0 +1,28 @@
+<app-dialog
+  id="sshcConnectContainer"
+  [headline]="'apps.sshc.title' | translate">
+  <mat-tab-group>
+    <mat-tab [label]="'apps.sshc.connect-keypair' | translate">
+      <div class="pt-4">
+        <div class="clearfix">
+          <app-keypair
+            [required]="true"
+            (keypairChange)="keypairChange($event)"
+          ></app-keypair>
+          <app-button
+            type="mat-raised-button"
+            class="float-right"
+            (action)="connect()"
+            [disabled]="!(valid && keypair && keypair.nodeKey && keypair.appKey)"
+            color="primary"
+          >
+            {{ 'apps.sshc.connect' | translate }}
+          </app-button>
+        </div>
+      </div>
+    </mat-tab>
+    <mat-tab [label]="'apps.sshc.connect-history' | translate">
+      <app-history app="sshc" (connect)="keypairChange({keyPair: $event, valid: true})"></app-history>
+    </mat-tab>
+  </mat-tab-group>
+</app-dialog>

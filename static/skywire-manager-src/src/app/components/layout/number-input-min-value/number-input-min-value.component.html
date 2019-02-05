@@ -1,0 +1,18 @@
+<form>
+  <mat-form-field>
+    <input
+      matInput
+      [formControl]="validator"
+      [errorStateMatcher]="matcher"
+      min="1"
+      [value]="value"
+      (input)="onInput($event)"
+      type="number">
+    <mat-error *ngIf="validator.hasError('min') && !validator.hasError('required')">
+      {{ 'inputs.errors.number-min-value' | translate:{number: minVal - 1} }}
+    </mat-error>
+    <mat-error *ngIf="validator.hasError('required')">
+      {{ 'inputs.errors.number-min-required' | translate:{name: fieldName} }}
+    </mat-error>
+  </mat-form-field>
+</form>
