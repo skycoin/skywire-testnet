@@ -28,3 +28,7 @@ push.sh
 restart.sh
 skycoin-messenger/monitor/web/dist-manager
 package-lock.json
+
+*.swo
+*.swp
+

@@ -7,8 +7,13 @@ ARG GOARM
 
 COPY . $GOPATH/src/github.com/skycoin/skywire
 
+ENV GOARCH="$ARCH" \
+    CGO_ENABLED="0" \
+    GOOS="linux"
+
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-    GOARCH=$ARCH GOARM=$GOARM CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo ./... && \
+    echo "Go build args GOARM=$GOARM GOARCH=$GOARCH CGO_ENABLED=$CGO_ENABLED GOOS=$GOOS " \
+    go install -a -installsuffix cgo ./... && \
     sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \
            if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
 
