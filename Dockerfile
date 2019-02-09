@@ -17,7 +17,7 @@ RUN apt-get update \
 
 
 RUN cd $GOPATH/src/github.com/skycoin/skywire && \
-    echo "Go build args GOARM=$GOARM GOARCH=$GOARCH CGO_ENABLED=$CGO_ENABLED GOOS=$GOOS " \
+    echo "Go build args GOARM=$GOARM GOARCH=$GOARCH CGO_ENABLED=$CGO_ENABLED GOOS=$GOOS " && \
     go install -a -installsuffix cgo ./... && \
     sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \
            if test -d $GOPATH/bin/linux_arm64 ; then mv $GOPATH/bin/linux_arm64/* $GOPATH/bin/; fi"
