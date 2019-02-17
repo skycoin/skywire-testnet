@@ -72,7 +72,7 @@ Rewards are being paid on a node by node basis. The total amount of rewards is l
 * The total pool size is being divided evenly between all nodes eligible for receiving rewards. This implies that you will receive less than 12 Skycoin per-node rewards in case the pool size would be surpassed. 
 
 The official reward pool size for January was 24,000 Skycoin:
-* **9.49 Skycoin / node ; 75.92 Skycoin per 8 node official Skyminer
+* **9.49 Skycoin / node ; 75.92 Skycoin per 8 node official Skyminer**
 </div>
 <br>
 
