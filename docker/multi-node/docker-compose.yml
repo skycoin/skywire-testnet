@@ -1,0 +1,16 @@
+version: "3"
+services:
+  manager:
+    image: skycoin/skywire
+    ports:
+      - 8000:8000
+  node:
+    image: skycoin/skywire
+    volumes:
+      - skywire-data:/root/.skywire
+    command: node -connect-manager -manager-address manager:5998 -manager-web manager:8000 -address :5000 -web-port :6001 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+    ports:
+      - 5000:5000
+      - 6001:6001
+volumes:
+  skywire-data:
