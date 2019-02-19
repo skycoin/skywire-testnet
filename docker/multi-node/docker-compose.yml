@@ -16,9 +16,4 @@ services:
       - "swmanager"
 volumes:
   skywire-data:
-networks:
- default:
-  ipam:
-   driver: default
-   config:
-   - subnet: 10.10.0.0/16
+
