@@ -9,7 +9,7 @@ services:
     image: skycoin/skywire
     volumes:
       - skywire-data:/root/.skywire
-    command: node -connect-manager -manager-address 10.1.1.109:5998 -manager-web 10.1.1.109:8000 - -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+    command: node -connect-manager -manager-address 10.1.1.109:5998 -manager-web 10.1.1.109:8000 --discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
     ports:
       - "5000"
       - "6001"
