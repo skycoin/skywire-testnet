@@ -9,12 +9,12 @@ services:
     image: skycoin/skywire
     #volumes:
     #  - skywire-data:/root/.skywire
-    command: node -connect-manager -manager-address swmanager:5998 -manager-web swmanager:8000 -address swnode:5000 -web-port swnode:6001 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+    command: node -connect-manager -manager-address swmanager:5998 -manager-web swmanager:8000 -address $HOSTNAME:5000 -web-port $HOSTNAME:6001 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
     ports:
       - "5000"
       - "6001"
     depends_on:
-      - "swmanager"
+      - "swmanager" 
 #volumes:
 #  skywire-data:
 
