@@ -53,7 +53,7 @@ go install ./...
 #### 스카이매니저구동
 ```
 cd $GOPATH/bin
-./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
 ```
 `팁:  만약 당신이 위의 명령어를 사용한다면, 현재 열려있는 윈도우를 닫지 못하거나 윈도우 창을 종료할 시 스카이와이어 매니저가 종료될 것입니다.`
 
@@ -61,7 +61,7 @@ cd $GOPATH/bin
 
 ```
 cd $GOPATH/bin
-nohup ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
+nohup ./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
 
 ```
 `주의: 위의 두 명령어는 동시에 구동할 수 없으며, 둘 중 하나만 사용해야 합니다.`
@@ -73,7 +73,7 @@ nohup ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire
 ```
 
 cd $GOPATH/bin
-./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000
+./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000
 
 ```
 `팁:  만약 당신이 위의 명령어를 사용한다면, 현재 열려있는 윈도우를 닫지 못하거나 윈도우 창을 종료할 시 스카이와이어 노드가 종료될 것입니다.`
@@ -82,7 +82,7 @@ cd $GOPATH/bin
 
 ```
 cd $GOPATH/bin
-nohup ./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 > /dev/null 2>&1 & echo $! > node.pid
+nohup ./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 > /dev/null 2>&1 & echo $! > node.pid
 ```
 #### 스카이와이어 매니저 및 노드 중지
 1) 만약 스카이와이어 매니저와 노드가 윈도우 터미널에서 실행되고 있는 상태라면, Ctrl+c버튼을 누르면 적용됩니다.

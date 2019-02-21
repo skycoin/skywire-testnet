@@ -527,7 +527,7 @@ func (na *NodeApi) restart() (err error) {
 	na.srv.Close()
 	na.node.Close()
 	time.Sleep(1000 * time.Millisecond)
-	cmd := exec.Command(filepath.Join(gopath, "bin", "node"), args...)
+	cmd := exec.Command(filepath.Join(gopath, "bin", "skywire-node"), args...)
 	err = cmd.Start()
 	if err != nil {
 		log.Errorf("cmd start err: %v", err)

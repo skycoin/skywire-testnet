@@ -50,7 +50,7 @@ go install ./...
 #### 运行 Skywire Manager
 ```
 cd $GOPATH/bin
-./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
 ```
 `提示:如果使用以上命令运行,您将不可以关闭当前窗口,否则将会关闭 Skywire Manger。`
 
@@ -58,7 +58,7 @@ cd $GOPATH/bin
 
 ```
 cd $GOPATH/bin
-nohup ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
+nohup ./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
 ```
 
 `注意：不要同时执行以上两个命令，只需要选择其中一种方式即可`
@@ -70,7 +70,7 @@ nohup ./manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire
 
 ```
 cd $GOPATH/bin
-./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000
+./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000
 ```
 
 `提示:如果使用以上命令运行,您将不可以关闭当前窗口,否则将会关闭 Skywire Node。`
@@ -79,7 +79,7 @@ cd $GOPATH/bin
 
 ```
 cd $GOPATH/bin
-nohup ./node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 > /dev/null 2>&1 & echo $! > node.pid
+nohup ./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 > /dev/null 2>&1 & echo $! > node.pid
 ```
 
 `提示:127.0.0.1:5998 和 127.0.0.1:8000为配置参数，请以你Skywire Manager的IP和端口设置为准`
