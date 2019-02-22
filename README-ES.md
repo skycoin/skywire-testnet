@@ -219,6 +219,7 @@ docker-compose up
 
 Abrir [http://localhost:8000](http://localhost:8000).
 
+Note: puedes agregar más nodos editando el fichero [docker-compose.yml](https://github.com/skycoin/skywire/blob/master/docker-compose.yml)
 
 ## Descargar imágenes del sistema
 

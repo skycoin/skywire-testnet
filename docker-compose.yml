@@ -4,13 +4,35 @@ services:
     image: skycoin/skywire
     ports:
       - 8000:8000
-  node:
+    command: skywire-manager -web-dir /usr/local/skycoin/net/skycoin-messenger/monitor/web/dist-manager
+  node1:
     image: skycoin/skywire
+    environment:
+      VIRTUAL_HOST: node.skywire.com
     volumes:
-      - skywire-data:/root/.skywire
-    command: node -connect-manager -manager-address manager:5998 -manager-web manager:8000 -address :5000 -web-port :6001 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+      - skywire-data-1:/root/.skywire
+    depends_on:
+      - manager
+    command: skywire-node -connect-manager -manager-address manager:5998 -manager-web manager:8000 -address :5000 -web-port :6001 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+  node2:
+    image: skycoin/skywire
+    environment:
+      VIRTUAL_HOST: node.skywire.com
+    volumes:
+      - skywire-data-2:/root/.skywire
+    depends_on:
+      - manager
+    command: skywire-node -connect-manager -manager-address manager:5998 -manager-web manager:8000 -address :5000 -web-port :6001 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+  nginx:
+    image: jwilder/nginx-proxy
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - 5000:5000
       - 6001:6001
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    privileged: true
 volumes:
-  skywire-data:
+  skywire-data-1:
+  skywire-data-2:

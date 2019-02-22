@@ -185,6 +185,8 @@ docker-compose up
 
 Open [http://localhost:8000](http://localhost:8000).
 
+참고 : [docker-compose.yml](https://github.com/skycoin/skywire/blob/master/docker-compose.yml) 파일을 편집하는 노드를 더 추가 할 수 있습니다.
+
 ## 시스템이미지다운로드
 <a name="images"></a>
 

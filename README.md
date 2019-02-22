@@ -285,6 +285,8 @@ docker-compose up
 
 Open [http://localhost:8000](http://localhost:8000).
 
+Note: you can add more nodes editing [docker-compose.yml](https://github.com/skycoin/skywire/blob/master/docker-compose.yml) file
+
 ## Download System Images
 
 <a name="images"></a>

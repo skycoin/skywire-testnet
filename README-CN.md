@@ -193,6 +193,7 @@ docker run -ti --rm \
 docker-compose up
 ```
 
+注意：您可以添加更多节点编辑[docker-compose.yml](https://github.com/skycoin/skywire/blob/master/docker-compose.yml)文件
 ## 系统镜像下载地址
 
 <a name="images"></a>
