@@ -1,0 +1,215 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>Chat App</title>
+
+    <style>
+     html {
+         font-family: sans-serif;
+         font-size: 13px;
+         color: #666;
+     }
+
+     body {
+         display: flex;
+         min-height: 100vh;
+         margin: 0;
+         background: #455164;
+     }
+
+     a {
+         text-decoration: none;
+         color: inherit;
+     }
+
+     ul {
+         list-style: none;
+         padding: 0;
+         margin: 0;
+     }
+
+     .sidebar {
+         display: flex;
+         flex-direction: column;
+         width: 220px;
+         padding: 1em;
+         color: #99a2b4;
+     }
+
+     .recipient-list {
+         flex: 1;
+         margin-top: 1em;
+     }
+
+     .recipient-list li {
+         margin-bottom: 1em;
+         overflow: hidden;
+         white-space: nowrap;
+         text-overflow: ellipsis;
+     }
+
+     .recipient-list a.active { color: white; }
+
+     .chatbox {
+         flex: 1;
+         display: flex;
+         flex-direction: column;
+         margin: 0.3em;
+         background: white;
+         border-radius: 2px;
+     }
+
+     .message-list {
+         padding: 1em;
+         flex: 1;
+     }
+
+     .message-list li { display: flex; }
+
+     .message-item date {
+         width: 55px;
+         color: #ddd;
+     }
+
+     .message-item em {
+         width: 134px;
+         padding: 0 0.5em;
+         overflow: hidden;
+         white-space: nowrap;
+         text-overflow: ellipsis;
+         font-style: normal;
+     }
+
+     .message-item em.sender { color: #16cc6a; }
+     .message-item em.receiver { color: #ff4846; }
+
+     .message-item span {
+         flex: 1;
+         padding-left: 1em;
+         border-left: 2px solid #f6f6f6;
+     }
+
+     .message-form {
+         display: flex;
+         padding: 0.3em;
+         background: #eee;
+         border-top: 2px solid #ddd;
+     }
+
+     input[type=text] {
+         flex: 1;
+         padding: 0.5em;
+         margin-right: 1em;
+         border: 1px solid #ddd;
+         border-radius: 2px;
+     }
+
+     input[type=submit] {
+         padding: 0.5em 2em;
+         background: #f6f6f6;
+         border: 1px solid #ddd;
+         border-radius: 2px;
+         outline: none;
+     }
+
+     .recipient-form input[type=submit] {
+         padding: 0.5em 0.7em;
+     }
+    </style>
+  </head>
+
+  <body>
+    <aside class="sidebar">
+      <form class="recipient-form" onsubmit="app.createRecipient(this); return false;">
+        <input type="text" placeholder="Enter public key" />
+        <input type="submit" value="+">
+      </form>
+      <ul id="recipients" class="recipient-list"></ul>
+    </aside>
+
+    <main class="chatbox">
+      <ul id="messages" class="message-list"></ul>
+
+      <form class="message-form" onsubmit="app.sendMessage(this); return false;">
+        <input type="text" placeholder="Write your message" />
+        <input type="submit" value="Send">
+      </form>
+    </main>
+
+    <script>
+     class Chat {
+         constructor() {
+             this.recipients = [];
+             this.recipient = null;
+             this.messages = {};
+             this.recipients.forEach(r => this._addRecipient(r));
+             this._sseSubscribe();
+         }
+
+         _addRecipient(r) {
+             this.recipients.push(r);
+             this.messages[r] = [];
+             document.getElementById('recipients').innerHTML +=
+                 `<li><a href="#" class="${r === this.recipient ? 'active' : ''}" onclick="app.selectRecipient(this); return false;">${r}</a></li>`;
+         }
+
+         _addMessage(msg) {
+             const className = msg.from === 'me' ? 'sender' : 'receiver';
+             const ts = `${msg.ts.getHours().toString().padStart(2, '0')}:${msg.ts.getMinutes().toString().padStart(2, '0')}`;
+
+             if (msg.from !== 'me' && !this.recipients.includes(msg.from)) {
+                 this._addRecipient(msg.from);
+             }
+
+             document.getElementById('messages').innerHTML +=
+                 `<li class="message-item"><date>${ts}</date><em class="${className}">${msg.from}:</em><span>${msg.text}</span></li>`
+         }
+
+         _sseSubscribe() {
+             const source = new EventSource('/sse');
+             source.onmessage = (msg) => {
+                 const data = JSON.parse(msg.data);
+                 const message = { ts: new Date, from: data.sender, text: data.message };
+                 this._addMessage(message);
+                 this.messages[data.sender].push(message);
+             };
+         }
+
+         createRecipient(el) {
+             const recipient = el[0].value;
+             this.recipients.push(recipient);
+             this._addRecipient(recipient);
+         }
+
+         selectRecipient(el) {
+             this.recipient = el.text;
+             document.querySelectorAll('a.active').forEach(item => item.classList.remove('active'));
+             el.classList.add('active');
+             document.getElementById('messages').innerHTML = '';
+             this.messages[this.recipient].forEach(msg => this._addMessage(msg));
+         }
+
+         sendMessage(el) {
+             const msg = el[0].value;
+             fetch('message', { method: 'POST',  body: JSON.stringify({ recipient: this.recipient, message: msg }) })
+                 .then(res => {
+                     if (res.ok) {
+                         const message = { ts: new Date, from: 'me', text: msg };
+                         this._addMessage(message);
+                         this.messages[this.recipient].push(message);
+                         el[0].value = '';
+                     } else {
+                         res.text().then(text => alert(`Failed to send message: ${text}`));
+                     }
+                 })
+                 .catch(e => alert(e.message));
+         }
+     }
+
+     window.app = new Chat()
+    </script>
+  </body>
+</html>

@@ -1,0 +1,116 @@
+package node
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/internal/httpauth"
+	"github.com/skycoin/skywire/pkg/cipher"
+)
+
+func TestMessagingDiscovery(t *testing.T) {
+	conf := Config{}
+	conf.Messaging.Discovery = "skywire.skycoin.net:8001"
+	conf.Messaging.ServerCount = 10
+
+	discovery, err := conf.MessagingDiscovery()
+	require.NoError(t, err)
+
+	assert.NotNil(t, discovery)
+}
+
+func TestTransportDiscovery(t *testing.T) {
+	pk, _ := cipher.GenerateKeyPair()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}) // nolint: errcheck
+	}))
+	defer srv.Close()
+
+	conf := Config{}
+	conf.Transport.Discovery = srv.URL
+
+	discovery, err := conf.TransportDiscovery()
+	require.NoError(t, err)
+
+	assert.NotNil(t, discovery)
+}
+
+func TestTransportLogStore(t *testing.T) {
+	conf := Config{}
+	conf.Transport.LogStore.Type = "file"
+	conf.Routing.Table.Location = "/foo"
+	require.NotNil(t, conf.TransportLogStore())
+
+	conf.Transport.LogStore.Type = "memory"
+	conf.Routing.Table.Location = ""
+	require.NotNil(t, conf.TransportLogStore())
+}
+
+func TestRoutingTable(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "routing")
+	require.NoError(t, err)
+	defer os.Remove(tmpfile.Name())
+
+	conf := Config{}
+	conf.Routing.Table.Type = "boltdb"
+	conf.Routing.Table.Location = tmpfile.Name()
+	_, err = conf.RoutingTable()
+	require.NoError(t, err)
+
+	conf.Routing.Table.Type = "memory"
+	conf.Routing.Table.Location = ""
+	_, err = conf.RoutingTable()
+	require.NoError(t, err)
+}
+
+func TestAppsConfig(t *testing.T) {
+	conf := Config{Version: "1.0"}
+	conf.Apps = []AppConfig{
+		{App: "foo", Version: "1.1", Port: 1},
+		{App: "bar", AutoStart: true, Port: 2},
+	}
+
+	appsConf, err := conf.AppsConfig()
+	require.NoError(t, err)
+
+	app1 := appsConf[0]
+	assert.Equal(t, "foo", app1.App)
+	assert.Equal(t, "1.1", app1.Version)
+	assert.Equal(t, uint16(1), app1.Port)
+	assert.False(t, app1.AutoStart)
+
+	app2 := appsConf[1]
+	assert.Equal(t, "bar", app2.App)
+	assert.Equal(t, "1.0", app2.Version)
+	assert.Equal(t, uint16(2), app2.Port)
+	assert.True(t, app2.AutoStart)
+}
+
+func TestAppsDir(t *testing.T) {
+	conf := Config{AppsPath: "apps"}
+	dir, err := conf.AppsDir()
+	require.NoError(t, err)
+
+	defer os.Remove(dir)
+
+	_, err = os.Stat(dir)
+	assert.NoError(t, err)
+}
+
+func TestLocalDir(t *testing.T) {
+	conf := Config{LocalPath: "local"}
+	dir, err := conf.LocalDir()
+	require.NoError(t, err)
+
+	defer os.Remove(dir)
+
+	_, err = os.Stat(dir)
+	assert.NoError(t, err)
+}

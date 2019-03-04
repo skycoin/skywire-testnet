@@ -1,0 +1,40 @@
+{
+    "version": "1.0",
+    "node": {
+        "static_public_key": "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
+        "static_secret_key": "42bca4df2f3189b28872d40e6c61aacd5e85b8e91f8fea65780af27c142419e5"
+    },
+    "messaging": {
+        "server": false,
+        "public": true,
+        "discovery": "http://skywire.skycoin.net:8001",
+        "delegated_servers": [
+            "03a714db33a696a1202de568485234d5035935040bd85a87925568e3ddd100f1e3",
+            "02709cebf98a35431407068ee0740233224795315e3b218054431da80d9c827f07",
+            "03cf6b2ab045aa96d39a58cc087177d1d94944f61a131ec4a69327d5007a8e9953"
+        ],
+        "server_count": 5
+    },
+    "apps": [
+        {
+            "app": "chat",
+            "version": "1.0",
+            "auto_start": true,
+            "ports": [1]
+        },
+        {
+            "app": "therealssh-server",
+            "auto_start": true,
+            "ports": [2]
+        }
+    ],
+    "messaging_path": "./messaging",
+    "apps_path": "./apps",
+    "local_path": "./local",
+    "interfaces": {
+        "messaging": ":3434",
+        "http": ":80",
+        "https": false,
+        "rpc": ":3435"
+    }
+}

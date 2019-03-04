@@ -1,0 +1,62 @@
+* Skywire SSH app
+
+~therealssh~ app implements SSH functionality over skywire
+net. ~therealssh-cli~ is used to initiate communication via client RPC
+exposed by ~therealssh~ app. ~therealssh~ app implements common SSH
+operations: starting remote shell and executing commands
+remotely. PubKey whitelisting is performed by adding public key to the
+authentication file (~$HOME/.therealssh/authorized_keys~ by default).
+
+** Local setup
+
+Create 2 node config files:
+
+~skywire1.json~
+#+BEGIN_SRC js
+  "apps": [
+    {
+      "app": "therealssh",
+      "version": "1.0",
+      "auto_start": true,
+      "port": 2
+    }
+  ]
+#+END_SRC
+
+~skywire2.json~
+#+BEGIN_SRC js
+  "apps": [
+    {
+      "app": "therealssh-client",
+      "version": "1.0",
+      "auto_start": true,
+      "port": 22
+    }
+  ]
+#+END_SRC
+
+Compile binaries and start 2 nodes:
+
+#+BEGIN_SRC bash
+$ go build -o apps/therealssh.v1.0 ./cmd/apps/therealssh
+$ go build -o apps/therealssh-client.v1.0 ./cmd/apps/therealssh-client
+$ go build ./cmd/therealssh-cli
+$ ./skywire-node skywire1.json
+$ ./skywire-node skywire2.json
+#+END_SRC
+
+Add public key of the second node to the auth file:
+
+#+BEGIN_SRC bash
+$ mkdir ~/.therealssh
+$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > ~/.therealssh/authorized_keys
+#+END_SRC
+
+Connect to the first node using CLI:
+
+#+BEGIN_SRC bash
+$ ./therealssh-cli 024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7
+#+END_SRC
+
+This should get you to the local folder of the ~therealssh~ app, which
+will indicate that you are seeing remote PTY session.
