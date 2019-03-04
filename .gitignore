@@ -1,0 +1,12 @@
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+pkg/node/apps/
+.idea/
+/skywire.json
+/apps/
+/skywire/
