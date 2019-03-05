@@ -36,7 +36,7 @@ Skywire requires a version of [golang](https://golang.org/) with [go modules](ht
 # Clone.
 $ git clone https://github.com/skycoin/skywire
 $ cd skywire
-$ git checkout mainnet-develop
+$ git checkout mainnet
 
 # Install skywire-node, skywire-cli, manager-node and therealssh-cli
 $ GO111MODULE=on go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli
