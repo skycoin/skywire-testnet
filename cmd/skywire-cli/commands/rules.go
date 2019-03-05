@@ -16,114 +16,72 @@ import (
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-type routingRulesCmds struct {
-	root *cobra.Command
-	list *cobra.Command
-	info *cobra.Command
-	rm   *cobra.Command
-}
+func makeRulesCmds() *cobra.Command {
+	createWriter := func() *tabwriter.Writer {
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
+		_, err := fmt.Fprintln(w, "id\ttype\tlocal-port\tremote-port\tremote-pk\tresp-id\tnext-route-id\tnext-transport-id\texpire-at")
+		catch(err)
 
-// addCmds refers to "add [app|forward]" sub-command
-type addCmds struct {
-	root     *cobra.Command
-	app      *cobra.Command
-	appFlags struct {
-		expireAfter time.Duration
-		remotePort  uint16
-		localPort   uint16
+		return w
+	}
+	tabPrintAppRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
+		_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%d\t%s\t%s\t%s\n", id, s.Type, s.AppFields.LocalPort,
+			s.AppFields.RemotePort, s.AppFields.RemotePK, s.AppFields.RespRID, "-", "-", s.ExpireAt)
+		catch(err)
 	}
 
-	forward      *cobra.Command
-	forwardFlags struct {
-		expireAfter time.Duration
+	tabPrintForwardRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
+		_, err := fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\n", id, s.Type, "-",
+			"-", "-", "-", s.ForwardFields.NextRID, s.ForwardFields.NextTID, s.ExpireAt)
+		catch(err)
 	}
-}
 
-func newRoutingRulesCmds() *cobra.Command {
-	r := &routingRulesCmds{}
-	r.initRoot()
-	r.initList()
-	r.initInfo()
-	r.initRm()
+	tabPrint := func(rules ...*node.RoutingEntry) {
+		w := createWriter()
 
-	r.root.AddCommand(r.list)
-	r.root.AddCommand(r.info)
-	r.root.AddCommand(r.rm)
-	r.root.AddCommand(newAddCmds())
-
-	return r.root
-}
-
-func (r *routingRulesCmds) tabPrint(rules ...*node.RoutingEntry) {
-	w := r.createWriter()
-
-	for _, rule := range rules {
-		if rule.Value.Summary().AppFields != nil {
-			r.tabPrintAppRule(w, rule.Key, rule.Value.Summary())
-		} else {
-			r.tabPrintForwardRule(w, rule.Key, rule.Value.Summary())
+		for _, rule := range rules {
+			if rule.Value.Summary().AppFields != nil {
+				tabPrintAppRule(w, rule.Key, rule.Value.Summary())
+			} else {
+				tabPrintForwardRule(w, rule.Key, rule.Value.Summary())
+			}
 		}
+		catch(w.Flush())
 	}
 
-	catch(w.Flush())
-}
+	tabPrintSingleRule := func(id routing.RouteID, s *routing.RuleSummary) {
+		w := createWriter()
+		if s.AppFields != nil {
+			tabPrintAppRule(w, id, s)
+		} else {
+			tabPrintForwardRule(w, id, s)
+		}
 
-func (r *routingRulesCmds) tabPrintSingleRule(id routing.RouteID, s *routing.RuleSummary) {
-	w := r.createWriter()
-	if s.AppFields != nil {
-		r.tabPrintAppRule(w, id, s)
-	} else {
-		r.tabPrintForwardRule(w, id, s)
+		w.Flush()
 	}
 
-	w.Flush()
-}
-
-func (r *routingRulesCmds) createWriter() *tabwriter.Writer {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
-	_, err := fmt.Fprintln(w, "id\ttype\tlocal-port\tremote-port\tremote-pk\tresp-id\tnext-route-id\tnext-transport-id\texpire-at")
-	catch(err)
-
-	return w
-}
-
-func (r *routingRulesCmds) tabPrintAppRule(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
-	_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%d\t%s\t%s\t%s\n", id, s.Type, s.AppFields.LocalPort,
-		s.AppFields.RemotePort, s.AppFields.RemotePK, s.AppFields.RespRID, "-", "-", s.ExpireAt)
-	catch(err)
-}
-
-func (r *routingRulesCmds) tabPrintForwardRule(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
-	_, err := fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\n", id, s.Type, "-",
-		"-", "-", "-", s.ForwardFields.NextRID, s.ForwardFields.NextTID, s.ExpireAt)
-	catch(err)
-}
-
-func (r *routingRulesCmds) initRoot() {
-	r.root = &cobra.Command{
+	c := &cobra.Command{
 		Use:   "routing-rules [sub-command]",
 		Short: "manages operations with routing rules",
 	}
-}
+	c.AddCommand(makeAddCmds())
 
-func (r *routingRulesCmds) initList() {
-	r.list = &cobra.Command{
+	c.AddCommand(&cobra.Command{
 		Use:   "list",
 		Short: "print the list of current routing rules",
 		Run: func(_ *cobra.Command, _ []string) {
 			rules, err := client().RoutingRules()
 			catch(err)
 
-			r.tabPrint(rules...)
+			tabPrint(rules...)
 		},
-	}
-}
+	})
 
-func (r *routingRulesCmds) initInfo() {
-	r.info = &cobra.Command{
+	c.AddCommand(&cobra.Command{
 		Use:   "info [routing-rule-id]",
 		Short: "returns information about the routing-rule referenced by it's id",
 		Args:  cobra.MinimumNArgs(1),
@@ -134,13 +92,11 @@ func (r *routingRulesCmds) initInfo() {
 			rule, err := client().RoutingRule(routing.RouteID(id))
 			catch(err)
 
-			r.tabPrintSingleRule(rule.RouteID(), rule.Summary())
+			tabPrintSingleRule(rule.RouteID(), rule.Summary())
 		},
-	}
-}
+	})
 
-func (r *routingRulesCmds) initRm() {
-	r.rm = &cobra.Command{
+	c.AddCommand(&cobra.Command{
 		Use:   "rm [routing-rule-id]",
 		Short: "removes given routing-rule by it's id",
 		Args:  cobra.MinimumNArgs(1),
@@ -152,30 +108,24 @@ func (r *routingRulesCmds) initRm() {
 
 			fmt.Println("OK")
 		},
-	}
+	})
+
+	return c
 }
 
-func newAddCmds() *cobra.Command {
-	a := &addCmds{}
-	a.addRoot()
-	a.addApp()
-	a.addForward()
+func makeAddCmds() *cobra.Command {
+	var expireAfter time.Duration
+	var localPort, remotePort uint16
 
-	a.root.AddCommand(a.app)
-	a.root.AddCommand(a.forward)
-
-	return a.root
-}
-
-func (a *addCmds) addRoot() {
-	a.root = &cobra.Command{
+	c := &cobra.Command{
 		Use:   "add [app|forward]",
 		Short: "adds a new rule",
 	}
-}
 
-func (a *addCmds) addApp() {
-	a.app = &cobra.Command{
+	c.PersistentFlags().DurationVar(&expireAfter, "expire", router.RouteTTL,
+		"duration after which rule will expire")
+
+	app := &cobra.Command{
 		Use:   "app [route-id] [remote-pk]",
 		Short: "adds an app rule",
 		Args:  cobra.MinimumNArgs(2),
@@ -186,8 +136,8 @@ func (a *addCmds) addApp() {
 			pk := cipher.PubKey{}
 			catch(pk.Set(args[1]))
 
-			rule := routing.AppRule(time.Now().Add(a.appFlags.expireAfter),
-				routing.RouteID(id), pk, a.appFlags.remotePort, a.appFlags.localPort)
+			rule := routing.AppRule(time.Now().Add(expireAfter),
+				routing.RouteID(id), pk, remotePort, localPort)
 
 			resID, err := client().AddRoutingRule(rule)
 			catch(err)
@@ -195,21 +145,14 @@ func (a *addCmds) addApp() {
 			fmt.Println("id: ", resID)
 		},
 	}
-
-	a.bindAddAppFlags()
-}
-
-func (a *addCmds) bindAddAppFlags() {
-	a.app.Flags().DurationVar(&a.appFlags.expireAfter, "expire", 10000*time.Hour,
-		"duration after which rule will expire")
-	a.app.Flags().Uint16Var(&a.appFlags.localPort, "local-port", 80,
+	app.Flags().Uint16Var(&localPort, "local-port", 80,
 		"local port of the rule")
-	a.app.Flags().Uint16Var(&a.appFlags.remotePort, "remote-port", 80,
+	app.Flags().Uint16Var(&remotePort, "remote-port", 80,
 		"remote port of the rule")
-}
 
-func (a *addCmds) addForward() {
-	a.forward = &cobra.Command{
+	c.AddCommand(app)
+
+	c.AddCommand(&cobra.Command{
 		Use:   "forward [next-route-id] [next-transport-id]",
 		Short: "adds a forward rule",
 		Args:  cobra.MinimumNArgs(2),
@@ -220,7 +163,7 @@ func (a *addCmds) addForward() {
 			nTrID, err := uuid.Parse(args[1])
 			catch(err)
 
-			rule := routing.ForwardRule(time.Now().Add(a.forwardFlags.expireAfter),
+			rule := routing.ForwardRule(time.Now().Add(expireAfter),
 				routing.RouteID(routeID), nTrID)
 
 			id, err := client().AddRoutingRule(rule)
@@ -228,12 +171,7 @@ func (a *addCmds) addForward() {
 
 			fmt.Println("id: ", id)
 		},
-	}
+	})
 
-	a.bindAddForwardFlags()
-}
-
-func (a *addCmds) bindAddForwardFlags() {
-	a.forward.Flags().DurationVar(&a.forwardFlags.expireAfter, "expire", 10000*time.Hour,
-		"duration after which rule will expire")
+	return c
 }

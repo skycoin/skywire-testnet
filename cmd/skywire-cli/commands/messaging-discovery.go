@@ -7,49 +7,42 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"os"
+	"text/tabwriter"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 	mdClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
-type messagingDiscoveryCmds struct {
-	flags struct {
-		addr string
+func makeMessagingDiscoveryCmds() *cobra.Command {
+	var addr string
+
+	availableServersTabPrint := func(entries []*mdClient.Entry) {
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
+		_, err := fmt.Fprintln(w, "version\tregistered\tpublic-key\taddress\tport\tconns")
+		catch(err)
+
+		for _, entry := range entries {
+			fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%d\n", entry.Version, entry.Timestamp, entry.Static, entry.Server.Address,
+				entry.Server.Port, entry.Server.AvailableConnections)
+		}
+		w.Flush()
 	}
 
-	root                *cobra.Command
-	entry               *cobra.Command
-	getAvailableServers *cobra.Command
-}
-
-func newMessagingDiscoveryCmds() *cobra.Command {
-	m := &messagingDiscoveryCmds{}
-	m.initRoot()
-	m.initEntry()
-	m.initGetAvailableServers()
-
-	m.root.AddCommand(m.entry)
-	m.root.AddCommand(m.getAvailableServers)
-
-	return m.root
-}
-
-func (m *messagingDiscoveryCmds) initRoot() {
-	m.root = &cobra.Command{
+	c := &cobra.Command{
 		Use:   "messaging-discovery",
 		Short: "manage operations with messaging discovery api",
 	}
 
-	m.root.Flags().StringVar(&m.flags.addr, "addr",
-		"localhost:9090", "address of messaging discovery server")
-}
+	c.PersistentFlags().StringVar(&addr, "addr",
+		"https://messaging.discovery.skywire.skycoin.net", "address of messaging discovery server")
 
-func (m *messagingDiscoveryCmds) initEntry() {
-	m.entry = &cobra.Command{
+	c.AddCommand(&cobra.Command{
 		Use:   "entry [node-public-key]",
 		Short: "fetch entry from messaging-discovery instance",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			c := mdClient.NewHTTP("http://" + m.flags.addr)
+			c := mdClient.NewHTTP(addr)
 			pk := cipher.PubKey{}
 			catch(pk.Set(args[0]))
 
@@ -61,15 +54,13 @@ func (m *messagingDiscoveryCmds) initEntry() {
 
 			fmt.Println(entry)
 		},
-	}
-}
+	})
 
-func (m *messagingDiscoveryCmds) initGetAvailableServers() {
-	m.getAvailableServers = &cobra.Command{
+	c.AddCommand(&cobra.Command{
 		Use:   "available-servers",
 		Short: "fetch available servers from messaging-discovery instance",
 		Run: func(_ *cobra.Command, _ []string) {
-			c := mdClient.NewHTTP("http://" + m.flags.addr)
+			c := mdClient.NewHTTP(addr)
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			defer cancel()
@@ -77,9 +68,9 @@ func (m *messagingDiscoveryCmds) initGetAvailableServers() {
 			entries, err := c.AvailableServers(ctx)
 			catch(err)
 
-			for _, entry := range entries {
-				fmt.Println(entry)
-			}
+			availableServersTabPrint(entries)
 		},
-	}
+	})
+
+	return c
 }

@@ -52,7 +52,6 @@ func defaultConfig() *node.Config {
 	conf.Apps = []node.AppConfig{
 		{App: "chat", Version: "1.0", Port: 1, AutoStart: true, Args: []string{}},
 		{App: "therealssh", Version: "1.0", Port: 2, AutoStart: true, Args: []string{}},
-		{App: "therealssh-client", Version: "1.0", Port: 22, AutoStart: true, Args: []string{}},
 		{App: "therealproxy", Version: "1.0", Port: 3, AutoStart: true, Args: []string{"-passcode", passcode}},
 	}
 	conf.TrustedNodes = []cipher.PubKey{}
