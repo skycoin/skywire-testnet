@@ -107,12 +107,12 @@ func NewNode(config *Config) (*Node, error) {
 
 	pk := config.Node.StaticPubKey
 	sk := config.Node.StaticSecKey
-	mDiscovery, err := config.MessagingDiscovery()
+	mConfig, err := config.MessagingConfig()
 	if err != nil {
-		return nil, fmt.Errorf("invalid MessagingConfig: %s", err)
+		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = messaging.NewClient(pk, sk, mDiscovery)
+	node.messenger = messaging.NewClient(mConfig)
 	node.messenger.Logger = node.Logger.PackageLogger("messenger")
 
 	trDiscovery, err := config.TransportDiscovery()

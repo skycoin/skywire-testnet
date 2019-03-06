@@ -3,8 +3,10 @@ package node
 import (
 	"errors"
 	"fmt"
+	"github.com/skycoin/skywire/pkg/messaging"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
@@ -57,15 +59,22 @@ type Config struct {
 	Interfaces InterfaceConfig `json:"interfaces"`
 }
 
-// MessagingDiscovery returns messaging discovery client.
-func (c *Config) MessagingDiscovery() (mClient.APIClient, error) {
+// MessagingConfig returns config for messaging client.
+func (c *Config) MessagingConfig() (*messaging.Config, error) {
+
 	msgConfig := c.Messaging
 
 	if msgConfig.Discovery == "" {
 		return nil, errors.New("empty discovery")
 	}
 
-	return mClient.NewHTTP(msgConfig.Discovery), nil
+	return &messaging.Config{
+		PubKey:     c.Node.StaticPubKey,
+		SecKey:     c.Node.StaticSecKey,
+		Discovery:  mClient.NewHTTP(msgConfig.Discovery),
+		Retries:    5,
+		RetryDelay: time.Second,
+	}, nil
 }
 
 // TransportDiscovery returns transport discovery client.

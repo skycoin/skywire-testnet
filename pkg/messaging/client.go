@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -34,8 +35,19 @@ var (
 
 type clientLink struct {
 	link  *Link
+	addr string
 	chans *chanList
 }
+
+// Config configures Client.
+type Config struct {
+	PubKey     cipher.PubKey
+	SecKey     cipher.SecKey
+	Discovery  client.APIClient
+	Retries    int
+	RetryDelay time.Duration
+}
+
 
 // Client sends messages to remote client nodes via relay Server.
 type Client struct {
@@ -46,6 +58,9 @@ type Client struct {
 	dc     client.APIClient
 	pool   *Pool
 
+	retries    int
+	retryDelay time.Duration
+
 	links map[cipher.PubKey]*clientLink
 	mu    sync.RWMutex
 
@@ -54,12 +69,14 @@ type Client struct {
 }
 
 // NewClient constructs a new Client.
-func NewClient(pubKey cipher.PubKey, secKey cipher.SecKey, discoveryClient client.APIClient) *Client {
+func NewClient(conf *Config) *Client {
 	c := &Client{
 		Logger:   logging.MustGetLogger("messenger"),
-		pubKey:   pubKey,
-		secKey:   secKey,
-		dc:       discoveryClient,
+		pubKey:   conf.PubKey,
+		secKey:   conf.SecKey,
+		dc:       conf.Discovery,
+		retries: conf.Retries,
+		retryDelay: conf.RetryDelay,
 		links:    make(map[cipher.PubKey]*clientLink),
 		newChan:  make(chan *channel),
 		doneChan: make(chan struct{}),
@@ -222,7 +239,7 @@ func (c *Client) link(remotePK cipher.PubKey, addr string) (*clientLink, error) 
 	}
 
 	c.Logger.Infof("Opened new link with the server %s", remotePK)
-	clientLink := &clientLink{l, newChanList()}
+	clientLink := &clientLink{l, addr, newChanList()}
 	c.mu.Lock()
 	c.links[remotePK] = clientLink
 	c.mu.Unlock()
@@ -329,11 +346,25 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 
 func (c *Client) onClose(l *Link, remote bool) {
 	remotePK := l.Remote()
-	c.Logger.Infof("Closing link with the server %s", remotePK)
 
 	c.mu.RLock()
 	chanLink := c.links[remotePK]
 	c.mu.RUnlock()
+
+	select {
+	case <-c.doneChan:
+	default:
+		c.Logger.Infof("Disconnected from the server %s. Trying to re-connect...", remotePK)
+		for attemp := 0; attemp < c.retries; attemp++ {
+			if _, err := c.link(remotePK, chanLink.addr); err == nil {
+				c.Logger.Infof("Re-connected to the server %s", remotePK)
+				return
+			}
+			time.Sleep(c.retryDelay)
+		}
+	}
+
+	c.Logger.Infof("Closing link with the server %s", remotePK)
 
 	for _, channel := range chanLink.chans.dropAll() {
 		channel.close()

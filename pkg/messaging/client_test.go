@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 func TestClientConnectInitialServers(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	discovery := client.NewMock()
-	c := NewClient(pk, sk, discovery)
+	c := NewClient(&Config{pk, sk, discovery, 1, 100 * time.Millisecond})
 
 	srv, err := newMockServer(discovery)
 	require.NoError(t, err)
@@ -44,7 +44,20 @@ func TestClientConnectInitialServers(t *testing.T) {
 	assert.Len(t, entry.Client.DelegatedServers, 1)
 	assert.Equal(t, srv.config.Public, entry.Client.DelegatedServers[0])
 
-	require.NoError(t, srv.Close())
+	c.mu.RLock()
+	l := c.links[srv.config.Public]
+	c.mu.RUnlock()
+	require.NotNil(t, l)
+	require.NoError(t, l.link.Close())
+
+	time.Sleep(200 * time.Millisecond)
+
+	c.mu.RLock()
+	require.Len(t, c.links, 1)
+	c.mu.RUnlock()
+
+	require.NoError(t, c.Close())
+
 	time.Sleep(100 * time.Millisecond)
 
 	c.mu.RLock()
@@ -59,7 +72,8 @@ func TestClientConnectInitialServers(t *testing.T) {
 func TestClientDial(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	discovery := client.NewMock()
-	c := NewClient(pk, sk, discovery)
+	c := NewClient(&Config{pk, sk, discovery, 0, 0})
+	c.retries = 0
 
 	srv, err := newMockServer(discovery)
 	require.NoError(t, err)
@@ -68,7 +82,7 @@ func TestClientDial(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	anotherPK, anotherSK := cipher.GenerateKeyPair()
-	anotherClient := NewClient(anotherPK, anotherSK, discovery)
+	anotherClient := NewClient(&Config{anotherPK, anotherSK, discovery, 0, 0})
 	require.NoError(t, anotherClient.ConnectToInitialServers(context.TODO(), 1))
 
 	var anotherTr transport.Transport
