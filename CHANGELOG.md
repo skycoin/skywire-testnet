@@ -8,19 +8,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added 
 
-- retry logic to messaging server for messaging client
+- Retry logic to messaging server for messaging client.
 
 ### Fixed
 
-- fixed channel collision for messaging clients
+- Fixed channel collision for messaging clients.
 
 ### Changed
 
-- improve readability of Skywire CLI output
+- Improve readability of Skywire CLI output.
 
-## 1.0.0 - 2019.03.04
+## 0.1.0 - 2019.03.04
 
 ### Added
 
-- first release of the mainnet Skywire node and applications for developer testing
-
+- First release of the mainnet Skywire node and apps for testing.
