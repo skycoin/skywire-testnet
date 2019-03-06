@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - fixed channel collision for messaging clients
 
+### Changed
+
+- improve readability of Skywire CLI output
+
 ## 1.0.0 - 2019.03.04
 
 ### Added
