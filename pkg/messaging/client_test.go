@@ -129,8 +129,8 @@ func TestClientDial(t *testing.T) {
 	assert.Equal(t, 3, n)
 	assert.Equal(t, []byte("bar"), buf)
 
-	require.NoError(t, anotherTr.Close())
 	require.NoError(t, tr.Close())
+	require.NoError(t, anotherTr.Close())
 
 	time.Sleep(100 * time.Millisecond)
 
