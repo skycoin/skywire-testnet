@@ -35,7 +35,7 @@ var (
 
 type clientLink struct {
 	link  *Link
-	addr string
+	addr  string
 	chans *chanList
 }
 
@@ -47,7 +47,6 @@ type Config struct {
 	Retries    int
 	RetryDelay time.Duration
 }
-
 
 // Client sends messages to remote client nodes via relay Server.
 type Client struct {
@@ -71,15 +70,15 @@ type Client struct {
 // NewClient constructs a new Client.
 func NewClient(conf *Config) *Client {
 	c := &Client{
-		Logger:   logging.MustGetLogger("messenger"),
-		pubKey:   conf.PubKey,
-		secKey:   conf.SecKey,
-		dc:       conf.Discovery,
-		retries: conf.Retries,
+		Logger:     logging.MustGetLogger("messenger"),
+		pubKey:     conf.PubKey,
+		secKey:     conf.SecKey,
+		dc:         conf.Discovery,
+		retries:    conf.Retries,
 		retryDelay: conf.RetryDelay,
-		links:    make(map[cipher.PubKey]*clientLink),
-		newChan:  make(chan *channel),
-		doneChan: make(chan struct{}),
+		links:      make(map[cipher.PubKey]*clientLink),
+		newChan:    make(chan *channel),
+		doneChan:   make(chan struct{}),
 	}
 	config := &LinkConfig{
 		Public:           c.pubKey,

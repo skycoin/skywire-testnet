@@ -3,10 +3,11 @@ package node
 import (
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/messaging"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/messaging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"

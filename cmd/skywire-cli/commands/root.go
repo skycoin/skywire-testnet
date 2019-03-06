@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 
 // Execute executes root CLI command.
 func Execute() {
-	rootCmd.PersistentFlags().StringVarP(&rpcAddr, "rpc", "", "localhost:3436", "RPC server address")
+	rootCmd.PersistentFlags().StringVarP(&rpcAddr, "rpc", "", "localhost:3435", "RPC server address")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
