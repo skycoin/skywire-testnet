@@ -2,7 +2,7 @@
 
 ~therealproxy~ app implements SOCKS5 functionality over skywire
 net. Any conventional SOCKS5 client should be able to connect to the
-proxy client.
+proxy client. Currently the server supports authentication with a user and passcode pair that are set in the configuration file. If none are provided, the server does not require authentication. 
 
 ** Local setup
 
