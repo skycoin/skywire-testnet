@@ -119,10 +119,14 @@ func NewNode(config *Config) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid MessagingConfig: %s", err)
 	}
+	logStore, err := config.TransportLogStore()
+	if err != nil {
+		return nil, fmt.Errorf("invalid TransportLogStore: %s", err)
+	}
 	tmConfig := &transport.ManagerConfig{
 		PubKey: pk, SecKey: sk,
 		DiscoveryClient: trDiscovery,
-		LogStore:        config.TransportLogStore(),
+		LogStore:        logStore,
 		DefaultNodes:    config.TrustedNodes,
 	}
 	node.tm, err = transport.NewManager(tmConfig, node.messenger)
