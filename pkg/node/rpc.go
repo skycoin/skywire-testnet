@@ -46,7 +46,7 @@ type RPCClient interface {
 	TransportTypes() ([]string, error)
 	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
 	Transport(tid uuid.UUID) (*TransportSummary, error)
-	AddTransport(remote cipher.PubKey, tpType string, public bool) (*TransportSummary, error)
+	AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error)
 	RemoveTransport(tid uuid.UUID) error
 
 	RoutingRules() ([]*RoutingEntry, error)
@@ -202,12 +202,18 @@ type AddTransportIn struct {
 	RemotePK cipher.PubKey
 	TpType   string
 	Public   bool
+	Timeout  time.Duration
 }
 
 // AddTransport creates a transport for the node.
 func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-	defer cancel()
+	ctx := context.Background()
+	if in.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Second*20)
+		defer cancel()
+	}
+
 	tp, err := r.node.tm.CreateTransport(ctx, in.RemotePK, in.TpType, in.Public)
 	if err != nil {
 		return err

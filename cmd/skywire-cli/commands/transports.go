@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -53,6 +54,7 @@ func makeTransportsCmds() *cobra.Command {
 		logs          bool
 		transportType string
 		public        bool
+		timeout       time.Duration
 	)
 
 	tabPrint := func(trList ...*node.TransportSummary) {
@@ -95,7 +97,7 @@ func makeTransportsCmds() *cobra.Command {
 			catch(pk.Set(args[0]))
 
 			tr, err := client().AddTransport(pk,
-				transportType, public)
+				transportType, public, timeout)
 
 			catch(err)
 
@@ -106,6 +108,7 @@ func makeTransportsCmds() *cobra.Command {
 		"type of the transport to add")
 	add.Flags().BoolVar(&public, "public", true,
 		"whether to add the transport as public or private")
+	add.Flags().DurationVarP(&timeout, "timeout", "t", 0, "specifies the timeout; no timeout if 0")
 	c.AddCommand(add)
 
 	list := &cobra.Command{
