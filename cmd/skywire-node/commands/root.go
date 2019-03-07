@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 	Use:   "skywire-node [skywire.json]",
 	Short: "App Node for skywire",
 	Run: func(_ *cobra.Command, args []string) {
-		configFile := "skywire.json"
+		var configFile string
 		if len(args) > 0 {
 			configFile = args[0]
 		} else if conf, ok := os.LookupEnv("SKYWIRE_CONFIG"); ok {

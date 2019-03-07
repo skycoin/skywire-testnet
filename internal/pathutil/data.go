@@ -1,16 +1,16 @@
 package pathutil
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+// pathutil errors
 var (
-	ErrDirectoryNotFound = errors.New(fmt.Sprintf(
-		"directory not found in any of the following paths: %s", strings.Join(paths(), ", ")))
+	ErrDirectoryNotFound = fmt.Errorf(
+		"directory not found in any of the following paths: %s", strings.Join(paths(), ", "))
 )
 
 // paths return the paths in which skywire looks for data directories
