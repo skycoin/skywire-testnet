@@ -143,3 +143,7 @@ func (app *App) Dial(raddr *Addr) (net.Conn, error) {}
 // Close implements io.Closer for App.
 func (app *App) Close() error {}
 ```
+
+## Updater
+
+This software comes with an updater, which is located in this repo: https://github.com/skycoin/skywire-updater. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface. 

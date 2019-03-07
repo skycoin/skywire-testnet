@@ -1,12 +1,12 @@
 # Next steps:
 
-Detailed documentation of the software will follow soon and will be updated as the development continues. The next development steps are: 
+This document defines a high level roadmap for Skywire mainnet development. It does not commit the development team to deliver the features, since product requirements might change at any time. The items do not appear in a chronological order. 
 
-- [ ] implement bandwidth settlement for monetization of network services
-- [ ] CHB / CoinJoin 
-- [ ] new UI for the manager
-- [ ] Remote manager that allows management of unlimited nodes from anywhere
-- [ ] Run CXO on Skywire
+- [ ] Implement bandwidth settlement system for monetization of network services
+- [ ] Integrate Coin Hour Bank / CoinJoin with the settlement system
+- [ ] Integrate the new manager interface with the manager backend
+- [ ] Add support for remote management of unlimited nodes via messaging system
+- [ ] Integrate CXO with Skywire
 - [ ] Create service discovery for peer discovery
-- [ ] Documentation and guides on development on Skywire, application development, how to use it and the architecture itself
+- [ ] Document the software and provide tutorials and help for developing applications using Skywire and to contribute to the development
 - [ ] Integrate Skywire with package manager
