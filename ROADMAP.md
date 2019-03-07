@@ -1,6 +1,6 @@
 # Next steps:
 
-Detailed documentation of the software will follow soon and will be updated as the development continues. The next development steps are: 
+This document defines a high level roadmap for Skywire mainnet development. It does not commit the development team to deliver the features, since product requirements might change at any time. The items do not appear in a chronological order. 
 
 - [ ] Implement bandwidth settlement system for monetization of network services
 - [ ] Integrate Coin Hour Bank / CoinJoin with the settlement system

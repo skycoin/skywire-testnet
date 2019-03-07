@@ -30,8 +30,8 @@ github.com/pmezard/go-difflib/difflib
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
 # github.com/skycoin/skycoin v0.25.1
-github.com/skycoin/skycoin/src/cipher
 github.com/skycoin/skycoin/src/util/logging
+github.com/skycoin/skycoin/src/cipher
 github.com/skycoin/skycoin/src/cipher/base58
 github.com/skycoin/skycoin/src/cipher/ripemd160
 github.com/skycoin/skycoin/src/cipher/secp256k1-go
