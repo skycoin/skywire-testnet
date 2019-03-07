@@ -59,8 +59,11 @@ type fileTransportLogStore struct {
 }
 
 // FileTransportLogStore implements file TransportLogStore.
-func FileTransportLogStore(dir string) LogStore {
-	return &fileTransportLogStore{dir}
+func FileTransportLogStore(dir string) (LogStore, error) {
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return nil, err
+	}
+	return &fileTransportLogStore{dir}, nil
 }
 
 func (tls *fileTransportLogStore) Entry(id uuid.UUID) (*LogEntry, error) {

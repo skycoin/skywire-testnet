@@ -37,5 +37,7 @@ func TestFileTransportLogStore(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	testTransportLogStore(t, FileTransportLogStore(dir))
+	ls, err := FileTransportLogStore(dir)
+	require.NoError(t, err)
+	testTransportLogStore(t, ls)
 }
