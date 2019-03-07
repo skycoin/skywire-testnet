@@ -51,6 +51,8 @@ func makeTransportsCmds() *cobra.Command {
 		typesFilter []string
 		pksFilter   pkSlice
 		logs        bool
+		transportType string
+		public bool
 	)
 
 	tabPrint := func(trList ...*node.TransportSummary) {
@@ -83,6 +85,28 @@ func makeTransportsCmds() *cobra.Command {
 			}
 		},
 	})
+
+	add := &cobra.Command{
+		Use:   "add [transport-public-key]",
+		Short: "adds a new transport",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(_ *cobra.Command, args []string) {
+			pk := cipher.PubKey{}
+			catch(pk.Set(args[0]))
+
+			tr, err := client().AddTransport(pk,
+				transportType, public)
+
+			catch(err)
+
+			tabPrint(tr)
+		},
+	}
+	add.Flags().StringVar(&transportType, "type", "messaging",
+		"type of the transport to add")
+	add.Flags().BoolVar(&public, "public", true,
+		"whether to add the transport as public or private")
+	c.AddCommand(add)
 
 	list := &cobra.Command{
 		Use:   "list",
