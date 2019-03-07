@@ -206,7 +206,7 @@ type AddTransportIn struct {
 
 // AddTransport creates a transport for the node.
 func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	tp, err := r.node.tm.CreateTransport(ctx, in.RemotePK, in.TpType, in.Public)
 	if err != nil {

@@ -48,11 +48,11 @@ func (p pkSlice) Type() string {
 
 func makeTransportsCmds() *cobra.Command {
 	var (
-		typesFilter []string
-		pksFilter   pkSlice
-		logs        bool
+		typesFilter   []string
+		pksFilter     pkSlice
+		logs          bool
 		transportType string
-		public bool
+		public        bool
 	)
 
 	tabPrint := func(trList ...*node.TransportSummary) {
