@@ -5,8 +5,14 @@
 *.dylib
 *.test
 *.out
-pkg/node/apps/
+
 .idea/
+
 /skywire.json
 /apps/
 /skywire/
+/local/
+
+pkg/node/apps/
+pkg/node/bar/
+pkg/node/foo/

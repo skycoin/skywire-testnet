@@ -12,6 +12,10 @@ import (
 	"github.com/skycoin/skywire/pkg/node"
 )
 
+func init() {
+	rootCmd.AddCommand(configCmd)
+}
+
 var configCmd = &cobra.Command{
 	Use:   "config [skywire.json]",
 	Short: "Generate default config file",
@@ -77,8 +81,4 @@ func defaultConfig() *node.Config {
 	conf.Interfaces.RPCAddress = "localhost:3436"
 
 	return conf
-}
-
-func init() {
-	rootCmd.AddCommand(configCmd)
 }
