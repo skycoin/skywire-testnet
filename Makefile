@@ -5,10 +5,11 @@ lint: ## Run linters. Use make install-linters first.
 	GO111MODULE=on go vet -all ./...
 
 install-linters: ## Install linters
-	GO111MODULE=on go get -u github.com/FiloSottile/vendorcheck
+	GO111MODULE=off go get -u github.com/FiloSottile/vendorcheck
 	# For some reason this install method is not recommended, see https://github.com/golangci/golangci-lint#install
 	# However, they suggest `curl ... | bash` which we should not do
 	GO111MODULE=on go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	GO111MODULE=on go get -u golang.org/x/tools/cmd/goimports
 
 format: ## Formats the code. Must have goimports installed (use make install-linters).
 	GO111MODULE=on goimports -w -local github.com/skycoin/skywire ./pkg
