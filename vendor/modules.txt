@@ -13,13 +13,13 @@ github.com/google/uuid
 github.com/hashicorp/yamux
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/konsorten/go-windows-terminal-sequences v1.0.1
+# github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/pty v1.1.3
 github.com/kr/pty
-# github.com/mattn/go-colorable v0.1.0
+# github.com/mattn/go-colorable v0.1.1
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.4
+# github.com/mattn/go-isatty v0.0.6
 github.com/mattn/go-isatty
 # github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 github.com/mgutz/ansi
@@ -45,7 +45,7 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.etcd.io/bbolt v1.3.2
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20190219172222-a4c6cb3142f2
+# golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
@@ -54,11 +54,11 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
-# golang.org/x/net v0.0.0-20190213061140-3a22650c66bd
+# golang.org/x/net v0.0.0-20190310074541-c10a0554eabf
 golang.org/x/net/context
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
-# golang.org/x/sys v0.0.0-20190220154126-629670e5acc5
+# golang.org/x/sys v0.0.0-20190310054646-10058d7d4faa
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/cpu

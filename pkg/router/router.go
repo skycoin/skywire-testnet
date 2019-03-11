@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	routeTTL = 2 * time.Hour // default expiration interval for routes
+	// RouteTTL is the default expiration interval for routes
+	RouteTTL = 2 * time.Hour
 	minHops  = 0
 	maxHops  = 50
 )
@@ -319,7 +320,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	}
 
 	l := &routing.Loop{LocalPort: laddr.Port, RemotePort: raddr.Port,
-		NoiseMessage: msg, ExpireAt: time.Now().Add(routeTTL),
+		NoiseMessage: msg, ExpireAt: time.Now().Add(RouteTTL),
 		Forward: forwardRoute, Reverse: reverseRoute}
 
 	proto, tr, err := r.setupProto(context.Background())

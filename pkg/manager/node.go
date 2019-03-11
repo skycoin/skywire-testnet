@@ -251,7 +251,7 @@ func (m *Node) postTransport() http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
 			return
 		}
-		summary, err := ctx.RPC.AddTransport(reqBody.Remote, reqBody.TpType, reqBody.Public)
+		summary, err := ctx.RPC.AddTransport(reqBody.Remote, reqBody.TpType, reqBody.Public, 30*time.Second) // TODO(evanlinjin): add timeout
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 			return
