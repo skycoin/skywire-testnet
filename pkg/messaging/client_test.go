@@ -190,7 +190,7 @@ func (s *mockServer) onData(l *Link, frameType FrameType, body []byte) error {
 	case FrameTypeOpenChannel:
 		_, err = ol.SendOpenChannel(channelID, l.Remote(), body[34:])
 	case FrameTypeChannelOpened:
-		_, err = ol.SendChannelOpened(channelID, body[1:])
+		_, err = ol.SendChannelOpened(channelID, channelID, body[2:])
 	case FrameTypeCloseChannel:
 		l.SendChannelClosed(channelID) // nolint
 		_, err = ol.SendCloseChannel(channelID)

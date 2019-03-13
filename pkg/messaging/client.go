@@ -158,14 +158,14 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 	if err != nil {
 		return nil, fmt.Errorf("noise setup: %s", err)
 	}
-	channel.ID = clientLink.chans.add(channel)
+	localID := clientLink.chans.add(channel)
 
 	msg, err := channel.noise.HandshakeMessage()
 	if err != nil {
 		return nil, fmt.Errorf("noise handshake: %s", err)
 	}
 
-	if _, err := clientLink.link.SendOpenChannel(channel.ID, remote, msg); err != nil {
+	if _, err := clientLink.link.SendOpenChannel(localID, remote, msg); err != nil {
 		return nil, fmt.Errorf("failed to open channel: %s", err)
 	}
 
@@ -178,7 +178,7 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 		return nil, ctx.Err()
 	}
 
-	c.Logger.Infof("Opened new channel ID %d with %s", channel.ID, remote)
+	c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", localID, channel.ID, remote)
 	return newAckedChannel(channel), nil
 }
 
@@ -296,7 +296,7 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 		} else {
 			c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", lID, channelID,
 				hex.EncodeToString(body[1:34]))
-			_, sendErr = l.SendChannelOpened(lID, msg)
+			_, sendErr = l.SendChannelOpened(channelID, lID, msg)
 		}
 
 		return c.warnSendError(remotePK, sendErr)
@@ -316,7 +316,8 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 		_, sendErr = l.SendChannelClosed(channel.ID)
 		c.Logger.Debugf("Closed channel ID %d", channelID)
 	case FrameTypeChannelOpened:
-		if err := channel.noise.ProcessMessage(body[1:]); err != nil {
+		channel.ID = body[1]
+		if err := channel.noise.ProcessMessage(body[2:]); err != nil {
 			sendErr = fmt.Errorf("noise handshake: %s", err)
 		}
 
