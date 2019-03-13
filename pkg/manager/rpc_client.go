@@ -91,12 +91,13 @@ func (rc *rpcClient) Transport(tid uuid.UUID) (*node.TransportSummary, error) {
 }
 
 // AddTransport calls AddTransport.
-func (rc *rpcClient) AddTransport(remote cipher.PubKey, tpType string, public bool) (*node.TransportSummary, error) {
+func (rc *rpcClient) AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*node.TransportSummary, error) {
 	var summary node.TransportSummary
 	err := rc.Call("AddTransport", &node.AddTransportIn{
 		RemotePK: remote,
 		TpType:   tpType,
 		Public:   public,
+		Timeout:  timeout,
 	}, &summary)
 	return &summary, err
 }
@@ -312,7 +313,7 @@ func (mc *mockRPCClient) Transport(tid uuid.UUID) (*node.TransportSummary, error
 }
 
 // AddTransport implements RPCClient.
-func (mc *mockRPCClient) AddTransport(remote cipher.PubKey, tpType string, public bool) (*node.TransportSummary, error) {
+func (mc *mockRPCClient) AddTransport(remote cipher.PubKey, tpType string, public bool, _ time.Duration) (*node.TransportSummary, error) {
 	summary := &node.TransportSummary{
 		ID:     uuid.New(),
 		Local:  mc.s.PubKey,

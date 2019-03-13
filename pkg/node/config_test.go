@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -51,14 +52,21 @@ func TestTransportDiscovery(t *testing.T) {
 }
 
 func TestTransportLogStore(t *testing.T) {
+	dir := filepath.Join(os.TempDir(), "foo")
+	defer os.RemoveAll(dir)
+
 	conf := Config{}
 	conf.Transport.LogStore.Type = "file"
-	conf.Routing.Table.Location = "/foo"
-	require.NotNil(t, conf.TransportLogStore())
+	conf.Transport.LogStore.Location = dir
+	ls, err := conf.TransportLogStore()
+	require.NoError(t, err)
+	require.NotNil(t, ls)
 
 	conf.Transport.LogStore.Type = "memory"
-	conf.Routing.Table.Location = ""
-	require.NotNil(t, conf.TransportLogStore())
+	conf.Transport.LogStore.Location = ""
+	ls, err = conf.TransportLogStore()
+	require.NoError(t, err)
+	require.NotNil(t, ls)
 }
 
 func TestRoutingTable(t *testing.T) {

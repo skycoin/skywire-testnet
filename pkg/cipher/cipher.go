@@ -2,7 +2,12 @@
 // github.com/skycoin/skycoin/src/cipher
 package cipher
 
-import "github.com/skycoin/skycoin/src/cipher"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/skycoin/skycoin/src/cipher"
+)
 
 func init() {
 	cipher.DebugLevel2 = false // DebugLevel2 causes ECDH to be really slow
@@ -86,6 +91,36 @@ func (pk *PubKey) UnmarshalBinary(data []byte) error {
 		*pk = PubKey(dPK)
 	}
 	return err
+}
+
+// PubKeys represents a slice of PubKeys.
+type PubKeys []PubKey
+
+// String implements stringer for PubKeys.
+func (p PubKeys) String() string {
+	res := "public keys:\n"
+	for _, pk := range p {
+		res += fmt.Sprintf("\t%s\n", pk)
+	}
+	return res
+}
+
+// Set implements pflag.Value for PubKeys.
+func (p *PubKeys) Set(list string) error {
+	*p = PubKeys{}
+	for _, s := range strings.Split(list, ",") {
+		var pk PubKey
+		if err := pk.Set(strings.TrimSpace(s)); err != nil {
+			return err
+		}
+		*p = append(*p, pk)
+	}
+	return nil
+}
+
+// Type implements pflag.Value for PubKeys.
+func (p PubKeys) Type() string {
+	return "cipher.PubKeys"
 }
 
 // SecKey is a wrapper type for cipher.SecKey that implements common

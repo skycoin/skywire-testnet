@@ -88,12 +88,12 @@ func (c *Config) TransportDiscovery() (transport.DiscoveryClient, error) {
 }
 
 // TransportLogStore returns configure transport.LogStore.
-func (c *Config) TransportLogStore() transport.LogStore {
+func (c *Config) TransportLogStore() (transport.LogStore, error) {
 	if c.Transport.LogStore.Type == "file" {
 		return transport.FileTransportLogStore(c.Transport.LogStore.Location)
 	}
 
-	return transport.InMemoryTransportLogStore()
+	return transport.InMemoryTransportLogStore(), nil
 }
 
 // RoutingTable returns configure routing.Table.
