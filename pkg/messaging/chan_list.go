@@ -26,12 +26,6 @@ func (c *chanList) add(channel *channel) byte {
 	panic("no free channels")
 }
 
-func (c *chanList) set(id byte, channel *channel) {
-	c.Lock()
-	c.chans[id] = channel
-	c.Unlock()
-}
-
 func (c *chanList) get(id byte) *channel {
 	c.Lock()
 	ch := c.chans[id]

@@ -145,7 +145,6 @@ func (c *channel) close() {
 	case <-c.doneChan:
 	default:
 		close(c.doneChan)
-		close(c.readChan)
 		close(c.closeChan)
 	}
 }
@@ -159,6 +158,8 @@ func (c *channel) readEncrypted(ctx context.Context, p []byte) (n int, err error
 			}
 
 			select {
+			case <-c.doneChan:
+				return 0, io.EOF
 			case in, more := <-c.readChan:
 				if !more {
 					return 0, io.EOF

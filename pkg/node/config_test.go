@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,14 +18,21 @@ import (
 )
 
 func TestMessagingDiscovery(t *testing.T) {
+	pk, sk := cipher.GenerateKeyPair()
 	conf := Config{}
+	conf.Node.StaticPubKey = pk
+	conf.Node.StaticSecKey = sk
 	conf.Messaging.Discovery = "skywire.skycoin.net:8001"
 	conf.Messaging.ServerCount = 10
 
-	discovery, err := conf.MessagingDiscovery()
+	c, err := conf.MessagingConfig()
 	require.NoError(t, err)
 
-	assert.NotNil(t, discovery)
+	assert.NotNil(t, c.Discovery)
+	assert.False(t, c.PubKey.Null())
+	assert.False(t, c.SecKey.Null())
+	assert.Equal(t, 5, c.Retries)
+	assert.Equal(t, time.Second, c.RetryDelay)
 }
 
 func TestTransportDiscovery(t *testing.T) {

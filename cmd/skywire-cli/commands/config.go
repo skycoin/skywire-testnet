@@ -78,7 +78,7 @@ func defaultConfig() *node.Config {
 
 	conf.LogLevel = "info"
 
-	conf.Interfaces.RPCAddress = "localhost:3436"
+	conf.Interfaces.RPCAddress = "localhost:3435"
 
 	return conf
 }
