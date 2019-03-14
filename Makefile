@@ -1,5 +1,5 @@
 OPTS?=GO111MODULE=on 
-DOCKER_IMAGE?=buildpack-deps:stretch-scm # docker image to use for running skywire-node. `golang` is OK too
+DOCKER_IMAGE?=skywire-runner # buildpack-deps:stretch-scm # docker image to use for running skywire-node. `golang` is OK too
 DOCKER_NETWORK?=SKYNET 
 DOCKER_NODE?=SKY01 
 
@@ -79,6 +79,9 @@ therealssh-cli:
 
 # Node
 
+docker-image:
+	docker image build --tag=skywire-runner --rm  - < skywire-runner.Dockerfile
+
 docker-clean: 
 	-docker network rm ${DOCKER_NETWORK} 
 	-docker container rm --force ${DOCKER_NODE} 
@@ -93,7 +96,7 @@ docker-volume: build
 	./skywire-cli config ./node/skywire.json
 	cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ' > ./node/PK 
 
-node: docker-clean docker-network docker-volume
+node: docker-clean docker-image docker-network docker-volume 
 	docker run -d -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} --name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
 
 run: 
