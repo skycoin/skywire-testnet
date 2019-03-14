@@ -1,7 +1,7 @@
-OPTS=GO111MODULE=on 
-DOCKER_IMAGE=buildpack-deps:stretch-scm # docker image to use for running skywire-node. `golang` is OK too
-DOCKER_NETWORK=SKYNET 
-DOCKER_NODE=SKY01 
+OPTS?=GO111MODULE=on 
+DOCKER_IMAGE?=buildpack-deps:stretch-scm # docker image to use for running skywire-node. `golang` is OK too
+DOCKER_NETWORK?=SKYNET 
+DOCKER_NODE?=SKY01 
 
 
 build: dep apps bin
