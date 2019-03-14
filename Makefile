@@ -1,4 +1,8 @@
-OPTS=GO111MODULE=on
+OPTS=GO111MODULE=on 
+DOCKER_IMAGE=buildpack-deps:stretch-scm # docker image to use for running skywire-node. `golang` is OK too
+DOCKER_NETWORK=SKYNET 
+DOCKER_NODE=SKY01 
+
 
 build: dep apps bin
 
@@ -72,3 +76,32 @@ manager-node:
 
 therealssh-cli:
 	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
+
+# Node
+
+docker-clean: 
+	-docker network rm ${DOCKER_NETWORK} 
+	-docker container rm --force ${DOCKER_NODE} 
+
+docker-network:
+	-docker network create ${DOCKER_NETWORK}
+
+docker-volume: build
+	mkdir -p ./node 
+	cp ./skywire-node ./node
+	cp -r ./apps ./node/apps
+	./skywire-cli config ./node/skywire.json
+	cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ' > ./node/PK 
+
+node: docker-clean docker-network docker-volume
+	docker run -d -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} --name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
+
+run: 
+	./skywire-node
+
+node-stop:
+	-docker container stop ${DOCKER_NODE}
+
+refresh-node: node-stop
+	cp ./skywire-node ./node
+	docker container start  ${DOCKER_NODE}
