@@ -275,10 +275,6 @@ Default value: "GO111MODULE=on GOOS=linux"
 #### 1. Get Public Key of node
 
 ```bash
-# you need `jq` (https://stedolan.github.io/jq/) for this:
-$ cat ./node/skywire.json |jq -r ".node.static_public_key" 
-# 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
-# or without `jq`:
 $ cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' '
 # 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
 # or just:
@@ -286,14 +282,20 @@ $ cat ./node/PK # this file is created during `make docker-volume`
 # 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
 ```
 
-#### 2. Open in browser containerized `chat` application
+#### 2. Get an IP of node
 
 ```bash
-# you need `jq` (https://stedolan.github.io/jq/) for this:
-$ firefox http://$(docker inspect SKY01 |jq -r  ".[0].NetworkSettings.Networks.SKYNET.IPAddress"):8000
+$ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01
+# 192.168.112
 ```
 
-#### 3. Create new dockerize `skywire-nodes`
+#### 3. Open in browser containerized `chat` application
+
+```bash
+$ firefox http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000  
+```
+
+#### 4. Create new dockerize `skywire-nodes`
 
 In case you need more dockerized nodes or maybe it's needed to customize node
 let's look how to create new node.
@@ -301,7 +303,7 @@ let's look how to create new node.
 ```bash
 # 1. We need a folder for docker volume
 $ mkdir /tmp/SKYNODE
-# 2. compile  `skywire-node` 
+# 2. compile  `skywire-node`
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/skywire-node ./cmd/skywire-node
 # 3. compile apps
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/chat.v1.0 ./cmd/apps/chat
