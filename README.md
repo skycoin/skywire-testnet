@@ -191,6 +191,40 @@ This will:
 - create docker volume ./node with linux binaries and apps
 - create container  `SKY01` and starts it (can be customized)
 
+#### Structure of `./node`
+
+```bash
+./node
+├── apps                            # node `apps` compiled with DOCKER_OPTS
+│   ├── chat.v1.0                   #
+│   ├── helloworld.v1.0             #
+│   ├── therealproxy-client.v1.0    #
+│   ├── therealproxy.v1.0           #
+│   ├── therealssh-client.v1.0      #
+│   └── therealssh.v1.0             #
+├── local                           # **Created inside docker**
+│   ├── chat                        #  according to "local_path" in skywire.json
+│   ├── therealproxy                #
+│   └── therealssh                  #
+├── PK                              # contains public key of node
+├── skywire                         # db & logs. **Created inside docker**
+│   ├── routing.db                  #
+│   └── transport_logs              #
+├── skywire.json                    # config of node
+└── skywire-node                    # `skywire-node binary` compiled with DOCKER_OPTS
+```
+
+Directory `./node` is mounted as docker volume for `skywire-node` container.
+
+Inside docker container it is mounted on `/sky`
+
+Structure of `./node` partially replicates structure of project root directory.
+
+Note that files created inside docker container has ownership `root:root`, 
+so in case you want to `rm -rf ./node` (or other file operations) - you will need `sudo` it.
+
+Look at "Recipes: Creating new dockerized node" for further details.
+
 ### Refresh and restart `SKY01`
 
 ```bash
@@ -235,3 +269,83 @@ Default value: SKY01
 `go build` options for binaries and apps in container.
 
 Default value: "GO111MODULE=on GOOS=linux"
+
+### Dockerized `skywire-node` recipes
+
+#### 1. Get Public Key of node
+
+```bash
+# you need `jq` (https://stedolan.github.io/jq/) for this:
+$ cat ./node/skywire.json |jq -r ".node.static_public_key" 
+# 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
+# or without `jq`:
+$ cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' '
+# 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
+# or just:
+$ cat ./node/PK # this file is created during `make docker-volume`
+# 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
+```
+
+#### 2. Open in browser containerized `chat` application
+
+```bash
+# you need `jq` (https://stedolan.github.io/jq/) for this:
+$ firefox http://$(docker inspect SKY01 |jq -r  ".[0].NetworkSettings.Networks.SKYNET.IPAddress"):8000
+```
+
+#### 3. Create new dockerize `skywire-nodes`
+
+In case you need more dockerized nodes or maybe it's needed to customize node
+let's look how to create new node.
+
+```bash
+# 1. We need a folder for docker volume
+$ mkdir /tmp/SKYNODE
+# 2. compile  `skywire-node` 
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/skywire-node ./cmd/skywire-node
+# 3. compile apps
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/chat.v1.0 ./cmd/apps/chat
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/helloworld.v1.0 ./cmd/apps/helloworld
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh.v1.0  ./cmd/apps/therealssh
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+# 4. Create skywire.json for node
+$ skywire-cli config /tmp/SKYNODE/skywire.json
+# 2019/03/15 16:43:49 Done!
+$ tree /tmp/SKYNODE
+# /tmp/SKYNODE
+# ├── apps
+# │   ├── chat.v1.0
+# │   ├── helloworld.v1.0
+# │   ├── therealproxy.v1.0
+# │   ├── therealssh-client.v1.0
+# │   └── therealssh.v1.0
+# ├── skywire.json
+# └── skywire-node
+# So far so good. We prepared docker volume. Now we can:
+$ docker run -it -v /tmp/SKYNODE:/sky --network=SKYNET --name=SKYNODE skywire-runner bash -c "cd /sky && ./skywire-node"
+# [2019-03-15T13:55:08Z] INFO [messenger]: Opened new link with the server # 02a49bc0aa1b5b78f638e9189be4ed095bac5d6839c828465a8350f80ac07629c0
+# [2019-03-15T13:55:08Z] INFO [messenger]: Updating discovery entry
+# [2019-03-15T13:55:10Z] INFO [skywire]: Connected to messaging servers
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting chat.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting RPC interface on 127.0.0.1:3435
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealproxy.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealssh.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting packet router
+# [2019-03-15T13:55:10Z] INFO [router]: Starting router
+# [2019-03-15T13:55:10Z] INFO [trmanager]: Starting transport manager
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"chat",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app chat.v1.0
+# [2019-03-15T13:55:10Z] INFO [chat.v1.0]: 2019/03/15 13:55:10 Serving HTTP on :8000
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealssh",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealssh.v1.0
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealproxy",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealproxy.v1.0
+```
+
+Note that in this example docker is running in non-detached mode - it could be useful in some scenarios.
+
+Instead of skywire-runner you can use:
+
+- `golang`, `buildpack-deps:stretch-scm` "as is"
+- and `debian`, `ubuntu` - after `apt-get install ca-certificates` in them. Look in `skywire-runner.Dockerfile` for example
