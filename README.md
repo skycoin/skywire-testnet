@@ -38,23 +38,23 @@ $ git clone https://github.com/skycoin/skywire
 $ cd skywire
 $ git checkout mainnet
 
+
+# Build
+
+```bash
+make # this will install all dependencies and build binaries
+```
+
 # Install skywire-node, skywire-cli, manager-node and therealssh-cli
-$ GO111MODULE=on go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli
 
-# Setup run folder.
-mkdir skywire
-mkdir apps
+```bash
+make install
+```
 
-# Build apps.
-$ GO111MODULE=on go build -o ./apps/chat.v1.0 ./cmd/apps/chat
-$ GO111MODULE=on go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-$ GO111MODULE=on go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-$ GO111MODULE=on go build -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-$ GO111MODULE=on go build -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-$ GO111MODULE=on go build -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+# Generate default json config
 
-# Generate default json config.
-$ skywire-cli config
+```bash
+skywire-cli config
 ```
 
 ### Run `skywire-node`
@@ -66,6 +66,12 @@ $ skywire-cli config
 $ skywire-node skywire.json
 ```
 
+### Run `skywire-node` in docker container
+
+```bash
+make node
+```
+
 ### Run `skywire-cli`
 
 The `skywire-cli` tool is used to control the `skywire-node`. Refer to the help menu for usage:
@@ -74,25 +80,36 @@ The `skywire-cli` tool is used to control the `skywire-node`. Refer to the help 
 $ skywire-cli -h
 
 # Command Line Interface for skywire
-# 
+#
 # Usage:
 #   skywire-cli [command]
-# 
+#
 # Available Commands:
-#   app                 app management operations
-#   config              Generate default config file
-#   help                Help about any command
-#   messaging-discovery manage operations with messaging discovery api
-#   route-finder        manage operations with route finder api
-#   routing-rules       manages operations with routing rules
-#   transport-discovery manage operations with transport discovery api
-#   transports          manages transports related operations
-# 
+#   add-rule          adds a new routing rule
+#   add-transport     adds a new transport
+#   apps              lists apps running on the node
+#   config            Generate default config file
+#   find-routes       lists available routes between two nodes via route finder service
+#   find-transport    finds and lists transport(s) of given transport ID or edge public key from transport discovery
+#   help              Help about any command
+#   list-rules        lists the local node's routing rules
+#   list-transports   lists the available transports with optional filter flags
+#   messaging         manage operations with messaging services
+#   rm-rule           removes a routing rule via route ID key
+#   rm-transport      removes transport with given id
+#   rule              returns a routing rule via route ID key
+#   set-app-autostart sets the autostart flag for an app of given name
+#   start-app         starts an app of given name
+#   stop-app          stops an app of given name
+#   transport         returns summary of given transport by id
+#   transport-types   lists transport types used by the local node
+#
 # Flags:
 #   -h, --help         help for skywire-cli
 #       --rpc string   RPC server address (default "localhost:3435")
-# 
+#
 # Use "skywire-cli [command] --help" for more information about a command.
+
 ```
 
 ### Apps
@@ -112,7 +129,7 @@ Transports can be established via the `skywire-cli`.
 
 ```bash
 # Establish transport to `0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881`.
-$ skywire-cli transports add 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
+$ skywire-cli add-transport 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
 
 # List established transports.
 $ skywire-cli transports list
@@ -146,4 +163,4 @@ func (app *App) Close() error {}
 
 ## Updater
 
-This software comes with an updater, which is located in this repo: https://github.com/skycoin/skywire-updater. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface. 
+This software comes with an updater, which is located in this repo: https://github.com/skycoin/skywire-updater. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface.
