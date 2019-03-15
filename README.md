@@ -37,18 +37,27 @@ Skywire requires a version of [golang](https://golang.org/) with [go modules](ht
 $ git clone https://github.com/skycoin/skywire
 $ cd skywire
 $ git checkout mainnet
-
-
 # Build
+$ make # installs all dependencies, build binaries and apps
+```
+
+#### Note: Environment variable OPTS
+
+Build can be customized with environment variable `OPTS` with default value `GO111MODULE=on`
+
+E.g.
 
 ```bash
-make # this will install all dependencies and build binaries
+$ export OPTS="GO111MODULE=on GOOS=darwin"
+$ make
+# or
+$ OPTS="GSO111MODULE=on GOOS=linux GOARCH=arm" make
 ```
 
 # Install skywire-node, skywire-cli, manager-node and therealssh-cli
 
 ```bash
-make install
+$ make install  # compiles and installs all binaries
 ```
 
 # Generate default json config
@@ -164,3 +173,65 @@ func (app *App) Close() error {}
 ## Updater
 
 This software comes with an updater, which is located in this repo: https://github.com/skycoin/skywire-updater. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface.
+
+## Running skywire in docker containers
+
+There are two make goals for running in development environment dockerized `skywire-node`.
+
+### Run dockerized `skywire-node`
+
+```bash
+$ make node
+```
+
+This will:
+
+- create docker image `skywire-runner` for running `skywire-node`
+- create docker network `SKYNET` (can be customized)
+- create docker volume ./node with linux binaries and apps
+- create container  `SKY01` and starts it (can be customized)
+
+### Refresh and restart `SKY01`
+
+```bash
+$ make refresh-node
+```
+
+This will:
+
+ - stops running node
+ - recompiles `skywire-node` for container
+ - start node again
+
+### Customization of dockers
+
+#### 1. DOCKER_IMAGE
+
+Docker image for running `skywire-node`.
+
+Default value: `skywire-runner` (built with `make docker-image`)
+
+Other images can be used.
+E.g.
+
+```bash
+DOCKER_IMAGE=golang make node #buildpack-deps:stretch-scm is OK too
+```
+
+#### 2.DOCKER_NETWORK
+
+Name of virtual network for `skywire-node`
+
+Default value: SKYNET
+
+#### 3. DOCKER_NODE
+
+Name of container for `skywire-node`
+
+Default value: SKY01
+
+#### 4. DOCKER_OPTS
+
+`go build` options for binaries and apps in container.
+
+Default value: "GO111MODULE=on GOOS=linux"

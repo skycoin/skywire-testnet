@@ -4,7 +4,7 @@ DOCKER_NETWORK?=SKYNET
 DOCKER_NODE?=SKY01
 DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker container
 
-build: dep apps bin
+build: dep host-apps bin
 
 clean:
 	rm -rf ./apps
@@ -38,8 +38,6 @@ test: ## Run tests for net
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/...
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
 
-
-build: host-apps bin
 
 # Apps 
 host-apps: 
