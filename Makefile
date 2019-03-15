@@ -1,8 +1,8 @@
 OPTS?=GO111MODULE=on 
-DOCKER_IMAGE?=skywire-runner # buildpack-deps:stretch-scm # docker image to use for running skywire-node. `golang` is OK too
+DOCKER_IMAGE?=skywire-runner # docker image to use for running skywire-node.`golang`, `buildpack-deps:stretch-scm`  is OK too
 DOCKER_NETWORK?=SKYNET 
-DOCKER_NODE?=SKY01 
-
+DOCKER_NODE?=SKY01
+DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker container
 
 build: dep apps bin
 
@@ -39,42 +39,22 @@ test: ## Run tests for net
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
 
 
-build: apps bin
+build: host-apps bin
 
 # Apps 
-apps: chat helloworld therealproxy therealproxy-client therealssh thereallssh-client
-
-chat:
-	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat
-
-helloworld:
+host-apps: 
+	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
 	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-
-therealproxy:
 	${OPTS} go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-
-therealproxy-client:	
 	${OPTS} go build -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-
-therealssh:
 	${OPTS} go build -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-
-thereallssh-client:
 	${OPTS} go build -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
 
 # Bin 
-bin: skywire-node skywire-cli manager-node therealssh-cli
-
-skywire-node:
+bin: 
 	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
-
-skywire-cli:
 	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
-
-manager-node:
 	${OPTS} go build -o ./manager-node ./cmd/manager-node 
-
-therealssh-cli:
 	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
 
 # Node
@@ -89,12 +69,22 @@ docker-clean:
 docker-network:
 	-docker network create ${DOCKER_NETWORK}
 
-docker-volume: build
-	mkdir -p ./node 
-	cp ./skywire-node ./node
-	cp -r ./apps ./node/apps
+docker-apps:
+	-${DOCKER_OPTS} go build -o ./node/apps/chat.v1.0 ./cmd/apps/chat
+	-${DOCKER_OPTS} go build -o ./node/apps/helloworld.v1.0 ./cmd/apps/helloworld
+	-${DOCKER_OPTS} go build -o ./node/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
+	-${DOCKER_OPTS} go build -o ./node/apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	-${DOCKER_OPTS} go build -o ./node/apps/therealssh.v1.0  ./cmd/apps/therealssh
+	-${DOCKER_OPTS} go build -o ./node/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+
+docker-bin: 
+	${DOCKER_OPTS} go build -o ./node/skywire-node ./cmd/skywire-node 
+
+
+docker-volume: docker-apps docker-bin bin		
 	./skywire-cli config ./node/skywire.json
 	cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ' > ./node/PK 
+	cat ./node/PK
 
 node: docker-clean docker-image docker-network docker-volume 
 	docker run -d -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} --name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
@@ -105,6 +95,6 @@ run:
 node-stop:
 	-docker container stop ${DOCKER_NODE}
 
-refresh-node: node-stop
-	cp ./skywire-node ./node
+refresh-node: node-stop docker-bin 
+	# cp ./skywire-node ./node
 	docker container start  ${DOCKER_NODE}
