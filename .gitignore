@@ -16,3 +16,11 @@
 pkg/node/apps/
 pkg/node/bar/
 pkg/node/foo/
+
+
+/manager-node
+/skywire-node
+/skywire-cli
+/manager-node
+/therealssh-cli
+/node

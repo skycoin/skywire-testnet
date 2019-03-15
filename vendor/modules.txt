@@ -19,7 +19,7 @@ github.com/konsorten/go-windows-terminal-sequences
 github.com/kr/pty
 # github.com/mattn/go-colorable v0.1.1
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.6
+# github.com/mattn/go-isatty v0.0.7
 github.com/mattn/go-isatty
 # github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 github.com/mgutz/ansi
@@ -27,7 +27,7 @@ github.com/mgutz/ansi
 github.com/mitchellh/go-homedir
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/sirupsen/logrus v1.3.0
+# github.com/sirupsen/logrus v1.4.0
 github.com/sirupsen/logrus
 # github.com/skycoin/skycoin v0.25.1
 github.com/skycoin/skycoin/src/util/logging
@@ -45,7 +45,7 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.etcd.io/bbolt v1.3.2
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+# golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
@@ -54,11 +54,11 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
-# golang.org/x/net v0.0.0-20190310074541-c10a0554eabf
+# golang.org/x/net v0.0.0-20190313220215-9f648a60d977
 golang.org/x/net/context
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
-# golang.org/x/sys v0.0.0-20190310054646-10058d7d4faa
+# golang.org/x/sys v0.0.0-20190312061237-fead79001313
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/cpu
