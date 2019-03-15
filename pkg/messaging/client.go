@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -34,7 +35,17 @@ var (
 
 type clientLink struct {
 	link  *Link
+	addr  string
 	chans *chanList
+}
+
+// Config configures Client.
+type Config struct {
+	PubKey     cipher.PubKey
+	SecKey     cipher.SecKey
+	Discovery  client.APIClient
+	Retries    int
+	RetryDelay time.Duration
 }
 
 // Client sends messages to remote client nodes via relay Server.
@@ -46,6 +57,9 @@ type Client struct {
 	dc     client.APIClient
 	pool   *Pool
 
+	retries    int
+	retryDelay time.Duration
+
 	links map[cipher.PubKey]*clientLink
 	mu    sync.RWMutex
 
@@ -54,15 +68,17 @@ type Client struct {
 }
 
 // NewClient constructs a new Client.
-func NewClient(pubKey cipher.PubKey, secKey cipher.SecKey, discoveryClient client.APIClient) *Client {
+func NewClient(conf *Config) *Client {
 	c := &Client{
-		Logger:   logging.MustGetLogger("messenger"),
-		pubKey:   pubKey,
-		secKey:   secKey,
-		dc:       discoveryClient,
-		links:    make(map[cipher.PubKey]*clientLink),
-		newChan:  make(chan *channel),
-		doneChan: make(chan struct{}),
+		Logger:     logging.MustGetLogger("messenger"),
+		pubKey:     conf.PubKey,
+		secKey:     conf.SecKey,
+		dc:         conf.Discovery,
+		retries:    conf.Retries,
+		retryDelay: conf.RetryDelay,
+		links:      make(map[cipher.PubKey]*clientLink),
+		newChan:    make(chan *channel),
+		doneChan:   make(chan struct{}),
 	}
 	config := &LinkConfig{
 		Public:           c.pubKey,
@@ -142,14 +158,14 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 	if err != nil {
 		return nil, fmt.Errorf("noise setup: %s", err)
 	}
-	channel.ID = clientLink.chans.add(channel)
+	localID := clientLink.chans.add(channel)
 
 	msg, err := channel.noise.HandshakeMessage()
 	if err != nil {
 		return nil, fmt.Errorf("noise handshake: %s", err)
 	}
 
-	if _, err := clientLink.link.SendOpenChannel(channel.ID, remote, msg); err != nil {
+	if _, err := clientLink.link.SendOpenChannel(localID, remote, msg); err != nil {
 		return nil, fmt.Errorf("failed to open channel: %s", err)
 	}
 
@@ -162,7 +178,7 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 		return nil, ctx.Err()
 	}
 
-	c.Logger.Infof("Opened new channel ID %d with %s", channel.ID, remote)
+	c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", localID, channel.ID, remote)
 	return newAckedChannel(channel), nil
 }
 
@@ -222,7 +238,7 @@ func (c *Client) link(remotePK cipher.PubKey, addr string) (*clientLink, error) 
 	}
 
 	c.Logger.Infof("Opened new link with the server %s", remotePK)
-	clientLink := &clientLink{l, newChanList()}
+	clientLink := &clientLink{l, addr, newChanList()}
 	c.mu.Lock()
 	c.links[remotePK] = clientLink
 	c.mu.Unlock()
@@ -274,12 +290,13 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 
 	c.Logger.Debugf("New frame %s from %s@%d", frameType, remotePK, channelID)
 	if frameType == FrameTypeOpenChannel {
-		if msg, err := c.openChannel(channelID, body[1:34], body[34:], clientLink); err != nil {
+		if lID, msg, err := c.openChannel(channelID, body[1:34], body[34:], clientLink); err != nil {
 			c.Logger.Warnf("Failed to open new channel for %s: %s", remotePK, err)
 			_, sendErr = l.SendChannelClosed(channelID)
 		} else {
-			c.Logger.Infof("Opened new channel ID %d with %s", channelID, hex.EncodeToString(body[1:34]))
-			_, sendErr = l.SendChannelOpened(channelID, msg)
+			c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", lID, channelID,
+				hex.EncodeToString(body[1:34]))
+			_, sendErr = l.SendChannelOpened(channelID, lID, msg)
 		}
 
 		return c.warnSendError(remotePK, sendErr)
@@ -296,10 +313,11 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 	switch frameType {
 	case FrameTypeCloseChannel:
 		clientLink.chans.remove(channelID)
-		_, sendErr = l.SendChannelClosed(channelID)
+		_, sendErr = l.SendChannelClosed(channel.ID)
 		c.Logger.Debugf("Closed channel ID %d", channelID)
 	case FrameTypeChannelOpened:
-		if err := channel.noise.ProcessMessage(body[1:]); err != nil {
+		channel.ID = body[1]
+		if err := channel.noise.ProcessMessage(body[2:]); err != nil {
 			sendErr = fmt.Errorf("noise handshake: %s", err)
 		}
 
@@ -308,6 +326,7 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 		default:
 		}
 	case FrameTypeChannelClosed:
+		channel.ID = body[0]
 		select {
 		case channel.waitChan <- false:
 		case channel.closeChan <- struct{}{}:
@@ -329,7 +348,6 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 
 func (c *Client) onClose(l *Link, remote bool) {
 	remotePK := l.Remote()
-	c.Logger.Infof("Closing link with the server %s", remotePK)
 
 	c.mu.RLock()
 	chanLink := c.links[remotePK]
@@ -338,6 +356,21 @@ func (c *Client) onClose(l *Link, remote bool) {
 	for _, channel := range chanLink.chans.dropAll() {
 		channel.close()
 	}
+
+	select {
+	case <-c.doneChan:
+	default:
+		c.Logger.Infof("Disconnected from the server %s. Trying to re-connect...", remotePK)
+		for attemp := 0; attemp < c.retries; attemp++ {
+			if _, err := c.link(remotePK, chanLink.addr); err == nil {
+				c.Logger.Infof("Re-connected to the server %s", remotePK)
+				return
+			}
+			time.Sleep(c.retryDelay)
+		}
+	}
+
+	c.Logger.Infof("Closing link with the server %s", remotePK)
 
 	c.mu.Lock()
 	delete(c.links, remotePK)
@@ -348,27 +381,26 @@ func (c *Client) onClose(l *Link, remote bool) {
 	}
 }
 
-func (c *Client) openChannel(channelID byte, remotePK []byte, msg []byte, chanLink *clientLink) ([]byte, error) {
-	channel := chanLink.chans.get(channelID)
-	if channel != nil {
-		return nil, errors.New("channel is already opened")
-	}
-
-	pubKey, err := cipher.NewPubKey(remotePK)
+func (c *Client) openChannel(rID byte, remotePK []byte, noiseMsg []byte, chanLink *clientLink) (lID byte, noiseRes []byte, err error) {
+	var pubKey cipher.PubKey
+	pubKey, err = cipher.NewPubKey(remotePK)
 	if err != nil {
-		return nil, err
+		return
 	}
-	channel, err = newChannel(false, c.secKey, pubKey, chanLink.link)
+
+	channel, err := newChannel(false, c.secKey, pubKey, chanLink.link)
+	channel.ID = rID
 	if err != nil {
-		return nil, fmt.Errorf("noise setup: %s", err)
+		err = fmt.Errorf("noise setup: %s", err)
+		return
 	}
 
-	channel.ID = channelID
-	chanLink.chans.set(channelID, channel)
-
-	if err := channel.noise.ProcessMessage(msg); err != nil {
-		return nil, fmt.Errorf("noise handshake: %s", err)
+	if err = channel.noise.ProcessMessage(noiseMsg); err != nil {
+		err = fmt.Errorf("noise handshake: %s", err)
+		return
 	}
+
+	lID = chanLink.chans.add(channel)
 
 	go func() {
 		select {
@@ -377,12 +409,13 @@ func (c *Client) openChannel(channelID byte, remotePK []byte, msg []byte, chanLi
 		}
 	}()
 
-	res, err := channel.noise.HandshakeMessage()
+	noiseRes, err = channel.noise.HandshakeMessage()
 	if err != nil {
-		return nil, fmt.Errorf("noise handshake: %s", err)
+		err = fmt.Errorf("noise handshake: %s", err)
+		return
 	}
 
-	return res, nil
+	return lID, noiseRes, err
 }
 
 func (c *Client) warnSendError(remote cipher.PubKey, err error) error {

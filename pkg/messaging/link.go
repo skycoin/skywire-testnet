@@ -106,8 +106,8 @@ func (c *Link) SendOpenChannel(channelID byte, remotePK cipher.PubKey, noiseMsg 
 }
 
 // SendChannelOpened sends ChannelOpened frame.
-func (c *Link) SendChannelOpened(channelID byte, noiseMsg []byte) (int, error) {
-	return c.writeFrame(FrameTypeChannelOpened, append([]byte{channelID}, noiseMsg...))
+func (c *Link) SendChannelOpened(channelID byte, remoteID byte, noiseMsg []byte) (int, error) {
+	return c.writeFrame(FrameTypeChannelOpened, append([]byte{channelID, remoteID}, noiseMsg...))
 }
 
 // SendCloseChannel sends CloseChannel request.

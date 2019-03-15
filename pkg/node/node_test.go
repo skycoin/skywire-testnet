@@ -73,7 +73,8 @@ func TestNodeStartClose(t *testing.T) {
 	defer os.RemoveAll("chat")
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
-	node.messenger = messaging.NewClient(cipher.PubKey{}, cipher.SecKey{}, client.NewMock())
+	mConf := &messaging.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: client.NewMock()}
+	node.messenger = messaging.NewClient(mConf)
 	var err error
 
 	tmConf := &transport.ManagerConfig{PubKey: cipher.PubKey{}, DiscoveryClient: transport.NewDiscoveryMock()}

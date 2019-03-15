@@ -53,7 +53,9 @@ func (rm *routeManager) RemoveLoopRule(addr *app.LoopAddr) error {
 		}
 
 		appRouteID = routeID
-		appRule = rule
+		appRule = make(routing.Rule, len(rule))
+		copy(appRule, rule)
+
 		return false
 	})
 	if err != nil {
@@ -154,7 +156,8 @@ func (rm *routeManager) confirmLoop(data []byte) (noiseRes []byte, err error) {
 		}
 
 		appRouteID = routeID
-		appRule = rule
+		appRule = make(routing.Rule, len(rule))
+		copy(appRule, rule)
 		return false
 	})
 	if err != nil {
