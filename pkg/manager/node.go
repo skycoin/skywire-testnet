@@ -53,7 +53,7 @@ func (m *Node) ServeRPC(lis net.Listener) error {
 		}
 		addr := conn.RemoteAddr().(*noise.Addr)
 		m.mu.RLock()
-		m.nodes[addr.PK] = NewRPCClient(rpc.NewClient(conn), node.RPCPrefix)
+		m.nodes[addr.PK] = node.NewRPCClient(rpc.NewClient(conn), node.RPCPrefix)
 		m.mu.RUnlock()
 	}
 }
@@ -69,9 +69,9 @@ type MockConfig struct {
 func (m *Node) AddMockData(config *MockConfig) error {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < config.Nodes; i++ {
-		client := NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode).(*mockRPCClient)
+		pk, client := node.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
 		m.mu.Lock()
-		m.nodes[client.s.PubKey] = client
+		m.nodes[pk] = client
 		m.mu.Unlock()
 	}
 	return nil
