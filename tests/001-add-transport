@@ -1,0 +1,3 @@
+#!/bin/bash
+# PRECONDITION: `make node && make run` 
+./skywire-cli add-transport $(cat ./node/PK)
