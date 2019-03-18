@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/manager"
 	"github.com/skycoin/skywire/pkg/node"
 )
 
@@ -32,7 +31,7 @@ func rpcClient() node.RPCClient {
 	if err != nil {
 		log.Fatal("RPC connection failed:", err)
 	}
-	return manager.NewRPCClient(client, node.RPCPrefix)
+	return node.NewRPCClient(client, node.RPCPrefix)
 }
 
 func catch(err error, msgs ...string) {

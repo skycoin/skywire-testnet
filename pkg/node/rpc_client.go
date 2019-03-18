@@ -1,4 +1,4 @@
-package manager
+package node
 
 import (
 	"encoding/binary"
@@ -11,20 +11,19 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
 // RPCClient provides methods to call an RPC Server.
-// It implements node.RPCClient
+// It implements RPCClient
 type rpcClient struct {
 	client *rpc.Client
 	prefix string
 }
 
 // NewRPCClient creates a new RPCClient.
-func NewRPCClient(rc *rpc.Client, prefix string) node.RPCClient {
+func NewRPCClient(rc *rpc.Client, prefix string) RPCClient {
 	return &rpcClient{client: rc, prefix: prefix}
 }
 
@@ -34,15 +33,15 @@ func (rc *rpcClient) Call(method string, args, reply interface{}) error {
 }
 
 // Summary calls Summary.
-func (rc *rpcClient) Summary() (*node.Summary, error) {
-	out := new(node.Summary)
+func (rc *rpcClient) Summary() (*Summary, error) {
+	out := new(Summary)
 	err := rc.Call("Summary", &struct{}{}, out)
 	return out, err
 }
 
 // Apps calls Apps.
-func (rc *rpcClient) Apps() ([]*node.AppState, error) {
-	states := make([]*node.AppState, 0)
+func (rc *rpcClient) Apps() ([]*AppState, error) {
+	states := make([]*AppState, 0)
 	err := rc.Call("Apps", &struct{}{}, &states)
 	return states, err
 }
@@ -59,7 +58,7 @@ func (rc *rpcClient) StopApp(appName string) error {
 
 // SetAutoStart calls SetAutoStart.
 func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
-	return rc.Call("SetAutoStart", &node.SetAutoStartIn{
+	return rc.Call("SetAutoStart", &SetAutoStartIn{
 		AppName:   appName,
 		AutoStart: autostart,
 	}, &struct{}{})
@@ -73,9 +72,9 @@ func (rc *rpcClient) TransportTypes() ([]string, error) {
 }
 
 // Transports calls Transports.
-func (rc *rpcClient) Transports(types []string, pks []cipher.PubKey, logs bool) ([]*node.TransportSummary, error) {
-	var transports []*node.TransportSummary
-	err := rc.Call("Transports", &node.TransportsIn{
+func (rc *rpcClient) Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error) {
+	var transports []*TransportSummary
+	err := rc.Call("Transports", &TransportsIn{
 		FilterTypes:   types,
 		FilterPubKeys: pks,
 		ShowLogs:      logs,
@@ -84,16 +83,16 @@ func (rc *rpcClient) Transports(types []string, pks []cipher.PubKey, logs bool) 
 }
 
 // Transport calls Transport.
-func (rc *rpcClient) Transport(tid uuid.UUID) (*node.TransportSummary, error) {
-	var summary node.TransportSummary
+func (rc *rpcClient) Transport(tid uuid.UUID) (*TransportSummary, error) {
+	var summary TransportSummary
 	err := rc.Call("Transport", &tid, &summary)
 	return &summary, err
 }
 
 // AddTransport calls AddTransport.
-func (rc *rpcClient) AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*node.TransportSummary, error) {
-	var summary node.TransportSummary
-	err := rc.Call("AddTransport", &node.AddTransportIn{
+func (rc *rpcClient) AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error) {
+	var summary TransportSummary
+	err := rc.Call("AddTransport", &AddTransportIn{
 		RemotePK: remote,
 		TpType:   tpType,
 		Public:   public,
@@ -108,8 +107,8 @@ func (rc *rpcClient) RemoveTransport(tid uuid.UUID) error {
 }
 
 // RoutingRules calls RoutingRules.
-func (rc *rpcClient) RoutingRules() ([]*node.RoutingEntry, error) {
-	var entries []*node.RoutingEntry
+func (rc *rpcClient) RoutingRules() ([]*RoutingEntry, error) {
+	var entries []*RoutingEntry
 	err := rc.Call("RoutingRules", &struct{}{}, &entries)
 	return entries, err
 }
@@ -130,7 +129,7 @@ func (rc *rpcClient) AddRoutingRule(rule routing.Rule) (routing.RouteID, error) 
 
 // SetRoutingRule calls SetRoutingRule.
 func (rc *rpcClient) SetRoutingRule(key routing.RouteID, rule routing.Rule) error {
-	return rc.Call("SetRoutingRule", &node.RoutingEntry{Key: key, Value: rule}, &struct{}{})
+	return rc.Call("SetRoutingRule", &RoutingEntry{Key: key, Value: rule}, &struct{}{})
 }
 
 // RemoveRoutingRule calls RemoveRoutingRule.
@@ -138,22 +137,22 @@ func (rc *rpcClient) RemoveRoutingRule(key routing.RouteID) error {
 	return rc.Call("RemoveRoutingRule", &key, &struct{}{})
 }
 
-// MockRPCClient mocks node.RPCClient.
+// MockRPCClient mocks RPCClient.
 type mockRPCClient struct {
-	s       *node.Summary
+	s       *Summary
 	tpTypes []string
 	rt      routing.Table
 	sync.RWMutex
 }
 
 // NewMockRPCClient creates a new mock RPCClient.
-func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) node.RPCClient {
+func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RPCClient) {
 	types := []string{"messaging", "native"}
 	localPK, _ := cipher.GenerateKeyPair()
-	tps := make([]*node.TransportSummary, r.Intn(maxTps+1))
+	tps := make([]*TransportSummary, r.Intn(maxTps+1))
 	for i := range tps {
 		remotePK, _ := cipher.GenerateKeyPair()
-		tps[i] = &node.TransportSummary{
+		tps[i] = &TransportSummary{
 			ID:     uuid.New(),
 			Local:  localPK,
 			Remote: remotePK,
@@ -180,10 +179,10 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) node.RPCClient {
 			panic(err)
 		}
 	}
-	return &mockRPCClient{
-		s: &node.Summary{
+	return localPK, &mockRPCClient{
+		s: &Summary{
 			PubKey: localPK,
-			Apps: []*node.AppState{
+			Apps: []*AppState{
 				{Name: "foo.v1.0", AutoStart: false, Port: 10},
 				{Name: "bar.v2.0", AutoStart: false, Port: 20},
 			},
@@ -206,8 +205,8 @@ func (mc *mockRPCClient) do(write bool, f func() error) error {
 }
 
 // Summary implements RPCClient.
-func (mc *mockRPCClient) Summary() (*node.Summary, error) {
-	var out node.Summary
+func (mc *mockRPCClient) Summary() (*Summary, error) {
+	var out Summary
 	err := mc.do(false, func() error {
 		out.PubKey = mc.s.PubKey
 		for _, app := range mc.s.Apps {
@@ -222,8 +221,8 @@ func (mc *mockRPCClient) Summary() (*node.Summary, error) {
 }
 
 // Apps implements RPCClient.
-func (mc *mockRPCClient) Apps() ([]*node.AppState, error) {
-	var apps []*node.AppState
+func (mc *mockRPCClient) Apps() ([]*AppState, error) {
+	var apps []*AppState
 	err := mc.do(false, func() error {
 		for _, app := range mc.s.Apps {
 			apps = append(apps, &(*app))
@@ -262,8 +261,8 @@ func (mc *mockRPCClient) TransportTypes() ([]string, error) {
 }
 
 // Transports implements RPCClient.
-func (mc *mockRPCClient) Transports(types []string, pks []cipher.PubKey, logs bool) ([]*node.TransportSummary, error) {
-	var summaries []*node.TransportSummary
+func (mc *mockRPCClient) Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error) {
+	var summaries []*TransportSummary
 	err := mc.do(false, func() error {
 		for _, tp := range mc.s.Transports {
 			if types != nil {
@@ -298,8 +297,8 @@ func (mc *mockRPCClient) Transports(types []string, pks []cipher.PubKey, logs bo
 }
 
 // Transport implements RPCClient.
-func (mc *mockRPCClient) Transport(tid uuid.UUID) (*node.TransportSummary, error) {
-	var summary node.TransportSummary
+func (mc *mockRPCClient) Transport(tid uuid.UUID) (*TransportSummary, error) {
+	var summary TransportSummary
 	err := mc.do(false, func() error {
 		for _, tp := range mc.s.Transports {
 			if tp.ID == tid {
@@ -313,8 +312,8 @@ func (mc *mockRPCClient) Transport(tid uuid.UUID) (*node.TransportSummary, error
 }
 
 // AddTransport implements RPCClient.
-func (mc *mockRPCClient) AddTransport(remote cipher.PubKey, tpType string, public bool, _ time.Duration) (*node.TransportSummary, error) {
-	summary := &node.TransportSummary{
+func (mc *mockRPCClient) AddTransport(remote cipher.PubKey, tpType string, public bool, _ time.Duration) (*TransportSummary, error) {
+	summary := &TransportSummary{
 		ID:     uuid.New(),
 		Local:  mc.s.PubKey,
 		Remote: remote,
@@ -341,10 +340,10 @@ func (mc *mockRPCClient) RemoveTransport(tid uuid.UUID) error {
 }
 
 // RoutingRules implements RPCClient.
-func (mc *mockRPCClient) RoutingRules() ([]*node.RoutingEntry, error) {
-	var entries []*node.RoutingEntry
+func (mc *mockRPCClient) RoutingRules() ([]*RoutingEntry, error) {
+	var entries []*RoutingEntry
 	err := mc.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) (next bool) {
-		entries = append(entries, &node.RoutingEntry{Key: routeID, Value: rule})
+		entries = append(entries, &RoutingEntry{Key: routeID, Value: rule})
 		return true
 	})
 	return entries, err
