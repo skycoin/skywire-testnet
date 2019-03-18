@@ -1,4 +1,4 @@
-OPTS?=GO111MODULE=on 
+OPTS?=GO111MODULE=on
 DOCKER_IMAGE?=skywire-runner # docker image to use for running skywire-node.`golang`, `buildpack-deps:stretch-scm`  is OK too
 DOCKER_NETWORK?=SKYNET 
 DOCKER_NODE?=SKY01
@@ -80,7 +80,7 @@ docker-bin:
 
 
 docker-volume: docker-apps docker-bin bin		
-	./skywire-cli config ./node/skywire.json
+	./skywire-cli config --mode local ./node/skywire.json
 	cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ' > ./node/PK 
 	cat ./node/PK
 
