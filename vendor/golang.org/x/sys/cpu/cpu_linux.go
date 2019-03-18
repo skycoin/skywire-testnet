@@ -28,9 +28,7 @@ var hwCap2 uint
 func init() {
 	buf, err := ioutil.ReadFile(procAuxv)
 	if err != nil {
-		// e.g. on android /proc/self/auxv is not accessible, so silently
-		// ignore the error and leave Initialized = false
-		return
+		panic("read proc auxv failed: " + err.Error())
 	}
 
 	bo := hostByteOrder()
@@ -54,6 +52,4 @@ func init() {
 		}
 	}
 	doinit()
-
-	Initialized = true
 }
