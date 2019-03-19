@@ -106,9 +106,4 @@ stop:
 refresh: stop
 	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
 	./skywire-node &>/dev/null &
-
-
-# Test of chat
-# test-chat: run node
-# 	./skywire-cli add-transport $(cat ./node/PK)
 	
