@@ -295,7 +295,7 @@ $ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' S
 $ firefox http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000  
 ```
 
-#### 4. Create new dockerize `skywire-nodes`
+#### 4. Create new dockerized `skywire-nodes`
 
 In case you need more dockerized nodes or maybe it's needed to customize node
 let's look how to create new node.
@@ -351,3 +351,22 @@ Instead of skywire-runner you can use:
 
 - `golang`, `buildpack-deps:stretch-scm` "as is"
 - and `debian`, `ubuntu` - after `apt-get install ca-certificates` in them. Look in `skywire-runner.Dockerfile` for example
+
+#### 5. "Hello-Mike-Hello-Joe" test
+
+Idea of test from Erlang classics: https://youtu.be/uKfKtXYLG78?t=120
+
+```bash
+# Setup: run skywire-nodes on host and in docker
+$ make node && make run
+# Open in browser chat application
+$ firefox http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000  &
+# add transport
+$ ./skywire-cli add-transport $(cat ./node/PK)
+# "Hello Mike!" - "Hello Joe!" - "System is working!"
+$ curl --data  {'"recipient":"'$(cat ./node/PK)'", "message":"Hello Mike!"}' -X POST  http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000/message
+$ curl --data  {'"recipient":"'$(cat ./PK)'", "message":"Hello Joe!"}' -X POST  http://localhost:8000/message
+$ curl --data  {'"recipient":"'$(cat ./node/PK)'", "message":"System is working!"}' -X POST  http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000/message
+# Teardown
+$ make stop && make node-stop
+```

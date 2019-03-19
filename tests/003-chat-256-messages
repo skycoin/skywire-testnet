@@ -1,3 +1,0 @@
-#!/bin/bash
-# PRECONDITION: `make node && make run && ./001-add-transport`
-# Implement it 

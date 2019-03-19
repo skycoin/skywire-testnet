@@ -1,4 +1,0 @@
-#!/bin/bash
-# PRECONDITION: `make node && make run && ./001-add-transport`
-curl --data  {'"recipient":"'$(cat ./node/PK)'", "message":"MESSAGE '$RANDOM'"}' -X POST  http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000/message
-curl --data  {'"recipient":"'$(cat ./PK)'", "message":"MESSAGE '$RANDOM'"}' -X POST  http://localhost:8000/message
