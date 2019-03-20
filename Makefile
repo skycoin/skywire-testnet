@@ -56,7 +56,6 @@ bin:
 	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
 
 # Dockerized skywire-node
-
 docker-image:
 	docker image build --tag=skywire-runner --rm  - < skywire-runner.Dockerfile
 
@@ -78,28 +77,28 @@ docker-apps:
 docker-bin: 
 	${DOCKER_OPTS} go build -o ./node/skywire-node ./cmd/skywire-node 
 
-
 docker-volume: docker-apps docker-bin bin		
 	./skywire-cli config ./node/skywire.json
 
 docker-run: docker-clean docker-image docker-network docker-volume 
+	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
+		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
+
+docker-run-daemon: docker-clean docker-image docker-network docker-volume 
 	docker run -d -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
 		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
 
 docker-stop:
 	-docker container stop ${DOCKER_NODE}
 
-docker-refresh: docker-stop docker-bin 
-	docker container start  ${DOCKER_NODE}
 
 # skywire-node on host
-
 run: stop build	
+	./skywire-node
+
+run-daemon: stop build	
 	./skywire-node &>/dev/null &
 
 stop:
 	-bash -c "kill $$(ps aux |grep '[s]kywire-node' |awk '{print $$2}')"
 
-refresh: stop
-	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
-	./skywire-node &>/dev/null &
