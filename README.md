@@ -364,7 +364,8 @@ Idea of test from Erlang classics: https://youtu.be/uKfKtXYLG78?t=120
 
 ```bash
 # Setup: run skywire-nodes on host and in docker
-$ make docker-run-daemon && make run-daemon
+$ make run &>/dev/null &`
+$ make docker-run &>/dev/null &
 # Open in browser chat application
 $ firefox http://$SW_NODE_B:8000  &
 # add transport

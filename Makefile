@@ -84,20 +84,12 @@ docker-run: docker-clean docker-image docker-network docker-volume
 	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
 		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
 
-docker-run-daemon: docker-clean docker-image docker-network docker-volume 
-	docker run -d -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
-		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
-
 docker-stop:
 	-docker container stop ${DOCKER_NODE}
-
 
 # skywire-node on host
 run: stop build	
 	./skywire-node
-
-run-daemon: stop build	
-	./skywire-node &>/dev/null &
 
 stop:
 	-bash -c "kill $$(ps aux |grep '[s]kywire-node' |awk '{print $$2}')"
