@@ -84,13 +84,20 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.Use(middleware.Timeout(time.Second * 30))
 	mux.Use(middleware.Logger)
 
-	mux.Mount("/api", m.apiRouter())
+	mux.Mount("/auth", m.authHandler())
+	mux.Mount("/api", m.apiHandler())
 
 	mux.ServeHTTP(w, r)
 }
 
-func (m *Node) apiRouter() http.Handler {
+func (m *Node) authHandler() http.Handler {
 	r := chi.NewRouter()
+	return r
+}
+
+func (m *Node) apiHandler() http.Handler {
+	r := chi.NewRouter()
+	r.Use() // TODO: Complete!
 
 	r.Get("/nodes", m.getNodes())
 	r.Get("/nodes/{pk}", m.getNode())
