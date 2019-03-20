@@ -97,7 +97,7 @@ refresh-node: node-stop docker-bin
 # Host goals
 
 run: stop build	
-	cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ' > ./PK  
+	cat ./skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ' > ./PK  
 	./skywire-node &>/dev/null &
 
 stop:

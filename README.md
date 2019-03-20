@@ -276,7 +276,7 @@ Default value: "GO111MODULE=on GOOS=linux"
 
 ```bash
 $ cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' '
-# 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
+# 0129be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
 # or just:
 $ cat ./node/PK # this file is created during `make docker-volume`
 # 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
