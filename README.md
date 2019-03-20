@@ -41,7 +41,7 @@ $ git checkout mainnet
 $ make # installs all dependencies, build binaries and apps
 ```
 
-#### Note: Environment variable OPTS
+**Note: Environment variable OPTS**
 
 Build can be customized with environment variable `OPTS` with default value `GO111MODULE=on`
 
@@ -54,13 +54,13 @@ $ make
 $ OPTS="GSO111MODULE=on GOOS=linux GOARCH=arm" make
 ```
 
-# Install skywire-node, skywire-cli, manager-node and therealssh-cli
+**Install skywire-node, skywire-cli, manager-node and therealssh-cli**
 
 ```bash
 $ make install  # compiles and installs all binaries
 ```
 
-# Generate default json config
+**Generate default json config**
 
 ```bash
 skywire-cli config
