@@ -38,7 +38,7 @@ $ git clone https://github.com/skycoin/skywire
 $ cd skywire
 $ git checkout mainnet
 # Build
-$ make # installs all dependencies, build binaries and apps
+$ make build # installs all dependencies, build binaries and apps
 ```
 
 **Note: Environment variable OPTS**
