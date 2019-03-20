@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/internal/httputil"
-	"github.com/skycoin/skywire/pkg/cipher"
-	"go.etcd.io/bbolt"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"go.etcd.io/bbolt"
+
+	"github.com/skycoin/skywire/internal/httputil"
+	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 type AuthErrorType string
@@ -22,9 +24,9 @@ const (
 
 type authError struct {
 	Type       AuthErrorType
-	HTTPStatus    int
-	HTTPMsg       string
-	LogMsg        string
+	HTTPStatus int
+	HTTPMsg    string
+	LogMsg     string
 }
 
 func (e authError) Error() string {

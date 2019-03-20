@@ -26,7 +26,6 @@ type AuthConfig struct {
 }
 
 type Auth struct {
-
 }
 
 func NewAuth(c AuthConfig) (*Auth, error) {
