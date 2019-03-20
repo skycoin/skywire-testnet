@@ -7,8 +7,8 @@ DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker con
 build: dep host-apps bin
 
 clean:
-	rm -rf ./apps
-	rm -f ./skywire-node ./skywire-cli ./manager-node ./thereallssh-cli
+	-rm -rf ./apps
+	-rm -f ./skywire-node ./skywire-cli ./manager-node ./thereallssh-cli
 
 install:
 	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli	
@@ -55,8 +55,7 @@ bin:
 	${OPTS} go build -o ./manager-node ./cmd/manager-node 
 	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
 
-# Node
-
+# Dockerized skywire-node
 docker-image:
 	docker image build --tag=skywire-runner --rm  - < skywire-runner.Dockerfile
 
@@ -78,21 +77,20 @@ docker-apps:
 docker-bin: 
 	${DOCKER_OPTS} go build -o ./node/skywire-node ./cmd/skywire-node 
 
-
 docker-volume: docker-apps docker-bin bin		
 	./skywire-cli config ./node/skywire.json
-	cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ' > ./node/PK 
-	cat ./node/PK
 
-node: docker-clean docker-image docker-network docker-volume 
-	docker run -d -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} --name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
+docker-run: docker-clean docker-image docker-network docker-volume 
+	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
+		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
 
-run: 
-	./skywire-node
-
-node-stop:
+docker-stop:
 	-docker container stop ${DOCKER_NODE}
 
-refresh-node: node-stop docker-bin 
-	# cp ./skywire-node ./node
-	docker container start  ${DOCKER_NODE}
+# skywire-node on host
+run: stop build	
+	./skywire-node
+
+stop:
+	-bash -c "kill $$(ps aux |grep '[s]kywire-node' |awk '{print $$2}')"
+

@@ -41,7 +41,7 @@ $ git checkout mainnet
 $ make # installs all dependencies, build binaries and apps
 ```
 
-#### Note: Environment variable OPTS
+**Note: Environment variable OPTS**
 
 Build can be customized with environment variable `OPTS` with default value `GO111MODULE=on`
 
@@ -54,13 +54,13 @@ $ make
 $ OPTS="GSO111MODULE=on GOOS=linux GOARCH=arm" make
 ```
 
-# Install skywire-node, skywire-cli, manager-node and therealssh-cli
+**Install skywire-node, skywire-cli, manager-node and therealssh-cli**
 
 ```bash
 $ make install  # compiles and installs all binaries
 ```
 
-# Generate default json config
+**Generate default json config**
 
 ```bash
 skywire-cli config
@@ -78,7 +78,7 @@ $ skywire-node skywire.json
 ### Run `skywire-node` in docker container
 
 ```bash
-make node
+make docker-run
 ```
 
 ### Run `skywire-cli`
@@ -181,7 +181,7 @@ There are two make goals for running in development environment dockerized `skyw
 ### Run dockerized `skywire-node`
 
 ```bash
-$ make node
+$ make docker-run
 ```
 
 This will:
@@ -249,7 +249,7 @@ Other images can be used.
 E.g.
 
 ```bash
-DOCKER_IMAGE=golang make node #buildpack-deps:stretch-scm is OK too
+DOCKER_IMAGE=golang make docker-run #buildpack-deps:stretch-scm is OK too
 ```
 
 #### 2.DOCKER_NETWORK
@@ -272,13 +272,10 @@ Default value: "GO111MODULE=on GOOS=linux"
 
 ### Dockerized `skywire-node` recipes
 
-#### 1. Get Public Key of node
+#### 1. Get Public Key of docker-node
 
 ```bash
 $ cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' '
-# 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
-# or just:
-$ cat ./node/PK # this file is created during `make docker-volume`
 # 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
 ```
 
@@ -295,7 +292,7 @@ $ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' S
 $ firefox http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000  
 ```
 
-#### 4. Create new dockerize `skywire-nodes`
+#### 4. Create new dockerized `skywire-nodes`
 
 In case you need more dockerized nodes or maybe it's needed to customize node
 let's look how to create new node.
@@ -351,3 +348,32 @@ Instead of skywire-runner you can use:
 
 - `golang`, `buildpack-deps:stretch-scm` "as is"
 - and `debian`, `ubuntu` - after `apt-get install ca-certificates` in them. Look in `skywire-runner.Dockerfile` for example
+
+#### 5. Env-vars for develoment-/testing- purposes
+
+```bash
+export SW_NODE_A=127.0.0.1
+export SW_NODE_A_PK=$(cat ./skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
+export SW_NODE_B=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01)
+export SW_NODE_B_PK=$(cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
+```
+
+#### 6. "Hello-Mike-Hello-Joe" test
+
+Idea of test from Erlang classics: https://youtu.be/uKfKtXYLG78?t=120
+
+```bash
+# Setup: run skywire-nodes on host and in docker
+$ make run
+$ make docker-run
+# Open in browser chat application
+$ firefox http://$SW_NODE_B:8000  &
+# add transport
+$ ./skywire-cli add-transport $SW_NODE_B_PK
+# "Hello Mike!" - "Hello Joe!" - "System is working!"
+$ curl --data  {'"recipient":"'$SW_NODE_A_PK'", "message":"Hello Mike!"}' -X POST  http://$SW_NODE_B:8000/message
+$ curl --data  {'"recipient":"'$SW_NODE_B_PK'", "message":"Hello Joe!"}' -X POST  http://$SW_NODE_A:8000/message
+$ curl --data  {'"recipient":"'$SW_NODE_A_PK'", "message":"System is working!"}' -X POST  http://$SW_NODE_B:8000/message
+# Teardown
+$ make stop && make docker-stop
+```
