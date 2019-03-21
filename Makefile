@@ -37,6 +37,11 @@ lint: ## Run linters. Use make install-linters first
 	# The govet version in golangci-lint is out of date and has spurious warnings, run it separately
 	${OPTS} go vet -all ./...
 
+test: ## Run tests for net
+	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/...
+	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
+
+
 install-linters: ## Install linters
 	GO111MODULE=off go get -u github.com/FiloSottile/vendorcheck
 	# For some reason this install method is not recommended, see https://github.com/golangci/golangci-lint#install
@@ -51,8 +56,6 @@ format: ## Formats the code. Must have goimports installed (use make install-lin
 
 dep: ## Sorts dependencies
 	${OPTS} go mod vendor -v
-
-
 
 
 # Apps 
