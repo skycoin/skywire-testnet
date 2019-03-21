@@ -59,7 +59,7 @@ dep: ## Sorts dependencies
 
 
 # Apps 
-host-apps: ## Build apps binaries 
+host-apps: ## Build app 
 	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
 	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
 	${OPTS} go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
