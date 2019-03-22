@@ -35,11 +35,11 @@ type Config struct {
 
 // Node manages AppNodes.
 type Node struct {
-	c     Config
-	nodes map[cipher.PubKey]node.RPCClient // connected remote nodes.
-	users UserStorer
-	sessions  *SessionsManager
-	mu    *sync.RWMutex
+	c        Config
+	nodes    map[cipher.PubKey]node.RPCClient // connected remote nodes.
+	users    UserStorer
+	sessions *SessionsManager
+	mu       *sync.RWMutex
 }
 
 // NewNode creates a new Node.
@@ -49,11 +49,11 @@ func NewNode(config Config) (*Node, error) {
 		return nil, err
 	}
 	return &Node{
-		c:     config,
-		nodes: make(map[cipher.PubKey]node.RPCClient),
-		users: users,
+		c:        config,
+		nodes:    make(map[cipher.PubKey]node.RPCClient),
+		users:    users,
 		sessions: NewSessionsManager(users, config.Sessions),
-		mu:    new(sync.RWMutex),
+		mu:       new(sync.RWMutex),
 	}, nil
 }
 

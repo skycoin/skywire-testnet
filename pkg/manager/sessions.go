@@ -3,12 +3,14 @@ package manager
 import (
 	"encoding/gob"
 	"errors"
-	"github.com/google/uuid"
-	"github.com/gorilla/securecookie"
-	"github.com/skycoin/skywire/internal/httputil"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/securecookie"
+
+	"github.com/skycoin/skywire/internal/httputil"
 )
 
 const (
@@ -134,7 +136,7 @@ func (s *SessionsManager) delSession(w http.ResponseWriter, r *http.Request) err
 	delete(s.sessions, sid)
 	s.mu.Unlock()
 	http.SetCookie(w, &http.Cookie{
-		Name: sessionCookieName,
+		Name:     sessionCookieName,
 		Domain:   s.config.Domain,
 		MaxAge:   -1,
 		Secure:   s.config.Secure,

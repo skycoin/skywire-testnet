@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
-	"github.com/skycoin/skywire/pkg/cipher"
-	"go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"go.etcd.io/bbolt"
+
+	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (
@@ -63,8 +65,8 @@ type UserStorer interface {
 }
 
 type UsersConfig struct {
-	DBPath  string
-	SaltLen int // Salt Len for password verification data.
+	DBPath          string
+	SaltLen         int    // Salt Len for password verification data.
 	UsernamePattern string // regular expression for usernames (no check if empty). TODO
 	PasswordPattern string // regular expression for passwords (no check of empty). TODO
 }
@@ -109,9 +111,9 @@ func (s *BoltUserStore) NewUser(username, password string) bool {
 }
 
 func (s *BoltUserStore) DeleteUser(username string) {
-	 catch(s.db.Update(func(tx *bbolt.Tx) error {
+	catch(s.db.Update(func(tx *bbolt.Tx) error {
 		return tx.Bucket([]byte(boltUserBucketName)).Delete([]byte(username))
-	 }))
+	}))
 }
 
 func (s *BoltUserStore) HasUser(username string) bool {
