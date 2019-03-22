@@ -57,7 +57,10 @@ var rootCmd = &cobra.Command{
 		log.Println("SK:", sk)
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		m := manager.NewNode(pk, sk)
+		m, err := manager.NewNode(manager.Config{}) // TODO: complete
+		if err != nil {
+			log.Fatalln("Failed to start manager:", err)
+		}
 		go func() {
 			l, err := net.Listen("tcp", rpcAddr)
 			if err != nil {

@@ -26,28 +26,41 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
+type Config struct {
+	PK       cipher.PubKey
+	SK       cipher.SecKey
+	Users    UsersConfig
+	Sessions SessionsConfig
+}
+
 // Node manages AppNodes.
 type Node struct {
-	pk    cipher.PubKey
-	sk    cipher.SecKey
+	c     Config
 	nodes map[cipher.PubKey]node.RPCClient // connected remote nodes.
+	users UserStorer
+	sessions  *SessionsManager
 	mu    *sync.RWMutex
 }
 
 // NewNode creates a new Node.
-func NewNode(pk cipher.PubKey, sk cipher.SecKey) *Node {
-	return &Node{
-		pk:    pk,
-		sk:    sk,
-		nodes: make(map[cipher.PubKey]node.RPCClient),
-		mu:    new(sync.RWMutex),
+func NewNode(config Config) (*Node, error) {
+	users, err := NewBoltUserStore(config.Users)
+	if err != nil {
+		return nil, err
 	}
+	return &Node{
+		c:     config,
+		nodes: make(map[cipher.PubKey]node.RPCClient),
+		users: users,
+		sessions: NewSessionsManager(users, config.Sessions),
+		mu:    new(sync.RWMutex),
+	}, nil
 }
 
 // ServeRPC serves RPC of a Node.
 func (m *Node) ServeRPC(lis net.Listener) error {
 	for {
-		conn, err := noise.WrapListener(lis, m.pk, m.sk, false, noise.HandshakeXK).Accept()
+		conn, err := noise.WrapListener(lis, m.c.PK, m.c.SK, false, noise.HandshakeXK).Accept()
 		if err != nil {
 			return err
 		}
@@ -92,12 +105,14 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (m *Node) authHandler() http.Handler {
 	r := chi.NewRouter()
+	r.Post("/login", m.sessions.Login())
+	r.Post("/logout", m.sessions.Logout())
 	return r
 }
 
 func (m *Node) apiHandler() http.Handler {
 	r := chi.NewRouter()
-	r.Use() // TODO: Complete!
+	r.Use(m.sessions.Authorize)
 
 	r.Get("/nodes", m.getNodes())
 	r.Get("/nodes/{pk}", m.getNode())
@@ -532,4 +547,10 @@ func (m *Node) ctxRoute(next routeHandlerFunc) http.HandlerFunc {
 		}
 		next(w, r, routeCtx{nodeCtx: ctx, RtKey: rid})
 	})
+}
+
+func catch(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
