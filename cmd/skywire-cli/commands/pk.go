@@ -14,7 +14,7 @@ func init() {
 var pkCmd = &cobra.Command{
 	Use:   "pk",
 	Short: "get public key of node",
-	Run: func(_ *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 
 		client := rpcClient()
 		summary, err := client.Summary()
