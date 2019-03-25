@@ -19,7 +19,7 @@ var pkCmd = &cobra.Command{
 		client := rpcClient()
 		summary, err := client.Summary()
 		if err != nil {
-			log.Fatal("Failed to connect", err)
+			log.Fatal("Failed to connect:", err)
 		}
 
 		fmt.Println(summary.PubKey)
