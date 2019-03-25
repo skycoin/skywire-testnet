@@ -13,7 +13,7 @@ import (
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
-func TestTransportManger(t *testing.T) {
+func TestTransportManager(t *testing.T) {
 	client := NewDiscoveryMock()
 	logStore := InMemoryTransportLogStore()
 
@@ -101,7 +101,7 @@ func TestTransportManger(t *testing.T) {
 	mu.Unlock()
 }
 
-func TestTransportMangerReEstablishTransports(t *testing.T) {
+func TestTransportManagerReEstablishTransports(t *testing.T) {
 	client := NewDiscoveryMock()
 	logStore := InMemoryTransportLogStore()
 
@@ -157,7 +157,7 @@ func TestTransportMangerReEstablishTransports(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
-func TestTransportMangerLogs(t *testing.T) {
+func TestTransportManagerLogs(t *testing.T) {
 	client := NewDiscoveryMock()
 	logStore1 := InMemoryTransportLogStore()
 	logStore2 := InMemoryTransportLogStore()
