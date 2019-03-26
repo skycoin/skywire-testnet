@@ -18,42 +18,34 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/google/uuid"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-
 	"github.com/skycoin/skywire/internal/httputil"
 	"github.com/skycoin/skywire/internal/noise"
+	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-type Config struct {
-	PK       cipher.PubKey
-	SK       cipher.SecKey
-	Users    UsersConfig
-	Sessions SessionsConfig
-}
-
 // Node manages AppNodes.
 type Node struct {
-	c        Config
-	nodes    map[cipher.PubKey]node.RPCClient // connected remote nodes.
-	users    UserStorer
-	sessions *SessionsManager
-	mu       *sync.RWMutex
+	c     Config
+	nodes map[cipher.PubKey]node.RPCClient // connected remote nodes.
+	users *UserManager
+	mu    *sync.RWMutex
 }
 
 // NewNode creates a new Node.
 func NewNode(config Config) (*Node, error) {
-	users, err := NewBoltUserStore(config.Users)
+	boltUserDB, err := NewBoltUserStore(config.DBPath)
 	if err != nil {
 		return nil, err
 	}
+	singleUserDB := NewSingleUserStore("admin", boltUserDB)
+
 	return &Node{
-		c:        config,
-		nodes:    make(map[cipher.PubKey]node.RPCClient),
-		users:    users,
-		sessions: NewSessionsManager(users, config.Sessions),
-		mu:       new(sync.RWMutex),
+		c:     config,
+		nodes: make(map[cipher.PubKey]node.RPCClient),
+		users: NewUserManager(singleUserDB, config.Cookies),
+		mu:    new(sync.RWMutex),
 	}, nil
 }
 
@@ -97,44 +89,40 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.Use(middleware.Timeout(time.Second * 30))
 	mux.Use(middleware.Logger)
 
-	mux.Mount("/auth", m.authHandler())
-	mux.Mount("/api", m.apiHandler())
+	mux.Route("/auth", func(r chi.Router) {
+		r.Post("/create-account", m.users.CreateAccount(m.c.PassSaltLen, m.c.PassPattern, m.c.NamePattern))
+		r.Post("/login", m.users.Login())
+		r.Post("/logout", m.users.Logout())
+	})
+
+	mux.Route("/api", func(r chi.Router) {
+		r.Use(m.users.Authorize)
+
+		r.Get("/user/info", m.users.UserInfo())
+		r.Post("/user/change-password", m.users.ChangePassword(m.c.PassSaltLen, m.c.PassPattern))
+
+		r.Get("/nodes", m.getNodes())
+		r.Get("/nodes/{pk}", m.getNode())
+
+		r.Get("/nodes/{pk}/apps", m.getApps())
+		r.Get("/nodes/{pk}/apps/{app}", m.getApp())
+		r.Put("/nodes/{pk}/apps/{app}", m.putApp())
+
+		r.Get("/nodes/{pk}/transport-types", m.getTransportTypes())
+
+		r.Get("/nodes/{pk}/transports", m.getTransports())
+		r.Post("/nodes/{pk}/transports", m.postTransport())
+		r.Get("/nodes/{pk}/transports/{tid}", m.getTransport())
+		r.Delete("/nodes/{pk}/transports/{tid}", m.deleteTransport())
+
+		r.Get("/nodes/{pk}/routes", m.getRoutes())
+		r.Post("/nodes/{pk}/routes", m.postRoute())
+		r.Get("/nodes/{pk}/routes/{rid}", m.getRoute())
+		r.Put("/nodes/{pk}/routes/{rid}", m.putRoute())
+		r.Delete("/nodes/{pk}/routes/{rid}", m.deleteRoute())
+	})
 
 	mux.ServeHTTP(w, r)
-}
-
-func (m *Node) authHandler() http.Handler {
-	r := chi.NewRouter()
-	r.Post("/login", m.sessions.Login())
-	r.Post("/logout", m.sessions.Logout())
-	return r
-}
-
-func (m *Node) apiHandler() http.Handler {
-	r := chi.NewRouter()
-	r.Use(m.sessions.Authorize)
-
-	r.Get("/nodes", m.getNodes())
-	r.Get("/nodes/{pk}", m.getNode())
-
-	r.Get("/nodes/{pk}/apps", m.getApps())
-	r.Get("/nodes/{pk}/apps/{app}", m.getApp())
-	r.Put("/nodes/{pk}/apps/{app}", m.putApp())
-
-	r.Get("/nodes/{pk}/transport-types", m.getTransportTypes())
-
-	r.Get("/nodes/{pk}/transports", m.getTransports())
-	r.Post("/nodes/{pk}/transports", m.postTransport())
-	r.Get("/nodes/{pk}/transports/{tid}", m.getTransport())
-	r.Delete("/nodes/{pk}/transports/{tid}", m.deleteTransport())
-
-	r.Get("/nodes/{pk}/routes", m.getRoutes())
-	r.Post("/nodes/{pk}/routes", m.postRoute())
-	r.Get("/nodes/{pk}/routes/{rid}", m.getRoute())
-	r.Put("/nodes/{pk}/routes/{rid}", m.putRoute())
-	r.Delete("/nodes/{pk}/routes/{rid}", m.deleteRoute())
-
-	return r
 }
 
 // provides summary of all nodes.
@@ -551,6 +539,6 @@ func (m *Node) ctxRoute(next routeHandlerFunc) http.HandlerFunc {
 
 func catch(err error) {
 	if err != nil {
-		panic(err)
+		panic(err) // TODO: Log.
 	}
 }

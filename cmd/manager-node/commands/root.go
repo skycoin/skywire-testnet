@@ -57,10 +57,11 @@ var rootCmd = &cobra.Command{
 		log.Println("SK:", sk)
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		m, err := manager.NewNode(manager.Config{}) // TODO: complete
+		m, err := manager.NewNode(manager.MakeConfig("manager.db")) // TODO: complete
 		if err != nil {
 			log.Fatalln("Failed to start manager:", err)
 		}
+		log.Infof("serving  RPC on '%s'", rpcAddr)
 		go func() {
 			l, err := net.Listen("tcp", rpcAddr)
 			if err != nil {
@@ -80,6 +81,7 @@ var rootCmd = &cobra.Command{
 				log.Fatalln("Failed to add mock data:", err)
 			}
 		}
+		log.Infof("serving HTTP on '%s'", httpAddr)
 		if err := http.ListenAndServe(httpAddr, m); err != nil {
 			log.Fatalln("Manager exited with error:", err)
 		}
