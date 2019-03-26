@@ -32,7 +32,7 @@ install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-c
 	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli	
 
 
-lint: vendorcheck  ## Run linters. Use make install-linters first	
+lint: ## Run linters. Use make install-linters first	
 	${OPTS} golangci-lint run -c .golangci.yml ./...
 	# The govet version in golangci-lint is out of date and has spurious warnings, run it separately
 	${OPTS} go vet -all ./...
