@@ -28,25 +28,36 @@ clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
 	-rm -f ./skywire-node ./skywire-cli ./manager-node ./thereallssh-cli
 
-install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`
+install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`	
 	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli	
 
-lint: ## Run linters. Use make install-linters first
-	# ${OPTS} vendorcheck ./... # TODO: fix vendor check
+
+lint: ## Run linters. Use make install-linters first	
 	${OPTS} golangci-lint run -c .golangci.yml ./...
 	# The govet version in golangci-lint is out of date and has spurious warnings, run it separately
 	${OPTS} go vet -all ./...
+
+vendorcheck:  ## Run vendorcheck
+	GO111MODULE=off vendorcheck ./internal/... 
+	GO111MODULE=off vendorcheck ./pkg/... 
+	GO111MODULE=off vendorcheck ./cmd/apps/... 
+	GO111MODULE=off vendorcheck ./cmd/manager-node/... 
+	GO111MODULE=off vendorcheck ./cmd/skywire-cli/... 
+	GO111MODULE=off vendorcheck ./cmd/skywire-node/... 
+	# vendorcheck fails on ./cmd/therealssh-cli
+	# the problem is indirect dependency to github.com/sirupsen/logrus
+	#GO111MODULE=off vendorcheck ./cmd/therealssh-cli/... 	
 
 test: ## Run tests for net
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/...
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
 
-
 install-linters: ## Install linters
-	GO111MODULE=off go get -u github.com/FiloSottile/vendorcheck
+	- VERSION=1.13.2 ./ci_scripts/install-golangci-lint.sh 
+	# GO111MODULE=off go get -u github.com/FiloSottile/vendorcheck
 	# For some reason this install method is not recommended, see https://github.com/golangci/golangci-lint#install
 	# However, they suggest `curl ... | bash` which we should not do
-	${OPTS} go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	# ${OPTS} go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	${OPTS} go get -u golang.org/x/tools/cmd/goimports
 
 format: ## Formats the code. Must have goimports installed (use make install-linters).
