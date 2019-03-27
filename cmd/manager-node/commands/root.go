@@ -92,7 +92,7 @@ var rootCmd = &cobra.Command{
 		}()
 
 		if mock {
-			err := m.AddMockData(&manager.MockConfig{
+			err := m.AddMockData(manager.MockConfig{
 				Nodes:            mockNodes,
 				MaxTpsPerNode:    mockMaxTps,
 				MaxRoutesPerNode: mockMaxRoutes,

@@ -28,27 +28,17 @@ type User struct {
 	PwHash cipher.SHA256
 }
 
-func (u *User) SetName(pattern, name string) bool {
-	if pattern != "" {
-		ok, err := regexp.MatchString(pattern, name)
-		catch(err, "invalid username regex:")
-		if !ok {
-			return false
-		}
+func (u *User) SetName(name string) bool {
+	if !UsernameFormatOkay(name) {
+		return false
 	}
 	u.Name = name
 	return true
 }
 
-func (u *User) SetPassword(saltLen int, pattern, password string) bool {
-	if pattern != "" {
-		ok, err := regexp.MatchString(pattern, password)
-		if err != nil {
-			catch(err, "invalid password regex:")
-		}
-		if !ok {
-			return false
-		}
+func (u *User) SetPassword(saltLen int, password string) bool {
+	if !PasswordFormatOkay(password) {
+		return false
 	}
 	u.PwSalt = cipher.RandByte(saltLen)
 	u.PwHash = cipher.SumSHA256(append([]byte(password), u.PwSalt...))
@@ -189,4 +179,16 @@ func (s *SingleUserStore) RemoveUser(name string) {
 
 func (s *SingleUserStore) allowName(name string) bool {
 	return name == s.username
+}
+
+func UsernameFormatOkay(name string) bool {
+	return regexp.MustCompile(`^[a-z0-9_-]{4,21}$`).MatchString(name)
+}
+
+func PasswordFormatOkay(pass string) bool {
+	if len(pass) < 6 || len(pass) > 64 {
+		return false
+	}
+	// TODO: implement more advanced password checking.
+	return true
 }

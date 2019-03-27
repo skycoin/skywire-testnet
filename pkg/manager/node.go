@@ -76,7 +76,7 @@ type MockConfig struct {
 }
 
 // AddMockData adds mock data to Manager Node.
-func (m *Node) AddMockData(config *MockConfig) error {
+func (m *Node) AddMockData(config MockConfig) error {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < config.Nodes; i++ {
 		pk, client := node.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
@@ -94,37 +94,40 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.Use(middleware.Timeout(time.Second * 30))
 	mux.Use(middleware.Logger)
 
-	mux.Route("/auth", func(r chi.Router) {
-		r.Post("/create-account", m.users.CreateAccount(m.c.PassSaltLen, m.c.PassRegexp, m.c.NameRegexp))
-		r.Post("/login", m.users.Login())
-		r.Post("/logout", m.users.Logout())
-	})
-
 	mux.Route("/api", func(r chi.Router) {
-		r.Use(m.users.Authorize)
 
-		r.Get("/user/info", m.users.UserInfo())
-		r.Post("/user/change-password", m.users.ChangePassword(m.c.PassSaltLen, m.c.PassRegexp))
+		r.Group(func(r chi.Router) {
+			r.Post("/create-account", m.users.CreateAccount(m.c.PassSaltLen))
+			r.Post("/login", m.users.Login())
+			r.Post("/logout", m.users.Logout())
+		})
 
-		r.Get("/nodes", m.getNodes())
-		r.Get("/nodes/{pk}", m.getNode())
+		r.Group(func(r chi.Router) {
+			r.Use(m.users.Authorize)
 
-		r.Get("/nodes/{pk}/apps", m.getApps())
-		r.Get("/nodes/{pk}/apps/{app}", m.getApp())
-		r.Put("/nodes/{pk}/apps/{app}", m.putApp())
+			r.Get("/user", m.users.UserInfo())
+			r.Post("/change-password", m.users.ChangePassword(m.c.PassSaltLen))
 
-		r.Get("/nodes/{pk}/transport-types", m.getTransportTypes())
+			r.Get("/nodes", m.getNodes())
+			r.Get("/nodes/{pk}", m.getNode())
 
-		r.Get("/nodes/{pk}/transports", m.getTransports())
-		r.Post("/nodes/{pk}/transports", m.postTransport())
-		r.Get("/nodes/{pk}/transports/{tid}", m.getTransport())
-		r.Delete("/nodes/{pk}/transports/{tid}", m.deleteTransport())
+			r.Get("/nodes/{pk}/apps", m.getApps())
+			r.Get("/nodes/{pk}/apps/{app}", m.getApp())
+			r.Put("/nodes/{pk}/apps/{app}", m.putApp())
 
-		r.Get("/nodes/{pk}/routes", m.getRoutes())
-		r.Post("/nodes/{pk}/routes", m.postRoute())
-		r.Get("/nodes/{pk}/routes/{rid}", m.getRoute())
-		r.Put("/nodes/{pk}/routes/{rid}", m.putRoute())
-		r.Delete("/nodes/{pk}/routes/{rid}", m.deleteRoute())
+			r.Get("/nodes/{pk}/transport-types", m.getTransportTypes())
+
+			r.Get("/nodes/{pk}/transports", m.getTransports())
+			r.Post("/nodes/{pk}/transports", m.postTransport())
+			r.Get("/nodes/{pk}/transports/{tid}", m.getTransport())
+			r.Delete("/nodes/{pk}/transports/{tid}", m.deleteTransport())
+
+			r.Get("/nodes/{pk}/routes", m.getRoutes())
+			r.Post("/nodes/{pk}/routes", m.postRoute())
+			r.Get("/nodes/{pk}/routes/{rid}", m.getRoute())
+			r.Put("/nodes/{pk}/routes/{rid}", m.putRoute())
+			r.Delete("/nodes/{pk}/routes/{rid}", m.deleteRoute())
+		})
 	})
 
 	mux.ServeHTTP(w, r)

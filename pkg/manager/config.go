@@ -33,8 +33,6 @@ type Config struct {
 	PK          cipher.PubKey   `json:"public_key"`
 	SK          cipher.SecKey   `json:"secret_key"`
 	DBPath      string          `json:"db_path"`
-	NameRegexp  string          `json:"username_regexp"`   // regular expression for usernames (no check if empty). TODO
-	PassRegexp  string          `json:"password_regexp"`   // regular expression for passwords (no check of empty). TODO
 	PassSaltLen int             `json:"password_salt_len"` // Salt Len for password verification data.
 	Cookies     CookieConfig    `json:"cookies"`
 	Interfaces  InterfaceConfig `json:"interfaces"`
@@ -64,8 +62,6 @@ func GenerateLocalConfig() Config {
 }
 
 func (c *Config) FillDefaults() {
-	c.NameRegexp = `^(admin)$`
-	c.PassRegexp = `((?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20})`
 	c.PassSaltLen = 16
 	c.Cookies.FillDefaults()
 	c.Interfaces.FillDefaults()
@@ -98,8 +94,8 @@ type CookieConfig struct {
 }
 
 func (c *CookieConfig) FillDefaults() {
-	c.Path = "/"
 	c.ExpiresDuration = time.Hour * 12
+	c.Path = "/"
 	c.Secure = true
 	c.HttpOnly = true
 	c.SameSite = http.SameSiteDefaultMode

@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -15,7 +14,17 @@ import (
 )
 
 const (
-	sessionCookieName = "swm_session"
+	sessionCookieName = "swm-session"
+)
+
+var (
+	ErrBadBody           = errors.New("ill-formatted request body")
+	ErrNotLoggedOut      = errors.New("not logged out")
+	ErrBadLogin          = errors.New("incorrect username or password")
+	ErrBadSession        = errors.New("session cookie is either non-existent, expired, or ill-formatted")
+	ErrBadUsernameFormat = errors.New("format of 'username' is not accepted")
+	ErrBadPasswordFormat = errors.New("format of 'password' is not accepted")
+	ErrUserNotCreated    = errors.New("failed to create new user: username is either already taken, or unaccepted")
 )
 
 type Session struct {
@@ -44,8 +53,8 @@ func NewUserManager(users UserStore, config CookieConfig) *UserManager {
 
 func (s *UserManager) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if _, err := r.Cookie(sessionCookieName); err != http.ErrNoCookie {
-			httputil.WriteJSON(w, r, http.StatusForbidden, errors.New("not logged out"))
+		if _, _, ok := s.session(r); ok {
+			httputil.WriteJSON(w, r, http.StatusForbidden, ErrNotLoggedOut)
 			return
 		}
 		var rb struct {
@@ -53,18 +62,19 @@ func (s *UserManager) Login() http.HandlerFunc {
 			Password string `json:"password"`
 		}
 		if err := httputil.ReadJSON(r, &rb); err != nil {
-			httputil.WriteJSON(w, r, http.StatusBadRequest, errors.New("cannot read request body"))
+			httputil.WriteJSON(w, r, http.StatusBadRequest, ErrBadBody)
 			return
 		}
 		user, ok := s.db.User(rb.Username)
 		if !ok || !user.VerifyPassword(rb.Password) {
-			httputil.WriteJSON(w, r, http.StatusUnauthorized, errors.New("incorrect username or password"))
+			httputil.WriteJSON(w, r, http.StatusUnauthorized, ErrBadLogin)
 			return
 		}
 		s.newSession(w, Session{
 			User:   rb.Username,
 			Expiry: time.Now().Add(time.Hour * 12), // TODO: Set default expiry.
 		})
+		//http.SetCookie()
 		httputil.WriteJSON(w, r, http.StatusOK, ok)
 	}
 }
@@ -81,9 +91,9 @@ func (s *UserManager) Logout() http.HandlerFunc {
 
 func (s *UserManager) Authorize(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, session, err := s.session(r)
-		if err != nil {
-			httputil.WriteJSON(w, r, http.StatusUnauthorized, err)
+		user, session, ok := s.session(r)
+		if !ok {
+			httputil.WriteJSON(w, r, http.StatusUnauthorized, ErrBadSession)
 			return
 		}
 		ctx := r.Context()
@@ -93,7 +103,7 @@ func (s *UserManager) Authorize(next http.Handler) http.Handler {
 	})
 }
 
-func (s *UserManager) ChangePassword(pwSaltLen int, pwPattern string) http.HandlerFunc {
+func (s *UserManager) ChangePassword(pwSaltLen int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			user = r.Context().Value("user").(User)
@@ -110,7 +120,7 @@ func (s *UserManager) ChangePassword(pwSaltLen int, pwPattern string) http.Handl
 			httputil.WriteJSON(w, r, http.StatusUnauthorized, errors.New("unauthorised"))
 			return
 		}
-		if ok := user.SetPassword(pwSaltLen, pwPattern, rb.NewPassword); !ok {
+		if ok := user.SetPassword(pwSaltLen, rb.NewPassword); !ok {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, errors.New("format of 'new_password' is not accepted"))
 			return
 		}
@@ -118,7 +128,7 @@ func (s *UserManager) ChangePassword(pwSaltLen int, pwPattern string) http.Handl
 	}
 }
 
-func (s *UserManager) CreateAccount(pwSaltLen int, pwPattern, unPattern string) http.HandlerFunc {
+func (s *UserManager) CreateAccount(pwSaltLen int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var rb struct {
 			Username string `json:"username"`
@@ -129,16 +139,16 @@ func (s *UserManager) CreateAccount(pwSaltLen int, pwPattern, unPattern string) 
 			return
 		}
 		var user User
-		if ok := user.SetName(unPattern, rb.Username); !ok {
-			httputil.WriteJSON(w, r, http.StatusBadRequest, errors.New("format of 'username' is not accepted"))
+		if ok := user.SetName(rb.Username); !ok {
+			httputil.WriteJSON(w, r, http.StatusBadRequest, ErrBadUsernameFormat)
 			return
 		}
-		if ok := user.SetPassword(pwSaltLen, pwPattern, rb.Password); !ok {
-			httputil.WriteJSON(w, r, http.StatusBadRequest, errors.New("format of 'password' is not accepted"))
+		if ok := user.SetPassword(pwSaltLen, rb.Password); !ok {
+			httputil.WriteJSON(w, r, http.StatusBadRequest, ErrBadPasswordFormat)
 			return
 		}
 		if ok := s.db.AddUser(user); !ok {
-			httputil.WriteJSON(w, r, http.StatusForbidden, fmt.Errorf("failed to create user of username '%s'", user.Name))
+			httputil.WriteJSON(w, r, http.StatusForbidden, ErrUserNotCreated)
 			return
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, true)
@@ -212,32 +222,33 @@ func (s *UserManager) delSession(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (s *UserManager) session(r *http.Request) (User, Session, error) {
+func (s *UserManager) session(r *http.Request) (User, Session, bool) {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil {
-		return User{}, Session{}, err
+		return User{}, Session{}, false
 	}
 	var sid uuid.UUID
 	if err := s.crypto.Decode(sessionCookieName, cookie.Value, &sid); err != nil {
-		return User{}, Session{}, err
+		log.WithError(err).Warn("failed to decode session cookie value")
+		return User{}, Session{}, false
 	}
 	s.mu.RLock()
 	session, ok := s.sessions[sid]
 	s.mu.RUnlock()
 	if !ok {
-		return User{}, Session{}, errors.New("invalid session")
+		return User{}, Session{}, false
 	}
 	user, ok := s.db.User(session.User)
 	if !ok {
-		return User{}, Session{}, errors.New("invalid session")
+		return User{}, Session{}, false
 	}
 	if time.Now().After(session.Expiry) {
 		s.mu.Lock()
 		delete(s.sessions, sid)
 		s.mu.Unlock()
-		return User{}, Session{}, errors.New("invalid session")
+		return User{}, Session{}, false
 	}
-	return user, session, nil
+	return user, session, true
 }
 
 // TODO: getSessionCookie function.
