@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/http"
@@ -18,10 +17,6 @@ import (
 const (
 	sessionCookieName = "swm_session"
 )
-
-func init() {
-	gob.Register(uuid.UUID{})
-}
 
 type Session struct {
 	SID    uuid.UUID `json:"sid"`
@@ -230,7 +225,7 @@ func (s *UserManager) session(r *http.Request) (User, Session, error) {
 	session, ok := s.sessions[sid]
 	s.mu.RUnlock()
 	if !ok {
-		return User{}, Session{}, errors.New("invalid session") // TODO: proper error
+		return User{}, Session{}, errors.New("invalid session")
 	}
 	user, ok := s.db.User(session.User)
 	if !ok {
@@ -240,7 +235,7 @@ func (s *UserManager) session(r *http.Request) (User, Session, error) {
 		s.mu.Lock()
 		delete(s.sessions, sid)
 		s.mu.Unlock()
-		return User{}, Session{}, errors.New("invalid session") // TODO: proper error
+		return User{}, Session{}, errors.New("invalid session")
 	}
 	return user, session, nil
 }

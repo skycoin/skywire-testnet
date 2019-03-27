@@ -31,9 +31,7 @@ type User struct {
 func (u *User) SetName(pattern, name string) bool {
 	if pattern != "" {
 		ok, err := regexp.MatchString(pattern, name)
-		if err != nil {
-			panic(err) // TODO: log
-		}
+		catch(err, "invalid username regex:")
 		if !ok {
 			return false
 		}
@@ -46,7 +44,7 @@ func (u *User) SetPassword(saltLen int, pattern, password string) bool {
 	if pattern != "" {
 		ok, err := regexp.MatchString(pattern, password)
 		if err != nil {
-			panic(err) // TODO: log
+			catch(err, "invalid password regex:")
 		}
 		if !ok {
 			return false
@@ -64,7 +62,7 @@ func (u *User) VerifyPassword(password string) bool {
 func (u *User) Encode() []byte {
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(u); err != nil {
-		panic(err) // TODO: log.
+		catch(err, "unexpected user encode error:")
 	}
 	return buf.Bytes()
 }
@@ -72,7 +70,7 @@ func (u *User) Encode() []byte {
 func DecodeUser(raw []byte) User {
 	var user User
 	if err := gob.NewDecoder(bytes.NewReader(raw)).Decode(&user); err != nil {
-		panic(err) // TODO: log this.
+		catch(err, "unexpected decode user error:")
 	}
 	return user
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -23,6 +24,10 @@ import (
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/routing"
+)
+
+var (
+	log = logging.MustGetLogger("manager")
 )
 
 // Node manages AppNodes.
@@ -90,7 +95,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.Use(middleware.Logger)
 
 	mux.Route("/auth", func(r chi.Router) {
-		r.Post("/create-account", m.users.CreateAccount(m.c.PassSaltLen, m.c.PassPattern, m.c.NamePattern))
+		r.Post("/create-account", m.users.CreateAccount(m.c.PassSaltLen, m.c.PassRegexp, m.c.NameRegexp))
 		r.Post("/login", m.users.Login())
 		r.Post("/logout", m.users.Logout())
 	})
@@ -99,7 +104,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Use(m.users.Authorize)
 
 		r.Get("/user/info", m.users.UserInfo())
-		r.Post("/user/change-password", m.users.ChangePassword(m.c.PassSaltLen, m.c.PassPattern))
+		r.Post("/user/change-password", m.users.ChangePassword(m.c.PassSaltLen, m.c.PassRegexp))
 
 		r.Get("/nodes", m.getNodes())
 		r.Get("/nodes/{pk}", m.getNode())
@@ -537,8 +542,12 @@ func (m *Node) ctxRoute(next routeHandlerFunc) http.HandlerFunc {
 	})
 }
 
-func catch(err error) {
+func catch(err error, msgs ...string) {
 	if err != nil {
-		panic(err) // TODO: Log.
+		if len(msgs) > 0 {
+			log.Fatalln(append(msgs, err.Error()))
+		} else {
+			log.Fatalln(err)
+		}
 	}
 }
