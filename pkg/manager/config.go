@@ -24,6 +24,7 @@ func (hk Key) MarshalText() ([]byte, error) {
 }
 
 func (hk *Key) UnmarshalText(text []byte) error {
+	*hk = make([]byte, hex.DecodedLen(len(text)))
 	_, err := hex.Decode(*hk, text)
 	return err
 }

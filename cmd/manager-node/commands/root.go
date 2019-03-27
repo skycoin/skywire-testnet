@@ -33,9 +33,9 @@ func findConfigPath() (string, error) {
 	log.Info("configuration file is not explicitly specified, attempting to find one in default paths ...")
 	for i, cPath := range defaultConfigPaths {
 		if _, err := os.Stat(cPath); err != nil {
-			log.Infof("- [%d/%d] '%s' does not exist", i, len(defaultConfigPaths), cPath)
+			log.Infof("- [%d/%d] '%s' does not exist", i+1, len(defaultConfigPaths), cPath)
 		} else {
-			log.Infof("- [%d/%d] '%s' exists (using this one)", i, len(defaultConfigPaths), cPath)
+			log.Infof("- [%d/%d] '%s' exists (using this one)", i+1, len(defaultConfigPaths), cPath)
 			return cPath, nil
 		}
 	}
