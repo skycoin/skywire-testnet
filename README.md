@@ -37,24 +37,33 @@ Skywire requires a version of [golang](https://golang.org/) with [go modules](ht
 $ git clone https://github.com/skycoin/skywire
 $ cd skywire
 $ git checkout mainnet
+# Build
+$ make build # installs all dependencies, build binaries and apps
+```
 
-# Install skywire-node, skywire-cli, manager-node and therealssh-cli
-$ GO111MODULE=on go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli
+**Note: Environment variable OPTS**
 
-# Setup run folder.
-mkdir skywire
-mkdir apps
+Build can be customized with environment variable `OPTS` with default value `GO111MODULE=on`
 
-# Build apps.
-$ GO111MODULE=on go build -o ./apps/chat.v1.0 ./cmd/apps/chat
-$ GO111MODULE=on go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-$ GO111MODULE=on go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-$ GO111MODULE=on go build -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-$ GO111MODULE=on go build -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-$ GO111MODULE=on go build -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+E.g.
 
-# Generate default json config.
-$ skywire-cli config
+```bash
+$ export OPTS="GO111MODULE=on GOOS=darwin"
+$ make
+# or
+$ OPTS="GSO111MODULE=on GOOS=linux GOARCH=arm" make
+```
+
+**Install skywire-node, skywire-cli, manager-node and therealssh-cli**
+
+```bash
+$ make install  # compiles and installs all binaries
+```
+
+**Generate default json config**
+
+```bash
+skywire-cli config
 ```
 
 ### Run `skywire-node`
@@ -66,6 +75,12 @@ $ skywire-cli config
 $ skywire-node skywire.json
 ```
 
+### Run `skywire-node` in docker container
+
+```bash
+make docker-run
+```
+
 ### Run `skywire-cli`
 
 The `skywire-cli` tool is used to control the `skywire-node`. Refer to the help menu for usage:
@@ -74,25 +89,36 @@ The `skywire-cli` tool is used to control the `skywire-node`. Refer to the help 
 $ skywire-cli -h
 
 # Command Line Interface for skywire
-# 
+#
 # Usage:
 #   skywire-cli [command]
-# 
+#
 # Available Commands:
-#   app                 app management operations
-#   config              Generate default config file
-#   help                Help about any command
-#   messaging-discovery manage operations with messaging discovery api
-#   route-finder        manage operations with route finder api
-#   routing-rules       manages operations with routing rules
-#   transport-discovery manage operations with transport discovery api
-#   transports          manages transports related operations
-# 
+#   add-rule          adds a new routing rule
+#   add-transport     adds a new transport
+#   apps              lists apps running on the node
+#   config            Generate default config file
+#   find-routes       lists available routes between two nodes via route finder service
+#   find-transport    finds and lists transport(s) of given transport ID or edge public key from transport discovery
+#   help              Help about any command
+#   list-rules        lists the local node's routing rules
+#   list-transports   lists the available transports with optional filter flags
+#   messaging         manage operations with messaging services
+#   rm-rule           removes a routing rule via route ID key
+#   rm-transport      removes transport with given id
+#   rule              returns a routing rule via route ID key
+#   set-app-autostart sets the autostart flag for an app of given name
+#   start-app         starts an app of given name
+#   stop-app          stops an app of given name
+#   transport         returns summary of given transport by id
+#   transport-types   lists transport types used by the local node
+#
 # Flags:
 #   -h, --help         help for skywire-cli
 #       --rpc string   RPC server address (default "localhost:3435")
-# 
+#
 # Use "skywire-cli [command] --help" for more information about a command.
+
 ```
 
 ### Apps
@@ -112,7 +138,7 @@ Transports can be established via the `skywire-cli`.
 
 ```bash
 # Establish transport to `0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881`.
-$ skywire-cli transports add 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
+$ skywire-cli add-transport 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
 
 # List established transports.
 $ skywire-cli transports list
@@ -146,4 +172,208 @@ func (app *App) Close() error {}
 
 ## Updater
 
-This software comes with an updater, which is located in this repo: https://github.com/skycoin/skywire-updater. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface. 
+This software comes with an updater, which is located in this repo: https://github.com/skycoin/skywire-updater. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface.
+
+## Running skywire in docker containers
+
+There are two make goals for running in development environment dockerized `skywire-node`.
+
+### Run dockerized `skywire-node`
+
+```bash
+$ make docker-run
+```
+
+This will:
+
+- create docker image `skywire-runner` for running `skywire-node`
+- create docker network `SKYNET` (can be customized)
+- create docker volume ./node with linux binaries and apps
+- create container  `SKY01` and starts it (can be customized)
+
+#### Structure of `./node`
+
+```bash
+./node
+├── apps                            # node `apps` compiled with DOCKER_OPTS
+│   ├── chat.v1.0                   #
+│   ├── helloworld.v1.0             #
+│   ├── therealproxy-client.v1.0    #
+│   ├── therealproxy.v1.0           #
+│   ├── therealssh-client.v1.0      #
+│   └── therealssh.v1.0             #
+├── local                           # **Created inside docker**
+│   ├── chat                        #  according to "local_path" in skywire.json
+│   ├── therealproxy                #
+│   └── therealssh                  #
+├── PK                              # contains public key of node
+├── skywire                         # db & logs. **Created inside docker**
+│   ├── routing.db                  #
+│   └── transport_logs              #
+├── skywire.json                    # config of node
+└── skywire-node                    # `skywire-node binary` compiled with DOCKER_OPTS
+```
+
+Directory `./node` is mounted as docker volume for `skywire-node` container.
+
+Inside docker container it is mounted on `/sky`
+
+Structure of `./node` partially replicates structure of project root directory.
+
+Note that files created inside docker container has ownership `root:root`, 
+so in case you want to `rm -rf ./node` (or other file operations) - you will need `sudo` it.
+
+Look at "Recipes: Creating new dockerized node" for further details.
+
+### Refresh and restart `SKY01`
+
+```bash
+$ make refresh-node
+```
+
+This will:
+
+ - stops running node
+ - recompiles `skywire-node` for container
+ - start node again
+
+### Customization of dockers
+
+#### 1. DOCKER_IMAGE
+
+Docker image for running `skywire-node`.
+
+Default value: `skywire-runner` (built with `make docker-image`)
+
+Other images can be used.
+E.g.
+
+```bash
+DOCKER_IMAGE=golang make docker-run #buildpack-deps:stretch-scm is OK too
+```
+
+#### 2.DOCKER_NETWORK
+
+Name of virtual network for `skywire-node`
+
+Default value: SKYNET
+
+#### 3. DOCKER_NODE
+
+Name of container for `skywire-node`
+
+Default value: SKY01
+
+#### 4. DOCKER_OPTS
+
+`go build` options for binaries and apps in container.
+
+Default value: "GO111MODULE=on GOOS=linux"
+
+### Dockerized `skywire-node` recipes
+
+#### 1. Get Public Key of docker-node
+
+```bash
+$ cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' '
+# 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
+```
+
+#### 2. Get an IP of node
+
+```bash
+$ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01
+# 192.168.112
+```
+
+#### 3. Open in browser containerized `chat` application
+
+```bash
+$ firefox http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000  
+```
+
+#### 4. Create new dockerized `skywire-nodes`
+
+In case you need more dockerized nodes or maybe it's needed to customize node
+let's look how to create new node.
+
+```bash
+# 1. We need a folder for docker volume
+$ mkdir /tmp/SKYNODE
+# 2. compile  `skywire-node`
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/skywire-node ./cmd/skywire-node
+# 3. compile apps
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/chat.v1.0 ./cmd/apps/chat
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/helloworld.v1.0 ./cmd/apps/helloworld
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh.v1.0  ./cmd/apps/therealssh
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+# 4. Create skywire.json for node
+$ skywire-cli config /tmp/SKYNODE/skywire.json
+# 2019/03/15 16:43:49 Done!
+$ tree /tmp/SKYNODE
+# /tmp/SKYNODE
+# ├── apps
+# │   ├── chat.v1.0
+# │   ├── helloworld.v1.0
+# │   ├── therealproxy.v1.0
+# │   ├── therealssh-client.v1.0
+# │   └── therealssh.v1.0
+# ├── skywire.json
+# └── skywire-node
+# So far so good. We prepared docker volume. Now we can:
+$ docker run -it -v /tmp/SKYNODE:/sky --network=SKYNET --name=SKYNODE skywire-runner bash -c "cd /sky && ./skywire-node"
+# [2019-03-15T13:55:08Z] INFO [messenger]: Opened new link with the server # 02a49bc0aa1b5b78f638e9189be4ed095bac5d6839c828465a8350f80ac07629c0
+# [2019-03-15T13:55:08Z] INFO [messenger]: Updating discovery entry
+# [2019-03-15T13:55:10Z] INFO [skywire]: Connected to messaging servers
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting chat.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting RPC interface on 127.0.0.1:3435
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealproxy.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealssh.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting packet router
+# [2019-03-15T13:55:10Z] INFO [router]: Starting router
+# [2019-03-15T13:55:10Z] INFO [trmanager]: Starting transport manager
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"chat",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app chat.v1.0
+# [2019-03-15T13:55:10Z] INFO [chat.v1.0]: 2019/03/15 13:55:10 Serving HTTP on :8000
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealssh",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealssh.v1.0
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealproxy",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealproxy.v1.0
+```
+
+Note that in this example docker is running in non-detached mode - it could be useful in some scenarios.
+
+Instead of skywire-runner you can use:
+
+- `golang`, `buildpack-deps:stretch-scm` "as is"
+- and `debian`, `ubuntu` - after `apt-get install ca-certificates` in them. Look in `skywire-runner.Dockerfile` for example
+
+#### 5. Env-vars for develoment-/testing- purposes
+
+```bash
+export SW_NODE_A=127.0.0.1
+export SW_NODE_A_PK=$(cat ./skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
+export SW_NODE_B=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01)
+export SW_NODE_B_PK=$(cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
+```
+
+#### 6. "Hello-Mike-Hello-Joe" test
+
+Idea of test from Erlang classics: https://youtu.be/uKfKtXYLG78?t=120
+
+```bash
+# Setup: run skywire-nodes on host and in docker
+$ make run
+$ make docker-run
+# Open in browser chat application
+$ firefox http://$SW_NODE_B:8000  &
+# add transport
+$ ./skywire-cli add-transport $SW_NODE_B_PK
+# "Hello Mike!" - "Hello Joe!" - "System is working!"
+$ curl --data  {'"recipient":"'$SW_NODE_A_PK'", "message":"Hello Mike!"}' -X POST  http://$SW_NODE_B:8000/message
+$ curl --data  {'"recipient":"'$SW_NODE_B_PK'", "message":"Hello Joe!"}' -X POST  http://$SW_NODE_A:8000/message
+$ curl --data  {'"recipient":"'$SW_NODE_A_PK'", "message":"System is working!"}' -X POST  http://$SW_NODE_B:8000/message
+# Teardown
+$ make stop && make docker-stop
+```
