@@ -198,7 +198,8 @@ func (tm *Manager) Serve(ctx context.Context) error {
 
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	return tm.createTransport(ctx, remote, tpType, uuid.UUID{}, public)
+	uid := uuid.NewSHA1(uuid.UUID{}, []byte(remote.Hex()))
+	return tm.createTransport(ctx, remote, tpType, uid, public)
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
