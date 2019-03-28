@@ -47,7 +47,7 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.etcd.io/bbolt v1.3.2
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
+# golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
@@ -56,11 +56,11 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
-# golang.org/x/net v0.0.0-20190313220215-9f648a60d977
+# golang.org/x/net v0.0.0-20190324223953-e3b2ff56ed87
 golang.org/x/net/context
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
-# golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223
+# golang.org/x/sys v0.0.0-20190322080309-f49334f85ddc
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/cpu
