@@ -88,16 +88,16 @@ func (m *Node) AddMockData(config MockConfig) error {
 }
 
 // ServeHTTP implements http.Handler
-func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	mux := chi.NewRouter()
+func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r := chi.NewRouter()
 
-	mux.Use(middleware.Timeout(time.Second * 30))
-	mux.Use(middleware.Logger)
+	r.Use(middleware.Timeout(time.Second * 30))
+	r.Use(middleware.Logger)
 
-	mux.Route("/api", func(r chi.Router) {
+	r.Route("/api", func(r chi.Router) {
 
 		r.Group(func(r chi.Router) {
-			r.Post("/create-account", m.users.CreateAccount(m.c.PassSaltLen))
+			r.Post("/create-account", m.users.CreateAccount())
 			r.Post("/login", m.users.Login())
 			r.Post("/logout", m.users.Logout())
 		})
@@ -106,7 +106,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			r.Use(m.users.Authorize)
 
 			r.Get("/user", m.users.UserInfo())
-			r.Post("/change-password", m.users.ChangePassword(m.c.PassSaltLen))
+			r.Post("/change-password", m.users.ChangePassword())
 
 			r.Get("/nodes", m.getNodes())
 			r.Get("/nodes/{pk}", m.getNode())
@@ -130,7 +130,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 
-	mux.ServeHTTP(w, r)
+	r.ServeHTTP(w, req)
 }
 
 // provides summary of all nodes.

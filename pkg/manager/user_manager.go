@@ -17,6 +17,7 @@ const (
 	sessionCookieName = "swm-session"
 )
 
+// Errors associated with user management.
 var (
 	ErrBadBody           = errors.New("ill-formatted request body")
 	ErrNotLoggedOut      = errors.New("not logged out")
@@ -28,12 +29,22 @@ var (
 	ErrUserNotFound      = errors.New("user is either deleted or not found")
 )
 
+// for use with context.Context
+type ctxKey string
+
+const (
+	userKey    = ctxKey("user")
+	sessionKey = ctxKey("session")
+)
+
+// Session represents a user session.
 type Session struct {
 	SID    uuid.UUID `json:"sid"`
 	User   string    `json:"username"`
 	Expiry time.Time `json:"expiry"`
 }
 
+// UserManager manages the users and sessions.
 type UserManager struct {
 	c        CookieConfig
 	db       UserStore
@@ -42,6 +53,7 @@ type UserManager struct {
 	mu       *sync.RWMutex
 }
 
+// NewUserManager creates a new UserManager.
 func NewUserManager(users UserStore, config CookieConfig) *UserManager {
 	return &UserManager{
 		db:       users,
@@ -52,6 +64,7 @@ func NewUserManager(users UserStore, config CookieConfig) *UserManager {
 	}
 }
 
+// Login returns a HandlerFunc for login operations.
 func (s *UserManager) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if _, _, ok := s.session(r); ok {
@@ -80,6 +93,7 @@ func (s *UserManager) Login() http.HandlerFunc {
 	}
 }
 
+// Logout returns a HandlerFunc of logout operations.
 func (s *UserManager) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := s.delSession(w, r); err != nil {
@@ -90,6 +104,7 @@ func (s *UserManager) Logout() http.HandlerFunc {
 	}
 }
 
+// Authorize is an http middleware for authorizing requests.
 func (s *UserManager) Authorize(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, session, ok := s.session(r)
@@ -98,16 +113,17 @@ func (s *UserManager) Authorize(next http.Handler) http.Handler {
 			return
 		}
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, "user", user)
-		ctx = context.WithValue(ctx, "session", session)
+		ctx = context.WithValue(ctx, userKey, user)
+		ctx = context.WithValue(ctx, sessionKey, session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func (s *UserManager) ChangePassword(pwSaltLen int) http.HandlerFunc {
+// ChangePassword returns a HandlerFunc for changing the user's password.
+func (s *UserManager) ChangePassword() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			user = r.Context().Value("user").(User)
+			user = r.Context().Value(userKey).(User)
 		)
 		var rb struct {
 			OldPassword string `json:"old_password"`
@@ -121,7 +137,7 @@ func (s *UserManager) ChangePassword(pwSaltLen int) http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusUnauthorized, ErrBadLogin)
 			return
 		}
-		if ok := user.SetPassword(pwSaltLen, rb.NewPassword); !ok {
+		if ok := user.SetPassword(rb.NewPassword); !ok {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, ErrBadPasswordFormat)
 			return
 		}
@@ -133,7 +149,8 @@ func (s *UserManager) ChangePassword(pwSaltLen int) http.HandlerFunc {
 	}
 }
 
-func (s *UserManager) CreateAccount(pwSaltLen int) http.HandlerFunc {
+// CreateAccount returns a HandlerFunc for account creation.
+func (s *UserManager) CreateAccount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var rb struct {
 			Username string `json:"username"`
@@ -148,7 +165,7 @@ func (s *UserManager) CreateAccount(pwSaltLen int) http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, ErrBadUsernameFormat)
 			return
 		}
-		if ok := user.SetPassword(pwSaltLen, rb.Password); !ok {
+		if ok := user.SetPassword(rb.Password); !ok {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, ErrBadPasswordFormat)
 			return
 		}
@@ -160,11 +177,12 @@ func (s *UserManager) CreateAccount(pwSaltLen int) http.HandlerFunc {
 	}
 }
 
+// UserInfo returns a HandlerFunc for obtaining user info.
 func (s *UserManager) UserInfo() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			user    = r.Context().Value("user").(User)
-			session = r.Context().Value("session").(Session)
+			user    = r.Context().Value(userKey).(User)
+			session = r.Context().Value(sessionKey).(Session)
 		)
 		var otherSessions []Session
 		s.mu.RLock()
@@ -199,7 +217,7 @@ func (s *UserManager) newSession(w http.ResponseWriter, session Session) {
 		Domain:   s.c.Domain,
 		Expires:  time.Now().Add(s.c.ExpiresDuration),
 		Secure:   s.c.Secure,
-		HttpOnly: s.c.HttpOnly,
+		HttpOnly: s.c.HTTPOnly,
 		SameSite: s.c.SameSite,
 	})
 }
@@ -221,7 +239,7 @@ func (s *UserManager) delSession(w http.ResponseWriter, r *http.Request) error {
 		Domain:   s.c.Domain,
 		MaxAge:   -1,
 		Secure:   s.c.Secure,
-		HttpOnly: s.c.HttpOnly,
+		HttpOnly: s.c.HTTPOnly,
 		SameSite: s.c.SameSite,
 	})
 	return nil
