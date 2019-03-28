@@ -25,6 +25,7 @@ var (
 	ErrBadUsernameFormat = errors.New("format of 'username' is not accepted")
 	ErrBadPasswordFormat = errors.New("format of 'password' is not accepted")
 	ErrUserNotCreated    = errors.New("failed to create new user: username is either already taken, or unaccepted")
+	ErrUserNotFound      = errors.New("user is either deleted or not found")
 )
 
 type Session struct {
@@ -72,7 +73,7 @@ func (s *UserManager) Login() http.HandlerFunc {
 		}
 		s.newSession(w, Session{
 			User:   rb.Username,
-			Expiry: time.Now().Add(time.Hour * 12), // TODO: Set default expiry.
+			Expiry: time.Now().Add(s.c.ExpiresDuration),
 		})
 		//http.SetCookie()
 		httputil.WriteJSON(w, r, http.StatusOK, ok)
@@ -117,11 +118,15 @@ func (s *UserManager) ChangePassword(pwSaltLen int) http.HandlerFunc {
 			return
 		}
 		if ok := user.VerifyPassword(rb.OldPassword); !ok {
-			httputil.WriteJSON(w, r, http.StatusUnauthorized, errors.New("unauthorised"))
+			httputil.WriteJSON(w, r, http.StatusUnauthorized, ErrBadLogin)
 			return
 		}
 		if ok := user.SetPassword(pwSaltLen, rb.NewPassword); !ok {
-			httputil.WriteJSON(w, r, http.StatusBadRequest, errors.New("format of 'new_password' is not accepted"))
+			httputil.WriteJSON(w, r, http.StatusBadRequest, ErrBadPasswordFormat)
+			return
+		}
+		if ok := s.db.SetUser(user); !ok {
+			httputil.WriteJSON(w, r, http.StatusForbidden, ErrUserNotFound)
 			return
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, true)
@@ -250,5 +255,3 @@ func (s *UserManager) session(r *http.Request) (User, Session, bool) {
 	}
 	return user, session, true
 }
-
-// TODO: getSessionCookie function.

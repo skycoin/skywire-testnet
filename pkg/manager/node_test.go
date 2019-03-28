@@ -17,9 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO(evanlinjin): tests to write:
-// - no access to any endpoint without login / signup.
-
 func TestNewNode(t *testing.T) {
 	config := makeConfig()
 
@@ -189,7 +186,6 @@ func TestNewNode(t *testing.T) {
 				Body:       strings.NewReader(`{"username":"admin","password":"Secure1234"}`),
 				RespStatus: http.StatusOK,
 				RespBody: func(t *testing.T, r *http.Response) {
-					fmt.Println(r.Cookies())
 					var ok bool
 					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
 					assert.True(t, ok)
@@ -230,7 +226,6 @@ func TestNewNode(t *testing.T) {
 				Body:       strings.NewReader(`{"username":"admin","password":"Secure1234"}`),
 				RespStatus: http.StatusOK,
 				RespBody: func(t *testing.T, r *http.Response) {
-					fmt.Println(r.Cookies())
 					var ok bool
 					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
 					assert.True(t, ok)
@@ -241,7 +236,6 @@ func TestNewNode(t *testing.T) {
 				URI:        "/api/logout",
 				RespStatus: http.StatusOK,
 				RespBody: func(t *testing.T, r *http.Response) {
-					fmt.Println(r.Cookies())
 					var ok bool
 					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
 					assert.True(t, ok)
@@ -271,13 +265,83 @@ func TestNewNode(t *testing.T) {
 	})
 
 	t.Run("change_password", func(t *testing.T) {
-		// TODO:
 		// - Create account.
 		// - Login.
 		// - Change Password.
 		// - Logout.
 		// - Login with old password (should fail).
 		// - Login with new password (should succeed).
+
+		addr, client, stop := startNode(MockConfig{5, 10, 10})
+		defer stop()
+
+		testCases(t, addr, client, []TestCase{
+			{
+				Method:     http.MethodPost,
+				URI:        "/api/create-account",
+				Body:       strings.NewReader(`{"username":"admin","password":"Secure1234"}`),
+				RespStatus: http.StatusOK,
+				RespBody: func(t *testing.T, r *http.Response) {
+					var ok bool
+					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
+					assert.True(t, ok)
+				},
+			},
+			{
+				Method:     http.MethodPost,
+				URI:        "/api/login",
+				Body:       strings.NewReader(`{"username":"admin","password":"Secure1234"}`),
+				RespStatus: http.StatusOK,
+				RespBody: func(t *testing.T, r *http.Response) {
+					var ok bool
+					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
+					assert.True(t, ok)
+				},
+			},
+			{
+				Method:     http.MethodPost,
+				URI:        "/api/change-password",
+				Body:       strings.NewReader(`{"old_password":"Secure1234","new_password":"NewSecure1234"}`),
+				RespStatus: http.StatusOK,
+				RespBody: func(t *testing.T, r *http.Response) {
+					var ok bool
+					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
+					assert.True(t, ok)
+				},
+			},
+			{
+				Method:     http.MethodPost,
+				URI:        "/api/logout",
+				RespStatus: http.StatusOK,
+				RespBody: func(t *testing.T, r *http.Response) {
+					var ok bool
+					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
+					assert.True(t, ok)
+				},
+			},
+			{
+				Method:     http.MethodPost,
+				URI:        "/api/login",
+				Body:       strings.NewReader(`{"username":"admin","password":"Secure1234"}`),
+				RespStatus: http.StatusUnauthorized,
+				RespBody: func(t *testing.T, r *http.Response) {
+					b, err := decodeErrorBody(r.Body)
+					assert.NoError(t, err)
+					require.Equal(t, ErrBadLogin.Error(), b.Error)
+				},
+			},
+			{
+				Method:     http.MethodPost,
+				URI:        "/api/login",
+				Body:       strings.NewReader(`{"username":"admin","password":"NewSecure1234"}`),
+				RespStatus: http.StatusOK,
+				RespBody: func(t *testing.T, r *http.Response) {
+					var ok bool
+					assert.NoError(t, json.NewDecoder(r.Body).Decode(&ok))
+					assert.True(t, ok)
+				},
+			},
+		})
 	})
 }
 
