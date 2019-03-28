@@ -90,38 +90,28 @@ func (m *Node) AddMockData(config MockConfig) error {
 // ServeHTTP implements http.Handler
 func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r := chi.NewRouter()
-
 	r.Use(middleware.Timeout(time.Second * 30))
 	r.Use(middleware.Logger)
-
 	r.Route("/api", func(r chi.Router) {
-
 		r.Group(func(r chi.Router) {
 			r.Post("/create-account", m.users.CreateAccount())
 			r.Post("/login", m.users.Login())
 			r.Post("/logout", m.users.Logout())
 		})
-
 		r.Group(func(r chi.Router) {
 			r.Use(m.users.Authorize)
-
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
-
 			r.Get("/nodes", m.getNodes())
 			r.Get("/nodes/{pk}", m.getNode())
-
 			r.Get("/nodes/{pk}/apps", m.getApps())
 			r.Get("/nodes/{pk}/apps/{app}", m.getApp())
 			r.Put("/nodes/{pk}/apps/{app}", m.putApp())
-
 			r.Get("/nodes/{pk}/transport-types", m.getTransportTypes())
-
 			r.Get("/nodes/{pk}/transports", m.getTransports())
 			r.Post("/nodes/{pk}/transports", m.postTransport())
 			r.Get("/nodes/{pk}/transports/{tid}", m.getTransport())
 			r.Delete("/nodes/{pk}/transports/{tid}", m.deleteTransport())
-
 			r.Get("/nodes/{pk}/routes", m.getRoutes())
 			r.Post("/nodes/{pk}/routes", m.postRoute())
 			r.Get("/nodes/{pk}/routes/{rid}", m.getRoute())
@@ -129,7 +119,6 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.Delete("/nodes/{pk}/routes/{rid}", m.deleteRoute())
 		})
 	})
-
 	r.ServeHTTP(w, req)
 }
 
@@ -153,7 +142,7 @@ func (m *Node) getNodes() http.HandlerFunc {
 
 // provides summary of single node.
 func (m *Node) getNode() http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		summary, err := ctx.RPC.Summary()
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
@@ -165,7 +154,7 @@ func (m *Node) getNode() http.HandlerFunc {
 
 // returns app summaries of a given node of pk
 func (m *Node) getApps() http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		apps, err := ctx.RPC.Apps()
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
@@ -177,13 +166,13 @@ func (m *Node) getApps() http.HandlerFunc {
 
 // returns an app summary of a given node's pk and app name
 func (m *Node) getApp() http.HandlerFunc {
-	return m.ctxApp(func(w http.ResponseWriter, r *http.Request, ctx appCtx) {
+	return m.withCtx(m.appCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		httputil.WriteJSON(w, r, http.StatusOK, ctx.App)
 	})
 }
 
 func (m *Node) putApp() http.HandlerFunc {
-	return m.ctxApp(func(w http.ResponseWriter, r *http.Request, ctx appCtx) {
+	return m.withCtx(m.appCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		var reqBody struct {
 			Autostart *bool `json:"autostart,omitempty"`
 			Status    *int  `json:"status,omitempty"`
@@ -222,7 +211,7 @@ func (m *Node) putApp() http.HandlerFunc {
 }
 
 func (m *Node) getTransportTypes() http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		types, err := ctx.RPC.TransportTypes()
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
@@ -233,7 +222,7 @@ func (m *Node) getTransportTypes() http.HandlerFunc {
 }
 
 func (m *Node) getTransports() http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		var (
 			qTypes []string
 			qPKs   []cipher.PubKey
@@ -259,7 +248,7 @@ func (m *Node) getTransports() http.HandlerFunc {
 }
 
 func (m *Node) postTransport() http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		var reqBody struct {
 			Remote cipher.PubKey `json:"remote_pk"`
 			TpType string        `json:"transport_type"`
@@ -279,13 +268,13 @@ func (m *Node) postTransport() http.HandlerFunc {
 }
 
 func (m *Node) getTransport() http.HandlerFunc {
-	return m.ctxTransport(func(w http.ResponseWriter, r *http.Request, ctx transportCtx) {
+	return m.withCtx(m.tpCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		httputil.WriteJSON(w, r, http.StatusOK, ctx.Tp)
 	})
 }
 
 func (m *Node) deleteTransport() http.HandlerFunc {
-	return m.ctxTransport(func(w http.ResponseWriter, r *http.Request, ctx transportCtx) {
+	return m.withCtx(m.tpCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		if err := ctx.RPC.RemoveTransport(ctx.Tp.ID); err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 			return
@@ -312,7 +301,7 @@ func makeRoutingRuleResp(key routing.RouteID, rule routing.Rule, summary bool) r
 }
 
 func (m *Node) getRoutes() http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		qSummary, err := httputil.BoolFromQuery(r, "summary", false)
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
@@ -332,7 +321,7 @@ func (m *Node) getRoutes() http.HandlerFunc {
 }
 
 func (m *Node) postRoute() http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		var summary routing.RuleSummary
 		if err := httputil.ReadJSON(r, &summary); err != nil {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
@@ -353,7 +342,7 @@ func (m *Node) postRoute() http.HandlerFunc {
 }
 
 func (m *Node) getRoute() http.HandlerFunc {
-	return m.ctxRoute(func(w http.ResponseWriter, r *http.Request, ctx routeCtx) {
+	return m.withCtx(m.routeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		qSummary, err := httputil.BoolFromQuery(r, "summary", true)
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
@@ -369,7 +358,7 @@ func (m *Node) getRoute() http.HandlerFunc {
 }
 
 func (m *Node) putRoute() http.HandlerFunc {
-	return m.ctxRoute(func(w http.ResponseWriter, r *http.Request, ctx routeCtx) {
+	return m.withCtx(m.routeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		var summary routing.RuleSummary
 		if err := httputil.ReadJSON(r, &summary); err != nil {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
@@ -389,7 +378,7 @@ func (m *Node) putRoute() http.HandlerFunc {
 }
 
 func (m *Node) deleteRoute() http.HandlerFunc {
-	return m.ctxRoute(func(w http.ResponseWriter, r *http.Request, ctx routeCtx) {
+	return m.withCtx(m.routeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		if err := ctx.RPC.RemoveRoutingRule(ctx.RtKey); err != nil {
 			httputil.WriteJSON(w, r, http.StatusNotFound, err)
 			return
@@ -407,6 +396,110 @@ func (m *Node) client(pk cipher.PubKey) (node.RPCClient, bool) {
 	client, ok := m.nodes[pk]
 	m.mu.RUnlock()
 	return client, ok
+}
+
+type httpCtx struct {
+	// Node
+	PK  cipher.PubKey
+	RPC node.RPCClient
+
+	// App
+	App *node.AppState
+
+	// Transport
+	Tp *node.TransportSummary
+
+	// Route
+	RtKey routing.RouteID
+}
+
+type (
+	valuesFunc  func(w http.ResponseWriter, r *http.Request) (*httpCtx, bool)
+	handlerFunc func(w http.ResponseWriter, r *http.Request, ctx *httpCtx)
+)
+
+func (m *Node) withCtx(vFunc valuesFunc, hFunc handlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if rv, ok := vFunc(w, r); ok {
+			hFunc(w, r, rv)
+		}
+	}
+}
+
+func (m *Node) nodeCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool) {
+	pk, err := pkFromParam(r, "pk")
+	if err != nil {
+		httputil.WriteJSON(w, r, http.StatusBadRequest, err)
+		return nil, false
+	}
+	client, ok := m.client(pk)
+	if !ok {
+		httputil.WriteJSON(w, r, http.StatusNotFound, fmt.Errorf("node of pk '%s' not found", pk))
+		return nil, false
+	}
+	return &httpCtx{
+		PK:  pk,
+		RPC: client,
+	}, true
+}
+
+func (m *Node) appCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool) {
+	ctx, ok := m.nodeCtx(w, r)
+	if !ok {
+		return nil, false
+	}
+	appName := chi.URLParam(r, "app")
+	apps, err := ctx.RPC.Apps()
+	if err != nil {
+		httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+		return nil, false
+	}
+	for _, app := range apps {
+		if app.Name == appName {
+			ctx.App = app
+			return ctx, true
+		}
+	}
+	httputil.WriteJSON(w, r, http.StatusNotFound,
+		fmt.Errorf("can not find app of name %s from node %s", appName, ctx.PK))
+	return nil, false
+}
+
+func (m *Node) tpCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool) {
+	ctx, ok := m.appCtx(w, r)
+	if !ok {
+		return nil, false
+	}
+	tid, err := uuidFromParam(r, "tid")
+	if err != nil {
+		httputil.WriteJSON(w, r, http.StatusBadRequest, err)
+		return nil, false
+	}
+	tp, err := ctx.RPC.Transport(tid)
+	if err != nil {
+		if err.Error() == node.ErrNotFound.Error() {
+			httputil.WriteJSON(w, r, http.StatusNotFound,
+				fmt.Errorf("transport of ID %s is not found", tid))
+			return nil, false
+		}
+		httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+		return nil, false
+	}
+	ctx.Tp = tp
+	return ctx, true
+}
+
+func (m *Node) routeCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool) {
+	ctx, ok := m.tpCtx(w, r)
+	if !ok {
+		return nil, false
+	}
+	rid, err := ridFromParam(r, "key")
+	if err != nil {
+		httputil.WriteJSON(w, r, http.StatusBadRequest, err)
+	}
+	ctx.RtKey = rid
+	return ctx, true
 }
 
 func pkFromParam(r *http.Request, key string) (cipher.PubKey, error) {
@@ -449,100 +542,6 @@ func pkSliceFromQuery(r *http.Request, key string, defaultVal []cipher.PubKey) (
 		pks[i] = cipher.PubKey(pk)
 	}
 	return pks, nil
-}
-
-type nodeCtx struct {
-	PK  cipher.PubKey
-	RPC node.RPCClient
-}
-
-type nodeHandlerFunc func(w http.ResponseWriter, r *http.Request, ctx nodeCtx)
-
-func (m *Node) ctxNode(next nodeHandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		pk, err := pkFromParam(r, "pk")
-		if err != nil {
-			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
-			return
-		}
-		client, ok := m.client(pk)
-		if !ok {
-			httputil.WriteJSON(w, r, http.StatusNotFound, fmt.Errorf("node of pk '%s' not found", pk))
-			return
-		}
-		next(w, r, nodeCtx{PK: pk, RPC: client})
-	}
-}
-
-type appCtx struct {
-	nodeCtx
-	App *node.AppState
-}
-
-type appHandlerFunc func(w http.ResponseWriter, r *http.Request, ctx appCtx)
-
-func (m *Node) ctxApp(next appHandlerFunc) http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
-		appName := chi.URLParam(r, "app")
-		apps, err := ctx.RPC.Apps()
-		if err != nil {
-			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		for _, app := range apps {
-			if app.Name == appName {
-				next(w, r, appCtx{nodeCtx: ctx, App: app})
-				return
-			}
-		}
-		httputil.WriteJSON(w, r, http.StatusNotFound,
-			fmt.Errorf("can not find app of name %s from node %s", appName, ctx.PK))
-	})
-}
-
-type transportCtx struct {
-	nodeCtx
-	Tp *node.TransportSummary
-}
-
-type transportHandlerFunc func(w http.ResponseWriter, r *http.Request, ctx transportCtx)
-
-func (m *Node) ctxTransport(next transportHandlerFunc) http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
-		tid, err := uuidFromParam(r, "tid")
-		if err != nil {
-			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
-			return
-		}
-		tp, err := ctx.RPC.Transport(tid)
-		if err != nil {
-			if err.Error() == node.ErrNotFound.Error() {
-				httputil.WriteJSON(w, r, http.StatusNotFound,
-					fmt.Errorf("transport of ID %s is not found", tid))
-				return
-			}
-			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		next(w, r, transportCtx{nodeCtx: ctx, Tp: tp})
-	})
-}
-
-type routeCtx struct {
-	nodeCtx
-	RtKey routing.RouteID
-}
-
-type routeHandlerFunc func(w http.ResponseWriter, r *http.Request, ctx routeCtx)
-
-func (m *Node) ctxRoute(next routeHandlerFunc) http.HandlerFunc {
-	return m.ctxNode(func(w http.ResponseWriter, r *http.Request, ctx nodeCtx) {
-		rid, err := ridFromParam(r, "key")
-		if err != nil {
-			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
-		}
-		next(w, r, routeCtx{nodeCtx: ctx, RtKey: rid})
-	})
 }
 
 func catch(err error, msgs ...string) {

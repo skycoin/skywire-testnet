@@ -103,7 +103,7 @@ func NewBoltUserStore(path string) (*BoltUserStore, error) {
 
 // User obtains a single user. Returns true if user exists.
 func (s *BoltUserStore) User(name string) (user User, ok bool) {
-	catch(s.View(func(tx *bbolt.Tx) error {
+	catch(s.View(func(tx *bbolt.Tx) error { //nolint:unparam
 		users := tx.Bucket([]byte(boltUserBucketName))
 		rawUser := users.Get([]byte(name))
 		if rawUser == nil {
