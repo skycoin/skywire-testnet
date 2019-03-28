@@ -9,12 +9,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skycoin/skywire/internal/pathutil"
-
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/node"
 )
+
+const configEnv = "SW_CONFIG"
 
 var rootCmd = &cobra.Command{
 	Use:   "skywire-node [skywire.json]",
@@ -23,7 +24,7 @@ var rootCmd = &cobra.Command{
 		var configFile string
 		if len(args) > 0 {
 			configFile = args[0]
-		} else if conf, ok := os.LookupEnv("SKYWIRE_CONFIG"); ok {
+		} else if conf, ok := os.LookupEnv(configEnv); ok {
 			configFile = conf
 		} else {
 			conf, err := pathutil.Find("skywire.json")
@@ -33,7 +34,7 @@ var rootCmd = &cobra.Command{
 			configFile = conf
 		}
 
-		log.Println("using conf file at: ", configFile)
+		log.Println("using conf file at:", configFile)
 
 		file, err := os.Open(configFile)
 		if err != nil {
