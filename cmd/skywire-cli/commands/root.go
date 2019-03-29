@@ -2,16 +2,18 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"net/rpc"
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
 )
+
+var log = logging.MustGetLogger("skywire-cli")
 
 var rpcAddr string
 
