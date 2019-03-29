@@ -326,9 +326,17 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), tr.Remote(), entry.ID)
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
+
 	tm.mu.Lock()
-	tm.transports[entry.ID] = managedTr
+	rpk, lpk := tr.Remote(), tr.Local()
+	uid := uuid.NewSHA1(uuid.UUID{}, append(lpk[:], rpk[:]...))
+	managedTr := newManagedTransport(uid, tr, entry.Public)
+
+	if existingTr, ok := tm.transports[uid]; ok {
+		return existingTr, nil
+	}
+
+	tm.transports[uid] = managedTr
 	select {
 	case <-tm.doneChan:
 	case tm.acceptedTrChan <- managedTr:
@@ -346,7 +354,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 			return
 		case err := <-managedTr.errChan:
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			if err := tm.DeleteTransport(entry.ID); err != nil {
+			if err := tm.DeleteTransport(uid); err != nil {
 				tm.Logger.Warnf("Failed to delete transport: %s", err)
 			}
 		}
