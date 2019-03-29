@@ -41,7 +41,7 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 
 		newEntry := id == uuid.UUID{}
 		if newEntry {
-			entry.ID = uuid.New()
+			entry.ID = GetTransportUUID(tr.Local(), tr.Remote())
 		}
 
 		sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}
@@ -76,6 +76,7 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 	}
 
 	sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
+
 	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 
 	var err error

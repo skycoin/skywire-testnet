@@ -10,7 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,7 +24,7 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 func newTestEntry() *transport.Entry {
 	pk1, _ := cipher.GenerateKeyPair()
 	return &transport.Entry{
-		ID:     uuid.New(),
+		ID:     transport.GetTransportUUID(pk1, testPubKey),
 		Edges:  [2]cipher.PubKey{pk1, testPubKey},
 		Type:   "messaging",
 		Public: true,

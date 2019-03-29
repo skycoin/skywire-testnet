@@ -196,10 +196,22 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
+// GenTransportUUID generates uuid.UUID from pair of keys
+func GetTransportUUID(keyA, keyB cipher.PubKey) uuid.UUID {
+	var mixedKeys = make([]byte, 66)
+	for i := 0; i < 33; i++ {
+		if keyA[i] < keyB[i] {
+			mixedKeys[i*2], mixedKeys[i*2+1] = keyA[i], keyB[i]
+		} else {
+			mixedKeys[i*2], mixedKeys[i*2+1] = keyB[i], keyA[i]
+		}
+	}
+	return uuid.NewSHA1(uuid.UUID{}, mixedKeys)
+}
+
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	uid := uuid.NewSHA1(uuid.UUID{}, append(tm.config.PubKey[:], remote[:]...))
-	return tm.createTransport(ctx, remote, tpType, uid, public)
+	return tm.createTransport(ctx, remote, tpType, GetTransportUUID(tm.config.PubKey, remote), public)
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
@@ -326,17 +338,10 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), tr.Remote(), entry.ID)
-
+	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
-	rpk, lpk := tr.Remote(), tr.Local()
-	uid := uuid.NewSHA1(uuid.UUID{}, append(lpk[:], rpk[:]...))
-	managedTr := newManagedTransport(uid, tr, entry.Public)
 
-	if existingTr, ok := tm.transports[uid]; ok {
-		return existingTr, nil
-	}
-
-	tm.transports[uid] = managedTr
+	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
 	case tm.acceptedTrChan <- managedTr:
@@ -344,6 +349,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 	tm.mu.Unlock()
 
+	// go func(managedTr *ManagedTransport, tm *Manager) {
 	go func() {
 		select {
 		case <-managedTr.doneChan:
@@ -354,7 +360,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 			return
 		case err := <-managedTr.errChan:
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			if err := tm.DeleteTransport(uid); err != nil {
+			if err := tm.DeleteTransport(managedTr.ID); err != nil {
 				tm.Logger.Warnf("Failed to delete transport: %s", err)
 			}
 		}
