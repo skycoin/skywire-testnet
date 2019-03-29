@@ -21,7 +21,7 @@ const configEnv = "SW_CONFIG"
 var log = logging.MustGetLogger("skywire-node")
 
 var rootCmd = &cobra.Command{
-	Use:   "skywire-node [skywire.json]",
+	Use:   "skywire-node [config-path]",
 	Short: "App Node for skywire",
 	Run: func(_ *cobra.Command, args []string) {
 		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.NodeDefaults())

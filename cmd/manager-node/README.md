@@ -2,9 +2,19 @@
 
 Manager node exposes node management operations via web API.
 
+**Generate config file:**
+
+```bash
+
+```
+
 **Run with mock data:**
 
 ```bash
+# Generate config file.
+$ manager-node gen-config
+
+# Run.
 $ manager-node --mock
 ```
 

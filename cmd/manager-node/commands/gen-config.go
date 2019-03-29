@@ -29,7 +29,7 @@ var genConfigCmd = &cobra.Command{
 	Short: "generates a configuration file",
 	PreRun: func(_ *cobra.Command, _ []string) {
 		if output == "" {
-			output = pathutil.NodeDefaults().Get(configLocType)
+			output = pathutil.ManagerDefaults().Get(configLocType)
 			log.Infof("no 'output,o' flag is empty, using default path: %s", output)
 		}
 		var err error

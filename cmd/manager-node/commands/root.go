@@ -42,6 +42,7 @@ var rootCmd = &cobra.Command{
 		if err := config.Parse(configPath); err != nil {
 			log.WithError(err).Fatalln("failed to parse config file")
 		}
+		fmt.Println(config)
 
 		var (
 			httpAddr = config.Interfaces.HTTPAddr

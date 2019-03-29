@@ -28,17 +28,17 @@ func init() {
 var genConfigCmd = &cobra.Command{
 	Use:   "gen-config",
 	Short: "Generate default config file",
-	PreRun: func(cmd *cobra.Command, args []string) {
+	PreRun: func(_ *cobra.Command, _ []string) {
 		if output == "" {
-			output = pathutil.ManagerDefaults().Get(configLocType)
-			log.Infof("no 'output,o' flag is empty, using default path: %s", output)
+			output = pathutil.NodeDefaults().Get(configLocType)
+			log.Infof("No 'output' set; using default path: %s", output)
 		}
 		var err error
 		if output, err = filepath.Abs(output); err != nil {
 			log.WithError(err).Fatalln("invalid output provided")
 		}
 	},
-	Run: func(_ *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		var conf *node.Config
 		switch configLocType {
 		case pathutil.WorkingDirLoc:
