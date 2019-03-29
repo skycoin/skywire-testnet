@@ -53,6 +53,17 @@ func makeConfig() Config {
 	return c
 }
 
+// GenerateWorkDirConfig generates a config with default values and uses db from current working directory.
+func GenerateWorkDirConfig() Config {
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("failed to generate WD config: %s", dir)
+	}
+	c := makeConfig()
+	c.DBPath = filepath.Join(dir, "users.db")
+	return c
+}
+
 // GenerateHomeConfig generates a config with default values and uses db from user's home folder.
 func GenerateHomeConfig() Config {
 	c := makeConfig()

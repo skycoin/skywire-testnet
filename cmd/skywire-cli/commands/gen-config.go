@@ -2,63 +2,60 @@ package commands
 
 import (
 	"encoding/base64"
-	"encoding/json"
-	"log"
-	"os"
+	"fmt"
 	"path/filepath"
-
-	"github.com/skycoin/skywire/internal/pathutil"
 
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
 )
 
-func init() {
-	rootCmd.AddCommand(configCmd)
-}
-
 var (
-	configMode string
+	output        string
+	replace       bool
+	configLocType = pathutil.WorkingDirLoc
 )
 
-var configCmd = &cobra.Command{
-	Use:   "config [skywire.json]",
+func init() {
+	rootCmd.AddCommand(genConfigCmd)
+	genConfigCmd.Flags().StringVarP(&output, "output", "o", "", "path of output config file. Uses default of 'type' flag if unspecified.")
+	genConfigCmd.Flags().BoolVarP(&replace, "replace", "r", false, "whether to allow rewrite of a file that already exists.")
+	genConfigCmd.Flags().VarP(&configLocType, "type", "m", fmt.Sprintf("config generation mode. Valid values: %v", pathutil.AllConfigLocationTypes()))
+}
+
+var genConfigCmd = &cobra.Command{
+	Use:   "gen-config",
 	Short: "Generate default config file",
-	Run: func(_ *cobra.Command, args []string) {
-		configFile := "skywire.json"
-		if len(args) > 0 {
-			configFile = args[0]
+	PreRun: func(_ *cobra.Command, _ []string) {
+		if output == "" {
+			output = pathutil.NodeDefaults().Get(configLocType)
+			log.Infof("No 'output' set; using default path: %s", output)
 		}
-
+		var err error
+		if output, err = filepath.Abs(output); err != nil {
+			log.WithError(err).Fatalln("invalid output provided")
+		}
+	},
+	Run: func(_ *cobra.Command, _ []string) {
 		var conf *node.Config
-		switch configMode {
-		case "local":
+		switch configLocType {
+		case pathutil.WorkingDirLoc:
 			conf = defaultConfig()
-		case "home":
+		case pathutil.HomeLoc:
 			conf = homeConfig()
-		case "system":
-			conf = systemConfig()
+		case pathutil.LocalLoc:
+			conf = localConfig()
+		default:
+			log.Fatalln("invalid config type:", configLocType)
 		}
-		confFile, err := os.OpenFile(configFile, os.O_RDWR|os.O_CREATE, 0600)
-		if err != nil {
-			log.Fatal("Failed to create config files: ", err)
-		}
-
-		enc := json.NewEncoder(confFile)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(conf); err != nil {
-			log.Fatal("Failed to encode json config: ", err)
-		}
-
-		log.Println("Done!")
+		pathutil.WriteJSONConfig(conf, output, replace)
 	},
 }
 
 func homeConfig() *node.Config {
 	c := defaultConfig()
-
 	c.AppsPath = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/apps")
 	c.Transport.LogStore.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/transport_logs")
 	c.Routing.Table.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/routing.db")
@@ -66,9 +63,8 @@ func homeConfig() *node.Config {
 	return c
 }
 
-func systemConfig() *node.Config {
+func localConfig() *node.Config {
 	c := defaultConfig()
-
 	c.AppsPath = "/usr/local/skycoin/skywire/apps"
 	c.Transport.LogStore.Location = "/usr/local/skycoin/skywire/transport_logs"
 	c.Routing.Table.Location = "/usr/local/skycoin/skywire/routing.db"
@@ -116,8 +112,4 @@ func defaultConfig() *node.Config {
 	conf.Interfaces.RPCAddress = "localhost:3435"
 
 	return conf
-}
-
-func init() {
-	configCmd.Flags().StringVar(&configMode, "mode", "home", "either home or local")
 }
