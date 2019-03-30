@@ -141,7 +141,7 @@ Transports can be established via the `skywire-cli`.
 $ skywire-cli add-transport 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
 
 # List established transports.
-$ skywire-cli transports list
+$ skywire-cli transport list
 ```
 
 ## App programming API
