@@ -320,7 +320,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	}
 
 	l := &routing.Loop{LocalPort: laddr.Port, RemotePort: raddr.Port,
-		NoiseMessage: msg, ExpireAt: time.Now().Add(RouteTTL),
+		NoiseMessage: msg, Expiry: time.Now().Add(RouteTTL),
 		Forward: forwardRoute, Reverse: reverseRoute}
 
 	proto, tr, err := r.setupProto(context.Background())
@@ -329,7 +329,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	}
 	defer tr.Close()
 
-	if err := proto.CreateLoop(l); err != nil {
+	if err := setup.CreateLoop(proto, l); err != nil {
 		return nil, fmt.Errorf("route setup: %s", err)
 	}
 
@@ -386,7 +386,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
 	defer tr.Close()
 
 	ld := &setup.LoopData{RemotePK: addr.Remote.PubKey, RemotePort: addr.Remote.Port, LocalPort: addr.Port}
-	if err := proto.CloseLoop(ld); err != nil {
+	if err := setup.CloseLoop(proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
 

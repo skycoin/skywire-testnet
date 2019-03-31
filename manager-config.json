@@ -1,0 +1,19 @@
+{
+	"public_key": "039c852257120e750145051da28d543b4ab9a9b37fbc03da0f945a5eb9a9b19884",
+	"secret_key": "7a9b343805ebc873e16d98806317ba7481372eb3646fd5e39d6f21da1dabbd3d",
+	"db_path": "/Users/evanlinjin/GolandProjects/skywire/users.db",
+	"cookies": {
+		"hash_key": "8376e3a88e69a1432833341e64e4d7ecf130e1ac9c06e2eb7faa89a8f3c32474b0c8b53f34ff56d90fc2e77e883a12adc5a1fac296d7a75d7e2fd1f7e61143cf",
+		"block_key": "86189a612410794700601226da59e9741b890307c1295bba2b45ca82b1816084",
+		"expires_duration": 43200000000000,
+		"path": "/",
+		"domain": "",
+		"secure": true,
+		"http_only": true,
+		"same_site": 1
+	},
+	"interfaces": {
+		"http_address": ":8080",
+		"rpc_addr": ":7080"
+	}
+}

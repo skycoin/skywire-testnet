@@ -323,7 +323,7 @@ func TestRouterSetup(t *testing.T) {
 
 	var routeID routing.RouteID
 	t.Run("add route", func(t *testing.T) {
-		routeID, err = sProto.AddRule(routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.ID))
+		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.ID))
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(routeID)
@@ -347,10 +347,10 @@ func TestRouterSetup(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		appRouteID, err := sProto.AddRule(routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
+		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
 		require.NoError(t, err)
 
-		noiseRes, err := sProto.ConfirmLoop(&setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID, NoiseMessage: msg})
+		noiseRes, err := setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID, NoiseMessage: msg})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -405,10 +405,10 @@ func TestRouterSetup(t *testing.T) {
 
 		require.NoError(t, r.pm.SetLoop(4, &app.Addr{PubKey: pk2, Port: 3}, &loop{noise: ni}))
 
-		appRouteID, err := sProto.AddRule(routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
+		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
 		require.NoError(t, err)
 
-		_, err = sProto.ConfirmLoop(&setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID, NoiseMessage: noiseRes})
+		_, err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID, NoiseMessage: noiseRes})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -435,7 +435,7 @@ func TestRouterSetup(t *testing.T) {
 		require.NotNil(t, rule)
 		assert.Equal(t, routing.RuleApp, rule.Type())
 
-		require.NoError(t, sProto.LoopClosed(&setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4}))
+		require.NoError(t, setup.LoopClosed(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4}))
 		time.Sleep(100 * time.Millisecond)
 
 		_, err = r.pm.GetLoop(4, &app.Addr{PubKey: pk2, Port: 3})
@@ -449,7 +449,7 @@ func TestRouterSetup(t *testing.T) {
 	})
 
 	t.Run("delete rule", func(t *testing.T) {
-		require.NoError(t, sProto.DeleteRule(routeID))
+		require.NoError(t, setup.DeleteRule(sProto, routeID))
 
 		rule, err := rt.Rule(routeID)
 		require.NoError(t, err)
@@ -513,7 +513,7 @@ func TestRouterSetupLoop(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
 	}()
 
 	rw, rwIn := net.Pipe()
@@ -619,7 +619,7 @@ func TestRouterCloseLoop(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
 	}()
 
 	rw, rwIn := net.Pipe()
@@ -707,7 +707,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
 	}()
 
 	rw, rwIn := net.Pipe()
@@ -793,7 +793,7 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
 	}()
 
 	rw, rwIn := net.Pipe()

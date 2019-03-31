@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -58,19 +59,36 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 }
 
 func TestRouteManagerAddRemoveRule(t *testing.T) {
+	fmt.Println("start!")
+	done := make(chan struct{})
+	expired := time.NewTimer(time.Second * 5)
+	go func() {
+		select {
+		case <-done:
+			fmt.Println("done!")
+			return
+		case <-expired.C:
+			fmt.Println("expired!")
+		}
+	}()
+	defer func() {
+		close(done)
+	}()
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
 
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
+		fmt.Println("watiting serve...")
 		errCh <- rm.Serve(out)
+		fmt.Println("DONE!")
 	}()
 
 	proto := setup.NewProtocol(in)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
-	id, err := proto.AddRule(rule)
+	id, err := setup.AddRule(proto, rule)
 	require.NoError(t, err)
 	assert.Equal(t, routing.RouteID(1), id)
 
@@ -100,7 +118,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, rt.Count())
 
-	require.NoError(t, proto.DeleteRule(id))
+	require.NoError(t, setup.DeleteRule(proto, id))
 	assert.Equal(t, 0, rt.Count())
 
 	require.NoError(t, in.Close())
@@ -143,7 +161,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 		RouteID:      1,
 		NoiseMessage: []byte("bar"),
 	}
-	noiseRes, err := proto.ConfirmLoop(ld)
+	noiseRes, err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), noiseRes)
 	assert.Equal(t, []byte("bar"), noiseMsg)
@@ -190,7 +208,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 		RouteID:      1,
 		NoiseMessage: []byte("bar"),
 	}
-	require.NoError(t, proto.LoopClosed(ld))
+	require.NoError(t, setup.LoopClosed(proto, ld))
 	assert.Equal(t, uint16(2), inAddr.Port)
 	assert.Equal(t, uint16(3), inAddr.Remote.Port)
 	assert.Equal(t, pk, inAddr.Remote.PubKey)

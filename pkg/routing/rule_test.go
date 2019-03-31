@@ -15,7 +15,7 @@ func TestAppRule(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	rule := AppRule(expireAt, 2, pk, 3, 4)
 
-	assert.Equal(t, expireAt.Unix(), rule.ExpireAt().Unix())
+	assert.Equal(t, expireAt.Unix(), rule.Expiry().Unix())
 	assert.Equal(t, RuleApp, rule.Type())
 	assert.Equal(t, RouteID(2), rule.RouteID())
 	assert.Equal(t, pk, rule.RemotePK())
@@ -31,7 +31,7 @@ func TestForwardRule(t *testing.T) {
 	expireAt := time.Now().Add(2 * time.Minute)
 	rule := ForwardRule(expireAt, 2, trID)
 
-	assert.Equal(t, expireAt.Unix(), rule.ExpireAt().Unix())
+	assert.Equal(t, expireAt.Unix(), rule.Expiry().Unix())
 	assert.Equal(t, RuleForward, rule.Type())
 	assert.Equal(t, RouteID(2), rule.RouteID())
 	assert.Equal(t, trID, rule.TransportID())
