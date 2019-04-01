@@ -26,8 +26,8 @@ type MockFactory struct {
 	fType string
 }
 
-// NewMockFactory constructs a pair of MockFactories.
-func NewMockFactory(local, remote cipher.PubKey) (*MockFactory, *MockFactory) {
+// NewMockFactoryPair constructs a pair of MockFactories.
+func NewMockFactoryPair(local, remote cipher.PubKey) (*MockFactory, *MockFactory) {
 	in := make(chan *fConn)
 	out := make(chan *fConn)
 	return &MockFactory{local, in, out, "mock"}, &MockFactory{remote, out, in, "mock"}
@@ -143,7 +143,8 @@ func (m *MockTransport) Type() string {
 	return "mock"
 }
 
-func MockTransportManagers() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh chan error, err error) {
+// MockTransportManagersPair constructs a pair of Transport Managers
+func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh chan error, err error) {
 	discovery := NewDiscoveryMock()
 	logs := InMemoryTransportLogStore()
 
@@ -154,7 +155,7 @@ func MockTransportManagers() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh cha
 	c1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
 	c2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
 
-	f1, f2 := NewMockFactory(pk1, pk2)
+	f1, f2 := NewMockFactoryPair(pk1, pk2)
 
 	if m1, err = NewManager(c1, f1); err != nil {
 		return
@@ -168,4 +169,10 @@ func MockTransportManagers() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh cha
 	go func() { errCh <- m2.Serve(context.TODO()) }()
 
 	return
+}
+
+// MockTransportManager creates Manager
+func MockTransportManager() (cipher.PubKey, *Manager, error) {
+	_, pkB, mgrA, _, _, err := MockTransportManagersPair()
+	return pkB, mgrA, err
 }

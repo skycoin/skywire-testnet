@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,7 +25,7 @@ func TestTransportManager(t *testing.T) {
 	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
 	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
-	f1, f2 := NewMockFactory(pk1, pk2)
+	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -112,7 +113,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
 	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
-	f1, f2 := NewMockFactory(pk1, pk2)
+	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -169,7 +170,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	c1 := &ManagerConfig{pk1, sk1, client, logStore1, nil}
 	c2 := &ManagerConfig{pk2, sk2, client, logStore2, nil}
 
-	f1, f2 := NewMockFactory(pk1, pk2)
+	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -252,29 +253,27 @@ func ExampleGetTransportUUID() {
 }
 
 func ExampleManagerCreateTransport() {
+	// Repetition is required here to guarantee that correctness does not depends on order of edges
+	for i := 0; i < 256; i++ {
+		pkB, mgrA, err := MockTransportManager()
+		if err != nil {
+			fmt.Printf("MockTransportManager failed on iteration %v with: %v\n", i, err)
+			return
+		}
 
-	
+		mtrAB, err := mgrA.CreateTransport(context.TODO(), pkB, "mock", true)
+		if err != nil {
+			fmt.Printf("Manager.CreateTransport failed on iteration %v with: %v\n", i, err)
+			return
+		}
 
-	// discovery := transport.NewDiscoveryMock()
-	// logs := transport.InMemoryTransportLogStore()
+		if (mtrAB.ID == uuid.UUID{}) {
+			fmt.Printf("Manager.CreateTransport failed on iteration %v", i)
+			return
+		}
+	}
 
-	// var sk1, sk2 cipher.SecKey
-	// pk1, sk1 = cipher.GenerateKeyPair()
-	// pk2, sk2 = cipher.GenerateKeyPair()
+	fmt.Println("Manager.CreateTransport success")
 
-	// c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
-	// c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
-
-	// f1, f2 := transport.NewMockFactory(pk1, pk2)
-
-	// if m1, err = transport.NewManager(c1, f1); err != nil {
-	// 	return
-	// }
-	// if m2, err = transport.NewManager(c2, f2); err != nil {
-	// 	return
-	// }
-
-	// errCh = make(chan error)
-	// go func() { errCh <- m1.Serve(context.TODO()) }()
-
+	// Output: Manager.CreateTransport success
 }
