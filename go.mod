@@ -7,6 +7,8 @@ require (
 	github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/securecookie v1.1.1
+	github.com/gorilla/sessions v1.1.3 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect

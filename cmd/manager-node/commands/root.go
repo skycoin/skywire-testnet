@@ -9,29 +9,22 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/manager"
 )
 
+const configEnv = "SW_MANAGER_CONFIG"
+
 var (
-	pk            cipher.PubKey
-	sk            cipher.SecKey
-	rpcAddr       string
-	httpAddr      string
+	log = logging.MustGetLogger("manager-node")
+
 	mock          bool
 	mockNodes     int
 	mockMaxTps    int
 	mockMaxRoutes int
-
-	log = logging.MustGetLogger("manager-node")
 )
 
 func init() {
-	rootCmd.PersistentFlags().Var(&pk, "pk", "manager node's public key")
-	rootCmd.PersistentFlags().Var(&sk, "sk", "manager node's secret key")
-	rootCmd.PersistentFlags().StringVar(&httpAddr, "http-addr", ":8080", "address to serve HTTP RESTful API and Web interface")
-
-	rootCmd.Flags().StringVar(&rpcAddr, "rpc-addr", ":7080", "address to serve RPC client interface")
 	rootCmd.Flags().BoolVar(&mock, "mock", false, "whether to run manager node with mock data")
 	rootCmd.Flags().IntVar(&mockNodes, "mock-nodes", 5, "number of app nodes to have in mock mode")
 	rootCmd.Flags().IntVar(&mockMaxTps, "mock-max-tps", 10, "max number of transports per mock app node")
@@ -39,25 +32,29 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "manager-node",
+	Use:   "manager-node [config-path]",
 	Short: "Manages Skywire App Nodes",
-	PreRun: func(_ *cobra.Command, _ []string) {
-		if pk.Null() && sk.Null() {
-			pk, sk = cipher.GenerateKeyPair()
-			log.Println("No keys are set. Randomly generating...")
+	Run: func(_ *cobra.Command, args []string) {
+		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.ManagerDefaults())
+
+		var config manager.Config
+		config.FillDefaults()
+		if err := config.Parse(configPath); err != nil {
+			log.WithError(err).Fatalln("failed to parse config file")
 		}
-		cPK, err := sk.PubKey()
+		fmt.Println(config)
+
+		var (
+			httpAddr = config.Interfaces.HTTPAddr
+			rpcAddr  = config.Interfaces.RPCAddr
+		)
+
+		m, err := manager.NewNode(config)
 		if err != nil {
-			log.Fatalln("Key pair check failed:", err)
+			log.Fatalln("Failed to start manager:", err)
 		}
-		if cPK != pk {
-			log.Fatalln("SK and PK provided do not match.")
-		}
-		log.Println("PK:", pk)
-		log.Println("SK:", sk)
-	},
-	Run: func(_ *cobra.Command, _ []string) {
-		m := manager.NewNode(pk, sk)
+
+		log.Infof("serving  RPC on '%s'", rpcAddr)
 		go func() {
 			l, err := net.Listen("tcp", rpcAddr)
 			if err != nil {
@@ -67,8 +64,9 @@ var rootCmd = &cobra.Command{
 				log.Fatalln("Failed to serve RPC:", err)
 			}
 		}()
+
 		if mock {
-			err := m.AddMockData(&manager.MockConfig{
+			err := m.AddMockData(manager.MockConfig{
 				Nodes:            mockNodes,
 				MaxTpsPerNode:    mockMaxTps,
 				MaxRoutesPerNode: mockMaxRoutes,
@@ -77,9 +75,12 @@ var rootCmd = &cobra.Command{
 				log.Fatalln("Failed to add mock data:", err)
 			}
 		}
+
+		log.Infof("serving HTTP on '%s'", httpAddr)
 		if err := http.ListenAndServe(httpAddr, m); err != nil {
 			log.Fatalln("Manager exited with error:", err)
 		}
+
 		log.Println("Good bye!")
 	},
 }

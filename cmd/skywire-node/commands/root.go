@@ -2,35 +2,38 @@ package commands
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/node"
 )
 
+const configEnv = "SW_CONFIG"
+
+var log = logging.MustGetLogger("skywire-node")
+
 var rootCmd = &cobra.Command{
-	Use:   "skywire-node [skywire.json]",
+	Use:   "skywire-node [config-path]",
 	Short: "App Node for skywire",
 	Run: func(_ *cobra.Command, args []string) {
-		configFile := "skywire.json"
-		if len(args) > 0 {
-			configFile = args[0]
-		}
+		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.NodeDefaults())
 
-		file, err := os.Open(configFile)
+		file, err := os.Open(configPath)
 		if err != nil {
 			log.Fatalf("Failed to open config: %s", err)
 		}
 
 		conf := &node.Config{}
 		if err := json.NewDecoder(file).Decode(&conf); err != nil {
-			log.Fatalf("Failed to decode %s: %s", configFile, err)
+			log.Fatalf("Failed to decode %s: %s", configPath, err)
 		}
 
 		node, err := node.NewNode(conf)
