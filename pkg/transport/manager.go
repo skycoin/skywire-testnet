@@ -196,17 +196,21 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
-// GenTransportUUID generates uuid.UUID from pair of keys
+// GetTransportUUID generates uuid.UUID from pair of keys.
+// Generated uuid is:
+// - always the same for a given pair
+// - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
 func GetTransportUUID(keyA, keyB cipher.PubKey) uuid.UUID {
-	var mixedKeys = make([]byte, 66)
 	for i := 0; i < 33; i++ {
-		if keyA[i] < keyB[i] {
-			mixedKeys[i*2], mixedKeys[i*2+1] = keyA[i], keyB[i]
-		} else {
-			mixedKeys[i*2], mixedKeys[i*2+1] = keyB[i], keyA[i]
+		if keyA[i] != keyB[i] {
+			if keyA[i] < keyB[i] {
+				return uuid.NewSHA1(uuid.UUID{}, append(keyA[:], keyB[:]...))
+			} else {
+				return uuid.NewSHA1(uuid.UUID{}, append(keyB[:], keyA[:]...))
+			}
 		}
 	}
-	return uuid.NewSHA1(uuid.UUID{}, mixedKeys)
+	return uuid.NewSHA1(uuid.UUID{}, append(keyA[:], keyB[:]...))
 }
 
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.

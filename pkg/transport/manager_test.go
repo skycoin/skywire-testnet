@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 	"testing"
@@ -210,4 +211,36 @@ func TestTransportManagerLogs(t *testing.T) {
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())
 	require.NoError(t, <-errCh)
+}
+
+// GetTransportUUID(keyA,keyB) == GetTransportUUID(keyB, keyA)
+// GetTrasportUUID(keyA,keyB) is always the same for a given pair
+// GetTransportUUID(keyA, keyA) works for equal keys
+func ExampleGetTransportUUID() {
+	keyA, _ := cipher.GenerateKeyPair()
+	keyB, _ := cipher.GenerateKeyPair()
+
+	uuidAB := GetTransportUUID(keyA, keyB)
+
+	for i := 0; i < 256; i++ {
+		if GetTransportUUID(keyA, keyB) != uuidAB {
+			fmt.Printf("uuid is unstable")
+			break
+		}
+	}
+	fmt.Printf("uuid is stable\n")
+
+	uuidBA := GetTransportUUID(keyB, keyA)
+	if uuidAB == uuidBA {
+		fmt.Printf("uuid is bidirectional\n")
+	} else {
+		fmt.Printf("keyA = %v\n keyB=%v\n uuidAB=%v\n uuidBA=%v\n", keyA, keyB, uuidAB, uuidBA)
+	}
+
+	_ = GetTransportUUID(keyA, keyA) // works for equal keys
+	fmt.Printf("works for equal keys")
+
+	// Output: uuid is stable
+	// uuid is bidirectional
+	// works for equal keys
 }
