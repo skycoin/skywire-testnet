@@ -34,14 +34,14 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		entry := &Entry{
 			ID:     id,
-			Edges:  [2]cipher.PubKey{tr.Local(), tr.Remote()},
+			Edges:  SortPubKeys(tr.Local(), tr.Remote()),
 			Type:   tr.Type(),
 			Public: public,
 		}
 
 		newEntry := id == uuid.UUID{}
 		if newEntry {
-			entry.ID = GetTransportUUID(tr.Local(), tr.Remote())
+			entry.ID = GetTransportUUID(entry.Edges[0], entry.Edges[1], entry.Type)
 		}
 
 		sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}

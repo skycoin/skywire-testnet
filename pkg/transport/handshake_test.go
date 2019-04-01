@@ -130,7 +130,7 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 	require.NoError(t, err)
 
 	entry := &Entry{
-		ID:     GetTransportUUID(pk1, pk2),
+		ID:     GetTransportUUID(pk1, pk2, ""),
 		Edges:  [2]cipher.PubKey{pk1, pk2},
 		Type:   "mock",
 		Public: true,

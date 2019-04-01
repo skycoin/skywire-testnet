@@ -33,7 +33,7 @@ func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint1
 				&routing.Hop{
 					From:      src,
 					To:        dst,
-					Transport: transport.GetTransportUUID(src, dst),
+					Transport: transport.GetTransportUUID(src, dst, ""),
 				},
 			},
 		}, []routing.Route{
@@ -41,7 +41,7 @@ func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint1
 				&routing.Hop{
 					From:      src,
 					To:        dst,
-					Transport: transport.GetTransportUUID(src, dst),
+					Transport: transport.GetTransportUUID(src, dst, ""),
 				},
 			},
 		}, nil

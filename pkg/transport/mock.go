@@ -142,3 +142,30 @@ func (m *MockTransport) SetDeadline(t time.Time) error {
 func (m *MockTransport) Type() string {
 	return "mock"
 }
+
+func MockTransportManagers() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh chan error, err error) {
+	discovery := NewDiscoveryMock()
+	logs := InMemoryTransportLogStore()
+
+	var sk1, sk2 cipher.SecKey
+	pk1, sk1 = cipher.GenerateKeyPair()
+	pk2, sk2 = cipher.GenerateKeyPair()
+
+	c1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
+	c2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
+
+	f1, f2 := NewMockFactory(pk1, pk2)
+
+	if m1, err = NewManager(c1, f1); err != nil {
+		return
+	}
+	if m2, err = NewManager(c2, f2); err != nil {
+		return
+	}
+
+	errCh = make(chan error)
+	go func() { errCh <- m1.Serve(context.TODO()) }()
+	go func() { errCh <- m2.Serve(context.TODO()) }()
+
+	return
+}

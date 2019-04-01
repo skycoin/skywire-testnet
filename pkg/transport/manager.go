@@ -200,22 +200,28 @@ func (tm *Manager) Serve(ctx context.Context) error {
 // Generated uuid is:
 // - always the same for a given pair
 // - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
-func GetTransportUUID(keyA, keyB cipher.PubKey) uuid.UUID {
+func GetTransportUUID(keyA, keyB cipher.PubKey, tpType string) uuid.UUID {
+	keys := SortPubKeys(keyA, keyB)
+	return uuid.NewSHA1(uuid.UUID{}, append(append(keys[0][:], keys[1][:]...), []byte(tpType)...))
+}
+
+// SortPubKeys sorts keys so that least-significant comes first
+func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
 	for i := 0; i < 33; i++ {
 		if keyA[i] != keyB[i] {
 			if keyA[i] < keyB[i] {
-				return uuid.NewSHA1(uuid.UUID{}, append(keyA[:], keyB[:]...))
+				return [2]cipher.PubKey{keyA, keyB}
 			} else {
-				return uuid.NewSHA1(uuid.UUID{}, append(keyB[:], keyA[:]...))
+				return [2]cipher.PubKey{keyB, keyA}
 			}
 		}
 	}
-	return uuid.NewSHA1(uuid.UUID{}, append(keyA[:], keyB[:]...))
+	return [2]cipher.PubKey{keyA, keyB}
 }
 
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	return tm.createTransport(ctx, remote, tpType, GetTransportUUID(tm.config.PubKey, remote), public)
+	return tm.createTransport(ctx, remote, tpType, GetTransportUUID(tm.config.PubKey, remote, tpType), public)
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.

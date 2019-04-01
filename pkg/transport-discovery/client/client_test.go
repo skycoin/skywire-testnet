@@ -23,10 +23,11 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 
 func newTestEntry() *transport.Entry {
 	pk1, _ := cipher.GenerateKeyPair()
+	tpType := "messaging"
 	return &transport.Entry{
-		ID:     transport.GetTransportUUID(pk1, testPubKey),
+		ID:     transport.GetTransportUUID(pk1, testPubKey, tpType),
 		Edges:  [2]cipher.PubKey{pk1, testPubKey},
-		Type:   "messaging",
+		Type:   tpType,
 		Public: true,
 	}
 }

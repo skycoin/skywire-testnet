@@ -213,34 +213,68 @@ func TestTransportManagerLogs(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
-// GetTransportUUID(keyA,keyB) == GetTransportUUID(keyB, keyA)
+// GetTransportUUID(keyA,keyB, "type") == GetTransportUUID(keyB, keyA, "type")
 // GetTrasportUUID(keyA,keyB) is always the same for a given pair
 // GetTransportUUID(keyA, keyA) works for equal keys
+// GetTransportUUID(keyA,keyB, "type") != GetTransportUUID(keyB, keyA, "type")
 func ExampleGetTransportUUID() {
 	keyA, _ := cipher.GenerateKeyPair()
 	keyB, _ := cipher.GenerateKeyPair()
 
-	uuidAB := GetTransportUUID(keyA, keyB)
+	uuidAB := GetTransportUUID(keyA, keyB, "type")
 
 	for i := 0; i < 256; i++ {
-		if GetTransportUUID(keyA, keyB) != uuidAB {
+		if GetTransportUUID(keyA, keyB, "type") != uuidAB {
 			fmt.Printf("uuid is unstable")
 			break
 		}
 	}
 	fmt.Printf("uuid is stable\n")
 
-	uuidBA := GetTransportUUID(keyB, keyA)
+	uuidBA := GetTransportUUID(keyB, keyA, "type")
 	if uuidAB == uuidBA {
 		fmt.Printf("uuid is bidirectional\n")
 	} else {
 		fmt.Printf("keyA = %v\n keyB=%v\n uuidAB=%v\n uuidBA=%v\n", keyA, keyB, uuidAB, uuidBA)
 	}
 
-	_ = GetTransportUUID(keyA, keyA) // works for equal keys
-	fmt.Printf("works for equal keys")
+	_ = GetTransportUUID(keyA, keyA, "type") // works for equal keys
+	fmt.Printf("works for equal keys\n")
+
+	if GetTransportUUID(keyA, keyB, "type") != GetTransportUUID(keyA, keyB, "another_type") {
+		fmt.Printf("uuid is different for different types")
+	}
 
 	// Output: uuid is stable
 	// uuid is bidirectional
 	// works for equal keys
+	// uuid is different for different types
+}
+
+func ExampleManagerCreateTransport() {
+
+	
+
+	// discovery := transport.NewDiscoveryMock()
+	// logs := transport.InMemoryTransportLogStore()
+
+	// var sk1, sk2 cipher.SecKey
+	// pk1, sk1 = cipher.GenerateKeyPair()
+	// pk2, sk2 = cipher.GenerateKeyPair()
+
+	// c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
+	// c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
+
+	// f1, f2 := transport.NewMockFactory(pk1, pk2)
+
+	// if m1, err = transport.NewManager(c1, f1); err != nil {
+	// 	return
+	// }
+	// if m2, err = transport.NewManager(c2, f2); err != nil {
+	// 	return
+	// }
+
+	// errCh = make(chan error)
+	// go func() { errCh <- m1.Serve(context.TODO()) }()
+
 }
