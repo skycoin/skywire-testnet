@@ -41,7 +41,7 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 		return nil, ErrUnknownRemote
 	}
 
-	return &TCPTransport{conn, f.lpk, rpk}, nil
+	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, rpk}}, nil
 }
 
 // Dial initiates a Transport with a remote node.
@@ -56,7 +56,7 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 		return nil, err
 	}
 
-	return &TCPTransport{conn, f.lpk, remote}, nil
+	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, remote}}, nil
 }
 
 // Close implements io.Closer
@@ -77,19 +77,25 @@ func (f *TCPFactory) Type() string {
 // TCPTransport implements Transport over TCP connection.
 type TCPTransport struct {
 	*net.TCPConn
-	lpk cipher.PubKey
-	rpk cipher.PubKey
+	edges [2]cipher.PubKey
+	// lpk cipher.PubKey
+	// rpk cipher.PubKey
 }
 
-// Local returns the local transport edge's public key.
-func (tr *TCPTransport) Local() cipher.PubKey {
-	return tr.lpk
+// Local returns the  TCPTransport edges.
+func (tr *TCPTransport) Edges() [2]cipher.PubKey {
+	return tr.edges
 }
 
-// Remote returns the remote transport edge's public key.
-func (tr *TCPTransport) Remote() cipher.PubKey {
-	return tr.rpk
-}
+// // Local returns the local transport edge's public key.
+// func (tr *TCPTransport) Local() cipher.PubKey {
+// 	return tr.lpk
+// }
+
+// // Remote returns the remote transport edge's public key.
+// func (tr *TCPTransport) Remote() cipher.PubKey {
+// 	return tr.rpk
+// }
 
 // Type returns the string representation of the transport type.
 func (tr *TCPTransport) Type() string {

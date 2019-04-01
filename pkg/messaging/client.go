@@ -49,9 +49,11 @@ type Config struct {
 }
 
 // Client sends messages to remote client nodes via relay Server.
+// Implements Transport
 type Client struct {
 	Logger *logging.Logger
 
+	// edges [2]cipher.PubKey
 	pubKey cipher.PubKey
 	secKey cipher.SecKey
 	dc     client.APIClient

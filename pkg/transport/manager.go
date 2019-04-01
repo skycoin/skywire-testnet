@@ -121,7 +121,7 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 	entries := tm.entries
 	tm.mu.RUnlock()
 	for _, entry := range entries {
-		if entry.Edges[0] != tm.config.PubKey {
+		if entry.Edges()[0] != tm.config.PubKey {
 			continue
 		}
 
@@ -129,7 +129,7 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 			continue
 		}
 
-		_, err := tm.createTransport(ctx, entry.Edges[1], entry.Type, entry.ID, entry.Public)
+		_, err := tm.createTransport(ctx, entry.Edges()[1], entry.Type, entry.ID, entry.Public)
 		if err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
@@ -141,14 +141,30 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 	}
 }
 
+func (tm *Manager) Local() cipher.PubKey {
+	return tm.config.PubKey
+}
+
+func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, error) {
+	if tm.config.PubKey == edges[0] {
+		return edges[1], nil
+	}
+	if tm.config.PubKey == edges[1] {
+		return edges[0], nil
+	}
+	return cipher.PubKey{}, errors.New("Edges does not belongs to this Transport")
+}
+
 // CreateDefaultTransports created transports to DefaultNodes if they don't exist.
 func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
-			if tr.Remote() == pk {
-				exist = true
-				return false
+			if remote, Ok := tm.Remote(tr.Edges()); Ok == nil {
+				if remote == pk {
+					exist = true
+					return false
+				}
 			}
 			return true
 		})
@@ -347,7 +363,11 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, err
 	}
 
-	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), tr.Remote(), entry.ID)
+	remote, err := tm.Remote(tr.Edges())
+	if err != nil {
+		return nil, err
+	}
+	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
 

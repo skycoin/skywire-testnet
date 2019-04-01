@@ -16,7 +16,7 @@ type Entry struct {
 	ID uuid.UUID `json:"t_id"`
 
 	// Edges contains the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
-	Edges [2]cipher.PubKey `json:"edges"`
+	edges [2]cipher.PubKey `json:"edges"`
 
 	// Type represents the transport type.
 	Type string `json:"type"`
@@ -24,6 +24,10 @@ type Entry struct {
 	// Public determines whether the transport is to be exposed to other nodes or not.
 	// Public transports are to be registered in the Transport Discovery.
 	Public bool `json:"public"`
+}
+
+func (e *Entry) Edges() [2]cipher.PubKey {
+	return e.edges
 }
 
 // String implements stringer
@@ -37,8 +41,8 @@ func (e *Entry) String() string {
 	res += fmt.Sprintf("\ttype: %s\n", e.Type)
 	res += fmt.Sprintf("\tid: %s\n", e.ID)
 	res += fmt.Sprintf("\tedges:\n")
-	res += fmt.Sprintf("\t\tedge 1: %s\n", e.Edges[0])
-	res += fmt.Sprintf("\t\tedge 2: %s\n", e.Edges[1])
+	res += fmt.Sprintf("\t\tedge 1: %s\n", e.Edges()[0])
+	res += fmt.Sprintf("\t\tedge 2: %s\n", e.Edges()[1])
 
 	return res
 }
@@ -46,7 +50,7 @@ func (e *Entry) String() string {
 // ToBinary returns binary representation of a Signature.
 func (e *Entry) ToBinary() []byte {
 	bEntry := e.ID[:]
-	for _, edge := range e.Edges {
+	for _, edge := range e.Edges() {
 		bEntry = append(bEntry, edge[:]...)
 	}
 	return append(bEntry, []byte(e.Type)...)

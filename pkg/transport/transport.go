@@ -21,11 +21,14 @@ type Transport interface {
 	// Close implements io.Closer
 	Close() error
 
-	// Local returns the local transport edge's public key.
-	Local() cipher.PubKey
+	// Edges returns sorted edges of transport
+	Edges() [2]cipher.PubKey
 
-	// Remote returns the remote transport edge's public key.
-	Remote() cipher.PubKey
+	// // Local returns the local transport edge's public key.
+	// Local() cipher.PubKey
+
+	// // Remote returns the remote transport edge's public key.
+	// Remote() cipher.PubKey
 
 	// SetDeadline functions the same as that from net.Conn
 	// With a Transport, we don't have a distinction between write and read timeouts.

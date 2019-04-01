@@ -171,7 +171,7 @@ func printTransportEntries(entries ...*transport.EntryWithStatus) {
 	catch(err)
 	for _, e := range entries {
 		_, err := fmt.Fprintf(w, "%s\t%s\t%t\t%d\t%t\t%s\t%s\t%t\t%t\n",
-			e.Entry.ID, e.Entry.Type, e.Entry.Public, e.Registered, e.IsUp, e.Entry.Edges[0], e.Entry.Edges[1], e.Statuses[0], e.Statuses[1])
+			e.Entry.ID, e.Entry.Type, e.Entry.Public, e.Registered, e.IsUp, e.Entry.Edges()[0], e.Entry.Edges()[1], e.Statuses[0], e.Statuses[1])
 		catch(err)
 	}
 	catch(w.Flush())

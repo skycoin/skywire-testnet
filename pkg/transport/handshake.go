@@ -34,14 +34,14 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		entry := &Entry{
 			ID:     id,
-			Edges:  SortPubKeys(tr.Local(), tr.Remote()),
+			edges:  tr.Edges(),
 			Type:   tr.Type(),
 			Public: public,
 		}
 
 		newEntry := id == uuid.UUID{}
 		if newEntry {
-			entry.ID = GetTransportUUID(entry.Edges[0], entry.Edges[1], entry.Type)
+			entry.ID = GetTransportUUID(entry.Edges()[0], entry.Edges()[1], entry.Type)
 		}
 
 		sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}
@@ -53,8 +53,12 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 			return nil, fmt.Errorf("read: %s", err)
 		}
 
-		if err := verifySig(sEntry, 1, tr.Remote()); err != nil {
-			return nil, err
+		if remote, Ok := tm.Remote(tr.Edges()); Ok == nil {
+			if err := verifySig(sEntry, 1, remote); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, Ok
 		}
 
 		if newEntry {
@@ -71,8 +75,12 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, fmt.Errorf("read: %s", err)
 	}
 
-	if err := validateEntry(sEntry, tr); err != nil {
-		return nil, err
+	if remote, Ok := tm.Remote(tr.Edges()); Ok == nil {
+		if err := validateEntry(sEntry, tr, remote); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, Ok
 	}
 
 	sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
@@ -103,13 +111,13 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 	return sEntry.Entry, nil
 }
 
-func validateEntry(sEntry *SignedEntry, tr Transport) error {
+func validateEntry(sEntry *SignedEntry, tr Transport, rpk cipher.PubKey) error {
 	entry := sEntry.Entry
 	if entry.Type != tr.Type() {
 		return errors.New("invalid entry type")
 	}
 
-	if entry.Edges != [2]cipher.PubKey{tr.Remote(), tr.Local()} {
+	if entry.Edges() != tr.Edges() {
 		return errors.New("invalid entry edges")
 	}
 
@@ -117,7 +125,7 @@ func validateEntry(sEntry *SignedEntry, tr Transport) error {
 		return errors.New("invalid entry signature")
 	}
 
-	return verifySig(sEntry, 0, tr.Remote())
+	return verifySig(sEntry, 0, rpk)
 }
 
 func verifySig(sEntry *SignedEntry, idx int, pk cipher.PubKey) error {
