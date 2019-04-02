@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"text/tabwriter"
 	"time"
 
@@ -155,6 +156,7 @@ func init() {
 }
 
 func printTransports(tps ...*node.TransportSummary) {
+	sortTransports(tps...)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "type\tid\tlocal\tremote")
 	catch(err)
@@ -175,4 +177,10 @@ func printTransportEntries(entries ...*transport.EntryWithStatus) {
 		catch(err)
 	}
 	catch(w.Flush())
+}
+
+func sortTransports(tps ...*node.TransportSummary) {
+	sort.Slice(tps, func(i, j int) bool {
+		return tps[i].ID.String() < tps[j].ID.String()
+	})
 }
