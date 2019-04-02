@@ -141,18 +141,21 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 	}
 }
 
+// Local returns Manager.config.PubKey
 func (tm *Manager) Local() cipher.PubKey {
 	return tm.config.PubKey
 }
 
-func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, error) {
+// Remote returns the key from the edges that is not equal to Manager.config.PubKey
+// in case when both edges are different - returns empty cipher.PubKey{}
+func (tm *Manager) Remote(edges [2]cipher.PubKey) cipher.PubKey {
 	if tm.config.PubKey == edges[0] {
-		return edges[1], nil
+		return edges[1]
 	}
 	if tm.config.PubKey == edges[1] {
-		return edges[0], nil
+		return edges[0]
 	}
-	return cipher.PubKey{}, errors.New("Edges does not belongs to this Transport")
+	return cipher.PubKey{}
 }
 
 // CreateDefaultTransports created transports to DefaultNodes if they don't exist.
@@ -160,11 +163,9 @@ func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
-			if remote, Ok := tm.Remote(tr.Edges()); Ok == nil {
-				if remote == pk {
-					exist = true
-					return false
-				}
+			if tm.Remote(tr.Edges()) == pk {
+				exist = true
+				return false
 			}
 			return true
 		})
@@ -227,9 +228,8 @@ func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
 		if keyA[i] != keyB[i] {
 			if keyA[i] < keyB[i] {
 				return [2]cipher.PubKey{keyA, keyB}
-			} else {
-				return [2]cipher.PubKey{keyB, keyA}
 			}
+			return [2]cipher.PubKey{keyB, keyA}
 		}
 	}
 	return [2]cipher.PubKey{keyA, keyB}
@@ -363,11 +363,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, err
 	}
 
-	remote, err := tm.Remote(tr.Edges())
-	if err != nil {
-		return nil, err
-	}
-	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
+	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), tm.Remote(tr.Edges()), entry.ID)
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
 

@@ -33,10 +33,10 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		entry := &Entry{
-			ID:     id,
-			edges:  tr.Edges(),
-			Type:   tr.Type(),
-			Public: public,
+			ID:        id,
+			EdgesKeys: tr.Edges(),
+			Type:      tr.Type(),
+			Public:    public,
 		}
 
 		newEntry := id == uuid.UUID{}
@@ -53,12 +53,8 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 			return nil, fmt.Errorf("read: %s", err)
 		}
 
-		if remote, Ok := tm.Remote(tr.Edges()); Ok == nil {
-			if err := verifySig(sEntry, 1, remote); err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, Ok
+		if err := verifySig(sEntry, 1, tm.Remote(tr.Edges())); err != nil {
+			return nil, err
 		}
 
 		if newEntry {
@@ -75,12 +71,8 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, fmt.Errorf("read: %s", err)
 	}
 
-	if remote, Ok := tm.Remote(tr.Edges()); Ok == nil {
-		if err := validateEntry(sEntry, tr, remote); err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, Ok
+	if err := validateEntry(sEntry, tr, tm.Remote(tr.Edges())); err != nil {
+		return nil, err
 	}
 
 	sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)

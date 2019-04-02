@@ -252,7 +252,7 @@ func ExampleGetTransportUUID() {
 	// uuid is different for different types
 }
 
-func ExampleManagerCreateTransport() {
+func ExampleManager_CreateTransport() {
 	// Repetition is required here to guarantee that correctness does not depends on order of edges
 	for i := 0; i < 256; i++ {
 		pkB, mgrA, err := MockTransportManager()

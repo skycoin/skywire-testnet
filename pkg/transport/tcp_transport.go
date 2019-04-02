@@ -82,7 +82,7 @@ type TCPTransport struct {
 	// rpk cipher.PubKey
 }
 
-// Local returns the  TCPTransport edges.
+// Edges returns the  TCPTransport edges.
 func (tr *TCPTransport) Edges() [2]cipher.PubKey {
 	return tr.edges
 }

@@ -41,8 +41,8 @@ func TestRouterForwarding(t *testing.T) {
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 	c3 := &transport.ManagerConfig{PubKey: pk3, SecKey: sk3, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
-	f3, f4 := transport.NewMockFactory(pk2, pk3)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
+	f3, f4 := transport.NewMockFactoryPair(pk2, pk3)
 	f3.SetType("mock2")
 	f4.SetType("mock2")
 
@@ -144,7 +144,7 @@ func TestRouterApp(t *testing.T) {
 	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -278,7 +278,7 @@ func TestRouterSetup(t *testing.T) {
 	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -464,7 +464,7 @@ func TestRouterSetupLoop(t *testing.T) {
 	pk1, sk1 := cipher.GenerateKeyPair()
 	pk2, sk2 := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 	f2.SetType("messaging")
 
@@ -567,7 +567,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
@@ -655,7 +655,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
@@ -741,7 +741,7 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)

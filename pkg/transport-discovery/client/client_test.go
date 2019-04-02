@@ -23,13 +23,14 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 
 func newTestEntry() *transport.Entry {
 	pk1, _ := cipher.GenerateKeyPair()
-	tpType := "messaging"
-	return &transport.Entry{
-		ID:     transport.GetTransportUUID(pk1, testPubKey, tpType),
-		Edges:  [2]cipher.PubKey{pk1, testPubKey},
-		Type:   tpType,
+	entry := &transport.Entry{
+		ID:     transport.GetTransportUUID(pk1, testPubKey, "messaging"),
+		Type:   "messaging",
 		Public: true,
 	}
+	entry.SetEdges([2]cipher.PubKey{pk1, testPubKey})
+
+	return entry
 }
 
 func TestClientAuth(t *testing.T) {

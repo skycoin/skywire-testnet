@@ -131,7 +131,7 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 	entry := &Entry{
 		ID:     GetTransportUUID(pk1, pk2, ""),
-		Edges:  [2]cipher.PubKey{pk1, pk2},
+		edges:  SortPubKeys(pk1, pk2),
 		Type:   "mock",
 		Public: true,
 	}
@@ -169,7 +169,7 @@ func TestValidateEntry(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	tr := NewMockTransport(nil, pk1, pk2)
 
-	entry := &Entry{Type: "mock", Edges: [2]cipher.PubKey{pk2, pk1}}
+	entry := &Entry{Type: "mock", edges: SortPubKeys(pk2, pk1)}
 	tcs := []struct {
 		sEntry *SignedEntry
 		err    string
@@ -179,11 +179,11 @@ func TestValidateEntry(t *testing.T) {
 			"invalid entry type",
 		},
 		{
-			&SignedEntry{Entry: &Entry{Type: "mock", Edges: [2]cipher.PubKey{pk1, pk2}}},
+			&SignedEntry{Entry: &Entry{Type: "mock", edges: SortPubKeys(pk2, pk1)}},
 			"invalid entry edges",
 		},
 		{
-			&SignedEntry{Entry: &Entry{Type: "mock", Edges: [2]cipher.PubKey{pk2, pk1}}},
+			&SignedEntry{Entry: &Entry{Type: "mock", edges: SortPubKeys(pk2, pk1)}},
 			"invalid entry signature",
 		},
 		{
@@ -198,12 +198,12 @@ func TestValidateEntry(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.err, func(t *testing.T) {
-			err := validateEntry(tc.sEntry, tr)
+			err := validateEntry(tc.sEntry, tr, pk2)
 			require.Error(t, err)
 			assert.Equal(t, tc.err, err.Error())
 		})
 	}
 
 	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(sk2)}}
-	require.NoError(t, validateEntry(sEntry, tr))
+	require.NoError(t, validateEntry(sEntry, tr, pk2))
 }

@@ -16,7 +16,7 @@ type Entry struct {
 	ID uuid.UUID `json:"t_id"`
 
 	// Edges contains the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
-	edges [2]cipher.PubKey `json:"edges"`
+	EdgesKeys [2]cipher.PubKey `json:"edges"`
 
 	// Type represents the transport type.
 	Type string `json:"type"`
@@ -26,8 +26,14 @@ type Entry struct {
 	Public bool `json:"public"`
 }
 
+// Edges returns edges of Entry
 func (e *Entry) Edges() [2]cipher.PubKey {
-	return e.edges
+	return e.EdgesKeys
+}
+
+// SetEdges sets edges of Entry
+func (e *Entry) SetEdges(edges [2]cipher.PubKey) {
+	e.EdgesKeys = SortPubKeys(edges[0], edges[1])
 }
 
 // String implements stringer

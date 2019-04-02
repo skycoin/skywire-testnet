@@ -91,7 +91,7 @@ func TestRPC(t *testing.T) {
 	executer := new(MockExecuter)
 	defer os.RemoveAll("chat")
 
-	pk1, _, tm1, tm2, errCh, err := transport.MockTransportManagers()
+	pk1, _, tm1, tm2, errCh, err := transport.MockTransportManagersPair()
 	require.NoError(t, err)
 	defer func() {
 		require.NoError(t, tm1.Close())

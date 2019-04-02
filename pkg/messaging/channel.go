@@ -29,8 +29,8 @@ type channel struct {
 	noise *noise.Noise
 }
 
-func (ch *channel) Edges() [2]cipher.PubKey {
-	return [2]cipher.PubKey{ch.link.Local(), ch.remotePK}
+func (c *channel) Edges() [2]cipher.PubKey {
+	return [2]cipher.PubKey{c.link.Local(), c.remotePK}
 }
 
 func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link *Link) (*channel, error) {

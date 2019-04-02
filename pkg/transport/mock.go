@@ -115,6 +115,7 @@ func (m *MockTransport) Close() error {
 	return m.rw.Close()
 }
 
+// Edges returns edges of MockTransport
 func (m *MockTransport) Edges() [2]cipher.PubKey {
 	return m.edges
 }
