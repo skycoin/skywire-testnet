@@ -36,6 +36,22 @@ func rpcClient() node.RPCClient {
 	return node.NewRPCClient(client, node.RPCPrefix)
 }
 
+// PrpcClient exported rpc method that
+func PrpcClient() node.RPCClient {
+	client, err := rpc.Dial("tcp", rpcAddr)
+	if err != nil {
+		log.Fatal("RPC connection failed:", err)
+	}
+	return node.NewRPCClient(client, node.RPCPrefix)
+}
+
+// AddCommand adds commands to the root command
+func AddCommand(command *cobra.Command) {
+	rootCmd.AddCommand(
+		command,
+	)
+}
+
 func catch(err error, msgs ...string) {
 	if err != nil {
 		if len(msgs) > 0 {
