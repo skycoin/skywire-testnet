@@ -26,13 +26,28 @@ type Entry struct {
 	Public bool `json:"public"`
 }
 
+// NewEntry constructs *Entry
+func NewEntry(edgeA, edgeB cipher.PubKey, tpType string, public bool) *Entry {
+	return &Entry{
+		ID:        GetTransportUUID(edgeA, edgeB, tpType),
+		EdgesKeys: SortPubKeys(edgeA, edgeB),
+		Type:      tpType,
+		Public:    public,
+	}
+}
+
 // Edges returns edges of Entry
 func (e *Entry) Edges() [2]cipher.PubKey {
-	return e.EdgesKeys
+	// this sort *must* be needless
+	// but to remove it:
+	// - all tests must be passed
+	// - written Benchmarks
+	return SortPubKeys(e.EdgesKeys[0], e.EdgesKeys[1])
 }
 
 // SetEdges sets edges of Entry
 func (e *Entry) SetEdges(edges [2]cipher.PubKey) {
+	e.ID = GetTransportUUID(edges[0], edges[1], e.Type)
 	e.EdgesKeys = SortPubKeys(edges[0], edges[1])
 }
 

@@ -87,7 +87,7 @@ type MockTransport struct {
 // NewMockTransport creates a transport with the given secret key and remote public key, taking a writer
 // and a reader that will be used in the Write and Read operation
 func NewMockTransport(rw io.ReadWriteCloser, local, remote cipher.PubKey) *MockTransport {
-	return &MockTransport{rw, [2]cipher.PubKey{local, remote}, context.Background()}
+	return &MockTransport{rw, SortPubKeys(local, remote), context.Background()}
 }
 
 // Read implements reader for mock transport

@@ -214,6 +214,23 @@ func TestTransportManagerLogs(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
+func ExampleSortPubKeys() {
+	keyA, _ := cipher.GenerateKeyPair()
+	keyB, _ := cipher.GenerateKeyPair()
+
+	sortedKeysAB := SortPubKeys(keyA, keyB)
+	sortedKeysBA := SortPubKeys(keyB, keyA)
+	_ = SortPubKeys(keyA, keyA)
+	fmt.Println("SortPubKeys(keyA, keyA) is successful")
+
+	if sortedKeysAB == sortedKeysBA {
+		fmt.Println("SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)")
+	}
+
+	// Output: SortPubKeys(keyA, keyA) is successful
+	// SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)
+}
+
 // GetTransportUUID(keyA,keyB, "type") == GetTransportUUID(keyB, keyA, "type")
 // GetTrasportUUID(keyA,keyB) is always the same for a given pair
 // GetTransportUUID(keyA, keyA) works for equal keys
