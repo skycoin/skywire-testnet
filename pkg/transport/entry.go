@@ -95,6 +95,32 @@ type SignedEntry struct {
 	Registered int64         `json:"registered,omitempty"`
 }
 
+func (se *SignedEntry) Index(pk cipher.PubKey) byte {
+	if pk == se.Entry.Edges()[1] {
+		return 1
+	}
+	return 0
+}
+
+// SetSignature sets Signature for a given PubKey in correct position
+func (se *SignedEntry) SetSignature(pk cipher.PubKey, secKey cipher.SecKey) {
+	idx := se.Index(pk)
+	se.Signatures[idx] = se.Entry.Signature(secKey)
+}
+
+// GetSignature gets Signature for a given PubKey from correct position
+func (se *SignedEntry) GetSignature(pk cipher.PubKey) cipher.Sig {
+	idx := se.Index(pk)
+	return se.Signatures[idx]
+}
+
+// NewSignedEntry creates a SignedEntry with first signature
+func NewSignedEntry(entry *Entry, pk cipher.PubKey, secKey cipher.SecKey) *SignedEntry {
+	se := &SignedEntry{Entry: entry}
+	se.SetSignature(pk, secKey)
+	return se
+}
+
 // Status represents the current state of a Transport from the perspective
 // from a Transport's single edge. Each Transport will have two perspectives;
 // one from each of it's edges.

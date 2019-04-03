@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
@@ -78,4 +79,51 @@ func ExampleEntry_SetEdges() {
 	// Output: entryAB.EdgesKeys == entryBA.EdgesKeys
 	// entryAB.ID != uuid.UUID{}
 	// entryAB.ID == entryBA.ID
+}
+
+func ExampleSignedEntry_SetSignature() {
+	pkA, skA := cipher.GenerateKeyPair()
+	pkB, skB := cipher.GenerateKeyPair()
+
+	entry := NewEntry(pkA, pkB, "mock", true)
+	sEntry := &SignedEntry{Entry: entry}
+
+	if sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null() {
+		fmt.Println("No signatures set")
+	}
+
+	sEntry.SetSignature(pkA, skA)
+	if (!sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null()) ||
+		(!sEntry.Signatures[1].Null() && sEntry.Signatures[0].Null()) {
+		fmt.Println("One signature set")
+	}
+
+	sEntry.SetSignature(pkB, skB)
+	if !sEntry.Signatures[0].Null() && !sEntry.Signatures[1].Null() {
+		fmt.Println("Both signatures set")
+	}
+
+	// Output: No signatures set
+	// One signature set
+	// Both signatures set
+}
+
+func ExampleSignedEntry_GetSignature() {
+	pkA, skA := cipher.GenerateKeyPair()
+	pkB, skB := cipher.GenerateKeyPair()
+
+	entry := NewEntry(pkA, pkB, "mock", true)
+	sEntry := &SignedEntry{Entry: entry}
+	sEntry.SetSignature(pkA, skA)
+	sEntry.SetSignature(pkB, skB)
+
+	if sEntry.GetSignature(pkA) == sEntry.Signatures[sEntry.Index(pkA)] {
+		fmt.Println("SignatureA got")
+	}
+	if sEntry.GetSignature(pkB) == sEntry.Signatures[sEntry.Index(pkB)] {
+		fmt.Println("SignatureB got")
+	}
+
+	// Output: SignatureA got
+	// SignatureB got
 }

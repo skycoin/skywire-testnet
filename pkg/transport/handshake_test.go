@@ -90,14 +90,23 @@ func ExampleNewHsMock() {
 }
 
 func Example_validateEntry() {
-	pk1, _ := cipher.GenerateKeyPair()
+	pk1, sk1 := cipher.GenerateKeyPair()
 	pk2, _ := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 	tr := NewMockTransport(nil, pk1, pk2)
 
-	entry := Entry{Type: "mock", EdgesKeys: SortPubKeys(pk2, pk3)}
-	if err := validateEntry(&SignedEntry{Entry: &entry}, tr, pk1); err != nil {
-		fmt.Printf(err.Error())
+	entryInvalidEdges := &SignedEntry{
+		Entry: &Entry{Type: "mock",
+			EdgesKeys: SortPubKeys(pk2, pk3),
+		}}
+	if err := validateEntry(entryInvalidEdges, tr, pk1); err != nil {
+		fmt.Println(err.Error())
+	}
+
+	entry := NewEntry(pk1, pk2, "mock", true)
+	sEntry := NewSignedEntry(entry, pk1, sk1)
+	if Ok := validateEntry(sEntry, tr, pk1); Ok != nil {
+		fmt.Printf(Ok.Error())
 	}
 
 	// Output: invalid entry edges
@@ -131,7 +140,12 @@ func TestValidateEntry(t *testing.T) {
 			"invalid entry signature",
 		},
 		{
-			&SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(sk1)}},
+			func() *SignedEntry {
+				sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
+				sEntry.SetSignature(pk1, sk2)
+				sEntry.SetSignature(pk2, sk1)
+				return sEntry
+			}(),
 			"Recovered pubkey does not match pubkey",
 		},
 	}
@@ -144,8 +158,11 @@ func TestValidateEntry(t *testing.T) {
 		})
 	}
 
-	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(sk2)}}
-	require.NoError(t, validateEntry(sEntry, tr, pk2))
+	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
+	sEntry.SetSignature(pk1, sk1)
+	sEntry.SetSignature(pk2, sk2)
+
+	require.NoError(t, validateEntry(sEntry, tr, pk1))
 }
 
 func TestSettlementHandshake(t *testing.T) {

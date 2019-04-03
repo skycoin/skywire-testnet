@@ -117,7 +117,7 @@ func (m *MockTransport) Close() error {
 
 // Edges returns edges of MockTransport
 func (m *MockTransport) Edges() [2]cipher.PubKey {
-	return m.edges
+	return SortEdges(m.edges)
 }
 
 // // Local returns the local static public key

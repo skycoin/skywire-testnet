@@ -10,9 +10,10 @@ import (
 func ExampleNewDiscoveryMock() {
 	dc := NewDiscoveryMock()
 	pk1, _ := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
+	pk2, _ := cipher.GenerateKeyPair()
 	entry := &Entry{Type: "mock", EdgesKeys: SortPubKeys(pk1, pk2)}
-	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(sk2)}}
+
+	sEntry := &SignedEntry{Entry: entry}
 
 	if Ok := dc.RegisterTransports(context.TODO(), sEntry); Ok == nil {
 		fmt.Println("RegisterTransport success")

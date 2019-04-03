@@ -235,6 +235,11 @@ func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
 	return [2]cipher.PubKey{keyA, keyB}
 }
 
+// SortEdges sorts edges so that list-significant comes firs
+func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
+	return SortPubKeys(edges[0], edges[1])
+}
+
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
 	return tm.createTransport(ctx, remote, tpType, GetTransportUUID(tm.config.PubKey, remote, tpType), public)

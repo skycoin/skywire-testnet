@@ -44,7 +44,9 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 			entry.ID = GetTransportUUID(entry.Edges()[0], entry.Edges()[1], entry.Type)
 		}
 
-		sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}
+		// sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}
+
+		sEntry := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
 		if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
 			return nil, fmt.Errorf("write: %s", err)
 		}
@@ -53,7 +55,8 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 			return nil, fmt.Errorf("read: %s", err)
 		}
 
-		if err := verifySig(sEntry, 1, tm.Remote(tr.Edges())); err != nil {
+		//  Verifying remote signature
+		if err := verifySig(sEntry, tm.Remote(tr.Edges())); err != nil {
 			return nil, err
 		}
 
@@ -71,11 +74,14 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, fmt.Errorf("read: %s", err)
 	}
 
+	// it must be tm.Local() ?
 	if err := validateEntry(sEntry, tr, tm.Remote(tr.Edges())); err != nil {
 		return nil, err
 	}
 
-	sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
+	// Write second signature
+	// sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
+	sEntry.SetSignature(tm.Local(), tm.config.SecKey)
 
 	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 
@@ -113,13 +119,14 @@ func validateEntry(sEntry *SignedEntry, tr Transport, rpk cipher.PubKey) error {
 		return errors.New("invalid entry edges")
 	}
 
-	if sEntry.Signatures[0].Null() {
+	// Weak check here
+	if sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null() {
 		return errors.New("invalid entry signature")
 	}
 
-	return verifySig(sEntry, 0, rpk)
+	return verifySig(sEntry, rpk)
 }
 
-func verifySig(sEntry *SignedEntry, idx int, pk cipher.PubKey) error {
-	return cipher.VerifyPubKeySignedPayload(pk, sEntry.Signatures[idx], sEntry.Entry.ToBinary())
+func verifySig(sEntry *SignedEntry, pk cipher.PubKey) error {
+	return cipher.VerifyPubKeySignedPayload(pk, sEntry.GetSignature(pk), sEntry.Entry.ToBinary())
 }

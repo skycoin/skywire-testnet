@@ -146,7 +146,8 @@ func TestRegisterTransportResponses(t *testing.T) {
 }
 
 func TestRegisterTransports(t *testing.T) {
-	sEntry := &transport.SignedEntry{Entry: newTestEntry(), Signatures: [2]cipher.Sig{}}
+	// Signatures does not matter in this test
+	sEntry := &transport.SignedEntry{Entry: newTestEntry()}
 
 	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/transports/", r.URL.String())
