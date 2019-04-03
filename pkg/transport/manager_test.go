@@ -68,7 +68,7 @@ func TestTransportManager(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.ID)
 	require.NoError(t, err)
-	assert.Equal(t, [2]cipher.PubKey{pk2, pk1}, dEntry.Entry.Edges)
+	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m1.DeleteTransport(tr1.ID))
@@ -135,7 +135,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.ID)
 	require.NoError(t, err)
-	assert.Equal(t, [2]cipher.PubKey{pk2, pk1}, dEntry.Entry.Edges)
+	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m2.Close())

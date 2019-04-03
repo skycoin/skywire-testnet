@@ -129,7 +129,7 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 			continue
 		}
 
-		_, err := tm.createTransport(ctx, entry.Edges()[1], entry.Type, entry.ID, entry.Public)
+		_, err := tm.createTransport(ctx, entry.Edges()[1], entry.Type, entry.Public)
 		if err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
@@ -242,7 +242,7 @@ func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
 
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	return tm.createTransport(ctx, remote, tpType, GetTransportUUID(tm.config.PubKey, remote, tpType), public)
+	return tm.createTransport(ctx, remote, tpType, public)
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
@@ -291,13 +291,13 @@ func (tm *Manager) Close() error {
 	return nil
 }
 
-func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, id uuid.UUID, public bool) (*ManagedTransport, error) {
+func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
 	factory := tm.factories[tpType]
 	if factory == nil {
 		return nil, errors.New("unknown transport type")
 	}
 
-	tr, entry, err := tm.dialTransport(ctx, factory, remote, id, public)
+	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +323,7 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 			return
 		case err := <-managedTr.errChan:
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			tr, _, err := tm.dialTransport(ctx, factory, remote, managedTr.ID, public)
+			tr, _, err := tm.dialTransport(ctx, factory, remote, public)
 			if err != nil {
 				tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
 				if err := tm.DeleteTransport(managedTr.ID); err != nil {
@@ -340,13 +340,13 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	return managedTr, nil
 }
 
-func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, id uuid.UUID, public bool) (Transport, *Entry, error) {
+func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	entry, err := settlementInitiatorHandshake(id, public).Do(tm, tr, time.Minute)
+	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
 	if err != nil {
 		tr.Close()
 		return nil, nil, err

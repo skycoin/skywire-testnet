@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
@@ -30,23 +28,22 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 	}
 }
 
-func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake {
+func settlementInitiatorHandshake(public bool) settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		entry := &Entry{
-			ID:        id,
+			ID:        GetTransportUUID(tr.Edges()[0], tr.Edges()[1], tr.Type()),
 			EdgesKeys: tr.Edges(),
 			Type:      tr.Type(),
 			Public:    public,
 		}
 
-		newEntry := id == uuid.UUID{}
-		if newEntry {
-			entry.ID = GetTransportUUID(entry.Edges()[0], entry.Edges()[1], entry.Type)
-		}
-
 		// sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}
 
 		sEntry := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
+		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
+			return nil, fmt.Errorf("NewSignedEntry: %s", err)
+		}
+
 		if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
 			return nil, fmt.Errorf("write: %s", err)
 		}
@@ -60,6 +57,7 @@ func settlementInitiatorHandshake(id uuid.UUID, public bool) settlementHandshake
 			return nil, err
 		}
 
+		newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 		if newEntry {
 			tm.addEntry(entry)
 		}
@@ -75,7 +73,7 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 	}
 
 	// it must be tm.Local() ?
-	if err := validateEntry(sEntry, tr, tm.Remote(tr.Edges())); err != nil {
+	if err := validateSignedEntry(sEntry, tr, tm.Remote(tr.Edges())); err != nil {
 		return nil, err
 	}
 
@@ -109,7 +107,7 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 	return sEntry.Entry, nil
 }
 
-func validateEntry(sEntry *SignedEntry, tr Transport, rpk cipher.PubKey) error {
+func validateSignedEntry(sEntry *SignedEntry, tr Transport, pk cipher.PubKey) error {
 	entry := sEntry.Entry
 	if entry.Type != tr.Type() {
 		return errors.New("invalid entry type")
@@ -124,7 +122,7 @@ func validateEntry(sEntry *SignedEntry, tr Transport, rpk cipher.PubKey) error {
 		return errors.New("invalid entry signature")
 	}
 
-	return verifySig(sEntry, rpk)
+	return verifySig(sEntry, pk)
 }
 
 func verifySig(sEntry *SignedEntry, pk cipher.PubKey) error {

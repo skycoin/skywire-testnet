@@ -95,6 +95,7 @@ type SignedEntry struct {
 	Registered int64         `json:"registered,omitempty"`
 }
 
+// Index returns position of a given pk in edges
 func (se *SignedEntry) Index(pk cipher.PubKey) byte {
 	if pk == se.Entry.Edges()[1] {
 		return 1
