@@ -192,6 +192,7 @@ func (arw *AckReadWriter) confirm(seq byte, hash []byte) {
 
 	if ack.hash != rcvHash {
 		ack.errChan <- errors.New("invalid CRC")
+		return
 	}
 
 	ack.errChan <- nil
