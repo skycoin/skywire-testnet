@@ -141,8 +141,8 @@ func TestValidateEntry(t *testing.T) {
 		{
 			func() *SignedEntry {
 				sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
-				sEntry.Sign(pk1, sk2)
-				sEntry.Sign(pk2, sk1)
+				_ = sEntry.Sign(pk1, sk2) // nolint
+				_ = sEntry.Sign(pk2, sk1) // nolint
 				return sEntry
 			}(),
 			"Recovered pubkey does not match pubkey",
@@ -158,8 +158,8 @@ func TestValidateEntry(t *testing.T) {
 	}
 
 	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
-	sEntry.Sign(pk1, sk1)
-	sEntry.Sign(pk2, sk2)
+	require.NoError(t, sEntry.Sign(pk1, sk1))
+	require.NoError(t, sEntry.Sign(pk2, sk2))
 
 	require.NoError(t, validateSignedEntry(sEntry, tr, pk1))
 }

@@ -84,7 +84,7 @@ type TCPTransport struct {
 
 // Edges returns the  TCPTransport edges.
 func (tr *TCPTransport) Edges() [2]cipher.PubKey {
-	return tr.edges
+	return SortEdges(tr.edges)
 }
 
 // // Local returns the local transport edge's public key.

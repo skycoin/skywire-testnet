@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -96,29 +97,40 @@ type SignedEntry struct {
 }
 
 // Index returns position of a given pk in edges
-func (se *SignedEntry) Index(pk cipher.PubKey) byte {
+func (se *SignedEntry) Index(pk cipher.PubKey) (byte, error) {
 	if pk == se.Entry.Edges()[1] {
-		return 1
+		return 1, nil
 	}
-	return 0
+	if pk == se.Entry.Edges()[0] {
+		return 0, nil
+	}
+	return 0xff, errors.New("invalid pubkey")
 }
 
 // Sign sets Signature for a given PubKey in correct position
-func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) {
-	idx := se.Index(pk)
-	se.Signatures[idx] = se.Entry.Signature(secKey)
+func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) error {
+	idx, Ok := se.Index(pk)
+	if Ok == nil {
+		se.Signatures[idx] = se.Entry.Signature(secKey)
+	}
+	return Ok
 }
 
 // Signature gets Signature for a given PubKey from correct position
-func (se *SignedEntry) Signature(pk cipher.PubKey) cipher.Sig {
-	idx := se.Index(pk)
-	return se.Signatures[idx]
+func (se *SignedEntry) Signature(pk cipher.PubKey) (cipher.Sig, error) {
+	idx, Ok := se.Index(pk)
+	if Ok != nil {
+		return cipher.Sig{}, Ok
+	}
+	return se.Signatures[idx], nil
 }
 
 // NewSignedEntry creates a SignedEntry with first signature
 func NewSignedEntry(entry *Entry, pk cipher.PubKey, secKey cipher.SecKey) *SignedEntry {
 	se := &SignedEntry{Entry: entry}
-	se.Sign(pk, secKey)
+	if err := se.Sign(pk, secKey); err != nil {
+		return &SignedEntry{}
+	}
 	return se
 }
 

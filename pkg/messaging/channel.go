@@ -10,6 +10,7 @@ import (
 	"github.com/skycoin/skywire/internal/ioutil"
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 type channel struct {
@@ -30,7 +31,7 @@ type channel struct {
 }
 
 func (c *channel) Edges() [2]cipher.PubKey {
-	return [2]cipher.PubKey{c.link.Local(), c.remotePK}
+	return transport.SortPubKeys(c.link.Local(), c.remotePK)
 }
 
 func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link *Link) (*channel, error) {

@@ -92,20 +92,35 @@ func ExampleSignedEntry_Sign() {
 		fmt.Println("No signatures set")
 	}
 
-	sEntry.Sign(pkA, skA)
+	if errA := sEntry.Sign(pkA, skA); errA != nil {
+		fmt.Println(errA.Error())
+	}
 	if (!sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null()) ||
 		(!sEntry.Signatures[1].Null() && sEntry.Signatures[0].Null()) {
 		fmt.Println("One signature set")
 	}
 
-	sEntry.Sign(pkB, skB)
+	if errB := sEntry.Sign(pkB, skB); errB != nil {
+		fmt.Println(errB.Error())
+	}
+
 	if !sEntry.Signatures[0].Null() && !sEntry.Signatures[1].Null() {
 		fmt.Println("Both signatures set")
+	} else {
+		fmt.Printf("sEntry.Signatures:\n%v\n", sEntry.Signatures)
 	}
 
 	// Output: No signatures set
 	// One signature set
 	// Both signatures set
+}
+
+func errorsPrint(errs ...error) {
+	for _, err := range errs {
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
 }
 
 func ExampleSignedEntry_Signature() {
@@ -114,16 +129,36 @@ func ExampleSignedEntry_Signature() {
 
 	entry := NewEntry(pkA, pkB, "mock", true)
 	sEntry := &SignedEntry{Entry: entry}
-	sEntry.Sign(pkA, skA)
-	sEntry.Sign(pkB, skB)
+	if errA := sEntry.Sign(pkA, skA); errA != nil {
+		fmt.Println(errA.Error())
+	}
+	if errB := sEntry.Sign(pkB, skB); errB != nil {
+		fmt.Println(errB.Error())
+	}
 
-	if sEntry.Signature(pkA) == sEntry.Signatures[sEntry.Index(pkA)] {
+	idxA, errIdxA := sEntry.Index(pkA)
+	idxB, errIdxB := sEntry.Index(pkB)
+
+	sigA, errSigA := sEntry.Signature(pkA)
+	sigB, errSigB := sEntry.Signature(pkB)
+
+	if sigA == sEntry.Signatures[idxA] {
 		fmt.Println("SignatureA got")
 	}
-	if sEntry.Signature(pkB) == sEntry.Signatures[sEntry.Index(pkB)] {
+
+	if sigB == sEntry.Signatures[idxB] {
 		fmt.Println("SignatureB got")
 	}
 
+	// Incorrect case
+	pkC, _ := cipher.GenerateKeyPair()
+	_, errSigC := sEntry.Signature(pkC)
+	if errSigC != nil {
+		fmt.Printf("SignatureC got error: %v\n", errSigC.Error())
+	}
+
+	errorsPrint(errIdxA, errIdxB, errSigA, errSigB)
 	// Output: SignatureA got
 	// SignatureB got
+	// SignatureC got error: invalid pubkey
 }

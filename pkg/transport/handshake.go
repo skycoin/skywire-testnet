@@ -41,28 +41,34 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 
 		sEntry := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
 		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
-			return nil, fmt.Errorf("NewSignedEntry: %s", err)
+
+			return nil, fmt.Errorf("settlementInitiatorHandshake NewSignedEntry: %s\n sEntry: %v\n", err, sEntry)
 		}
 
 		if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
 			return nil, fmt.Errorf("write: %s", err)
 		}
 
-		if err := json.NewDecoder(tr).Decode(sEntry); err != nil {
+		rcvdSEntry := &SignedEntry{}
+		if err := json.NewDecoder(tr).Decode(rcvdSEntry); err != nil {
 			return nil, fmt.Errorf("read: %s", err)
 		}
 
 		//  Verifying remote signature
-		if err := verifySig(sEntry, tm.Remote(tr.Edges())); err != nil {
+		remote, err := tm.Remote(tr.Edges())
+		if err != nil {
+			return nil, err
+		}
+		if err := verifySig(rcvdSEntry, remote); err != nil {
 			return nil, err
 		}
 
-		newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
+		newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *rcvdSEntry.Entry }) == nil
 		if newEntry {
 			tm.addEntry(entry)
 		}
 
-		return sEntry.Entry, nil
+		return rcvdSEntry.Entry, nil
 	}
 }
 
@@ -72,14 +78,19 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, fmt.Errorf("read: %s", err)
 	}
 
-	// it must be tm.Local() ?
-	if err := validateSignedEntry(sEntry, tr, tm.Remote(tr.Edges())); err != nil {
+	remote, errRemote := tm.Remote(tr.Edges())
+	if errRemote != nil {
+		return nil, errRemote
+	}
+	if err := validateSignedEntry(sEntry, tr, remote); err != nil {
 		return nil, err
 	}
 
 	// Write second signature
 	// sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
-	sEntry.Sign(tm.Local(), tm.config.SecKey)
+	if err := sEntry.Sign(tm.Local(), tm.config.SecKey); err != nil {
+		return nil, err
+	}
 
 	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 
@@ -126,5 +137,9 @@ func validateSignedEntry(sEntry *SignedEntry, tr Transport, pk cipher.PubKey) er
 }
 
 func verifySig(sEntry *SignedEntry, pk cipher.PubKey) error {
-	return cipher.VerifyPubKeySignedPayload(pk, sEntry.Signature(pk), sEntry.Entry.ToBinary())
+	sig, err := sEntry.Signature(pk)
+	if err != nil {
+		return err
+	}
+	return cipher.VerifyPubKeySignedPayload(pk, sig, sEntry.Entry.ToBinary())
 }
