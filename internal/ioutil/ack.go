@@ -142,7 +142,7 @@ func (arw *AckReadWriter) serveLoop() {
 				break
 			}
 
-			go arw.confirm(data[1], data[2:34])
+			arw.confirm(data[1], data[2:34])
 			data = data[34:]
 		}
 
