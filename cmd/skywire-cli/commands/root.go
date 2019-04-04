@@ -1,19 +1,12 @@
 package commands
 
 import (
-	"fmt"
-	"net/rpc"
-	"strconv"
-
-	"github.com/google/uuid"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/cmd/skywire-cli/commands/mdisc"
+	"github.com/skycoin/skywire/cmd/skywire-cli/commands/node"
+	"github.com/skycoin/skywire/cmd/skywire-cli/commands/rtfind"
+	"github.com/skycoin/skywire/cmd/skywire-cli/commands/tpdisc"
 	"github.com/spf13/cobra"
-
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/node"
 )
-
-var log = logging.MustGetLogger("skywire-cli")
 
 var rpcAddr string
 
@@ -22,78 +15,17 @@ var rootCmd = &cobra.Command{
 	Short: "Command Line Interface for skywire",
 }
 
+func init() {
+	rootCmd.AddCommand(
+		node.NodeCmd,
+		mdisc.MessageDiscoveryCmd,
+		rtfind.RtFindCmd,
+		tpdisc.TransportCmd,
+	)
+}
+
 // Execute executes root CLI command.
 func Execute() {
 	rootCmd.PersistentFlags().StringVarP(&rpcAddr, "rpc", "", "localhost:3435", "RPC server address")
 	rootCmd.Execute() //nolint:errcheck
-}
-
-func rpcClient() node.RPCClient {
-	client, err := rpc.Dial("tcp", rpcAddr)
-	if err != nil {
-		log.Fatal("RPC connection failed:", err)
-	}
-	return node.NewRPCClient(client, node.RPCPrefix)
-}
-
-// PrpcClient exported rpc method that
-func PrpcClient() node.RPCClient {
-	client, err := rpc.Dial("tcp", rpcAddr)
-	if err != nil {
-		log.Fatal("RPC connection failed:", err)
-	}
-	return node.NewRPCClient(client, node.RPCPrefix)
-}
-
-// AddCommand adds commands to the root command
-func AddCommand(command *cobra.Command) {
-	rootCmd.AddCommand(
-		command,
-	)
-}
-
-func catch(err error, msgs ...string) {
-	if err != nil {
-		if len(msgs) > 0 {
-			log.Fatalln(append(msgs, err.Error()))
-		} else {
-			log.Fatalln(err)
-		}
-	}
-}
-
-type transportID uuid.UUID
-
-// String implements pflag.Value
-func (t transportID) String() string { return uuid.UUID(t).String() }
-
-// Type implements pflag.Value
-func (transportID) Type() string { return "transportID" }
-
-// Set implements pflag.Value
-func (t *transportID) Set(s string) error {
-	tID, err := uuid.Parse(s)
-	if err != nil {
-		return err
-	}
-	*t = transportID(tID)
-	return nil
-}
-
-func parsePK(name, v string) cipher.PubKey {
-	var pk cipher.PubKey
-	catch(pk.Set(v), fmt.Sprintf("failed to parse <%s>:", name))
-	return pk
-}
-
-func parseUUID(name, v string) uuid.UUID {
-	id, err := uuid.Parse(v)
-	catch(err, fmt.Sprintf("failed to parse <%s>:", name))
-	return id
-}
-
-func parseUint(name, v string, bitSize int) uint64 {
-	i, err := strconv.ParseUint(v, 10, bitSize)
-	catch(err, fmt.Sprintf("failed to parse <%s>:", name))
-	return i
 }

@@ -1,4 +1,4 @@
-package commands
+package node
 
 import (
 	"fmt"
@@ -8,11 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
+
 	"github.com/skycoin/skywire/pkg/node"
 )
 
 func init() {
-	rootCmd.AddCommand(
+	NodeCmd.AddCommand(
 		appsCmd,
 		startAppCmd,
 		stopAppCmd,
@@ -24,12 +26,12 @@ var appsCmd = &cobra.Command{
 	Use:   "apps",
 	Short: "lists apps running on the node",
 	Run: func(_ *cobra.Command, _ []string) {
-		states, err := rpcClient().Apps()
-		catch(err)
+		states, err := internal.RPCClient().Apps()
+		internal.Catch(err)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 		_, err = fmt.Fprintln(w, "app\tports\tauto_start\tstatus")
-		catch(err)
+		internal.Catch(err)
 
 		for _, state := range states {
 			status := "stopped"
@@ -37,9 +39,9 @@ var appsCmd = &cobra.Command{
 				status = "running"
 			}
 			_, err = fmt.Fprintf(w, "%s\t%s\t%t\t%s\n", state.Name, strconv.Itoa(int(state.Port)), state.AutoStart, status)
-			catch(err)
+			internal.Catch(err)
 		}
-		catch(w.Flush())
+		internal.Catch(w.Flush())
 	},
 }
 
@@ -48,7 +50,7 @@ var startAppCmd = &cobra.Command{
 	Short: "starts an app of given name",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		catch(rpcClient().StartApp(args[0]))
+		internal.Catch(internal.RPCClient().StartApp(args[0]))
 		fmt.Println("OK")
 	},
 }
@@ -58,7 +60,7 @@ var stopAppCmd = &cobra.Command{
 	Short: "stops an app of given name",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		catch(rpcClient().StopApp(args[0]))
+		internal.Catch(internal.RPCClient().StopApp(args[0]))
 		fmt.Println("OK")
 	},
 }
@@ -75,9 +77,9 @@ var setAppAutostartCmd = &cobra.Command{
 		case "off":
 			autostart = false
 		default:
-			catch(fmt.Errorf("invalid args[1] value: %s", args[1]))
+			internal.Catch(fmt.Errorf("invalid args[1] value: %s", args[1]))
 		}
-		catch(rpcClient().SetAutoStart(args[0], autostart))
+		internal.Catch(internal.RPCClient().SetAutoStart(args[0], autostart))
 		fmt.Println("OK")
 	},
 }

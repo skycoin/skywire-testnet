@@ -1,4 +1,4 @@
-package commands
+package tpdisc
 
 import (
 	"context"
@@ -12,28 +12,37 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport-discovery/client"
 )
 
+//TransportCmd contains commands that interact with transport-discovery
+var TransportCmd = &cobra.Command{
+	Use:   "tpdisc",
+	Short: "Commands that interact with transport-discovery",
+}
+
 func init() {
-	rootCmd.AddCommand(
+	TransportCmd.AddCommand(
 		transportTypesCmd,
 		listTransportsCmd,
 		transportCmd,
 		addTransportCmd,
 		rmTransportCmd,
-		findTransport)
+		findTransport,
+	)
 }
 
 var transportTypesCmd = &cobra.Command{
 	Use:   "transport-types",
 	Short: "lists transport types used by the local node",
 	Run: func(_ *cobra.Command, _ []string) {
-		types, err := rpcClient().TransportTypes()
-		catch(err)
+		types, err := internal.RPCClient().TransportTypes()
+		internal.Catch(err)
 		for _, t := range types {
 			fmt.Println(t)
 		}
@@ -50,8 +59,8 @@ var listTransportsCmd = &cobra.Command{
 	Use:   "list-transports",
 	Short: "lists the available transports with optional filter flags",
 	Run: func(_ *cobra.Command, _ []string) {
-		transports, err := rpcClient().Transports(filterTypes, filterPubKeys, showLogs)
-		catch(err)
+		transports, err := internal.RPCClient().Transports(filterTypes, filterPubKeys, showLogs)
+		internal.Catch(err)
 		printTransports(transports...)
 	},
 }
@@ -67,9 +76,9 @@ var transportCmd = &cobra.Command{
 	Short: "returns summary of given transport by id",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		tpID := parseUUID("transport-id", args[0])
-		tp, err := rpcClient().Transport(tpID)
-		catch(err)
+		tpID := internal.ParseUUID("transport-id", args[0])
+		tp, err := internal.RPCClient().Transport(tpID)
+		internal.Catch(err)
 		printTransports(tp)
 	},
 }
@@ -85,9 +94,9 @@ var addTransportCmd = &cobra.Command{
 	Short: "adds a new transport",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		pk := parsePK("remote-public-key", args[0])
-		tp, err := rpcClient().AddTransport(pk, transportType, public, timeout)
-		catch(err)
+		pk := internal.ParsePK("remote-public-key", args[0])
+		tp, err := internal.RPCClient().AddTransport(pk, transportType, public, timeout)
+		internal.Catch(err)
 		printTransports(tp)
 	},
 }
@@ -103,8 +112,8 @@ var rmTransportCmd = &cobra.Command{
 	Short: "removes transport with given id",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		tID := parseUUID("transport-id", args[0])
-		catch(rpcClient().RemoveTransport(tID))
+		tID := internal.ParseUUID("transport-id", args[0])
+		internal.Catch(internal.RPCClient().RemoveTransport(tID))
 		fmt.Println("OK")
 	},
 }
@@ -136,14 +145,14 @@ var findTransport = &cobra.Command{
 		defer cancel()
 		pk, sk := cipher.GenerateKeyPair()
 		c, err := client.NewHTTP(addr, pk, sk)
-		catch(err)
+		internal.Catch(err)
 		if tpPK.Null() {
 			entry, err := c.GetTransportByID(ctx, uuid.UUID(tpID))
-			catch(err)
+			internal.Catch(err)
 			printTransportEntries(entry)
 		} else {
 			entries, err := c.GetTransportsByEdge(ctx, pk)
-			catch(err)
+			internal.Catch(err)
 			printTransportEntries(entries...)
 		}
 	},
@@ -159,24 +168,24 @@ func printTransports(tps ...*node.TransportSummary) {
 	sortTransports(tps...)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "type\tid\tlocal\tremote")
-	catch(err)
+	internal.Catch(err)
 	for _, tp := range tps {
 		_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", tp.Type, tp.ID, tp.Local, tp.Remote)
-		catch(err)
+		internal.Catch(err)
 	}
-	catch(w.Flush())
+	internal.Catch(w.Flush())
 }
 
 func printTransportEntries(entries ...*transport.EntryWithStatus) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "id\ttype\tpublic\tregistered\tup\tedge1\tedge2\topinion1\topinion2")
-	catch(err)
+	internal.Catch(err)
 	for _, e := range entries {
 		_, err := fmt.Fprintf(w, "%s\t%s\t%t\t%d\t%t\t%s\t%s\t%t\t%t\n",
 			e.Entry.ID, e.Entry.Type, e.Entry.Public, e.Registered, e.IsUp, e.Entry.Edges[0], e.Entry.Edges[1], e.Statuses[0], e.Statuses[1])
-		catch(err)
+		internal.Catch(err)
 	}
-	catch(w.Flush())
+	internal.Catch(w.Flush())
 }
 
 func sortTransports(tps ...*node.TransportSummary) {
