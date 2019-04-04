@@ -11,7 +11,7 @@ func ExampleNewDiscoveryMock() {
 	dc := NewDiscoveryMock()
 	pk1, _ := cipher.GenerateKeyPair()
 	pk2, _ := cipher.GenerateKeyPair()
-	entry := &Entry{Type: "mock", EdgesKeys: SortPubKeys(pk1, pk2)}
+	entry := &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk1, pk2)}
 
 	sEntry := &SignedEntry{Entry: entry}
 

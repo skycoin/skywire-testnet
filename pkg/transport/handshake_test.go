@@ -96,7 +96,7 @@ func Example_validateEntry() {
 
 	entryInvalidEdges := &SignedEntry{
 		Entry: &Entry{Type: "mock",
-			EdgesKeys: SortPubKeys(pk2, pk3),
+			EdgeKeys: SortPubKeys(pk2, pk3),
 		}}
 	if err := validateSignedEntry(entryInvalidEdges, tr, pk1); err != nil {
 		fmt.Println(err.Error())
@@ -117,7 +117,7 @@ func TestValidateEntry(t *testing.T) {
 	pk3, _ := cipher.GenerateKeyPair()
 	tr := NewMockTransport(nil, pk1, pk2)
 
-	entry := &Entry{Type: "mock", EdgesKeys: SortPubKeys(pk2, pk1)}
+	entry := &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk2, pk1)}
 	tcs := []struct {
 		sEntry *SignedEntry
 		err    string
@@ -127,11 +127,11 @@ func TestValidateEntry(t *testing.T) {
 			"invalid entry type",
 		},
 		{
-			&SignedEntry{Entry: &Entry{Type: "mock", EdgesKeys: SortPubKeys(pk1, pk3)}},
+			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk1, pk3)}},
 			"invalid entry edges",
 		},
 		{
-			&SignedEntry{Entry: &Entry{Type: "mock", EdgesKeys: SortPubKeys(pk2, pk1)}},
+			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk2, pk1)}},
 			"invalid entry signature",
 		},
 		{
@@ -141,8 +141,8 @@ func TestValidateEntry(t *testing.T) {
 		{
 			func() *SignedEntry {
 				sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
-				sEntry.SetSignature(pk1, sk2)
-				sEntry.SetSignature(pk2, sk1)
+				sEntry.Sign(pk1, sk2)
+				sEntry.Sign(pk2, sk1)
 				return sEntry
 			}(),
 			"Recovered pubkey does not match pubkey",
@@ -158,8 +158,8 @@ func TestValidateEntry(t *testing.T) {
 	}
 
 	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
-	sEntry.SetSignature(pk1, sk1)
-	sEntry.SetSignature(pk2, sk2)
+	sEntry.Sign(pk1, sk1)
+	sEntry.Sign(pk2, sk2)
 
 	require.NoError(t, validateSignedEntry(sEntry, tr, pk1))
 }
@@ -255,10 +255,10 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 	tpType := "mock"
 	entry := &Entry{
-		ID:        GetTransportUUID(mockEnv.pk1, mockEnv.pk2, tpType),
-		EdgesKeys: SortPubKeys(mockEnv.pk1, mockEnv.pk2),
-		Type:      tpType,
-		Public:    true,
+		ID:       MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType),
+		EdgeKeys: SortPubKeys(mockEnv.pk1, mockEnv.pk2),
+		Type:     tpType,
+		Public:   true,
 	}
 
 	mockEnv.m1.entries = append(mockEnv.m1.entries, entry)
@@ -313,7 +313,7 @@ func Example_verifySig() {
 func Example_settlementInitiatorHandshake() {
 	mockEnv := newHsMockEnv()
 
-	// uid := GetTransportUUID(mockEnv.pk1, mockEnv.pk2, "mock")
+	// uid := MakeTransportID(mockEnv.pk1, mockEnv.pk2, "mock")
 
 	initHandshake := settlementInitiatorHandshake(true)
 	respondHandshake := settlementResponderHandshake

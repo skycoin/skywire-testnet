@@ -33,28 +33,28 @@ func ExampleEntry_Edges() {
 	pkB, _ := cipher.GenerateKeyPair()
 
 	entryAB := Entry{
-		ID:        uuid.UUID{},
-		EdgesKeys: [2]cipher.PubKey{pkA, pkB},
-		Type:      "",
-		Public:    true,
+		ID:       uuid.UUID{},
+		EdgeKeys: [2]cipher.PubKey{pkA, pkB},
+		Type:     "",
+		Public:   true,
 	}
 
 	entryBA := Entry{
-		ID:        uuid.UUID{},
-		EdgesKeys: [2]cipher.PubKey{pkB, pkA},
-		Type:      "",
-		Public:    true,
+		ID:       uuid.UUID{},
+		EdgeKeys: [2]cipher.PubKey{pkB, pkA},
+		Type:     "",
+		Public:   true,
 	}
 
-	if entryAB.EdgesKeys != entryBA.EdgesKeys {
-		fmt.Println("entryAB.EdgesKeys != entryBA.EdgesKeys")
+	if entryAB.EdgeKeys != entryBA.EdgeKeys {
+		fmt.Println("entryAB.EdgeKeys != entryBA.EdgeKeys")
 	}
 
 	if entryAB.Edges() == entryBA.Edges() {
 		fmt.Println("entryAB.Edges() == entryBA.Edges()")
 	}
 
-	// Output: entryAB.EdgesKeys != entryBA.EdgesKeys
+	// Output: entryAB.EdgeKeys != entryBA.EdgeKeys
 	// entryAB.Edges() == entryBA.Edges()
 }
 
@@ -67,8 +67,8 @@ func ExampleEntry_SetEdges() {
 	entryAB.SetEdges([2]cipher.PubKey{pkA, pkB})
 	entryBA.SetEdges([2]cipher.PubKey{pkA, pkB})
 
-	if entryAB.EdgesKeys == entryBA.EdgesKeys {
-		fmt.Println("entryAB.EdgesKeys == entryBA.EdgesKeys")
+	if entryAB.EdgeKeys == entryBA.EdgeKeys {
+		fmt.Println("entryAB.EdgeKeys == entryBA.EdgeKeys")
 	}
 
 	if (entryAB.ID == entryBA.ID) && (entryAB.ID != uuid.UUID{}) {
@@ -76,12 +76,12 @@ func ExampleEntry_SetEdges() {
 		fmt.Println("entryAB.ID == entryBA.ID")
 	}
 
-	// Output: entryAB.EdgesKeys == entryBA.EdgesKeys
+	// Output: entryAB.EdgeKeys == entryBA.EdgeKeys
 	// entryAB.ID != uuid.UUID{}
 	// entryAB.ID == entryBA.ID
 }
 
-func ExampleSignedEntry_SetSignature() {
+func ExampleSignedEntry_Sign() {
 	pkA, skA := cipher.GenerateKeyPair()
 	pkB, skB := cipher.GenerateKeyPair()
 
@@ -92,13 +92,13 @@ func ExampleSignedEntry_SetSignature() {
 		fmt.Println("No signatures set")
 	}
 
-	sEntry.SetSignature(pkA, skA)
+	sEntry.Sign(pkA, skA)
 	if (!sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null()) ||
 		(!sEntry.Signatures[1].Null() && sEntry.Signatures[0].Null()) {
 		fmt.Println("One signature set")
 	}
 
-	sEntry.SetSignature(pkB, skB)
+	sEntry.Sign(pkB, skB)
 	if !sEntry.Signatures[0].Null() && !sEntry.Signatures[1].Null() {
 		fmt.Println("Both signatures set")
 	}
@@ -108,19 +108,19 @@ func ExampleSignedEntry_SetSignature() {
 	// Both signatures set
 }
 
-func ExampleSignedEntry_GetSignature() {
+func ExampleSignedEntry_Signature() {
 	pkA, skA := cipher.GenerateKeyPair()
 	pkB, skB := cipher.GenerateKeyPair()
 
 	entry := NewEntry(pkA, pkB, "mock", true)
 	sEntry := &SignedEntry{Entry: entry}
-	sEntry.SetSignature(pkA, skA)
-	sEntry.SetSignature(pkB, skB)
+	sEntry.Sign(pkA, skA)
+	sEntry.Sign(pkB, skB)
 
-	if sEntry.GetSignature(pkA) == sEntry.Signatures[sEntry.Index(pkA)] {
+	if sEntry.Signature(pkA) == sEntry.Signatures[sEntry.Index(pkA)] {
 		fmt.Println("SignatureA got")
 	}
-	if sEntry.GetSignature(pkB) == sEntry.Signatures[sEntry.Index(pkB)] {
+	if sEntry.Signature(pkB) == sEntry.Signatures[sEntry.Index(pkB)] {
 		fmt.Println("SignatureB got")
 	}
 

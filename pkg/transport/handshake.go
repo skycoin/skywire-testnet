@@ -31,10 +31,10 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 func settlementInitiatorHandshake(public bool) settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		entry := &Entry{
-			ID:        GetTransportUUID(tr.Edges()[0], tr.Edges()[1], tr.Type()),
-			EdgesKeys: tr.Edges(),
-			Type:      tr.Type(),
-			Public:    public,
+			ID:       MakeTransportID(tr.Edges()[0], tr.Edges()[1], tr.Type()),
+			EdgeKeys: tr.Edges(),
+			Type:     tr.Type(),
+			Public:   public,
 		}
 
 		// sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}
@@ -79,7 +79,7 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 
 	// Write second signature
 	// sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
-	sEntry.SetSignature(tm.Local(), tm.config.SecKey)
+	sEntry.Sign(tm.Local(), tm.config.SecKey)
 
 	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 
@@ -126,5 +126,5 @@ func validateSignedEntry(sEntry *SignedEntry, tr Transport, pk cipher.PubKey) er
 }
 
 func verifySig(sEntry *SignedEntry, pk cipher.PubKey) error {
-	return cipher.VerifyPubKeySignedPayload(pk, sEntry.GetSignature(pk), sEntry.Entry.ToBinary())
+	return cipher.VerifyPubKeySignedPayload(pk, sEntry.Signature(pk), sEntry.Entry.ToBinary())
 }

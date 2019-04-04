@@ -231,35 +231,35 @@ func ExampleSortPubKeys() {
 	// SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)
 }
 
-// GetTransportUUID(keyA,keyB, "type") == GetTransportUUID(keyB, keyA, "type")
+// MakeTransportID(keyA,keyB, "type") == MakeTransportID(keyB, keyA, "type")
 // GetTrasportUUID(keyA,keyB) is always the same for a given pair
-// GetTransportUUID(keyA, keyA) works for equal keys
-// GetTransportUUID(keyA,keyB, "type") != GetTransportUUID(keyB, keyA, "type")
-func ExampleGetTransportUUID() {
+// MakeTransportID(keyA, keyA) works for equal keys
+// MakeTransportID(keyA,keyB, "type") != MakeTransportID(keyB, keyA, "type")
+func ExampleMakeTransportID() {
 	keyA, _ := cipher.GenerateKeyPair()
 	keyB, _ := cipher.GenerateKeyPair()
 
-	uuidAB := GetTransportUUID(keyA, keyB, "type")
+	uuidAB := MakeTransportID(keyA, keyB, "type")
 
 	for i := 0; i < 256; i++ {
-		if GetTransportUUID(keyA, keyB, "type") != uuidAB {
+		if MakeTransportID(keyA, keyB, "type") != uuidAB {
 			fmt.Printf("uuid is unstable")
 			break
 		}
 	}
 	fmt.Printf("uuid is stable\n")
 
-	uuidBA := GetTransportUUID(keyB, keyA, "type")
+	uuidBA := MakeTransportID(keyB, keyA, "type")
 	if uuidAB == uuidBA {
 		fmt.Printf("uuid is bidirectional\n")
 	} else {
 		fmt.Printf("keyA = %v\n keyB=%v\n uuidAB=%v\n uuidBA=%v\n", keyA, keyB, uuidAB, uuidBA)
 	}
 
-	_ = GetTransportUUID(keyA, keyA, "type") // works for equal keys
+	_ = MakeTransportID(keyA, keyA, "type") // works for equal keys
 	fmt.Printf("works for equal keys\n")
 
-	if GetTransportUUID(keyA, keyB, "type") != GetTransportUUID(keyA, keyB, "another_type") {
+	if MakeTransportID(keyA, keyB, "type") != MakeTransportID(keyA, keyB, "another_type") {
 		fmt.Printf("uuid is different for different types")
 	}
 

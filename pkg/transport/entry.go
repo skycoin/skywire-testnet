@@ -16,7 +16,7 @@ type Entry struct {
 	ID uuid.UUID `json:"t_id"`
 
 	// Edges contains the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
-	EdgesKeys [2]cipher.PubKey `json:"edges"`
+	EdgeKeys [2]cipher.PubKey `json:"edges"`
 
 	// Type represents the transport type.
 	Type string `json:"type"`
@@ -29,10 +29,10 @@ type Entry struct {
 // NewEntry constructs *Entry
 func NewEntry(edgeA, edgeB cipher.PubKey, tpType string, public bool) *Entry {
 	return &Entry{
-		ID:        GetTransportUUID(edgeA, edgeB, tpType),
-		EdgesKeys: SortPubKeys(edgeA, edgeB),
-		Type:      tpType,
-		Public:    public,
+		ID:       MakeTransportID(edgeA, edgeB, tpType),
+		EdgeKeys: SortPubKeys(edgeA, edgeB),
+		Type:     tpType,
+		Public:   public,
 	}
 }
 
@@ -42,13 +42,13 @@ func (e *Entry) Edges() [2]cipher.PubKey {
 	// but to remove it:
 	// - all tests must be passed
 	// - written Benchmarks
-	return SortPubKeys(e.EdgesKeys[0], e.EdgesKeys[1])
+	return SortPubKeys(e.EdgeKeys[0], e.EdgeKeys[1])
 }
 
 // SetEdges sets edges of Entry
 func (e *Entry) SetEdges(edges [2]cipher.PubKey) {
-	e.ID = GetTransportUUID(edges[0], edges[1], e.Type)
-	e.EdgesKeys = SortPubKeys(edges[0], edges[1])
+	e.ID = MakeTransportID(edges[0], edges[1], e.Type)
+	e.EdgeKeys = SortPubKeys(edges[0], edges[1])
 }
 
 // String implements stringer
@@ -103,14 +103,14 @@ func (se *SignedEntry) Index(pk cipher.PubKey) byte {
 	return 0
 }
 
-// SetSignature sets Signature for a given PubKey in correct position
-func (se *SignedEntry) SetSignature(pk cipher.PubKey, secKey cipher.SecKey) {
+// Sign sets Signature for a given PubKey in correct position
+func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) {
 	idx := se.Index(pk)
 	se.Signatures[idx] = se.Entry.Signature(secKey)
 }
 
-// GetSignature gets Signature for a given PubKey from correct position
-func (se *SignedEntry) GetSignature(pk cipher.PubKey) cipher.Sig {
+// Signature gets Signature for a given PubKey from correct position
+func (se *SignedEntry) Signature(pk cipher.PubKey) cipher.Sig {
 	idx := se.Index(pk)
 	return se.Signatures[idx]
 }
@@ -118,7 +118,7 @@ func (se *SignedEntry) GetSignature(pk cipher.PubKey) cipher.Sig {
 // NewSignedEntry creates a SignedEntry with first signature
 func NewSignedEntry(entry *Entry, pk cipher.PubKey, secKey cipher.SecKey) *SignedEntry {
 	se := &SignedEntry{Entry: entry}
-	se.SetSignature(pk, secKey)
+	se.Sign(pk, secKey)
 	return se
 }
 
