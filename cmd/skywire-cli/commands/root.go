@@ -8,8 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var RPCAddr string
-
 var rootCmd = &cobra.Command{
 	Use:   "skywire-cli",
 	Short: "Command Line Interface for skywire",
