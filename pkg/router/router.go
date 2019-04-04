@@ -485,11 +485,9 @@ func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni 
 
 func (r *Router) isSetupTransport(tr transport.Transport) bool {
 	for _, pk := range r.config.SetupNodes {
-		remote, Ok := r.tm.Remote(tr.Edges())
-		if Ok == nil {
-			if remote == pk {
-				return true
-			}
+		remote, err := r.tm.Remote(tr.Edges())
+		if err == nil && remote == pk {
+			return true
 		}
 	}
 

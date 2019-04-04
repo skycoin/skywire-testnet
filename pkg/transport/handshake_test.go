@@ -104,7 +104,7 @@ func Example_validateEntry() {
 
 	entry := NewEntry(pk1, pk2, "mock", true)
 	sEntry := NewSignedEntry(entry, pk1, sk1)
-	if Ok := validateSignedEntry(sEntry, tr, pk1); Ok != nil {
+	if err := validateSignedEntry(sEntry, tr, pk1); err != nil {
 		fmt.Println(Ok.Error())
 	}
 

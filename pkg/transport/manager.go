@@ -163,13 +163,11 @@ func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
-			if remote, Ok := tm.Remote(tr.Edges()); Ok == nil {
-				if remote == pk {
-					exist = true
-					return false
-				}
+			remote, err := tm.Remote(tr.Edges())
+			if err == nil && remote == pk {
+				exist = true
+				return false
 			}
-
 			return true
 		})
 		if exist {

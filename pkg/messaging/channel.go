@@ -128,13 +128,6 @@ func (c *channel) Close() error {
 	return nil
 }
 
-func (c *channel) Local() cipher.PubKey {
-	return c.link.Local()
-}
-
-func (c *channel) Remote() cipher.PubKey {
-	return c.remotePK
-}
 
 func (c *channel) SetDeadline(t time.Time) error {
 	c.deadline = t

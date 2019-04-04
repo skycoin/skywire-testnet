@@ -79,8 +79,6 @@ func (f *MockFactory) Type() string {
 type MockTransport struct {
 	rw    io.ReadWriteCloser
 	edges [2]cipher.PubKey
-	// local   cipher.PubKey
-	// remote  cipher.PubKey
 	context context.Context
 }
 
@@ -119,16 +117,6 @@ func (m *MockTransport) Close() error {
 func (m *MockTransport) Edges() [2]cipher.PubKey {
 	return SortEdges(m.edges)
 }
-
-// // Local returns the local static public key
-// func (m *MockTransport) Local() cipher.PubKey {
-// 	return m.local
-// }
-
-// // Remote returns the remote public key fo the mock transport
-// func (m *MockTransport) Remote() cipher.PubKey {
-// 	return m.remote
-// }
 
 // SetDeadline sets a deadline for the write/read operations of the mock transport
 func (m *MockTransport) SetDeadline(t time.Time) error {

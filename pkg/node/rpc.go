@@ -70,19 +70,21 @@ type TransportSummary struct {
 }
 
 func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport, includeLogs bool) *TransportSummary {
-	if remote, Ok := tm.Remote(tp.Edges()); Ok == nil {
-		summary := TransportSummary{
-			ID:     tp.ID,
-			Local:  tm.Local(),
-			Remote: remote,
-			Type:   tp.Type(),
-		}
-		if includeLogs {
-			summary.Log = tp.LogEntry
-		}
-		return &summary
+	remote, err := tm.Remote(tp.Edges())
+	if err != nil {
+		return &TransportSummary{}
 	}
-	return &TransportSummary{}
+
+	summary := &TransportSummary{
+		ID:     tp.ID,
+		Local:  tm.Local(),
+		Remote: remote,
+		Type:   tp.Type(),
+	}
+	if includeLogs {
+		summary.Log = tp.LogEntry
+	}
+	return summary
 }
 
 // Summary provides a summary of an AppNode.
@@ -182,7 +184,7 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 		return true
 	}
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-		if remote, Ok := r.node.tm.Remote(tp.Edges()); Ok == nil {
+		if remote, err := r.node.tm.Remote(tp.Edges()); err == nil {
 			if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), remote) {
 				*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs))
 			}

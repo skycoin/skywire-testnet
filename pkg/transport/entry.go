@@ -109,8 +109,8 @@ func (se *SignedEntry) Index(pk cipher.PubKey) (byte, error) {
 
 // Sign sets Signature for a given PubKey in correct position
 func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) error {
-	idx, Ok := se.Index(pk)
-	if Ok == nil {
+	idx, err := se.Index(pk)
+	if err == nil {
 		se.Signatures[idx] = se.Entry.Signature(secKey)
 	}
 	return Ok
@@ -118,8 +118,8 @@ func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) error {
 
 // Signature gets Signature for a given PubKey from correct position
 func (se *SignedEntry) Signature(pk cipher.PubKey) (cipher.Sig, error) {
-	idx, Ok := se.Index(pk)
-	if Ok != nil {
+	idx, err := se.Index(pk)
+	if err != nil {
 		return cipher.Sig{}, Ok
 	}
 	return se.Signatures[idx], nil
