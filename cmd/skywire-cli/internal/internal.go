@@ -16,7 +16,7 @@ var log = logging.MustGetLogger("skywire-cli")
 
 var rpcAddr string
 
-//RPCClient connects to the nodes rpc methods
+// RPCClient connects to the nodes rpc methods
 func RPCClient() node.RPCClient {
 	client, err := rpc.Dial("tcp", rpcAddr)
 	if err != nil {
@@ -25,7 +25,7 @@ func RPCClient() node.RPCClient {
 	return node.NewRPCClient(client, node.RPCPrefix)
 }
 
-//Catch handles errors for skywire-cli commands packages
+// Catch handles errors for skywire-cli commands packages
 func Catch(err error, msgs ...string) {
 	if err != nil {
 		if len(msgs) > 0 {
@@ -36,14 +36,14 @@ func Catch(err error, msgs ...string) {
 	}
 }
 
-//ParsePK parses a public key
+// ParsePK parses a public key
 func ParsePK(name, v string) cipher.PubKey {
 	var pk cipher.PubKey
 	Catch(pk.Set(v), fmt.Sprintf("failed to parse <%s>:", name))
 	return pk
 }
 
-//ParseUUID parses a uuid
+// ParseUUID parses a uuid
 func ParseUUID(name, v string) uuid.UUID {
 	id, err := uuid.Parse(v)
 	Catch(err, fmt.Sprintf("failed to parse <%s>:", name))

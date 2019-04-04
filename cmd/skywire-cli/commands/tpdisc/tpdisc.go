@@ -20,7 +20,7 @@ import (
 	"github.com/skycoin/skywire/pkg/transport-discovery/client"
 )
 
-//TransportCmd contains commands that interact with transport-discovery
+// TransportCmd contains commands that interact with transport-discovery
 var TransportCmd = &cobra.Command{
 	Use:   "tpdisc",
 	Short: "Commands that interact with transport-discovery",

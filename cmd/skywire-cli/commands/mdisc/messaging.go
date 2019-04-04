@@ -14,7 +14,7 @@ import (
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
-//MessageDiscoveryCmd contains commands that interact with messaging services
+// MessageDiscoveryCmd contains commands that interact with messaging services
 var MessageDiscoveryCmd = &cobra.Command{
 	Use:   "mdisc",
 	Short: "Commands that interact with messaging-discovery",
