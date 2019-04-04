@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	NodeCmd.AddCommand(
+	RootCmd.AddCommand(
 		appsCmd,
 		startAppCmd,
 		stopAppCmd,
@@ -26,7 +26,7 @@ var appsCmd = &cobra.Command{
 	Use:   "apps",
 	Short: "lists apps running on the node",
 	Run: func(_ *cobra.Command, _ []string) {
-		states, err := internal.RPCClient().Apps()
+		states, err := rpcClient().Apps()
 		internal.Catch(err)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
@@ -50,7 +50,7 @@ var startAppCmd = &cobra.Command{
 	Short: "starts an app of given name",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		internal.Catch(internal.RPCClient().StartApp(args[0]))
+		internal.Catch(rpcClient().StartApp(args[0]))
 		fmt.Println("OK")
 	},
 }
@@ -60,7 +60,7 @@ var stopAppCmd = &cobra.Command{
 	Short: "stops an app of given name",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		internal.Catch(internal.RPCClient().StopApp(args[0]))
+		internal.Catch(rpcClient().StopApp(args[0]))
 		fmt.Println("OK")
 	},
 }
@@ -79,7 +79,7 @@ var setAppAutostartCmd = &cobra.Command{
 		default:
 			internal.Catch(fmt.Errorf("invalid args[1] value: %s", args[1]))
 		}
-		internal.Catch(internal.RPCClient().SetAutoStart(args[0], autostart))
+		internal.Catch(rpcClient().SetAutoStart(args[0], autostart))
 		fmt.Println("OK")
 	},
 }

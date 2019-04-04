@@ -3,13 +3,11 @@ package node
 import (
 	"fmt"
 
-	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	NodeCmd.AddCommand(pkCmd)
+	RootCmd.AddCommand(pkCmd)
 }
 
 var pkCmd = &cobra.Command{
@@ -17,7 +15,7 @@ var pkCmd = &cobra.Command{
 	Short: "get public key of node",
 	Run: func(_ *cobra.Command, _ []string) {
 
-		client := internal.RPCClient()
+		client := rpcClient()
 		summary, err := client.Summary()
 		if err != nil {
 			log.Fatal("Failed to connect:", err)

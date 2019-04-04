@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rpcAddr string
+var RPCAddr string
 
 var rootCmd = &cobra.Command{
 	Use:   "skywire-cli",
@@ -17,15 +17,14 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(
-		node.NodeCmd,
-		mdisc.MessageDiscoveryCmd,
-		rtfind.RtFindCmd,
-		tpdisc.TransportCmd,
+		node.RootCmd,
+		mdisc.RootCmd,
+		rtfind.RootCmd,
+		tpdisc.RootCmd,
 	)
 }
 
 // Execute executes root CLI command.
 func Execute() {
-	rootCmd.PersistentFlags().StringVarP(&rpcAddr, "rpc", "", "localhost:3435", "RPC server address")
 	rootCmd.Execute() //nolint:errcheck
 }

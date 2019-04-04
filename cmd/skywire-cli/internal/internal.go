@@ -2,28 +2,15 @@ package internal
 
 import (
 	"fmt"
-	"net/rpc"
 
 	"github.com/google/uuid"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/pkg/node"
 )
 
 var log = logging.MustGetLogger("skywire-cli")
-
-var rpcAddr string
-
-// RPCClient connects to the nodes rpc methods
-func RPCClient() node.RPCClient {
-	client, err := rpc.Dial("tcp", rpcAddr)
-	if err != nil {
-		log.Fatal("RPC connection failed:", err)
-	}
-	return node.NewRPCClient(client, node.RPCPrefix)
-}
 
 // Catch handles errors for skywire-cli commands packages
 func Catch(err error, msgs ...string) {
