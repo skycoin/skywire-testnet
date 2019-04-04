@@ -214,13 +214,18 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
-// MakeTransportID generates uuid.UUID from pair of keys.
+// MakeTransportID generates uuid.UUID from pair of keys + type + public
 // Generated uuid is:
 // - always the same for a given pair
 // - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
-func MakeTransportID(keyA, keyB cipher.PubKey, tpType string) uuid.UUID {
+func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
 	keys := SortPubKeys(keyA, keyB)
-	return uuid.NewSHA1(uuid.UUID{}, append(append(keys[0][:], keys[1][:]...), []byte(tpType)...))
+	if public {
+		return uuid.NewSHA1(uuid.UUID{},
+			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
+	}
+	return uuid.NewSHA1(uuid.UUID{},
+		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
 }
 
 // SortPubKeys sorts keys so that least-significant comes first

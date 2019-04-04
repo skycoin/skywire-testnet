@@ -105,7 +105,7 @@ func Example_validateEntry() {
 	entry := NewEntry(pk1, pk2, "mock", true)
 	sEntry := NewSignedEntry(entry, pk1, sk1)
 	if err := validateSignedEntry(sEntry, tr, pk1); err != nil {
-		fmt.Println(Ok.Error())
+		fmt.Println(err.Error())
 	}
 
 	// Output: invalid entry edges
@@ -255,7 +255,7 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 	tpType := "mock"
 	entry := &Entry{
-		ID:       MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType),
+		ID:       MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType, true),
 		EdgeKeys: SortPubKeys(mockEnv.pk1, mockEnv.pk2),
 		Type:     tpType,
 		Public:   true,
@@ -313,12 +313,9 @@ func Example_verifySig() {
 func Example_settlementInitiatorHandshake() {
 	mockEnv := newHsMockEnv()
 
-	// uid := MakeTransportID(mockEnv.pk1, mockEnv.pk2, "mock")
-
 	initHandshake := settlementInitiatorHandshake(true)
 	respondHandshake := settlementResponderHandshake
 
-	// resultCh := make(chan hsResult)
 	errCh := make(chan error)
 	go func() {
 		entry, err := initHandshake(mockEnv.m1, mockEnv.tr1)
@@ -327,7 +324,6 @@ func Example_settlementInitiatorHandshake() {
 			errCh <- err
 		}
 		errCh <- nil
-		// resultCh <- hsResult{entry, err}
 	}()
 
 	go func() {

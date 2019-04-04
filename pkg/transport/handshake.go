@@ -32,7 +32,7 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 func settlementInitiatorHandshake(public bool) settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		entry := &Entry{
-			ID:       MakeTransportID(tr.Edges()[0], tr.Edges()[1], tr.Type()),
+			ID:       MakeTransportID(tr.Edges()[0], tr.Edges()[1], tr.Type(), public),
 			EdgeKeys: tr.Edges(),
 			Type:     tr.Type(),
 			Public:   public,
@@ -43,7 +43,7 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 		sEntry := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
 		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
 
-			return nil, fmt.Errorf("settlementInitiatorHandshake NewSignedEntry: %s\n sEntry: %v\n", err, sEntry)
+			return nil, fmt.Errorf("settlementInitiatorHandshake NewSignedEntry: %s\n sEntry: %v", err, sEntry)
 		}
 
 		if err := json.NewEncoder(tr).Encode(sEntry); err != nil {

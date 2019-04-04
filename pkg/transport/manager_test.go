@@ -231,42 +231,43 @@ func ExampleSortPubKeys() {
 	// SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)
 }
 
-// MakeTransportID(keyA,keyB, "type") == MakeTransportID(keyB, keyA, "type")
-// GetTrasportUUID(keyA,keyB) is always the same for a given pair
-// MakeTransportID(keyA, keyA) works for equal keys
-// MakeTransportID(keyA,keyB, "type") != MakeTransportID(keyB, keyA, "type")
 func ExampleMakeTransportID() {
 	keyA, _ := cipher.GenerateKeyPair()
 	keyB, _ := cipher.GenerateKeyPair()
 
-	uuidAB := MakeTransportID(keyA, keyB, "type")
+	uuidAB := MakeTransportID(keyA, keyB, "type", true)
 
 	for i := 0; i < 256; i++ {
-		if MakeTransportID(keyA, keyB, "type") != uuidAB {
-			fmt.Printf("uuid is unstable")
+		if MakeTransportID(keyA, keyB, "type", true) != uuidAB {
+			fmt.Println("uuid is unstable")
 			break
 		}
 	}
 	fmt.Printf("uuid is stable\n")
 
-	uuidBA := MakeTransportID(keyB, keyA, "type")
+	uuidBA := MakeTransportID(keyB, keyA, "type", true)
 	if uuidAB == uuidBA {
-		fmt.Printf("uuid is bidirectional\n")
+		fmt.Println("uuid is bidirectional")
 	} else {
 		fmt.Printf("keyA = %v\n keyB=%v\n uuidAB=%v\n uuidBA=%v\n", keyA, keyB, uuidAB, uuidBA)
 	}
 
-	_ = MakeTransportID(keyA, keyA, "type") // works for equal keys
-	fmt.Printf("works for equal keys\n")
+	_ = MakeTransportID(keyA, keyA, "type", true) // works for equal keys
+	fmt.Println("works for equal keys")
 
-	if MakeTransportID(keyA, keyB, "type") != MakeTransportID(keyA, keyB, "another_type") {
-		fmt.Printf("uuid is different for different types")
+	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "another_type", true) {
+		fmt.Println("uuid is different for different types")
+	}
+
+	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "type", false) {
+		fmt.Println("uuid is different for public and private transports")
 	}
 
 	// Output: uuid is stable
 	// uuid is bidirectional
 	// works for equal keys
 	// uuid is different for different types
+	// uuid is different for public and private transports
 }
 
 func ExampleManager_CreateTransport() {

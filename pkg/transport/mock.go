@@ -77,8 +77,8 @@ func (f *MockFactory) Type() string {
 // MockTransport is a transport that accepts custom writers and readers to use them in Read and Write
 // operations
 type MockTransport struct {
-	rw    io.ReadWriteCloser
-	edges [2]cipher.PubKey
+	rw      io.ReadWriteCloser
+	edges   [2]cipher.PubKey
 	context context.Context
 }
 

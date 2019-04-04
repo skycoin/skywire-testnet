@@ -18,7 +18,7 @@ func ExampleNewDiscoveryMock() {
 	if err := dc.RegisterTransports(context.TODO(), sEntry); err == nil {
 		fmt.Println("RegisterTransport success")
 	} else {
-		fmt.Println(Ok.Error())
+		fmt.Println(err.Error())
 	}
 
 	if entryWS, err := dc.GetTransportByID(context.TODO(), sEntry.Entry.ID); err == nil {
@@ -36,7 +36,7 @@ func ExampleNewDiscoveryMock() {
 	if _, err := dc.UpdateStatuses(context.TODO(), &Status{}); err == nil {
 		fmt.Println("UpdateStatuses success")
 	} else {
-		fmt.Println(Ok.Error())
+		fmt.Println(err.Error())
 	}
 
 	// Output: RegisterTransport success

@@ -128,7 +128,6 @@ func (c *channel) Close() error {
 	return nil
 }
 
-
 func (c *channel) SetDeadline(t time.Time) error {
 	c.deadline = t
 	return nil

@@ -30,7 +30,7 @@ type Entry struct {
 // NewEntry constructs *Entry
 func NewEntry(edgeA, edgeB cipher.PubKey, tpType string, public bool) *Entry {
 	return &Entry{
-		ID:       MakeTransportID(edgeA, edgeB, tpType),
+		ID:       MakeTransportID(edgeA, edgeB, tpType, public),
 		EdgeKeys: SortPubKeys(edgeA, edgeB),
 		Type:     tpType,
 		Public:   public,
@@ -48,7 +48,7 @@ func (e *Entry) Edges() [2]cipher.PubKey {
 
 // SetEdges sets edges of Entry
 func (e *Entry) SetEdges(edges [2]cipher.PubKey) {
-	e.ID = MakeTransportID(edges[0], edges[1], e.Type)
+	e.ID = MakeTransportID(edges[0], edges[1], e.Type, e.Public)
 	e.EdgeKeys = SortPubKeys(edges[0], edges[1])
 }
 
@@ -113,14 +113,14 @@ func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) error {
 	if err == nil {
 		se.Signatures[idx] = se.Entry.Signature(secKey)
 	}
-	return Ok
+	return err
 }
 
 // Signature gets Signature for a given PubKey from correct position
 func (se *SignedEntry) Signature(pk cipher.PubKey) (cipher.Sig, error) {
 	idx, err := se.Index(pk)
 	if err != nil {
-		return cipher.Sig{}, Ok
+		return cipher.Sig{}, err
 	}
 	return se.Signatures[idx], nil
 }
