@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -20,16 +19,16 @@ import (
 
 func init() {
 	RootCmd.AddCommand(
-		listRulesCmd,
+		lsRulesCmd,
 		ruleCmd,
 		rmRuleCmd,
 		addRuleCmd,
 	)
 }
 
-var listRulesCmd = &cobra.Command{
-	Use:   "list-rules",
-	Short: "lists the local node's routing rules",
+var lsRulesCmd = &cobra.Command{
+	Use:   "ls-rules",
+	Short: "Lists the local node's routing rules",
 	Run: func(_ *cobra.Command, _ []string) {
 		rules, err := rpcClient().RoutingRules()
 		internal.Catch(err)
@@ -40,7 +39,7 @@ var listRulesCmd = &cobra.Command{
 
 var ruleCmd = &cobra.Command{
 	Use:   "rule <route-id>",
-	Short: "returns a routing rule via route ID key",
+	Short: "Returns a routing rule via route ID key",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		id, err := strconv.ParseUint(args[0], 10, 32)
@@ -55,7 +54,7 @@ var ruleCmd = &cobra.Command{
 
 var rmRuleCmd = &cobra.Command{
 	Use:   "rm-rule <route-id>",
-	Short: "removes a routing rule via route ID key",
+	Short: "Removes a routing rule via route ID key",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		id, err := strconv.ParseUint(args[0], 10, 32)
@@ -65,15 +64,15 @@ var rmRuleCmd = &cobra.Command{
 	},
 }
 
+var expire time.Duration
+
 func init() {
 	addRuleCmd.PersistentFlags().DurationVar(&expire, "expire", router.RouteTTL, "duration after which routing rule will expire")
 }
 
-var expire time.Duration
-
 var addRuleCmd = &cobra.Command{
 	Use:   "add-rule (app <route-id> <remote-pk> <remote-port> <local-port> | fwd <next-route-id> <next-transport-id>)",
-	Short: "adds a new routing rule",
+	Short: "Adds a new routing rule",
 	Args: func(_ *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			switch rt := args[0]; rt {

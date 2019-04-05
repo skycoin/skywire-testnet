@@ -1,11 +1,12 @@
 package commands
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/skycoin/skywire/cmd/skywire-cli/commands/mdisc"
 	"github.com/skycoin/skywire/cmd/skywire-cli/commands/node"
 	"github.com/skycoin/skywire/cmd/skywire-cli/commands/rtfind"
 	"github.com/skycoin/skywire/cmd/skywire-cli/commands/tpdisc"
-	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -24,5 +25,5 @@ func init() {
 
 // Execute executes root CLI command.
 func Execute() {
-	rootCmd.Execute() //nolint:errcheck
+	_ = rootCmd.Execute() //nolint:errcheck
 }

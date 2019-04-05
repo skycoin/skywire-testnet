@@ -10,24 +10,23 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
 )
 
 func init() {
 	RootCmd.AddCommand(
-		transportTypesCmd,
-		listTransportsCmd,
-		transportCmd,
-		addTransportCmd,
-		rmTransportCmd,
+		lsTypesCmd,
+		lsTpCmd,
+		tpCmd,
+		addTpCmd,
+		rmTpCmd,
 	)
 }
 
-var transportTypesCmd = &cobra.Command{
-	Use:   "transport-types",
-	Short: "lists transport types used by the local node",
+var lsTypesCmd = &cobra.Command{
+	Use:   "ls-types",
+	Short: "Lists transport types used by the local node",
 	Run: func(_ *cobra.Command, _ []string) {
 		types, err := rpcClient().TransportTypes()
 		internal.Catch(err)
@@ -43,9 +42,15 @@ var (
 	showLogs      bool
 )
 
-var listTransportsCmd = &cobra.Command{
-	Use:   "list-transports",
-	Short: "lists the available transports with optional filter flags",
+func init() {
+	lsTpCmd.Flags().StringSliceVar(&filterTypes, "filter-types", filterTypes, "comma-separated; if specified, only shows transports of given types")
+	lsTpCmd.Flags().Var(&filterPubKeys, "filter-pks", "comma-separated; if specified, only shows transports associated with given nodes")
+	lsTpCmd.Flags().BoolVar(&showLogs, "show-logs", true, "whether to show transport logs in output")
+}
+
+var lsTpCmd = &cobra.Command{
+	Use:   "ls-tp",
+	Short: "Lists the available transports with optional filter flags",
 	Run: func(_ *cobra.Command, _ []string) {
 		transports, err := rpcClient().Transports(filterTypes, filterPubKeys, showLogs)
 		internal.Catch(err)
@@ -53,15 +58,9 @@ var listTransportsCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	listTransportsCmd.Flags().StringSliceVar(&filterTypes, "filter-types", filterTypes, "comma-separated; if specified, only shows transports of given types")
-	listTransportsCmd.Flags().Var(&filterPubKeys, "filter-pks", "comma-separated; if specified, only shows transports associated with given nodes")
-	listTransportsCmd.Flags().BoolVar(&showLogs, "show-logs", true, "whether to show transport logs in output")
-}
-
-var transportCmd = &cobra.Command{
-	Use:   "transport <transport-id>",
-	Short: "returns summary of given transport by id",
+var tpCmd = &cobra.Command{
+	Use:   "tp <transport-id>",
+	Short: "Returns summary of given transport by id",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		tpID := internal.ParseUUID("transport-id", args[0])
@@ -77,9 +76,15 @@ var (
 	timeout       time.Duration
 )
 
-var addTransportCmd = &cobra.Command{
-	Use:   "add-transport <remote-public-key>",
-	Short: "adds a new transport",
+func init() {
+	addTpCmd.Flags().StringVar(&transportType, "type", "messaging", "type of transport to add")
+	addTpCmd.Flags().BoolVar(&public, "public", true, "whether to make the transport public")
+	addTpCmd.Flags().DurationVarP(&timeout, "timeout", "t", 0, "if specified, sets an operation timeout")
+}
+
+var addTpCmd = &cobra.Command{
+	Use:   "add-tp <remote-public-key>",
+	Short: "Adds a new transport",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		pk := internal.ParsePK("remote-public-key", args[0])
@@ -89,15 +94,9 @@ var addTransportCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	addTransportCmd.Flags().StringVar(&transportType, "type", "messaging", "type of transport to add")
-	addTransportCmd.Flags().BoolVar(&public, "public", true, "whether to make the transport public")
-	addTransportCmd.Flags().DurationVarP(&timeout, "timeout", "t", 0, "if specified, sets an operation timeout")
-}
-
-var rmTransportCmd = &cobra.Command{
-	Use:   "rm-transport <transport-id>",
-	Short: "removes transport with given id",
+var rmTpCmd = &cobra.Command{
+	Use:   "rm-tp <transport-id>",
+	Short: "Removes transport with given id",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		tID := internal.ParseUUID("transport-id", args[0])

@@ -4,10 +4,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-
-	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 var log = logging.MustGetLogger("skywire-cli")

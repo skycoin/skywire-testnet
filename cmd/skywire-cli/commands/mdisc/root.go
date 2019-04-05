@@ -10,21 +10,22 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
-
-// RootCmd contains commands that interact with messaging services
-var RootCmd = &cobra.Command{
-	Use:   "mdisc",
-	Short: "Commands that interact with messaging-discovery",
-}
 
 var mdAddr string
 
 func init() {
 	RootCmd.PersistentFlags().StringVar(&mdAddr, "addr", "https://messaging.discovery.skywire.skycoin.net", "address of messaging discovery server")
+}
 
+// RootCmd is the command that contains sub-commands which interacts with messaging services.
+var RootCmd = &cobra.Command{
+	Use:   "mdisc",
+	Short: "Contains sub-commands that interact with a remote Messaging Discovery",
+}
+
+func init() {
 	RootCmd.AddCommand(
 		entryCmd,
 		availableServersCmd,
@@ -33,7 +34,7 @@ func init() {
 
 var entryCmd = &cobra.Command{
 	Use:   "entry <node-public-key>",
-	Short: "fetch entry from messaging-discovery",
+	Short: "fetches an entry from messaging-discovery",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

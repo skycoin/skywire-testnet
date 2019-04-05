@@ -12,23 +12,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport-discovery/client"
 )
-
-// RootCmd contains commands that interact with transport-discovery
-var RootCmd = &cobra.Command{
-	Use:   "tpdisc",
-	Short: "Commands that interact with transport-discovery",
-}
-
-func init() {
-	RootCmd.AddCommand(
-		findTransport,
-	)
-}
 
 var (
 	addr string
@@ -36,9 +23,16 @@ var (
 	tpPK cipher.PubKey
 )
 
-var findTransport = &cobra.Command{
-	Use:   "find-transport (--id=<transport-id> | --pk=<edge-public-key>)",
-	Short: "finds and lists transport(s) of given transport ID or edge public key from transport discovery",
+func init() {
+	RootCmd.Flags().StringVar(&addr, "addr", "https://transport.discovery.skywire.skycoin.net", "address of transport discovery")
+	RootCmd.Flags().Var(&tpID, "id", "if specified, obtains a single transport of given ID")
+	RootCmd.Flags().Var(&tpPK, "pk", "if specified, obtains transports associated with given public key")
+}
+
+// RootCmd is the command that queries the transport-discovery.
+var RootCmd = &cobra.Command{
+	Use:   "tpdisc (--id=<transport-id> | --pk=<edge-public-key>)",
+	Short: "Queries the Transport Discovery to find transport(s) of given transport ID or edge public key",
 	Args: func(_ *cobra.Command, _ []string) error {
 		var (
 			nilID = uuid.UUID(tpID) == (uuid.UUID{})
@@ -70,12 +64,6 @@ var findTransport = &cobra.Command{
 	},
 }
 
-func init() {
-	findTransport.Flags().StringVar(&addr, "addr", "https://transport.discovery.skywire.skycoin.net", "address of transport discovery")
-	findTransport.Flags().Var(&tpID, "id", "if specified, obtains a single transport of given ID")
-	findTransport.Flags().Var(&tpPK, "pk", "if specified, obtains transports associated with given public key")
-}
-
 func printTransportEntries(entries ...*transport.EntryWithStatus) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "id\ttype\tpublic\tregistered\tup\tedge1\tedge2\topinion1\topinion2")
@@ -86,4 +74,22 @@ func printTransportEntries(entries ...*transport.EntryWithStatus) {
 		internal.Catch(err)
 	}
 	internal.Catch(w.Flush())
+}
+
+type transportID uuid.UUID
+
+// String implements pflag.Value
+func (t transportID) String() string { return uuid.UUID(t).String() }
+
+// Type implements pflag.Value
+func (transportID) Type() string { return "transportID" }
+
+// Set implements pflag.Value
+func (t *transportID) Set(s string) error {
+	tID, err := uuid.Parse(s)
+	if err != nil {
+		return err
+	}
+	*t = transportID(tID)
+	return nil
 }

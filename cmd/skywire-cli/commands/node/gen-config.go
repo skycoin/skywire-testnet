@@ -12,6 +12,10 @@ import (
 	"github.com/skycoin/skywire/pkg/node"
 )
 
+func init() {
+	RootCmd.AddCommand(genConfigCmd)
+}
+
 var (
 	output        string
 	replace       bool
@@ -19,7 +23,6 @@ var (
 )
 
 func init() {
-	RootCmd.AddCommand(genConfigCmd)
 	genConfigCmd.Flags().StringVarP(&output, "output", "o", "", "path of output config file. Uses default of 'type' flag if unspecified.")
 	genConfigCmd.Flags().BoolVarP(&replace, "replace", "r", false, "whether to allow rewrite of a file that already exists.")
 	genConfigCmd.Flags().VarP(&configLocType, "type", "m", fmt.Sprintf("config generation mode. Valid values: %v", pathutil.AllConfigLocationTypes()))
@@ -27,7 +30,7 @@ func init() {
 
 var genConfigCmd = &cobra.Command{
 	Use:   "gen-config",
-	Short: "Generate default config file",
+	Short: "Generates a config file",
 	PreRun: func(_ *cobra.Command, _ []string) {
 		if output == "" {
 			output = pathutil.NodeDefaults().Get(configLocType)
@@ -59,7 +62,6 @@ func homeConfig() *node.Config {
 	c.AppsPath = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/apps")
 	c.Transport.LogStore.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/transport_logs")
 	c.Routing.Table.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/routing.db")
-
 	return c
 }
 
@@ -68,7 +70,6 @@ func localConfig() *node.Config {
 	c.AppsPath = "/usr/local/skycoin/skywire/apps"
 	c.Transport.LogStore.Location = "/usr/local/skycoin/skywire/transport_logs"
 	c.Routing.Table.Location = "/usr/local/skycoin/skywire/routing.db"
-
 	return c
 }
 

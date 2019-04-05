@@ -9,22 +9,21 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-
 	"github.com/skycoin/skywire/pkg/node"
 )
 
 func init() {
 	RootCmd.AddCommand(
-		appsCmd,
+		lsAppsCmd,
 		startAppCmd,
 		stopAppCmd,
 		setAppAutostartCmd,
 	)
 }
 
-var appsCmd = &cobra.Command{
-	Use:   "apps",
-	Short: "lists apps running on the node",
+var lsAppsCmd = &cobra.Command{
+	Use:   "ls-apps",
+	Short: "Lists apps running on the local node",
 	Run: func(_ *cobra.Command, _ []string) {
 		states, err := rpcClient().Apps()
 		internal.Catch(err)
@@ -47,7 +46,7 @@ var appsCmd = &cobra.Command{
 
 var startAppCmd = &cobra.Command{
 	Use:   "start-app <name>",
-	Short: "starts an app of given name",
+	Short: "Starts an app of given name",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		internal.Catch(rpcClient().StartApp(args[0]))
@@ -57,7 +56,7 @@ var startAppCmd = &cobra.Command{
 
 var stopAppCmd = &cobra.Command{
 	Use:   "stop-app <name>",
-	Short: "stops an app of given name",
+	Short: "Stops an app of given name",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		internal.Catch(rpcClient().StopApp(args[0]))
@@ -67,7 +66,7 @@ var stopAppCmd = &cobra.Command{
 
 var setAppAutostartCmd = &cobra.Command{
 	Use:   "set-app-autostart <name> (on|off)",
-	Short: "sets the autostart flag for an app of given name",
+	Short: "Sets the autostart flag for an app of given name",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(_ *cobra.Command, args []string) {
 		var autostart bool
