@@ -142,7 +142,7 @@ func (arw *AckReadWriter) serveLoop() {
 				break
 			}
 
-			go arw.confirm(data[1], data[2:34])
+			arw.confirm(data[1], data[2:34])
 			data = data[34:]
 		}
 
@@ -192,6 +192,7 @@ func (arw *AckReadWriter) confirm(seq byte, hash []byte) {
 
 	if ack.hash != rcvHash {
 		ack.errChan <- errors.New("invalid CRC")
+		return
 	}
 
 	ack.errChan <- nil
