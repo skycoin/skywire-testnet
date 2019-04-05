@@ -18,13 +18,13 @@ check: lint test ## Run linters and tests
 build: dep host-apps bin ## Install dependencies, build apps and binaries. `go build` with ${OPTS} 
 
 run: stop build	config  ## Run skywire-node on host
-	./skywire-node
+	./skywire-node skywire.json
 
 stop: ## Stop running skywire-node on host
 	-bash -c "kill $$(ps aux |grep '[s]kywire-node' |awk '{print $$2}')"
 
 config: ## Generate skywire.json
-	-./skywire-cli gen-config -o ./skywire.json -r
+	-./skywire-cli node gen-config -o  ./skywire.json -r
 
 clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
@@ -32,6 +32,12 @@ clean: ## Clean project: remove created binaries and apps
 
 install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`	
 	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli	
+
+rerun: stop
+	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
+	-./skywire-cli node gen-config -o  ./skywire.json -r
+	perl -pi -e 's/localhost//g' ./skywire.json
+	./skywire-node skywire.json
 
 
 lint: ## Run linters. Use make install-linters first	
@@ -138,7 +144,8 @@ docker-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-
 	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
 
 docker-volume: docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-node	
-	-./skywire-cli gen-config -o  ./node/skywire.json
+	-./skywire-cli node gen-config -o  ./node/skywire.json -r
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
 
 docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized skywire-node ${DOCKER_NODE} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
 	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
@@ -146,6 +153,12 @@ docker-run: docker-clean docker-image docker-network docker-volume ## Run docker
 
 docker-stop: ## Stop running dockerized skywire-node ${DOCKER_NODE}
 	-docker container stop ${DOCKER_NODE}
+
+docker-rerun: docker-stop
+	-./skywire-cli gen-config -o  ./node/skywire.json -r
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
+	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
+	docker container start -i ${DOCKER_NODE}
 
 
 help:

@@ -144,6 +144,7 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
 	entry, err := c.dc.Entry(ctx, remote)
 	if err != nil {
+		fmt.Printf("Dial with remote = %v\n", remote)
 		return nil, fmt.Errorf("get entry failure: %s", err)
 	}
 

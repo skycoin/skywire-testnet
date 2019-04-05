@@ -16,7 +16,6 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 	var entry *Entry
 	errCh := make(chan error, 1)
 	go func() {
-		fmt.Printf("IMMA HERE")
 		e, err := handshake(tm, tr)
 		entry = e
 		errCh <- err

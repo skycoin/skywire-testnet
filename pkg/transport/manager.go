@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -347,6 +348,13 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 }
 
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
+
+	fmt.Printf("Manager.dialTransport: %v %v\n", tm.Local(), remote)
+
+	if tm.Local() == remote {
+		fmt.Println("local and remote are equal. No need to dial")
+	}
+
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
 		return nil, nil, err
