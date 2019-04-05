@@ -1,4 +1,4 @@
-package commands
+package mdisc
 
 import (
 	"context"
@@ -9,50 +9,51 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
-func init() {
-	rootCmd.AddCommand(messagingCmd)
-}
-
 var mdAddr string
 
-var messagingCmd = &cobra.Command{
-	Use:   "messaging",
-	Short: "manage operations with messaging services",
+func init() {
+	RootCmd.PersistentFlags().StringVar(&mdAddr, "addr", "https://messaging.discovery.skywire.skycoin.net", "address of messaging discovery server")
+}
+
+// RootCmd is the command that contains sub-commands which interacts with messaging services.
+var RootCmd = &cobra.Command{
+	Use:   "mdisc",
+	Short: "Contains sub-commands that interact with a remote Messaging Discovery",
 }
 
 func init() {
-	messagingCmd.PersistentFlags().StringVar(&mdAddr, "addr", "https://messaging.discovery.skywire.skycoin.net", "address of messaging discovery server")
-
-	messagingCmd.AddCommand(
-		mEntryCmd,
-		mAvailableServersCmd)
+	RootCmd.AddCommand(
+		entryCmd,
+		availableServersCmd,
+	)
 }
 
-var mEntryCmd = &cobra.Command{
+var entryCmd = &cobra.Command{
 	Use:   "entry <node-public-key>",
-	Short: "fetch entry from messaging-discovery",
+	Short: "fetches an entry from messaging-discovery",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		pk := parsePK("node-public-key", args[0])
+		pk := internal.ParsePK("node-public-key", args[0])
 		entry, err := client.NewHTTP(mdAddr).Entry(ctx, pk)
-		catch(err)
+		internal.Catch(err)
 		fmt.Println(entry)
 	},
 }
 
-var mAvailableServersCmd = &cobra.Command{
+var availableServersCmd = &cobra.Command{
 	Use:   "available-servers",
 	Short: "fetch available servers from messaging-discovery",
 	Run: func(_ *cobra.Command, _ []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		entries, err := client.NewHTTP(mdAddr).AvailableServers(ctx)
-		catch(err)
+		internal.Catch(err)
 		printAvailableServers(entries)
 	},
 }
@@ -60,11 +61,11 @@ var mAvailableServersCmd = &cobra.Command{
 func printAvailableServers(entries []*client.Entry) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "version\tregistered\tpublic-key\taddress\tport\tconns")
-	catch(err)
+	internal.Catch(err)
 	for _, entry := range entries {
 		_, err := fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%d\n",
 			entry.Version, entry.Timestamp, entry.Static, entry.Server.Address, entry.Server.Port, entry.Server.AvailableConnections)
-		catch(err)
+		internal.Catch(err)
 	}
-	catch(w.Flush())
+	internal.Catch(w.Flush())
 }
