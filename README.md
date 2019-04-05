@@ -63,7 +63,7 @@ $ make install  # compiles and installs all binaries
 **Generate default json config**
 
 ```bash
-skywire-cli gen-config
+$ skywire-cli node gen-config
 ```
 
 ### Run `skywire-node`
@@ -88,37 +88,23 @@ The `skywire-cli` tool is used to control the `skywire-node`. Refer to the help 
 ```bash
 $ skywire-cli -h
 
-#  Command Line Interface for skywire
-#  
-#  Usage:
-#    skywire-cli [command]
-#  
-#  Available Commands:
-#    add-rule          adds a new routing rule
-#    add-transport     adds a new transport
-#    apps              lists apps running on the node
-#    find-routes       lists available routes between two nodes via route finder service
-#    find-transport    finds and lists transport(s) of given transport ID or edge public key from transport discovery
-#    gen-config        Generate default config file
-#    help              Help about any command
-#    list-rules        lists the local node's routing rules
-#    list-transports   lists the available transports with optional filter flags
-#    messaging         manage operations with messaging services
-#    pk                get public key of node
-#    rm-rule           removes a routing rule via route ID key
-#    rm-transport      removes transport with given id
-#    rule              returns a routing rule via route ID key
-#    set-app-autostart sets the autostart flag for an app of given name
-#    start-app         starts an app of given name
-#    stop-app          stops an app of given name
-#    transport         returns summary of given transport by id
-#    transport-types   lists transport types used by the local node
-#  
-#  Flags:
-#    -h, --help         help for skywire-cli
-#        --rpc string   RPC server address (default "localhost:3435")
-#  
-#  Use "skywire-cli [command] --help" for more information about a command.
+# Command Line Interface for skywire
+#
+# Usage:
+#   skywire-cli [command]
+#
+# Available Commands:
+#   help        Help about any command
+#   mdisc       Contains sub-commands that interact with a remote Messaging Discovery
+#   node        Contains sub-commands that interact with the local Skywire (App) Node
+#   rtfind      Queries the Route Finder for available routes between two nodes
+#   tpdisc      Queries the Transport Discovery to find transport(s) of given transport ID or edge public key
+#
+# Flags:
+#   -h, --help   help for skywire-cli
+#
+# Use "skywire-cli [command] --help" for more information about a command.
+
 ```
 
 ### Apps
@@ -138,10 +124,10 @@ Transports can be established via the `skywire-cli`.
 
 ```bash
 # Establish transport to `0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881`.
-$ skywire-cli add-transport 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
+$ skywire-cli node add-tp 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
 
 # List established transports.
-$ skywire-cli transports list
+$ skywire-cli node ls-tp
 ```
 
 ## App programming API
@@ -309,7 +295,7 @@ $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealproxy.v1.0 ./cm
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh.v1.0  ./cmd/apps/therealssh
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
 # 4. Create skywire-config.json for node
-$ skywire-cli gen-config -o /tmp/SKYNODE/skywire-config.json
+$ skywire-cli node gen-config -o /tmp/SKYNODE/skywire-config.json
 # 2019/03/15 16:43:49 Done!
 $ tree /tmp/SKYNODE
 # /tmp/SKYNODE
