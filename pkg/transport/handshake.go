@@ -83,6 +83,9 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, errRemote
 	}
 	if err := validateSignedEntry(sEntry, tr, remote); err != nil {
+		tm.Logger.Infof("validateSignedEntry: sEntry %v\n tr: %v\n remote: %v\n", sEntry, tr, remote)
+		tm.Logger.Infof("validateSignedEntry: Edges: %v\n", tr.Edges())
+		tm.Logger.Infof("validateSignedEntry: tm.config.PubKey: %v", tm.config.PubKey)
 		return nil, err
 	}
 

@@ -69,13 +69,14 @@ func (e *Entry) String() string {
 	return res
 }
 
-// ToBinary returns binary representation of a Signature.
+// ToBinary returns binary representation of an Entry
 func (e *Entry) ToBinary() []byte {
-	bEntry := e.ID[:]
-	for _, edge := range e.Edges() {
-		bEntry = append(bEntry, edge[:]...)
-	}
-	return append(bEntry, []byte(e.Type)...)
+	edges := e.Edges()
+	return append(
+		append(
+			append(e.ID[:], edges[0][:]...),
+			edges[1][:]...),
+		[]byte(e.Type)...)
 }
 
 // Signature returns signature for Entry calculated from binary

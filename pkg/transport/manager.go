@@ -375,8 +375,12 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, err
 	}
 
+	tm.Logger.Infof("Trying to handshake with: %T %v\n", tr, tr)
+	tm.Logger.Infof("Handshake from factory: %T %v\n", factory, factory)
+	tm.Logger.Infof("Handshake: tr.Edges(): %v\n tr.Type(): %v\n", tr.Edges(), tr.Type())
+
 	var handshake settlementHandshake = settlementResponderHandshake
-	entry, err := handshake.Do(tm, tr, time.Minute)
+	entry, err := handshake.Do(tm, tr, 30*time.Second)
 	if err != nil {
 		tr.Close()
 		return nil, err
