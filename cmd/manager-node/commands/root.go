@@ -46,7 +46,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&mock, "mock", false, "whether to run manager node with mock data")
 	rootCmd.Flags().IntVar(&mockNodes, "mock-nodes", 5, "number of app nodes to have in mock mode")
 	rootCmd.Flags().IntVar(&mockMaxTps, "mock-max-tps", 10, "max number of transports per mock app node")
-	rootCmd.Flags().IntVar(&mockMaxRoutes, "mock-max-routes", 10, "max number of routes per node")
+	rootCmd.Flags().IntVar(&mockMaxRoutes, "mock-max-routes", 30, "max number of routes per node")
 }
 
 var rootCmd = &cobra.Command{

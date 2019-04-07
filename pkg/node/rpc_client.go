@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"math/rand"
 	"net/rpc"
 	"sync"
@@ -178,8 +179,13 @@ type mockRPCClient struct {
 
 // NewMockRPCClient creates a new mock RPCClient.
 func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RPCClient) {
+	log := logging.MustGetLogger("mock-rpc-client")
+
 	types := []string{"messaging", "native"}
 	localPK, _ := cipher.GenerateKeyPair()
+
+	log.Infof("generating mock client with: localPK(%s) maxTps(%d) maxRules(%d)", localPK, maxTps, maxRules)
+
 	tps := make([]*TransportSummary, r.Intn(maxTps+1))
 	for i := range tps {
 		remotePK, _ := cipher.GenerateKeyPair()
@@ -190,33 +196,31 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			Type:   types[r.Int()%len(types)],
 			Log:    new(transport.LogEntry),
 		}
+		log.Infof("tp[%d]: %v", i, tps[i])
 	}
 	rt := routing.InMemoryRoutingTable()
 	ruleExp := time.Now().Add(time.Hour * 24)
 	for i := 0; i < r.Intn(maxRules+1); i++ {
 		remotePK, _ := cipher.GenerateKeyPair()
-		if r.Int()%2 == 0 {
-			var lpRaw, rpRaw [2]byte
-			r.Read(lpRaw[:])
-			r.Read(rpRaw[:])
-			lp := binary.BigEndian.Uint16(lpRaw[:])
-			rp := binary.BigEndian.Uint16(rpRaw[:])
-			revRID := routing.RouteID(r.Uint32())
-			rule := routing.AppRule(ruleExp, revRID, remotePK, rp, lp)
-			if _, err := rt.AddRule(rule); err != nil {
-				panic(err)
-			}
-			revRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
-			if _, err := rt.AddRule(revRule); err != nil {
-				panic(err)
-			}
-		} else {
-			rule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
-			if _, err := rt.AddRule(rule); err != nil {
-				panic(err)
-			}
+		var lpRaw, rpRaw [2]byte
+		r.Read(lpRaw[:])
+		r.Read(rpRaw[:])
+		lp := binary.BigEndian.Uint16(lpRaw[:])
+		rp := binary.BigEndian.Uint16(rpRaw[:])
+		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
+		fwdRID, err := rt.AddRule(fwdRule)
+		if  err != nil {
+			panic(err)
 		}
+		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp)
+		appRID, err := rt.AddRule(appRule)
+		if  err != nil {
+			panic(err)
+		}
+		log.Infof("rt[%d(a)]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
+		log.Infof("rt[%d(b)]: %v %v", i, appRID, appRule.Summary().AppFields)
 	}
+	log.Printf("rtCount: %d", rt.Count())
 	return localPK, &mockRPCClient{
 		s: &Summary{
 			PubKey: localPK,
@@ -225,6 +229,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 				{Name: "bar.v2.0", AutoStart: false, Port: 20},
 			},
 			Transports: tps,
+			RoutesCount: rt.Count(),
 		},
 		tpTypes: types,
 		rt:      rt,

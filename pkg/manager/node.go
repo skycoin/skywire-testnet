@@ -99,7 +99,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.Post("/logout", m.users.Logout())
 		})
 		r.Group(func(r chi.Router) {
-			r.Use(m.users.Authorize)
+			//r.Use(m.users.Authorize)
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
 			r.Get("/nodes", m.getNodes())
@@ -117,6 +117,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.Get("/nodes/{pk}/routes/{rid}", m.getRoute())
 			r.Put("/nodes/{pk}/routes/{rid}", m.putRoute())
 			r.Delete("/nodes/{pk}/routes/{rid}", m.deleteRoute())
+			r.Get("/nodes/{pk}/loops", m.getLoops())
 		})
 	})
 	r.ServeHTTP(w, req)
@@ -384,6 +385,38 @@ func (m *Node) deleteRoute() http.HandlerFunc {
 			return
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, true)
+	})
+}
+
+type loopResp struct {
+	routing.RuleAppFields
+	FwdRule routing.RuleForwardFields `json:"resp"`
+}
+
+func makeLoopResp(info node.LoopInfo) loopResp {
+	fmt.Println("LOOP:", info)
+	if len(info.FwdRule) == 0 || len(info.AppRule) == 0 {
+		fmt.Println("    fucked.")
+		return loopResp{}
+	}
+	return loopResp{
+		RuleAppFields: *info.AppRule.Summary().AppFields,
+		FwdRule:       *info.FwdRule.Summary().ForwardFields,
+	}
+}
+
+func (m *Node) getLoops() http.HandlerFunc {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		loops, err := ctx.RPC.Loops()
+		if err != nil {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		resp := make([]loopResp, len(loops))
+		for i, l := range loops {
+			resp[i] = makeLoopResp(l)
+		}
+		httputil.WriteJSON(w, r, http.StatusOK, resp)
 	})
 }
 
