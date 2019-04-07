@@ -32,7 +32,9 @@ const (
 	RuleForward
 )
 
-// Rule represents a rule in a RoutingTable.
+// Rule represents a routing rule.
+// There are two types of routing rules; App and Forward.
+//
 type Rule []byte
 
 // Expiry returns rule's expiration time.

@@ -89,13 +89,13 @@ func (pm *portManager) Get(port uint16) (*portBind, error) {
 	return b, nil
 }
 
-func (pm *portManager) GetLoop(port uint16, raddr *app.Addr) (*loop, error) {
-	b, err := pm.Get(port)
+func (pm *portManager) GetLoop(localPort uint16, remoteAddr *app.Addr) (*loop, error) {
+	b, err := pm.Get(localPort)
 	if err != nil {
 		return nil, err
 	}
 
-	l := b.loops.get(raddr)
+	l := b.loops.get(remoteAddr)
 	if l == nil {
 		return nil, errors.New("unknown loop")
 	}

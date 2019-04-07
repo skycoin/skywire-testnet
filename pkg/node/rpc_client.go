@@ -15,6 +15,30 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
+// RPCClient represents a RPC Client implementation.
+type RPCClient interface {
+	Summary() (*Summary, error)
+
+	Apps() ([]*AppState, error)
+	StartApp(appName string) error
+	StopApp(appName string) error
+	SetAutoStart(appName string, autostart bool) error
+
+	TransportTypes() ([]string, error)
+	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
+	Transport(tid uuid.UUID) (*TransportSummary, error)
+	AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error)
+	RemoveTransport(tid uuid.UUID) error
+
+	RoutingRules() ([]*RoutingEntry, error)
+	RoutingRule(key routing.RouteID) (routing.Rule, error)
+	AddRoutingRule(rule routing.Rule) (routing.RouteID, error)
+	SetRoutingRule(key routing.RouteID, rule routing.Rule) error
+	RemoveRoutingRule(key routing.RouteID) error
+
+	Loops() ([]LoopInfo, error)
+}
+
 // RPCClient provides methods to call an RPC Server.
 // It implements RPCClient
 type rpcClient struct {
@@ -137,6 +161,13 @@ func (rc *rpcClient) RemoveRoutingRule(key routing.RouteID) error {
 	return rc.Call("RemoveRoutingRule", &key, &struct{}{})
 }
 
+// Loops calls Loops.
+func (rc *rpcClient) Loops() ([]LoopInfo, error) {
+	var loops []LoopInfo
+	err := rc.Call("Loops", &struct{}{}, &loops)
+	return loops, err
+}
+
 // MockRPCClient mocks RPCClient.
 type mockRPCClient struct {
 	s       *Summary
@@ -164,19 +195,26 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	ruleExp := time.Now().Add(time.Hour * 24)
 	for i := 0; i < r.Intn(maxRules+1); i++ {
 		remotePK, _ := cipher.GenerateKeyPair()
-		var rule routing.Rule
 		if r.Int()%2 == 0 {
 			var lpRaw, rpRaw [2]byte
 			r.Read(lpRaw[:])
 			r.Read(rpRaw[:])
 			lp := binary.BigEndian.Uint16(lpRaw[:])
 			rp := binary.BigEndian.Uint16(rpRaw[:])
-			rule = routing.AppRule(ruleExp, routing.RouteID(r.Uint32()), remotePK, rp, lp)
+			revRID := routing.RouteID(r.Uint32())
+			rule := routing.AppRule(ruleExp, revRID, remotePK, rp, lp)
+			if _, err := rt.AddRule(rule); err != nil {
+				panic(err)
+			}
+			revRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
+			if _, err := rt.AddRule(revRule); err != nil {
+				panic(err)
+			}
 		} else {
-			rule = routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
-		}
-		if _, err := rt.AddRule(rule); err != nil {
-			panic(err)
+			rule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
+			if _, err := rt.AddRule(rule); err != nil {
+				panic(err)
+			}
 		}
 	}
 	return localPK, &mockRPCClient{
@@ -367,4 +405,27 @@ func (mc *mockRPCClient) SetRoutingRule(key routing.RouteID, rule routing.Rule) 
 // RemoveRoutingRule implements RPCClient.
 func (mc *mockRPCClient) RemoveRoutingRule(key routing.RouteID) error {
 	return mc.rt.DeleteRules(key)
+}
+
+// Loops implements RPCClient.
+func (mc *mockRPCClient) Loops() ([]LoopInfo, error) {
+	var loops []LoopInfo
+	err := mc.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
+		if rule.Type() == routing.RuleApp {
+			loops = append(loops, LoopInfo{AppRule: rule})
+		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	for i, l := range loops {
+		fwdRID := l.AppRule.RouteID()
+		rule, err := mc.rt.Rule(fwdRID)
+		if err != nil {
+			return nil, err
+		}
+		loops[i].FwdRule = rule
+	}
+	return loops, nil
 }
