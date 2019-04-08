@@ -115,14 +115,6 @@ func ExampleSignedEntry_Sign() {
 	// Both signatures set
 }
 
-func errorsPrint(errs ...error) {
-	for _, err := range errs {
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}
-}
-
 func ExampleSignedEntry_Signature() {
 	pkA, skA := cipher.GenerateKeyPair()
 	pkB, skB := cipher.GenerateKeyPair()
