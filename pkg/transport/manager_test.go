@@ -147,7 +147,6 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	m2, err = NewManager(c2, f2)
 	require.NoError(t, err)
 
-	// errCh2 := make(chan error)
 	go func() {
 		errCh <- m2.Serve(context.TODO()) // nolint
 	}()

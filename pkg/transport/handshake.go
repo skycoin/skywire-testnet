@@ -37,8 +37,6 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 			Public:   public,
 		}
 
-		// sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{entry.Signature(tm.config.SecKey)}}
-
 		sEntry := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
 		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
 
