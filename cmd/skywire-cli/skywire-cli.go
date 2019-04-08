@@ -3,7 +3,9 @@ CLI for skywire node
 */
 package main
 
-import "github.com/skycoin/skywire/cmd/skywire-cli/commands"
+import (
+	"github.com/skycoin/skywire/cmd/skywire-cli/commands"
+)
 
 func main() {
 	commands.Execute()

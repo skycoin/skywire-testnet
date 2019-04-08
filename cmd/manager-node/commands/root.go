@@ -1,12 +1,10 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
@@ -14,6 +12,8 @@ import (
 	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/manager"
 )
+
+const configEnv = "SW_MANAGER_CONFIG"
 
 var (
 	log = logging.MustGetLogger("manager-node")
@@ -23,25 +23,7 @@ var (
 	mockNodes      int
 	mockMaxTps     int
 	mockMaxRoutes  int
-
-	defaultConfigPaths = [2]string{
-		filepath.Join(pathutil.HomeDir(), ".skycoin/skywire-manager/config.json"),
-		"/usr/local/skycoin/skywire-manager/config.json",
-	}
 )
-
-func findConfigPath() (string, error) {
-	log.Info("configuration file is not explicitly specified, attempting to find one in default paths ...")
-	for i, cPath := range defaultConfigPaths {
-		if _, err := os.Stat(cPath); err != nil {
-			log.Infof("- [%d/%d] '%s' does not exist", i+1, len(defaultConfigPaths), cPath)
-		} else {
-			log.Infof("- [%d/%d] '%s' exists (using this one)", i+1, len(defaultConfigPaths), cPath)
-			return cPath, nil
-		}
-	}
-	return "", errors.New("no configuration file found")
-}
 
 func init() {
 	rootCmd.Flags().BoolVarP(&mock, "mock", "m", false, "whether to run manager node with mock data")
@@ -55,23 +37,15 @@ var rootCmd = &cobra.Command{
 	Use:   "manager-node [config-path]",
 	Short: "Manages Skywire App Nodes",
 	Run: func(_ *cobra.Command, args []string) {
-
-		var configPath string
-		if len(args) == 0 {
-			var err error
-			if configPath, err = findConfigPath(); err != nil {
-				log.WithError(err).Fatal()
-			}
-		} else {
-			configPath = args[0]
-		}
-		log.Infof("config path: '%s'", configPath)
+		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.ManagerDefaults())
 
 		var config manager.Config
 		config.FillDefaults()
 		if err := config.Parse(configPath); err != nil {
 			log.WithError(err).Fatalln("failed to parse config file")
 		}
+		fmt.Println(config)
+
 		var (
 			httpAddr = config.Interfaces.HTTPAddr
 			rpcAddr  = config.Interfaces.RPCAddr

@@ -63,7 +63,7 @@ $ make install  # compiles and installs all binaries
 **Generate default json config**
 
 ```bash
-skywire-cli config
+$ skywire-cli node gen-config
 ```
 
 ### Run `skywire-node`
@@ -71,8 +71,8 @@ skywire-cli config
 `skywire-node` hosts apps, proxies app's requests to remote nodes and exposes communication API that apps can use to implement communication protocols. App binaries are spawned by the node, communication between node and app is performed via unix pipes provided on app startup.
 
 ```bash
-# Run skywire-node. It takes one argument; the path of a configuration file (`skywire.json` if unspecified).
-$ skywire-node skywire.json
+# Run skywire-node. It takes one argument; the path of a configuration file (`skywire-config.json` if unspecified).
+$ skywire-node skywire-config.json
 ```
 
 ### Run `skywire-node` in docker container
@@ -94,28 +94,14 @@ $ skywire-cli -h
 #   skywire-cli [command]
 #
 # Available Commands:
-#   add-rule          adds a new routing rule
-#   add-transport     adds a new transport
-#   apps              lists apps running on the node
-#   config            Generate default config file
-#   find-routes       lists available routes between two nodes via route finder service
-#   find-transport    finds and lists transport(s) of given transport ID or edge public key from transport discovery
-#   help              Help about any command
-#   list-rules        lists the local node's routing rules
-#   list-transports   lists the available transports with optional filter flags
-#   messaging         manage operations with messaging services
-#   rm-rule           removes a routing rule via route ID key
-#   rm-transport      removes transport with given id
-#   rule              returns a routing rule via route ID key
-#   set-app-autostart sets the autostart flag for an app of given name
-#   start-app         starts an app of given name
-#   stop-app          stops an app of given name
-#   transport         returns summary of given transport by id
-#   transport-types   lists transport types used by the local node
+#   help        Help about any command
+#   mdisc       Contains sub-commands that interact with a remote Messaging Discovery
+#   node        Contains sub-commands that interact with the local Skywire (App) Node
+#   rtfind      Queries the Route Finder for available routes between two nodes
+#   tpdisc      Queries the Transport Discovery to find transport(s) of given transport ID or edge public key
 #
 # Flags:
-#   -h, --help         help for skywire-cli
-#       --rpc string   RPC server address (default "localhost:3435")
+#   -h, --help   help for skywire-cli
 #
 # Use "skywire-cli [command] --help" for more information about a command.
 
@@ -123,7 +109,7 @@ $ skywire-cli -h
 
 ### Apps
 
-After `skywire-node` is up and running with default environment, default apps are run with the configuration specified in `skywire.json`. Refer to the following for usage of the default apps:
+After `skywire-node` is up and running with default environment, default apps are run with the configuration specified in `skywire-config.json`. Refer to the following for usage of the default apps:
 
 - [Chat](/cmd/apps/chat)
 - [Hello World](/cmd/apps/helloworld)
@@ -138,10 +124,10 @@ Transports can be established via the `skywire-cli`.
 
 ```bash
 # Establish transport to `0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881`.
-$ skywire-cli add-transport 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
+$ skywire-cli node add-tp 0276ad1c5e77d7945ad6343a3c36a8014f463653b3375b6e02ebeaa3a21d89e881
 
 # List established transports.
-$ skywire-cli transports list
+$ skywire-cli node ls-tp
 ```
 
 ## App programming API
@@ -193,7 +179,7 @@ This will:
 
 #### Structure of `./node`
 
-```bash
+```
 ./node
 ├── apps                            # node `apps` compiled with DOCKER_OPTS
 │   ├── chat.v1.0                   #
@@ -203,14 +189,14 @@ This will:
 │   ├── therealssh-client.v1.0      #
 │   └── therealssh.v1.0             #
 ├── local                           # **Created inside docker**
-│   ├── chat                        #  according to "local_path" in skywire.json
+│   ├── chat                        #  according to "local_path" in skywire-config.json
 │   ├── therealproxy                #
 │   └── therealssh                  #
 ├── PK                              # contains public key of node
 ├── skywire                         # db & logs. **Created inside docker**
 │   ├── routing.db                  #
 │   └── transport_logs              #
-├── skywire.json                    # config of node
+├── skywire-config.json                    # config of node
 └── skywire-node                    # `skywire-node binary` compiled with DOCKER_OPTS
 ```
 
@@ -275,7 +261,7 @@ Default value: "GO111MODULE=on GOOS=linux"
 #### 1. Get Public Key of docker-node
 
 ```bash
-$ cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' '
+$ cat ./node/skywire-config.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' '
 # 029be6fa68c13e9222553035cc1636d98fb36a888aa569d9ce8aa58caa2c651b45
 ```
 
@@ -308,8 +294,8 @@ $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/helloworld.v1.0 ./cmd/
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh.v1.0  ./cmd/apps/therealssh
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
-# 4. Create skywire.json for node
-$ skywire-cli config /tmp/SKYNODE/skywire.json
+# 4. Create skywire-config.json for node
+$ skywire-cli node gen-config -o /tmp/SKYNODE/skywire-config.json
 # 2019/03/15 16:43:49 Done!
 $ tree /tmp/SKYNODE
 # /tmp/SKYNODE
@@ -319,7 +305,7 @@ $ tree /tmp/SKYNODE
 # │   ├── therealproxy.v1.0
 # │   ├── therealssh-client.v1.0
 # │   └── therealssh.v1.0
-# ├── skywire.json
+# ├── skywire-config.json
 # └── skywire-node
 # So far so good. We prepared docker volume. Now we can:
 $ docker run -it -v /tmp/SKYNODE:/sky --network=SKYNET --name=SKYNODE skywire-runner bash -c "cd /sky && ./skywire-node"
@@ -353,9 +339,9 @@ Instead of skywire-runner you can use:
 
 ```bash
 export SW_NODE_A=127.0.0.1
-export SW_NODE_A_PK=$(cat ./skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
+export SW_NODE_A_PK=$(cat ./skywire-config.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
 export SW_NODE_B=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01)
-export SW_NODE_B_PK=$(cat ./node/skywire.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
+export SW_NODE_B_PK=$(cat ./node/skywire-config.json|grep static_public_key |cut -d ':' -f2 |tr -d '"'','' ')
 ```
 
 #### 6. "Hello-Mike-Hello-Joe" test
