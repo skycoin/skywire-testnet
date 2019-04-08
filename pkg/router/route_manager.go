@@ -82,7 +82,6 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 		fmt.Println("err:", err)
 		return err
 	}
-	fmt.Println("read packet!")
 	rm.Logger.Infof("Got new Setup request with type %s", t)
 
 	var respBody interface{}

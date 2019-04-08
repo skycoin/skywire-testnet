@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -59,16 +58,13 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 }
 
 func TestRouteManagerAddRemoveRule(t *testing.T) {
-	fmt.Println("start!")
 	done := make(chan struct{})
 	expired := time.NewTimer(time.Second * 5)
 	go func() {
 		select {
 		case <-done:
-			fmt.Println("done!")
 			return
 		case <-expired.C:
-			fmt.Println("expired!")
 		}
 	}()
 	defer func() {
@@ -80,9 +76,7 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		fmt.Println("watiting serve...")
 		errCh <- rm.Serve(out)
-		fmt.Println("DONE!")
 	}()
 
 	proto := setup.NewSetupProtocol(in)
