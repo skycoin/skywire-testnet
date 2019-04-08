@@ -40,6 +40,9 @@ const (
 // ErrUnknownApp represents lookup error for App related calls.
 var ErrUnknownApp = errors.New("unknown app")
 
+// Version is the node version.
+const Version = "0.0.1"
+
 const supportedProtocolVersion = "0.0.1"
 
 var reservedPorts = map[uint16]string{0: "router", 1: "chat", 2: "therealssh", 3: "therealproxy"}

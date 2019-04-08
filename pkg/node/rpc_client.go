@@ -224,7 +224,9 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	log.Printf("rtCount: %d", rt.Count())
 	return localPK, &mockRPCClient{
 		s: &Summary{
-			PubKey: localPK,
+			PubKey:          localPK,
+			NodeVersion:     Version,
+			AppProtoVersion: supportedProtocolVersion,
 			Apps: []*AppState{
 				{Name: "foo.v1.0", AutoStart: false, Port: 10},
 				{Name: "bar.v2.0", AutoStart: false, Port: 20},
@@ -252,7 +254,7 @@ func (mc *mockRPCClient) do(write bool, f func() error) error {
 func (mc *mockRPCClient) Summary() (*Summary, error) {
 	var out Summary
 	err := mc.do(false, func() error {
-		out.PubKey = mc.s.PubKey
+		out = *mc.s
 		for _, app := range mc.s.Apps {
 			out.Apps = append(out.Apps, &(*app))
 		}
