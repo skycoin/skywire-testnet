@@ -53,7 +53,6 @@ type Config struct {
 type Client struct {
 	Logger *logging.Logger
 
-	// edges [2]cipher.PubKey
 	pubKey cipher.PubKey
 	secKey cipher.SecKey
 	dc     client.APIClient

@@ -157,7 +157,17 @@ func ExampleSignedEntry_Signature() {
 		fmt.Printf("SignatureC got error: %v\n", errSigC.Error())
 	}
 
-	errorsPrint(errIdxA, errIdxB, errSigA, errSigB)
+	doneCh := make(chan bool)
+	go func(errs ...error) {
+		for _, err := range errs {
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+		doneCh <- true
+	}(errIdxA, errIdxB, errSigA, errSigB)
+
+	<-doneCh
 	// Output: SignatureA got
 	// SignatureB got
 	// SignatureC got error: invalid pubkey

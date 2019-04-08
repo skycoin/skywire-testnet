@@ -77,7 +77,6 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 	proto := setup.NewSetupProtocol(rw)
 	t, body, err := proto.ReadPacket()
 
-	fmt.Println("got proto!")
 	if err != nil {
 		fmt.Println("err:", err)
 		return err
