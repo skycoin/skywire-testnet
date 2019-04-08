@@ -320,16 +320,16 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	}
 
 	l := &routing.Loop{LocalPort: laddr.Port, RemotePort: raddr.Port,
-		NoiseMessage: msg, ExpireAt: time.Now().Add(RouteTTL),
+		NoiseMessage: msg, Expiry: time.Now().Add(RouteTTL),
 		Forward: forwardRoute, Reverse: reverseRoute}
 
-	sProto, tr, err := r.setupProto(context.Background())
+	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	defer tr.Close()
 
-	if err := sProto.CreateLoop(l); err != nil {
+	if err := setup.CreateLoop(proto, l); err != nil {
 		return nil, fmt.Errorf("route setup: %s", err)
 	}
 
@@ -379,14 +379,14 @@ func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
-	sProto, tr, err := r.setupProto(context.Background())
+	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
 		return err
 	}
 	defer tr.Close()
 
 	ld := &setup.LoopData{RemotePK: addr.Remote.PubKey, RemotePort: addr.Remote.Port, LocalPort: addr.Port}
-	if err := sProto.CloseLoop(ld); err != nil {
+	if err := setup.CloseLoop(proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
 

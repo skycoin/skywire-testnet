@@ -34,7 +34,7 @@ func (rt *managedRoutingTable) Cleanup() error {
 	expiredIDs := []routing.RouteID{}
 	rt.mu.Lock()
 	err := rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.ExpireAt().Before(time.Now()) {
+		if rule.Expiry().Before(time.Now()) {
 			if lastActivity, ok := rt.activity[routeID]; !ok || time.Since(lastActivity) > routeKeepalive {
 				expiredIDs = append(expiredIDs, routeID)
 			}

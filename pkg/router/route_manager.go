@@ -36,7 +36,7 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 		return nil, errors.New("unknown RouteID")
 	}
 
-	if rule.ExpireAt().Before(time.Now()) {
+	if rule.Expiry().Before(time.Now()) {
 		return nil, errors.New("expired routing rule")
 	}
 
@@ -74,34 +74,39 @@ func (rm *routeManager) RemoveLoopRule(addr *app.LoopAddr) error {
 }
 
 func (rm *routeManager) Serve(rw io.ReadWriter) error {
-	sProto := setup.NewSetupProtocol(rw)
-	sp, data, err := sProto.ReadPacket()
+	proto := setup.NewSetupProtocol(rw)
+	t, body, err := proto.ReadPacket()
+
+	fmt.Println("got proto!")
 	if err != nil {
+		fmt.Println("err:", err)
 		return err
 	}
+	fmt.Println("read packet!")
+	rm.Logger.Infof("Got new Setup request with type %s", t)
 
-	rm.Logger.Infof("Got new Setup request with type %s", sp)
-
-	var res interface{}
-	switch sp {
+	var respBody interface{}
+	switch t {
 	case setup.PacketAddRules:
-		res, err = rm.addRoutingRules(data)
+		respBody, err = rm.addRoutingRules(body)
 	case setup.PacketDeleteRules:
-		res, err = rm.deleteRoutingRules(data)
+		respBody, err = rm.deleteRoutingRules(body)
 	case setup.PacketConfirmLoop:
-		res, err = rm.confirmLoop(data)
+		respBody, err = rm.confirmLoop(body)
 	case setup.PacketLoopClosed:
-		err = rm.loopClosed(data)
+		err = rm.loopClosed(body)
 	default:
 		err = errors.New("unknown foundation packet")
 	}
 
 	if err != nil {
-		rm.Logger.Infof("Setup request with type %s failed: %s", sp, err)
-		return sProto.Respond(err)
+
+		rm.Logger.Infof("Setup request with type %s failed: %s", t, err)
+		return proto.WritePacket(setup.RespFailure, err.Error())
 	}
 
-	return sProto.Respond(res)
+	return proto.WritePacket(setup.RespSuccess, respBody)
+
 }
 
 func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) {

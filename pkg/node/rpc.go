@@ -34,28 +34,6 @@ type RPC struct {
 	node *Node
 }
 
-// RPCClient represents a RPC Client implementation.
-type RPCClient interface {
-	Summary() (*Summary, error)
-
-	Apps() ([]*AppState, error)
-	StartApp(appName string) error
-	StopApp(appName string) error
-	SetAutoStart(appName string, autostart bool) error
-
-	TransportTypes() ([]string, error)
-	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
-	Transport(tid uuid.UUID) (*TransportSummary, error)
-	AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error)
-	RemoveTransport(tid uuid.UUID) error
-
-	RoutingRules() ([]*RoutingEntry, error)
-	RoutingRule(key routing.RouteID) (routing.Rule, error)
-	AddRoutingRule(rule routing.Rule) (routing.RouteID, error)
-	SetRoutingRule(key routing.RouteID, rule routing.Rule) error
-	RemoveRoutingRule(key routing.RouteID) error
-}
-
 /*
 	<<< NODE SUMMARY >>>
 */
@@ -281,3 +259,33 @@ func (r *RPC) RemoveRoutingRule(key *routing.RouteID, _ *struct{}) error {
 	<<< LOOPS MANAGEMENT >>>
 	>>> TODO(evanlinjin): Implement.
 */
+
+// LoopInfo is a human-understandable representation of a loop.
+type LoopInfo struct {
+	AppRule routing.Rule
+	FwdRule routing.Rule
+}
+
+// Loops retrieves loops via rules of the routing table.
+func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
+	var loops []LoopInfo
+	err := r.node.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
+		if rule.Type() == routing.RuleApp {
+			loops = append(loops, LoopInfo{AppRule: rule})
+		}
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	for i, l := range loops {
+		fwdRID := l.AppRule.RouteID()
+		rule, err := r.node.rt.Rule(fwdRID)
+		if err != nil {
+			return err
+		}
+		loops[i].FwdRule = rule
+	}
+	*out = loops
+	return nil
+}
