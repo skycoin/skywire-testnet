@@ -78,33 +78,21 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, fmt.Errorf("read: %s", err)
 	}
 
-	remote, errRemote := tm.Remote(tr.Edges())
-	if errRemote != nil {
-		return nil, errRemote
+	remote, err := tm.Remote(tr.Edges())
+	if err != nil {
+		return nil, err
 	}
 
-	chkRemote := validateSignedEntry(sEntry, tr, remote)
-	chkLocal := validateSignedEntry(sEntry, tr, tm.Local())
+	if err := validateSignedEntry(sEntry, tr, remote); err != nil {
+		return nil, err
+	}
 
-	tm.Logger.Infof(`validateSignedEntry 
-	chkLocal: %v
-	chkRemote: %v
-	sEntry: %v 
-	tr: %v 
-	remote: %v
-	Edges: %v
-	tm.config.PubKey: %v
-	`, chkLocal, chkRemote, sEntry, tr, remote, tr.Edges(), tm.config.PubKey)
-
-	// Write second signature
-	// sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
 	if err := sEntry.Sign(tm.Local(), tm.config.SecKey); err != nil {
 		return nil, err
 	}
 
 	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 
-	var err error
 	if sEntry.Entry.Public {
 		if !newEntry {
 			_, err = tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: sEntry.Entry.ID, IsUp: true})

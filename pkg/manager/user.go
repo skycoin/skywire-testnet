@@ -26,7 +26,7 @@ func init() {
 // User represents a user of the manager.
 type User struct {
 	Name   string
-	PwSalt []byte/*  */
+	PwSalt []byte /*  */
 	PwHash cipher.SHA256
 }
 

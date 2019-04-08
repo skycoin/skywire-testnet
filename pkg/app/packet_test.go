@@ -6,7 +6,7 @@ import (
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
-func Example() {
+func ExamplePacket() {
 	pk := cipher.PubKey{}
 	addr := Addr{pk, 0}
 	loopAddr := LoopAddr{0, addr}

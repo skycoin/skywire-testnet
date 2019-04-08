@@ -95,7 +95,9 @@ func ExampleProtocol_CreateLoop() {
 
 		fmt.Printf("packet: %v, payload: %v\n", packet, string(payload))
 
-		inProto.Respond(nil)
+		if err := inProto.Respond(nil); err != nil {
+			fmt.Println(err.Error())
+		}
 	}(inProto)
 
 	// TODO: create non-empty loop

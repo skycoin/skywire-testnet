@@ -296,7 +296,7 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 }
 
-func Example_verifySig() {
+func Example_validateSignedEntry() {
 	mockEnv := newHsMockEnv()
 
 	tm, tr := mockEnv.m1, mockEnv.tr1

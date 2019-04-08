@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -122,15 +121,17 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 	entries := tm.entries
 	tm.mu.RUnlock()
 	for _, entry := range entries {
-		if entry.Edges()[0] != tm.config.PubKey {
-			continue
-		}
 
 		if tm.Transport(entry.ID) != nil {
 			continue
 		}
 
-		_, err := tm.createTransport(ctx, entry.Edges()[1], entry.Type, entry.Public)
+		remote, err := tm.Remote(entry.Edges())
+		if err != nil {
+			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
+			continue
+		}
+		_, err = tm.createTransport(ctx, remote, entry.Type, entry.Public)
 		if err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
@@ -349,12 +350,6 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
 
-	fmt.Printf("Manager.dialTransport: %v %v\n", tm.Local(), remote)
-
-	if tm.Local() == remote {
-		fmt.Println("local and remote are equal. No need to dial")
-	}
-
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
 		return nil, nil, err
@@ -374,10 +369,6 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	if err != nil {
 		return nil, err
 	}
-
-	tm.Logger.Infof("Trying to handshake with: %T %v\n", tr, tr)
-	tm.Logger.Infof("Handshake from factory: %T %v\n", factory, factory)
-	tm.Logger.Infof("Handshake: tr.Edges(): %v\n tr.Type(): %v\n", tr.Edges(), tr.Type())
 
 	var handshake settlementHandshake = settlementResponderHandshake
 	entry, err := handshake.Do(tm, tr, 30*time.Second)
