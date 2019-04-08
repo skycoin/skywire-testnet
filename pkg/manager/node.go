@@ -30,10 +30,15 @@ var (
 	log = logging.MustGetLogger("manager")
 )
 
+type appNodeConn struct {
+	Addr   *noise.Addr
+	Client node.RPCClient
+}
+
 // Node manages AppNodes.
 type Node struct {
 	c     Config
-	nodes map[cipher.PubKey]node.RPCClient // connected remote nodes.
+	nodes map[cipher.PubKey]appNodeConn // connected remote nodes.
 	users *UserManager
 	mu    *sync.RWMutex
 }
@@ -48,7 +53,7 @@ func NewNode(config Config) (*Node, error) {
 
 	return &Node{
 		c:     config,
-		nodes: make(map[cipher.PubKey]node.RPCClient),
+		nodes: make(map[cipher.PubKey]appNodeConn),
 		users: NewUserManager(singleUserDB, config.Cookies),
 		mu:    new(sync.RWMutex),
 	}, nil
@@ -63,10 +68,18 @@ func (m *Node) ServeRPC(lis net.Listener) error {
 		}
 		addr := conn.RemoteAddr().(*noise.Addr)
 		m.mu.RLock()
-		m.nodes[addr.PK] = node.NewRPCClient(rpc.NewClient(conn), node.RPCPrefix)
+		m.nodes[addr.PK] = appNodeConn{
+			Addr:   addr,
+			Client: node.NewRPCClient(rpc.NewClient(conn), node.RPCPrefix),
+		}
 		m.mu.RUnlock()
 	}
 }
+
+type mockAddr string
+
+func (mockAddr) Network() string  { return "mock" }
+func (a mockAddr) String() string { return string(a) }
 
 // MockConfig configures how mock data is to be added.
 type MockConfig struct {
@@ -82,7 +95,13 @@ func (m *Node) AddMockData(config MockConfig) error {
 	for i := 0; i < config.Nodes; i++ {
 		pk, client := node.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
 		m.mu.Lock()
-		m.nodes[pk] = client
+		m.nodes[pk] = appNodeConn{
+			Addr: &noise.Addr{
+				PK:   pk,
+				Addr: mockAddr(fmt.Sprintf("0.0.0.0:%d", i)),
+			},
+			Client: client,
+		}
 		m.mu.Unlock()
 	}
 	m.c.EnableAuth = config.EnableAuth
@@ -129,18 +148,26 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.ServeHTTP(w, req)
 }
 
+type summaryResp struct {
+	TCPAddr string `json:"tcp_addr"`
+	*node.Summary
+}
+
 // provides summary of all nodes.
 func (m *Node) getNodes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var summaries []*node.Summary
+		var summaries []summaryResp
 		m.mu.RLock()
 		for pk, c := range m.nodes {
-			summary, err := c.Summary()
+			summary, err := c.Client.Summary()
 			if err != nil {
 				log.Printf("failed to obtain summary from AppNode with pk %s. Error: %v", pk, err)
 				summary = &node.Summary{PubKey: pk}
 			}
-			summaries = append(summaries, summary)
+			summaries = append(summaries, summaryResp{
+				TCPAddr: c.Addr.Addr.String(),
+				Summary: summary,
+			})
 		}
 		m.mu.RUnlock()
 		httputil.WriteJSON(w, r, http.StatusOK, summaries)
@@ -155,7 +182,10 @@ func (m *Node) getNode() http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		httputil.WriteJSON(w, r, http.StatusOK, summary)
+		httputil.WriteJSON(w, r, http.StatusOK, summaryResp{
+			TCPAddr: ctx.Addr.Addr.String(),
+			Summary: summary,
+		})
 	})
 }
 
@@ -428,17 +458,18 @@ func (m *Node) getLoops() http.HandlerFunc {
 	<<< Helper functions >>>
 */
 
-func (m *Node) client(pk cipher.PubKey) (node.RPCClient, bool) {
+func (m *Node) client(pk cipher.PubKey) (*noise.Addr, node.RPCClient, bool) {
 	m.mu.RLock()
-	client, ok := m.nodes[pk]
+	conn, ok := m.nodes[pk]
 	m.mu.RUnlock()
-	return client, ok
+	return conn.Addr, conn.Client, ok
 }
 
 type httpCtx struct {
 	// Node
-	PK  cipher.PubKey
-	RPC node.RPCClient
+	PK   cipher.PubKey
+	Addr *noise.Addr
+	RPC  node.RPCClient
 
 	// App
 	App *node.AppState
@@ -469,14 +500,15 @@ func (m *Node) nodeCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool) 
 		httputil.WriteJSON(w, r, http.StatusBadRequest, err)
 		return nil, false
 	}
-	client, ok := m.client(pk)
+	addr, client, ok := m.client(pk)
 	if !ok {
 		httputil.WriteJSON(w, r, http.StatusNotFound, fmt.Errorf("node of pk '%s' not found", pk))
 		return nil, false
 	}
 	return &httpCtx{
-		PK:  pk,
-		RPC: client,
+		PK:   pk,
+		Addr: addr,
+		RPC:  client,
 	}, true
 }
 
