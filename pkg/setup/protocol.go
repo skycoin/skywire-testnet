@@ -2,6 +2,7 @@
 package setup
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -12,10 +13,10 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-// Packet defines type of a setup packet
-type Packet byte
+// PacketType defines type of a setup packet
+type PacketType byte
 
-func (sp Packet) String() string {
+func (sp PacketType) String() string {
 	switch sp {
 	case PacketAddRules:
 		return "AddRules"
@@ -30,13 +31,12 @@ func (sp Packet) String() string {
 	case PacketLoopClosed:
 		return "LoopClosed"
 	}
-
 	return fmt.Sprintf("Unknown(%d)", sp)
 }
 
 const (
 	// PacketAddRules represents AddRules foundation packet.
-	PacketAddRules Packet = iota
+	PacketAddRules PacketType = iota
 	// PacketDeleteRules represents DeleteRules foundation packet.
 	PacketDeleteRules
 	// PacketCreateLoop represents CreateLoop foundation packet.
@@ -48,19 +48,19 @@ const (
 	// PacketLoopClosed represents LoopClosed foundation packet.
 	PacketLoopClosed
 
-	// ResponseFailure represents failure response for a foundation packet.
-	ResponseFailure = 0xfe
-	// ResponseSuccess represents successful response for a foundation packet.
-	ResponseSuccess = 0xff
+	// RespFailure represents failure response for a foundation packet.
+	RespFailure = 0xfe
+	// RespSuccess represents successful response for a foundation packet.
+	RespSuccess = 0xff
 )
 
 // LoopData stores loop confirmation request data.
 type LoopData struct {
-	RemotePK     cipher.PubKey   `json:"remote-pk"`
-	RemotePort   uint16          `json:"remote-port"`
-	LocalPort    uint16          `json:"local-port"`
-	RouteID      routing.RouteID `json:"resp-rid,omitempty"`
-	NoiseMessage []byte          `json:"noise-msg,omitempty"`
+	RemotePK     cipher.PubKey   `json:"remote_pk"`
+	RemotePort   uint16          `json:"remote_port"`
+	LocalPort    uint16          `json:"local_port"`
+	RouteID      routing.RouteID `json:"resp_rid,omitempty"`
+	NoiseMessage []byte          `json:"noise_msg,omitempty"`
 }
 
 // Protocol defines routes setup protocol.
@@ -74,167 +74,144 @@ func NewProtocol(rw io.ReadWriter) *Protocol {
 }
 
 // ReadPacket reads a single setup packet.
-func (p *Protocol) ReadPacket() (Packet, []byte, error) {
-	frame, err := p.readFrame()
+func (p *Protocol) ReadPacket() (PacketType, []byte, error) {
+	rawLen := make([]byte, 2)
+	if _, err := io.ReadFull(p.rw, rawLen); err != nil {
+		return 0, nil, err
+	}
+	fmt.Println("ReadPacket: rawLen:", rawLen)
+	rawBody := make([]byte, binary.BigEndian.Uint16(rawLen))
+	_, err := io.ReadFull(p.rw, rawBody)
 	if err != nil {
 		return 0, nil, err
 	}
-
-	return Packet(frame[0]), frame[1:], nil
+	fmt.Println("ReadPacket: rawBody:", rawBody)
+	if len(rawBody) == 0 {
+		return 0, nil, errors.New("empty packet")
+	}
+	return PacketType(rawBody[0]), rawBody[1:], nil
 }
 
-// Respond sends response to the remote node.
-func (p *Protocol) Respond(res interface{}) error {
-	if err, ok := res.(error); ok {
-		return p.sendCMD(ResponseFailure, err)
+// WritePacket writes a single setup packet.
+func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
 	}
+	fmt.Printf("WritePacket: raw(%d): %v\n", len(raw), raw)
 
-	return p.sendCMD(ResponseSuccess, res)
+	var buf bytes.Buffer
+	buf.Grow(3 + len(raw))
+	fmt.Printf("WritePacket: buf(len:%d,cap:%d)\n", buf.Len(), buf.Cap())
+
+	if err := binary.Write(&buf, binary.BigEndian, uint16(1+len(raw))); err != nil {
+		return err
+	}
+	fmt.Printf("WritePacket: binary.Write [OKAY]\n")
+
+	if err := buf.WriteByte(byte(t)); err != nil {
+		return err
+	}
+	fmt.Printf("WritePacket: buf.WriteByte [OKAY]\n")
+
+	if _, err := buf.Write(raw); err != nil {
+		return err
+	}
+	fmt.Printf("WritePacket: buf.Write [OKAY]\n")
+	fmt.Printf("WritePacket: buf(%d): %v\n", buf.Len(), buf.Bytes())
+
+	_, err = buf.WriteTo(p.rw)
+	return err
 }
 
 // AddRule sends AddRule setup request.
-func (p *Protocol) AddRule(rule routing.Rule) (routeID routing.RouteID, err error) {
-	if err = p.sendCMD(PacketAddRules, []routing.Rule{rule}); err != nil {
+func AddRule(p *Protocol, rule routing.Rule) (routeID routing.RouteID, err error) {
+	if err = p.WritePacket(PacketAddRules, []routing.Rule{rule}); err != nil {
 		return 0, err
 	}
-
-	res := []routing.RouteID{}
-	if err = p.readRes(&res); err != nil {
+	var res []routing.RouteID
+	if err = readAndDecodePacket(p, &res); err != nil {
 		return 0, err
 	}
-
 	if len(res) == 0 {
 		return 0, errors.New("empty response")
 	}
-
 	return res[0], nil
 }
 
 // DeleteRule sends DeleteRule setup request.
-func (p *Protocol) DeleteRule(routeID routing.RouteID) error {
-	if err := p.sendCMD(PacketDeleteRules, []routing.RouteID{routeID}); err != nil {
+func DeleteRule(p *Protocol, routeID routing.RouteID) error {
+	if err := p.WritePacket(PacketDeleteRules, []routing.RouteID{routeID}); err != nil {
 		return err
 	}
-
-	res := []routing.RouteID{}
-	if err := p.readRes(&res); err != nil {
+	var res []routing.RouteID
+	if err := readAndDecodePacket(p, &res); err != nil {
 		return err
 	}
-
 	if len(res) == 0 {
 		return errors.New("empty response")
 	}
-
 	return nil
 }
 
 // CreateLoop sends CreateLoop setup request.
-func (p *Protocol) CreateLoop(l *routing.Loop) error {
-	if err := p.sendCMD(PacketCreateLoop, l); err != nil {
+func CreateLoop(p *Protocol, l *routing.Loop) error {
+	if err := p.WritePacket(PacketCreateLoop, l); err != nil {
 		return err
 	}
-
-	if err := p.readRes(nil); err != nil {
+	if err := readAndDecodePacket(p, nil); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func (p *Protocol) ConfirmLoop(l *LoopData) (noiseRes []byte, err error) {
-	if err = p.sendCMD(PacketConfirmLoop, l); err != nil {
+func ConfirmLoop(p *Protocol, l *LoopData) (noiseRes []byte, err error) {
+	if err = p.WritePacket(PacketConfirmLoop, l); err != nil {
 		return
 	}
-
-	res := []byte{}
-	if err = p.readRes(&res); err != nil {
+	var res []byte
+	if err = readAndDecodePacket(p, &res); err != nil {
 		return
 	}
-
 	return res, nil
 }
 
 // CloseLoop sends CloseLoop setup request.
-func (p *Protocol) CloseLoop(l *LoopData) error {
-	if err := p.sendCMD(PacketCloseLoop, l); err != nil {
+func CloseLoop(p *Protocol, l *LoopData) error {
+	if err := p.WritePacket(PacketCloseLoop, l); err != nil {
 		return err
 	}
-
-	if err := p.readRes(nil); err != nil {
+	if err := readAndDecodePacket(p, nil); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 // LoopClosed sends LoopClosed setup request.
-func (p *Protocol) LoopClosed(l *LoopData) error {
-	if err := p.sendCMD(PacketLoopClosed, l); err != nil {
+func LoopClosed(p *Protocol, l *LoopData) error {
+	if err := p.WritePacket(PacketLoopClosed, l); err != nil {
 		return err
 	}
-
-	if err := p.readRes(nil); err != nil {
+	if err := readAndDecodePacket(p, nil); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (p *Protocol) readRes(payload interface{}) error {
-	frame, err := p.readFrame()
+func readAndDecodePacket(p *Protocol, v interface{}) error {
+	t, raw, err := p.ReadPacket()
 	if err != nil {
 		return err
 	}
-
-	if frame[0] == ResponseFailure {
-		return errors.New(string(frame[1:]))
+	if t == RespFailure {
+		return errors.New(string(t))
 	}
-
-	if payload == nil {
+	if v == nil {
 		return nil
 	}
-
-	if err = json.Unmarshal(frame[1:], payload); err != nil {
+	if err = json.Unmarshal(raw, v); err != nil {
 		return err
 	}
-
 	return nil
-}
-
-func (p *Protocol) readFrame() ([]byte, error) {
-	size := make([]byte, 2)
-	if _, err := io.ReadFull(p.rw, size); err != nil {
-		return nil, err
-	}
-
-	frame := make([]byte, binary.BigEndian.Uint16(size))
-	_, err := io.ReadFull(p.rw, frame)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(frame) == 0 {
-		return nil, errors.New("empty frame")
-	}
-
-	return frame, nil
-}
-
-func (p *Protocol) sendCMD(cmdType Packet, payload interface{}) error {
-	var data []byte
-	if err, ok := payload.(error); ok {
-		data = []byte(err.Error())
-	} else {
-		data, err = json.Marshal(payload)
-		if err != nil {
-			return err
-		}
-	}
-
-	packet := append([]byte{byte(cmdType)}, data...)
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf, uint16(len(packet)))
-	_, err := p.rw.Write(append(buf, packet...))
-	return err
 }

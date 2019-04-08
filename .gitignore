@@ -9,8 +9,7 @@
 .idea/
 
 /skywire.json
-/skywire-config.json
-/manager-config.json
+/*-config.json
 /apps/
 /skywire/
 /local/

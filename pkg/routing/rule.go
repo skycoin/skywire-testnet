@@ -32,11 +32,13 @@ const (
 	RuleForward
 )
 
-// Rule represents a rule in a RoutingTable.
+// Rule represents a routing rule.
+// There are two types of routing rules; App and Forward.
+//
 type Rule []byte
 
-// ExpireAt returns rule's expiration time.
-func (r Rule) ExpireAt() time.Time {
+// Expiry returns rule's expiration time.
+func (r Rule) Expiry() time.Time {
 	ts := binary.BigEndian.Uint64(r)
 	return time.Unix(int64(ts), 0)
 }
@@ -140,7 +142,7 @@ func (rs *RuleSummary) ToRule() (Rule, error) {
 // Summary returns the RoutingRule's summary.
 func (r Rule) Summary() *RuleSummary {
 	summary := RuleSummary{
-		ExpireAt: r.ExpireAt(),
+		ExpireAt: r.Expiry(),
 		Type:     r.Type(),
 	}
 	if summary.Type == RuleApp {

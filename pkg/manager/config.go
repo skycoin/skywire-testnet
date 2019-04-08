@@ -37,9 +37,10 @@ func (hk *Key) UnmarshalText(text []byte) error {
 type Config struct {
 	PK         cipher.PubKey   `json:"public_key"`
 	SK         cipher.SecKey   `json:"secret_key"`
-	DBPath     string          `json:"db_path"`    // Path to store database file.
-	Cookies    CookieConfig    `json:"cookies"`    // Configures cookies (for session management).
-	Interfaces InterfaceConfig `json:"interfaces"` // Configures exposed interfaces.
+	DBPath     string          `json:"db_path"`     // Path to store database file.
+	EnableAuth bool            `json:"enable_auth"` // Whether to enable user management.
+	Cookies    CookieConfig    `json:"cookies"`     // Configures cookies (for session management).
+	Interfaces InterfaceConfig `json:"interfaces"`  // Configures exposed interfaces.
 }
 
 func makeConfig() Config {
@@ -47,6 +48,7 @@ func makeConfig() Config {
 	pk, sk := cipher.GenerateKeyPair()
 	c.PK = pk
 	c.SK = sk
+	c.EnableAuth = true
 	c.Cookies.HashKey = cipher.RandByte(64)
 	c.Cookies.BlockKey = cipher.RandByte(32)
 	c.FillDefaults()

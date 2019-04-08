@@ -8,12 +8,38 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/google/uuid"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
+
+// RPCClient represents a RPC Client implementation.
+type RPCClient interface {
+	Summary() (*Summary, error)
+
+	Apps() ([]*AppState, error)
+	StartApp(appName string) error
+	StopApp(appName string) error
+	SetAutoStart(appName string, autostart bool) error
+
+	TransportTypes() ([]string, error)
+	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
+	Transport(tid uuid.UUID) (*TransportSummary, error)
+	AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error)
+	RemoveTransport(tid uuid.UUID) error
+
+	RoutingRules() ([]*RoutingEntry, error)
+	RoutingRule(key routing.RouteID) (routing.Rule, error)
+	AddRoutingRule(rule routing.Rule) (routing.RouteID, error)
+	SetRoutingRule(key routing.RouteID, rule routing.Rule) error
+	RemoveRoutingRule(key routing.RouteID) error
+
+	Loops() ([]LoopInfo, error)
+}
 
 // RPCClient provides methods to call an RPC Server.
 // It implements RPCClient
@@ -137,6 +163,13 @@ func (rc *rpcClient) RemoveRoutingRule(key routing.RouteID) error {
 	return rc.Call("RemoveRoutingRule", &key, &struct{}{})
 }
 
+// Loops calls Loops.
+func (rc *rpcClient) Loops() ([]LoopInfo, error) {
+	var loops []LoopInfo
+	err := rc.Call("Loops", &struct{}{}, &loops)
+	return loops, err
+}
+
 // MockRPCClient mocks RPCClient.
 type mockRPCClient struct {
 	s       *Summary
@@ -147,8 +180,13 @@ type mockRPCClient struct {
 
 // NewMockRPCClient creates a new mock RPCClient.
 func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RPCClient) {
+	log := logging.MustGetLogger("mock-rpc-client")
+
 	types := []string{"messaging", "native"}
 	localPK, _ := cipher.GenerateKeyPair()
+
+	log.Infof("generating mock client with: localPK(%s) maxTps(%d) maxRules(%d)", localPK, maxTps, maxRules)
+
 	tps := make([]*TransportSummary, r.Intn(maxTps+1))
 	for i := range tps {
 		remotePK, _ := cipher.GenerateKeyPair()
@@ -159,26 +197,31 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			Type:   types[r.Int()%len(types)],
 			Log:    new(transport.LogEntry),
 		}
+		log.Infof("tp[%2d]: %v", i, tps[i])
 	}
 	rt := routing.InMemoryRoutingTable()
 	ruleExp := time.Now().Add(time.Hour * 24)
 	for i := 0; i < r.Intn(maxRules+1); i++ {
 		remotePK, _ := cipher.GenerateKeyPair()
-		var rule routing.Rule
-		if r.Int()%2 == 0 {
-			var lpRaw, rpRaw [2]byte
-			r.Read(lpRaw[:])
-			r.Read(rpRaw[:])
-			lp := binary.BigEndian.Uint16(lpRaw[:])
-			rp := binary.BigEndian.Uint16(rpRaw[:])
-			rule = routing.AppRule(ruleExp, routing.RouteID(r.Uint32()), remotePK, rp, lp)
-		} else {
-			rule = routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
-		}
-		if _, err := rt.AddRule(rule); err != nil {
+		var lpRaw, rpRaw [2]byte
+		r.Read(lpRaw[:])
+		r.Read(rpRaw[:])
+		lp := binary.BigEndian.Uint16(lpRaw[:])
+		rp := binary.BigEndian.Uint16(rpRaw[:])
+		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
+		fwdRID, err := rt.AddRule(fwdRule)
+		if err != nil {
 			panic(err)
 		}
+		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp)
+		appRID, err := rt.AddRule(appRule)
+		if err != nil {
+			panic(err)
+		}
+		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
+		log.Infof("rt[%2db]: %v %v", i, appRID, appRule.Summary().AppFields)
 	}
+	log.Printf("rtCount: %d", rt.Count())
 	return localPK, &mockRPCClient{
 		s: &Summary{
 			PubKey: localPK,
@@ -186,7 +229,8 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 				{Name: "foo.v1.0", AutoStart: false, Port: 10},
 				{Name: "bar.v2.0", AutoStart: false, Port: 20},
 			},
-			Transports: tps,
+			Transports:  tps,
+			RoutesCount: rt.Count(),
 		},
 		tpTypes: types,
 		rt:      rt,
@@ -215,6 +259,7 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 		for _, tp := range mc.s.Transports {
 			out.Transports = append(out.Transports, &(*tp))
 		}
+		out.RoutesCount = mc.s.RoutesCount
 		return nil
 	})
 	return &out, err
@@ -367,4 +412,27 @@ func (mc *mockRPCClient) SetRoutingRule(key routing.RouteID, rule routing.Rule) 
 // RemoveRoutingRule implements RPCClient.
 func (mc *mockRPCClient) RemoveRoutingRule(key routing.RouteID) error {
 	return mc.rt.DeleteRules(key)
+}
+
+// Loops implements RPCClient.
+func (mc *mockRPCClient) Loops() ([]LoopInfo, error) {
+	var loops []LoopInfo
+	err := mc.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
+		if rule.Type() == routing.RuleApp {
+			loops = append(loops, LoopInfo{AppRule: rule})
+		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	for i, l := range loops {
+		fwdRID := l.AppRule.RouteID()
+		rule, err := mc.rt.Rule(fwdRID)
+		if err != nil {
+			return nil, err
+		}
+		loops[i].FwdRule = rule
+	}
+	return loops, nil
 }

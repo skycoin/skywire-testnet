@@ -9,12 +9,12 @@ import (
 
 // Loop defines a loop over a pair of routes.
 type Loop struct {
-	LocalPort    uint16
-	RemotePort   uint16
-	Forward      Route
-	Reverse      Route
-	ExpireAt     time.Time
-	NoiseMessage []byte
+	LocalPort    uint16    `json:"local_port"`
+	RemotePort   uint16    `json:"remote_port"`
+	Forward      Route     `json:"forward_route"`
+	Reverse      Route     `json:"reverse_route"`
+	Expiry       time.Time `json:"expiry"`
+	NoiseMessage []byte    `json:"-"`
 }
 
 // Initiator returns initiator of the Loop.
@@ -37,5 +37,5 @@ func (l *Loop) Responder() cipher.PubKey {
 
 func (l *Loop) String() string {
 	return fmt.Sprintf("lport: %d. rport: %d. routes: %s/%s. expire at %s",
-		l.LocalPort, l.RemotePort, l.Forward, l.Reverse, l.ExpireAt)
+		l.LocalPort, l.RemotePort, l.Forward, l.Reverse, l.Expiry)
 }

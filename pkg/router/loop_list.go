@@ -19,7 +19,7 @@ type loop struct {
 type loopList struct {
 	sync.Mutex
 
-	loops map[app.Addr]*loop
+	loops map[app.Addr]*loop // key: remote address (pk+port), value: forwarding transport and route ID.
 }
 
 func newLoopList() *loopList {
