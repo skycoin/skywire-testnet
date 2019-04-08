@@ -79,13 +79,11 @@ func (p *Protocol) ReadPacket() (PacketType, []byte, error) {
 	if _, err := io.ReadFull(p.rw, rawLen); err != nil {
 		return 0, nil, err
 	}
-	fmt.Println("ReadPacket: rawLen:", rawLen)
 	rawBody := make([]byte, binary.BigEndian.Uint16(rawLen))
 	_, err := io.ReadFull(p.rw, rawBody)
 	if err != nil {
 		return 0, nil, err
 	}
-	fmt.Println("ReadPacket: rawBody:", rawBody)
 	if len(rawBody) == 0 {
 		return 0, nil, errors.New("empty packet")
 	}
@@ -98,28 +96,17 @@ func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("WritePacket: raw(%d): %v\n", len(raw), raw)
-
 	var buf bytes.Buffer
 	buf.Grow(3 + len(raw))
-	fmt.Printf("WritePacket: buf(len:%d,cap:%d)\n", buf.Len(), buf.Cap())
-
 	if err := binary.Write(&buf, binary.BigEndian, uint16(1+len(raw))); err != nil {
 		return err
 	}
-	fmt.Printf("WritePacket: binary.Write [OKAY]\n")
-
 	if err := buf.WriteByte(byte(t)); err != nil {
 		return err
 	}
-	fmt.Printf("WritePacket: buf.WriteByte [OKAY]\n")
-
 	if _, err := buf.Write(raw); err != nil {
 		return err
 	}
-	fmt.Printf("WritePacket: buf.Write [OKAY]\n")
-	fmt.Printf("WritePacket: buf(%d): %v\n", buf.Len(), buf.Bytes())
-
 	_, err = buf.WriteTo(p.rw)
 	return err
 }
