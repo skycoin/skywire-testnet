@@ -3,11 +3,12 @@ package node
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/skycoin/skycoin/src/util/logging"
 	"math/rand"
 	"net/rpc"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/google/uuid"
 
@@ -196,7 +197,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			Type:   types[r.Int()%len(types)],
 			Log:    new(transport.LogEntry),
 		}
-		log.Infof("tp[%d]: %v", i, tps[i])
+		log.Infof("tp[%2d]: %v", i, tps[i])
 	}
 	rt := routing.InMemoryRoutingTable()
 	ruleExp := time.Now().Add(time.Hour * 24)
@@ -209,16 +210,16 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		rp := binary.BigEndian.Uint16(rpRaw[:])
 		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
 		fwdRID, err := rt.AddRule(fwdRule)
-		if  err != nil {
+		if err != nil {
 			panic(err)
 		}
 		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp)
 		appRID, err := rt.AddRule(appRule)
-		if  err != nil {
+		if err != nil {
 			panic(err)
 		}
-		log.Infof("rt[%d(a)]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
-		log.Infof("rt[%d(b)]: %v %v", i, appRID, appRule.Summary().AppFields)
+		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
+		log.Infof("rt[%2db]: %v %v", i, appRID, appRule.Summary().AppFields)
 	}
 	log.Printf("rtCount: %d", rt.Count())
 	return localPK, &mockRPCClient{
@@ -228,7 +229,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 				{Name: "foo.v1.0", AutoStart: false, Port: 10},
 				{Name: "bar.v2.0", AutoStart: false, Port: 20},
 			},
-			Transports: tps,
+			Transports:  tps,
 			RoutesCount: rt.Count(),
 		},
 		tpTypes: types,
@@ -258,6 +259,7 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 		for _, tp := range mc.s.Transports {
 			out.Transports = append(out.Transports, &(*tp))
 		}
+		out.RoutesCount = mc.s.RoutesCount
 		return nil
 	})
 	return &out, err

@@ -18,10 +18,11 @@ import (
 var (
 	log = logging.MustGetLogger("manager-node")
 
-	mock          bool
-	mockNodes     int
-	mockMaxTps    int
-	mockMaxRoutes int
+	mock           bool
+	mockEnableAuth bool
+	mockNodes      int
+	mockMaxTps     int
+	mockMaxRoutes  int
 
 	defaultConfigPaths = [2]string{
 		filepath.Join(pathutil.HomeDir(), ".skycoin/skywire-manager/config.json"),
@@ -43,7 +44,8 @@ func findConfigPath() (string, error) {
 }
 
 func init() {
-	rootCmd.Flags().BoolVar(&mock, "mock", false, "whether to run manager node with mock data")
+	rootCmd.Flags().BoolVarP(&mock, "mock", "m", false, "whether to run manager node with mock data")
+	rootCmd.Flags().BoolVar(&mockEnableAuth, "mock-enable-auth", false, "whether to enable user management in mock mode")
 	rootCmd.Flags().IntVar(&mockNodes, "mock-nodes", 5, "number of app nodes to have in mock mode")
 	rootCmd.Flags().IntVar(&mockMaxTps, "mock-max-tps", 10, "max number of transports per mock app node")
 	rootCmd.Flags().IntVar(&mockMaxRoutes, "mock-max-routes", 30, "max number of routes per node")
@@ -96,6 +98,7 @@ var rootCmd = &cobra.Command{
 				Nodes:            mockNodes,
 				MaxTpsPerNode:    mockMaxTps,
 				MaxRoutesPerNode: mockMaxRoutes,
+				EnableAuth:       mockEnableAuth,
 			})
 			if err != nil {
 				log.Fatalln("Failed to add mock data:", err)

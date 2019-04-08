@@ -73,6 +73,7 @@ type MockConfig struct {
 	Nodes            int
 	MaxTpsPerNode    int
 	MaxRoutesPerNode int
+	EnableAuth       bool
 }
 
 // AddMockData adds mock data to Manager Node.
@@ -84,6 +85,7 @@ func (m *Node) AddMockData(config MockConfig) error {
 		m.nodes[pk] = client
 		m.mu.Unlock()
 	}
+	m.c.EnableAuth = config.EnableAuth
 	return nil
 }
 
@@ -93,13 +95,17 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.Use(middleware.Timeout(time.Second * 30))
 	r.Use(middleware.Logger)
 	r.Route("/api", func(r chi.Router) {
+		if m.c.EnableAuth {
+			r.Group(func(r chi.Router) {
+				r.Post("/create-account", m.users.CreateAccount())
+				r.Post("/login", m.users.Login())
+				r.Post("/logout", m.users.Logout())
+			})
+		}
 		r.Group(func(r chi.Router) {
-			r.Post("/create-account", m.users.CreateAccount())
-			r.Post("/login", m.users.Login())
-			r.Post("/logout", m.users.Logout())
-		})
-		r.Group(func(r chi.Router) {
-			//r.Use(m.users.Authorize)
+			if m.c.EnableAuth {
+				r.Use(m.users.Authorize)
+			}
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
 			r.Get("/nodes", m.getNodes())
@@ -394,9 +400,7 @@ type loopResp struct {
 }
 
 func makeLoopResp(info node.LoopInfo) loopResp {
-	fmt.Println("LOOP:", info)
 	if len(info.FwdRule) == 0 || len(info.AppRule) == 0 {
-		fmt.Println("    fucked.")
 		return loopResp{}
 	}
 	return loopResp{

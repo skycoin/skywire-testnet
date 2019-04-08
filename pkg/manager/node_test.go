@@ -24,6 +24,15 @@ func TestNewNode(t *testing.T) {
 	require.NoError(t, err)
 	config.DBPath = filepath.Join(confDir, "users.db")
 
+	defaultMockConfig := func() MockConfig {
+		return MockConfig{
+			Nodes:            5,
+			MaxTpsPerNode:    10,
+			MaxRoutesPerNode: 10,
+			EnableAuth:       true,
+		}
+	}
+
 	startNode := func(mock MockConfig) (string, *http.Client, func()) {
 		node, err := NewNode(config)
 		require.NoError(t, err)
@@ -69,7 +78,7 @@ func TestNewNode(t *testing.T) {
 	}
 
 	t.Run("no_access_without_login", func(t *testing.T) {
-		addr, client, stop := startNode(MockConfig{5, 10, 10})
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		makeCase := func(method string, uri string, body io.Reader) TestCase {
@@ -94,7 +103,7 @@ func TestNewNode(t *testing.T) {
 	})
 
 	t.Run("only_admin_account_allowed", func(t *testing.T) {
-		addr, client, stop := startNode(MockConfig{5, 10, 10})
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -124,7 +133,7 @@ func TestNewNode(t *testing.T) {
 	})
 
 	t.Run("cannot_login_twice", func(t *testing.T) {
-		addr, client, stop := startNode(MockConfig{5, 10, 10})
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -165,7 +174,7 @@ func TestNewNode(t *testing.T) {
 	})
 
 	t.Run("access_after_login", func(t *testing.T) {
-		addr, client, stop := startNode(MockConfig{5, 10, 10})
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -205,7 +214,7 @@ func TestNewNode(t *testing.T) {
 	})
 
 	t.Run("no_access_after_logout", func(t *testing.T) {
-		addr, client, stop := startNode(MockConfig{5, 10, 10})
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -272,7 +281,7 @@ func TestNewNode(t *testing.T) {
 		// - Login with old password (should fail).
 		// - Login with new password (should succeed).
 
-		addr, client, stop := startNode(MockConfig{5, 10, 10})
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
