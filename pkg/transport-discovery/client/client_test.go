@@ -24,7 +24,7 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 func newTestEntry() *transport.Entry {
 	pk1, _ := cipher.GenerateKeyPair()
 	entry := &transport.Entry{
-		ID:     transport.MakeTransportID(pk1, testPubKey, "messaging", true),
+		ID:     transport.MakeTransportID(pk1, testPubKey, "messaging", false),
 		Type:   "messaging",
 		Public: true,
 	}

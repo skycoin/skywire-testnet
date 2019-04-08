@@ -74,8 +74,8 @@ func (rm *routeManager) RemoveLoopRule(addr *app.LoopAddr) error {
 }
 
 func (rm *routeManager) Serve(rw io.ReadWriter) error {
-	proto := setup.NewProtocol(rw)
-	sp, data, err := proto.ReadPacket()
+	sProto := setup.NewSetupProtocol(rw)
+	sp, data, err := sProto.ReadPacket()
 	if err != nil {
 		return err
 	}
@@ -98,10 +98,10 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 
 	if err != nil {
 		rm.Logger.Infof("Setup request with type %s failed: %s", sp, err)
-		return proto.Respond(err)
+		return sProto.Respond(err)
 	}
 
-	return proto.Respond(res)
+	return sProto.Respond(res)
 }
 
 func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) {

@@ -82,12 +82,19 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 	if errRemote != nil {
 		return nil, errRemote
 	}
-	if err := validateSignedEntry(sEntry, tr, remote); err != nil {
-		tm.Logger.Infof("validateSignedEntry: sEntry %v\n tr: %v\n remote: %v\n", sEntry, tr, remote)
-		tm.Logger.Infof("validateSignedEntry: Edges: %v\n", tr.Edges())
-		tm.Logger.Infof("validateSignedEntry: tm.config.PubKey: %v", tm.config.PubKey)
-		return nil, err
-	}
+
+	chkRemote := validateSignedEntry(sEntry, tr, remote)
+	chkLocal := validateSignedEntry(sEntry, tr, tm.Local())
+
+	tm.Logger.Infof(`validateSignedEntry 
+	chkLocal: %v
+	chkRemote: %v
+	sEntry: %v 
+	tr: %v 
+	remote: %v
+	Edges: %v
+	tm.config.PubKey: %v
+	`, chkLocal, chkRemote, sEntry, tr, remote, tr.Edges(), tm.config.PubKey)
 
 	// Write second signature
 	// sEntry.Signatures[1] = sEntry.Entry.Signature(tm.config.SecKey)
@@ -144,5 +151,6 @@ func verifySig(sEntry *SignedEntry, pk cipher.PubKey) error {
 	if err != nil {
 		return err
 	}
+
 	return cipher.VerifyPubKeySignedPayload(pk, sig, sEntry.Entry.ToBinary())
 }

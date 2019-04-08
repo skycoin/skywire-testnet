@@ -67,10 +67,10 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	sProto := setup.NewSetupProtocol(in)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
-	id, err := proto.AddRule(rule)
+	id, err := sProto.AddRule(rule)
 	require.NoError(t, err)
 	assert.Equal(t, routing.RouteID(1), id)
 
@@ -93,14 +93,14 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	sProto := setup.NewSetupProtocol(in)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
 	id, err := rt.AddRule(rule)
 	require.NoError(t, err)
 	assert.Equal(t, 1, rt.Count())
 
-	require.NoError(t, proto.DeleteRule(id))
+	require.NoError(t, sProto.DeleteRule(id))
 	assert.Equal(t, 0, rt.Count())
 
 	require.NoError(t, in.Close())
@@ -128,7 +128,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	sProto := setup.NewSetupProtocol(in)
 	pk, _ := cipher.GenerateKeyPair()
 	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
 	require.NoError(t, rt.SetRule(2, rule))
@@ -143,7 +143,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 		RouteID:      1,
 		NoiseMessage: []byte("bar"),
 	}
-	noiseRes, err := proto.ConfirmLoop(ld)
+	noiseRes, err := sProto.ConfirmLoop(ld)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), noiseRes)
 	assert.Equal(t, []byte("bar"), noiseMsg)
@@ -173,7 +173,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	sProto := setup.NewSetupProtocol(in)
 
 	pk, _ := cipher.GenerateKeyPair()
 
@@ -190,7 +190,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 		RouteID:      1,
 		NoiseMessage: []byte("bar"),
 	}
-	require.NoError(t, proto.LoopClosed(ld))
+	require.NoError(t, sProto.LoopClosed(ld))
 	assert.Equal(t, uint16(2), inAddr.Port)
 	assert.Equal(t, uint16(3), inAddr.Remote.Port)
 	assert.Equal(t, pk, inAddr.Remote.PubKey)

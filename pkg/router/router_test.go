@@ -302,21 +302,21 @@ func TestRouterSetup(t *testing.T) {
 
 	tr, err := m2.CreateTransport(context.TODO(), pk1, "mock", false)
 	require.NoError(t, err)
-	sProto := setup.NewProtocol(tr)
+	sProto := setup.NewSetupProtocol(tr)
 
 	rw1, rwIn1 := net.Pipe()
 	go r.ServeApp(rwIn1, 2, &app.Config{}) // nolint: errcheck
-	proto1 := app.NewProtocol(rw1)
+	appProto1 := app.NewProtocol(rw1)
 	dataCh := make(chan []byte)
-	go proto1.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go appProto1.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
 
 	rw2, rwIn2 := net.Pipe()
 	go r.ServeApp(rwIn2, 4, &app.Config{}) // nolint: errcheck
-	proto2 := app.NewProtocol(rw2)
-	go proto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	appProto2 := app.NewProtocol(rw2)
+	go appProto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -332,7 +332,7 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, tr.ID, rule.TransportID())
 	})
 
-	t.Run("confirm loop - responder", func(t *testing.T) {
+	t.Run("`confirm loop - responder", func(t *testing.T) {
 		confI := noise.Config{
 			LocalSK:   sk2,
 			LocalPK:   pk2,
@@ -490,8 +490,8 @@ func TestRouterSetupLoop(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
-		p, data, err := proto.ReadPacket()
+		sProto := setup.NewSetupProtocol(tr)
+		p, data, err := sProto.ReadPacket()
 		if err != nil {
 			errCh <- err
 			return
@@ -513,16 +513,16 @@ func TestRouterSetupLoop(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- sProto.Respond([]byte{})
 	}()
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	appProto := app.NewProtocol(rw)
+	go appProto.Serve(nil) // nolint: errcheck
 
 	addr := &app.Addr{}
-	require.NoError(t, proto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk2, Port: 6}, addr))
+	require.NoError(t, appProto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk2, Port: 6}, addr))
 
 	require.NoError(t, <-errCh)
 	ll, err := r.pm.GetLoop(10, &app.Addr{PubKey: pk2, Port: 6})
@@ -596,8 +596,8 @@ func TestRouterCloseLoop(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
-		p, data, err := proto.ReadPacket()
+		sProto := setup.NewSetupProtocol(tr)
+		p, data, err := sProto.ReadPacket()
 		if err != nil {
 			errCh <- err
 			return
@@ -619,7 +619,7 @@ func TestRouterCloseLoop(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- sProto.Respond([]byte{})
 	}()
 
 	rw, rwIn := net.Pipe()
@@ -684,8 +684,8 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
-		p, data, err := proto.ReadPacket()
+		sProto := setup.NewSetupProtocol(tr)
+		p, data, err := sProto.ReadPacket()
 		if err != nil {
 			errCh <- err
 			return
@@ -707,7 +707,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- sProto.Respond([]byte{})
 	}()
 
 	rw, rwIn := net.Pipe()
@@ -770,8 +770,8 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
-		p, data, err := proto.ReadPacket()
+		sProto := setup.NewSetupProtocol(tr)
+		p, data, err := sProto.ReadPacket()
 		if err != nil {
 			errCh <- err
 			return
@@ -793,13 +793,13 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 			return
 		}
 
-		errCh <- proto.Respond([]byte{})
+		errCh <- sProto.Respond([]byte{})
 	}()
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	appProto := app.NewProtocol(rw)
+	go appProto.Serve(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 

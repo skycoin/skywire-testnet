@@ -272,7 +272,7 @@ func ExampleMakeTransportID() {
 
 func ExampleManager_CreateTransport() {
 	// Repetition is required here to guarantee that correctness does not depends on order of edges
-	for i := 0; i < 256; i++ {
+	for i := 0; i < 4; i++ {
 		pkB, mgrA, err := MockTransportManager()
 		if err != nil {
 			fmt.Printf("MockTransportManager failed on iteration %v with: %v\n", i, err)

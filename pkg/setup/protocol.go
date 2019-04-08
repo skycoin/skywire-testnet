@@ -68,8 +68,8 @@ type Protocol struct {
 	rw io.ReadWriter
 }
 
-// NewProtocol constructs a new Protocol.
-func NewProtocol(rw io.ReadWriter) *Protocol {
+// NewSetupProtocol constructs a new setup Protocol.
+func NewSetupProtocol(rw io.ReadWriter) *Protocol {
 	return &Protocol{rw}
 }
 

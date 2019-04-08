@@ -329,7 +329,7 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 	node.startedMu.Lock()
 	if node.startedApps[config.App] != nil {
 		node.startedMu.Unlock()
-		return fmt.Errorf("App %s is already started", config.App)
+		return fmt.Errorf("app %s is already started", config.App)
 	}
 
 	node.startedApps[config.App] = bind
