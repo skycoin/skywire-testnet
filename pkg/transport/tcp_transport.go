@@ -87,16 +87,6 @@ func (tr *TCPTransport) Edges() [2]cipher.PubKey {
 	return SortEdges(tr.edges)
 }
 
-// // Local returns the local transport edge's public key.
-// func (tr *TCPTransport) Local() cipher.PubKey {
-// 	return tr.lpk
-// }
-
-// // Remote returns the remote transport edge's public key.
-// func (tr *TCPTransport) Remote() cipher.PubKey {
-// 	return tr.rpk
-// }
-
 // Type returns the string representation of the transport type.
 func (tr *TCPTransport) Type() string {
 	return "tcp"

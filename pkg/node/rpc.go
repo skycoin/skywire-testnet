@@ -48,8 +48,8 @@ type TransportSummary struct {
 }
 
 func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport, includeLogs bool) *TransportSummary {
-	remote, err := tm.Remote(tp.Edges())
-	if err != nil {
+	remote, ok := tm.Remote(tp.Edges())
+	if !ok {
 		return &TransportSummary{}
 	}
 
@@ -162,7 +162,7 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 		return true
 	}
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-		if remote, err := r.node.tm.Remote(tp.Edges()); err == nil {
+		if remote, ok := r.node.tm.Remote(tp.Edges()); ok {
 			if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), remote) {
 				*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs))
 			}

@@ -103,7 +103,10 @@ func Example_validateEntry() {
 	}
 
 	entry := NewEntry(pk1, pk2, "mock", true)
-	sEntry := NewSignedEntry(entry, pk1, sk1)
+	sEntry, ok := NewSignedEntry(entry, pk1, sk1)
+	if !ok {
+		fmt.Println("error creating signed entry")
+	}
 	if err := validateSignedEntry(sEntry, tr, pk1); err != nil {
 		fmt.Println(err.Error())
 	}
@@ -158,8 +161,8 @@ func TestValidateEntry(t *testing.T) {
 	}
 
 	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
-	require.NoError(t, sEntry.Sign(pk1, sk1))
-	require.NoError(t, sEntry.Sign(pk2, sk2))
+	require.True(t, sEntry.Sign(pk1, sk1))
+	require.True(t, sEntry.Sign(pk2, sk2))
 
 	require.NoError(t, validateSignedEntry(sEntry, tr, pk1))
 }
@@ -301,7 +304,10 @@ func Example_validateSignedEntry() {
 
 	tm, tr := mockEnv.m1, mockEnv.tr1
 	entry := NewEntry(mockEnv.pk1, mockEnv.pk2, "mock", true)
-	sEntry := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
+	sEntry, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
+	if !ok {
+		fmt.Println("error creating signed entry")
+	}
 	if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
 		fmt.Printf("NewSignedEntry: %v", err.Error())
 	}

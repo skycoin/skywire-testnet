@@ -92,16 +92,16 @@ func ExampleSignedEntry_Sign() {
 		fmt.Println("No signatures set")
 	}
 
-	if errA := sEntry.Sign(pkA, skA); errA != nil {
-		fmt.Println(errA.Error())
+	if ok := sEntry.Sign(pkA, skA); !ok {
+		fmt.Println("error signing with skA")
 	}
 	if (!sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null()) ||
 		(!sEntry.Signatures[1].Null() && sEntry.Signatures[0].Null()) {
 		fmt.Println("One signature set")
 	}
 
-	if errB := sEntry.Sign(pkB, skB); errB != nil {
-		fmt.Println(errB.Error())
+	if ok := sEntry.Sign(pkB, skB); !ok {
+		fmt.Println("error signing with skB")
 	}
 
 	if !sEntry.Signatures[0].Null() && !sEntry.Signatures[1].Null() {
@@ -121,45 +121,34 @@ func ExampleSignedEntry_Signature() {
 
 	entry := NewEntry(pkA, pkB, "mock", true)
 	sEntry := &SignedEntry{Entry: entry}
-	if errA := sEntry.Sign(pkA, skA); errA != nil {
-		fmt.Println(errA.Error())
+	if ok := sEntry.Sign(pkA, skA); !ok {
+		fmt.Println("Error signing sEntry with (pkA,skA)")
 	}
-	if errB := sEntry.Sign(pkB, skB); errB != nil {
-		fmt.Println(errB.Error())
+	if ok := sEntry.Sign(pkB, skB); !ok {
+		fmt.Println("Error signing sEntry with (pkB,skB)")
 	}
 
-	idxA, errIdxA := sEntry.Index(pkA)
-	idxB, errIdxB := sEntry.Index(pkB)
+	idxA := sEntry.Index(pkA)
+	idxB := sEntry.Index(pkB)
 
-	sigA, errSigA := sEntry.Signature(pkA)
-	sigB, errSigB := sEntry.Signature(pkB)
+	sigA, okA := sEntry.Signature(pkA)
+	sigB, okB := sEntry.Signature(pkB)
 
-	if sigA == sEntry.Signatures[idxA] {
+	if okA && sigA == sEntry.Signatures[idxA] {
 		fmt.Println("SignatureA got")
 	}
 
-	if sigB == sEntry.Signatures[idxB] {
+	if okB && (sigB == sEntry.Signatures[idxB]) {
 		fmt.Println("SignatureB got")
 	}
 
 	// Incorrect case
 	pkC, _ := cipher.GenerateKeyPair()
-	_, errSigC := sEntry.Signature(pkC)
-	if errSigC != nil {
-		fmt.Printf("SignatureC got error: %v\n", errSigC.Error())
+	if _, ok := sEntry.Signature(pkC); !ok {
+		fmt.Printf("SignatureC got error: invalid pubkey")
 	}
 
-	doneCh := make(chan bool)
-	go func(errs ...error) {
-		for _, err := range errs {
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-		}
-		doneCh <- true
-	}(errIdxA, errIdxB, errSigA, errSigB)
-
-	<-doneCh
+	//
 	// Output: SignatureA got
 	// SignatureB got
 	// SignatureC got error: invalid pubkey

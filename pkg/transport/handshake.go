@@ -37,9 +37,11 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 			Public:   public,
 		}
 
-		sEntry := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
+		sEntry, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
+		if !ok {
+			return nil, errors.New("error creating signed entry")
+		}
 		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
-
 			return nil, fmt.Errorf("settlementInitiatorHandshake NewSignedEntry: %s\n sEntry: %v", err, sEntry)
 		}
 
@@ -47,26 +49,26 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 			return nil, fmt.Errorf("write: %s", err)
 		}
 
-		rcvdSEntry := &SignedEntry{}
-		if err := json.NewDecoder(tr).Decode(rcvdSEntry); err != nil {
+		respSEntry := &SignedEntry{}
+		if err := json.NewDecoder(tr).Decode(respSEntry); err != nil {
 			return nil, fmt.Errorf("read: %s", err)
 		}
 
 		//  Verifying remote signature
-		remote, err := tm.Remote(tr.Edges())
-		if err != nil {
-			return nil, err
+		remote, ok := tm.Remote(tr.Edges())
+		if !ok {
+			return nil, errors.New("configured PubKey not found in edges")
 		}
-		if err := verifySig(rcvdSEntry, remote); err != nil {
+		if err := verifySig(respSEntry, remote); err != nil {
 			return nil, err
 		}
 
-		newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *rcvdSEntry.Entry }) == nil
+		newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *respSEntry.Entry }) == nil
 		if newEntry {
 			tm.addEntry(entry)
 		}
 
-		return rcvdSEntry.Entry, nil
+		return respSEntry.Entry, nil
 	}
 }
 
@@ -76,21 +78,22 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, fmt.Errorf("read: %s", err)
 	}
 
-	remote, err := tm.Remote(tr.Edges())
-	if err != nil {
-		return nil, err
+	remote, ok := tm.Remote(tr.Edges())
+	if !ok {
+		return nil, errors.New("configured PubKey not found in edges")
 	}
 
 	if err := validateSignedEntry(sEntry, tr, remote); err != nil {
 		return nil, err
 	}
 
-	if err := sEntry.Sign(tm.Local(), tm.config.SecKey); err != nil {
-		return nil, err
+	if ok := sEntry.Sign(tm.Local(), tm.config.SecKey); !ok {
+		return nil, errors.New("invalid pubkey for signing entry")
 	}
 
 	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 
+	var err error
 	if sEntry.Entry.Public {
 		if !newEntry {
 			_, err = tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: sEntry.Entry.ID, IsUp: true})
@@ -133,9 +136,9 @@ func validateSignedEntry(sEntry *SignedEntry, tr Transport, pk cipher.PubKey) er
 }
 
 func verifySig(sEntry *SignedEntry, pk cipher.PubKey) error {
-	sig, err := sEntry.Signature(pk)
-	if err != nil {
-		return err
+	sig, ok := sEntry.Signature(pk)
+	if !ok {
+		return errors.New("invalid pubkey for retrieving signature")
 	}
 
 	return cipher.VerifyPubKeySignedPayload(pk, sig, sEntry.Entry.ToBinary())
