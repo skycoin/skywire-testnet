@@ -78,8 +78,6 @@ func (f *TCPFactory) Type() string {
 type TCPTransport struct {
 	*net.TCPConn
 	edges [2]cipher.PubKey
-	// lpk cipher.PubKey
-	// rpk cipher.PubKey
 }
 
 // Edges returns the  TCPTransport edges.

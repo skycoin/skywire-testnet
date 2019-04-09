@@ -36,12 +36,8 @@ func NewEntry(edgeA, edgeB cipher.PubKey, tpType string, public bool) *Entry {
 	}
 }
 
-// Edges returns edges of Entry
+// Edges returns the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
 func (e *Entry) Edges() [2]cipher.PubKey {
-	// this sort *must* be needless
-	// but to remove it:
-	// - all tests must be passed
-	// - written Benchmarks
 	return SortPubKeys(e.EdgeKeys[0], e.EdgeKeys[1])
 }
 

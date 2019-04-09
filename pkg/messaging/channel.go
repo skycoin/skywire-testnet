@@ -30,8 +30,8 @@ type channel struct {
 	noise *noise.Noise
 }
 
+// Edges returns the public keys of the channel's edge nodes
 func (c *channel) Edges() [2]cipher.PubKey {
-	// Edges returns the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
 	return transport.SortPubKeys(c.link.Local(), c.remotePK)
 }
 
