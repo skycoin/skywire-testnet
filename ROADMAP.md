@@ -10,3 +10,7 @@ This document defines a high level roadmap for Skywire mainnet development. It d
 - [ ] Create service discovery for peer discovery
 - [ ] Document the software and provide tutorials and help for developing applications using Skywire and to contribute to the development
 - [ ] Integrate Skywire with package manager
+- [ ] Implement Store and Forward
+- [ ] Implement virtual network adapter
+- [ ] create fully functional Skymessenger
+- [ ] add further transport implementations (UDP, TCP)
