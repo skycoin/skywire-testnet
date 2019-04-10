@@ -4,19 +4,21 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProtocol(t *testing.T) {
-	rw1, rw2, err := OpenPipeConn()
+	rw1, rw2, err := appnet.OpenPipeConn()
 	require.NoError(t, err)
 	proto1 := NewProtocol(rw1)
 	proto2 := NewProtocol(rw2)
 
 	errCh1 := make(chan error)
 	go func() {
-		errCh1 <- proto1.Serve(func(f Frame, _ []byte) (interface{}, error) {
+		errCh1 <- proto1.Serve(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameSend {
 				return nil, errors.New("unexpected frame")
 			}
@@ -27,7 +29,7 @@ func TestProtocol(t *testing.T) {
 
 	errCh2 := make(chan error)
 	go func() {
-		errCh2 <- proto2.Serve(func(f Frame, _ []byte) (interface{}, error) {
+		errCh2 <- proto2.Serve(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameCreateLoop {
 				return nil, errors.New("unexpected frame")
 			}
@@ -65,14 +67,14 @@ func TestProtocol(t *testing.T) {
 }
 
 func TestProtocolParallel(t *testing.T) {
-	rw1, rw2, err := OpenPipeConn()
+	rw1, rw2, err := appnet.OpenPipeConn()
 	require.NoError(t, err)
 	proto1 := NewProtocol(rw1)
 	proto2 := NewProtocol(rw2)
 
 	errCh1 := make(chan error)
 	go func() {
-		errCh1 <- proto1.Serve(func(f Frame, _ []byte) (interface{}, error) {
+		errCh1 <- proto1.Serve(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameCreateLoop {
 				return nil, errors.New("unexpected frame")
 			}
@@ -83,7 +85,7 @@ func TestProtocolParallel(t *testing.T) {
 
 	errCh2 := make(chan error)
 	go func() {
-		errCh2 <- proto2.Serve(func(f Frame, _ []byte) (interface{}, error) {
+		errCh2 <- proto2.Serve(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameConfirmLoop {
 				return nil, errors.New("unexpected frame")
 			}

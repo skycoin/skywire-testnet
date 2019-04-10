@@ -9,11 +9,14 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/skycoin/skywire/internal/appnet"
 
 	"github.com/skycoin/skywire/internal/ioutil"
 )
@@ -26,12 +29,7 @@ const (
 	DefaultOut = uintptr(4)
 )
 
-// Config defines configuration parameters for App
-type Config struct {
-	AppName         string `json:"app-name"`
-	AppVersion      string `json:"app-version"`
-	ProtocolVersion string `json:"protocol-version"`
-}
+var log = logging.MustGetLogger("app")
 
 // App represents client side in app's client-server communication
 // interface.
@@ -49,14 +47,14 @@ type App struct {
 // Command setups pipe connection and returns *exec.Cmd for an App
 // with initialized connection.
 func Command(config *Config, appsPath string, args []string) (net.Conn, *exec.Cmd, error) {
-	srvConn, clientConn, err := OpenPipeConn()
+	srvConn, clientConn, err := appnet.OpenPipeConn()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open piped connection: %s", err)
 	}
 
 	binaryPath := filepath.Join(appsPath, fmt.Sprintf("%s.v%s", config.AppName, config.AppVersion))
 	cmd := exec.Command(binaryPath, args...)
-	cmd.ExtraFiles = []*os.File{clientConn.inFile, clientConn.outFile}
+	cmd.ExtraFiles = clientConn.Files()
 
 	return srvConn, cmd, nil
 }
@@ -64,7 +62,7 @@ func Command(config *Config, appsPath string, args []string) (net.Conn, *exec.Cm
 // SetupFromPipe connects to a pipe, starts protocol loop and performs
 // initialization request with the Server.
 func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
-	pipeConn, err := NewPipeConn(inFD, outFD)
+	pipeConn, err := appnet.NewPipeConn(inFD, outFD)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open pipe: %s", err)
 	}
@@ -149,7 +147,7 @@ func (app *App) Addr() net.Addr {
 }
 
 func (app *App) handleProto() {
-	err := app.proto.Serve(func(frame Frame, payload []byte) (res interface{}, err error) {
+	err := app.proto.Serve(func(frame FrameType, payload []byte) (res interface{}, err error) {
 		switch frame {
 		case FrameConfirmLoop:
 			err = app.confirmLoop(payload)
@@ -261,7 +259,12 @@ type appConn struct {
 }
 
 func newAppConn(conn net.Conn, laddr, raddr *Addr) *appConn {
-	return &appConn{conn, ioutil.NewAckReadWriter(conn, 100*time.Millisecond), laddr, raddr}
+	return &appConn{
+		Conn:  conn,
+		rw:    ioutil.NewAckReadWriter(conn, 100*time.Millisecond),
+		laddr: laddr,
+		raddr: raddr,
+	}
 }
 
 func (conn *appConn) LocalAddr() net.Addr {

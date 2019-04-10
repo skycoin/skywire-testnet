@@ -1,4 +1,4 @@
-package app
+package appnet
 
 import (
 	"fmt"
@@ -123,4 +123,12 @@ func (conn *PipeConn) Fd() (inFd uintptr, outFd uintptr) {
 	inFd = conn.inFile.Fd()
 	outFd = conn.outFile.Fd()
 	return
+}
+
+// Files returns the internal files.
+func (conn *PipeConn) Files() []*os.File {
+	return []*os.File{
+		conn.inFile,
+		conn.outFile,
+	}
 }

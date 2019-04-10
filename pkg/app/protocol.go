@@ -10,10 +10,10 @@ import (
 	"sync"
 )
 
-// Frame defines type for all App frames.
-type Frame byte
+// FrameType defines type for all App frames.
+type FrameType byte
 
-func (f Frame) String() string {
+func (f FrameType) String() string {
 	switch f {
 	case FrameInit:
 		return "Init"
@@ -32,7 +32,7 @@ func (f Frame) String() string {
 
 const (
 	// FrameInit represents Init frame type.
-	FrameInit Frame = iota
+	FrameInit FrameType = iota
 	// FrameCreateLoop represents CreateLoop request frame type.
 	FrameCreateLoop
 	// FrameConfirmLoop represents ConfirmLoop request frame type.
@@ -59,8 +59,8 @@ func NewProtocol(rw io.ReadWriteCloser) *Protocol {
 	return &Protocol{rw, &chanList{chans: map[byte]chan []byte{}}}
 }
 
-// Send sends command Frame with payload and awaits for response.
-func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
+// Send sends command FrameType with payload and awaits for response.
+func (p *Protocol) Send(cmd FrameType, payload, res interface{}) error {
 	id, resChan := p.chans.add()
 	if err := p.writeFrame(cmd, id, payload); err != nil {
 		return err
@@ -71,7 +71,7 @@ func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 		return io.EOF
 	}
 
-	if Frame(frame[0]) == FrameFailure {
+	if FrameType(frame[0]) == FrameFailure {
 		return errors.New(string(frame[2:]))
 	}
 
@@ -83,7 +83,7 @@ func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 }
 
 // Serve reads incoming frame, passes it to the handleFunc and writes results.
-func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) error {
+func (p *Protocol) Serve(handleFunc func(FrameType, []byte) (interface{}, error)) error {
 	for {
 		frame, err := p.readFrame()
 		if err != nil {
@@ -94,7 +94,7 @@ func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) er
 			return err
 		}
 
-		fType := Frame(frame[0])
+		fType := FrameType(frame[0])
 		id := frame[1]
 
 		var resChan chan []byte
@@ -130,7 +130,7 @@ func (p *Protocol) Close() error {
 	return p.rw.Close()
 }
 
-func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err error) {
+func (p *Protocol) writeFrame(frame FrameType, id byte, payload interface{}) (err error) {
 	var data []byte
 	if err, ok := payload.(error); ok {
 		data = []byte(err.Error())

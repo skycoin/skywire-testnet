@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skywire/internal/appnet"
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
@@ -24,7 +25,7 @@ func TestAppDial(t *testing.T) {
 	go app.handleProto()
 
 	dataCh := make(chan []byte)
-	go proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck
+	go proto.Serve(func(f FrameType, p []byte) (interface{}, error) { // nolint: errcheck
 		if f == FrameCreateLoop {
 			return &Addr{PubKey: lpk, Port: 2}, nil
 		}
@@ -113,7 +114,7 @@ func TestAppWrite(t *testing.T) {
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
 	go func() {
-		proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck
+		proto.Serve(func(f FrameType, p []byte) (interface{}, error) { // nolint: errcheck
 			if f != FrameSend {
 				return nil, errors.New("unexpected frame")
 			}
@@ -166,7 +167,7 @@ func TestAppRead(t *testing.T) {
 }
 
 func TestAppSetup(t *testing.T) {
-	srvConn, clientConn, err := OpenPipeConn()
+	srvConn, clientConn, err := appnet.OpenPipeConn()
 	require.NoError(t, err)
 
 	srvConn.SetDeadline(time.Now().Add(time.Second))    // nolint: errcheck
@@ -174,7 +175,7 @@ func TestAppSetup(t *testing.T) {
 
 	proto := NewProtocol(srvConn)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck, unparam
+	go proto.Serve(func(f FrameType, p []byte) (interface{}, error) { // nolint: errcheck, unparam
 		if f != FrameInit {
 			return nil, errors.New("unexpected frame")
 		}
@@ -225,7 +226,7 @@ func TestAppClose(t *testing.T) {
 
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck, unparam
+	go proto.Serve(func(f FrameType, p []byte) (interface{}, error) { // nolint: errcheck, unparam
 		if f != FrameClose {
 			return nil, errors.New("unexpected frame")
 		}

@@ -26,7 +26,7 @@ type appManager struct {
 }
 
 func (am *appManager) Serve() error {
-	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
+	return am.proto.Serve(func(frame app.FrameType, payload []byte) (res interface{}, err error) {
 		am.Logger.Infof("Got new App request with type %s: %s", frame, string(payload))
 		switch frame {
 		case app.FrameInit:

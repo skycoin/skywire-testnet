@@ -171,7 +171,7 @@ func TestRouterApp(t *testing.T) {
 	go r.ServeApp(rwIn, 6, &app.Config{}) // nolint: errcheck
 	proto := app.NewProtocol(rw)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -247,7 +247,7 @@ func TestRouterLocalApp(t *testing.T) {
 	go r.ServeApp(rw2In, 6, &app.Config{}) // nolint: errcheck
 	proto2 := app.NewProtocol(rw2)
 	dataCh := make(chan []byte)
-	go proto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto2.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -308,7 +308,7 @@ func TestRouterSetup(t *testing.T) {
 	go r.ServeApp(rwIn1, 2, &app.Config{}) // nolint: errcheck
 	proto1 := app.NewProtocol(rw1)
 	dataCh := make(chan []byte)
-	go proto1.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto1.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -316,7 +316,7 @@ func TestRouterSetup(t *testing.T) {
 	rw2, rwIn2 := net.Pipe()
 	go r.ServeApp(rwIn2, 4, &app.Config{}) // nolint: errcheck
 	proto2 := app.NewProtocol(rw2)
-	go proto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto2.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
