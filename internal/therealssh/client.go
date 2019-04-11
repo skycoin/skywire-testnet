@@ -10,16 +10,16 @@ import (
 	"net/rpc"
 	"strings"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/kr/pty"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-
-	"github.com/skycoin/skywire/pkg/app"
 )
 
 // Dialer dials to a remote node.
 type Dialer interface {
-	Dial(raddr *app.Addr) (net.Conn, error)
+	Dial(raddr *appnet.LoopAddr) (net.Conn, error)
 }
 
 // Client proxies CLI's requests to a remote server. Control messages
@@ -47,7 +47,7 @@ func NewClient(rpcAddr string, d Dialer) (net.Listener, *Client, error) {
 
 // OpenChannel requests new Channel on the remote Server.
 func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, channel *Channel, cErr error) {
-	conn, err := c.dialer.Dial(&app.Addr{PubKey: remotePK, Port: Port})
+	conn, err := c.dialer.Dial(&appnet.LoopAddr{PubKey: remotePK, Port: Port})
 	if err != nil {
 		cErr = fmt.Errorf("dial failed: %s", err)
 		return
@@ -105,7 +105,7 @@ func (c *Client) serveConn(conn net.Conn) error {
 			return err
 		}
 
-		raddr := conn.RemoteAddr().(*app.Addr)
+		raddr := conn.RemoteAddr().(*appnet.LoopAddr)
 		payload := buf[:n]
 
 		if len(payload) < 5 {

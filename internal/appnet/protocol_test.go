@@ -1,17 +1,15 @@
-package app
+package appnet
 
 import (
 	"errors"
 	"testing"
-
-	"github.com/skycoin/skywire/internal/appnet"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProtocol(t *testing.T) {
-	rw1, rw2, err := appnet.OpenPipeConn()
+	rw1, rw2, err := OpenPipeConn()
 	require.NoError(t, err)
 	proto1 := NewProtocol(rw1)
 	proto2 := NewProtocol(rw2)
@@ -19,7 +17,7 @@ func TestProtocol(t *testing.T) {
 	errCh1 := make(chan error)
 	go func() {
 		errCh1 <- proto1.Serve(func(f FrameType, _ []byte) (interface{}, error) {
-			if f != FrameSend {
+			if f != FrameData {
 				return nil, errors.New("unexpected frame")
 			}
 
@@ -45,12 +43,12 @@ func TestProtocol(t *testing.T) {
 
 	errCh4 := make(chan error)
 	go func() {
-		errCh4 <- proto2.Send(FrameSend, "foo", nil)
+		errCh4 <- proto2.Send(FrameData, "foo", nil)
 	}()
 
 	errCh5 := make(chan error)
 	go func() {
-		errCh5 <- proto1.Send(FrameSend, "foo", nil)
+		errCh5 <- proto1.Send(FrameData, "foo", nil)
 	}()
 
 	require.NoError(t, <-errCh3)
@@ -67,7 +65,7 @@ func TestProtocol(t *testing.T) {
 }
 
 func TestProtocolParallel(t *testing.T) {
-	rw1, rw2, err := appnet.OpenPipeConn()
+	rw1, rw2, err := OpenPipeConn()
 	require.NoError(t, err)
 	proto1 := NewProtocol(rw1)
 	proto2 := NewProtocol(rw2)

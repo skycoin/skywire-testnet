@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -156,7 +158,7 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 
 	for _, port := range r.pm.AppPorts(proto) {
 		for _, addr := range r.pm.Close(port) {
-			r.closeLoop(proto, &app.LoopAddr{Port: port, Remote: addr}) // nolint: errcheck
+			r.closeLoop(proto, &app.LoopMeta{LocalPort: port, Remote: addr}) // nolint: errcheck
 		}
 	}
 
@@ -224,7 +226,7 @@ func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
-	raddr := &app.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
+	raddr := &appnet.LoopAddr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 	l, err := r.pm.GetLoop(rule.LocalPort(), raddr)
 	if err != nil {
 		return errors.New("unknown loop")
@@ -235,9 +237,9 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 		return fmt.Errorf("noise: %s", err)
 	}
 
-	p := &app.Packet{Addr: &app.LoopAddr{Port: rule.LocalPort(), Remote: *raddr}, Payload: data}
+	p := &app.DataFrame{Meta: &app.LoopMeta{LocalPort: rule.LocalPort(), Remote: *raddr}, Data: data}
 	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
-	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
+	if err := b.conn.Send(appnet.FrameData, p, nil); err != nil {
 		return err
 	}
 
@@ -245,12 +247,12 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	return nil
 }
 
-func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
-	if packet.Addr.Remote.PubKey == r.config.PubKey {
+func (r *Router) forwardAppPacket(appConn *appnet.Protocol, packet *app.DataFrame) error {
+	if packet.Meta.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
 	}
 
-	l, err := r.pm.GetLoop(packet.Addr.Port, &packet.Addr.Remote)
+	l, err := r.pm.GetLoop(packet.Meta.LocalPort, &packet.Meta.Remote)
 	if err != nil {
 		return err
 	}
@@ -260,29 +262,29 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 		return errors.New("unknown transport")
 	}
 
-	p := routing.MakePacket(l.routeID, l.noise.Encrypt(packet.Payload))
-	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Addr.Port, l.routeID)
+	p := routing.MakePacket(l.routeID, l.noise.Encrypt(packet.Data))
+	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Meta.LocalPort, l.routeID)
 	_, err = tr.Write(p)
 	return err
 }
 
-func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
-	b, err := r.pm.Get(packet.Addr.Remote.Port)
+func (r *Router) forwardLocalAppPacket(packet *app.DataFrame) error {
+	b, err := r.pm.Get(packet.Meta.Remote.Port)
 	if err != nil {
 		return nil
 	}
 
-	p := &app.Packet{
-		Addr: &app.LoopAddr{
-			Port:   packet.Addr.Remote.Port,
-			Remote: app.Addr{PubKey: packet.Addr.Remote.PubKey, Port: packet.Addr.Port},
+	p := &app.DataFrame{
+		Meta: &app.LoopMeta{
+			LocalPort: packet.Meta.Remote.Port,
+			Remote:    appnet.LoopAddr{PubKey: packet.Meta.Remote.PubKey, Port: packet.Meta.LocalPort},
 		},
-		Payload: packet.Payload,
+		Data: packet.Data,
 	}
-	return b.conn.Send(app.FrameSend, p, nil)
+	return b.conn.Send(appnet.FrameData, p, nil)
 }
 
-func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr, error) {
+func (r *Router) requestLoop(appConn *appnet.Protocol, raddr *appnet.LoopAddr) (*appnet.LoopAddr, error) {
 	r.Logger.Infof("Requesting new loop to %s", raddr)
 	nConf := noise.Config{
 		LocalSK:   r.config.SecKey,
@@ -305,7 +307,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 		return nil, err
 	}
 
-	laddr := &app.Addr{PubKey: r.config.PubKey, Port: lport}
+	laddr := &appnet.LoopAddr{PubKey: r.config.PubKey, Port: lport}
 	if raddr.PubKey == r.config.PubKey {
 		if err := r.confirmLocalLoop(laddr, raddr); err != nil {
 			return nil, fmt.Errorf("confirm: %s", err)
@@ -337,22 +339,22 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	return laddr, nil
 }
 
-func (r *Router) confirmLocalLoop(laddr, raddr *app.Addr) error {
+func (r *Router) confirmLocalLoop(laddr, raddr *appnet.LoopAddr) error {
 	b, err := r.pm.Get(raddr.Port)
 	if err != nil {
 		return err
 	}
 
-	addrs := [2]*app.Addr{raddr, laddr}
-	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
+	addrs := [2]*appnet.LoopAddr{raddr, laddr}
+	if err = b.conn.Send(appnet.FrameConfirmLoop, addrs, nil); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule, noiseMsg []byte) ([]byte, error) {
-	b, err := r.pm.Get(addr.Port)
+func (r *Router) confirmLoop(addr *app.LoopMeta, rule routing.Rule, noiseMsg []byte) ([]byte, error) {
+	b, err := r.pm.Get(addr.LocalPort)
 	if err != nil {
 		return nil, err
 	}
@@ -362,19 +364,19 @@ func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule, noiseMsg []b
 		return nil, fmt.Errorf("noise handshake: %s", err)
 	}
 
-	if err := r.pm.SetLoop(addr.Port, &addr.Remote, &loop{rule.TransportID(), rule.RouteID(), ni}); err != nil {
+	if err := r.pm.SetLoop(addr.LocalPort, &addr.Remote, &loop{rule.TransportID(), rule.RouteID(), ni}); err != nil {
 		return nil, err
 	}
 
-	addrs := [2]*app.Addr{&app.Addr{PubKey: r.config.PubKey, Port: addr.Port}, &addr.Remote}
-	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
+	addrs := [2]*appnet.LoopAddr{&appnet.LoopAddr{PubKey: r.config.PubKey, Port: addr.LocalPort}, &addr.Remote}
+	if err = b.conn.Send(appnet.FrameConfirmLoop, addrs, nil); err != nil {
 		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
 	}
 
 	return msg, nil
 }
 
-func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
+func (r *Router) closeLoop(appConn *appnet.Protocol, addr *app.LoopMeta) error {
 	if err := r.destroyLoop(addr); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
@@ -385,7 +387,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
 	}
 	defer tr.Close()
 
-	ld := &setup.LoopData{RemotePK: addr.Remote.PubKey, RemotePort: addr.Remote.Port, LocalPort: addr.Port}
+	ld := &setup.LoopData{RemotePK: addr.Remote.PubKey, RemotePort: addr.Remote.Port, LocalPort: addr.LocalPort}
 	if err := setup.CloseLoop(proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
@@ -394,8 +396,8 @@ func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
 	return nil
 }
 
-func (r *Router) loopClosed(addr *app.LoopAddr) error {
-	b, err := r.pm.Get(addr.Port)
+func (r *Router) loopClosed(addr *app.LoopMeta) error {
+	b, err := r.pm.Get(addr.LocalPort)
 	if err != nil {
 		return nil
 	}
@@ -404,7 +406,7 @@ func (r *Router) loopClosed(addr *app.LoopAddr) error {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
-	if err := b.conn.Send(app.FrameClose, addr, nil); err != nil {
+	if err := b.conn.Send(appnet.FrameCloseLoop, addr, nil); err != nil {
 		return err
 	}
 
@@ -412,15 +414,15 @@ func (r *Router) loopClosed(addr *app.LoopAddr) error {
 	return nil
 }
 
-func (r *Router) destroyLoop(addr *app.LoopAddr) error {
+func (r *Router) destroyLoop(addr *app.LoopMeta) error {
 	r.mu.Lock()
-	_, ok := r.staticPorts[addr.Port]
+	_, ok := r.staticPorts[addr.LocalPort]
 	r.mu.Unlock()
 
 	if ok {
-		r.pm.RemoveLoop(addr.Port, &addr.Remote) // nolint: errcheck
+		r.pm.RemoveLoop(addr.LocalPort, &addr.Remote) // nolint: errcheck
 	} else {
-		r.pm.Close(addr.Port)
+		r.pm.Close(addr.LocalPort)
 	}
 
 	return r.rm.RemoveLoopRule(addr)
@@ -453,9 +455,9 @@ func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (routing.Rou
 	return forwardRoutes[0], reverseRoutes[0], nil
 }
 
-func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni *noise.Noise, noiseRes []byte, err error) {
+func (r *Router) advanceNoiseHandshake(addr *app.LoopMeta, noiseMsg []byte) (ni *noise.Noise, noiseRes []byte, err error) {
 	var l *loop
-	l, _ = r.pm.GetLoop(addr.Port, &addr.Remote) // nolint: errcheck
+	l, _ = r.pm.GetLoop(addr.LocalPort, &addr.Remote) // nolint: errcheck
 
 	if l != nil && l.routeID != 0 {
 		err = errors.New("loop already exist")

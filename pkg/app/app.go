@@ -9,280 +9,209 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os/exec"
-	"path/filepath"
+	"os"
 	"sync"
-	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/appnet"
-
-	"github.com/skycoin/skywire/internal/ioutil"
+	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (
-	// DefaultIn holds value of inFd for Apps setup via Node
-	DefaultIn = uintptr(3)
-
-	// DefaultOut holds value of outFd for Apps setup via Node
-	DefaultOut = uintptr(4)
+	protocolVersion = "0.0.1"
+	configCmdName   = "sw-config"
 )
 
-var log = logging.MustGetLogger("app")
+var (
+	// ErrAppClosed occurs when an action is executed when the app is closed.
+	ErrAppClosed = errors.New("app closed")
 
-// App represents client side in app's client-server communication
-// interface.
-type App struct {
-	config Config
-	proto  *Protocol
+	// for logging.
+	log = logging.MustGetLogger("app")
+)
 
-	acceptChan chan [2]*Addr
-	doneChan   chan struct{}
-
-	conns map[LoopAddr]io.ReadWriteCloser
-	mu    sync.Mutex
+// Meta contains meta data for the app.
+type Meta struct {
+	AppName         string        `json:"app_name"`
+	AppVersion      string        `json:"app_version"`
+	ProtocolVersion string        `json:"protocol_version"`
+	Host            cipher.PubKey `json:"host"`
 }
 
-// Command setups pipe connection and returns *exec.Cmd for an App
-// with initialized connection.
-func Command(config *Config, appsPath string, args []string) (net.Conn, *exec.Cmd, error) {
-	srvConn, clientConn, err := appnet.OpenPipeConn()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open piped connection: %s", err)
+var (
+	_meta     Meta
+	_proto    *appnet.Protocol
+	_acceptCh chan LoopMeta
+	_doneCh   chan struct{}
+	_loops    map[LoopMeta]io.ReadWriteCloser
+	_mu       sync.RWMutex
+)
+
+// Setup initiates the app. Module will hang if Setup() is not run.
+func Setup(appName, appVersion string) {
+	_meta = Meta{
+		AppName:         appName,
+		AppVersion:      appVersion,
+		ProtocolVersion: protocolVersion,
 	}
 
-	binaryPath := filepath.Join(appsPath, fmt.Sprintf("%s.v%s", config.AppName, config.AppVersion))
-	cmd := exec.Command(binaryPath, args...)
-	cmd.ExtraFiles = clientConn.Files()
-
-	return srvConn, cmd, nil
-}
-
-// SetupFromPipe connects to a pipe, starts protocol loop and performs
-// initialization request with the Server.
-func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
-	pipeConn, err := appnet.NewPipeConn(inFD, outFD)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open pipe: %s", err)
+	if len(os.Args) < 2 {
+		log.Fatal("App expects at least 2 arguments")
 	}
 
-	app := &App{
-		config:     *config,
-		proto:      NewProtocol(pipeConn),
-		acceptChan: make(chan [2]*Addr),
-		doneChan:   make(chan struct{}),
-		conns:      make(map[LoopAddr]io.ReadWriteCloser),
-	}
+	// If command is of format: "<exec> sw-config", print json-encoded appnet.Config, otherwise, serve app.
+	if os.Args[1] == configCmdName {
+		if appName != os.Args[0] {
+			log.Fatalf("Registered name '%s' does not match executable name '%s'.", appName, os.Args[0])
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(_meta); err != nil {
+			log.Fatalf("Failed to write to stdout: %s", err.Error())
+		}
+		os.Exit(0)
 
-	go app.handleProto()
-
-	if err := app.proto.Send(FrameInit, config, nil); err != nil {
-		app.Close()
-		return nil, fmt.Errorf("INIT handshake failed: %s", err)
-	}
-
-	return app, nil
-}
-
-// Setup setups app using default pair of pipes
-func Setup(config *Config) (*App, error) {
-	return SetupFromPipe(config, DefaultIn, DefaultOut)
-}
-
-// Close implements io.Closer for an App.
-func (app *App) Close() error {
-	select {
-	case <-app.doneChan: // already closed
-	default:
-		close(app.doneChan)
-	}
-
-	app.mu.Lock()
-	for addr, conn := range app.conns {
-		app.proto.Send(FrameClose, &addr, nil) // nolint: errcheck
-		conn.Close()
-	}
-	app.mu.Unlock()
-
-	return app.proto.Close()
-}
-
-// Accept awaits for incoming loop confirmation request from a Node and
-// returns net.Conn for received loop.
-func (app *App) Accept() (net.Conn, error) {
-	addrs := <-app.acceptChan
-	laddr := addrs[0]
-	raddr := addrs[1]
-
-	addr := &LoopAddr{laddr.Port, *raddr}
-	conn, out := net.Pipe()
-	app.mu.Lock()
-	app.conns[*addr] = conn
-	app.mu.Unlock()
-	go app.serveConn(addr, conn)
-	return newAppConn(out, laddr, raddr), nil
-}
-
-// Dial sends create loop request to a Node and returns net.Conn for created loop.
-func (app *App) Dial(raddr *Addr) (net.Conn, error) {
-	laddr := &Addr{}
-	err := app.proto.Send(FrameCreateLoop, raddr, laddr)
-	if err != nil {
-		return nil, err
-	}
-
-	addr := &LoopAddr{laddr.Port, *raddr}
-	conn, out := net.Pipe()
-	app.mu.Lock()
-	app.conns[*addr] = conn
-	app.mu.Unlock()
-	go app.serveConn(addr, conn)
-	return newAppConn(out, laddr, raddr), nil
-}
-
-// Addr returns empty Addr, implements net.Listener.
-func (app *App) Addr() net.Addr {
-	return &Addr{}
-}
-
-func (app *App) handleProto() {
-	err := app.proto.Serve(func(frame FrameType, payload []byte) (res interface{}, err error) {
-		switch frame {
-		case FrameConfirmLoop:
-			err = app.confirmLoop(payload)
-		case FrameSend:
-			err = app.forwardPacket(payload)
-		case FrameClose:
-			err = app.closeConn(payload)
-		default:
-			err = errors.New("unexpected frame")
+	} else {
+		if err := _meta.Host.Set(os.Args[1]); err != nil {
+			log.Fatalf("host provided invalid public key: %s", err.Error())
 		}
 
-		return res, err
-	})
-
-	if err != nil {
-		return
-	}
-}
-
-func (app *App) serveConn(addr *LoopAddr, conn io.ReadWriteCloser) {
-	for {
-		buf := make([]byte, 32*1024)
-		n, err := conn.Read(buf)
+		pipeConn, err := appnet.NewPipeConn(appnet.DefaultIn, appnet.DefaultOut)
 		if err != nil {
-			break
+			log.Fatalf("Setup failed to open pipe: %s", err.Error())
 		}
 
-		packet := &Packet{Addr: addr, Payload: buf[:n]}
-		if err := app.proto.Send(FrameSend, packet, nil); err != nil {
-			break
+		_proto = appnet.NewProtocol(pipeConn)
+		_acceptCh = make(chan LoopMeta)
+		_doneCh = make(chan struct{})
+		_loops = make(map[LoopMeta]io.ReadWriteCloser)
+
+		// used to obtain host's public key.
+		pkCh := make(chan cipher.PubKey, 1)
+
+		// Serve the connection between host and this App.
+		go func() {
+			if err := serveHostConn(); err != nil {
+				log.Fatalf("Error: %s", err.Error())
+			}
+		}()
+
+		// obtain the host's public key before finishing setup.
+		_meta.Host = <-pkCh
+		close(pkCh)
+	}
+}
+
+// this serves the connection between the host and this App.
+func serveHostConn() error {
+
+	handleConfirmLoop := func(lm LoopMeta) error {
+		_mu.Lock()
+		_, ok := _loops[lm]
+		_mu.Unlock()
+		if !ok {
+			return errors.New("loop is already created")
 		}
-	}
-
-	if app.conns[*addr] != nil {
-		app.proto.Send(FrameClose, &addr, nil) // nolint: errcheck
-	}
-
-	app.mu.Lock()
-	delete(app.conns, *addr)
-	app.mu.Unlock()
-}
-
-func (app *App) forwardPacket(data []byte) error {
-	packet := &Packet{}
-	if err := json.Unmarshal(data, packet); err != nil {
-		return err
-	}
-
-	app.mu.Lock()
-	conn := app.conns[*packet.Addr]
-	app.mu.Unlock()
-
-	if conn == nil {
-		return errors.New("no listeners")
-	}
-
-	_, err := conn.Write(packet.Payload)
-	return err
-}
-
-func (app *App) closeConn(data []byte) error {
-	addr := &LoopAddr{}
-	if err := json.Unmarshal(data, addr); err != nil {
-		return err
-	}
-
-	app.mu.Lock()
-	conn := app.conns[*addr]
-	delete(app.conns, *addr)
-	app.mu.Unlock()
-
-	if conn == nil {
+		select {
+		case _acceptCh <- lm:
+		default:
+		}
 		return nil
 	}
 
-	return conn.Close()
-}
+	handleCloseLoop := func(lm LoopMeta) error {
+		_mu.Lock()
+		conn, ok := _loops[lm]
+		_mu.Unlock()
+		if !ok {
+			return nil
+		}
+		delete(_loops, lm)
+		return conn.Close()
+	}
 
-func (app *App) confirmLoop(data []byte) error {
-	addrs := [2]*Addr{}
-	if err := json.Unmarshal(data, &addrs); err != nil {
+	handleData := func(df DataFrame) error {
+		_mu.Lock()
+		conn, ok := _loops[df.Meta]
+		_mu.Unlock()
+		if !ok {
+			return fmt.Errorf("received packet is directed at non-existent loop: %v", df.Meta)
+		}
+		_, err := conn.Write(df.Data)
 		return err
 	}
 
-	laddr := addrs[0]
-	raddr := addrs[1]
+	return _proto.Serve(func(t appnet.FrameType, bytes []byte) (interface{}, error) {
+		switch t {
+		case appnet.FrameConfirmLoop:
+			var lm LoopMeta
+			if err := json.Unmarshal(bytes, &lm); err != nil {
+				return nil, err
+			}
+			return nil, handleConfirmLoop(lm)
 
-	app.mu.Lock()
-	conn := app.conns[LoopAddr{laddr.Port, *raddr}]
-	app.mu.Unlock()
+		case appnet.FrameCloseLoop:
+			var lm LoopMeta
+			if err := json.Unmarshal(bytes, &lm); err != nil {
+				return nil, err
+			}
+			return nil, handleCloseLoop(lm)
 
-	if conn != nil {
-		return errors.New("loop is already created")
-	}
+		case appnet.FrameData:
+			var df DataFrame
+			if err := json.Unmarshal(bytes, &df); err != nil {
+				return nil, err
+			}
+			return nil, handleData(df)
 
+		default:
+			return nil, errors.New("unexpected frame type")
+		}
+	})
+}
+
+// Close closes the app.
+func Close() error {
 	select {
-	case app.acceptChan <- addrs:
+	case <-_doneCh:
+		return ErrAppClosed
 	default:
 	}
 
-	return nil
+	_mu.Lock()
+	for addr, l := range _loops {
+		_ = _proto.Send(appnet.FrameCloseLoop, &addr, nil) //nolint:errcheck
+		_ = l.Close()
+	}
+	_mu.Unlock()
+
+	return _proto.Close()
 }
 
-type appConn struct {
-	net.Conn
-	rw    *ioutil.AckReadWriter
-	laddr *Addr
-	raddr *Addr
-}
+// Info obtains meta information of the App.
+func Info() Meta { return _meta }
 
-func newAppConn(conn net.Conn, laddr, raddr *Addr) *appConn {
-	return &appConn{
-		Conn:  conn,
-		rw:    ioutil.NewAckReadWriter(conn, 100*time.Millisecond),
-		laddr: laddr,
-		raddr: raddr,
+// Accept awaits for incoming loop confirmation request from a Node and returns net.Conn for received loop.
+func Accept() (net.Conn, error) {
+	select {
+	case <-_doneCh:
+		return nil, ErrAppClosed
+	case lm := <-_acceptCh:
+		return newLoopConn(lm), nil
 	}
 }
 
-func (conn *appConn) LocalAddr() net.Addr {
-	return conn.laddr
-}
+// Dial sends create loop request to a Node and returns net.Conn for created loop.
+func Dial(remoteAddr LoopAddr) (net.Conn, error) {
+	select {
+	case <-_doneCh:
+		return nil, ErrAppClosed
+	default:
+	}
 
-func (conn *appConn) RemoteAddr() net.Addr {
-	return conn.raddr
-}
-
-func (conn *appConn) Write(p []byte) (n int, err error) {
-	return conn.rw.Write(p)
-}
-
-func (conn *appConn) Read(p []byte) (n int, err error) {
-	return conn.rw.Read(p)
-}
-
-func (conn *appConn) Close() error {
-	return conn.rw.Close()
+	var localAddr LoopAddr
+	if err := _proto.Send(appnet.FrameCreateLoop, remoteAddr, localAddr); err != nil {
+		return nil, err
+	}
+	lm := LoopMeta{Local: localAddr, Remote: remoteAddr}
+	return newLoopConn(lm), nil
 }

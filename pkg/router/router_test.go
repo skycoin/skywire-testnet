@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,11 +125,11 @@ func TestRouterAppInit(t *testing.T) {
 		errCh <- r.ServeApp(rwIn, 10, &app.Config{AppName: "foo", AppVersion: "0.0.1"})
 	}()
 
-	proto := app.NewProtocol(rw)
+	proto := appnet.NewProtocol(rw)
 	go proto.Serve(nil) // nolint: errcheck
 
-	require.NoError(t, proto.Send(app.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
-	require.Error(t, proto.Send(app.FrameInit, &app.Config{AppName: "foo1", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
+	require.NoError(t, proto.Send(appnet.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
+	require.Error(t, proto.Send(appnet.FrameInit, &app.Config{AppName: "foo1", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
 
 	require.NoError(t, proto.Close())
 	require.NoError(t, r.Close())
@@ -169,9 +171,9 @@ func TestRouterApp(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 6, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
+	proto := appnet.NewProtocol(rw)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -186,11 +188,11 @@ func TestRouterApp(t *testing.T) {
 	require.NoError(t, err)
 
 	ni1, ni2 := noiseInstances(t, pk1, pk2, sk1, sk2)
-	raddr := &app.Addr{PubKey: pk2, Port: 5}
+	raddr := &appnet.LoopAddr{PubKey: pk2, Port: 5}
 	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.ID, 4, ni1}))
 
 	tr2 := m2.Transport(tr.ID)
-	go proto.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 6, Remote: *raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
+	go proto.Send(appnet.FrameData, &app.DataFrame{Meta: &app.LoopMeta{LocalPort: 6, Remote: *raddr}, Data: []byte("bar")}, nil) // nolint: errcheck
 
 	packet := make(routing.Packet, 25)
 	_, err = tr2.Read(packet)
@@ -206,12 +208,12 @@ func TestRouterApp(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	aPacket := &app.Packet{}
+	aPacket := &app.DataFrame{}
 	require.NoError(t, json.Unmarshal(<-dataCh, aPacket))
-	assert.Equal(t, pk2, aPacket.Addr.Remote.PubKey)
-	assert.Equal(t, uint16(5), aPacket.Addr.Remote.Port)
-	assert.Equal(t, uint16(6), aPacket.Addr.Port)
-	assert.Equal(t, []byte("foo"), aPacket.Payload)
+	assert.Equal(t, pk2, aPacket.Meta.Remote.PubKey)
+	assert.Equal(t, uint16(5), aPacket.Meta.Remote.Port)
+	assert.Equal(t, uint16(6), aPacket.Meta.LocalPort)
+	assert.Equal(t, []byte("foo"), aPacket.Data)
 
 	require.NoError(t, r.Close())
 	require.NoError(t, <-errCh)
@@ -240,29 +242,29 @@ func TestRouterLocalApp(t *testing.T) {
 
 	rw1, rw1In := net.Pipe()
 	go r.ServeApp(rw1In, 5, &app.Config{}) // nolint: errcheck
-	proto1 := app.NewProtocol(rw1)
+	proto1 := appnet.NewProtocol(rw1)
 	go proto1.Serve(nil) // nolint: errcheck
 
 	rw2, rw2In := net.Pipe()
 	go r.ServeApp(rw2In, 6, &app.Config{}) // nolint: errcheck
-	proto2 := app.NewProtocol(rw2)
+	proto2 := appnet.NewProtocol(rw2)
 	dataCh := make(chan []byte)
-	go proto2.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto2.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
 
-	go proto1.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 5, Remote: app.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo")}, nil) // nolint: errcheck
+	go proto1.Send(appnet.FrameData, &app.DataFrame{Meta: &app.LoopMeta{LocalPort: 5, Remote: appnet.LoopAddr{PubKey: pk, Port: 6}}, Data: []byte("foo")}, nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
-	packet := &app.Packet{}
+	packet := &app.DataFrame{}
 	require.NoError(t, json.Unmarshal(<-dataCh, packet))
 	require.NoError(t, err)
-	assert.Equal(t, pk, packet.Addr.Remote.PubKey)
-	assert.Equal(t, uint16(5), packet.Addr.Remote.Port)
-	assert.Equal(t, uint16(6), packet.Addr.Port)
-	assert.Equal(t, []byte("foo"), packet.Payload)
+	assert.Equal(t, pk, packet.Meta.Remote.PubKey)
+	assert.Equal(t, uint16(5), packet.Meta.Remote.Port)
+	assert.Equal(t, uint16(6), packet.Meta.LocalPort)
+	assert.Equal(t, []byte("foo"), packet.Data)
 
 	require.NoError(t, r.Close())
 	require.NoError(t, <-errCh)
@@ -306,17 +308,17 @@ func TestRouterSetup(t *testing.T) {
 
 	rw1, rwIn1 := net.Pipe()
 	go r.ServeApp(rwIn1, 2, &app.Config{}) // nolint: errcheck
-	proto1 := app.NewProtocol(rw1)
+	proto1 := appnet.NewProtocol(rw1)
 	dataCh := make(chan []byte)
-	go proto1.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto1.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
 
 	rw2, rwIn2 := net.Pipe()
 	go r.ServeApp(rwIn2, 4, &app.Config{}) // nolint: errcheck
-	proto2 := app.NewProtocol(rw2)
-	go proto2.Serve(func(_ app.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	proto2 := appnet.NewProtocol(rw2)
+	go proto2.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -358,13 +360,13 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, routeID, rule.RouteID())
 		_, err = r.pm.Get(2)
 		require.NoError(t, err)
-		loop, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
+		loop, err := r.pm.GetLoop(2, &appnet.LoopAddr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, loop)
 		assert.Equal(t, tr.ID, loop.trID)
 		assert.Equal(t, routing.RouteID(2), loop.routeID)
 
-		addrs := [2]*app.Addr{}
+		addrs := [2]*appnet.LoopAddr{}
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
@@ -403,7 +405,7 @@ func TestRouterSetup(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		require.NoError(t, r.pm.SetLoop(4, &app.Addr{PubKey: pk2, Port: 3}, &loop{noise: ni}))
+		require.NoError(t, r.pm.SetLoop(4, &appnet.LoopAddr{PubKey: pk2, Port: 3}, &loop{noise: ni}))
 
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
 		require.NoError(t, err)
@@ -414,13 +416,13 @@ func TestRouterSetup(t *testing.T) {
 		rule, err := rt.Rule(appRouteID)
 		require.NoError(t, err)
 		assert.Equal(t, routeID, rule.RouteID())
-		l, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
+		l, err := r.pm.GetLoop(2, &appnet.LoopAddr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, l)
 		assert.Equal(t, tr.ID, l.trID)
 		assert.Equal(t, routing.RouteID(2), l.routeID)
 
-		addrs := [2]*app.Addr{}
+		addrs := [2]*appnet.LoopAddr{}
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
@@ -438,7 +440,7 @@ func TestRouterSetup(t *testing.T) {
 		require.NoError(t, setup.LoopClosed(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4}))
 		time.Sleep(100 * time.Millisecond)
 
-		_, err = r.pm.GetLoop(4, &app.Addr{PubKey: pk2, Port: 3})
+		_, err = r.pm.GetLoop(4, &appnet.LoopAddr{PubKey: pk2, Port: 3})
 		require.Error(t, err)
 		_, err = r.pm.Get(4)
 		require.NoError(t, err)
@@ -518,14 +520,14 @@ func TestRouterSetupLoop(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
+	proto := appnet.NewProtocol(rw)
 	go proto.Serve(nil) // nolint: errcheck
 
-	addr := &app.Addr{}
-	require.NoError(t, proto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk2, Port: 6}, addr))
+	addr := &appnet.LoopAddr{}
+	require.NoError(t, proto.Send(appnet.FrameCreateLoop, &appnet.LoopAddr{PubKey: pk2, Port: 6}, addr))
 
 	require.NoError(t, <-errCh)
-	ll, err := r.pm.GetLoop(10, &app.Addr{PubKey: pk2, Port: 6})
+	ll, err := r.pm.GetLoop(10, &appnet.LoopAddr{PubKey: pk2, Port: 6})
 	require.NoError(t, err)
 	require.NotNil(t, ll)
 	require.NotNil(t, ll.noise)
@@ -545,13 +547,13 @@ func TestRouterSetupLoopLocal(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
+	proto := appnet.NewProtocol(rw)
 	go proto.Serve(nil) // nolint: errcheck
 
-	addr := &app.Addr{}
-	require.NoError(t, proto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk, Port: 5}, addr))
+	addr := &appnet.LoopAddr{}
+	require.NoError(t, proto.Send(appnet.FrameCreateLoop, &appnet.LoopAddr{PubKey: pk, Port: 5}, addr))
 
-	ll, err := r.pm.GetLoop(10, &app.Addr{PubKey: pk, Port: 5})
+	ll, err := r.pm.GetLoop(10, &appnet.LoopAddr{PubKey: pk, Port: 5})
 	require.NoError(t, err)
 	require.NotNil(t, ll)
 
@@ -624,20 +626,20 @@ func TestRouterCloseLoop(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
+	proto := appnet.NewProtocol(rw)
 	go proto.Serve(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
-	raddr := &app.Addr{PubKey: pk3, Port: 6}
+	raddr := &appnet.LoopAddr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
-	require.NoError(t, proto.Send(app.FrameClose, &app.LoopAddr{Port: 5, Remote: *raddr}, nil))
+	require.NoError(t, proto.Send(appnet.FrameCloseLoop, &app.LoopMeta{LocalPort: 5, Remote: *raddr}, nil))
 
 	time.Sleep(100 * time.Millisecond)
 
 	require.NoError(t, <-errCh)
-	_, err = r.pm.GetLoop(5, &app.Addr{PubKey: pk3, Port: 6})
+	_, err = r.pm.GetLoop(5, &appnet.LoopAddr{PubKey: pk3, Port: 6})
 	require.Error(t, err)
 	_, err = r.pm.Get(5)
 	require.NoError(t, err)
@@ -712,12 +714,12 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
+	proto := appnet.NewProtocol(rw)
 	go proto.Serve(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
-	raddr := &app.Addr{PubKey: pk3, Port: 6}
+	raddr := &appnet.LoopAddr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
 	require.NoError(t, rw.Close())
@@ -798,12 +800,12 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
+	proto := appnet.NewProtocol(rw)
 	go proto.Serve(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
-	raddr := &app.Addr{PubKey: pk3, Port: 6}
+	raddr := &appnet.LoopAddr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
 	require.NoError(t, r.Close())

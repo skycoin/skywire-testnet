@@ -7,6 +7,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
@@ -15,8 +17,8 @@ import (
 )
 
 type setupCallbacks struct {
-	ConfirmLoop func(addr *app.LoopAddr, rule routing.Rule, noiseMsg []byte) (noiseRes []byte, err error)
-	LoopClosed  func(addr *app.LoopAddr) error
+	ConfirmLoop func(addr *app.LoopMeta, rule routing.Rule, noiseMsg []byte) (noiseRes []byte, err error)
+	LoopClosed  func(addr *app.LoopMeta) error
 }
 
 type routeManager struct {
@@ -43,12 +45,12 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 	return rule, nil
 }
 
-func (rm *routeManager) RemoveLoopRule(addr *app.LoopAddr) error {
+func (rm *routeManager) RemoveLoopRule(addr *app.LoopMeta) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rule.Type() != routing.RuleApp || rule.RemotePK() != addr.Remote.PubKey ||
-			rule.RemotePort() != addr.Remote.Port || rule.LocalPort() != addr.Port {
+			rule.RemotePort() != addr.Remote.Port || rule.LocalPort() != addr.LocalPort {
 			return true
 		}
 
@@ -146,7 +148,7 @@ func (rm *routeManager) confirmLoop(data []byte) (noiseRes []byte, err error) {
 		return
 	}
 
-	raddr := &app.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
+	raddr := &appnet.LoopAddr{PubKey: ld.RemotePK, Port: ld.RemotePort}
 
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
@@ -182,7 +184,7 @@ func (rm *routeManager) confirmLoop(data []byte) (noiseRes []byte, err error) {
 		return
 	}
 
-	msg, err := rm.callbacks.ConfirmLoop(&app.LoopAddr{Port: ld.LocalPort, Remote: *raddr}, rule, ld.NoiseMessage)
+	msg, err := rm.callbacks.ConfirmLoop(&app.LoopMeta{LocalPort: ld.LocalPort, Remote: *raddr}, rule, ld.NoiseMessage)
 	if err != nil {
 		err = fmt.Errorf("confirm: %s", err)
 		return
@@ -205,7 +207,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 		return err
 	}
 
-	raddr := &app.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
-	addr := &app.LoopAddr{Port: ld.LocalPort, Remote: *raddr}
+	raddr := &appnet.LoopAddr{PubKey: ld.RemotePK, Port: ld.RemotePort}
+	addr := &app.LoopMeta{LocalPort: ld.LocalPort, Remote: *raddr}
 	return rm.callbacks.LoopClosed(addr)
 }

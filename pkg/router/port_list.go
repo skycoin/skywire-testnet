@@ -4,11 +4,11 @@ import (
 	"math"
 	"sync"
 
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/internal/appnet"
 )
 
 type portBind struct {
-	conn  *app.Protocol
+	conn  *appnet.Protocol
 	loops *loopList
 }
 

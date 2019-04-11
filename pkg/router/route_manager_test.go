@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/google/uuid"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -48,11 +50,11 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 	_, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
-	addr := &app.LoopAddr{Port: 3, Remote: app.Addr{PubKey: pk, Port: 3}}
+	addr := &app.LoopMeta{LocalPort: 3, Remote: appnet.LoopAddr{PubKey: pk, Port: 3}}
 	require.NoError(t, rm.RemoveLoopRule(addr))
 	assert.Equal(t, 1, rt.Count())
 
-	addr = &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}
+	addr = &app.LoopMeta{LocalPort: 2, Remote: appnet.LoopAddr{PubKey: pk, Port: 3}}
 	require.NoError(t, rm.RemoveLoopRule(addr))
 	assert.Equal(t, 0, rt.Count())
 }
@@ -121,11 +123,11 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 
 func TestRouteManagerConfirmLoop(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	var inAddr *app.LoopAddr
+	var inAddr *app.LoopMeta
 	var inRule routing.Rule
 	var noiseMsg []byte
 	callbacks := &setupCallbacks{
-		ConfirmLoop: func(addr *app.LoopAddr, rule routing.Rule, nMsg []byte) (noiseRes []byte, err error) {
+		ConfirmLoop: func(addr *app.LoopMeta, rule routing.Rule, nMsg []byte) (noiseRes []byte, err error) {
 			inAddr = addr
 			inRule = rule
 			noiseMsg = nMsg
@@ -160,7 +162,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	assert.Equal(t, []byte("foo"), noiseRes)
 	assert.Equal(t, []byte("bar"), noiseMsg)
 	assert.Equal(t, rule, inRule)
-	assert.Equal(t, uint16(2), inAddr.Port)
+	assert.Equal(t, uint16(2), inAddr.LocalPort)
 	assert.Equal(t, uint16(3), inAddr.Remote.Port)
 	assert.Equal(t, pk, inAddr.Remote.PubKey)
 
@@ -170,9 +172,9 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 
 func TestRouteManagerLoopClosed(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	var inAddr *app.LoopAddr
+	var inAddr *app.LoopMeta
 	callbacks := &setupCallbacks{
-		LoopClosed: func(addr *app.LoopAddr) error {
+		LoopClosed: func(addr *app.LoopMeta) error {
 			inAddr = addr
 			return nil
 		},
@@ -203,7 +205,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 		NoiseMessage: []byte("bar"),
 	}
 	require.NoError(t, setup.LoopClosed(proto, ld))
-	assert.Equal(t, uint16(2), inAddr.Port)
+	assert.Equal(t, uint16(2), inAddr.LocalPort)
 	assert.Equal(t, uint16(3), inAddr.Remote.Port)
 	assert.Equal(t, pk, inAddr.Remote.PubKey)
 

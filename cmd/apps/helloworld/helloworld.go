@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
 )
@@ -46,7 +48,7 @@ func main() {
 		log.Fatal("Failed to construct PubKey: ", err, os.Args[1])
 	}
 
-	conn, err := helloworldApp.Dial(&app.Addr{PubKey: remotePK, Port: 10})
+	conn, err := helloworldApp.Dial(&appnet.LoopAddr{PubKey: remotePK, Port: 10})
 	if err != nil {
 		log.Fatal("Failed to open remote conn: ", err)
 	}

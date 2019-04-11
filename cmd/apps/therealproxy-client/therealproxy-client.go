@@ -7,6 +7,8 @@ import (
 	"flag"
 	"log"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -35,7 +37,7 @@ func main() {
 		log.Fatal("Invalid server PubKey: ", err)
 	}
 
-	conn, err := socksApp.Dial(&app.Addr{PubKey: pk, Port: uint16(socksPort)})
+	conn, err := socksApp.Dial(&appnet.LoopAddr{PubKey: pk, Port: uint16(socksPort)})
 	if err != nil {
 		log.Fatal("Failed to dial to a server: ", err)
 	}

@@ -4,6 +4,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,7 @@ func TestAppManagerInit(t *testing.T) {
 	in, out := net.Pipe()
 	am := &appManager{
 		logging.MustGetLogger("routesetup"),
-		app.NewProtocol(out),
+		appnet.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		nil,
 	}
@@ -24,7 +26,7 @@ func TestAppManagerInit(t *testing.T) {
 	srvCh := make(chan error)
 	go func() { srvCh <- am.Serve() }()
 
-	proto := app.NewProtocol(in)
+	proto := appnet.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
 
 	tcs := []struct {
@@ -38,13 +40,13 @@ func TestAppManagerInit(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.err, func(t *testing.T) {
-			err := proto.Send(app.FrameInit, tc.conf, nil)
+			err := proto.Send(appnet.FrameInit, tc.conf, nil)
 			require.Error(t, err)
 			assert.Equal(t, tc.err, err.Error())
 		})
 	}
 
-	err := proto.Send(app.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil)
+	err := proto.Send(appnet.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil)
 	require.NoError(t, err)
 
 	require.NoError(t, in.Close())
@@ -55,10 +57,10 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	in, out := net.Pipe()
 	am := &appManager{
 		logging.MustGetLogger("routesetup"),
-		app.NewProtocol(out),
+		appnet.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			CreateLoop: func(conn *app.Protocol, raddr *app.Addr) (laddr *app.Addr, err error) {
+			CreateLoop: func(conn *appnet.Protocol, raddr *appnet.LoopAddr) (laddr *appnet.LoopAddr, err error) {
 				return raddr, nil
 			},
 		},
@@ -67,13 +69,13 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	srvCh := make(chan error)
 	go func() { srvCh <- am.Serve() }()
 
-	proto := app.NewProtocol(in)
+	proto := appnet.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
 
-	var laddr *app.Addr
+	var laddr *appnet.LoopAddr
 	pk, _ := cipher.GenerateKeyPair()
-	raddr := &app.Addr{PubKey: pk, Port: 3}
-	err := proto.Send(app.FrameCreateLoop, raddr, &laddr)
+	raddr := &appnet.LoopAddr{PubKey: pk, Port: 3}
+	err := proto.Send(appnet.FrameCreateLoop, raddr, &laddr)
 	require.NoError(t, err)
 	assert.Equal(t, raddr, laddr)
 
@@ -83,13 +85,13 @@ func TestAppManagerSetupLoop(t *testing.T) {
 
 func TestAppManagerCloseLoop(t *testing.T) {
 	in, out := net.Pipe()
-	var inAddr *app.LoopAddr
+	var inAddr *app.LoopMeta
 	am := &appManager{
 		logging.MustGetLogger("routesetup"),
-		app.NewProtocol(out),
+		appnet.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			CloseLoop: func(conn *app.Protocol, addr *app.LoopAddr) error {
+			CloseLoop: func(conn *appnet.Protocol, addr *app.LoopMeta) error {
 				inAddr = addr
 				return nil
 			},
@@ -99,12 +101,12 @@ func TestAppManagerCloseLoop(t *testing.T) {
 	srvCh := make(chan error)
 	go func() { srvCh <- am.Serve() }()
 
-	proto := app.NewProtocol(in)
+	proto := appnet.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
 
 	pk, _ := cipher.GenerateKeyPair()
-	addr := &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}
-	err := proto.Send(app.FrameClose, addr, nil)
+	addr := &app.LoopMeta{LocalPort: 2, Remote: appnet.LoopAddr{PubKey: pk, Port: 3}}
+	err := proto.Send(appnet.FrameCloseLoop, addr, nil)
 	require.NoError(t, err)
 	assert.Equal(t, addr, inAddr)
 
@@ -114,13 +116,13 @@ func TestAppManagerCloseLoop(t *testing.T) {
 
 func TestAppManagerForward(t *testing.T) {
 	in, out := net.Pipe()
-	var inPacket *app.Packet
+	var inPacket *app.DataFrame
 	am := &appManager{
 		logging.MustGetLogger("routesetup"),
-		app.NewProtocol(out),
+		appnet.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			Forward: func(conn *app.Protocol, packet *app.Packet) error {
+			Forward: func(conn *appnet.Protocol, packet *app.DataFrame) error {
 				inPacket = packet
 				return nil
 			},
@@ -130,12 +132,12 @@ func TestAppManagerForward(t *testing.T) {
 	srvCh := make(chan error)
 	go func() { srvCh <- am.Serve() }()
 
-	proto := app.NewProtocol(in)
+	proto := appnet.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
 
 	pk, _ := cipher.GenerateKeyPair()
-	packet := &app.Packet{Payload: []byte("foo"), Addr: &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}}
-	err := proto.Send(app.FrameSend, packet, nil)
+	packet := &app.DataFrame{Data: []byte("foo"), Meta: &app.LoopMeta{LocalPort: 2, Remote: appnet.LoopAddr{PubKey: pk, Port: 3}}}
+	err := proto.Send(appnet.FrameData, packet, nil)
 	require.NoError(t, err)
 	assert.Equal(t, packet, inPacket)
 

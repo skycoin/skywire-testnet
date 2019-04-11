@@ -5,12 +5,12 @@ import (
 	"net"
 	"testing"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-
-	"github.com/skycoin/skywire/pkg/app"
 )
 
 func TestServerOpenChannel(t *testing.T) {
@@ -20,7 +20,7 @@ func TestServerOpenChannel(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- s.OpenChannel(&app.Addr{PubKey: cipher.PubKey{}, Port: Port}, 4, in)
+		errCh <- s.OpenChannel(&appnet.LoopAddr{PubKey: cipher.PubKey{}, Port: Port}, 4, in)
 	}()
 
 	buf := make([]byte, 18)
@@ -32,7 +32,7 @@ func TestServerOpenChannel(t *testing.T) {
 	assert.Equal(t, []byte("unauthorised"), buf[6:])
 
 	go func() {
-		errCh <- s.OpenChannel(&app.Addr{PubKey: pk, Port: Port}, 4, in)
+		errCh <- s.OpenChannel(&appnet.LoopAddr{PubKey: pk, Port: Port}, 4, in)
 	}()
 
 	buf = make([]byte, 10)
@@ -53,7 +53,7 @@ func TestServerHandleRequest(t *testing.T) {
 	assert.Equal(t, "channel is not opened", err.Error())
 
 	in, out := net.Pipe()
-	ch := OpenChannel(4, &app.Addr{PubKey: pk, Port: Port}, in)
+	ch := OpenChannel(4, &appnet.LoopAddr{PubKey: pk, Port: Port}, in)
 	s.chans.add(ch)
 
 	errCh := make(chan error)
@@ -86,7 +86,7 @@ func TestServerHandleData(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, "channel is not opened", err.Error())
 
-	ch := OpenChannel(4, &app.Addr{PubKey: pk, Port: Port}, nil)
+	ch := OpenChannel(4, &appnet.LoopAddr{PubKey: pk, Port: Port}, nil)
 	s.chans.add(ch)
 
 	err = s.HandleData(cipher.PubKey{}, 0, []byte("foo"))

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
@@ -12,30 +14,30 @@ import (
 const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
-	CreateLoop func(conn *app.Protocol, raddr *app.Addr) (laddr *app.Addr, err error)
-	CloseLoop  func(conn *app.Protocol, addr *app.LoopAddr) error
-	Forward    func(conn *app.Protocol, packet *app.Packet) error
+	CreateLoop func(conn *appnet.Protocol, raddr *appnet.LoopAddr) (laddr *appnet.LoopAddr, err error)
+	CloseLoop  func(conn *appnet.Protocol, addr *app.LoopMeta) error
+	Forward    func(conn *appnet.Protocol, packet *app.DataFrame) error
 }
 
 type appManager struct {
 	Logger *logging.Logger
 
-	proto     *app.Protocol
+	proto     *appnet.Protocol
 	appConf   *app.Config
 	callbacks *appCallbacks
 }
 
 func (am *appManager) Serve() error {
-	return am.proto.Serve(func(frame app.FrameType, payload []byte) (res interface{}, err error) {
+	return am.proto.Serve(func(frame appnet.FrameType, payload []byte) (res interface{}, err error) {
 		am.Logger.Infof("Got new App request with type %s: %s", frame, string(payload))
 		switch frame {
-		case app.FrameInit:
+		case appnet.FrameInit:
 			err = am.initApp(payload)
-		case app.FrameCreateLoop:
+		case appnet.FrameCreateLoop:
 			res, err = am.setupLoop(payload)
-		case app.FrameClose:
+		case appnet.FrameCloseLoop:
 			err = am.handleCloseLoop(payload)
-		case app.FrameSend:
+		case appnet.FrameData:
 			err = am.forwardAppPacket(payload)
 		default:
 			err = errors.New("unexpected frame")
@@ -71,8 +73,8 @@ func (am *appManager) initApp(payload []byte) error {
 	return nil
 }
 
-func (am *appManager) setupLoop(payload []byte) (*app.Addr, error) {
-	raddr := &app.Addr{}
+func (am *appManager) setupLoop(payload []byte) (*appnet.LoopAddr, error) {
+	raddr := &appnet.LoopAddr{}
 	if err := json.Unmarshal(payload, raddr); err != nil {
 		return nil, err
 	}
@@ -81,7 +83,7 @@ func (am *appManager) setupLoop(payload []byte) (*app.Addr, error) {
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {
-	addr := &app.LoopAddr{}
+	addr := &app.LoopMeta{}
 	if err := json.Unmarshal(payload, addr); err != nil {
 		return err
 	}
@@ -90,7 +92,7 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {
-	packet := &app.Packet{}
+	packet := &app.DataFrame{}
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err
 	}

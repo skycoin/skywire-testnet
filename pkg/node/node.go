@@ -70,7 +70,7 @@ type appBind struct {
 type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
-	ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
+	ServeApp(conn net.Conn, port uint16, appMeta *app.Meta) error
 }
 
 // Node provides messaging runtime for Apps by setting up all
@@ -278,11 +278,11 @@ func (node *Node) Close() (err error) {
 
 // Apps returns list of AppStates for all registered apps.
 func (node *Node) Apps() []*AppState {
-	res := []*AppState{}
-	for _, app := range node.appsConf {
-		state := &AppState{app.App, app.AutoStart, app.Port, AppStatusStopped}
+	var res []*AppState
+	for _, appConf := range node.appsConf {
+		state := &AppState{appConf.App, appConf.AutoStart, appConf.Port, AppStatusStopped}
 		node.startedMu.RLock()
-		if node.startedApps[app.App] != nil {
+		if node.startedApps[appConf.App] != nil {
 			state.Status = AppStatusRunning
 		}
 		node.startedMu.RUnlock()
@@ -295,11 +295,11 @@ func (node *Node) Apps() []*AppState {
 
 // StartApp starts registered App.
 func (node *Node) StartApp(appName string) error {
-	for _, app := range node.appsConf {
-		if app.App == appName {
+	for _, appConf := range node.appsConf {
+		if appConf.App == appName {
 			startCh := make(chan struct{})
 			go func() {
-				if err := node.SpawnApp(&app, startCh); err != nil {
+				if err := node.SpawnApp(&appConf, startCh); err != nil {
 					node.logger.Warnf("Failed to start app %s: %s", appName, err)
 				}
 			}()
@@ -315,24 +315,21 @@ func (node *Node) StartApp(appName string) error {
 // SpawnApp configures and starts new App.
 func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 	node.logger.Infof("Starting %s.v%s", config.App, config.Version)
-	conn, cmd, err := app.Command(
-		&app.Config{ProtocolVersion: supportedProtocolVersion, AppName: config.App, AppVersion: config.Version},
-		node.appsPath,
-		config.Args,
-	)
+
+	host, err := app.NewHost(node.config.Node.StaticPubKey, filepath.Join(node.appsPath, config.App), config.Args)
 	if err != nil {
 		return fmt.Errorf("failed to initialise App server: %s", err)
 	}
 
-	bind := &appBind{conn, -1}
-	if app, ok := reservedPorts[config.Port]; ok && app != config.App {
+	bind := &appBind{conn: host.Conn, pid: -1}
+	if appName, ok := reservedPorts[config.Port]; ok && appName != config.App {
 		return fmt.Errorf("can't bind to reserved port %d", config.Port)
 	}
 
 	node.startedMu.Lock()
 	if node.startedApps[config.App] != nil {
 		node.startedMu.Unlock()
-		return fmt.Errorf("App %s is already started", config.App)
+		return fmt.Errorf("app %s is already started", config.App)
 	}
 
 	node.startedApps[config.App] = bind
@@ -342,16 +339,16 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 	logger := node.logger.WithField("_module", fmt.Sprintf("%s.v%s", config.App, config.Version)).Writer()
 	defer logger.Close()
 
-	cmd.Stdout = logger
-	cmd.Stderr = logger
-	cmd.Dir = filepath.Join(node.localPath, config.App, fmt.Sprintf("v%s", config.Version))
-	if _, err := ensureDir(cmd.Dir); err != nil {
+	host.Cmd.Stdout = logger
+	host.Cmd.Stderr = logger
+	host.Cmd.Dir = filepath.Join(node.localPath, config.App, fmt.Sprintf("v%s", config.Version))
+	if _, err := ensureDir(host.Cmd.Dir); err != nil {
 		return err
 	}
 
 	appCh := make(chan error)
 	go func() {
-		pid, err := node.executer.Start(cmd)
+		pid, err := node.executer.Start(host.Cmd)
 		if err != nil {
 			appCh <- err
 			return
@@ -360,12 +357,12 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 		node.startedMu.Lock()
 		bind.pid = pid
 		node.startedMu.Unlock()
-		appCh <- node.executer.Wait(cmd)
+		appCh <- node.executer.Wait(host.Cmd)
 	}()
 
 	srvCh := make(chan error)
 	go func() {
-		srvCh <- node.router.ServeApp(conn, config.Port, &app.Config{AppName: config.App, AppVersion: config.Version})
+		srvCh <- node.router.ServeApp(host.Conn, config.Port, &host.Meta)
 	}()
 
 	if startCh != nil {
@@ -417,20 +414,20 @@ func (node *Node) SetAutoStart(appName string, autoStart bool) error {
 	return ErrUnknownApp
 }
 
-func (node *Node) stopApp(app string, bind *appBind) (err error) {
+func (node *Node) stopApp(app string, bind *appBind) error {
 	node.logger.Infof("Stopping app %s and closing ports", app)
 
-	if excErr := node.executer.Stop(bind.pid); excErr != nil && err == nil {
-		node.logger.Warn("Failed to stop app: ", excErr)
-		err = excErr
+	if err := node.executer.Stop(bind.pid); err != nil {
+		node.logger.Warn("Failed to stop app: ", err)
+		return err
 	}
 
-	if srvErr := bind.conn.Close(); srvErr != nil && err == nil {
-		node.logger.Warnf("Failed to close App conn: %s", srvErr)
-		err = srvErr
+	if err := bind.conn.Close(); err != nil {
+		node.logger.Warnf("Failed to close App conn: %s", err)
+		return err
 	}
 
-	return err
+	return nil
 }
 
 type osExecuter struct {

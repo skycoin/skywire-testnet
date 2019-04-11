@@ -7,6 +7,17 @@ import (
 	"time"
 )
 
+// Default file-descriptors for PipeConn.
+// There are two pairs of pipes between the host and a Skywire App:
+// - The first pair is responsible for handling the establishing loops and sending packets within a Skywire Network.
+// - The second pair is responsible for proxying the interface of the app to either the local Skywire Node or Manager Node.
+const (
+	DefaultIn           = uintptr(3)
+	DefaultOut          = uintptr(4)
+	DefaultInterfaceIn  = uintptr(5)
+	DefaultInterfaceOut = uintptr(6)
+)
+
 // PipeAddr implements net.Addr for PipeConn.
 type PipeAddr struct {
 	pipePath string

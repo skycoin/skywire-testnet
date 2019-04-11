@@ -1,4 +1,4 @@
-package app
+package appnet
 
 import (
 	"encoding/binary"
@@ -15,32 +15,28 @@ type FrameType byte
 
 func (f FrameType) String() string {
 	switch f {
-	case FrameInit:
-		return "Init"
 	case FrameCreateLoop:
 		return "CreateLoop"
 	case FrameConfirmLoop:
 		return "ConfirmLoop"
-	case FrameSend:
-		return "Send"
-	case FrameClose:
+	case FrameData:
+		return "Data"
+	case FrameCloseLoop:
 		return "Close"
+	default:
+		return fmt.Sprintf("Unknown(%d)", f)
 	}
-
-	return fmt.Sprintf("Unknown(%d)", f)
 }
 
 const (
-	// FrameInit represents Init frame type.
-	FrameInit FrameType = iota
 	// FrameCreateLoop represents CreateLoop request frame type.
-	FrameCreateLoop
+	FrameCreateLoop FrameType = iota
 	// FrameConfirmLoop represents ConfirmLoop request frame type.
 	FrameConfirmLoop
-	// FrameSend represents Send frame type.
-	FrameSend
-	// FrameClose represents Close frame type
-	FrameClose
+	// FrameData represents Send frame type.
+	FrameData
+	// FrameCloseLoop represents Close frame type
+	FrameCloseLoop
 
 	// FrameFailure  represents frame type for failed requests.
 	FrameFailure = 0xfe
@@ -56,7 +52,7 @@ type Protocol struct {
 
 // NewProtocol constructs a new Protocol.
 func NewProtocol(rw io.ReadWriteCloser) *Protocol {
-	return &Protocol{rw, &chanList{chans: map[byte]chan []byte{}}}
+	return &Protocol{rw, &chanList{chMap: map[byte]chan []byte{}}}
 }
 
 // Send sends command FrameType with payload and awaits for response.
@@ -164,8 +160,7 @@ func (p *Protocol) readFrame() (frame []byte, err error) {
 
 type chanList struct {
 	sync.Mutex
-
-	chans map[byte]chan []byte
+	chMap map[byte]chan []byte
 }
 
 func (c *chanList) add() (byte, chan []byte) {
@@ -174,8 +169,8 @@ func (c *chanList) add() (byte, chan []byte) {
 
 	ch := make(chan []byte)
 	for i := byte(0); i < 255; i++ {
-		if c.chans[i] == nil {
-			c.chans[i] = ch
+		if c.chMap[i] == nil {
+			c.chMap[i] = ch
 			return i, ch
 		}
 	}
@@ -185,8 +180,8 @@ func (c *chanList) add() (byte, chan []byte) {
 
 func (c *chanList) pull(id byte) chan []byte {
 	c.Lock()
-	ch := c.chans[id]
-	delete(c.chans, id)
+	ch := c.chMap[id]
+	delete(c.chMap, id)
 	c.Unlock()
 
 	return ch
@@ -196,7 +191,7 @@ func (c *chanList) closeAll() {
 	c.Lock()
 	defer c.Unlock()
 
-	for _, ch := range c.chans {
+	for _, ch := range c.chMap {
 		if ch == nil {
 			continue
 		}
@@ -204,5 +199,5 @@ func (c *chanList) closeAll() {
 		close(ch)
 	}
 
-	c.chans = make(map[byte]chan []byte)
+	c.chMap = make(map[byte]chan []byte)
 }

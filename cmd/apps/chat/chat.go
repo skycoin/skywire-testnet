@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/skycoin/skywire/internal/appnet"
+
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
 )
@@ -57,7 +59,7 @@ func listenLoop() {
 			return
 		}
 
-		raddr := conn.RemoteAddr().(*app.Addr)
+		raddr := conn.RemoteAddr().(*app.LoopAddr)
 		connsMu.Lock()
 		chatConns[raddr.PubKey] = conn
 		connsMu.Unlock()
@@ -67,7 +69,7 @@ func listenLoop() {
 }
 
 func handleConn(conn net.Conn) {
-	raddr := conn.RemoteAddr().(*app.Addr)
+	raddr := conn.RemoteAddr().(*appnet.LoopAddr)
 	for {
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
@@ -97,7 +99,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	addr := &app.Addr{PubKey: pk, Port: 1}
+	addr := &appnet.LoopAddr{PubKey: pk, Port: 1}
 	connsMu.Lock()
 	conn := chatConns[pk]
 	connsMu.Unlock()
