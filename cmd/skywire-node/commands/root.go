@@ -65,6 +65,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 	},
+	Version: node.Version,
 }
 
 // Execute executes root CLI command.
