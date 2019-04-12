@@ -16,7 +16,7 @@ func TestProtocol(t *testing.T) {
 
 	errCh1 := make(chan error)
 	go func() {
-		errCh1 <- proto1.Serve(func(f FrameType, _ []byte) (interface{}, error) {
+		errCh1 <- proto1.ServeJSON(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameData {
 				return nil, errors.New("unexpected frame")
 			}
@@ -27,7 +27,7 @@ func TestProtocol(t *testing.T) {
 
 	errCh2 := make(chan error)
 	go func() {
-		errCh2 <- proto2.Serve(func(f FrameType, _ []byte) (interface{}, error) {
+		errCh2 <- proto2.ServeJSON(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameCreateLoop {
 				return nil, errors.New("unexpected frame")
 			}
@@ -36,24 +36,10 @@ func TestProtocol(t *testing.T) {
 		})
 	}()
 
-	errCh3 := make(chan error)
-	go func() {
-		errCh3 <- proto1.Send(FrameCreateLoop, "foo", nil)
-	}()
+	require.NoError(t, proto1.CallJSON(FrameCreateLoop, "foo", nil))
+	require.NoError(t, proto2.CallJSON(FrameData, "foo", nil))
 
-	errCh4 := make(chan error)
-	go func() {
-		errCh4 <- proto2.Send(FrameData, "foo", nil)
-	}()
-
-	errCh5 := make(chan error)
-	go func() {
-		errCh5 <- proto1.Send(FrameData, "foo", nil)
-	}()
-
-	require.NoError(t, <-errCh3)
-	require.NoError(t, <-errCh4)
-	err = <-errCh5
+	err = proto1.CallJSON(FrameData, "foo", nil)
 	require.Error(t, err)
 	assert.Equal(t, "unexpected frame", err.Error())
 
@@ -72,18 +58,18 @@ func TestProtocolParallel(t *testing.T) {
 
 	errCh1 := make(chan error)
 	go func() {
-		errCh1 <- proto1.Serve(func(f FrameType, _ []byte) (interface{}, error) {
+		errCh1 <- proto1.ServeJSON(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameCreateLoop {
 				return nil, errors.New("unexpected frame")
 			}
 
-			return nil, proto1.Send(FrameConfirmLoop, "foo", nil)
+			return nil, proto1.CallJSON(FrameConfirmLoop, "foo", nil)
 		})
 	}()
 
 	errCh2 := make(chan error)
 	go func() {
-		errCh2 <- proto2.Serve(func(f FrameType, _ []byte) (interface{}, error) {
+		errCh2 <- proto2.ServeJSON(func(f FrameType, _ []byte) (interface{}, error) {
 			if f != FrameConfirmLoop {
 				return nil, errors.New("unexpected frame")
 			}
@@ -92,11 +78,15 @@ func TestProtocolParallel(t *testing.T) {
 		})
 	}()
 
-	require.NoError(t, proto2.Send(FrameCreateLoop, "foo", nil))
+	require.NoError(t, proto2.CallJSON(FrameCreateLoop, "foo", nil))
 
 	require.NoError(t, proto1.Close())
 	require.NoError(t, proto2.Close())
 
 	require.NoError(t, <-errCh1)
 	require.NoError(t, <-errCh2)
+}
+
+func TestNewProtocol(t *testing.T) {
+
 }

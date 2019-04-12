@@ -1,19 +1,24 @@
 package app
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
+	"github.com/skycoin/skywire/internal/appnet"
+	"github.com/skycoin/skywire/pkg/cipher"
 	"io"
 	"net"
-	"time"
-
-	"github.com/skycoin/skywire/internal/appnet"
-	"github.com/skycoin/skywire/internal/ioutil"
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (
 	bufSize = 32 * 1024
 )
+
+func init() {
+	gob.Register(LoopAddr{})
+	gob.Register(LoopMeta{})
+	gob.Register(DataFrame{})
+}
 
 // LoopAddr implements net.Conn for connections between apps and node.
 type LoopAddr struct {
@@ -31,6 +36,18 @@ func (la *LoopAddr) String() string {
 	return fmt.Sprintf("%s:%d", la.PubKey, la.Port)
 }
 
+func (la *LoopAddr) Encode() []byte {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(la); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}
+
+func (la *LoopAddr) Decode(b []byte) error {
+	return gob.NewDecoder(bytes.NewReader(b)).Decode(la)
+}
+
 // LoopMeta stores addressing parameters of a loop packets.
 type LoopMeta struct {
 	Local  LoopAddr `json:"local"`
@@ -38,7 +55,19 @@ type LoopMeta struct {
 }
 
 func (l *LoopMeta) String() string {
-	return fmt.Sprintf("%s:%d <-> %s:%d", l.Local.PubKey, l.Local.Port, l.Remote.PubKey, l.Remote.Port)
+	return fmt.Sprintf("%s:%d|%s:%d", l.Local.PubKey, l.Local.Port, l.Remote.PubKey, l.Remote.Port)
+}
+
+func (l *LoopMeta) Encode() []byte {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(l); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}
+
+func (l *LoopMeta) Decode(b []byte) error {
+	return gob.NewDecoder(bytes.NewReader(b)).Decode(l)
 }
 
 // DataFrame represents message exchanged between App and Node.
@@ -47,71 +76,55 @@ type DataFrame struct {
 	Data []byte   `json:"data"`
 }
 
+func (df *DataFrame) Encode() []byte {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(df); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}
+
+func (df *DataFrame) Decode(b []byte) error {
+	return gob.NewDecoder(bytes.NewReader(b)).Decode(df)
+}
+
 // LoopConn represents the App's perspective of a loop.
 type LoopConn struct {
 	net.Conn
-	rw *ioutil.AckReadWriter
 	lm LoopMeta
 }
 
-func newLoopConn(lm LoopMeta) *LoopConn {
+func setAndServeLoop(lm LoopMeta) (*LoopConn, error) {
 	conn, hostConn := net.Pipe()
 	lc := &LoopConn{
 		Conn: conn,
-		rw:   ioutil.NewAckReadWriter(conn, 100*time.Millisecond),
 		lm:   lm,
 	}
-
-	lc.serve(hostConn)
-	return lc
-}
-
-func (lc *LoopConn) serve(hostConn net.Conn) {
-	runLoop := func() error {
-		for {
-			buf := make([]byte, bufSize)
-			n, err := hostConn.Read(buf)
-			if err != nil {
-				if err == io.ErrClosedPipe {
-					return nil
-				}
-				return err
-			}
-			frame := DataFrame{Meta: lc.lm, Data: buf[:n]}
-			if err := _proto.Send(appnet.FrameData, frame, nil); err != nil {
-				return err
-			}
-		}
-	}
-
-	_mu.Lock()
-	_loops[lc.lm] = hostConn
-	_mu.Unlock()
-
+	setLoopPipe(lc.lm, hostConn)
 	go func() {
-		if err := runLoop(); err != nil {
-			log.Warnf("loop (%s) closed with error: %s", lc.lm, err.Error())
+		if err := lc.serve(hostConn); err != nil && err != io.ErrClosedPipe {
+			log.Warnf("loop (%s) closed with error: %s", lc.lm.String(), err.Error())
 		}
+		rmLoopPipe(lc.lm)
 	}()
+	return lc, nil
+}
 
-	_mu.Lock()
-	if _, ok := _loops[lc.lm]; !ok {
-		_ = _proto.Send(appnet.FrameCloseLoop, lc.lm, nil) //nolint:errcheck
+func (lc *LoopConn) serve(hostConn net.Conn) error {
+	for {
+		buf := make([]byte, bufSize)
+		n, err := hostConn.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+		frame := DataFrame{Meta: lc.lm, Data: buf[:n]}
+		if _, err := _proto.Call(appnet.FrameData, frame.Encode()); err != nil {
+			return err
+		}
 	}
-	delete(_loops, lc.lm)
-	_mu.Unlock()
-}
-
-func (lc *LoopConn) Read(p []byte) (n int, err error) {
-	return lc.rw.Read(p)
-}
-
-func (lc *LoopConn) Write(p []byte) (n int, err error) {
-	return lc.rw.Write(p)
-}
-
-func (lc *LoopConn) Close() error {
-	return lc.rw.Close()
 }
 
 func (lc *LoopConn) LocalAddr() net.Addr {

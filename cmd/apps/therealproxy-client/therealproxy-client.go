@@ -7,8 +7,6 @@ import (
 	"flag"
 	"log"
 
-	"github.com/skycoin/skywire/internal/appnet"
-
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -17,16 +15,12 @@ import (
 const socksPort = 3
 
 func main() {
+	app.Setup("therealproxy-client", "1.0")
+	defer app.Close()
+
 	var addr = flag.String("addr", ":1080", "Client address to listen on")
 	var serverPK = flag.String("srv", "", "PubKey of the server to connect to")
 	flag.Parse()
-
-	config := &app.Config{AppName: "therealproxy-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
-	socksApp, err := app.Setup(config)
-	if err != nil {
-		log.Fatal("Setup failure: ", err)
-	}
-	defer socksApp.Close()
 
 	if *serverPK == "" {
 		log.Fatal("Invalid server PubKey")
@@ -37,7 +31,7 @@ func main() {
 		log.Fatal("Invalid server PubKey: ", err)
 	}
 
-	conn, err := socksApp.Dial(&appnet.LoopAddr{PubKey: pk, Port: uint16(socksPort)})
+	conn, err := app.Dial(app.LoopAddr{PubKey: pk, Port: uint16(socksPort)})
 	if err != nil {
 		log.Fatal("Failed to dial to a server: ", err)
 	}

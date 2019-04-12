@@ -4,7 +4,6 @@ import "sync"
 
 type chanList struct {
 	sync.Mutex
-
 	chans []*Channel
 }
 

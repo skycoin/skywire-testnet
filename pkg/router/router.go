@@ -139,7 +139,7 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 	r.wg.Add(1)
 	defer r.wg.Done()
 
-	proto := app.NewProtocol(conn)
+	proto := appnet.NewProtocol(conn)
 	if err := r.pm.Open(port, proto); err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 
 	for _, port := range r.pm.AppPorts(proto) {
 		for _, addr := range r.pm.Close(port) {
-			r.closeLoop(proto, &app.LoopMeta{LocalPort: port, Remote: addr}) // nolint: errcheck
+			r.closeLoop(proto, &app.LoopMeta{Local: app.LoopAddr{PubKey: r.config.PubKey, Port: port}, Remote: addr}) // nolint: errcheck
 		}
 	}
 
@@ -239,7 +239,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 
 	p := &app.DataFrame{Meta: &app.LoopMeta{LocalPort: rule.LocalPort(), Remote: *raddr}, Data: data}
 	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
-	if err := b.conn.Send(appnet.FrameData, p, nil); err != nil {
+	if err := b.conn.CallJSON(appnet.FrameData, p, nil); err != nil {
 		return err
 	}
 
@@ -281,7 +281,7 @@ func (r *Router) forwardLocalAppPacket(packet *app.DataFrame) error {
 		},
 		Data: packet.Data,
 	}
-	return b.conn.Send(appnet.FrameData, p, nil)
+	return b.conn.CallJSON(appnet.FrameData, p, nil)
 }
 
 func (r *Router) requestLoop(appConn *appnet.Protocol, raddr *appnet.LoopAddr) (*appnet.LoopAddr, error) {
@@ -346,7 +346,7 @@ func (r *Router) confirmLocalLoop(laddr, raddr *appnet.LoopAddr) error {
 	}
 
 	addrs := [2]*appnet.LoopAddr{raddr, laddr}
-	if err = b.conn.Send(appnet.FrameConfirmLoop, addrs, nil); err != nil {
+	if err = b.conn.CallJSON(appnet.FrameConfirmLoop, addrs, nil); err != nil {
 		return err
 	}
 
@@ -369,7 +369,7 @@ func (r *Router) confirmLoop(addr *app.LoopMeta, rule routing.Rule, noiseMsg []b
 	}
 
 	addrs := [2]*appnet.LoopAddr{&appnet.LoopAddr{PubKey: r.config.PubKey, Port: addr.LocalPort}, &addr.Remote}
-	if err = b.conn.Send(appnet.FrameConfirmLoop, addrs, nil); err != nil {
+	if err = b.conn.CallJSON(appnet.FrameConfirmLoop, addrs, nil); err != nil {
 		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
 	}
 
@@ -406,7 +406,7 @@ func (r *Router) loopClosed(addr *app.LoopMeta) error {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
-	if err := b.conn.Send(appnet.FrameCloseLoop, addr, nil); err != nil {
+	if err := b.conn.CallJSON(appnet.FrameCloseLoop, addr, nil); err != nil {
 		return err
 	}
 

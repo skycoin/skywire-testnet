@@ -12,20 +12,16 @@ import (
 )
 
 func main() {
+	app.Setup("therealproxy", "1.0")
+	defer app.Close()
+
 	var passcode = flag.String("passcode", "", "Authorise user against this passcode")
 	flag.Parse()
-
-	config := &app.Config{AppName: "therealproxy", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
-	socksApp, err := app.Setup(config)
-	if err != nil {
-		log.Fatal("Setup failure: ", err)
-	}
-	defer socksApp.Close()
 
 	srv, err := therealproxy.NewServer(*passcode)
 	if err != nil {
 		log.Fatal("Failed to create a new server: ", err)
 	}
 
-	log.Fatal(srv.Serve(socksApp))
+	log.Fatal(srv.Serve(new(app.Listener)))
 }

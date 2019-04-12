@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/skycoin/skywire/internal/appnet"
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/kr/pty"
 
@@ -28,7 +28,7 @@ var Debug = false
 // Channel defines communication channel parameters.
 type Channel struct {
 	RemoteID   uint32
-	RemoteAddr *appnet.LoopAddr
+	RemoteAddr *app.LoopAddr
 
 	conn  net.Conn
 	msgCh chan []byte
@@ -39,13 +39,13 @@ type Channel struct {
 }
 
 // OpenChannel constructs new Channel with empty Session.
-func OpenChannel(remoteID uint32, remoteAddr *appnet.LoopAddr, conn net.Conn) *Channel {
+func OpenChannel(remoteID uint32, remoteAddr *app.LoopAddr, conn net.Conn) *Channel {
 	return &Channel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
 }
 
 // OpenClientChannel constructs new client Channel with empty Session.
 func OpenClientChannel(remoteID uint32, remotePK cipher.PubKey, conn net.Conn) *Channel {
-	ch := OpenChannel(remoteID, &appnet.LoopAddr{PubKey: remotePK, Port: Port}, conn)
+	ch := OpenChannel(remoteID, &app.LoopAddr{PubKey: remotePK, Port: Port}, conn)
 	return ch
 }
 

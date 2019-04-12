@@ -7,23 +7,18 @@ import (
 	"log"
 	"os"
 
-	"github.com/skycoin/skywire/internal/appnet"
-
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 func main() {
-	helloworldApp, err := app.Setup(&app.Config{AppName: "helloworld", AppVersion: "1.0", ProtocolVersion: "0.0.1"})
-	if err != nil {
-		log.Fatal("Setup failure: ", err)
-	}
-	defer helloworldApp.Close()
+	app.Setup("helloworld", "1.0")
+	defer app.Close()
 
 	if len(os.Args) == 1 {
 		log.Println("listening for incoming connections")
 		for {
-			conn, err := helloworldApp.Accept()
+			conn, err := app.Accept()
 			if err != nil {
 				log.Fatal("Failed to accept conn: ", err)
 			}
@@ -48,7 +43,7 @@ func main() {
 		log.Fatal("Failed to construct PubKey: ", err, os.Args[1])
 	}
 
-	conn, err := helloworldApp.Dial(&appnet.LoopAddr{PubKey: remotePK, Port: 10})
+	conn, err := app.Dial(app.LoopAddr{PubKey: remotePK, Port: 10})
 	if err != nil {
 		log.Fatal("Failed to open remote conn: ", err)
 	}

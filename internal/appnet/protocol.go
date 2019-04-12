@@ -2,7 +2,6 @@ package appnet
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +22,10 @@ func (f FrameType) String() string {
 		return "Data"
 	case FrameCloseLoop:
 		return "Close"
+	case FailureFrame:
+		return "FailureResp"
+	case SuccessFrame:
+		return "SuccessResp"
 	default:
 		return fmt.Sprintf("Unknown(%d)", f)
 	}
@@ -38,156 +41,156 @@ const (
 	// FrameCloseLoop represents Close frame type
 	FrameCloseLoop
 
-	// FrameFailure  represents frame type for failed requests.
-	FrameFailure = 0xfe
-	// FrameSuccess represents frame type for successful requests.
-	FrameSuccess = 0xff
+	// FailureFrame  represents frame type for failed requests.
+	FailureFrame = 0xfe
+	// SuccessFrame represents frame type for successful requests.
+	SuccessFrame = 0xff
 )
 
 // Protocol implements full-duplex protocol for App to Node communication.
 type Protocol struct {
-	rw    io.ReadWriteCloser
-	chans *chanList
+	rw      io.ReadWriteCloser
+	respMap *responseMap
 }
 
 // NewProtocol constructs a new Protocol.
 func NewProtocol(rw io.ReadWriteCloser) *Protocol {
-	return &Protocol{rw, &chanList{chMap: map[byte]chan []byte{}}}
+	return &Protocol{rw: rw, respMap: newResponseMap()}
 }
 
-// Send sends command FrameType with payload and awaits for response.
-func (p *Protocol) Send(cmd FrameType, payload, res interface{}) error {
-	id, resChan := p.chans.add()
-	if err := p.writeFrame(cmd, id, payload); err != nil {
-		return err
+// Call sends a frame of given type and awaits a response.
+func (p *Protocol) Call(t FrameType, reqData []byte) ([]byte, error) {
+	respID, respCh := p.respMap.add()
+	if err := p.writeFrame(t, respID, reqData); err != nil {
+		return nil, err
 	}
-
-	frame, more := <-resChan
-	if !more {
-		return io.EOF
+	resp, ok := <-respCh
+	if !ok {
+		return nil, io.EOF
 	}
-
-	if FrameType(frame[0]) == FrameFailure {
-		return errors.New(string(frame[2:]))
+	if resp.Type == FailureFrame {
+		return nil, errors.New(string(resp.Data))
 	}
-
-	if res == nil {
-		return nil
-	}
-
-	return json.Unmarshal(frame[2:], res)
+	return resp.Data, nil
 }
 
-// Serve reads incoming frame, passes it to the handleFunc and writes results.
-func (p *Protocol) Serve(handleFunc func(FrameType, []byte) (interface{}, error)) error {
+type (
+	HandlerFunc func(p *Protocol, b []byte) ([]byte, error)
+	HandlerMap  map[FrameType]HandlerFunc
+)
+
+func (p *Protocol) Serve(handlerMap HandlerMap) error {
+	if handlerMap == nil {
+		handlerMap = make(HandlerMap)
+	}
 	for {
-		frame, err := p.readFrame()
+		t, respID, payload, err := p.readFrame()
 		if err != nil {
 			if err == io.EOF || strings.Contains(err.Error(), "closed") {
 				return nil
 			}
-
 			return err
 		}
-
-		fType := FrameType(frame[0])
-		id := frame[1]
-
-		var resChan chan []byte
-		if fType == FrameFailure || fType == FrameSuccess {
-			resChan = p.chans.pull(id)
-			if resChan == nil {
-				continue
+		switch t {
+		case SuccessFrame, FailureFrame:
+			if respChan, ok := p.respMap.pull(respID); ok {
+				respChan.send(t, payload)
 			}
-			resChan <- frame
-			continue
+		default:
+			handle, ok := handlerMap[t]
+			if !ok {
+				return fmt.Errorf("received unexpected frame of type: %s", t)
+			}
+			go func() {
+				if resp, err := handle(p, payload); err != nil {
+					_ = p.writeFrame(FailureFrame, respID, []byte(err.Error())) //nolint:errcheck
+				} else {
+					_ = p.writeFrame(SuccessFrame, respID, resp) //nolint:errcheck
+				}
+			}()
 		}
-
-		go func() {
-			if handleFunc == nil {
-				p.writeFrame(FrameSuccess, id, nil) // nolint: errcheck
-				return
-			}
-
-			res, err := handleFunc(fType, frame[2:])
-			if err != nil {
-				p.writeFrame(FrameFailure, id, err) // nolint: errcheck
-				return
-			}
-
-			p.writeFrame(FrameSuccess, id, res) // nolint: errcheck
-		}()
 	}
 }
 
 // Close closes underlying ReadWriter.
 func (p *Protocol) Close() error {
-	p.chans.closeAll()
+	p.respMap.close()
 	return p.rw.Close()
 }
 
-func (p *Protocol) writeFrame(frame FrameType, id byte, payload interface{}) (err error) {
-	var data []byte
-	if err, ok := payload.(error); ok {
-		data = []byte(err.Error())
-	} else {
-		data, err = json.Marshal(payload)
-		if err != nil {
-			return err
-		}
-	}
-
-	packet := append([]byte{byte(frame), id}, data...)
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf, uint16(len(packet)))
-	_, err = p.rw.Write(append(buf, packet...))
+// a frame is formatted as follows:
+// field: | size | type | id | payload |
+// bytes: | 2    | 1    | 1  | ~       |
+func (p *Protocol) writeFrame(t FrameType, respID responseID, payload []byte) error {
+	f := make([]byte, 2+1+1+len(payload))
+	binary.BigEndian.PutUint16(f[0:2], uint16(1+1+len(payload)))
+	f[2] = byte(t)
+	f[3] = byte(respID)
+	copy(f[4:], payload)
+	_, err := p.rw.Write(f)
 	return err
 }
 
-func (p *Protocol) readFrame() (frame []byte, err error) {
-	size := make([]byte, 2)
-	if _, err = io.ReadFull(p.rw, size); err != nil {
+func (p *Protocol) readFrame() (t FrameType, respID responseID, payload []byte, err error) {
+	rawSize := make([]byte, 2)
+	if _, err = io.ReadFull(p.rw, rawSize); err != nil {
 		return
 	}
-
-	frame = make([]byte, binary.BigEndian.Uint16(size))
+	size := binary.BigEndian.Uint16(rawSize)
+	frame := make([]byte, size)
 	if _, err = io.ReadFull(p.rw, frame); err != nil {
 		return
 	}
-
-	return frame, nil
+	t = FrameType(frame[0])
+	respID = responseID(frame[1])
+	payload = frame[2:]
+	return
 }
 
-type chanList struct {
+type response struct {
+	Type FrameType
+	Data []byte
+}
+
+type (
+	responseID   byte
+	responseChan chan response
+)
+
+func (rc responseChan) send(t FrameType, p []byte) { rc <- response{Type: t, Data: p} }
+
+type responseMap struct {
 	sync.Mutex
-	chMap map[byte]chan []byte
+	chMap map[responseID]responseChan
 }
 
-func (c *chanList) add() (byte, chan []byte) {
+func newResponseMap() *responseMap {
+	return &responseMap{chMap: make(map[responseID]responseChan)}
+}
+
+func (c *responseMap) add() (responseID, responseChan) {
 	c.Lock()
 	defer c.Unlock()
 
-	ch := make(chan []byte)
-	for i := byte(0); i < 255; i++ {
+	ch := make(responseChan)
+	for i := responseID(0); i < 255; i++ {
 		if c.chMap[i] == nil {
 			c.chMap[i] = ch
 			return i, ch
 		}
 	}
-
-	panic("no free channels")
+	panic("appnet.Protocol: no free channels")
 }
 
-func (c *chanList) pull(id byte) chan []byte {
+func (c *responseMap) pull(id responseID) (responseChan, bool) {
 	c.Lock()
-	ch := c.chMap[id]
+	ch, ok := c.chMap[id]
 	delete(c.chMap, id)
 	c.Unlock()
-
-	return ch
+	return ch, ok
 }
 
-func (c *chanList) closeAll() {
+func (c *responseMap) close() {
 	c.Lock()
 	defer c.Unlock()
 
@@ -195,9 +198,7 @@ func (c *chanList) closeAll() {
 		if ch == nil {
 			continue
 		}
-
 		close(ch)
 	}
-
-	c.chMap = make(map[byte]chan []byte)
+	c.chMap = make(map[responseID]responseChan)
 }

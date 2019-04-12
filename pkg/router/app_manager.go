@@ -28,11 +28,9 @@ type appManager struct {
 }
 
 func (am *appManager) Serve() error {
-	return am.proto.Serve(func(frame appnet.FrameType, payload []byte) (res interface{}, err error) {
+	return am.proto.ServeJSON(func(frame appnet.FrameType, payload []byte) (res interface{}, err error) {
 		am.Logger.Infof("Got new App request with type %s: %s", frame, string(payload))
 		switch frame {
-		case appnet.FrameInit:
-			err = am.initApp(payload)
 		case appnet.FrameCreateLoop:
 			res, err = am.setupLoop(payload)
 		case appnet.FrameCloseLoop:
@@ -51,30 +49,8 @@ func (am *appManager) Serve() error {
 	})
 }
 
-func (am *appManager) initApp(payload []byte) error {
-	config := &app.Config{}
-	if err := json.Unmarshal(payload, config); err != nil {
-		return errors.New("invalid Init payload")
-	}
-
-	if config.ProtocolVersion != supportedProtocolVersion {
-		return errors.New("unsupported protocol version")
-	}
-
-	if am.appConf.AppName != config.AppName {
-		return errors.New("unexpected app")
-	}
-
-	if am.appConf.AppVersion != config.AppVersion {
-		return errors.New("unexpected app version")
-	}
-
-	am.Logger.Infof("Handshaked new connection with the app %s.v%s", config.AppName, config.AppVersion)
-	return nil
-}
-
 func (am *appManager) setupLoop(payload []byte) (*appnet.LoopAddr, error) {
-	raddr := &appnet.LoopAddr{}
+	raddr := &app.LoopAddr{}
 	if err := json.Unmarshal(payload, raddr); err != nil {
 		return nil, err
 	}

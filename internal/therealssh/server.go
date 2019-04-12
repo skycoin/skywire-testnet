@@ -8,7 +8,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/skycoin/skywire/internal/appnet"
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )
@@ -66,7 +66,7 @@ func NewServer(auth Authorizer) *Server {
 }
 
 // OpenChannel opens new client channel.
-func (s *Server) OpenChannel(remoteAddr *appnet.LoopAddr, remoteID uint32, conn net.Conn) error {
+func (s *Server) OpenChannel(remoteAddr *app.LoopAddr, remoteID uint32, conn net.Conn) error {
 	debug("opening new channel")
 	channel := OpenChannel(remoteID, remoteAddr, conn)
 	var res []byte
@@ -143,7 +143,7 @@ func (s *Server) Serve(conn net.Conn) error {
 			return err
 		}
 
-		raddr := conn.RemoteAddr().(*appnet.LoopAddr)
+		raddr := conn.RemoteAddr().(*app.LoopAddr)
 		payload := buf[:n]
 
 		if len(payload) < 5 {

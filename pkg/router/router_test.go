@@ -126,10 +126,10 @@ func TestRouterAppInit(t *testing.T) {
 	}()
 
 	proto := appnet.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
-	require.NoError(t, proto.Send(appnet.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
-	require.Error(t, proto.Send(appnet.FrameInit, &app.Config{AppName: "foo1", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
+	require.NoError(t, proto.CallJSON(appnet.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
+	require.Error(t, proto.CallJSON(appnet.FrameInit, &app.Config{AppName: "foo1", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
 
 	require.NoError(t, proto.Close())
 	require.NoError(t, r.Close())
@@ -173,7 +173,7 @@ func TestRouterApp(t *testing.T) {
 	go r.ServeApp(rwIn, 6, &app.Config{}) // nolint: errcheck
 	proto := appnet.NewProtocol(rw)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto.ServeJSON(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -192,7 +192,7 @@ func TestRouterApp(t *testing.T) {
 	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.ID, 4, ni1}))
 
 	tr2 := m2.Transport(tr.ID)
-	go proto.Send(appnet.FrameData, &app.DataFrame{Meta: &app.LoopMeta{LocalPort: 6, Remote: *raddr}, Data: []byte("bar")}, nil) // nolint: errcheck
+	go proto.CallJSON(appnet.FrameData, &app.DataFrame{Meta: &app.LoopMeta{LocalPort: 6, Remote: *raddr}, Data: []byte("bar")}, nil) // nolint: errcheck
 
 	packet := make(routing.Packet, 25)
 	_, err = tr2.Read(packet)
@@ -243,18 +243,18 @@ func TestRouterLocalApp(t *testing.T) {
 	rw1, rw1In := net.Pipe()
 	go r.ServeApp(rw1In, 5, &app.Config{}) // nolint: errcheck
 	proto1 := appnet.NewProtocol(rw1)
-	go proto1.Serve(nil) // nolint: errcheck
+	go proto1.ServeJSON(nil) // nolint: errcheck
 
 	rw2, rw2In := net.Pipe()
 	go r.ServeApp(rw2In, 6, &app.Config{}) // nolint: errcheck
 	proto2 := appnet.NewProtocol(rw2)
 	dataCh := make(chan []byte)
-	go proto2.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto2.ServeJSON(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
 
-	go proto1.Send(appnet.FrameData, &app.DataFrame{Meta: &app.LoopMeta{LocalPort: 5, Remote: appnet.LoopAddr{PubKey: pk, Port: 6}}, Data: []byte("foo")}, nil) // nolint: errcheck
+	go proto1.CallJSON(appnet.FrameData, &app.DataFrame{Meta: &app.LoopMeta{LocalPort: 5, Remote: appnet.LoopAddr{PubKey: pk, Port: 6}}, Data: []byte("foo")}, nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -310,7 +310,7 @@ func TestRouterSetup(t *testing.T) {
 	go r.ServeApp(rwIn1, 2, &app.Config{}) // nolint: errcheck
 	proto1 := appnet.NewProtocol(rw1)
 	dataCh := make(chan []byte)
-	go proto1.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto1.ServeJSON(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -318,7 +318,7 @@ func TestRouterSetup(t *testing.T) {
 	rw2, rwIn2 := net.Pipe()
 	go r.ServeApp(rwIn2, 4, &app.Config{}) // nolint: errcheck
 	proto2 := appnet.NewProtocol(rw2)
-	go proto2.Serve(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go proto2.ServeJSON(func(_ appnet.FrameType, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -521,10 +521,10 @@ func TestRouterSetupLoop(t *testing.T) {
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
 	proto := appnet.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	addr := &appnet.LoopAddr{}
-	require.NoError(t, proto.Send(appnet.FrameCreateLoop, &appnet.LoopAddr{PubKey: pk2, Port: 6}, addr))
+	require.NoError(t, proto.CallJSON(appnet.FrameCreateLoop, &appnet.LoopAddr{PubKey: pk2, Port: 6}, addr))
 
 	require.NoError(t, <-errCh)
 	ll, err := r.pm.GetLoop(10, &appnet.LoopAddr{PubKey: pk2, Port: 6})
@@ -548,10 +548,10 @@ func TestRouterSetupLoopLocal(t *testing.T) {
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
 	proto := appnet.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	addr := &appnet.LoopAddr{}
-	require.NoError(t, proto.Send(appnet.FrameCreateLoop, &appnet.LoopAddr{PubKey: pk, Port: 5}, addr))
+	require.NoError(t, proto.CallJSON(appnet.FrameCreateLoop, &appnet.LoopAddr{PubKey: pk, Port: 5}, addr))
 
 	ll, err := r.pm.GetLoop(10, &appnet.LoopAddr{PubKey: pk, Port: 5})
 	require.NoError(t, err)
@@ -627,14 +627,14 @@ func TestRouterCloseLoop(t *testing.T) {
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
 	proto := appnet.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
 	raddr := &appnet.LoopAddr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
-	require.NoError(t, proto.Send(appnet.FrameCloseLoop, &app.LoopMeta{LocalPort: 5, Remote: *raddr}, nil))
+	require.NoError(t, proto.CallJSON(appnet.FrameCloseLoop, &app.LoopMeta{LocalPort: 5, Remote: *raddr}, nil))
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -715,7 +715,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
 	proto := appnet.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -801,7 +801,7 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
 	proto := appnet.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 

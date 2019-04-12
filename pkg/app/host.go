@@ -27,7 +27,7 @@ func NewHost(hostPK cipher.PubKey, binPath string, args []string) (*Host, error)
 	obtainMeta := func() (Meta, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
-		cmd := exec.CommandContext(ctx, binPath, configCmdName)
+		cmd := exec.CommandContext(ctx, binPath, setupCmdName)
 		raw, err := cmd.Output()
 		if err != nil {
 			return Meta{}, err

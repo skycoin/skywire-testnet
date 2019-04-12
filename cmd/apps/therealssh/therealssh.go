@@ -14,17 +14,13 @@ import (
 )
 
 func main() {
+	app.Setup("therealssh", "1.0")
+	defer app.Close()
+
 	var authFile = flag.String("auth", "~/.therealssh/authorized_keys", "Auth file location. Should contain one PubKey per line.")
 	var debug = flag.Bool("debug", false, "enable debug messages")
 
 	flag.Parse()
-
-	config := &app.Config{AppName: "therealssh", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
-	sshApp, err := app.Setup(config)
-	if err != nil {
-		log.Fatal("Setup failure: ", err)
-	}
-	defer sshApp.Close()
 
 	path, err := homedir.Expand(*authFile)
 	if err != nil {
@@ -35,14 +31,14 @@ func main() {
 
 	auth, err := ssh.NewFileAuthorizer(path)
 	if err != nil {
-		log.Fatal("Failed to setup Authoriser: ", err)
+		log.Fatal("Failed to setup Authorizer: ", err)
 	}
 
 	server := ssh.NewServer(auth)
 	defer server.Close()
 
 	for {
-		conn, err := sshApp.Accept()
+		conn, err := app.Accept()
 		if err != nil {
 			log.Fatal("failed to receive packet: ", err)
 		}

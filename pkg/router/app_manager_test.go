@@ -27,7 +27,7 @@ func TestAppManagerInit(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := appnet.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	tcs := []struct {
 		conf *app.Config
@@ -40,13 +40,13 @@ func TestAppManagerInit(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.err, func(t *testing.T) {
-			err := proto.Send(appnet.FrameInit, tc.conf, nil)
+			err := proto.CallJSON(appnet.FrameInit, tc.conf, nil)
 			require.Error(t, err)
 			assert.Equal(t, tc.err, err.Error())
 		})
 	}
 
-	err := proto.Send(appnet.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil)
+	err := proto.CallJSON(appnet.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil)
 	require.NoError(t, err)
 
 	require.NoError(t, in.Close())
@@ -70,12 +70,12 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := appnet.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	var laddr *appnet.LoopAddr
 	pk, _ := cipher.GenerateKeyPair()
 	raddr := &appnet.LoopAddr{PubKey: pk, Port: 3}
-	err := proto.Send(appnet.FrameCreateLoop, raddr, &laddr)
+	err := proto.CallJSON(appnet.FrameCreateLoop, raddr, &laddr)
 	require.NoError(t, err)
 	assert.Equal(t, raddr, laddr)
 
@@ -102,11 +102,11 @@ func TestAppManagerCloseLoop(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := appnet.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	pk, _ := cipher.GenerateKeyPair()
 	addr := &app.LoopMeta{LocalPort: 2, Remote: appnet.LoopAddr{PubKey: pk, Port: 3}}
-	err := proto.Send(appnet.FrameCloseLoop, addr, nil)
+	err := proto.CallJSON(appnet.FrameCloseLoop, addr, nil)
 	require.NoError(t, err)
 	assert.Equal(t, addr, inAddr)
 
@@ -133,11 +133,11 @@ func TestAppManagerForward(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := appnet.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	go proto.ServeJSON(nil) // nolint: errcheck
 
 	pk, _ := cipher.GenerateKeyPair()
 	packet := &app.DataFrame{Data: []byte("foo"), Meta: &app.LoopMeta{LocalPort: 2, Remote: appnet.LoopAddr{PubKey: pk, Port: 3}}}
-	err := proto.Send(appnet.FrameData, packet, nil)
+	err := proto.CallJSON(appnet.FrameData, packet, nil)
 	require.NoError(t, err)
 	assert.Equal(t, packet, inPacket)
 

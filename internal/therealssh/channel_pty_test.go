@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/internal/appnet"
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +18,7 @@ import (
 
 func TestChannelServe(t *testing.T) {
 	in, out := net.Pipe()
-	ch := OpenChannel(1, &appnet.LoopAddr{PubKey: cipher.PubKey{}, Port: Port}, in)
+	ch := OpenChannel(1, &app.LoopAddr{PubKey: cipher.PubKey{}, Port: Port}, in)
 
 	errCh := make(chan error)
 	go func() {

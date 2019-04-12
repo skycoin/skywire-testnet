@@ -48,10 +48,12 @@ func New(pattern noise.HandshakePattern, config Config) (*Noise, error) {
 		Random:      rand.Reader,
 		Pattern:     pattern,
 		Initiator:   config.Initiator,
-		StaticKeypair: noise.DHKey{
-			Public:  config.LocalPK[:],
-			Private: config.LocalSK[:],
-		},
+	}
+	if pk := config.LocalPK; !pk.Null() {
+		nc.StaticKeypair.Public = pk[:]
+	}
+	if sk := config.LocalSK; !sk.Null() {
+		nc.StaticKeypair.Private = sk[:]
 	}
 	if !config.RemotePK.Null() {
 		nc.PeerStatic = config.RemotePK[:]
@@ -82,6 +84,13 @@ func KKAndSecp256k1(config Config) (*Noise, error) {
 //	- Secp256 for the curve.
 func XKAndSecp256k1(config Config) (*Noise, error) {
 	return New(noise.HandshakeXK, config)
+}
+
+// NNAndSecp256k1 creates a new Noise with:
+//  - NN pattern for handshake.
+//  - Secp256 for the curve.
+func NNAndSecp256k1(initiator bool) (*Noise, error) {
+	return New(noise.HandshakeNN, Config{Initiator: initiator})
 }
 
 // HandshakeMessage generates handshake message for a current handshake state.

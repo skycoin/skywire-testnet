@@ -20,7 +20,7 @@ import (
 
 const (
 	protocolVersion = "0.0.1"
-	configCmdName   = "sw-config"
+	setupCmdName    = "sw-setup"
 )
 
 var (
@@ -40,13 +40,37 @@ type Meta struct {
 }
 
 var (
-	_meta     Meta
-	_proto    *appnet.Protocol
-	_acceptCh chan LoopMeta
-	_doneCh   chan struct{}
-	_loops    map[LoopMeta]io.ReadWriteCloser
-	_mu       sync.RWMutex
+	_meta      Meta
+	_proto     *appnet.Protocol
+	_acceptCh  chan LoopMeta
+	_doneCh    chan struct{}
+	_loopPipes map[LoopMeta]io.ReadWriteCloser
+	_mu        *sync.RWMutex
 )
+
+func loopPipe(lm LoopMeta) (io.ReadWriteCloser, bool) {
+	_mu.RLock()
+	lp, ok := _loopPipes[lm]
+	_mu.RUnlock()
+	return lp, ok
+}
+
+func setLoopPipe(lm LoopMeta, rw io.ReadWriteCloser) {
+	_mu.Lock()
+	_loopPipes[lm] = rw
+	_mu.Unlock()
+}
+
+func rmLoopPipe(lm LoopMeta) {
+	_mu.Lock()
+	if _, ok := _loopPipes[lm]; ok {
+		if _, err := _proto.Call(appnet.FrameCloseLoop, lm.Encode()); err != nil && err != io.ErrClosedPipe {
+			log.Warnf("failed to send 'CloseLoop': %s", err.Error())
+		}
+		delete(_loopPipes, lm)
+	}
+	_mu.Unlock()
+}
 
 // Setup initiates the app. Module will hang if Setup() is not run.
 func Setup(appName, appVersion string) {
@@ -60,8 +84,8 @@ func Setup(appName, appVersion string) {
 		log.Fatal("App expects at least 2 arguments")
 	}
 
-	// If command is of format: "<exec> sw-config", print json-encoded appnet.Config, otherwise, serve app.
-	if os.Args[1] == configCmdName {
+	// If command is of format: "<app> sw-setup", print json-encoded Meta, otherwise, serve app.
+	if os.Args[1] == setupCmdName {
 		if appName != os.Args[0] {
 			log.Fatalf("Registered name '%s' does not match executable name '%s'.", appName, os.Args[0])
 		}
@@ -83,10 +107,8 @@ func Setup(appName, appVersion string) {
 		_proto = appnet.NewProtocol(pipeConn)
 		_acceptCh = make(chan LoopMeta)
 		_doneCh = make(chan struct{})
-		_loops = make(map[LoopMeta]io.ReadWriteCloser)
-
-		// used to obtain host's public key.
-		pkCh := make(chan cipher.PubKey, 1)
+		_loopPipes = make(map[LoopMeta]io.ReadWriteCloser)
+		_mu = new(sync.RWMutex)
 
 		// Serve the connection between host and this App.
 		go func() {
@@ -94,78 +116,47 @@ func Setup(appName, appVersion string) {
 				log.Fatalf("Error: %s", err.Error())
 			}
 		}()
-
-		// obtain the host's public key before finishing setup.
-		_meta.Host = <-pkCh
-		close(pkCh)
 	}
 }
 
 // this serves the connection between the host and this App.
 func serveHostConn() error {
-
-	handleConfirmLoop := func(lm LoopMeta) error {
-		_mu.Lock()
-		_, ok := _loops[lm]
-		_mu.Unlock()
-		if !ok {
-			return errors.New("loop is already created")
-		}
-		select {
-		case _acceptCh <- lm:
-		default:
-		}
-		return nil
-	}
-
-	handleCloseLoop := func(lm LoopMeta) error {
-		_mu.Lock()
-		conn, ok := _loops[lm]
-		_mu.Unlock()
-		if !ok {
-			return nil
-		}
-		delete(_loops, lm)
-		return conn.Close()
-	}
-
-	handleData := func(df DataFrame) error {
-		_mu.Lock()
-		conn, ok := _loops[df.Meta]
-		_mu.Unlock()
-		if !ok {
-			return fmt.Errorf("received packet is directed at non-existent loop: %v", df.Meta)
-		}
-		_, err := conn.Write(df.Data)
-		return err
-	}
-
-	return _proto.Serve(func(t appnet.FrameType, bytes []byte) (interface{}, error) {
-		switch t {
-		case appnet.FrameConfirmLoop:
+	return _proto.Serve(appnet.HandlerMap{
+		appnet.FrameConfirmLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
 			var lm LoopMeta
-			if err := json.Unmarshal(bytes, &lm); err != nil {
+			if err := lm.Decode(b); err != nil {
 				return nil, err
 			}
-			return nil, handleConfirmLoop(lm)
-
-		case appnet.FrameCloseLoop:
+			select {
+			case _acceptCh <- lm:
+			default:
+			}
+			return nil, nil
+		},
+		appnet.FrameCloseLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
 			var lm LoopMeta
-			if err := json.Unmarshal(bytes, &lm); err != nil {
+			if err := lm.Decode(b); err != nil {
 				return nil, err
 			}
-			return nil, handleCloseLoop(lm)
-
-		case appnet.FrameData:
+			conn, ok := loopPipe(lm)
+			if !ok {
+				return nil, nil
+			}
+			delete(_loopPipes, lm)
+			return nil, conn.Close()
+		},
+		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
 			var df DataFrame
-			if err := json.Unmarshal(bytes, &df); err != nil {
+			if err := df.Decode(b); err != nil {
 				return nil, err
 			}
-			return nil, handleData(df)
-
-		default:
-			return nil, errors.New("unexpected frame type")
-		}
+			conn, ok := loopPipe(df.Meta)
+			if !ok {
+				return nil, fmt.Errorf("received packet is directed at non-existent loop: %v", df.Meta)
+			}
+			_, err := conn.Write(df.Data)
+			return nil, err
+		},
 	})
 }
 
@@ -178,13 +169,17 @@ func Close() error {
 	}
 
 	_mu.Lock()
-	for addr, l := range _loops {
-		_ = _proto.Send(appnet.FrameCloseLoop, &addr, nil) //nolint:errcheck
+	for lm, l := range _loopPipes {
+		_, _ = _proto.Call(appnet.FrameCloseLoop, lm.Encode()) //nolint:errcheck
 		_ = l.Close()
 	}
 	_mu.Unlock()
 
-	return _proto.Close()
+	if err := _proto.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Info obtains meta information of the App.
@@ -196,9 +191,12 @@ func Accept() (net.Conn, error) {
 	case <-_doneCh:
 		return nil, ErrAppClosed
 	case lm := <-_acceptCh:
-		return newLoopConn(lm), nil
+		return setAndServeLoop(lm)
 	}
 }
+
+// DialFunc is the method for dialing operations.
+type DialFunc func(remoteAddr LoopAddr) (net.Conn, error)
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
 func Dial(remoteAddr LoopAddr) (net.Conn, error) {
@@ -208,10 +206,24 @@ func Dial(remoteAddr LoopAddr) (net.Conn, error) {
 	default:
 	}
 
-	var localAddr LoopAddr
-	if err := _proto.Send(appnet.FrameCreateLoop, remoteAddr, localAddr); err != nil {
+	lmRaw, err := _proto.Call(appnet.FrameCreateLoop, remoteAddr.Encode())
+	if  err != nil {
 		return nil, err
 	}
-	lm := LoopMeta{Local: localAddr, Remote: remoteAddr}
-	return newLoopConn(lm), nil
+	var lm LoopMeta
+	if err := lm.Decode(lmRaw); err != nil {
+		return nil, err
+	}
+	if lm.Remote != remoteAddr {
+		log.Fatalf("Dial: Received unexpected loop meta response from App host: %s", lm.String())
+	}
+	fmt.Println("Dial: preparing to serve loop:", lm)
+	return setAndServeLoop(lm)
 }
+
+// TODO(evanlinjin): The following implementations of net.Listener is temporary.
+type Listener struct{}
+
+func (l *Listener) Accept() (net.Conn, error) { return Accept() }
+func (l *Listener) Close() error              { return Close() }
+func (l *Listener) Addr() net.Addr            { return &LoopAddr{PubKey: _meta.Host, Port: 0} }
