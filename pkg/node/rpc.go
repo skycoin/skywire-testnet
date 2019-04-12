@@ -67,10 +67,12 @@ func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport, 
 
 // Summary provides a summary of an AppNode.
 type Summary struct {
-	PubKey      cipher.PubKey       `json:"local_pk"`
-	Apps        []*AppState         `json:"apps"`
-	Transports  []*TransportSummary `json:"transports"`
-	RoutesCount int                 `json:"routes_count"`
+	PubKey          cipher.PubKey       `json:"local_pk"`
+	NodeVersion     string              `json:"node_version"`
+	AppProtoVersion string              `json:"app_protocol_version"`
+	Apps            []*AppState         `json:"apps"`
+	Transports      []*TransportSummary `json:"transports"`
+	RoutesCount     int                 `json:"routes_count"`
 }
 
 // Summary provides a summary of the AppNode.
@@ -81,10 +83,12 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 		return true
 	})
 	*out = Summary{
-		PubKey:      r.node.config.Node.StaticPubKey,
-		Apps:        r.node.Apps(),
-		Transports:  summaries,
-		RoutesCount: r.node.rt.Count(),
+		PubKey:          r.node.config.Node.StaticPubKey,
+		NodeVersion:     Version,
+		AppProtoVersion: supportedProtocolVersion,
+		Apps:            r.node.Apps(),
+		Transports:      summaries,
+		RoutesCount:     r.node.rt.Count(),
 	}
 	return nil
 }
