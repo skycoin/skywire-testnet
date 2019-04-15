@@ -137,3 +137,5 @@ $ grep coverage ./logs/internal/*.log
 ```
 
 Note 0.0% coverage
+
+Test removed.
