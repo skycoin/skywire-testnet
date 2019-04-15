@@ -1,3 +1,5 @@
+// +build !no_ci
+
 package setup
 
 import (
@@ -8,15 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
-
-	// ssetup "github.com/skycoin/skywire/pkg/setup"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	// "github.com/watercompany/skywire-services/internal/metrics"
 )
 
 func TestCreateLoop(t *testing.T) {
@@ -68,11 +66,11 @@ func TestCreateLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	n1 := newMockNode(m1)
-	go n1.serve() // nolint: errcheck
+	go n1.Serve(context.TODO()) // nolint: errcheck
 	n2 := newMockNode(m2)
-	go n2.serve() // nolint: errcheck
+	go n2.Serve(context.TODO()) // nolint: errcheck
 	n3 := newMockNode(m3)
-	go n3.serve() // nolint: errcheck
+	go n3.Serve(context.TODO()) // nolint: errcheck
 
 	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
 	require.NoError(t, err)
@@ -93,7 +91,7 @@ func TestCreateLoop(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	sn := &Node{logging.MustGetLogger("routesetup"), mS, nil, 0, metrics.NewDummy()}
+	sn := newMockNode(mS)
 	errChan := make(chan error)
 	go func() {
 		errChan <- sn.Serve(context.TODO())
@@ -142,8 +140,6 @@ func TestCreateLoop(t *testing.T) {
 	assert.Equal(t, uint16(1), rule.RemotePort())
 	assert.Equal(t, uint16(2), rule.LocalPort())
 
-	require.NoError(t, sn.Close())
-	require.NoError(t, <-errChan)
 }
 
 func TestCloseLoop(t *testing.T) {
@@ -176,11 +172,11 @@ func TestCloseLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	n3 := newMockNode(m3)
-	go n3.serve() // nolint: errcheck
+	go n3.Serve(context.TODO()) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
-	sn := &Node{logging.MustGetLogger("routesetup"), mS, nil, 0, metrics.NewDummy()}
+	sn := newMockNode(mS)
 	errChan := make(chan error)
 	go func() {
 		errChan <- sn.Serve(context.TODO())
@@ -200,66 +196,6 @@ func TestCloseLoop(t *testing.T) {
 	require.Len(t, rules, 0)
 	require.Nil(t, rules[1])
 
-	require.NoError(t, sn.Close())
-	require.NoError(t, <-errChan)
-}
-
-type muxFactory struct {
-	pk        cipher.PubKey
-	fType     string
-	factories map[cipher.PubKey]transport.Factory
-}
-
-func newMuxFactory(pk cipher.PubKey, fType string, factories map[cipher.PubKey]transport.Factory) *muxFactory {
-	return &muxFactory{pk, fType, factories}
-}
-
-func (f *muxFactory) Accept(ctx context.Context) (transport.Transport, error) {
-	trChan := make(chan transport.Transport)
-	defer close(trChan)
-
-	errChan := make(chan error)
-
-	for _, factory := range f.factories {
-		go func(ff transport.Factory) {
-			tr, err := ff.Accept(ctx)
-			if err != nil {
-				errChan <- err
-			} else {
-				trChan <- tr
-			}
-		}(factory)
-	}
-
-	select {
-	case tr := <-trChan:
-		return tr, nil
-	case err := <-errChan:
-		return nil, err
-	}
-}
-
-func (f *muxFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	return f.factories[remote].Dial(ctx, remote)
-}
-
-func (f *muxFactory) Close() error {
-	var err error
-	for _, factory := range f.factories {
-		if fErr := factory.Close(); err == nil && fErr != nil {
-			err = fErr
-		}
-	}
-
-	return err
-}
-
-func (f *muxFactory) Local() cipher.PubKey {
-	return f.pk
-}
-
-func (f *muxFactory) Type() string {
-	return f.fType
 }
 
 type mockNode struct {
@@ -272,7 +208,7 @@ func newMockNode(tm *transport.Manager) *mockNode {
 	return &mockNode{tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
 }
 
-func (n *mockNode) serve() error {
+func (n *mockNode) Serve(ctx context.Context) error {
 	acceptCh, dialCh := n.tm.Observe()
 	go func() {
 		for tr := range dialCh {
@@ -286,7 +222,7 @@ func (n *mockNode) serve() error {
 		}
 	}()
 
-	return n.tm.Serve(context.Background())
+	return n.tm.Serve(ctx)
 }
 
 func (n *mockNode) setRule(id routing.RouteID, rule routing.Rule) {
@@ -357,4 +293,62 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 	}
 
 	return proto.WritePacket(RespSuccess, nil)
+}
+
+type muxFactory struct {
+	pk        cipher.PubKey
+	fType     string
+	factories map[cipher.PubKey]transport.Factory
+}
+
+func newMuxFactory(pk cipher.PubKey, fType string, factories map[cipher.PubKey]transport.Factory) *muxFactory {
+	return &muxFactory{pk, fType, factories}
+}
+
+func (f *muxFactory) Accept(ctx context.Context) (transport.Transport, error) {
+	trChan := make(chan transport.Transport)
+	defer close(trChan)
+
+	errChan := make(chan error)
+
+	for _, factory := range f.factories {
+		go func(ff transport.Factory) {
+			tr, err := ff.Accept(ctx)
+			if err != nil {
+				errChan <- err
+			} else {
+				trChan <- tr
+			}
+		}(factory)
+	}
+
+	select {
+	case tr := <-trChan:
+		return tr, nil
+	case err := <-errChan:
+		return nil, err
+	}
+}
+
+func (f *muxFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
+	return f.factories[remote].Dial(ctx, remote)
+}
+
+func (f *muxFactory) Close() error {
+	var err error
+	for _, factory := range f.factories {
+		if fErr := factory.Close(); err == nil && fErr != nil {
+			err = fErr
+		}
+	}
+
+	return err
+}
+
+func (f *muxFactory) Local() cipher.PubKey {
+	return f.pk
+}
+
+func (f *muxFactory) Type() string {
+	return f.fType
 }
