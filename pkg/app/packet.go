@@ -6,6 +6,21 @@ import (
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
+// Addr implements net.Addr for App connections.
+type Addr struct {
+	PubKey cipher.PubKey `json:"pk"`
+	Port   uint16        `json:"port"`
+}
+
+// Network returns custom skywire Network type.
+func (addr *Addr) Network() string {
+	return "skywire"
+}
+
+func (addr *Addr) String() string {
+	return fmt.Sprintf("%s:%d", addr.PubKey, addr.Port)
+}
+
 // LoopAddr stores addressing parameters of a loop packets.
 type LoopAddr struct {
 	Port   uint16 `json:"port"`
@@ -20,19 +35,4 @@ func (l *LoopAddr) String() string {
 type Packet struct {
 	Addr    *LoopAddr `json:"addr"`
 	Payload []byte    `json:"payload"`
-}
-
-// Addr implements net.Addr for App connections.
-type Addr struct {
-	PubKey cipher.PubKey `json:"pk"`
-	Port   uint16        `json:"port"`
-}
-
-// Network returns custom skywire Network type.
-func (addr *Addr) Network() string {
-	return "skywire"
-}
-
-func (addr *Addr) String() string {
-	return fmt.Sprintf("%s:%d", addr.PubKey, addr.Port)
 }

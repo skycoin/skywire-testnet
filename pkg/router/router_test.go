@@ -41,8 +41,8 @@ func TestRouterForwarding(t *testing.T) {
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 	c3 := &transport.ManagerConfig{PubKey: pk3, SecKey: sk3, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
-	f3, f4 := transport.NewMockFactory(pk2, pk3)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
+	f3, f4 := transport.NewMockFactoryPair(pk2, pk3)
 	f3.SetType("mock2")
 	f4.SetType("mock2")
 
@@ -144,7 +144,7 @@ func TestRouterApp(t *testing.T) {
 	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -278,7 +278,7 @@ func TestRouterSetup(t *testing.T) {
 	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -302,21 +302,21 @@ func TestRouterSetup(t *testing.T) {
 
 	tr, err := m2.CreateTransport(context.TODO(), pk1, "mock", false)
 	require.NoError(t, err)
-	sProto := setup.NewProtocol(tr)
+	sProto := setup.NewSetupProtocol(tr)
 
 	rw1, rwIn1 := net.Pipe()
 	go r.ServeApp(rwIn1, 2, &app.Config{}) // nolint: errcheck
-	proto1 := app.NewProtocol(rw1)
+	appProto1 := app.NewProtocol(rw1)
 	dataCh := make(chan []byte)
-	go proto1.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	go appProto1.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
 
 	rw2, rwIn2 := net.Pipe()
 	go r.ServeApp(rwIn2, 4, &app.Config{}) // nolint: errcheck
-	proto2 := app.NewProtocol(rw2)
-	go proto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
+	appProto2 := app.NewProtocol(rw2)
+	go appProto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
 		go func() { dataCh <- p }()
 		return nil, nil
 	})
@@ -332,7 +332,7 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, tr.ID, rule.TransportID())
 	})
 
-	t.Run("confirm loop - responder", func(t *testing.T) {
+	t.Run("`confirm loop - responder", func(t *testing.T) {
 		confI := noise.Config{
 			LocalSK:   sk2,
 			LocalPK:   pk2,
@@ -464,7 +464,7 @@ func TestRouterSetupLoop(t *testing.T) {
 	pk1, sk1 := cipher.GenerateKeyPair()
 	pk2, sk2 := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 	f2.SetType("messaging")
 
@@ -490,7 +490,7 @@ func TestRouterSetupLoop(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
+		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
 		if err != nil {
 			errCh <- err
@@ -518,11 +518,11 @@ func TestRouterSetupLoop(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	appProto := app.NewProtocol(rw)
+	go appProto.Serve(nil) // nolint: errcheck
 
 	addr := &app.Addr{}
-	require.NoError(t, proto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk2, Port: 6}, addr))
+	require.NoError(t, appProto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk2, Port: 6}, addr))
 
 	require.NoError(t, <-errCh)
 	ll, err := r.pm.GetLoop(10, &app.Addr{PubKey: pk2, Port: 6})
@@ -567,7 +567,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
@@ -596,7 +596,7 @@ func TestRouterCloseLoop(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
+		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
 		if err != nil {
 			errCh <- err
@@ -655,7 +655,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
@@ -684,7 +684,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
+		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
 		if err != nil {
 			errCh <- err
@@ -741,7 +741,7 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
@@ -770,7 +770,7 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
+		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
 		if err != nil {
 			errCh <- err
@@ -798,8 +798,8 @@ func TestRouterCloseLoopOnRouterClose(t *testing.T) {
 
 	rw, rwIn := net.Pipe()
 	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
-	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	appProto := app.NewProtocol(rw)
+	go appProto.Serve(nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 

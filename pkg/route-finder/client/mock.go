@@ -1,10 +1,9 @@
 package client
 
 import (
-	"github.com/google/uuid"
-
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 // MockClient implements mock route finder client.
@@ -23,7 +22,7 @@ func (r *mockClient) SetError(err error) {
 	r.err = err
 }
 
-// PairedRoutes implements Clien for MockClient
+// PairedRoutes implements Client for MockClient
 func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint16) ([]routing.Route, []routing.Route, error) {
 	if r.err != nil {
 		return nil, nil, r.err
@@ -34,7 +33,7 @@ func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint1
 				&routing.Hop{
 					From:      src,
 					To:        dst,
-					Transport: uuid.New(),
+					Transport: transport.MakeTransportID(src, dst, "", true),
 				},
 			},
 		}, []routing.Route{
@@ -42,7 +41,7 @@ func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint1
 				&routing.Hop{
 					From:      src,
 					To:        dst,
-					Transport: uuid.New(),
+					Transport: transport.MakeTransportID(src, dst, "", true),
 				},
 			},
 		}, nil

@@ -79,7 +79,7 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	proto := setup.NewSetupProtocol(in)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
 	id, err := setup.AddRule(proto, rule)
@@ -105,7 +105,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	proto := setup.NewSetupProtocol(in)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
 	id, err := rt.AddRule(rule)
@@ -140,7 +140,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	proto := setup.NewSetupProtocol(in)
 	pk, _ := cipher.GenerateKeyPair()
 	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
 	require.NoError(t, rt.SetRule(2, rule))
@@ -185,7 +185,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	proto := setup.NewSetupProtocol(in)
 
 	pk, _ := cipher.GenerateKeyPair()
 

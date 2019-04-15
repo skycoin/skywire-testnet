@@ -137,8 +137,8 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 	r.wg.Add(1)
 	defer r.wg.Done()
 
-	proto := app.NewProtocol(conn)
-	if err := r.pm.Open(port, proto); err != nil {
+	appProto := app.NewProtocol(conn)
+	if err := r.pm.Open(port, appProto); err != nil {
 		return err
 	}
 
@@ -151,12 +151,12 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 		CloseLoop:  r.closeLoop,
 		Forward:    r.forwardAppPacket,
 	}
-	am := &appManager{r.Logger, proto, appConf, callbacks}
+	am := &appManager{r.Logger, appProto, appConf, callbacks}
 	err := am.Serve()
 
-	for _, port := range r.pm.AppPorts(proto) {
+	for _, port := range r.pm.AppPorts(appProto) {
 		for _, addr := range r.pm.Close(port) {
-			r.closeLoop(proto, &app.LoopAddr{Port: port, Remote: addr}) // nolint: errcheck
+			r.closeLoop(appProto, &app.LoopAddr{Port: port, Remote: addr}) // nolint: errcheck
 		}
 	}
 
@@ -426,20 +426,18 @@ func (r *Router) destroyLoop(addr *app.LoopAddr) error {
 	return r.rm.RemoveLoopRule(addr)
 }
 
-func (r *Router) setupProto(ctx context.Context) (proto *setup.Protocol, tr transport.Transport, err error) {
+func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
 	if len(r.config.SetupNodes) == 0 {
-		err = errors.New("route setup: no nodes")
-		return
+		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err = r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "messaging", false)
+	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "messaging", false)
 	if err != nil {
-		err = fmt.Errorf("transport: %s", err)
-		return
+		return nil, nil, fmt.Errorf("transport: %s", err)
 	}
 
-	proto = setup.NewProtocol(tr)
-	return
+	sProto := setup.NewSetupProtocol(tr)
+	return sProto, tr, nil
 }
 
 func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (routing.Route, routing.Route, error) {
@@ -485,7 +483,8 @@ func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni 
 
 func (r *Router) isSetupTransport(tr transport.Transport) bool {
 	for _, pk := range r.config.SetupNodes {
-		if tr.Remote() == pk {
+		remote, ok := r.tm.Remote(tr.Edges())
+		if ok && (remote == pk) {
 			return true
 		}
 	}

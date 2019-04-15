@@ -55,8 +55,6 @@ func TestTCPFactory(t *testing.T) {
 	tr, err := f2.Dial(context.TODO(), pk1)
 	require.NoError(t, err)
 	assert.Equal(t, "tcp", tr.Type())
-	assert.Equal(t, pk2, tr.Local())
-	assert.Equal(t, pk1, tr.Remote())
 
 	buf := make([]byte, 3)
 	_, err = tr.Read(buf)

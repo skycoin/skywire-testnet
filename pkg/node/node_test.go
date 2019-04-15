@@ -136,7 +136,7 @@ func TestNodeSpawnAppValidations(t *testing.T) {
 		err  string
 	}{
 		{&AppConfig{App: "chat", Version: "1.0", Port: 2}, "can't bind to reserved port 2"},
-		{&AppConfig{App: "chat", Version: "1.0", Port: 10}, "App chat is already started"},
+		{&AppConfig{App: "chat", Version: "1.0", Port: 10}, "app chat is already started"},
 		{&AppConfig{App: "foo", Version: "1.0", Port: 11}, "failed to run app executable: foo"},
 	}
 

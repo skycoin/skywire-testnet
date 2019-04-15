@@ -137,7 +137,7 @@ func handshakeChannel(t *testing.T, c *channel, pk cipher.PubKey, sk cipher.SecK
 	noiseConf := noise.Config{
 		LocalSK:   sk,
 		LocalPK:   pk,
-		RemotePK:  c.Local(),
+		RemotePK:  c.link.Local(),
 		Initiator: false,
 	}
 

@@ -2,11 +2,13 @@ package transport
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,7 +25,7 @@ func TestTransportManager(t *testing.T) {
 	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
 	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
-	f1, f2 := NewMockFactory(pk1, pk2)
+	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -66,7 +68,7 @@ func TestTransportManager(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.ID)
 	require.NoError(t, err)
-	assert.Equal(t, [2]cipher.PubKey{pk2, pk1}, dEntry.Entry.Edges)
+	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m1.DeleteTransport(tr1.ID))
@@ -111,13 +113,13 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
 	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
-	f1, f2 := NewMockFactory(pk1, pk2)
+	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"mock"}, m1.Factories())
 
-	errCh := make(chan error)
+	errCh := make(chan error, 2)
 	go func() {
 		errCh <- m1.Serve(context.TODO())
 	}()
@@ -133,27 +135,32 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.ID)
 	require.NoError(t, err)
-	assert.Equal(t, [2]cipher.PubKey{pk2, pk1}, dEntry.Entry.Edges)
+	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m2.Close())
 
-	dEntry, err = client.GetTransportByID(context.TODO(), tr2.ID)
+	dEntry2, err := client.GetTransportByID(context.TODO(), tr2.ID)
 	require.NoError(t, err)
-	assert.False(t, dEntry.IsUp)
+	assert.False(t, dEntry2.IsUp)
 
 	m2, err = NewManager(c2, f2)
 	require.NoError(t, err)
-	go m2.Serve(context.TODO()) // nolint
 
-	time.Sleep(time.Second)
+	go func() {
+		errCh <- m2.Serve(context.TODO()) // nolint
+	}()
 
-	dEntry, err = client.GetTransportByID(context.TODO(), tr2.ID)
+	time.Sleep(time.Second) // TODO: this time.Sleep looks fishy - figure out later
+	dEntry3, err := client.GetTransportByID(context.TODO(), tr2.ID)
 	require.NoError(t, err)
-	assert.True(t, dEntry.IsUp)
+
+	assert.True(t, dEntry3.IsUp)
 
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())
+
+	require.NoError(t, <-errCh)
 	require.NoError(t, <-errCh)
 }
 
@@ -168,7 +175,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	c1 := &ManagerConfig{pk1, sk1, client, logStore1, nil}
 	c2 := &ManagerConfig{pk2, sk2, client, logStore2, nil}
 
-	f1, f2 := NewMockFactory(pk1, pk2)
+	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -210,4 +217,86 @@ func TestTransportManagerLogs(t *testing.T) {
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())
 	require.NoError(t, <-errCh)
+}
+
+func ExampleSortPubKeys() {
+	keyA, _ := cipher.GenerateKeyPair()
+	keyB, _ := cipher.GenerateKeyPair()
+
+	sortedKeysAB := SortPubKeys(keyA, keyB)
+	sortedKeysBA := SortPubKeys(keyB, keyA)
+	_ = SortPubKeys(keyA, keyA)
+	fmt.Println("SortPubKeys(keyA, keyA) is successful")
+
+	if sortedKeysAB == sortedKeysBA {
+		fmt.Println("SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)")
+	}
+
+	// Output: SortPubKeys(keyA, keyA) is successful
+	// SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)
+}
+
+func ExampleMakeTransportID() {
+	keyA, _ := cipher.GenerateKeyPair()
+	keyB, _ := cipher.GenerateKeyPair()
+
+	uuidAB := MakeTransportID(keyA, keyB, "type", true)
+
+	for i := 0; i < 256; i++ {
+		if MakeTransportID(keyA, keyB, "type", true) != uuidAB {
+			fmt.Println("uuid is unstable")
+			break
+		}
+	}
+	fmt.Printf("uuid is stable\n")
+
+	uuidBA := MakeTransportID(keyB, keyA, "type", true)
+	if uuidAB == uuidBA {
+		fmt.Println("uuid is bidirectional")
+	} else {
+		fmt.Printf("keyA = %v\n keyB=%v\n uuidAB=%v\n uuidBA=%v\n", keyA, keyB, uuidAB, uuidBA)
+	}
+
+	_ = MakeTransportID(keyA, keyA, "type", true) // works for equal keys
+	fmt.Println("works for equal keys")
+
+	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "another_type", true) {
+		fmt.Println("uuid is different for different types")
+	}
+
+	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "type", false) {
+		fmt.Println("uuid is different for public and private transports")
+	}
+
+	// Output: uuid is stable
+	// uuid is bidirectional
+	// works for equal keys
+	// uuid is different for different types
+	// uuid is different for public and private transports
+}
+
+func ExampleManager_CreateTransport() {
+	// Repetition is required here to guarantee that correctness does not depends on order of edges
+	for i := 0; i < 4; i++ {
+		pkB, mgrA, err := MockTransportManager()
+		if err != nil {
+			fmt.Printf("MockTransportManager failed on iteration %v with: %v\n", i, err)
+			return
+		}
+
+		mtrAB, err := mgrA.CreateTransport(context.TODO(), pkB, "mock", true)
+		if err != nil {
+			fmt.Printf("Manager.CreateTransport failed on iteration %v with: %v\n", i, err)
+			return
+		}
+
+		if (mtrAB.ID == uuid.UUID{}) {
+			fmt.Printf("Manager.CreateTransport failed on iteration %v", i)
+			return
+		}
+	}
+
+	fmt.Println("Manager.CreateTransport success")
+
+	// Output: Manager.CreateTransport success
 }
