@@ -144,7 +144,8 @@ docker-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-
 	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
 
 docker-volume: docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-node	
-	./skywire-cli node gen-config  -o ./node/skywire.json -r
+	-./skywire-cli node gen-config -o  ./node/skywire.json -r
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
 
 docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized skywire-node ${DOCKER_NODE} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
 	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
