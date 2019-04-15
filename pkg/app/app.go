@@ -13,9 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
-	"time"
-
-	"github.com/skycoin/skywire/internal/ioutil"
 )
 
 const (
@@ -255,13 +252,13 @@ func (app *App) confirmLoop(data []byte) error {
 
 type appConn struct {
 	net.Conn
-	rw    *ioutil.AckReadWriter
+	rw io.ReadWriteCloser
 	laddr *Addr
 	raddr *Addr
 }
 
 func newAppConn(conn net.Conn, laddr, raddr *Addr) *appConn {
-	return &appConn{conn, ioutil.NewAckReadWriter(conn, 100*time.Millisecond), laddr, raddr}
+	return &appConn{conn, conn, laddr, raddr}
 }
 
 func (conn *appConn) LocalAddr() net.Addr {
