@@ -131,10 +131,10 @@ func sseHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	clientChan = make(chan string)
+
 	go func() {
 		<-req.Context().Done()
 		close(clientChan)
-		clientChan = nil
 		log.Println("SSE connection were closed.")
 	}()
 
