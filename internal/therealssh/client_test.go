@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +28,6 @@ func TestClientOpenChannel(t *testing.T) {
 		resCh <- data{ch, err}
 	}()
 
-	time.Sleep(100 * time.Millisecond)
 	buf := make([]byte, 5)
 	_, err := conn.Read(buf)
 	require.NoError(t, err)
