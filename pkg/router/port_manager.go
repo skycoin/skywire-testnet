@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"fmt"
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/skycoin/skywire/internal/appnet"
 )
@@ -29,39 +30,39 @@ func (pm *portManager) Open(port uint16, proto *appnet.Protocol) error {
 	return nil
 }
 
-func (pm *portManager) SetLoop(port uint16, raddr *appnet.LoopAddr, l *loop) error {
+func (pm *portManager) SetLoop(port uint16, rAddr *app.LoopAddr, l *loop) error {
 	b := pm.ports.get(port)
 	if b == nil {
 		return errors.New("port is not bound")
 	}
 
-	b.loops.set(raddr, l)
+	b.loops.set(rAddr, l)
 	return nil
 }
 
-func (pm *portManager) AppConns() []*appnet.Protocol {
-	res := []*appnet.Protocol{}
+func (pm *portManager) AppLinks() []*appnet.Protocol {
+	var resp []*appnet.Protocol
 	set := map[*appnet.Protocol]struct{}{}
 	for _, bind := range pm.ports.all() {
 		if _, ok := set[bind.conn]; !ok {
-			res = append(res, bind.conn)
+			resp = append(resp, bind.conn)
 			set[bind.conn] = struct{}{}
 		}
 	}
-	return res
+	return resp
 }
 
 func (pm *portManager) AppPorts(appConn *appnet.Protocol) []uint16 {
-	res := []uint16{}
+	var resp []uint16
 	for port, bind := range pm.ports.all() {
 		if bind.conn == appConn {
-			res = append(res, port)
+			resp = append(resp, port)
 		}
 	}
-	return res
+	return resp
 }
 
-func (pm *portManager) Close(port uint16) []appnet.LoopAddr {
+func (pm *portManager) Close(port uint16) []app.LoopAddr {
 	b := pm.ports.remove(port)
 	if b == nil {
 		return nil
@@ -70,7 +71,7 @@ func (pm *portManager) Close(port uint16) []appnet.LoopAddr {
 	return b.loops.dropAll()
 }
 
-func (pm *portManager) RemoveLoop(port uint16, raddr *appnet.LoopAddr) error {
+func (pm *portManager) RemoveLoop(port uint16, raddr *app.LoopAddr) error {
 	b, err := pm.Get(port)
 	if err != nil {
 		return err
@@ -89,7 +90,7 @@ func (pm *portManager) Get(port uint16) (*portBind, error) {
 	return b, nil
 }
 
-func (pm *portManager) GetLoop(localPort uint16, remoteAddr *appnet.LoopAddr) (*loop, error) {
+func (pm *portManager) GetLoop(localPort uint16, remoteAddr *app.LoopAddr) (*loop, error) {
 	b, err := pm.Get(localPort)
 	if err != nil {
 		return nil, err

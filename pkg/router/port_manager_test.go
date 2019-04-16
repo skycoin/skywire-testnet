@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/skycoin/skywire/pkg/app"
 	"net"
 	"sort"
 	"testing"
@@ -27,11 +28,11 @@ func TestPortManager(t *testing.T) {
 	require.Error(t, pm.Open(8, proto))
 
 	pk, _ := cipher.GenerateKeyPair()
-	raddr := &appnet.LoopAddr{PubKey: pk, Port: 3}
+	raddr := &app.LoopAddr{PubKey: pk, Port: 3}
 	require.NoError(t, pm.SetLoop(8, raddr, &loop{}))
 	require.Error(t, pm.SetLoop(7, raddr, &loop{}))
 
-	assert.Equal(t, []*appnet.Protocol{proto}, pm.AppConns())
+	assert.Equal(t, []*appnet.Protocol{proto}, pm.AppLinks())
 
 	ports := pm.AppPorts(proto)
 	sort.Slice(ports, func(i, j int) bool { return ports[i] < ports[j] })
@@ -63,5 +64,5 @@ func TestPortManager(t *testing.T) {
 
 	assert.Empty(t, pm.Close(10))
 	assert.Empty(t, pm.Close(7))
-	assert.Equal(t, []appnet.LoopAddr{*raddr}, pm.Close(8))
+	assert.Equal(t, []app.LoopAddr{*raddr}, pm.Close(8))
 }

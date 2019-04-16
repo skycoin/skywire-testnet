@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"github.com/skycoin/skywire/internal/appnet"
-	"github.com/skycoin/skywire/pkg/cipher"
 	"io"
 	"net"
+
+	"github.com/skycoin/skywire/internal/appnet"
+	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (

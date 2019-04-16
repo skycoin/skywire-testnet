@@ -56,7 +56,7 @@ func setupHost(t *testing.T, hostConn net.Conn, handlers appnet.HandlerMap) (*ap
 	proto := appnet.NewProtocol(hostConn)
 
 	errCh := make(chan error, 1)
-	go func() {errCh <- proto.Serve(handlers)}()
+	go func() { errCh <- proto.Serve(handlers) }()
 
 	return proto, func() {
 		require.NoError(t, proto.Close())

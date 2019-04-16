@@ -123,6 +123,7 @@ func Setup(appName, appVersion string) {
 func serveHostConn() error {
 	return _proto.Serve(appnet.HandlerMap{
 		appnet.FrameConfirmLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
+			log.Printf("Received CONFIRM_LOOP Request.")
 			var lm LoopMeta
 			if err := lm.Decode(b); err != nil {
 				return nil, err
@@ -207,7 +208,7 @@ func Dial(remoteAddr LoopAddr) (net.Conn, error) {
 	}
 
 	lmRaw, err := _proto.Call(appnet.FrameCreateLoop, remoteAddr.Encode())
-	if  err != nil {
+	if err != nil {
 		return nil, err
 	}
 	var lm LoopMeta

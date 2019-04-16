@@ -7,8 +7,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/skycoin/skywire/internal/appnet"
-
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
@@ -16,16 +14,11 @@ import (
 	"github.com/skycoin/skywire/pkg/setup"
 )
 
-type setupCallbacks struct {
-	ConfirmLoop func(addr *app.LoopMeta, rule routing.Rule, noiseMsg []byte) (noiseRes []byte, err error)
-	LoopClosed  func(addr *app.LoopMeta) error
-}
-
 type routeManager struct {
 	Logger *logging.Logger
 
 	rt        *managedRoutingTable
-	callbacks *setupCallbacks
+	br        *Router // Back reference.
 }
 
 func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
@@ -50,7 +43,7 @@ func (rm *routeManager) RemoveLoopRule(addr *app.LoopMeta) error {
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rule.Type() != routing.RuleApp || rule.RemotePK() != addr.Remote.PubKey ||
-			rule.RemotePort() != addr.Remote.Port || rule.LocalPort() != addr.LocalPort {
+			rule.RemotePort() != addr.Remote.Port || rule.LocalPort() != addr.Local.Port {
 			return true
 		}
 
@@ -108,7 +101,7 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 }
 
 func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) {
-	rules := []routing.Rule{}
+	var rules []routing.Rule
 	if err := json.Unmarshal(data, &rules); err != nil {
 		return nil, err
 	}
@@ -128,7 +121,7 @@ func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) 
 }
 
 func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, error) {
-	ruleIDs := []routing.RouteID{}
+	var ruleIDs []routing.RouteID
 	if err := json.Unmarshal(data, &ruleIDs); err != nil {
 		return nil, err
 	}
@@ -143,12 +136,12 @@ func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, erro
 }
 
 func (rm *routeManager) confirmLoop(data []byte) (noiseRes []byte, err error) {
-	ld := setup.LoopData{}
+	var ld setup.LoopData
 	if err = json.Unmarshal(data, &ld); err != nil {
 		return
 	}
 
-	raddr := &appnet.LoopAddr{PubKey: ld.RemotePK, Port: ld.RemotePort}
+	raddr := &app.LoopAddr{PubKey: ld.RemotePK, Port: ld.RemotePort}
 
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
@@ -184,7 +177,12 @@ func (rm *routeManager) confirmLoop(data []byte) (noiseRes []byte, err error) {
 		return
 	}
 
-	msg, err := rm.callbacks.ConfirmLoop(&app.LoopMeta{LocalPort: ld.LocalPort, Remote: *raddr}, rule, ld.NoiseMessage)
+	lm := app.LoopMeta{
+		Local:  app.LoopAddr{PubKey: rm.br.config.PubKey, Port: ld.LocalPort},
+		Remote: *raddr,
+	}
+
+	msg, err := rm.br.confirmLoop(lm, rule, ld.NoiseMessage)
 	if err != nil {
 		err = fmt.Errorf("confirm: %s", err)
 		return
@@ -207,7 +205,9 @@ func (rm *routeManager) loopClosed(data []byte) error {
 		return err
 	}
 
-	raddr := &appnet.LoopAddr{PubKey: ld.RemotePK, Port: ld.RemotePort}
-	addr := &app.LoopMeta{LocalPort: ld.LocalPort, Remote: *raddr}
-	return rm.callbacks.LoopClosed(addr)
+	addr := &app.LoopMeta{
+		Local:  app.LoopAddr{PubKey: rm.br.config.PubKey, Port: ld.LocalPort},
+		Remote: app.LoopAddr{PubKey: ld.RemotePK,         Port: ld.RemotePort},
+	}
+	return rm.br.loopClosed(addr)
 }
