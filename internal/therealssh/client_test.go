@@ -85,44 +85,6 @@ func TestClientHandleResponse(t *testing.T) {
 	assert.Equal(t, []byte("foo"), <-dataCh)
 }
 
-func TestClientHandleData(t *testing.T) {
-	pk, _ := cipher.GenerateKeyPair()
-	c := &Client{nil, newChanList()}
-	in, out := net.Pipe()
-	errCh := make(chan error)
-	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: pk, Port: Port}})
-	}()
-
-	_, err := in.Write(appendU32([]byte{byte(CmdChannelData)}, 0))
-	require.NoError(t, err)
-	assert.Equal(t, "channel is not opened", (<-errCh).Error())
-
-	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: cipher.PubKey{}, Port: Port}})
-	}()
-
-	ch := OpenChannel(4, &app.Addr{PubKey: pk, Port: Port}, nil)
-	c.chans.add(ch)
-
-	_, err = in.Write(appendU32([]byte{byte(CmdChannelData)}, 0))
-	require.NoError(t, err)
-	assert.Equal(t, "unauthorized", (<-errCh).Error())
-
-	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: pk, Port: Port}})
-	}()
-	dataCh := make(chan []byte)
-	go func() {
-		dataCh <- <-ch.dataCh
-	}()
-
-	data := append(appendU32([]byte{byte(CmdChannelData)}, 0), []byte("foo")...)
-	_, err = in.Write(data)
-	require.NoError(t, err)
-	assert.Equal(t, []byte("foo"), <-dataCh)
-}
-
 type pipeDialer struct {
 	conn net.Conn
 }
