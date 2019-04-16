@@ -45,6 +45,7 @@ func TestAppDial(t *testing.T) {
 	require.NotNil(t, app.conns[LoopAddr{2, Addr{rpk, 3}}])
 	require.NoError(t, conn.Close())
 
+	// Justified. Attempt to remove produces: FAIL
 	time.Sleep(100 * time.Millisecond)
 
 	addr := &LoopAddr{}
