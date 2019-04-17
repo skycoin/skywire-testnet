@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -245,8 +246,10 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 	proto := NewSetupProtocol(tr)
 	sp, data, err := proto.ReadPacket()
 	if err != nil {
+		fmt.Println("mockNode @ serveTransport => proto.ReadPacket(): err ", err)
 		return err
 	}
+	fmt.Println("mockNode @ serveTransport => proto.ReadPacket(): correct ", sp)
 
 	n.Lock()
 	switch sp {
