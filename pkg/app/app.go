@@ -252,7 +252,7 @@ func (app *App) confirmLoop(data []byte) error {
 
 type appConn struct {
 	net.Conn
-	rw io.ReadWriteCloser
+	rw    io.ReadWriteCloser
 	laddr *Addr
 	raddr *Addr
 }
