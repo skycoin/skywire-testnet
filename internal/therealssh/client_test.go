@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +28,6 @@ func TestClientOpenChannel(t *testing.T) {
 		resCh <- data{ch, err}
 	}()
 
-	time.Sleep(100 * time.Millisecond)
 	buf := make([]byte, 5)
 	_, err := conn.Read(buf)
 	require.NoError(t, err)
@@ -80,44 +78,6 @@ func TestClientHandleResponse(t *testing.T) {
 	}()
 
 	data := append(appendU32([]byte{byte(CmdChannelResponse)}, 0), []byte("foo")...)
-	_, err = in.Write(data)
-	require.NoError(t, err)
-	assert.Equal(t, []byte("foo"), <-dataCh)
-}
-
-func TestClientHandleData(t *testing.T) {
-	pk, _ := cipher.GenerateKeyPair()
-	c := &Client{nil, newChanList()}
-	in, out := net.Pipe()
-	errCh := make(chan error)
-	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: pk, Port: Port}})
-	}()
-
-	_, err := in.Write(appendU32([]byte{byte(CmdChannelData)}, 0))
-	require.NoError(t, err)
-	assert.Equal(t, "channel is not opened", (<-errCh).Error())
-
-	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: cipher.PubKey{}, Port: Port}})
-	}()
-
-	ch := OpenChannel(4, &app.Addr{PubKey: pk, Port: Port}, nil)
-	c.chans.add(ch)
-
-	_, err = in.Write(appendU32([]byte{byte(CmdChannelData)}, 0))
-	require.NoError(t, err)
-	assert.Equal(t, "unauthorized", (<-errCh).Error())
-
-	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: pk, Port: Port}})
-	}()
-	dataCh := make(chan []byte)
-	go func() {
-		dataCh <- <-ch.dataCh
-	}()
-
-	data := append(appendU32([]byte{byte(CmdChannelData)}, 0), []byte("foo")...)
 	_, err = in.Write(data)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), <-dataCh)

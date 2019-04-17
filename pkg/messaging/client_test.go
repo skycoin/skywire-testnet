@@ -7,7 +7,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -34,8 +33,6 @@ func TestClientDial(t *testing.T) {
 	require.NoError(t, err)
 	srvPK := srv.config.Public
 
-	time.Sleep(100 * time.Millisecond)
-
 	anotherPK, anotherSK := cipher.GenerateKeyPair()
 	anotherClient := NewClient(&Config{anotherPK, anotherSK, discovery, 0, 0})
 	require.NoError(t, anotherClient.ConnectToInitialServers(context.TODO(), 1))
@@ -55,8 +52,6 @@ func TestClientDial(t *testing.T) {
 		tr = t
 		errCh <- err
 	}()
-
-	time.Sleep(100 * time.Millisecond)
 
 	require.NoError(t, <-errCh)
 	require.NotNil(t, c.getLink(srvPK).chans.get(0))
@@ -87,9 +82,6 @@ func TestClientDial(t *testing.T) {
 	require.NoError(t, tr.Close())
 	require.NoError(t, anotherTr.Close())
 
-	time.Sleep(100 * time.Millisecond)
-
-	// require.Nil(t, c.getLink(srvPK).chans.get(0))
 	require.Nil(t, anotherClient.getLink(srvPK).chans.get(0))
 }
 
