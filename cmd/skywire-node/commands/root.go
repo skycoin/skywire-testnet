@@ -86,7 +86,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.Flags().StringVarP(&syslogAddr, "syslog", "", "none", "syslog server address. E.g. localhost:514")
-	rootCmd.Flags().StringVarP(&tag, "tag", "", "route-finder", "logging tag")
+	rootCmd.Flags().StringVarP(&tag, "tag", "", "skywire", "logging tag")
 }
 
 // Execute executes root CLI command.
