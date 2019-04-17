@@ -9,8 +9,8 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/manager"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
 const configEnv = "SW_MANAGER_CONFIG"
