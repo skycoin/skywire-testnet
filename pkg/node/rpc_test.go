@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
@@ -88,39 +86,12 @@ func TestStartStopApp(t *testing.T) {
 	node.startedMu.Unlock()
 }
 
-func mockTransportManagers() (pk1, pk2 cipher.PubKey, m1, m2 *transport.Manager, errCh chan error, err error) {
-	discovery := transport.NewDiscoveryMock()
-	logs := transport.InMemoryTransportLogStore()
-
-	var sk1, sk2 cipher.SecKey
-	pk1, sk1 = cipher.GenerateKeyPair()
-	pk2, sk2 = cipher.GenerateKeyPair()
-
-	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
-	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
-
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
-
-	if m1, err = transport.NewManager(c1, f1); err != nil {
-		return
-	}
-	if m2, err = transport.NewManager(c2, f2); err != nil {
-		return
-	}
-
-	errCh = make(chan error)
-	go func() { errCh <- m1.Serve(context.TODO()) }()
-	go func() { errCh <- m2.Serve(context.TODO()) }()
-
-	return
-}
-
 func TestRPC(t *testing.T) {
 	r := new(mockRouter)
 	executer := new(MockExecuter)
 	defer os.RemoveAll("chat")
 
-	pk1, _, tm1, tm2, errCh, err := mockTransportManagers()
+	pk1, _, tm1, tm2, errCh, err := transport.MockTransportManagersPair()
 	require.NoError(t, err)
 	defer func() {
 		require.NoError(t, tm1.Close())
@@ -137,7 +108,7 @@ func TestRPC(t *testing.T) {
 		{App: "bar", Version: "2.0", AutoStart: false, Port: 20},
 	}
 	conf := &Config{}
-	conf.Node.StaticPubKey = pk1
+	conf.Node.PubKey = pk1
 	node := &Node{
 		config:      conf,
 		router:      r,

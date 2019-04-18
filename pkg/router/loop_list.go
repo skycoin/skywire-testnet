@@ -1,8 +1,9 @@
 package router
 
 import (
-	"github.com/skycoin/skywire/pkg/app"
 	"sync"
+
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/google/uuid"
 

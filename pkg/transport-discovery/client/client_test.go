@@ -10,7 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,12 +23,14 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 
 func newTestEntry() *transport.Entry {
 	pk1, _ := cipher.GenerateKeyPair()
-	return &transport.Entry{
-		ID:     uuid.New(),
-		Edges:  [2]cipher.PubKey{pk1, testPubKey},
+	entry := &transport.Entry{
+		ID:     transport.MakeTransportID(pk1, testPubKey, "messaging", false),
 		Type:   "messaging",
 		Public: true,
 	}
+	entry.SetEdges([2]cipher.PubKey{pk1, testPubKey})
+
+	return entry
 }
 
 func TestClientAuth(t *testing.T) {
@@ -145,7 +146,8 @@ func TestRegisterTransportResponses(t *testing.T) {
 }
 
 func TestRegisterTransports(t *testing.T) {
-	sEntry := &transport.SignedEntry{Entry: newTestEntry(), Signatures: [2]cipher.Sig{}}
+	// Signatures does not matter in this test
+	sEntry := &transport.SignedEntry{Entry: newTestEntry()}
 
 	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/transports/", r.URL.String())
@@ -182,14 +184,14 @@ func TestGetTransportByID(t *testing.T) {
 func TestGetTransportsByEdge(t *testing.T) {
 	entry := &transport.EntryWithStatus{Entry: newTestEntry(), IsUp: true}
 	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, fmt.Sprintf("/transports/edge:%s", entry.Entry.Edges[0]), r.URL.String())
+		assert.Equal(t, fmt.Sprintf("/transports/edge:%s", entry.Entry.Edges()[0]), r.URL.String())
 		json.NewEncoder(w).Encode([]*transport.EntryWithStatus{entry}) // nolint: errcheck
 	})))
 	defer srv.Close()
 
 	c, err := NewHTTP(srv.URL, testPubKey, testSecKey)
 	require.NoError(t, err)
-	entries, err := c.GetTransportsByEdge(context.Background(), entry.Entry.Edges[0])
+	entries, err := c.GetTransportsByEdge(context.Background(), entry.Entry.Edges()[0])
 	require.NoError(t, err)
 
 	require.Len(t, entries, 1)

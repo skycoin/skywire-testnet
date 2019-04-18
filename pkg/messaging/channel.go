@@ -10,6 +10,7 @@ import (
 	"github.com/skycoin/skywire/internal/ioutil"
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 type channel struct {
@@ -27,6 +28,11 @@ type channel struct {
 	doneChan  chan struct{}
 
 	noise *noise.Noise
+}
+
+// Edges returns the public keys of the channel's edge nodes
+func (c *channel) Edges() [2]cipher.PubKey {
+	return transport.SortPubKeys(c.link.Local(), c.remotePK)
 }
 
 func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link *Link) (*channel, error) {
@@ -121,14 +127,6 @@ func (c *channel) Close() error {
 
 	c.close()
 	return nil
-}
-
-func (c *channel) Local() cipher.PubKey {
-	return c.link.Local()
-}
-
-func (c *channel) Remote() cipher.PubKey {
-	return c.remotePK
 }
 
 func (c *channel) SetDeadline(t time.Time) error {

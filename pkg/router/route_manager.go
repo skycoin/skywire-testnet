@@ -17,8 +17,8 @@ import (
 type routeManager struct {
 	Logger *logging.Logger
 
-	rt        *managedRoutingTable
-	br        *Router // Back reference.
+	rt *managedRoutingTable
+	br *Router // Back reference.
 }
 
 func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
@@ -69,9 +69,9 @@ func (rm *routeManager) RemoveLoopRule(addr *app.LoopMeta) error {
 }
 
 func (rm *routeManager) Serve(rw io.ReadWriter) error {
-	proto := setup.NewProtocol(rw)
-
+	proto := setup.NewSetupProtocol(rw)
 	t, body, err := proto.ReadPacket()
+
 	if err != nil {
 		fmt.Println("err:", err)
 		return err
@@ -93,11 +93,13 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 	}
 
 	if err != nil {
+
 		rm.Logger.Infof("Setup request with type %s failed: %s", t, err)
 		return proto.WritePacket(setup.RespFailure, err.Error())
 	}
 
 	return proto.WritePacket(setup.RespSuccess, respBody)
+
 }
 
 func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) {
@@ -207,7 +209,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 
 	addr := &app.LoopMeta{
 		Local:  app.LoopAddr{PubKey: rm.br.config.PubKey, Port: ld.LocalPort},
-		Remote: app.LoopAddr{PubKey: ld.RemotePK,         Port: ld.RemotePort},
+		Remote: app.LoopAddr{PubKey: ld.RemotePK, Port: ld.RemotePort},
 	}
 	return rm.br.loopClosed(addr)
 }

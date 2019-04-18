@@ -70,7 +70,7 @@ type appBind struct {
 type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
-	ServeApp(conn net.Conn, port uint16, appMeta *app.Meta) error
+	ServeApp(conn net.Conn, port uint16) error
 }
 
 // Node provides messaging runtime for Apps by setting up all
@@ -108,8 +108,8 @@ func NewNode(config *Config) (*Node, error) {
 	node.Logger = logging.NewMasterLogger()
 	node.logger = node.Logger.PackageLogger("skywire")
 
-	pk := config.Node.StaticPubKey
-	sk := config.Node.StaticSecKey
+	pk := config.Node.PubKey
+	sk := config.Node.SecKey
 	mConfig, err := config.MessagingConfig()
 	if err != nil {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
@@ -316,7 +316,11 @@ func (node *Node) StartApp(appName string) error {
 func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 	node.logger.Infof("Starting %s.v%s", config.App, config.Version)
 
-	host, err := app.NewHost(node.config.Node.StaticPubKey, filepath.Join(node.appsPath, config.App), config.Args)
+	if config == nil {
+		return errors.New("empty config")
+	}
+
+	host, err := app.NewHost(node.config.Node.PubKey, filepath.Join(node.appsPath, config.App), config.Args)
 	if err != nil {
 		return fmt.Errorf("failed to initialise App server: %s", err)
 	}
@@ -362,7 +366,7 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 
 	srvCh := make(chan error)
 	go func() {
-		srvCh <- node.router.ServeApp(host.Conn, config.Port, &host.Meta)
+		srvCh <- node.router.ServeApp(host.Conn, config.Port)
 	}()
 
 	if startCh != nil {

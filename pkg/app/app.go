@@ -43,7 +43,6 @@ var (
 	_meta      Meta
 	_proto     *appnet.Protocol
 	_acceptCh  chan LoopMeta
-	_doneCh    chan struct{}
 	_loopPipes map[LoopMeta]io.ReadWriteCloser
 	_mu        *sync.RWMutex
 )
@@ -55,10 +54,15 @@ func loopPipe(lm LoopMeta) (io.ReadWriteCloser, bool) {
 	return lp, ok
 }
 
-func setLoopPipe(lm LoopMeta, rw io.ReadWriteCloser) {
+func setLoopPipe(lm LoopMeta, rw io.ReadWriteCloser) error {
 	_mu.Lock()
+	if _, ok := _loopPipes[lm]; ok {
+		_mu.Unlock()
+		return fmt.Errorf("already handling loop '%s'", lm.String())
+	}
 	_loopPipes[lm] = rw
 	_mu.Unlock()
+	return nil
 }
 
 func rmLoopPipe(lm LoopMeta) {
@@ -106,7 +110,6 @@ func Setup(appName, appVersion string) {
 
 		_proto = appnet.NewProtocol(pipeConn)
 		_acceptCh = make(chan LoopMeta)
-		_doneCh = make(chan struct{})
 		_loopPipes = make(map[LoopMeta]io.ReadWriteCloser)
 		_mu = new(sync.RWMutex)
 
@@ -123,7 +126,6 @@ func Setup(appName, appVersion string) {
 func serveHostConn() error {
 	return _proto.Serve(appnet.HandlerMap{
 		appnet.FrameConfirmLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
-			log.Printf("Received CONFIRM_LOOP Request.")
 			var lm LoopMeta
 			if err := lm.Decode(b); err != nil {
 				return nil, err
@@ -163,12 +165,6 @@ func serveHostConn() error {
 
 // Close closes the app.
 func Close() error {
-	select {
-	case <-_doneCh:
-		return ErrAppClosed
-	default:
-	}
-
 	_mu.Lock()
 	for lm, l := range _loopPipes {
 		_, _ = _proto.Call(appnet.FrameCloseLoop, lm.Encode()) //nolint:errcheck
@@ -179,7 +175,10 @@ func Close() error {
 	if err := _proto.Close(); err != nil {
 		return err
 	}
-
+	_proto = nil
+	close(_acceptCh)
+	_acceptCh = nil
+	_loopPipes = nil
 	return nil
 }
 
@@ -189,9 +188,10 @@ func Info() Meta { return _meta }
 // Accept awaits for incoming loop confirmation request from a Node and returns net.Conn for received loop.
 func Accept() (net.Conn, error) {
 	select {
-	case <-_doneCh:
-		return nil, ErrAppClosed
-	case lm := <-_acceptCh:
+	case lm, ok := <-_acceptCh:
+		if !ok {
+			return nil, ErrAppClosed
+		}
 		return setAndServeLoop(lm)
 	}
 }
@@ -201,12 +201,6 @@ type DialFunc func(remoteAddr LoopAddr) (net.Conn, error)
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
 func Dial(remoteAddr LoopAddr) (net.Conn, error) {
-	select {
-	case <-_doneCh:
-		return nil, ErrAppClosed
-	default:
-	}
-
 	lmRaw, err := _proto.Call(appnet.FrameCreateLoop, remoteAddr.Encode())
 	if err != nil {
 		return nil, err

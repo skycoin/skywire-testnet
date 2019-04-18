@@ -56,7 +56,7 @@ type Protocol struct {
 
 // NewProtocol constructs a new Protocol.
 func NewProtocol(rw io.ReadWriteCloser) *Protocol {
-	return &Protocol{rw: rw, waiter: newResponseWaiter()}
+	return &Protocol{rw: rw, waiter: new(responseWaiter)}
 }
 
 // Call sends a frame of given type and awaits a response.
@@ -120,9 +120,9 @@ func (p *Protocol) Serve(handlerMap HandlerMap) error {
 					respPayload = resp
 				}
 				if err := p.writeFrame(respType, respID, respPayload); err != nil {
-					fmt.Println("\tPROTO: failed to write response:", err.Error())
+					//fmt.Println("\tPROTO: failed to write response:", err.Error())
 				}
-				fmt.Println("\tPROTO: responded")
+				//fmt.Println("\tPROTO: responded")
 			}(handle, payload)
 		}
 	}
@@ -176,37 +176,33 @@ type (
 func (rc waitChan) pushResponse(t FrameType, p []byte) { rc <- response{Type: t, Data: p} }
 
 type responseWaiter struct {
-	sync.Mutex
+	mu      sync.Mutex
 	waiters [256]waitChan
 	i       uint8
 }
 
-func newResponseWaiter() *responseWaiter {
-	return new(responseWaiter)
-}
-
 func (c *responseWaiter) add() (waitID, waitChan) {
-	c.Lock()
+	c.mu.Lock()
 	i, ch := c.i, make(waitChan)
 	c.i, c.waiters[i] = c.i+1, ch
-	c.Unlock()
+	c.mu.Unlock()
 	return waitID(i), ch
 }
 
 func (c *responseWaiter) pull(id waitID) (waitChan, bool) {
-	c.Lock()
+	c.mu.Lock()
 	ch := c.waiters[id]
 	c.waiters[id] = nil
-	c.Unlock()
+	c.mu.Unlock()
 	return ch, ch != nil
 }
 
 func (c *responseWaiter) close() {
-	c.Lock()
+	c.mu.Lock()
 	for _, ch := range c.waiters {
 		if ch != nil {
 			close(ch)
 		}
 	}
-	c.Unlock()
+	c.mu.Unlock()
 }

@@ -2,6 +2,7 @@ package appnet
 
 import (
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,53 +10,57 @@ import (
 )
 
 const (
-	Type0 = FrameType(0)
-	Type1 = FrameType(1)
-	Type2 = FrameType(2)
+	FrameType0 = FrameType(0)
+	FrameType1 = FrameType(1)
+	FrameType2 = FrameType(2)
 )
 
 var ErrExpected = errors.New("this is an expected error")
 
-//type callChannels [3]chan struct{
-//	Req []byte
-//	Resp <-chan []byte
-//}
-
-type chanArray [3]chan []byte
-
-func makeChanArray(cache int) chanArray {
-	var ca chanArray
-	for i := range ca {
-		ca[i] = make(chan []byte, cache)
-	}
-	return ca
+type callResponse struct {
+	B []byte
+	E error
 }
 
-func (ca chanArray) close() {
-	for _, c := range ca {
-		close(c)
-	}
+type expector interface {
+	Set(t FrameType, req []byte, resp callResponse)
+	Get(t FrameType, req []byte) callResponse
 }
 
-func newProto(conn *PipeConn, rqChs, rsChs chanArray) (*Protocol, func(t *testing.T)) {
+type mapExpector struct {
+	sync.Map
+}
+
+func (m *mapExpector) Set(t FrameType, req []byte, resp callResponse) {
+	key := string(append([]byte{byte(t)}, req...))
+	m.Store(key, resp)
+}
+
+func (m *mapExpector) Get(t FrameType, req []byte) callResponse {
+	key := string(append([]byte{byte(t)}, req...))
+	resp, ok := m.Load(key)
+	if !ok {
+		return callResponse{}
+	}
+	return resp.(callResponse)
+}
+
+func newProto(conn *PipeConn, exp expector) (*Protocol, func(t *testing.T)) {
 	var (
 		proto = NewProtocol(conn)
 		errCh = make(chan error)
 	)
 	makeHandlerFunc := func(t FrameType) HandlerFunc {
 		return func(_ *Protocol, b []byte) ([]byte, error) {
-			rqChs[t] <- b
-			if resp := <-rsChs[t]; resp != nil {
-				return resp, nil
-			}
-			return nil, ErrExpected
+			expResp := exp.Get(t, b)
+			return expResp.B, expResp.E
 		}
 	}
 	go func() {
 		errCh <- proto.Serve(HandlerMap{
-			Type0: makeHandlerFunc(Type0),
-			Type1: makeHandlerFunc(Type1),
-			Type2: makeHandlerFunc(Type2),
+			FrameType0: makeHandlerFunc(FrameType0),
+			FrameType1: makeHandlerFunc(FrameType1),
+			FrameType2: makeHandlerFunc(FrameType2),
 		})
 	}()
 	return proto, func(t *testing.T) {
@@ -65,97 +70,88 @@ func newProto(conn *PipeConn, rqChs, rsChs chanArray) (*Protocol, func(t *testin
 }
 
 func TestNewProtocol(t *testing.T) {
-	const n = 1
-
 	rwA, rwB, err := OpenPipeConn()
 	require.NoError(t, err)
 
-	rqA, rsA := makeChanArray(n), makeChanArray(n)
-	pA, closeA := newProto(rwA, rqA, rsA)
+	exp := expector(new(mapExpector))
+
+	pA, closeA := newProto(rwA, exp)
 	defer closeA(t)
 
-	rqB, rsB := makeChanArray(n), makeChanArray(n)
-	pB, closeB := newProto(rwB, rqB, rsB)
+	pB, closeB := newProto(rwB, exp)
 	defer closeB(t)
 
+	type Case struct {
+		Type FrameType
+		Req  []byte
+		Resp callResponse
+	}
+
+	cases := []Case{
+		{Type: FrameType0, Req: []byte("dfg"), Resp: callResponse{E: ErrExpected}},
+		{Type: FrameType0, Req: []byte("szrggr"), Resp: callResponse{B: []byte("out")}},
+		{Type: FrameType0, Req: []byte("indrg"), Resp: callResponse{E: ErrExpected}},
+		{Type: FrameType0, Req: []byte("in"), Resp: callResponse{B: []byte("out")}},
+
+		{Type: FrameType1, Req: []byte("zdrgzdg"), Resp: callResponse{E: ErrExpected}},
+		{Type: FrameType1, Req: []byte("zdfg"), Resp: callResponse{B: []byte("out")}},
+		{Type: FrameType1, Req: []byte("idzfgn"), Resp: callResponse{E: ErrExpected}},
+		{Type: FrameType1, Req: []byte("igfgnn"), Resp: callResponse{B: []byte("out")}},
+
+		{Type: FrameType2, Req: []byte("fghfgh"), Resp: callResponse{E: ErrExpected}},
+		{Type: FrameType2, Req: []byte("fnfnf"), Resp: callResponse{B: []byte("out")}},
+		{Type: FrameType2, Req: []byte("indfg"), Resp: callResponse{E: ErrExpected}},
+		{Type: FrameType2, Req: []byte("idfgvn"), Resp: callResponse{B: []byte("out")}},
+	}
+
+	for _, c := range cases {
+		exp.Set(c.Type, c.Req, c.Resp)
+	}
+
 	t.Run("SingularCalls", func(t *testing.T) {
-		type Case struct {
-			Type FrameType
-			Req  []byte
-			Resp []byte
-		}
-		cases := []Case{
-			{Type: Type0, Req: []byte(""), Resp: nil},
-			{Type: Type0, Req: []byte(""), Resp: []byte("out")},
-			{Type: Type0, Req: []byte("in"), Resp: []byte("")},
-			{Type: Type0, Req: []byte("in"), Resp: []byte("out")},
-
-			{Type: Type1, Req: []byte(""), Resp: nil},
-			{Type: Type1, Req: []byte(""), Resp: []byte("out")},
-			{Type: Type1, Req: []byte("in"), Resp: []byte("")},
-			{Type: Type1, Req: []byte("in"), Resp: []byte("out")},
-
-			{Type: Type2, Req: []byte(""), Resp: nil},
-			{Type: Type2, Req: []byte(""), Resp: []byte("out")},
-			{Type: Type2, Req: []byte("in"), Resp: []byte("")},
-			{Type: Type2, Req: []byte("in"), Resp: []byte("out")},
-		}
-
 		for _, c := range cases {
-			run := func(proto *Protocol, reqChs, respChs chanArray) {
-				respChs[c.Type] <- c.Resp
-				resp, err := proto.Call(c.Type, c.Req)
+			respA, errA := pA.Call(c.Type, c.Req)
+			assert.Equal(t, c.Resp.B, respA)
+			assert.Equal(t, c.Resp.E, errA)
 
-				if c.Resp != nil {
-					assert.NoError(t, err)
-					assert.Equal(t, c.Resp, resp)
-				} else {
-					require.Error(t, err)
-					assert.Equal(t, ErrExpected.Error(), err.Error())
-				}
-				assert.Equal(t, c.Req, <-reqChs[c.Type])
-			}
-			run(pA, rqB, rsB)
-			run(pB, rqA, rsA)
+			respB, errB := pB.Call(c.Type, c.Req)
+			assert.Equal(t, c.Resp.B, respB)
+			assert.Equal(t, c.Resp.E, errB)
 		}
 	})
 
 	t.Run("ParallelCalls", func(t *testing.T) {
-		// TODO(evanlinjin): Implement.
+		type Result struct {
+			Case Case
+			Resp callResponse
+		}
+
+		resACh := make(chan Result)
+		defer close(resACh)
+
+		resBCh := make(chan Result)
+		defer close(resBCh)
+
+		for _, c := range cases {
+			exp := exp.Get(c.Type, c.Req)
+
+			go func(c Case, er callResponse) {
+				b, err := pA.Call(c.Type, c.Req)
+				resACh <- Result{Case: c, Resp: callResponse{B: b, E: err}}
+			}(c, exp)
+
+			go func(c Case, er callResponse) {
+				b, err := pA.Call(c.Type, c.Req)
+				resBCh <- Result{Case: c, Resp: callResponse{B: b, E: err}}
+			}(c, exp)
+		}
+
+		for i := 0; i < len(cases); i++ {
+			rA := <-resACh
+			assert.Equal(t, rA.Case.Resp, rA.Resp)
+
+			rB := <-resBCh
+			assert.Equal(t, rB.Case.Resp, rB.Resp)
+		}
 	})
 }
-
-//func TestProtocolParallel(t *testing.T) {
-//	rw1, rw2, err := OpenPipeConn()
-//	require.NoError(t, err)
-//	proto1 := NewProtocol(rw1)
-//	proto2 := NewProtocol(rw2)
-//
-//	errCh1 := make(chan error)
-//	go func() {
-//		errCh1 <- proto1.Serve(HandlerMap{
-//			FrameCreateLoop: func(p *Protocol, b []byte) ([]byte, error) {
-//				return proto1.Call(FrameConfirmLoop, []byte("foo"))
-//			},
-//		})
-//	}()
-//
-//	errCh2 := make(chan error)
-//	go func() {
-//		errCh2 <- proto2.ServeJSON(func(f FrameType, _ []byte) (interface{}, error) {
-//			if f != FrameConfirmLoop {
-//				return nil, errors.New("unexpected frame")
-//			}
-//
-//			return nil, nil
-//		})
-//	}()
-//
-//	require.NoError(t, proto2.CallJSON(FrameCreateLoop, "foo", nil))
-//
-//	require.NoError(t, proto1.Close())
-//	require.NoError(t, proto2.Close())
-//
-//	require.NoError(t, <-errCh1)
-//	require.NoError(t, <-errCh2)
-//}

@@ -20,8 +20,8 @@ import (
 func TestMessagingDiscovery(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	conf := Config{}
-	conf.Node.StaticPubKey = pk
-	conf.Node.StaticSecKey = sk
+	conf.Node.PubKey = pk
+	conf.Node.SecKey = sk
 	conf.Messaging.Discovery = "skywire.skycoin.net:8001"
 	conf.Messaging.ServerCount = 10
 

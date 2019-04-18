@@ -2,7 +2,7 @@
 .PHONY : check lint install-linters dep test 
 .PHONY : build  clean install  format  
 .PHONY : host-apps bin 
-.PHONY : run stop 
+.PHONY : run stop config
 .PHONY : docker-image  docker-clean docker-network  
 .PHONY : docker-apps docker-bin docker-volume 
 .PHONY : docker-run docker-stop     
@@ -17,12 +17,14 @@ check: lint test ## Run linters and tests
 
 build: dep host-apps bin ## Install dependencies, build apps and binaries. `go build` with ${OPTS} 
 
-run: stop build	 ## Run skywire-node on host
-	./skywire-node
+run: stop build	config  ## Run skywire-node on host
+	./skywire-node skywire.json
 
 stop: ## Stop running skywire-node on host
 	-bash -c "kill $$(ps aux |grep '[s]kywire-node' |awk '{print $$2}')"
 
+config: ## Generate skywire.json
+	-./skywire-cli node gen-config -o  ./skywire.json -r
 
 clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
@@ -30,6 +32,12 @@ clean: ## Clean project: remove created binaries and apps
 
 install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`	
 	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli	
+
+rerun: stop
+	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
+	-./skywire-cli node gen-config -o  ./skywire.json -r
+	perl -pi -e 's/localhost//g' ./skywire.json
+	./skywire-node skywire.json
 
 
 lint: ## Run linters. Use make install-linters first	
@@ -48,9 +56,25 @@ vendorcheck:  ## Run vendorcheck
 	# the problem is indirect dependency to github.com/sirupsen/logrus
 	#GO111MODULE=off vendorcheck ./cmd/therealssh-cli/... 	
 
-test: ## Run tests for net
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
+test: ## Run tests
+	-go clean -testcache &>/dev/null
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/...
+	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/appnet/...
+	#${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/app/...
+	#TODO(evanlinjin): This is temporary.
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/cipher/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/manager/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/messaging-discovery/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/node/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/route-finder/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/router/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/routing/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/setup/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/transport/...
+#	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/transport-discovery/...
+#	${OPTS} go test  -tags no_ci -cover -timeout=5m ./pkg/messaging/...
+
 
 install-linters: ## Install linters
 	- VERSION=1.13.2 ./ci_scripts/install-golangci-lint.sh 
@@ -71,6 +95,25 @@ dep: ## Sorts dependencies
 
 # Apps 
 host-apps: ## Build app 
+	${OPTS} go build -race -o ./apps/chat.v1.0 ./cmd/apps/chat	
+	${OPTS} go build -race -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
+	${OPTS} go build -race -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
+	${OPTS} go build -race -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	${OPTS} go build -race -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
+	${OPTS} go build -race -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+
+# Bin 
+bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`
+	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
+	${OPTS} go build -race -o ./skywire-cli  ./cmd/skywire-cli 
+	${OPTS} go build -race -o ./manager-node ./cmd/manager-node 
+	${OPTS} go build -race -o ./therealssh-cli ./cmd/therealssh-cli
+
+release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and apps without -race flag
+	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
+	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
+	${OPTS} go build -o ./manager-node ./cmd/manager-node 
+	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
 	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
 	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
 	${OPTS} go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
@@ -78,12 +121,7 @@ host-apps: ## Build app
 	${OPTS} go build -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
 	${OPTS} go build -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
 
-# Bin 
-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`
-	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
-	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
-	${OPTS} go build -o ./manager-node ./cmd/manager-node 
-	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
+
 
 # Dockerized skywire-node
 docker-image: ## Build docker image `skywire-runner`
@@ -97,25 +135,32 @@ docker-network: ## Create docker network ${DOCKER_NETWORK}
 	-docker network create ${DOCKER_NETWORK}
 
 docker-apps: ## Build apps binaries for dockerized skywire-node. `go build` with  ${DOCKER_OPTS}
-	-${DOCKER_OPTS} go build -o ./node/apps/chat.v1.0 ./cmd/apps/chat
-	-${DOCKER_OPTS} go build -o ./node/apps/helloworld.v1.0 ./cmd/apps/helloworld
-	-${DOCKER_OPTS} go build -o ./node/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-	-${DOCKER_OPTS} go build -o ./node/apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	-${DOCKER_OPTS} go build -o ./node/apps/therealssh.v1.0  ./cmd/apps/therealssh
-	-${DOCKER_OPTS} go build -o ./node/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	-${DOCKER_OPTS} go build -race -o ./node/apps/chat.v1.0 ./cmd/apps/chat
+	-${DOCKER_OPTS} go build -race -o ./node/apps/helloworld.v1.0 ./cmd/apps/helloworld
+	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
+	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	-${DOCKER_OPTS} go build -race -o ./node/apps/therealssh.v1.0  ./cmd/apps/therealssh
+	-${DOCKER_OPTS} go build -race -o ./node/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
 
 docker-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`. `go build` with  ${DOCKER_OPTS}
-	${DOCKER_OPTS} go build -o ./node/skywire-node ./cmd/skywire-node 
+	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
 
 docker-volume: docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-node	
-	./skywire-cli node gen-config  -o ./node/skywire.json -r
+	-./skywire-cli node gen-config -o  ./node/skywire.json -r
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
 
 docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized skywire-node ${DOCKER_NODE} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
 	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
-		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node"
+		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node skywire.json"
 
 docker-stop: ## Stop running dockerized skywire-node ${DOCKER_NODE}
 	-docker container stop ${DOCKER_NODE}
+
+docker-rerun: docker-stop
+	-./skywire-cli gen-config -o  ./node/skywire.json -r
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
+	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
+	docker container start -i ${DOCKER_NODE}
 
 
 help:

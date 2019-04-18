@@ -462,20 +462,18 @@ func (r *Router) destroyLoop(addr *app.LoopMeta) error {
 	return r.rm.RemoveLoopRule(addr)
 }
 
-func (r *Router) setupProto(ctx context.Context) (proto *setup.Protocol, tr transport.Transport, err error) {
+func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
 	if len(r.config.SetupNodes) == 0 {
-		err = errors.New("route setup: no nodes")
-		return
+		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err = r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "messaging", false)
+	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "messaging", false)
 	if err != nil {
-		err = fmt.Errorf("transport: %s", err)
-		return
+		return nil, nil, fmt.Errorf("transport: %s", err)
 	}
 
-	proto = setup.NewProtocol(tr)
-	return
+	sProto := setup.NewSetupProtocol(tr)
+	return sProto, tr, nil
 }
 
 func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (routing.Route, routing.Route, error) {
@@ -521,7 +519,8 @@ func (r *Router) advanceNoiseHandshake(addr *app.LoopMeta, noiseMsg []byte) (ni 
 
 func (r *Router) isSetupTransport(tr transport.Transport) bool {
 	for _, pk := range r.config.SetupNodes {
-		if tr.Remote() == pk {
+		remote, ok := r.tm.Remote(tr.Edges())
+		if ok && (remote == pk) {
 			return true
 		}
 	}

@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"fmt"
+
 	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/skycoin/skywire/internal/appnet"

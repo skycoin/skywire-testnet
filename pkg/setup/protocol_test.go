@@ -2,6 +2,7 @@ package setup
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"testing"
 
@@ -9,10 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func ExampleNewSetupProtocol() {
+	in, _ := net.Pipe()
+	defer in.Close()
+
+	sProto := NewSetupProtocol(in)
+	fmt.Printf("Success: %v\n", sProto != nil)
+
+	// Output: Success: true
+}
+
 func TestNewProtocol(t *testing.T) {
 	connA, connB := net.Pipe()
-	protoA := NewProtocol(connA)
-	protoB := NewProtocol(connB)
+	protoA := NewSetupProtocol(connA)
+	protoB := NewSetupProtocol(connB)
 
 	cases := []struct {
 		Type PacketType

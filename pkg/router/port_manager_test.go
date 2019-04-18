@@ -1,10 +1,11 @@
 package router
 
 import (
-	"github.com/skycoin/skywire/pkg/app"
 	"net"
 	"sort"
 	"testing"
+
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/skycoin/skywire/internal/appnet"
 

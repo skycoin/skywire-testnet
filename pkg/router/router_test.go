@@ -44,8 +44,8 @@ func TestRouterForwarding(t *testing.T) {
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 	c3 := &transport.ManagerConfig{PubKey: pk3, SecKey: sk3, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
-	f3, f4 := transport.NewMockFactory(pk2, pk3)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
+	f3, f4 := transport.NewMockFactoryPair(pk2, pk3)
 	f3.SetType("mock2")
 	f4.SetType("mock2")
 
@@ -148,7 +148,7 @@ func TestRouterApp(t *testing.T) {
 	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
@@ -262,13 +262,13 @@ func TestRouterLocalApp(t *testing.T) {
 	dataCh := make(chan []byte)
 	go proto2.Serve(appnet.HandlerMap{
 		appnet.FrameData: func(p *appnet.Protocol, b []byte) ([]byte, error) {
-			go func() {dataCh <-b}()
+			go func() { dataCh <- b }()
 			return nil, nil
 		},
 	})
 
 	df := app.DataFrame{
-		Meta: app.LoopMeta{ Local: app.LoopAddr{Port: 5}, Remote: app.LoopAddr{PubKey: pk, Port: 6}},
+		Meta: app.LoopMeta{Local: app.LoopAddr{Port: 5}, Remote: app.LoopAddr{PubKey: pk, Port: 6}},
 		Data: []byte("foo"),
 	}
 	go proto1.Call(appnet.FrameData, df.Encode())
@@ -488,7 +488,7 @@ func TestRouterSetupLoop(t *testing.T) {
 	pk1, sk1 := cipher.GenerateKeyPair()
 	pk2, sk2 := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 	f2.SetType("messaging")
 
@@ -514,7 +514,7 @@ func TestRouterSetupLoop(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
+		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
 		if err != nil {
 			errCh <- err
@@ -607,7 +607,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
@@ -636,7 +636,7 @@ func TestRouterCloseLoop(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
+		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
 		if err != nil {
 			errCh <- err
@@ -697,7 +697,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 	pk3, _ := cipher.GenerateKeyPair()
 
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
+	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType("messaging")
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
@@ -726,7 +726,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 		acceptCh, _ := m2.Observe()
 		tr := <-acceptCh
 
-		proto := setup.NewProtocol(tr)
+		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
 		if err != nil {
 			errCh <- err
@@ -763,92 +763,6 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
 	require.NoError(t, rw.Close())
-
-	time.Sleep(100 * time.Millisecond)
-
-	require.NoError(t, <-errCh)
-	_, err = r.pm.Get(5)
-	require.Error(t, err)
-
-	rule, err = rt.Rule(routeID)
-	require.NoError(t, err)
-	require.Nil(t, rule)
-}
-
-func TestRouterCloseLoopOnRouterClose(t *testing.T) {
-	client := transport.NewDiscoveryMock()
-	logStore := transport.InMemoryTransportLogStore()
-
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
-	pk3, _ := cipher.GenerateKeyPair()
-
-	f1, f2 := transport.NewMockFactory(pk1, pk2)
-	f1.SetType("messaging")
-
-	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
-	require.NoError(t, err)
-
-	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
-	require.NoError(t, err)
-	go m2.Serve(context.TODO()) // nolint: errcheck
-
-	rt := routing.InMemoryRoutingTable()
-	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5)
-	routeID, err := rt.AddRule(rule)
-	require.NoError(t, err)
-
-	conf := &Config{
-		Logger:           logging.MustGetLogger("routesetup"),
-		PubKey:           pk1,
-		SecKey:           sk1,
-		TransportManager: m1,
-		RoutingTable:     rt,
-		SetupNodes:       []cipher.PubKey{pk2},
-	}
-	r := New(conf)
-	errCh := make(chan error)
-	go func() {
-		acceptCh, _ := m2.Observe()
-		tr := <-acceptCh
-
-		proto := setup.NewProtocol(tr)
-		p, data, err := proto.ReadPacket()
-		if err != nil {
-			errCh <- err
-			return
-		}
-
-		if p != setup.PacketCloseLoop {
-			errCh <- errors.New("unknown command")
-			return
-		}
-
-		ld := &setup.LoopData{}
-		if err := json.Unmarshal(data, ld); err != nil {
-			errCh <- err
-			return
-		}
-
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != pk3 {
-			errCh <- errors.New("invalid payload")
-			return
-		}
-
-		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
-	}()
-
-	rw, rwIn := net.Pipe()
-	go r.ServeApp(rwIn, 5) // nolint: errcheck
-	proto := appnet.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
-
-	time.Sleep(100 * time.Millisecond)
-
-	raddr := &app.LoopAddr{PubKey: pk3, Port: 6}
-	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
-
-	require.NoError(t, r.Close())
 
 	time.Sleep(100 * time.Millisecond)
 

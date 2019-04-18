@@ -79,7 +79,7 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	proto := setup.NewSetupProtocol(in)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
 	id, err := setup.AddRule(proto, rule)
@@ -105,7 +105,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 		errCh <- rm.Serve(out)
 	}()
 
-	proto := setup.NewProtocol(in)
+	proto := setup.NewSetupProtocol(in)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
 	id, err := rt.AddRule(rule)

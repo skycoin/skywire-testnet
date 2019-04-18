@@ -121,15 +121,18 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 	entries := tm.entries
 	tm.mu.RUnlock()
 	for _, entry := range entries {
-		if entry.Edges[0] != tm.config.PubKey {
-			continue
-		}
 
 		if tm.Transport(entry.ID) != nil {
 			continue
 		}
 
-		_, err := tm.createTransport(ctx, entry.Edges[1], entry.Type, entry.ID, entry.Public)
+		remote, ok := tm.Remote(entry.Edges())
+		if !ok {
+			tm.Logger.Warnf("Failed to re-establish transport: remote pk not found in edges")
+			continue
+		}
+
+		_, err := tm.createTransport(ctx, remote, entry.Type, entry.Public)
 		if err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
@@ -141,12 +144,30 @@ func (tm *Manager) ReconnectTransports(ctx context.Context) {
 	}
 }
 
+// Local returns Manager.config.PubKey
+func (tm *Manager) Local() cipher.PubKey {
+	return tm.config.PubKey
+}
+
+// Remote returns the key from the edges that is not equal to Manager.config.PubKey
+// in case when both edges are different - returns  (cipher.PubKey{}, false)
+func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
+	if tm.config.PubKey == edges[0] {
+		return edges[1], true
+	}
+	if tm.config.PubKey == edges[1] {
+		return edges[0], true
+	}
+	return cipher.PubKey{}, false
+}
+
 // CreateDefaultTransports created transports to DefaultNodes if they don't exist.
 func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
-			if tr.Remote() == pk {
+			remote, ok := tm.Remote(tr.Edges())
+			if ok && (remote == pk) {
 				exist = true
 				return false
 			}
@@ -196,9 +217,41 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
+// MakeTransportID generates uuid.UUID from pair of keys + type + public
+// Generated uuid is:
+// - always the same for a given pair
+// - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
+func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
+	keys := SortPubKeys(keyA, keyB)
+	if public {
+		return uuid.NewSHA1(uuid.UUID{},
+			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
+	}
+	return uuid.NewSHA1(uuid.UUID{},
+		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
+}
+
+// SortPubKeys sorts keys so that least-significant comes first
+func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
+	for i := 0; i < 33; i++ {
+		if keyA[i] != keyB[i] {
+			if keyA[i] < keyB[i] {
+				return [2]cipher.PubKey{keyA, keyB}
+			}
+			return [2]cipher.PubKey{keyB, keyA}
+		}
+	}
+	return [2]cipher.PubKey{keyA, keyB}
+}
+
+// SortEdges sorts edges so that list-significant comes firs
+func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
+	return SortPubKeys(edges[0], edges[1])
+}
+
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	return tm.createTransport(ctx, remote, tpType, uuid.UUID{}, public)
+	return tm.createTransport(ctx, remote, tpType, public)
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
@@ -247,13 +300,13 @@ func (tm *Manager) Close() error {
 	return nil
 }
 
-func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, id uuid.UUID, public bool) (*ManagedTransport, error) {
+func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
 	factory := tm.factories[tpType]
 	if factory == nil {
 		return nil, errors.New("unknown transport type")
 	}
 
-	tr, entry, err := tm.dialTransport(ctx, factory, remote, id, public)
+	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +332,7 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 			return
 		case err := <-managedTr.errChan:
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			tr, _, err := tm.dialTransport(ctx, factory, remote, managedTr.ID, public)
+			tr, _, err := tm.dialTransport(ctx, factory, remote, public)
 			if err != nil {
 				tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
 				if err := tm.DeleteTransport(managedTr.ID); err != nil {
@@ -296,13 +349,14 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	return managedTr, nil
 }
 
-func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, id uuid.UUID, public bool) (Transport, *Entry, error) {
+func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
+
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	entry, err := settlementInitiatorHandshake(id, public).Do(tm, tr, time.Minute)
+	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
 	if err != nil {
 		tr.Close()
 		return nil, nil, err
@@ -318,15 +372,21 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 
 	var handshake settlementHandshake = settlementResponderHandshake
-	entry, err := handshake.Do(tm, tr, time.Minute)
+	entry, err := handshake.Do(tm, tr, 30*time.Second)
 	if err != nil {
 		tr.Close()
 		return nil, err
 	}
 
-	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), tr.Remote(), entry.ID)
+	remote, ok := tm.Remote(tr.Edges())
+	if !ok {
+		return nil, errors.New("remote pubkey not found in edges")
+	}
+
+	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
+
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
@@ -335,6 +395,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 	tm.mu.Unlock()
 
+	// go func(managedTr *ManagedTransport, tm *Manager) {
 	go func() {
 		select {
 		case <-managedTr.doneChan:
@@ -345,7 +406,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 			return
 		case err := <-managedTr.errChan:
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			if err := tm.DeleteTransport(entry.ID); err != nil {
+			if err := tm.DeleteTransport(managedTr.ID); err != nil {
 				tm.Logger.Warnf("Failed to delete transport: %s", err)
 			}
 		}

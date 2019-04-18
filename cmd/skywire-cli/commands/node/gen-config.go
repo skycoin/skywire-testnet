@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
 func init() {
@@ -78,8 +78,8 @@ func defaultConfig() *node.Config {
 	conf.Version = "1.0"
 
 	pk, sk := cipher.GenerateKeyPair()
-	conf.Node.StaticPubKey = pk
-	conf.Node.StaticSecKey = sk
+	conf.Node.PubKey = pk
+	conf.Node.SecKey = sk
 
 	conf.Messaging.Discovery = "https://messaging.discovery.skywire.skycoin.net"
 	conf.Messaging.ServerCount = 1

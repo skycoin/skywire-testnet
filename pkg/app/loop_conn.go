@@ -101,7 +101,9 @@ func setAndServeLoop(lm LoopMeta) (*LoopConn, error) {
 		Conn: conn,
 		lm:   lm,
 	}
-	setLoopPipe(lc.lm, hostConn)
+	if err := setLoopPipe(lc.lm, hostConn); err != nil {
+		return nil, err
+	}
 	go func() {
 		if err := lc.serve(hostConn); err != nil && err != io.ErrClosedPipe {
 			log.Warnf("loop (%s) closed with error: %s", lc.lm.String(), err.Error())

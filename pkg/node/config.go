@@ -16,36 +16,44 @@ import (
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
 )
 
+type KeyFields struct {
+	PubKey cipher.PubKey `json:"static_public_key"`
+	SecKey cipher.SecKey `json:"static_secret_key"`
+}
+
+type MessagingFields struct {
+	Discovery   string `json:"discovery"`
+	ServerCount int    `json:"server_count"`
+}
+
+type LogStoreFields struct {
+	Type     string `json:"type"`
+	Location string `json:"location"`
+}
+
+type TransportFields struct {
+	Discovery string         `json:"discovery"`
+	LogStore  LogStoreFields `json:"log_store"`
+}
+
+type RoutingTableFields struct {
+	Type     string `json:"type"`
+	Location string `json:"location"`
+}
+
+type RoutingFields struct {
+	SetupNodes  []cipher.PubKey    `json:"setup_nodes"`
+	RouteFinder string             `json:"route_finder"`
+	Table       RoutingTableFields `json:"table"`
+}
+
 // Config defines configuration parameters for Node.
 type Config struct {
-	Version string `json:"version"`
-
-	Node struct {
-		StaticPubKey cipher.PubKey `json:"static_public_key"`
-		StaticSecKey cipher.SecKey `json:"static_secret_key"`
-	} `json:"node"`
-
-	Messaging struct {
-		Discovery   string `json:"discovery"`
-		ServerCount int    `json:"server_count"`
-	} `json:"messaging"`
-
-	Transport struct {
-		Discovery string `json:"discovery"`
-		LogStore  struct {
-			Type     string `json:"type"`
-			Location string `json:"location"`
-		} `json:"log_store"`
-	} `json:"transport"`
-
-	Routing struct {
-		SetupNodes  []cipher.PubKey `json:"setup_nodes"`
-		RouteFinder string          `json:"route_finder"`
-		Table       struct {
-			Type     string `json:"type"`
-			Location string `json:"location"`
-		} `json:"table"`
-	} `json:"routing"`
+	Version   string          `json:"version"`
+	Node      KeyFields       `json:"node"`
+	Messaging MessagingFields `json:"messaging"`
+	Transport TransportFields `json:"transport"`
+	Routing   RoutingFields   `json:"routing"`
 
 	Apps []AppConfig `json:"apps"`
 
@@ -70,8 +78,8 @@ func (c *Config) MessagingConfig() (*messaging.Config, error) {
 	}
 
 	return &messaging.Config{
-		PubKey:     c.Node.StaticPubKey,
-		SecKey:     c.Node.StaticSecKey,
+		PubKey:     c.Node.PubKey,
+		SecKey:     c.Node.SecKey,
 		Discovery:  mClient.NewHTTP(msgConfig.Discovery),
 		Retries:    5,
 		RetryDelay: time.Second,
@@ -84,7 +92,7 @@ func (c *Config) TransportDiscovery() (transport.DiscoveryClient, error) {
 		return nil, errors.New("empty transport_discovery")
 	}
 
-	return trClient.NewHTTP(c.Transport.Discovery, c.Node.StaticPubKey, c.Node.StaticSecKey)
+	return trClient.NewHTTP(c.Transport.Discovery, c.Node.PubKey, c.Node.SecKey)
 }
 
 // TransportLogStore returns configure transport.LogStore.
