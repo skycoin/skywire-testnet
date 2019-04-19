@@ -14,7 +14,7 @@ import (
 type Hop struct {
 	From      cipher.PubKey
 	To        cipher.PubKey
-	Transport uuid.UUID   
+	Transport uuid.UUID
 }
 
 func (h Hop) String() string {
