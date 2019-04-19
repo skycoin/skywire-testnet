@@ -1,5 +1,3 @@
-// +build !no_ci
-
 package setup
 
 import (
