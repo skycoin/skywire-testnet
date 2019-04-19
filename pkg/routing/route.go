@@ -12,9 +12,9 @@ import (
 
 // Hop defines a route hop between 2 nodes.
 type Hop struct {
-	From      cipher.PubKey `json:"src"`
-	To        cipher.PubKey `json:"dst"`
-	Transport uuid.UUID     `json:"tid"`
+	From      cipher.PubKey
+	To        cipher.PubKey
+	Transport uuid.UUID   
 }
 
 func (h Hop) String() string {

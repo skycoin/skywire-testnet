@@ -9,12 +9,12 @@ import (
 
 // Loop defines a loop over a pair of routes.
 type Loop struct {
-	LocalPort    uint16    `json:"local_port"`
-	RemotePort   uint16    `json:"remote_port"`
-	Forward      Route     `json:"forward_route"`
-	Reverse      Route     `json:"reverse_route"`
-	Expiry       time.Time `json:"expiry"`
-	NoiseMessage []byte    `json:"-"`
+	LocalPort    uint16 
+	RemotePort   uint16
+	Forward      Route
+	Reverse      Route
+	Expiry       time.Time
+	NoiseMessage []byte  
 }
 
 // Initiator returns initiator of the Loop.

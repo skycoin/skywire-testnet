@@ -78,7 +78,6 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 	t, body, err := proto.ReadPacket()
 
 	if err != nil {
-		fmt.Println("err:", err)
 		return err
 	}
 	rm.Logger.Infof("Got new Setup request with type %s", t)
