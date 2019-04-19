@@ -28,10 +28,10 @@ config: ## Generate skywire.json
 
 clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
-	-rm -f ./skywire-node ./skywire-cli ./manager-node ./thereallssh-cli
+	-rm -f ./skywire-node ./skywire-cli ./setup-node ./manager-node ./thereallssh-cli
 
 install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`	
-	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/manager-node ./cmd/therealssh-cli	
+	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/manager-node ./cmd/therealssh-cli	
 
 rerun: stop
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
@@ -50,6 +50,7 @@ vendorcheck:  ## Run vendorcheck
 	GO111MODULE=off vendorcheck ./pkg/... 
 	GO111MODULE=off vendorcheck ./cmd/apps/... 
 	GO111MODULE=off vendorcheck ./cmd/manager-node/... 
+	GO111MODULE=off vendorcheck ./cmd/setup-node/... 
 	GO111MODULE=off vendorcheck ./cmd/skywire-cli/... 
 	GO111MODULE=off vendorcheck ./cmd/skywire-node/... 
 	# vendorcheck fails on ./cmd/therealssh-cli
@@ -90,7 +91,6 @@ format: ## Formats the code. Must have goimports installed (use make install-lin
 dep: ## Sorts dependencies
 	${OPTS} go mod vendor -v
 
-
 # Apps 
 host-apps: ## Build app 
 	${OPTS} go build -race -o ./apps/chat.v1.0 ./cmd/apps/chat	
@@ -104,12 +104,14 @@ host-apps: ## Build app
 bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -race -o ./skywire-cli  ./cmd/skywire-cli 
+	${OPTS} go build -race -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -race -o ./manager-node ./cmd/manager-node 
 	${OPTS} go build -race -o ./therealssh-cli ./cmd/therealssh-cli
 
 release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and apps without -race flag
 	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
+	${OPTS} go build -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -o ./manager-node ./cmd/manager-node 
 	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
 	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
@@ -143,13 +145,21 @@ docker-apps: ## Build apps binaries for dockerized skywire-node. `go build` with
 docker-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`. `go build` with  ${DOCKER_OPTS}
 	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
 
-docker-volume: docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-node	
+docker-volume: dep docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-node	
+	-${DOCKER_OPTS} go build  -o ./docker/skywire-services/setup-node ./cmd/setup-node
 	-./skywire-cli node gen-config -o  ./node/skywire.json -r
 	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
 
 docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized skywire-node ${DOCKER_NODE} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
 	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
 		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-node skywire.json"
+
+docker-setup-node:	## Runs setup-node in detached state in ${DOCKER_NETWORK}
+	-docker container rm setup-node -f
+	docker run -d --network=${DOCKER_NETWORK}  	\
+	 				--name=setup-node	\
+	 				--hostname=setup-node	skywire-services \
+					  bash -c "./setup-node setup-node.json"
 
 docker-stop: ## Stop running dockerized skywire-node ${DOCKER_NODE}
 	-docker container stop ${DOCKER_NODE}

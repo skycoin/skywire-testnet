@@ -1,5 +1,3 @@
-// +build !no_ci
-
 package setup
 
 import (
@@ -10,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skywire/internal/metrics"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -67,11 +68,11 @@ func TestCreateLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	n1 := newMockNode(m1)
-	go n1.Serve(context.TODO()) // nolint: errcheck
+	go n1.serve() // nolint: errcheck
 	n2 := newMockNode(m2)
-	go n2.Serve(context.TODO()) // nolint: errcheck
+	go n2.serve() // nolint: errcheck
 	n3 := newMockNode(m3)
-	go n3.Serve(context.TODO()) // nolint: errcheck
+	go n3.serve() // nolint: errcheck
 
 	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
 	require.NoError(t, err)
@@ -92,7 +93,7 @@ func TestCreateLoop(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	sn := newMockNode(mS)
+	sn := &Node{logging.MustGetLogger("routesetup"), mS, nil, 0, metrics.NewDummy()}
 	errChan := make(chan error)
 	go func() {
 		errChan <- sn.Serve(context.TODO())
@@ -141,6 +142,8 @@ func TestCreateLoop(t *testing.T) {
 	assert.Equal(t, uint16(1), rule.RemotePort())
 	assert.Equal(t, uint16(2), rule.LocalPort())
 
+	require.NoError(t, sn.Close())
+	require.NoError(t, <-errChan)
 }
 
 func TestCloseLoop(t *testing.T) {
@@ -173,11 +176,11 @@ func TestCloseLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	n3 := newMockNode(m3)
-	go n3.Serve(context.TODO()) // nolint: errcheck
+	go n3.serve() // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
-	sn := newMockNode(mS)
+	sn := &Node{logging.MustGetLogger("routesetup"), mS, nil, 0, metrics.NewDummy()}
 	errChan := make(chan error)
 	go func() {
 		errChan <- sn.Serve(context.TODO())
@@ -197,103 +200,8 @@ func TestCloseLoop(t *testing.T) {
 	require.Len(t, rules, 0)
 	require.Nil(t, rules[1])
 
-}
-
-type mockNode struct {
-	sync.Mutex
-	rules map[routing.RouteID]routing.Rule
-	tm    *transport.Manager
-}
-
-func newMockNode(tm *transport.Manager) *mockNode {
-	return &mockNode{tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
-}
-
-func (n *mockNode) Serve(ctx context.Context) error {
-	acceptCh, dialCh := n.tm.Observe()
-	go func() {
-		for tr := range dialCh {
-			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
-		}
-	}()
-
-	go func() {
-		for tr := range acceptCh {
-			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
-		}
-	}()
-
-	return n.tm.Serve(ctx)
-}
-
-func (n *mockNode) setRule(id routing.RouteID, rule routing.Rule) {
-	n.Lock()
-	n.rules[id] = rule
-	n.Unlock()
-}
-
-func (n *mockNode) getRules() map[routing.RouteID]routing.Rule {
-	res := make(map[routing.RouteID]routing.Rule)
-	n.Lock()
-	for id, rule := range n.rules {
-		res[id] = rule
-	}
-	n.Unlock()
-	return res
-}
-
-func (n *mockNode) serveTransport(tr transport.Transport) error {
-	proto := NewSetupProtocol(tr)
-	sp, data, err := proto.ReadPacket()
-	if err != nil {
-		return err
-	}
-
-	n.Lock()
-	switch sp {
-	case PacketAddRules:
-		rules := []routing.Rule{}
-		json.Unmarshal(data, &rules) // nolint: errcheck
-		for _, rule := range rules {
-			for i := routing.RouteID(1); i < 255; i++ {
-				if n.rules[i] == nil {
-					n.rules[i] = rule
-					break
-				}
-			}
-		}
-	case PacketConfirmLoop:
-		ld := LoopData{}
-		json.Unmarshal(data, &ld) // nolint: errcheck
-		for _, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
-				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
-
-				rule.SetRouteID(ld.RouteID)
-				break
-			}
-		}
-	case PacketLoopClosed:
-		ld := &LoopData{}
-		json.Unmarshal(data, ld) // nolint: errcheck
-		for routeID, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
-				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
-
-				delete(n.rules, routeID)
-				break
-			}
-		}
-	default:
-		err = errors.New("unknown foundation packet")
-	}
-	n.Unlock()
-
-	if err != nil {
-		return proto.WritePacket(RespFailure, err)
-	}
-
-	return proto.WritePacket(RespSuccess, nil)
+	require.NoError(t, sn.Close())
+	require.NoError(t, <-errChan)
 }
 
 type muxFactory struct {
@@ -352,4 +260,103 @@ func (f *muxFactory) Local() cipher.PubKey {
 
 func (f *muxFactory) Type() string {
 	return f.fType
+}
+
+type mockNode struct {
+	sync.Mutex
+	rules map[routing.RouteID]routing.Rule
+	tm    *transport.Manager
+}
+
+func newMockNode(tm *transport.Manager) *mockNode {
+	return &mockNode{tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
+}
+
+func (n *mockNode) serve() error {
+	acceptCh, dialCh := n.tm.Observe()
+	go func() {
+		for tr := range dialCh {
+			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
+		}
+	}()
+
+	go func() {
+		for tr := range acceptCh {
+			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
+		}
+	}()
+
+	return n.tm.Serve(context.Background())
+}
+
+func (n *mockNode) setRule(id routing.RouteID, rule routing.Rule) {
+	n.Lock()
+	n.rules[id] = rule
+	n.Unlock()
+}
+
+func (n *mockNode) getRules() map[routing.RouteID]routing.Rule {
+	res := make(map[routing.RouteID]routing.Rule)
+	n.Lock()
+	for id, rule := range n.rules {
+		res[id] = rule
+	}
+	n.Unlock()
+	return res
+}
+
+func (n *mockNode) serveTransport(tr transport.Transport) error {
+	proto := NewSetupProtocol(tr)
+	sp, data, err := proto.ReadPacket()
+	if err != nil {
+		return err
+	}
+
+	n.Lock()
+	var res interface{}
+	switch sp {
+	case PacketAddRules:
+		rules := []routing.Rule{}
+		json.Unmarshal(data, &rules) // nolint: errcheck
+		for _, rule := range rules {
+			for i := routing.RouteID(1); i < 255; i++ {
+				if n.rules[i] == nil {
+					n.rules[i] = rule
+					res = []routing.RouteID{i}
+					break
+				}
+			}
+		}
+	case PacketConfirmLoop:
+		ld := LoopData{}
+		json.Unmarshal(data, &ld) // nolint: errcheck
+		for _, rule := range n.rules {
+			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
+				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
+
+				rule.SetRouteID(ld.RouteID)
+				break
+			}
+		}
+	case PacketLoopClosed:
+		ld := &LoopData{}
+		json.Unmarshal(data, ld) // nolint: errcheck
+		for routeID, rule := range n.rules {
+			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
+				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
+
+				delete(n.rules, routeID)
+				break
+			}
+		}
+	default:
+		err = errors.New("unknown foundation packet")
+	}
+	n.Unlock()
+
+	if err != nil {
+		return proto.WritePacket(RespFailure, err)
+	}
+
+	return proto.WritePacket(RespSuccess, res)
 }
