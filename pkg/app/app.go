@@ -36,7 +36,7 @@ type Meta struct {
 	AppName         string        `json:"app_name"`
 	AppVersion      string        `json:"app_version"`
 	ProtocolVersion string        `json:"protocol_version"`
-	Host            cipher.PubKey `json:"host"`
+	Host            cipher.PubKey `json:"-"`
 }
 
 var (

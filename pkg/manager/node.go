@@ -61,8 +61,9 @@ func NewNode(config Config) (*Node, error) {
 
 // ServeRPC serves RPC of a Node.
 func (m *Node) ServeRPC(lis net.Listener) error {
+	lis = noise.WrapListener(lis, m.c.PK, m.c.SK, false, noise.HandshakeXK)
 	for {
-		conn, err := noise.WrapListener(lis, m.c.PK, m.c.SK, false, noise.HandshakeXK).Accept()
+		conn, err := lis.Accept()
 		if err != nil {
 			return err
 		}

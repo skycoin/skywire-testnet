@@ -57,9 +57,9 @@ require (
 	github.com/visualfc/gocode v0.0.0-20190319040811-fab173807d9b // indirect
 	github.com/visualfc/gotools v0.0.0-20190218124934-6d12497f1bd5 // indirect
 	go.etcd.io/bbolt v1.3.2
-	golang.org/x/crypto v0.0.0-20190411191339-88737f569e3a
+	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
 	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3 // indirect
-	golang.org/x/net v0.0.0-20190415214537-1da14a5a36f2
-	golang.org/x/sys v0.0.0-20190416152802-12500544f89f // indirect
-	golang.org/x/tools v0.0.0-20190417005754-4ca4b55e2050 // indirect
+	golang.org/x/net v0.0.0-20190419010253-1f3472d942ba
+	golang.org/x/sys v0.0.0-20190418153312-f0ce4c0180be // indirect
+	golang.org/x/tools v0.0.0-20190418235243-4796d4bd3df0 // indirect
 )
