@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/skycoin/skywire/internal/pathutil"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"github.com/spf13/cobra"
 
