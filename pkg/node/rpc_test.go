@@ -27,7 +27,7 @@ func TestListApps(t *testing.T) {
 	sApps := map[string]*appBind{
 		"bar": {},
 	}
-	rpc := &RPC{&Node{appsConf: apps, startedApps: sApps}}
+	rpc := &RPC{&Node{config: &Config{Apps: apps}, startedApps: sApps}}
 
 	var reply []*AppState
 	require.NoError(t, rpc.Apps(nil, &reply))
@@ -51,8 +51,8 @@ func TestStartStopApp(t *testing.T) {
 	executer := new(MockExecuter)
 	defer os.RemoveAll("chat")
 
-	apps := []AppConfig{{App: "foo", Version: "1.0", AutoStart: false, Port: 10}}
-	node := &Node{router: router, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
+	apps := []AppConfig{{App: "foo", AutoStart: false, Port: 10}}
+	node := &Node{config: &Config{Apps: apps}, router: router, executer: executer, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 
 	rpc := &RPC{node: node}
 	unknownApp := "bar"
@@ -103,19 +103,19 @@ func TestRPC(t *testing.T) {
 	_, err = tm2.CreateTransport(context.TODO(), pk1, "mock", true)
 	require.NoError(t, err)
 
-	apps := []AppConfig{
-		{App: "foo", Version: "1.0", AutoStart: false, Port: 10},
-		{App: "bar", Version: "2.0", AutoStart: false, Port: 20},
+	conf := &Config{
+		Node: KeyFields{PubKey: pk1},
+		Apps: []AppConfig{
+			{App: "foo", AutoStart: false, Port: 10},
+			{App: "bar", AutoStart: false, Port: 20},
+		},
 	}
-	conf := &Config{}
-	conf.Node.PubKey = pk1
 	node := &Node{
 		config:      conf,
 		router:      r,
 		tm:          tm1,
 		rt:          routing.InMemoryRoutingTable(),
 		executer:    executer,
-		appsConf:    apps,
 		startedApps: map[string]*appBind{},
 		logger:      logging.MustGetLogger("test"),
 	}
@@ -203,10 +203,10 @@ func TestRPC(t *testing.T) {
 		assert.Equal(t, ErrUnknownApp, err)
 
 		require.NoError(t, gateway.SetAutoStart(&in2, &struct{}{}))
-		assert.True(t, node.appsConf[0].AutoStart)
+		assert.True(t, node.config.Apps[0].AutoStart)
 
 		require.NoError(t, gateway.SetAutoStart(&in3, &struct{}{}))
-		assert.False(t, node.appsConf[0].AutoStart)
+		assert.False(t, node.config.Apps[0].AutoStart)
 
 		// Test with RPC Client
 

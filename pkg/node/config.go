@@ -113,19 +113,6 @@ func (c *Config) RoutingTable() (routing.Table, error) {
 	return routing.InMemoryRoutingTable(), nil
 }
 
-// AppsConfig decodes AppsConfig from a local json config file.
-func (c *Config) AppsConfig() ([]AppConfig, error) {
-	apps := []AppConfig{}
-	for _, app := range c.Apps {
-		if app.Version == "" {
-			app.Version = c.Version
-		}
-		apps = append(apps, app)
-	}
-
-	return apps, nil
-}
-
 // AppsDir returns absolute path for directory with application
 // binaries. Directory will be created if necessary.
 func (c *Config) AppsDir() (string, error) {
@@ -171,7 +158,6 @@ type ManagerConfig struct {
 
 // AppConfig defines app startup parameters.
 type AppConfig struct {
-	Version   string   `json:"version"`
 	App       string   `json:"app"`
 	AutoStart bool     `json:"auto_start"`
 	Port      uint16   `json:"port"`

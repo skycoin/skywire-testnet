@@ -88,7 +88,6 @@ type Node struct {
 
 	appsPath  string
 	localPath string
-	appsConf  []AppConfig
 
 	startedMu   sync.RWMutex
 	startedApps map[string]*appBind
@@ -154,11 +153,6 @@ func NewNode(config *Config) (*Node, error) {
 	r := router.New(rConfig)
 	node.router = r
 
-	node.appsConf, err = config.AppsConfig()
-	if err != nil {
-		return nil, fmt.Errorf("invalid AppsConfig: %s", err)
-	}
-
 	node.appsPath, err = config.AppsDir()
 	if err != nil {
 		return nil, fmt.Errorf("invalid AppsPath: %s", err)
@@ -205,7 +199,7 @@ func (node *Node) Start() error {
 	node.tm.ReconnectTransports(ctx)
 	node.tm.CreateDefaultTransports(ctx)
 
-	for _, ac := range node.appsConf {
+	for _, ac := range node.config.Apps {
 		if !ac.AutoStart {
 			continue
 		}
@@ -279,7 +273,7 @@ func (node *Node) Close() (err error) {
 // Apps returns list of AppStates for all registered apps.
 func (node *Node) Apps() []*AppState {
 	var res []*AppState
-	for _, appConf := range node.appsConf {
+	for _, appConf := range node.config.Apps {
 		state := &AppState{appConf.App, appConf.AutoStart, appConf.Port, AppStatusStopped}
 		node.startedMu.RLock()
 		if node.startedApps[appConf.App] != nil {
@@ -295,7 +289,7 @@ func (node *Node) Apps() []*AppState {
 
 // StartApp starts registered App.
 func (node *Node) StartApp(appName string) error {
-	for _, appConf := range node.appsConf {
+	for _, appConf := range node.config.Apps {
 		if appConf.App == appName {
 			startCh := make(chan struct{})
 			go func() {
@@ -314,11 +308,7 @@ func (node *Node) StartApp(appName string) error {
 
 // SpawnApp configures and starts new App.
 func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
-	node.logger.Infof("Starting %s.v%s", config.App, config.Version)
-
-	if config == nil {
-		return errors.New("empty config")
-	}
+	node.logger.Infof("Starting app: %s", config.App)
 
 	host, err := app.NewHost(node.config.Node.PubKey, filepath.Join(node.appsPath, config.App), config.Args)
 	if err != nil {
@@ -340,12 +330,12 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 	node.startedMu.Unlock()
 
 	// TODO: make PackageLogger return *Entry. FieldLogger doesn't expose Writer.
-	logger := node.logger.WithField("_module", fmt.Sprintf("%s.v%s", config.App, config.Version)).Writer()
+	logger := node.logger.WithField("_module", config.App).Writer()
 	defer logger.Close()
 
 	host.Cmd.Stdout = logger
 	host.Cmd.Stderr = logger
-	host.Cmd.Dir = filepath.Join(node.localPath, config.App, fmt.Sprintf("v%s", config.Version))
+	host.Cmd.Dir = filepath.Join(node.localPath, config.App, fmt.Sprintf("v%s", host.AppVersion))
 	if _, err := ensureDir(host.Cmd.Dir); err != nil {
 		return err
 	}
@@ -409,9 +399,9 @@ func (node *Node) StopApp(appName string) error {
 
 // SetAutoStart sets an app to auto start or not.
 func (node *Node) SetAutoStart(appName string, autoStart bool) error {
-	for i, ac := range node.appsConf {
+	for i, ac := range node.config.Apps {
 		if ac.App == appName {
-			node.appsConf[i].AutoStart = autoStart
+			node.config.Apps[i].AutoStart = autoStart
 			return nil
 		}
 	}

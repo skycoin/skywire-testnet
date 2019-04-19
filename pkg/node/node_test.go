@@ -41,7 +41,7 @@ func TestNewNode(t *testing.T) {
 	conf.Messaging.ServerCount = 10
 	conf.Transport.Discovery = srv.URL
 	conf.Apps = []AppConfig{
-		{App: "foo", Version: "1.1", Port: 1},
+		{App: "foo", Port: 1},
 		{App: "bar", AutoStart: true, Port: 2},
 	}
 
@@ -51,7 +51,6 @@ func TestNewNode(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotNil(t, node.router)
-	assert.NotNil(t, node.appsConf)
 	assert.NotNil(t, node.appsPath)
 	assert.NotNil(t, node.localPath)
 	assert.NotNil(t, node.startedApps)

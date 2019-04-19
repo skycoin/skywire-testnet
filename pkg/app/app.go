@@ -44,7 +44,7 @@ var (
 	_proto     *appnet.Protocol
 	_acceptCh  chan LoopMeta
 	_loopPipes map[LoopMeta]io.ReadWriteCloser
-	_mu        *sync.RWMutex
+	_mu        = new(sync.RWMutex)
 )
 
 func loopPipe(lm LoopMeta) (io.ReadWriteCloser, bool) {
@@ -108,10 +108,11 @@ func Setup(appName, appVersion string) {
 			log.Fatalf("Setup failed to open pipe: %s", err.Error())
 		}
 
+		_mu.Lock()
 		_proto = appnet.NewProtocol(pipeConn)
 		_acceptCh = make(chan LoopMeta)
 		_loopPipes = make(map[LoopMeta]io.ReadWriteCloser)
-		_mu = new(sync.RWMutex)
+		_mu.Unlock()
 
 		// Serve the connection between host and this App.
 		go func() {
@@ -175,10 +176,7 @@ func Close() error {
 	if err := _proto.Close(); err != nil {
 		return err
 	}
-	_proto = nil
 	close(_acceptCh)
-	_acceptCh = nil
-	_loopPipes = nil
 	return nil
 }
 
