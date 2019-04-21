@@ -115,6 +115,11 @@ func (ns *Noise) ProcessMessage(msg []byte) (err error) {
 	return err
 }
 
+// Initiator returns whether local entity is initiator.
+func (ns *Noise) Initiator() bool {
+	return ns.init
+}
+
 // LocalStatic returns the local static public key.
 func (ns *Noise) LocalStatic() cipher.PubKey {
 	return ns.pk

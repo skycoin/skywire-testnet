@@ -114,13 +114,13 @@ func TestRouterForwarding(t *testing.T) {
 //	m1, err := transport.NewManager(c1)
 //	require.NoError(t, err)
 //
-//	conf := &Config{
-//		Logger:           logging.MustGetLogger("routesetup"),
+//	c := &Config{
+//		log:           logging.MustGetLogger("routesetup"),
 //		PubKey:           pk1,
 //		SecKey:           sk1,
 //		TransportManager: m1,
 //	}
-//	r := New(conf)
+//	r := New(c)
 //	rw, rwIn := net.Pipe()
 //	errCh := make(chan error)
 //	go func() {
@@ -305,16 +305,16 @@ func TestRouterLocalApp(t *testing.T) {
 //	m2, err := transport.NewManager(c2, f2)
 //	require.NoError(t, err)
 //
-//	rt := routing.InMemoryRoutingTable()
-//	conf := &Config{
-//		Logger:           logging.MustGetLogger("routesetup"),
+//	rtm := routing.InMemoryRoutingTable()
+//	c := &Config{
+//		log:           logging.MustGetLogger("routesetup"),
 //		PubKey:           pk1,
 //		SecKey:           sk1,
 //		TransportManager: m1,
-//		RoutingTable:     rt,
+//		RoutingTable:     rtm,
 //		SetupNodes:       []cipher.PubKey{pk2},
 //	}
-//	r := New(conf)
+//	r := New(c)
 //	errCh := make(chan error)
 //	go func() {
 //		errCh <- r.Serve(context.TODO())
@@ -350,7 +350,7 @@ func TestRouterLocalApp(t *testing.T) {
 //		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.ID))
 //		require.NoError(t, err)
 //
-//		rule, err := rt.Rule(routeID)
+//		rule, err := rtm.Rule(routeID)
 //		require.NoError(t, err)
 //		assert.Equal(t, routing.RouteID(2), rule.RouteID())
 //		assert.Equal(t, tr.ID, rule.TransportID())
@@ -377,7 +377,7 @@ func TestRouterLocalApp(t *testing.T) {
 //		noiseRes, err := setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID, NoiseMessage: msg})
 //		require.NoError(t, err)
 //
-//		rule, err := rt.Rule(appRouteID)
+//		rule, err := rtm.Rule(appRouteID)
 //		require.NoError(t, err)
 //		assert.Equal(t, routeID, rule.RouteID())
 //		_, err = r.pm.Get(2)
@@ -435,7 +435,7 @@ func TestRouterLocalApp(t *testing.T) {
 //		_, err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID, NoiseMessage: noiseRes})
 //		require.NoError(t, err)
 //
-//		rule, err := rt.Rule(appRouteID)
+//		rule, err := rtm.Rule(appRouteID)
 //		require.NoError(t, err)
 //		assert.Equal(t, routeID, rule.RouteID())
 //		l, err := r.pm.GetLoop(2, &app.LoopAddr{PubKey: pk2, Port: 1})
@@ -454,7 +454,7 @@ func TestRouterLocalApp(t *testing.T) {
 //	})
 //
 //	t.Run("loop closed", func(t *testing.T) {
-//		rule, err := rt.Rule(3)
+//		rule, err := rtm.Rule(3)
 //		require.NoError(t, err)
 //		require.NotNil(t, rule)
 //		assert.Equal(t, routing.RuleApp, rule.Type())
@@ -467,7 +467,7 @@ func TestRouterLocalApp(t *testing.T) {
 //		_, err = r.pm.Get(4)
 //		require.NoError(t, err)
 //
-//		rule, err = rt.Rule(3)
+//		rule, err = rtm.Rule(3)
 //		require.NoError(t, err)
 //		require.Nil(t, rule)
 //	})
@@ -475,7 +475,7 @@ func TestRouterLocalApp(t *testing.T) {
 //	t.Run("delete rule", func(t *testing.T) {
 //		require.NoError(t, setup.DeleteRule(sProto, routeID))
 //
-//		rule, err := rt.Rule(routeID)
+//		rule, err := rtm.Rule(routeID)
 //		require.NoError(t, err)
 //		assert.Nil(t, rule)
 //	})
@@ -796,7 +796,7 @@ func TestRouterRouteExpiration(t *testing.T) {
 		RoutingTable:     rt,
 	}
 	r := New(conf)
-	r.expiryTicker = time.NewTicker(100 * time.Millisecond)
+	r.cleanup = time.NewTicker(100 * time.Millisecond)
 	go r.Serve(context.TODO()) // nolint
 
 	time.Sleep(110 * time.Millisecond)

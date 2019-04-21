@@ -17,8 +17,8 @@ import (
 )
 
 func TestRouteManagerGetRule(t *testing.T) {
-	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
+	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
+	rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
 
 	expiredRule := routing.ForwardRule(time.Now().Add(-10*time.Minute), 3, uuid.New())
 	expiredID, err := rt.AddRule(expiredRule)
@@ -40,8 +40,8 @@ func TestRouteManagerGetRule(t *testing.T) {
 }
 
 func TestRouteManagerRemoveLoopRule(t *testing.T) {
-	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
+	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
+	rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
 
 	pk, _ := cipher.GenerateKeyPair()
 	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
@@ -70,13 +70,13 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 	defer func() {
 		close(done)
 	}()
-	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
+	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
+	rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
 
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- rm.Serve(out)
+		errCh <- rm.handleSetupNode(out)
 	}()
 
 	proto := setup.NewSetupProtocol(in)
@@ -96,13 +96,13 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 }
 
 func TestRouteManagerDeleteRules(t *testing.T) {
-	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
+	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
+	rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
 
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- rm.Serve(out)
+		errCh <- rm.handleSetupNode(out)
 	}()
 
 	proto := setup.NewSetupProtocol(in)
@@ -121,7 +121,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 
 // TODO(evanlinjin): re-implement the tests below.
 //func TestRouteManagerConfirmLoop(t *testing.T) {
-//	rt := manageRoutingTable(routing.InMemoryRoutingTable())
+//	rtm := NewRoutingTableManager(routing.InMemoryRoutingTable())
 //	var inAddr *app.LoopMeta
 //	var inRule routing.Rule
 //	var noiseMsg []byte
@@ -133,7 +133,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 //			return []byte("foo"), nil
 //		},
 //	}
-//	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, callbacks}
+//	rm := &setupManager{logging.MustGetLogger("routesetup"), rtm, callbacks}
 //
 //	in, out := net.Pipe()
 //	errCh := make(chan error)
@@ -144,10 +144,10 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 //	proto := setup.NewProtocol(in)
 //	pk, _ := cipher.GenerateKeyPair()
 //	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
-//	require.NoError(t, rt.SetRule(2, rule))
+//	require.NoError(t, rtm.SetRule(2, rule))
 //
 //	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
-//	require.NoError(t, rt.SetRule(1, rule))
+//	require.NoError(t, rtm.SetRule(1, rule))
 //
 //	ld := &setup.LoopData{
 //		RemotePK:     pk,
@@ -170,7 +170,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 //}
 
 //func TestRouteManagerLoopClosed(t *testing.T) {
-//	rt := manageRoutingTable(routing.InMemoryRoutingTable())
+//	rtm := NewRoutingTableManager(routing.InMemoryRoutingTable())
 //	var inAddr *app.LoopMeta
 //	callbacks := &setupCallbacks{
 //		LoopClosed: func(addr *app.LoopMeta) error {
@@ -178,7 +178,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 //			return nil
 //		},
 //	}
-//	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, callbacks}
+//	rm := &setupManager{logging.MustGetLogger("routesetup"), rtm, callbacks}
 //
 //	in, out := net.Pipe()
 //	errCh := make(chan error)
@@ -191,10 +191,10 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 //	pk, _ := cipher.GenerateKeyPair()
 //
 //	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
-//	require.NoError(t, rt.SetRule(2, rule))
+//	require.NoError(t, rtm.SetRule(2, rule))
 //
 //	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
-//	require.NoError(t, rt.SetRule(1, rule))
+//	require.NoError(t, rtm.SetRule(1, rule))
 //
 //	ld := &setup.LoopData{
 //		RemotePK:     pk,

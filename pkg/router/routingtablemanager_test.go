@@ -12,7 +12,7 @@ import (
 )
 
 func TestManagedRoutingTableCleanup(t *testing.T) {
-	rt := manageRoutingTable(routing.InMemoryRoutingTable())
+	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
 
 	_, err := rt.AddRule(routing.ForwardRule(time.Now().Add(time.Hour), 3, uuid.New()))
 	require.NoError(t, err)

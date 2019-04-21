@@ -39,7 +39,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443 // indirect
 	github.com/oniony/TMSU v0.7.4 // indirect
-	github.com/pkg/errors v0.8.1 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/ramya-rao-a/go-outline v0.0.0-20181122025142-7182a932836a // indirect
 	github.com/rogpeppe/godef v1.1.1 // indirect
 	github.com/sdboyer/constext v0.0.0-20170321163424-836a14457353 // indirect

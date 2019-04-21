@@ -2,9 +2,7 @@ package node
 
 import (
 	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"time"
 
 	"github.com/skycoin/skywire/pkg/messaging"
@@ -120,7 +118,7 @@ func (c *Config) AppsDir() (string, error) {
 		return "", errors.New("empty AppsPath")
 	}
 
-	return ensureDir(c.AppsPath)
+	return pathutil.EnsureDir(c.AppsPath)
 }
 
 // LocalDir returns absolute path for app work directory. Directory
@@ -130,25 +128,9 @@ func (c *Config) LocalDir() (string, error) {
 		return "", errors.New("empty AppsPath")
 	}
 
-	return ensureDir(c.LocalPath)
+	return pathutil.EnsureDir(c.LocalPath)
 }
 
-func ensureDir(path string) (string, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand path: %s", err)
-	}
-
-	if _, err := os.Stat(absPath); !os.IsNotExist(err) {
-		return absPath, nil
-	}
-
-	if err := os.MkdirAll(absPath, 0750); err != nil {
-		return "", fmt.Errorf("failed to create dir: %s", err)
-	}
-
-	return absPath, nil
-}
 
 // ManagerConfig represents a connection to a manager.
 type ManagerConfig struct {

@@ -3,20 +3,17 @@ package router
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
-	"net"
-	"sync"
 	"time"
-
-	"github.com/skycoin/skywire/internal/appnet"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 
-	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -31,443 +28,146 @@ const (
 	maxHops  = 50
 )
 
-// Config configures Router.
+// Config configures router.
 type Config struct {
-	Logger           *logging.Logger
-	PubKey           cipher.PubKey
-	SecKey           cipher.SecKey
-	TransportManager *transport.Manager
-	RoutingTable     routing.Table
-	RouteFinder      routeFinder.Client
-	SetupNodes       []cipher.PubKey
+	PubKey     cipher.PubKey
+	SecKey     cipher.SecKey
+	SetupNodes []cipher.PubKey
 }
 
-// Router implements node.PacketRouter. It manages routing table by
-// communicating with setup nodes, forward packets according to local
-// rules and manages loops for apps.
-type Router struct {
-	Logger *logging.Logger
-
-	config *Config
-	tm     *transport.Manager
-	pm     *portManager
-	rm     *routeManager
-
-	expiryTicker *time.Ticker
-	wg           sync.WaitGroup
-
-	staticPorts map[uint16]struct{}
-	mu          sync.Mutex
+// Router manages routing table by communicating with setup nodes, forward packets according to local rules and
+// manages loops for apps.
+type Router interface {
+	Serve(ctx context.Context, am AppsManager) error
+	FindRoutesAndSetupLoop(lm app.LoopMeta, nsMsg []byte) error
+	ForwardPacket(tpID uuid.UUID, rtID routing.RouteID, payload []byte) error
+	CloseLoop(lm app.LoopMeta) error
+	Close() error
 }
 
-// New constructs a new Router.
-func New(config *Config) *Router {
-	r := &Router{
-		Logger:       config.Logger,
-		tm:           config.TransportManager,
-		pm:           newPortManager(10),
-		config:       config,
-		expiryTicker: time.NewTicker(10 * time.Minute),
-		staticPorts:  make(map[uint16]struct{}),
+// New constructs a new router.
+func New(l *logging.Logger, tpM *transport.Manager, rt routing.Table, rf routeFinder.Client, conf *Config) Router {
+	return &router{
+		log:     l,
+		c:       conf,
+		tpm:     tpM,
+		rtm:     NewRoutingTableManager(l, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
+		rfc:     rf,
 	}
-	r.rm = &routeManager{
-		Logger: r.Logger,
-		rt:     manageRoutingTable(config.RoutingTable),
-		br:     r,
-	}
-	return r
+}
+
+type router struct {
+	log *logging.Logger
+	c   *Config
+	tpm *transport.Manager
+	rtm *RoutingTableManager
+	rfc routeFinder.Client
 }
 
 // Serve starts transport listening loop.
-func (r *Router) Serve(ctx context.Context) error {
-	acceptCh, dialCh := r.tm.Observe()
-	go func() {
-		for tr := range acceptCh {
-			go func(t transport.Transport) {
-				for {
-					var err error
-					if r.isSetupTransport(t) {
-						err = r.rm.Serve(t)
-					} else {
-						err = r.serveTransport(t)
-					}
+func (r *router) Serve(ctx context.Context, am AppsManager) error {
 
-					if err != nil {
-						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
-						}
-						return
-					}
+	serve := func(tp transport.Transport, handle func(am AppsManager, rw io.ReadWriter) error) {
+		for {
+			if err := handle(am, tp); err != nil && err != io.EOF {
+				r.log.Warnf("Stopped serving Transport: %s", err)
+				return
+			}
+		}
+	}
+
+	acceptCh, dialCh := r.tpm.Observe()
+
+	go func() {
+		for {
+			select {
+			case tp, ok := <-acceptCh:
+				if !ok {
+					return
 				}
-			}(tr)
-		}
-	}()
-
-	go func() {
-		for tr := range dialCh {
-			if r.isSetupTransport(tr) {
-				continue
-			}
-
-			go func(t transport.Transport) {
-				for {
-					if err := r.serveTransport(t); err != nil {
-						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
-						}
-						return
-					}
+				if !r.isSetup(tp) {
+					go serve(tp, r.handleTransport)
+				} else {
+					go serve(tp, r.handleSetup)
 				}
-			}(tr)
-		}
-	}()
 
-	go func() {
-		for range r.expiryTicker.C {
-			if err := r.rm.rt.Cleanup(); err != nil {
-				r.Logger.Warnf("Failed to expiry routes: %s", err)
+			case tp, ok := <-dialCh:
+				if !ok {
+					return
+				}
+				if !r.isSetup(tp) {
+					go serve(tp, r.handleTransport)
+				}
 			}
 		}
 	}()
 
-	r.Logger.Info("Starting router")
-	return r.tm.Serve(ctx)
+	go r.rtm.Run()
+
+	r.log.Info("Starting router")
+	return r.tpm.Serve(ctx)
 }
 
-// ServeApp handles App packets from the App connection on provided port.
-func (r *Router) ServeApp(conn net.Conn, port uint16) error {
-	r.wg.Add(1)
-	defer r.wg.Done()
+// Close safely stops router.
+func (r *router) Close() error {
+	r.log.Info("Closing all App connections and Loops")
+	r.rtm.Stop()
+	return r.tpm.Close()
+}
 
-	proto := appnet.NewProtocol(conn)
-	if err := r.pm.Open(port, proto); err != nil {
-		return err
+func (r *router) ForwardPacket(tpID uuid.UUID, rtID routing.RouteID, payload []byte) error {
+	tp := r.tpm.Transport(tpID)
+	if tp == nil {
+		return errors.New("transport not found")
 	}
-	fmt.Println("ROUTER: Port opened!")
-
-	r.mu.Lock()
-	r.staticPorts[port] = struct{}{}
-	r.mu.Unlock()
-
-	fmt.Println("ROUTER: Static port reserved!")
-
-	err := proto.Serve(appnet.HandlerMap{
-		appnet.FrameCreateLoop: func(p *appnet.Protocol, b []byte) ([]byte, error) {
-			fmt.Printf("ROUTER: Received frame type (%s)\n", appnet.FrameCreateLoop)
-			var rAddr app.LoopAddr
-			if err := rAddr.Decode(b); err != nil {
-				return nil, err
-			}
-			lAddr, err := r.requestLoop(p, rAddr)
-			if err != nil {
-				return nil, err
-			}
-			lm := app.LoopMeta{Local: lAddr, Remote: rAddr}
-			return lm.Encode(), nil
-		},
-		appnet.FrameCloseLoop: func(p *appnet.Protocol, b []byte) ([]byte, error) {
-			var lm app.LoopMeta
-			if err := lm.Decode(b); err != nil {
-				return nil, err
-			}
-			return nil, r.closeLoop(p, &lm)
-		},
-		appnet.FrameData: func(p *appnet.Protocol, b []byte) ([]byte, error) {
-			var df app.DataFrame
-			if err := df.Decode(b); err != nil {
-				return nil, err
-			}
-			return nil, r.forwardAppPacket(p, df)
-		},
-	})
-
-	for _, port := range r.pm.AppPorts(proto) {
-		for _, addr := range r.pm.Close(port) {
-			_ = r.closeLoop(proto, &app.LoopMeta{ //nolint:errcheck
-				Local:  app.LoopAddr{PubKey: r.config.PubKey, Port: port},
-				Remote: addr,
-			})
-		}
-	}
-
-	r.mu.Lock()
-	delete(r.staticPorts, port)
-	r.mu.Unlock()
-
-	if err == io.EOF {
-		return nil
-	}
+	_, err := tp.Write(routing.MakePacket(rtID, payload))
 	return err
 }
 
-// Close safely stops Router.
-func (r *Router) Close() error {
-	r.Logger.Info("Closing all App connections and Loops")
-	r.expiryTicker.Stop()
-
-	for _, conn := range r.pm.AppLinks() {
-		conn.Close()
+func (r *router) FindRoutesAndSetupLoop(lm app.LoopMeta, nsMsg []byte) error {
+	fwdRt, rvsRt, err := r.fetchBestRoutes(lm.Local.PubKey, lm.Remote.PubKey)
+	if err != nil {
+		return fmt.Errorf("route finder: %s", err)
 	}
-
-	r.wg.Wait()
-	return r.tm.Close()
-}
-
-func (r *Router) serveTransport(tr transport.Transport) error {
-	packet := make(routing.Packet, 6)
-	if _, err := io.ReadFull(tr, packet); err != nil {
-		return err
+	loop := routing.Loop{
+		LocalPort:    lm.Local.Port,
+		RemotePort:   lm.Remote.Port,
+		NoiseMessage: nsMsg,
+		Expiry:       time.Now().Add(RouteTTL),
+		Forward:      fwdRt,
+		Reverse:      rvsRt,
 	}
-
-	payload := make([]byte, packet.Size())
-	if _, err := io.ReadFull(tr, payload); err != nil {
-		return err
-	}
-
-	rule, err := r.rm.GetRule(packet.RouteID())
+	sProto, tp, err := r.setupProto(context.Background())
 	if err != nil {
 		return err
 	}
-
-	r.Logger.Infof("Got new remote packet with route ID %d. Using rule: %s", packet.RouteID(), rule)
-	if rule.Type() == routing.RuleForward {
-		return r.forwardPacket(payload, rule)
-	}
-
-	return r.consumePacket(payload, rule)
-}
-
-func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
-	packet := routing.MakePacket(rule.RouteID(), payload)
-	tr := r.tm.Transport(rule.TransportID())
-	if tr == nil {
-		return errors.New("unknown transport")
-	}
-
-	if _, err := tr.Write(packet); err != nil {
-		return err
-	}
-
-	r.Logger.Infof("Forwarded packet via Transport %s using rule %d", rule.TransportID(), rule.RouteID())
-	return nil
-}
-
-func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
-	rAddr := app.LoopAddr{
-		PubKey: rule.RemotePK(),
-		Port:   rule.RemotePort(),
-	}
-	l, err := r.pm.GetLoop(rule.LocalPort(), &rAddr)
-	if err != nil {
-		return errors.New("unknown loop")
-	}
-	data, err := l.noise.Decrypt(payload)
-	if err != nil {
-		return fmt.Errorf("noise: %s", err)
-	}
-	df := &app.DataFrame{
-		Meta: app.LoopMeta{
-			Local:  app.LoopAddr{PubKey: r.config.PubKey, Port: rule.LocalPort()},
-			Remote: rAddr,
-		},
-		Data: data,
-	}
-	b, _ := r.pm.Get(rule.LocalPort()) //nolint:errcheck
-
-	if _, err := b.conn.Call(appnet.FrameData, df.Encode()); err != nil {
-		return err
-	}
-
-	r.Logger.Infof("Forwarded packet to App on Port %d", rule.LocalPort())
-	return nil
-}
-
-func (r *Router) forwardAppPacket(aProto *appnet.Protocol, df app.DataFrame) error {
-	if df.Meta.Remote.PubKey == r.config.PubKey {
-		return r.forwardLocalAppPacket(df)
-	}
-
-	l, err := r.pm.GetLoop(df.Meta.Local.Port, &df.Meta.Remote)
-	if err != nil {
-		return err
-	}
-
-	tr := r.tm.Transport(l.trID)
-	if tr == nil {
-		return errors.New("unknown transport")
-	}
-
-	p := routing.MakePacket(l.routeID, l.noise.Encrypt(df.Data))
-	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", df.Meta.Local.Port, l.routeID)
-	_, err = tr.Write(p)
-	return err
-}
-
-func (r *Router) forwardLocalAppPacket(df app.DataFrame) error {
-	bind, err := r.pm.Get(df.Meta.Remote.Port)
-	if err != nil {
-		return nil
-	}
-
-	dfResp := app.DataFrame{
-		Meta: app.LoopMeta{
-			Local:  app.LoopAddr{PubKey: r.config.PubKey, Port: df.Meta.Remote.Port},
-			Remote: app.LoopAddr{PubKey: r.config.PubKey, Port: df.Meta.Local.Port},
-		},
-		Data: df.Data,
-	}
-	_, err = bind.conn.Call(appnet.FrameData, dfResp.Encode())
-	return err
-}
-
-func (r *Router) requestLoop(aProto *appnet.Protocol, rAddr app.LoopAddr) (app.LoopAddr, error) {
-	r.Logger.Infof("Requesting new loop to %s", rAddr)
-	nConf := noise.Config{
-		LocalSK:   r.config.SecKey,
-		LocalPK:   r.config.PubKey,
-		RemotePK:  rAddr.PubKey,
-		Initiator: true,
-	}
-	ni, err := noise.KKAndSecp256k1(nConf)
-	if err != nil {
-		return app.LoopAddr{}, fmt.Errorf("noise: %s", err)
-	}
-
-	msg, err := ni.HandshakeMessage()
-	if err != nil {
-		return app.LoopAddr{}, fmt.Errorf("noise handshake: %s", err)
-	}
-
-	lport := r.pm.Alloc(aProto)
-	if err := r.pm.SetLoop(lport, &rAddr, &loop{noise: ni}); err != nil {
-		return app.LoopAddr{}, err
-	}
-
-	lAddr := app.LoopAddr{PubKey: r.config.PubKey, Port: lport}
-
-	if rAddr.PubKey == r.config.PubKey {
-		if err := r.confirmLocalLoop(lAddr, rAddr); err != nil {
-			return app.LoopAddr{}, fmt.Errorf("confirm: %s", err)
-		}
-		r.Logger.Infof("Created local loop on port %d", lAddr.Port)
-		return lAddr, nil
-	}
-
-	forwardRoute, reverseRoute, err := r.fetchBestRoutes(lAddr.PubKey, rAddr.PubKey)
-	if err != nil {
-		return app.LoopAddr{}, fmt.Errorf("route finder: %s", err)
-	}
-
-	l := &routing.Loop{LocalPort: lAddr.Port, RemotePort: rAddr.Port,
-		NoiseMessage: msg, Expiry: time.Now().Add(RouteTTL),
-		Forward: forwardRoute, Reverse: reverseRoute}
-
-	sProto, tr, err := r.setupProto(context.Background())
-	if err != nil {
-		return app.LoopAddr{}, err
-	}
-	defer tr.Close()
-
-	if err := setup.CreateLoop(sProto, l); err != nil {
-		return app.LoopAddr{}, fmt.Errorf("route setup: %s", err)
-	}
-
-	r.Logger.Infof("Created new loop to %s on port %d", rAddr, lAddr.Port)
-	return lAddr, nil
-}
-
-func (r *Router) confirmLocalLoop(lAddr, rAddr app.LoopAddr) error {
-	b, err := r.pm.Get(rAddr.Port)
-	if err != nil {
-		return err
-	}
-
-	lm := app.LoopMeta{Local: rAddr, Remote: lAddr}
-
-	_, err = b.conn.Call(appnet.FrameConfirmLoop, lm.Encode())
-	return err
-}
-
-func (r *Router) confirmLoop(lm app.LoopMeta, rule routing.Rule, noiseMsg []byte) ([]byte, error) {
-	b, err := r.pm.Get(lm.Local.Port)
-	if err != nil {
-		return nil, err
-	}
-
-	ni, msg, err := r.advanceNoiseHandshake(&lm, noiseMsg)
-	if err != nil {
-		return nil, fmt.Errorf("noise handshake: %s", err)
-	}
-
-	if err := r.pm.SetLoop(lm.Local.Port, &lm.Remote, &loop{rule.TransportID(), rule.RouteID(), ni}); err != nil {
-		return nil, err
-	}
-
-	if _, err = b.conn.Call(appnet.FrameConfirmLoop, lm.Encode()); err != nil {
-		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
-	}
-
-	return msg, nil
-}
-
-func (r *Router) closeLoop(appConn *appnet.Protocol, addr *app.LoopMeta) error {
-	if err := r.destroyLoop(addr); err != nil {
-		r.Logger.Warnf("Failed to remove loop: %s", err)
-	}
-
-	proto, tr, err := r.setupProto(context.Background())
-	if err != nil {
-		return err
-	}
-	defer tr.Close()
-
-	ld := &setup.LoopData{RemotePK: addr.Remote.PubKey, RemotePort: addr.Remote.Port, LocalPort: addr.Local.Port}
-	if err := setup.CloseLoop(proto, ld); err != nil {
+	defer func() {_ = tp.Close()}()
+	if err := setup.CreateLoop(sProto, &loop); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
-
-	r.Logger.Infof("Closed loop %s", addr)
 	return nil
 }
 
-func (r *Router) loopClosed(lm *app.LoopMeta) error {
-	b, err := r.pm.Get(lm.Local.Port)
+func (r *router) CloseLoop(lm app.LoopMeta) error {
+	setupProto, setupTP, err := r.setupProto(context.Background())
 	if err != nil {
-		return nil
-	}
-
-	if err := r.destroyLoop(lm); err != nil {
-		r.Logger.Warnf("Failed to remove loop: %s", err)
-	}
-
-	if _, err := b.conn.Call(appnet.FrameCloseLoop, lm.Encode()); err != nil {
 		return err
 	}
-
-	r.Logger.Infof("Closed loop %s", lm)
+	defer func() {_ = setupTP.Close()}()
+	ld := setup.LoopData{RemotePK: lm.Remote.PubKey, RemotePort: lm.Remote.Port, LocalPort: lm.Local.Port}
+	if err := setup.CloseLoop(setupProto, &ld); err != nil {
+		return fmt.Errorf("route setup: %s", err)
+	}
+	r.log.Infof("Closed loop %s", lm)
 	return nil
 }
 
-func (r *Router) destroyLoop(addr *app.LoopMeta) error {
-	r.mu.Lock()
-	_, ok := r.staticPorts[addr.Local.Port]
-	r.mu.Unlock()
-
-	if ok {
-		r.pm.RemoveLoop(addr.Local.Port, &addr.Remote) // nolint: errcheck
-	} else {
-		r.pm.Close(addr.Local.Port)
-	}
-
-	return r.rm.RemoveLoopRule(addr)
-}
-
-func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
-	if len(r.config.SetupNodes) == 0 {
+func (r *router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
+	if len(r.c.SetupNodes) == 0 {
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "messaging", false)
+	tr, err := r.tpm.CreateTransport(ctx, r.c.SetupNodes[0], "messaging", false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("transport: %s", err)
 	}
@@ -476,54 +176,194 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 	return sProto, tr, nil
 }
 
-func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (routing.Route, routing.Route, error) {
-	r.Logger.Infof("Requesting new routes from %s to %s", source, destination)
-	forwardRoutes, reverseRoutes, err := r.config.RouteFinder.PairedRoutes(source, destination, minHops, maxHops)
+func (r *router) fetchBestRoutes(srcPK, dstPK cipher.PubKey) (fwdRt routing.Route, rvsRt routing.Route, err error) {
+	r.log.Infof("Requesting new routes from %s to %s", srcPK, dstPK)
+	forwardRoutes, reverseRoutes, err := r.rfc.PairedRoutes(srcPK, dstPK, minHops, maxHops)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	r.Logger.Infof("Found routes Forward: %s. Reverse %s", forwardRoutes, reverseRoutes)
+	r.log.Infof("Found routes Forward: %s. Reverse %s", forwardRoutes, reverseRoutes)
 	return forwardRoutes[0], reverseRoutes[0], nil
 }
 
-func (r *Router) advanceNoiseHandshake(addr *app.LoopMeta, noiseMsg []byte) (ni *noise.Noise, noiseRes []byte, err error) {
-	var l *loop
-	l, _ = r.pm.GetLoop(addr.Local.Port, &addr.Remote) // nolint: errcheck
-
-	if l != nil && l.routeID != 0 {
-		err = errors.New("loop already exist")
-		return
-	}
-
-	if l != nil && l.noise != nil {
-		return l.noise, nil, l.noise.ProcessMessage(noiseMsg)
-	}
-
-	nConf := noise.Config{
-		LocalSK:   r.config.SecKey,
-		LocalPK:   r.config.PubKey,
-		RemotePK:  addr.Remote.PubKey,
-		Initiator: false,
-	}
-	ni, err = noise.KKAndSecp256k1(nConf)
-	if err != nil {
-		return
-	}
-	if err = ni.ProcessMessage(noiseMsg); err != nil {
-		return
-	}
-	noiseRes, err = ni.HandshakeMessage()
-	return
-}
-
-func (r *Router) isSetupTransport(tr transport.Transport) bool {
-	for _, pk := range r.config.SetupNodes {
-		remote, ok := r.tm.Remote(tr.Edges())
+func (r *router) isSetup(tr transport.Transport) bool {
+	for _, pk := range r.c.SetupNodes {
+		remote, ok := r.tpm.Remote(tr.Edges())
 		if ok && (remote == pk) {
 			return true
 		}
 	}
-
 	return false
+}
+
+func (r *router) handleTransport(am AppsManager, rw io.ReadWriter) error {
+	packet := make(routing.Packet, 6)
+	if _, err := io.ReadFull(rw, packet); err != nil {
+		return err
+	}
+
+	payload := make([]byte, packet.Size())
+	if _, err := io.ReadFull(rw, payload); err != nil {
+		return err
+	}
+
+	rule, err := r.rtm.Rule(packet.RouteID())
+	if err != nil {
+		return err
+	}
+
+	r.log.Infof("Got new remote packet with route ID %d. Using rule: %s", packet.RouteID(), rule)
+
+	switch rule.Type() {
+	case routing.RuleForward:
+		return r.ForwardPacket(rule.TransportID(), rule.RouteID(), payload)
+
+	case routing.RuleApp:
+		host, ok := am.AppOfPort(rule.LocalPort())
+		if !ok {
+			return ErrAppNotFound
+		}
+		lm := app.LoopMeta{
+			Local:  app.LoopAddr{PubKey: r.c.PubKey, Port: rule.LocalPort()},
+			Remote: app.LoopAddr{PubKey: rule.RemotePK(), Port: rule.RemotePort()},
+		}
+		return host.ConsumePacket(lm, payload)
+
+	default:
+		return errors.New("associated rule has invalid type")
+	}
+}
+
+func (r *router) handleSetup(am AppsManager, rw io.ReadWriter) error {
+
+	// triggered when a 'AddRules' packet is received from SetupNode
+	addRules := func(rules []routing.Rule) ([]routing.RouteID, error) {
+		res := make([]routing.RouteID, len(rules))
+		for idx, rule := range rules {
+			routeID, err := r.rtm.AddRule(rule)
+			if err != nil {
+				return nil, fmt.Errorf("routing table: %s", err)
+			}
+			res[idx] = routeID
+			r.log.Infof("Added new Routing Rule with ID %d %s", routeID, rule)
+		}
+		return res, nil
+	}
+
+	// triggered when a 'DeleteRules' packet is received from SetupNode
+	deleteRules := func(rtIDs []routing.RouteID) ([]routing.RouteID, error) {
+		err := r.rtm.DeleteRules(rtIDs...)
+		if err != nil {
+			return nil, fmt.Errorf("routing table: %s", err)
+		}
+
+		r.log.Infof("Removed Routing Rules with IDs %s", rtIDs)
+		return rtIDs, nil
+	}
+
+	// triggered when a 'ConfirmLoop' packet is received from SetupNode
+	confirmLoop := func(ld setup.LoopData) ([]byte, error) {
+		lm := makeLoopMeta(r.c.PubKey, ld)
+
+		appRtID, appRule, ok := r.rtm.FindAppRule(lm)
+		if !ok {
+			return nil, errors.New("unknown loop")
+		}
+		fwdRule, err := r.rtm.FindFwdRule(ld.RouteID)
+		if err != nil {
+			return nil, err
+		}
+
+		host, ok := am.AppOfPort(lm.Local.Port)
+		if !ok {
+			return nil, ErrAppNotFound
+		}
+		msg, err := host.ConfirmLoop(lm, fwdRule.TransportID(), fwdRule.RouteID(), ld.NoiseMessage)
+		if err != nil {
+			return nil, fmt.Errorf("confirm: %s", err)
+		}
+
+		r.log.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRtID)
+		appRule.SetRouteID(ld.RouteID)
+
+		if err := r.rtm.SetRule(appRtID, appRule); err != nil {
+			return nil, fmt.Errorf("routing table: %s", err)
+		}
+
+		r.log.Infof("Confirmed loop with %s", lm.Remote)
+		return msg, nil
+	}
+
+	// triggered when a 'LoopClosed' packet is recieved from SetupNode
+	loopClosed := func(ld setup.LoopData) error {
+		lm := makeLoopMeta(r.c.PubKey, ld)
+
+		host, ok := am.AppOfPort(lm.Local.Port)
+		if !ok {
+			return ErrAppNotFound
+		}
+		return host.ConfirmCloseLoop(lm)
+	}
+
+	proto := setup.NewSetupProtocol(rw)
+
+	t, body, err := proto.ReadPacket()
+	if err != nil {
+		return err
+	}
+
+	reject := func(err error) error {
+		r.log.Infof("Setup request with type %s failed: %s", t, err)
+		return proto.WritePacket(setup.RespFailure, err.Error())
+	}
+
+	respondWith := func(v interface{}, err error) error {
+		if err != nil {
+			return reject(err)
+		}
+		return proto.WritePacket(setup.RespSuccess, v)
+	}
+
+	r.log.Infof("Got new Setup request with type %s", t)
+
+	switch t {
+	case setup.PacketAddRules:
+		var rules []routing.Rule
+		if err := json.Unmarshal(body, &rules); err != nil {
+			return reject(err)
+		}
+		return respondWith(addRules(rules))
+
+	case setup.PacketDeleteRules:
+		var rtIDs []routing.RouteID
+		if err := json.Unmarshal(body, &rtIDs); err != nil {
+			return reject(err)
+		}
+		return respondWith(deleteRules(rtIDs))
+
+	case setup.PacketConfirmLoop:
+		var ld setup.LoopData
+		if err := json.Unmarshal(body, &ld); err != nil {
+			return reject(err)
+		}
+		return respondWith(confirmLoop(ld))
+
+	case setup.PacketLoopClosed:
+		var ld setup.LoopData
+		if err := json.Unmarshal(body, &ld); err != nil {
+			return reject(err)
+		}
+		return respondWith(nil, loopClosed(ld))
+
+	default:
+		return reject(errors.New("unknown foundation packet"))
+	}
+}
+
+func makeLoopMeta(lPK cipher.PubKey, ld setup.LoopData) app.LoopMeta {
+	return app.LoopMeta{
+		Local:  app.LoopAddr{PubKey: lPK, Port: ld.LocalPort},
+		Remote: app.LoopAddr{PubKey: ld.RemotePK, Port: ld.RemotePort},
+	}
 }

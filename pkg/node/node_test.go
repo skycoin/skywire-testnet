@@ -50,7 +50,7 @@ func TestNewNode(t *testing.T) {
 	node, err := NewNode(&conf)
 	require.NoError(t, err)
 
-	assert.NotNil(t, node.router)
+	assert.NotNil(t, node.r)
 	assert.NotNil(t, node.appsPath)
 	assert.NotNil(t, node.localPath)
 	assert.NotNil(t, node.startedApps)
@@ -161,53 +161,6 @@ func TestNewNode(t *testing.T) {
 //		})
 //	}
 //}
-
-type MockExecuter struct {
-	sync.Mutex
-	err    error
-	cmds   []*exec.Cmd
-	stopCh chan struct{}
-}
-
-func (exc *MockExecuter) Start(cmd *exec.Cmd) (int, error) {
-	exc.Lock()
-	defer exc.Unlock()
-	if exc.stopCh != nil {
-		return -1, errors.New("already executing")
-	}
-
-	exc.stopCh = make(chan struct{})
-
-	if exc.err != nil {
-		return -1, exc.err
-	}
-
-	if exc.cmds == nil {
-		exc.cmds = make([]*exec.Cmd, 0)
-	}
-
-	exc.cmds = append(exc.cmds, cmd)
-
-	return 10, nil
-}
-
-func (exc *MockExecuter) Stop(pid int) error {
-	exc.Lock()
-	if exc.stopCh != nil {
-		select {
-		case <-exc.stopCh:
-		default:
-			close(exc.stopCh)
-		}
-	}
-	exc.Unlock()
-	return nil
-}
-
-func (exc *MockExecuter) Wait(cmd *exec.Cmd) error {
-	<-exc.stopCh
-	return nil
-}
 
 type mockRouter struct {
 	sync.Mutex

@@ -55,6 +55,14 @@ type LoopMeta struct {
 	Remote LoopAddr `json:"remote"`
 }
 
+func (l *LoopMeta) IsLoopback() bool {
+	return l.Local.PubKey == l.Remote.PubKey
+}
+
+func (l LoopMeta) Swap() *LoopMeta {
+	return &LoopMeta{Local: l.Remote, Remote: l.Local}
+}
+
 func (l *LoopMeta) String() string {
 	return fmt.Sprintf("%s:%d|%s:%d", l.Local.PubKey, l.Local.Port, l.Remote.PubKey, l.Remote.Port)
 }
@@ -74,7 +82,7 @@ func (l *LoopMeta) Decode(b []byte) error {
 // DataFrame represents message exchanged between App and Node.
 type DataFrame struct {
 	Meta LoopMeta `json:"meta"` // Can be remote or local Addr, depending on direction.
-	Data []byte   `json:"data"`
+	Data []byte   `json:"data"` // Either ciphertext or plaintext (depending on usage).
 }
 
 func (df *DataFrame) Encode() []byte {
