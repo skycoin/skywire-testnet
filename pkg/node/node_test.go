@@ -1,10 +1,7 @@
 package node
 
 import (
-	"context"
-	"net"
 	"os"
-	"sync"
 	"testing"
 
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -151,53 +148,53 @@ func TestMain(m *testing.M) {
 //	}
 //}
 
-type mockRouter struct {
-	sync.Mutex
-
-	ports []uint16
-
-	didStart bool
-	didClose bool
-
-	errChan chan error
-}
-
-func (r *mockRouter) Ports() []uint16 {
-	r.Lock()
-	p := r.ports
-	r.Unlock()
-	return p
-}
-
-func (r *mockRouter) Serve(_ context.Context) error {
-	r.didStart = true
-	return nil
-}
-
-func (r *mockRouter) ServeApp(conn net.Conn, port uint16) error {
-	r.Lock()
-	if r.ports == nil {
-		r.ports = []uint16{}
-	}
-
-	r.ports = append(r.ports, port)
-	r.Unlock()
-
-	if r.errChan == nil {
-		r.Lock()
-		r.errChan = make(chan error)
-		r.Unlock()
-	}
-
-	return <-r.errChan
-}
-
-func (r *mockRouter) Close() error {
-	r.didClose = true
-	r.Lock()
-	if r.errChan != nil {
-		close(r.errChan)
-	}
-	r.Unlock()
-	return nil
-}
+//type mockRouter struct {
+//	sync.Mutex
+//
+//	ports []uint16
+//
+//	didStart bool
+//	didClose bool
+//
+//	errChan chan error
+//}
+//
+//func (r *mockRouter) Ports() []uint16 {
+//	r.Lock()
+//	p := r.ports
+//	r.Unlock()
+//	return p
+//}
+//
+//func (r *mockRouter) Serve(_ context.Context) error {
+//	r.didStart = true
+//	return nil
+//}
+//
+//func (r *mockRouter) ServeApp(conn net.Conn, port uint16) error {
+//	r.Lock()
+//	if r.ports == nil {
+//		r.ports = []uint16{}
+//	}
+//
+//	r.ports = append(r.ports, port)
+//	r.Unlock()
+//
+//	if r.errChan == nil {
+//		r.Lock()
+//		r.errChan = make(chan error)
+//		r.Unlock()
+//	}
+//
+//	return <-r.errChan
+//}
+//
+//func (r *mockRouter) Close() error {
+//	r.didClose = true
+//	r.Lock()
+//	if r.errChan != nil {
+//		close(r.errChan)
+//	}
+//	r.Unlock()
+//	return nil
+//}

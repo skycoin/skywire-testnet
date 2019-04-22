@@ -192,7 +192,7 @@ func readAndDecodePacket(p *Protocol, v interface{}) error {
 		return err
 	}
 	if t == RespFailure {
-		return errors.New(string(t))
+		return errors.New("RespFailure, packet type: " + t.String())
 	}
 	if v == nil {
 		return nil
