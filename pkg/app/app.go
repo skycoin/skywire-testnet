@@ -124,7 +124,7 @@ func Setup(appName, appVersion string) {
 // this serves the connection between the host and this App.
 func serveHostConn() error {
 	return _proto.Serve(appnet.HandlerMap{
-		appnet.FrameConfirmLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
+		appnet.FrameConfirmLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) { //nolint:unparam
 			var lm LoopMeta
 			if err := lm.Decode(b); err != nil {
 				return nil, err
@@ -135,7 +135,7 @@ func serveHostConn() error {
 			}
 			return nil, nil
 		},
-		appnet.FrameCloseLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
+		appnet.FrameCloseLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) { //nolint:unparam
 			var lm LoopMeta
 			if err := lm.Decode(b); err != nil {
 				return nil, err
@@ -147,7 +147,7 @@ func serveHostConn() error {
 			delete(_loopPipes, lm)
 			return nil, conn.Close()
 		},
-		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
+		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) { //nolint:unparam
 			var df DataFrame
 			if err := df.Decode(b); err != nil {
 				return nil, err

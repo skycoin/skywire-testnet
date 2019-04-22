@@ -86,14 +86,14 @@ func TestDial(t *testing.T) {
 	hFrameCh := make(chan []byte, frameCount)
 
 	_, teardown := setup(t, lm.Local.PubKey, appnet.HandlerMap{
-		appnet.FrameCreateLoop: func(p *appnet.Protocol, b []byte) ([]byte, error) {
+		appnet.FrameCreateLoop: func(p *appnet.Protocol, b []byte) ([]byte, error) { //nolint:unparam
 			return lm.Encode(), nil
 		},
-		appnet.FrameCloseLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
+		appnet.FrameCloseLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) { //nolint:unparam
 			hCloseCh <- b
 			return nil, nil
 		},
-		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
+		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) { //nolint:unparam
 			hFrameCh <- b
 			return nil, nil
 		},
@@ -186,7 +186,7 @@ func TestLoopConn_Write(t *testing.T) {
 	defer close(dataCh)
 
 	_, teardown := setup(t, lm.Local.PubKey, appnet.HandlerMap{
-		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
+		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) { //nolint:unparam
 			dataCh <- b
 			return nil, nil
 		},
