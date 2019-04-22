@@ -37,6 +37,7 @@ func (la *LoopAddr) String() string {
 	return fmt.Sprintf("%s:%d", la.PubKey, la.Port)
 }
 
+// Encode encodes a LoopAddr.
 func (la *LoopAddr) Encode() []byte {
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(la); err != nil {
@@ -45,6 +46,7 @@ func (la *LoopAddr) Encode() []byte {
 	return buf.Bytes()
 }
 
+// Decode decodes a LoopAddr.
 func (la *LoopAddr) Decode(b []byte) error {
 	return gob.NewDecoder(bytes.NewReader(b)).Decode(la)
 }
@@ -55,18 +57,22 @@ type LoopMeta struct {
 	Remote LoopAddr `json:"remote"`
 }
 
+// IsLoopback returns whether the source and destination public keys are the same.
 func (l *LoopMeta) IsLoopback() bool {
 	return l.Local.PubKey == l.Remote.PubKey
 }
 
+// Swap returns a new LoopMeta in which the local and remote fields are swapped.
 func (l LoopMeta) Swap() *LoopMeta {
 	return &LoopMeta{Local: l.Remote, Remote: l.Local}
 }
 
+// String implements fmt.Stringer
 func (l *LoopMeta) String() string {
 	return fmt.Sprintf("%s:%d|%s:%d", l.Local.PubKey, l.Local.Port, l.Remote.PubKey, l.Remote.Port)
 }
 
+// Encode encodes a LoopMeta.
 func (l *LoopMeta) Encode() []byte {
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(l); err != nil {
@@ -75,6 +81,7 @@ func (l *LoopMeta) Encode() []byte {
 	return buf.Bytes()
 }
 
+// Decode decodes a LoopMeta.
 func (l *LoopMeta) Decode(b []byte) error {
 	return gob.NewDecoder(bytes.NewReader(b)).Decode(l)
 }
@@ -85,6 +92,7 @@ type DataFrame struct {
 	Data []byte   `json:"data"` // Either ciphertext or plaintext (depending on usage).
 }
 
+// Encode encodes a DataFrame.
 func (df *DataFrame) Encode() []byte {
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(df); err != nil {
@@ -93,6 +101,7 @@ func (df *DataFrame) Encode() []byte {
 	return buf.Bytes()
 }
 
+// Decode decodes a DataFrame.
 func (df *DataFrame) Decode(b []byte) error {
 	return gob.NewDecoder(bytes.NewReader(b)).Decode(df)
 }
@@ -138,10 +147,12 @@ func (lc *LoopConn) serve(hostConn net.Conn) error {
 	}
 }
 
+// LocalAddr implements net.Conn
 func (lc *LoopConn) LocalAddr() net.Addr {
 	return &lc.lm.Local
 }
 
+// RemoteAddr implements net.Conn
 func (lc *LoopConn) RemoteAddr() net.Addr {
 	return &lc.lm.Remote
 }

@@ -3,10 +3,12 @@ package router
 import (
 	"errors"
 	"fmt"
-	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/pkg/app"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -19,6 +21,8 @@ const (
 	DefaultRouteCleanupDuration = 10 * time.Minute
 )
 
+// RoutingTableManager manages an internal routing table by cleaning up expired rules per time interval
+// and by providing some additional rule-finding functions.
 type RoutingTableManager struct {
 	routing.Table
 	log       *logging.Logger
@@ -28,6 +32,7 @@ type RoutingTableManager struct {
 	mx        sync.Mutex
 }
 
+// NewRoutingTableManager creates a new RoutingTableManager.
 func NewRoutingTableManager(l *logging.Logger, rt routing.Table, keepalive, cleanup time.Duration) *RoutingTableManager {
 	return &RoutingTableManager{
 		Table:     rt,
@@ -38,6 +43,7 @@ func NewRoutingTableManager(l *logging.Logger, rt routing.Table, keepalive, clea
 	}
 }
 
+// Run runs the table-cleanup event loop.
 func (rtm *RoutingTableManager) Run() {
 	for range rtm.ticker.C {
 		if err := rtm.Cleanup(); err != nil {
@@ -46,10 +52,12 @@ func (rtm *RoutingTableManager) Run() {
 	}
 }
 
+// Stop stops the table-cleanup event loop.
 func (rtm *RoutingTableManager) Stop() {
 	rtm.ticker.Stop()
 }
 
+// Rule obtains a routing rule of given rtID key.
 func (rtm *RoutingTableManager) Rule(routeID routing.RouteID) (routing.Rule, error) {
 	rtm.mx.Lock()
 	rtm.activity[routeID] = time.Now()
@@ -68,6 +76,7 @@ func (rtm *RoutingTableManager) Rule(routeID routing.RouteID) (routing.Rule, err
 	return rule, nil
 }
 
+// DeleteAppRule deletes a rule of type APP with given LoopMeta.
 func (rtm *RoutingTableManager) DeleteAppRule(lm app.LoopMeta) error {
 	rtID, _, ok := rtm.FindAppRule(lm)
 	if !ok {
@@ -79,6 +88,7 @@ func (rtm *RoutingTableManager) DeleteAppRule(lm app.LoopMeta) error {
 	return nil
 }
 
+// FindAppRule finds an APP rule with given LoopMeta.
 func (rtm *RoutingTableManager) FindAppRule(lm app.LoopMeta) (rtID routing.RouteID, rule routing.Rule, ok bool) {
 	_ = rtm.RangeRules(func(id routing.RouteID, r routing.Rule) bool { //nolint:errcheck
 		var (
@@ -96,6 +106,7 @@ func (rtm *RoutingTableManager) FindAppRule(lm app.LoopMeta) (rtID routing.Route
 	return
 }
 
+// FindFwdRule finds a FWD rule with given rtID key.
 func (rtm *RoutingTableManager) FindFwdRule(rtID routing.RouteID) (routing.Rule, error) {
 	rule, err := rtm.Rule(rtID)
 	if err != nil {
@@ -107,6 +118,7 @@ func (rtm *RoutingTableManager) FindFwdRule(rtID routing.RouteID) (routing.Rule,
 	return rule, nil
 }
 
+// Cleanup removes all expired routing rules.
 func (rtm *RoutingTableManager) Cleanup() error {
 	var expiredIDs []routing.RouteID
 	rtm.mx.Lock()

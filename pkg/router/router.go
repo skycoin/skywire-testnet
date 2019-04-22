@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -48,11 +49,11 @@ type Router interface {
 // New constructs a new router.
 func New(l *logging.Logger, tpM *transport.Manager, rt routing.Table, rf routeFinder.Client, conf *Config) Router {
 	return &router{
-		log:     l,
-		c:       conf,
-		tpm:     tpM,
-		rtm:     NewRoutingTableManager(l, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
-		rfc:     rf,
+		log: l,
+		c:   conf,
+		tpm: tpM,
+		rtm: NewRoutingTableManager(l, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
+		rfc: rf,
 	}
 }
 
@@ -67,7 +68,24 @@ type router struct {
 // Serve starts transport listening loop.
 func (r *router) Serve(ctx context.Context, am AppsManager) error {
 
-	serve := func(tp transport.Transport, handle func(am AppsManager, rw io.ReadWriter) error) {
+	setupPKs := make(map[cipher.PubKey]struct{})
+	for _, pk := range r.c.SetupNodes {
+		setupPKs[pk] = struct{}{}
+	}
+
+	// determines if the given transport is established with a setup node.
+	isSetup := func(tp transport.Transport) bool {
+		pk, ok := r.tpm.Remote(tp.Edges())
+		if !ok {
+			return false
+		}
+		_, ok = setupPKs[pk]
+		return ok
+	}
+
+	// serves a given transport with the 'handler' running in a loop.
+	// the loop exits on error.
+	serve := func(tp transport.Transport, handle func(AppsManager, io.ReadWriter) error) {
 		for {
 			if err := handle(am, tp); err != nil && err != io.EOF {
 				r.log.Warnf("Stopped serving Transport: %s", err)
@@ -76,32 +94,32 @@ func (r *router) Serve(ctx context.Context, am AppsManager) error {
 		}
 	}
 
-	acceptCh, dialCh := r.tpm.Observe()
-
+	// listens for transports.
 	go func() {
+		acceptCh, dialCh := r.tpm.Observe()
 		for {
 			select {
 			case tp, ok := <-acceptCh:
 				if !ok {
 					return
 				}
-				if !r.isSetup(tp) {
+				if !isSetup(tp) {
 					go serve(tp, r.handleTransport)
 				} else {
 					go serve(tp, r.handleSetup)
 				}
-
 			case tp, ok := <-dialCh:
 				if !ok {
 					return
 				}
-				if !r.isSetup(tp) {
+				if !isSetup(tp) {
 					go serve(tp, r.handleTransport)
 				}
 			}
 		}
 	}()
 
+	// runs the routing table cleanup event loop.
 	go r.rtm.Run()
 
 	r.log.Info("Starting router")
@@ -141,7 +159,7 @@ func (r *router) FindRoutesAndSetupLoop(lm app.LoopMeta, nsMsg []byte) error {
 	if err != nil {
 		return err
 	}
-	defer func() {_ = tp.Close()}()
+	defer func() { _ = tp.Close() }()
 	if err := setup.CreateLoop(sProto, &loop); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
@@ -153,7 +171,7 @@ func (r *router) CloseLoop(lm app.LoopMeta) error {
 	if err != nil {
 		return err
 	}
-	defer func() {_ = setupTP.Close()}()
+	defer func() { _ = setupTP.Close() }()
 	ld := setup.LoopData{RemotePK: lm.Remote.PubKey, RemotePort: lm.Remote.Port, LocalPort: lm.Local.Port}
 	if err := setup.CloseLoop(setupProto, &ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
@@ -185,16 +203,6 @@ func (r *router) fetchBestRoutes(srcPK, dstPK cipher.PubKey) (fwdRt routing.Rout
 
 	r.log.Infof("Found routes Forward: %s. Reverse %s", forwardRoutes, reverseRoutes)
 	return forwardRoutes[0], reverseRoutes[0], nil
-}
-
-func (r *router) isSetup(tr transport.Transport) bool {
-	for _, pk := range r.c.SetupNodes {
-		remote, ok := r.tpm.Remote(tr.Edges())
-		if ok && (remote == pk) {
-			return true
-		}
-	}
-	return false
 }
 
 func (r *router) handleTransport(am AppsManager, rw io.ReadWriter) error {
@@ -295,7 +303,7 @@ func (r *router) handleSetup(am AppsManager, rw io.ReadWriter) error {
 		return msg, nil
 	}
 
-	// triggered when a 'LoopClosed' packet is recieved from SetupNode
+	// triggered when a 'LoopClosed' packet is received from SetupNode
 	loopClosed := func(ld setup.LoopData) error {
 		lm := makeLoopMeta(r.c.PubKey, ld)
 

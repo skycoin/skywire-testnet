@@ -23,6 +23,7 @@ import (
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -220,8 +221,8 @@ func (m *Node) putApp() http.HandlerFunc {
 			return
 		}
 		if reqBody.Autostart != nil {
-			if *reqBody.Autostart != ctx.App.AutoStart {
-				if err := ctx.RPC.SetAutoStart(ctx.App.Name, *reqBody.Autostart); err != nil {
+			if *reqBody.Autostart != ctx.App.Config.AutoStart {
+				if err := ctx.RPC.SetAutoStart(ctx.App.AppName, *reqBody.Autostart); err != nil {
 					httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 					return
 				}
@@ -229,12 +230,12 @@ func (m *Node) putApp() http.HandlerFunc {
 		}
 		if reqBody.Status != nil {
 			if *reqBody.Status == 0 {
-				if err := ctx.RPC.StopApp(ctx.App.Name); err != nil {
+				if err := ctx.RPC.StopApp(ctx.App.AppName); err != nil {
 					httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 					return
 				}
 			} else if *reqBody.Status == 1 {
-				if err := ctx.RPC.StartApp(ctx.App.Name); err != nil {
+				if err := ctx.RPC.StartApp(ctx.App.AppName); err != nil {
 					httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 					return
 				}
@@ -473,7 +474,7 @@ type httpCtx struct {
 	RPC  node.RPCClient
 
 	// App
-	App *node.AppState
+	App *router.AppInfo
 
 	// Transport
 	Tp *node.TransportSummary
@@ -525,8 +526,8 @@ func (m *Node) appCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool) {
 		return nil, false
 	}
 	for _, app := range apps {
-		if app.Name == appName {
-			ctx.App = app
+		if app.AppName == appName {
+			ctx.App = &app
 			return ctx, true
 		}
 	}

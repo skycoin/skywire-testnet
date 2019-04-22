@@ -12,7 +12,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
@@ -21,7 +23,7 @@ import (
 type RPCClient interface {
 	Summary() (*Summary, error)
 
-	Apps() ([]*AppState, error)
+	Apps() ([]router.AppInfo, error)
 	StartApp(appName string) error
 	StopApp(appName string) error
 	SetAutoStart(appName string, autostart bool) error
@@ -66,8 +68,8 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 }
 
 // Apps calls Apps.
-func (rc *rpcClient) Apps() ([]*AppState, error) {
-	states := make([]*AppState, 0)
+func (rc *rpcClient) Apps() ([]router.AppInfo, error) {
+	states := make([]router.AppInfo, 0)
 	err := rc.Call("Apps", &struct{}{}, &states)
 	return states, err
 }
@@ -227,9 +229,17 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			PubKey:          localPK,
 			NodeVersion:     Version,
 			AppProtoVersion: supportedProtocolVersion,
-			Apps: []*AppState{
-				{Name: "foo.v1.0", AutoStart: false, Port: 10},
-				{Name: "bar.v2.0", AutoStart: false, Port: 20},
+			Apps: []router.AppInfo{
+				{
+					Meta:   app.Meta{AppName: "foo", AppVersion: "1.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
+					State:  router.AppState{Running: false, Loops: 2},
+					Config: router.AppConfig{AutoStart: false, Port: 2},
+				},
+				{
+					Meta:   app.Meta{AppName: "bar", AppVersion: "2.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
+					State:  router.AppState{Running: false, Loops: 3},
+					Config: router.AppConfig{AutoStart: false, Port: 3},
+				},
 			},
 			Transports:  tps,
 			RoutesCount: rt.Count(),
@@ -255,12 +265,8 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 	var out Summary
 	err := mc.do(false, func() error {
 		out = *mc.s
-		for _, app := range mc.s.Apps {
-			out.Apps = append(out.Apps, &(*app))
-		}
-		for _, tp := range mc.s.Transports {
-			out.Transports = append(out.Transports, &(*tp))
-		}
+		copy(out.Apps, mc.s.Apps)
+		copy(out.Transports, mc.s.Transports)
 		out.RoutesCount = mc.s.RoutesCount
 		return nil
 	})
@@ -268,12 +274,10 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 }
 
 // Apps implements RPCClient.
-func (mc *mockRPCClient) Apps() ([]*AppState, error) {
-	var apps []*AppState
+func (mc *mockRPCClient) Apps() ([]router.AppInfo, error) {
+	var apps []router.AppInfo
 	err := mc.do(false, func() error {
-		for _, app := range mc.s.Apps {
-			apps = append(apps, &(*app))
-		}
+		copy(apps, mc.s.Apps)
 		return nil
 	})
 	return apps, err
@@ -292,9 +296,8 @@ func (*mockRPCClient) StopApp(string) error {
 // SetAutoStart implements RPCClient.
 func (mc *mockRPCClient) SetAutoStart(appName string, autostart bool) error {
 	return mc.do(true, func() error {
-		for _, app := range mc.s.Apps {
-			if app.Name == appName {
-				app.AutoStart = autostart
+		for _, a := range mc.s.Apps {
+			if a.AppName == appName {
 				return nil
 			}
 		}

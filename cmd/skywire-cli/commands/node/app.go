@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/node"
 )
 
 func init() {
@@ -25,19 +24,19 @@ var lsAppsCmd = &cobra.Command{
 	Use:   "ls-apps",
 	Short: "Lists apps running on the local node",
 	Run: func(_ *cobra.Command, _ []string) {
-		states, err := rpcClient().Apps()
+		appInfos, err := rpcClient().Apps()
 		internal.Catch(err)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 		_, err = fmt.Fprintln(w, "app\tports\tauto_start\tstatus")
 		internal.Catch(err)
 
-		for _, state := range states {
+		for _, info := range appInfos {
 			status := "stopped"
-			if state.Status == node.AppStatusRunning {
+			if info.State.Running {
 				status = "running"
 			}
-			_, err = fmt.Fprintf(w, "%s\t%s\t%t\t%s\n", state.Name, strconv.Itoa(int(state.Port)), state.AutoStart, status)
+			_, err = fmt.Fprintf(w, "%s\t%s\t%t\t%s\n", info.AppName, strconv.Itoa(int(-1)), info.Config.AutoStart, status)
 			internal.Catch(err)
 		}
 		internal.Catch(w.Flush())

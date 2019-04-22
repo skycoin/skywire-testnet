@@ -93,11 +93,11 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, fmt.Errorf("routing table: %s", err)
 	}
 	rConf := &router.Config{
-		PubKey:           pk,
-		SecKey:           sk,
-		SetupNodes:       config.Routing.SetupNodes,
+		PubKey:     pk,
+		SecKey:     sk,
+		SetupNodes: config.Routing.SetupNodes,
 	}
-	r := router.New(node.Logger.PackageLogger("router"), node.tm, node.rt,routeFinder.NewHTTP(config.Routing.RouteFinder), rConf)
+	r := router.New(node.Logger.PackageLogger("router"), node.tm, node.rt, routeFinder.NewHTTP(config.Routing.RouteFinder), rConf)
 	node.r = r
 
 	/* SETUP: APPS */
@@ -110,21 +110,7 @@ func NewNode(config *Config) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("app manager: %s", err)
 	}
-
-	appsMgr := router.NewAppsManager(rConf, r, 10, binDir, localDir)
-	node.am = appsMgr
-	for _, ac := range node.c.Apps {
-		host, err := appsMgr.RegisterApp(ac.App, ac.Args)
-		if err != nil {
-			node.logger.Warnf("failed to setup app '%s': %s", ac.App, err)
-			continue
-		}
-		if ac.Port != 0 {
-			if err := appsMgr.AllocGivenPort(host, ac.Port); err != nil {
-				node.logger.Warnf("failed to allocate port '%d' to app '%s': %s", ac.Port, ac.App, err)
-			}
-		}
-	}
+	node.am = router.NewAppsManager(rConf, r, 10, binDir, localDir)
 
 	if lvl, err := logging.LevelFromString(config.LogLevel); err == nil {
 		node.Logger.SetLevel(lvl)
@@ -169,19 +155,27 @@ func (node *Node) Start() error {
 	node.tm.ReconnectTransports(ctx)
 	node.tm.CreateDefaultTransports(ctx)
 
-	/* START: APPS */
+	/* START: ROUTER */
+
+	node.logger.Info("Starting packet router")
+	if err := node.r.Serve(ctx, node.am); err != nil {
+		return fmt.Errorf("failed to start Node: %s", err)
+	}
+
+	/* START: REGISTER APPS */
 
 	for _, ac := range node.c.Apps {
-		if !ac.AutoStart {
-			continue
-		}
-		host, ok := node.am.AppOfName(ac.App)
-		if !ok {
-			continue
-		}
-		if err := host.Start(); err != nil {
-			node.logger.Warnf("Failed to start %s: %s\n", ac.App, err)
-		}
+		go func(ac AppConfig) {
+			_, err := node.am.RegisterApp(ac.App, router.AppConfig{
+				Args:      ac.Args,
+				AutoStart: ac.AutoStart,
+				Port:      ac.Port,
+			})
+			if err != nil {
+				node.logger.Warnf("failed to setup app '%s': %s", ac.App, err)
+				return
+			}
+		}(ac)
 	}
 
 	/* START: MANAGER */
@@ -202,44 +196,55 @@ func (node *Node) Start() error {
 		}(dialer)
 	}
 
-	/* START: ROUTER */
-
-	node.logger.Info("Starting packet router")
-	if err := node.r.Serve(ctx, node.am); err != nil {
-		return fmt.Errorf("failed to start Node: %s", err)
-	}
-
 	return nil
 }
 
 // Close safely stops spawned Apps and messaging Node.
 func (node *Node) Close() (err error) {
 	if node.rpcL != nil {
-		node.logger.Info("Stopping RPC interface")
-		err = node.rpcL.Close()
-	}
-	for _, dialer := range node.rpcD {
-		err = dialer.Close()
-	}
-
-	err = node.am.Close()
-
-	if node.rpcL != nil {
-		node.logger.Info("Stopping RPC interface")
-		err = node.rpcL.Close()
+		node.logger.Info("stopping rpc_listener ...")
+		if e := node.rpcL.Close(); e != nil {
+			err = e
+			node.logger.Errorf("rpc_listener stopped with error: %s", err)
+		}
+		node.logger.Info("rpc_listener stopped successfully.")
 	}
 
-	node.logger.Info("Stopping router")
-	err = node.r.Close()
+	node.logger.Info("stopping rpc_dialers ...")
+	for i, dialer := range node.rpcD {
+		if e := dialer.Close(); e != nil {
+			err = e
+			node.logger.Errorf("rpc_dialer %d stopped with error: %s", i, err)
+		}
+		node.logger.Infof("rpc_dialer %d stopped successfully.", i)
+	}
+
+	node.logger.Info("stopping apps_manager ...")
+	if e := node.am.Close(); e != nil {
+		err = e
+		node.logger.Errorf("apps_manager stopped with error: %s", err)
+	}
+	node.logger.Info("apps_manager stopped successfully.")
+
+	node.logger.Info("stopping router ...")
+	if e := node.r.Close(); e != nil {
+		err = e
+		node.logger.Errorf("router stopped with with error: %s", err)
+	}
+	node.logger.Info("router stopped successfully.")
 
 	return err
 }
 
 // Apps returns list of AppStates for all registered apps.
-func (node *Node) Apps() []router.AppState {
-	var res []router.AppState
-	node.am.RangeApps(func(host *router.AppHost) (next bool) {
-		res = append(res, host.State())
+func (node *Node) Apps() []router.AppInfo {
+	var res []router.AppInfo
+	node.am.RangeApps(func(config *router.AppConfig, host *router.HostedApp) (next bool) {
+		res = append(res, router.AppInfo{
+			Meta:   host.Meta(),
+			State:  host.State(),
+			Config: *config,
+		})
 		return true
 	})
 	return res

@@ -133,17 +133,16 @@ func TestNewProtocol(t *testing.T) {
 		defer close(resBCh)
 
 		for _, c := range cases {
-			exp := exp.Get(c.Type, c.Req)
 
-			go func(c Case, er callResponse) {
+			go func(c Case) {
 				b, err := pA.Call(c.Type, c.Req)
 				resACh <- Result{Case: c, Resp: callResponse{B: b, E: err}}
-			}(c, exp)
+			}(c)
 
-			go func(c Case, er callResponse) {
+			go func(c Case) {
 				b, err := pA.Call(c.Type, c.Req)
 				resBCh <- Result{Case: c, Resp: callResponse{B: b, E: err}}
-			}(c, exp)
+			}(c)
 		}
 
 		for i := 0; i < len(cases); i++ {

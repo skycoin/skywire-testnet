@@ -49,6 +49,9 @@ const (
 )
 
 // Protocol implements full-duplex protocol for App to Node communication.
+// Data is encapsulated in frames, a frame is formatted as follows:
+// field: | size | type | id | payload |
+// bytes: | 2    | 1    | 1  | ~       |
 type Protocol struct {
 	rw     io.ReadWriteCloser
 	waiter *responseWaiter
@@ -65,7 +68,6 @@ func (p *Protocol) Call(t FrameType, reqData []byte) ([]byte, error) {
 	if err := p.writeFrame(t, waitID, reqData); err != nil {
 		return nil, err
 	}
-	//fmt.Printf(">> Proto.Call: t(%s) id(%d) req(%v)\n", t, waitID, reqData)
 	resp, ok := <-waitCh
 	if !ok {
 		return nil, io.EOF
@@ -73,15 +75,18 @@ func (p *Protocol) Call(t FrameType, reqData []byte) ([]byte, error) {
 	if resp.Type == FailureFrame {
 		return nil, errors.New(string(resp.Data))
 	}
-	//fmt.Printf("<< Proto.Call: t(%s) \n", t)
 	return resp.Data, nil
 }
 
 type (
+	// HandlerFunc handles an appnet.Protocol Frame.
 	HandlerFunc func(p *Protocol, b []byte) ([]byte, error)
-	HandlerMap  map[FrameType]HandlerFunc
+
+	// HandlerMap assigns HandlerFunc to FrameType.
+	HandlerMap map[FrameType]HandlerFunc
 )
 
+// Serve handles Frames received from remote.
 func (p *Protocol) Serve(handlerMap HandlerMap) error {
 	if handlerMap == nil {
 		handlerMap = make(HandlerMap)
@@ -94,7 +99,6 @@ func (p *Protocol) Serve(handlerMap HandlerMap) error {
 			}
 			return err
 		}
-		//fmt.Printf("\tProto.Serve: t(%s) id(%d) len(%d)\n", t, respID, len(payload))
 		switch t {
 		case SuccessFrame, FailureFrame:
 			if waitCh, ok := p.waiter.pull(respID); ok {
@@ -119,24 +123,18 @@ func (p *Protocol) Serve(handlerMap HandlerMap) error {
 					respType = SuccessFrame
 					respPayload = resp
 				}
-				if err := p.writeFrame(respType, respID, respPayload); err != nil {
-					//fmt.Println("\tPROTO: failed to write response:", err.Error())
-				}
-				//fmt.Println("\tPROTO: responded")
+				_ = p.writeFrame(respType, respID, respPayload) //nolint:errcheck
 			}(handle, payload)
 		}
 	}
 }
 
-// Close closes underlying ReadWriter.
+// Close shuts down operation of the Protocol.
 func (p *Protocol) Close() error {
 	p.waiter.close()
 	return p.rw.Close()
 }
 
-// a frame is formatted as follows:
-// field: | size | type | id | payload |
-// bytes: | 2    | 1    | 1  | ~       |
 func (p *Protocol) writeFrame(t FrameType, respID waitID, payload []byte) error {
 	f := make([]byte, 2+1+1+len(payload))
 	binary.BigEndian.PutUint16(f[0:2], uint16(1+1+len(payload)))

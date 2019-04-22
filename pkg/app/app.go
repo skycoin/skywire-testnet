@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	protocolVersion = "0.0.1"
-	setupCmdName    = "sw-setup"
+	// ProtocolVersion is the supported protocol version.
+	ProtocolVersion = "0.0.1"
+
+	setupCmdName = "sw-setup"
 )
 
 var (
@@ -81,15 +83,11 @@ func Setup(appName, appVersion string) {
 	_meta = Meta{
 		AppName:         appName,
 		AppVersion:      appVersion,
-		ProtocolVersion: protocolVersion,
-	}
-
-	if len(os.Args) < 2 {
-		log.Fatal("App expects at least 2 arguments")
+		ProtocolVersion: ProtocolVersion,
 	}
 
 	// If command is of format: "<app> sw-setup", print json-encoded Meta, otherwise, serve app.
-	if os.Args[1] == setupCmdName {
+	if len(os.Args) == 2 && os.Args[1] == setupCmdName {
 		if appName != os.Args[0] {
 			log.Fatalf("Registered name '%s' does not match executable name '%s'.", appName, os.Args[0])
 		}
@@ -99,7 +97,7 @@ func Setup(appName, appVersion string) {
 		os.Exit(0)
 
 	} else {
-		if err := _meta.Host.Set(os.Args[1]); err != nil {
+		if err := _meta.Host.Set(os.Getenv(EnvHostPK)); err != nil {
 			log.Fatalf("host provided invalid public key: %s", err.Error())
 		}
 
@@ -185,13 +183,11 @@ func Info() Meta { return _meta }
 
 // Accept awaits for incoming loop confirmation request from a Node and returns net.Conn for received loop.
 func Accept() (net.Conn, error) {
-	select {
-	case lm, ok := <-_acceptCh:
-		if !ok {
-			return nil, ErrAppClosed
-		}
-		return setAndServeLoop(lm)
+	lm, ok := <-_acceptCh
+	if !ok {
+		return nil, ErrAppClosed
 	}
+	return setAndServeLoop(lm)
 }
 
 // DialFunc is the method for dialing operations.
@@ -214,9 +210,10 @@ func Dial(remoteAddr LoopAddr) (net.Conn, error) {
 	return setAndServeLoop(lm)
 }
 
+// Listener implements net.Listener for an App's communication with it's host.
 // TODO(evanlinjin): The following implementations of net.Listener is temporary.
 type Listener struct{}
 
-func (l *Listener) Accept() (net.Conn, error) { return Accept() }
-func (l *Listener) Close() error              { return Close() }
-func (l *Listener) Addr() net.Addr            { return &LoopAddr{PubKey: _meta.Host, Port: 0} }
+func (l *Listener) Accept() (net.Conn, error) { return Accept() }                               //nolint:golint
+func (l *Listener) Close() error              { return Close() }                                //nolint:golint
+func (l *Listener) Addr() net.Addr            { return &LoopAddr{PubKey: _meta.Host, Port: 0} } //nolint:golint

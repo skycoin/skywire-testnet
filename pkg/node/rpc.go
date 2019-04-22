@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/router"
+
 	"github.com/google/uuid"
 
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -70,7 +72,7 @@ type Summary struct {
 	PubKey          cipher.PubKey       `json:"local_pk"`
 	NodeVersion     string              `json:"node_version"`
 	AppProtoVersion string              `json:"app_protocol_version"`
-	Apps            []*AppState         `json:"apps"`
+	Apps            []router.AppInfo    `json:"apps"`
 	Transports      []*TransportSummary `json:"transports"`
 	RoutesCount     int                 `json:"routes_count"`
 }
@@ -98,7 +100,7 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 */
 
 // Apps returns list of Apps registered on the Node.
-func (r *RPC) Apps(_ *struct{}, reply *[]*AppState) error {
+func (r *RPC) Apps(_ *struct{}, reply *[]router.AppInfo) error {
 	*reply = r.node.Apps()
 	return nil
 }

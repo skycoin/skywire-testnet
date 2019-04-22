@@ -3,18 +3,23 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/skycoin/skywire/internal/appnet"
-	"github.com/skycoin/skywire/pkg/cipher"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/skycoin/skywire/internal/appnet"
+	"github.com/skycoin/skywire/pkg/cipher"
 )
+
+// EnvHostPK is the env provided to the hosted App for it to obtain the host's public key.
+const EnvHostPK = "SW_APP_HOST"
 
 // Host is used by the App's host to run, stop and communicate with the App.
 // Regarding thread-safety;
@@ -31,7 +36,7 @@ type Host struct {
 	proto   *appnet.Protocol // used for establishing and sending/receiving packets within the Skywire Network.
 	uiProto *appnet.Protocol // used for proxying the user interface of the Skywire App (e.g. for access by the Manager Node).
 
-	wg   *sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // Errors associated with the app.Host structure.
@@ -59,9 +64,9 @@ func NewHost(hostPK cipher.PubKey, workDir, binLoc string, args []string) (*Host
 			return fmt.Errorf("configured app name (%s) does not match bin name (%s)",
 				meta.AppName, binName)
 		}
-		if meta.ProtocolVersion != protocolVersion {
+		if meta.ProtocolVersion != ProtocolVersion {
 			return fmt.Errorf("app uses protocol version (%s) when only (%s) is supported",
-				meta.ProtocolVersion, protocolVersion)
+				meta.ProtocolVersion, ProtocolVersion)
 		}
 		meta.Host = hostPK
 		return nil
@@ -78,7 +83,7 @@ func NewHost(hostPK cipher.PubKey, workDir, binLoc string, args []string) (*Host
 		binLoc:  binLoc,
 		workDir: workDir,
 		args:    args,
-		log:     log.WithFields(logrus.Fields{"_app": meta.AppName}),
+		log:     log.WithFields(logrus.Fields{"_app": fmt.Sprintf("%s(%s)", meta.AppName, meta.AppVersion)}),
 	}, nil
 }
 
@@ -96,7 +101,12 @@ func (h *Host) Start(handler, uiHandler appnet.HandlerMap) (<-chan struct{}, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to open ui pipe: %s", err)
 	}
-	cmd := exec.Command(h.binLoc, append([]string{h.Host.String()}, h.args...)...)
+	binLoc, err := filepath.Abs(h.binLoc)
+	if err != nil {
+		return nil, fmt.Errorf("provided binary has issues: %s", err)
+	}
+	cmd := exec.Command(binLoc, h.args...)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=%s", EnvHostPK, h.Host.String()))
 	cmd.ExtraFiles = append(appConn.Files(), uiAppConn.Files()...)
 	cmd.Stdout = h.log.WithField("_src", "stdout").Writer()
 	cmd.Stderr = h.log.WithField("_src", "stderr").Writer()

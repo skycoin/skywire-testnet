@@ -3,20 +3,23 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 func randMeta(i int, hPK cipher.PubKey) Meta {
 	return Meta{
 		AppName:         fmt.Sprintf("app_%d", i),
 		AppVersion:      "0.0.1",
-		ProtocolVersion: protocolVersion,
+		ProtocolVersion: ProtocolVersion,
 		Host:            hPK,
 	}
 }
@@ -34,13 +37,12 @@ func genMockApp(path string, m Meta) (err error) {
 	}
 
 	template := `#!/bin/bash
-if [[ $# -ne 1 ]]; then exit 1
-elif [[ $1 = '%s' ]]; then echo '%s'
-elif [[ -n $1 ]]; then echo 'success!'
+PK="${%s}"
+if [[ $# -eq 1 && $1 = '%s' ]]; then echo '%s'; exit 0
+elif [[ -n "${PK}" ]]; then echo "Host: ${PK}"; while [ 1 ]; do test $? -gt 128 && exit 0; done
 else exit 1
-fi
-exit 0`
-	_, err = fmt.Fprintf(f, template, setupCmdName, string(jm))
+fi`
+	_, err = fmt.Fprintf(f, template, EnvHostPK, setupCmdName, string(jm))
 	return err
 }
 
@@ -81,6 +83,8 @@ func TestNewHost(t *testing.T) {
 			// This should fail as app has already started.
 			_, err = host.Start(nil, nil)
 			assert.EqualError(t, err, ErrAlreadyStarted.Error())
+
+			time.Sleep(time.Millisecond * 5)
 
 			// Stop app from host.
 			assert.NoError(t, host.Stop())

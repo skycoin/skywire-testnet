@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 )
 
+// EnsureDir ensures the existence of the provided dir.
+// THe Abs version is returned, alongside any errors that occurs.
 func EnsureDir(path string) (string, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {

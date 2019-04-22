@@ -2,8 +2,9 @@ package node
 
 import (
 	"errors"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"github.com/skycoin/skywire/pkg/messaging"
 
@@ -14,31 +15,37 @@ import (
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
 )
 
+// KeyFields is a member of Config.
 type KeyFields struct {
 	PubKey cipher.PubKey `json:"static_public_key"`
 	SecKey cipher.SecKey `json:"static_secret_key"`
 }
 
+// MessagingFields is a member of Config.
 type MessagingFields struct {
 	Discovery   string `json:"discovery"`
 	ServerCount int    `json:"server_count"`
 }
 
+// LogStoreFields is a member of TransportFields.
 type LogStoreFields struct {
 	Type     string `json:"type"`
 	Location string `json:"location"`
 }
 
+// TransportFields is a member of Config.
 type TransportFields struct {
 	Discovery string         `json:"discovery"`
 	LogStore  LogStoreFields `json:"log_store"`
 }
 
+// RoutingTableFields is a member of RoutingFields.
 type RoutingTableFields struct {
 	Type     string `json:"type"`
 	Location string `json:"location"`
 }
 
+// RoutingFields is a member of Config.
 type RoutingFields struct {
 	SetupNodes  []cipher.PubKey    `json:"setup_nodes"`
 	RouteFinder string             `json:"route_finder"`
@@ -130,7 +137,6 @@ func (c *Config) LocalDir() (string, error) {
 
 	return pathutil.EnsureDir(c.LocalPath)
 }
-
 
 // ManagerConfig represents a connection to a manager.
 type ManagerConfig struct {

@@ -32,7 +32,7 @@ func setupApp(t *testing.T, appConn net.Conn, hostPK cipher.PubKey) func() {
 	_meta = Meta{
 		AppName:         "test-app",
 		AppVersion:      "v0.0.0",
-		ProtocolVersion: protocolVersion,
+		ProtocolVersion: ProtocolVersion,
 		Host:            hostPK,
 	}
 
