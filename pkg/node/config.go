@@ -60,7 +60,7 @@ type Config struct {
 	Transport TransportFields `json:"transport"`
 	Routing   RoutingFields   `json:"routing"`
 
-	Apps []AppConfig `json:"apps"`
+	AutoStartApps []AutoStartConfig `json:"auto_start_apps"`
 
 	TrustedNodes []cipher.PubKey `json:"trusted_nodes"`
 	ManagerNodes []ManagerConfig `json:"manager_nodes"`
@@ -144,12 +144,11 @@ type ManagerConfig struct {
 	Addr   string        `json:"address"`
 }
 
-// AppConfig defines app startup parameters.
-type AppConfig struct {
-	App       string   `json:"app"`
-	AutoStart bool     `json:"auto_start"`
-	Port      uint16   `json:"port"`
-	Args      []string `json:"args"`
+// AutoStartConfig defines app startup parameters.
+type AutoStartConfig struct {
+	App  string   `json:"app"`
+	Port uint16   `json:"port"`
+	Args []string `json:"args"`
 }
 
 // InterfaceConfig defines listening interfaces for skywire Node.

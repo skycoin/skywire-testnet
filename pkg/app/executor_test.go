@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -39,7 +41,7 @@ func genMockApp(path string, m Meta) (err error) {
 	template := `#!/bin/bash
 PK="${%s}"
 if [[ $# -eq 1 && $1 = '%s' ]]; then echo '%s'; exit 0
-elif [[ -n "${PK}" ]]; then echo "Host: ${PK}"; while [ 1 ]; do test $? -gt 128 && exit 0; done
+elif [[ -n "${PK}" ]]; then echo "host: ${PK}"; while [ 1 ]; do test $? -gt 128 && exit 0; done
 else exit 1
 fi`
 	_, err = fmt.Fprintf(f, template, EnvHostPK, setupCmdName, string(jm))
@@ -59,7 +61,7 @@ func TestNewHost(t *testing.T) {
 
 	for i := 0; i < appCount; i++ {
 		var (
-			pk, _  = cipher.GenerateKeyPair()
+			pk, sk = cipher.GenerateKeyPair()
 			m      = randMeta(i, pk)
 			binLoc = filepath.Join(appDir, m.AppName)
 		)
@@ -67,32 +69,42 @@ func TestNewHost(t *testing.T) {
 		// Generate a mock app binary.
 		require.NoError(t, genMockApp(binLoc, m))
 
-		// Create app host and check obtained AppMeta.
-		host, err := NewHost(pk, wkDir, binLoc, nil)
+		// Obtain meta.
+		meta, err := ObtainMeta(pk, binLoc)
 		require.NoError(t, err)
-		assert.Equal(t, m, host.Meta)
+		require.Equal(t, m, *meta)
+
+		// Create app host and check obtained AppMeta.
+		host, err := NewExecutor(
+			logging.MustGetLogger("executor"),
+			meta,
+			&ExecConfig{
+				HostPK:  pk,
+				HostSK:  sk,
+				WorkDir: wkDir,
+				BinLoc:  binLoc,
+			},
+		)
+		require.NoError(t, err)
+		assert.Equal(t, m, *host.Meta())
 
 		// It is expected that a 'Host' struct is reusable.
 		// We will start and stop the App via the 'Host' 3 times.
 		for j := 0; j < 3; j++ {
 
 			// Start app from host.
-			done, err := host.Start(nil, nil)
+			done, err := host.Run(nil, nil)
 			assert.NoError(t, err)
 
 			// This should fail as app has already started.
-			_, err = host.Start(nil, nil)
+			_, err = host.Run(nil, nil)
 			assert.EqualError(t, err, ErrAlreadyStarted.Error())
 
 			time.Sleep(time.Millisecond * 5)
 
 			// Stop app from host.
 			assert.NoError(t, host.Stop())
-			select {
-			case <-done:
-			default:
-				t.Error("unexpected empty done chan")
-			}
+			<-done
 
 			// This should fail as app has already stopped.
 			assert.EqualError(t, host.Stop(), ErrAlreadyStopped.Error())

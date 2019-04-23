@@ -85,10 +85,10 @@ func defaultConfig() *node.Config {
 	conf.Messaging.ServerCount = 1
 
 	passcode := base64.StdEncoding.EncodeToString(cipher.RandByte(8))
-	conf.Apps = []node.AppConfig{
-		{App: "chat", Port: 1, AutoStart: true, Args: []string{}},
-		{App: "therealssh", Port: 2, AutoStart: true, Args: []string{}},
-		{App: "therealproxy", Port: 3, AutoStart: true, Args: []string{"-passcode", passcode}},
+	conf.AutoStartApps = []node.AutoStartConfig{
+		{App: "chat", Port: 1, Args: []string{}},
+		{App: "therealssh", Port: 2, Args: []string{}},
+		{App: "therealproxy", Port: 3, Args: []string{"-passcode", passcode}},
 	}
 	conf.TrustedNodes = []cipher.PubKey{}
 

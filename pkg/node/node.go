@@ -5,9 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/rpc"
+	"path/filepath"
+	"sync"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/app"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -35,7 +40,12 @@ type Node struct {
 	tm *transport.Manager
 	rt routing.Table
 	r  router.Router
-	am router.AppsManager
+	am router.ProcManager
+
+	rootBinDir   string
+	rootLocalDir string
+	apps         map[string]*app.Meta
+	aMx          sync.RWMutex
 
 	Logger *logging.MasterLogger
 	logger *logging.Logger
@@ -50,6 +60,10 @@ func NewNode(config *Config) (*Node, error) {
 
 	node.Logger = logging.NewMasterLogger()
 	node.logger = node.Logger.PackageLogger("skywire")
+
+	if lvl, err := logging.LevelFromString(config.LogLevel); err == nil {
+		node.Logger.SetLevel(lvl)
+	}
 
 	pk := config.Node.PubKey
 	sk := config.Node.SecKey
@@ -102,19 +116,40 @@ func NewNode(config *Config) (*Node, error) {
 
 	/* SETUP: APPS */
 
-	binDir, err := config.AppsDir()
-	if err != nil {
-		return nil, fmt.Errorf("app manager: %s", err)
-	}
+	node.am = router.NewProcManager(10)
+	node.apps = make(map[string]*app.Meta)
+
 	localDir, err := config.LocalDir()
 	if err != nil {
 		return nil, fmt.Errorf("app manager: %s", err)
 	}
-	node.am = router.NewAppsManager(rConf, r, 10, binDir, localDir)
+	node.rootLocalDir = localDir
 
-	if lvl, err := logging.LevelFromString(config.LogLevel); err == nil {
-		node.Logger.SetLevel(lvl)
+	binDir, err := config.AppsDir()
+	if err != nil {
+		return nil, fmt.Errorf("app manager: %s", err)
 	}
+	node.rootBinDir = binDir
+
+	node.logger.Info("reading apps ...")
+
+	files, err := ioutil.ReadDir(node.rootBinDir)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read root apps dir: %s", err)
+	}
+
+	node.aMx.Lock()
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		meta, err := app.ObtainMeta(pk, filepath.Join(node.rootBinDir, f.Name()))
+		if err != nil {
+			continue
+		}
+		node.apps[meta.AppName] = meta
+	}
+	node.aMx.Unlock()
 
 	/* SETUP: MANAGER */
 
@@ -152,30 +187,30 @@ func (node *Node) Start() error {
 
 	/* START: TRANSPORTS */
 
-	node.tm.ReconnectTransports(ctx)
-	node.tm.CreateDefaultTransports(ctx)
+	//node.tm.ReconnectTransports(ctx)
+	//node.tm.CreateDefaultTransports(ctx)
 
-	/* START: ROUTER */
+	/* START: AUTO-START APPS */
 
-	node.logger.Info("Starting packet router")
-	if err := node.r.Serve(ctx, node.am); err != nil {
-		return fmt.Errorf("failed to start Node: %s", err)
-	}
-
-	/* START: REGISTER APPS */
-
-	for _, ac := range node.c.Apps {
-		go func(ac AppConfig) {
-			_, err := node.am.RegisterApp(ac.App, router.AppConfig{
-				Args:      ac.Args,
-				AutoStart: ac.AutoStart,
-				Port:      ac.Port,
-			})
-			if err != nil {
-				node.logger.Warnf("failed to setup app '%s': %s", ac.App, err)
-				return
-			}
-		}(ac)
+	for _, ac := range node.c.AutoStartApps {
+		node.aMx.RLock()
+		m, ok := node.apps[ac.App]
+		node.aMx.RUnlock()
+		if !ok {
+			node.logger.Warnf("failed to auto-start app '%s': %s", ac.App,
+				errors.New("app not found"))
+		}
+		proc, err := node.am.RunProc(node.r, ac.Port, m, &app.ExecConfig{
+			HostPK:  node.c.Node.PubKey,
+			HostSK:  node.c.Node.SecKey,
+			WorkDir: filepath.Join(node.rootLocalDir, ac.App),
+			BinLoc:  filepath.Join(node.rootBinDir, ac.App),
+			Args:    ac.Args,
+		})
+		if err != nil {
+			node.logger.Warnf("failed to auto-start app '%s': %s", ac.App, err)
+		}
+		node.logger.Infof("started proc.%d: %s", proc.ProcID(), ac.App)
 	}
 
 	/* START: MANAGER */
@@ -194,6 +229,13 @@ func (node *Node) Start() error {
 				node.logger.Errorf("Dialer exited with error: %v", err)
 			}
 		}(dialer)
+	}
+
+	/* START: ROUTER */
+
+	node.logger.Info("Starting packet router")
+	if err := node.r.Serve(ctx, node.am); err != nil {
+		return fmt.Errorf("failed to start Node: %s", err)
 	}
 
 	return nil
@@ -237,44 +279,42 @@ func (node *Node) Close() (err error) {
 }
 
 // Apps returns list of AppStates for all registered apps.
-func (node *Node) Apps() []router.AppInfo {
-	var res []router.AppInfo
-	node.am.RangeApps(func(config *router.AppConfig, host *router.HostedApp) (next bool) {
-		res = append(res, router.AppInfo{
-			Meta:   host.Meta(),
-			State:  host.State(),
-			Config: *config,
-		})
-		return true
-	})
+func (node *Node) Apps() []*app.Meta {
+	var res []*app.Meta
+	node.aMx.RLock()
+	for _, m := range node.apps {
+		res = append(res, m)
+	}
+	node.aMx.RUnlock()
 	return res
 }
 
-// StartApp starts registered App.
-func (node *Node) StartApp(appName string) error {
-	host, ok := node.am.AppOfName(appName)
+// StartProc starts a process.
+func (node *Node) StartProc(appName string, args []string, port uint16) (router.ProcID, error) {
+	node.aMx.RLock()
+	m, ok := node.apps[appName]
+	node.aMx.RUnlock()
 	if !ok {
-		return router.ErrAppNotFound
+		return 0, fmt.Errorf("app of name '%s' not found", appName)
 	}
-	return host.Start()
+	proc, err := node.am.RunProc(node.r, port, m, &app.ExecConfig{
+		HostPK:  node.c.Node.PubKey,
+		HostSK:  node.c.Node.SecKey,
+		WorkDir: filepath.Join(node.rootLocalDir, appName),
+		BinLoc:  filepath.Join(node.rootBinDir, appName),
+		Args:    args,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return proc.ProcID(), err
 }
 
-// StopApp stops a registered App.
-func (node *Node) StopApp(appName string) error {
-	host, ok := node.am.AppOfName(appName)
+// StopProc stops a process of pid.
+func (node *Node) StopProc(pid router.ProcID) error {
+	proc, ok := node.am.Proc(pid)
 	if !ok {
-		return router.ErrAppNotFound
+		return router.ErrProcNotFound
 	}
-	return host.Stop()
-}
-
-// SetAutoStart sets an app to auto start or not.
-func (node *Node) SetAutoStart(appName string, autoStart bool) error {
-	for i, ac := range node.c.Apps {
-		if ac.App == appName {
-			node.c.Apps[i].AutoStart = autoStart
-			return nil
-		}
-	}
-	return ErrUnknownApp
+	return proc.Stop()
 }

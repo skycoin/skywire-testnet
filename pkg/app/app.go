@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -88,8 +89,8 @@ func Setup(appName, appVersion string) {
 
 	// If command is of format: "<app> sw-setup", print json-encoded Meta, otherwise, serve app.
 	if len(os.Args) == 2 && os.Args[1] == setupCmdName {
-		if appName != os.Args[0] {
-			log.Fatalf("Registered name '%s' does not match executable name '%s'.", appName, os.Args[0])
+		if base := filepath.Base(os.Args[0]); appName != base {
+			log.Fatalf("Registered name '%s' does not match executable name '%s'.", appName, base)
 		}
 		if err := json.NewEncoder(os.Stdout).Encode(_meta); err != nil {
 			log.Fatalf("Failed to write to stdout: %s", err.Error())

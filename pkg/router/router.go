@@ -39,7 +39,7 @@ type Config struct {
 // Router manages routing table by communicating with setup nodes, forward packets according to local rules and
 // manages loops for apps.
 type Router interface {
-	Serve(ctx context.Context, am AppsManager) error
+	Serve(ctx context.Context, am ProcManager) error
 	FindRoutesAndSetupLoop(lm app.LoopMeta, nsMsg []byte) error
 	ForwardPacket(tpID uuid.UUID, rtID routing.RouteID, payload []byte) error
 	CloseLoop(lm app.LoopMeta) error
@@ -47,11 +47,11 @@ type Router interface {
 }
 
 // New constructs a new router.
-func New(l *logging.Logger, tpM *transport.Manager, rt routing.Table, rf routeFinder.Client, conf *Config) Router {
+func New(l *logging.Logger, tpm *transport.Manager, rt routing.Table, rf routeFinder.Client, conf *Config) Router {
 	return &router{
 		log: l,
 		c:   conf,
-		tpm: tpM,
+		tpm: tpm,
 		rtm: NewRoutingTableManager(l, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
 		rfc: rf,
 	}
@@ -66,7 +66,7 @@ type router struct {
 }
 
 // Serve starts transport listening loop.
-func (r *router) Serve(ctx context.Context, am AppsManager) error {
+func (r *router) Serve(ctx context.Context, am ProcManager) error {
 
 	setupPKs := make(map[cipher.PubKey]struct{})
 	for _, pk := range r.c.SetupNodes {
@@ -85,7 +85,7 @@ func (r *router) Serve(ctx context.Context, am AppsManager) error {
 
 	// serves a given transport with the 'handler' running in a loop.
 	// the loop exits on error.
-	serve := func(tp transport.Transport, handle func(AppsManager, io.ReadWriter) error) {
+	serve := func(tp transport.Transport, handle func(ProcManager, io.ReadWriter) error) {
 		for {
 			if err := handle(am, tp); err != nil && err != io.EOF {
 				r.log.Warnf("Stopped serving Transport: %s", err)
@@ -205,7 +205,7 @@ func (r *router) fetchBestRoutes(srcPK, dstPK cipher.PubKey) (fwdRt routing.Rout
 	return forwardRoutes[0], reverseRoutes[0], nil
 }
 
-func (r *router) handleTransport(am AppsManager, rw io.ReadWriter) error {
+func (r *router) handleTransport(am ProcManager, rw io.ReadWriter) error {
 	packet := make(routing.Packet, 6)
 	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
@@ -228,22 +228,22 @@ func (r *router) handleTransport(am AppsManager, rw io.ReadWriter) error {
 		return r.ForwardPacket(rule.TransportID(), rule.RouteID(), payload)
 
 	case routing.RuleApp:
-		host, ok := am.AppOfPort(rule.LocalPort())
+		proc, ok := am.ProcOfPort(rule.LocalPort())
 		if !ok {
-			return ErrAppNotFound
+			return ErrProcNotFound
 		}
 		lm := app.LoopMeta{
 			Local:  app.LoopAddr{PubKey: r.c.PubKey, Port: rule.LocalPort()},
 			Remote: app.LoopAddr{PubKey: rule.RemotePK(), Port: rule.RemotePort()},
 		}
-		return host.ConsumePacket(lm, payload)
+		return proc.ConsumePacket(lm, payload)
 
 	default:
 		return errors.New("associated rule has invalid type")
 	}
 }
 
-func (r *router) handleSetup(am AppsManager, rw io.ReadWriter) error {
+func (r *router) handleSetup(am ProcManager, rw io.ReadWriter) error {
 
 	// triggered when a 'AddRules' packet is received from SetupNode
 	addRules := func(rules []routing.Rule) ([]routing.RouteID, error) {
@@ -283,11 +283,11 @@ func (r *router) handleSetup(am AppsManager, rw io.ReadWriter) error {
 			return nil, err
 		}
 
-		host, ok := am.AppOfPort(lm.Local.Port)
+		proc, ok := am.ProcOfPort(lm.Local.Port)
 		if !ok {
-			return nil, ErrAppNotFound
+			return nil, ErrProcNotFound
 		}
-		msg, err := host.ConfirmLoop(lm, fwdRule.TransportID(), fwdRule.RouteID(), ld.NoiseMessage)
+		msg, err := proc.ConfirmLoop(lm, fwdRule.TransportID(), fwdRule.RouteID(), ld.NoiseMessage)
 		if err != nil {
 			return nil, fmt.Errorf("confirm: %s", err)
 		}
@@ -307,11 +307,11 @@ func (r *router) handleSetup(am AppsManager, rw io.ReadWriter) error {
 	loopClosed := func(ld setup.LoopData) error {
 		lm := makeLoopMeta(r.c.PubKey, ld)
 
-		host, ok := am.AppOfPort(lm.Local.Port)
+		proc, ok := am.ProcOfPort(lm.Local.Port)
 		if !ok {
-			return ErrAppNotFound
+			return ErrProcNotFound
 		}
-		return host.ConfirmCloseLoop(lm)
+		return proc.ConfirmCloseLoop(lm)
 	}
 
 	proto := setup.NewSetupProtocol(rw)

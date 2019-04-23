@@ -54,7 +54,7 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	}
 
 	return &Manager{
-		Logger:         logging.MustGetLogger("trmanager"),
+		Logger:         logging.MustGetLogger("tp_manager"),
 		config:         config,
 		factories:      fMap,
 		transports:     make(map[uuid.UUID]*ManagedTransport),
