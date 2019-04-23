@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/internal/pathutil"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
 func init() {
