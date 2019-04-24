@@ -1,4 +1,5 @@
 // +build !no_ci
+
 package messaging
 
 import (
