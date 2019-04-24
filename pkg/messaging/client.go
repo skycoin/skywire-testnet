@@ -133,7 +133,7 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 		if !more {
 			return nil, ErrClientClosed
 		}
-		return newAckedChannel(ch), nil
+		return ch, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -180,7 +180,7 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 	}
 
 	c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", localID, channel.ID, remote)
-	return newAckedChannel(channel), nil
+	return channel, nil
 }
 
 // Local returns the local public key.
