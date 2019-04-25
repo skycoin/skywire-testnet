@@ -49,7 +49,7 @@ fi`
 }
 
 func TestNewHost(t *testing.T) {
-	const appCount = 20
+	const runs = 20
 
 	wkDir, err := os.Getwd()
 	require.NoError(t, err)
@@ -59,7 +59,7 @@ func TestNewHost(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { require.NoError(t, os.RemoveAll(appDir)) }()
 
-	for i := 0; i < appCount; i++ {
+	for i := 0; i < runs; i++ {
 		var (
 			pk, sk = cipher.GenerateKeyPair()
 			m      = randMeta(i, pk)

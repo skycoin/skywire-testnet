@@ -49,27 +49,27 @@ type Router interface {
 // New constructs a new router.
 func New(l *logging.Logger, tpm *transport.Manager, rt routing.Table, rf routeFinder.Client, conf *Config) Router {
 	return &router{
-		log: l,
-		c:   conf,
-		tpm: tpm,
-		rtm: NewRoutingTableManager(l, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
-		rfc: rf,
+		log:  l,
+		conf: conf,
+		tpm:  tpm,
+		rtm:  NewRoutingTableManager(l, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
+		rfc:  rf,
 	}
 }
 
 type router struct {
-	log *logging.Logger
-	c   *Config
-	tpm *transport.Manager
-	rtm *RoutingTableManager
-	rfc routeFinder.Client
+	log  *logging.Logger
+	conf *Config
+	tpm  *transport.Manager
+	rtm  *RoutingTableManager
+	rfc  routeFinder.Client
 }
 
 // Serve starts transport listening loop.
-func (r *router) Serve(ctx context.Context, am ProcManager) error {
+func (r *router) Serve(ctx context.Context, pm ProcManager) error {
 
 	setupPKs := make(map[cipher.PubKey]struct{})
-	for _, pk := range r.c.SetupNodes {
+	for _, pk := range r.conf.SetupNodes {
 		setupPKs[pk] = struct{}{}
 	}
 
@@ -87,7 +87,7 @@ func (r *router) Serve(ctx context.Context, am ProcManager) error {
 	// the loop exits on error.
 	serve := func(tp transport.Transport, handle func(ProcManager, io.ReadWriter) error) {
 		for {
-			if err := handle(am, tp); err != nil && err != io.EOF {
+			if err := handle(pm, tp); err != nil && err != io.EOF {
 				r.log.Warnf("Stopped serving Transport: %s", err)
 				return
 			}
@@ -181,11 +181,11 @@ func (r *router) CloseLoop(lm app.LoopMeta) error {
 }
 
 func (r *router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
-	if len(r.c.SetupNodes) == 0 {
+	if len(r.conf.SetupNodes) == 0 {
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err := r.tpm.CreateTransport(ctx, r.c.SetupNodes[0], "messaging", false)
+	tr, err := r.tpm.CreateTransport(ctx, r.conf.SetupNodes[0], "messaging", false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("transport: %s", err)
 	}
@@ -233,7 +233,7 @@ func (r *router) handleTransport(am ProcManager, rw io.ReadWriter) error {
 			return ErrProcNotFound
 		}
 		lm := app.LoopMeta{
-			Local:  app.LoopAddr{PubKey: r.c.PubKey, Port: rule.LocalPort()},
+			Local:  app.LoopAddr{PubKey: r.conf.PubKey, Port: rule.LocalPort()},
 			Remote: app.LoopAddr{PubKey: rule.RemotePK(), Port: rule.RemotePort()},
 		}
 		return proc.ConsumePacket(lm, payload)
@@ -272,7 +272,7 @@ func (r *router) handleSetup(am ProcManager, rw io.ReadWriter) error {
 
 	// triggered when a 'ConfirmLoop' packet is received from SetupNode
 	confirmLoop := func(ld setup.LoopData) ([]byte, error) {
-		lm := makeLoopMeta(r.c.PubKey, ld)
+		lm := makeLoopMeta(r.conf.PubKey, ld)
 
 		appRtID, appRule, ok := r.rtm.FindAppRule(lm)
 		if !ok {
@@ -305,7 +305,7 @@ func (r *router) handleSetup(am ProcManager, rw io.ReadWriter) error {
 
 	// triggered when a 'LoopClosed' packet is received from SetupNode
 	loopClosed := func(ld setup.LoopData) error {
-		lm := makeLoopMeta(r.c.PubKey, ld)
+		lm := makeLoopMeta(r.conf.PubKey, ld)
 
 		proc, ok := am.ProcOfPort(lm.Local.Port)
 		if !ok {

@@ -82,7 +82,7 @@ func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecCo
 		pm:      pm,
 		r:       r,
 	}
-	done, err := exec.Run(proc.makeHandler(), proc.makeUIHandler())
+	done, err := exec.Run(proc.makeDataHandlerMap(), proc.makeCtrlHandlerMap())
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func failWith(err error) respondFunc {
 	return func() ([]byte, error) { return nil, err }
 }
 
-func (ar *AppProc) makeHandler() appnet.HandlerMap {
+func (ar *AppProc) makeDataHandlerMap() appnet.HandlerMap {
 
 	// triggered when App sends 'CreateLoop' frame to Host
 	requestLoop := func(rAddr app.LoopAddr) respondFunc {
@@ -348,7 +348,7 @@ func (ar *AppProc) makeHandler() appnet.HandlerMap {
 	}
 }
 
-func (ar *AppProc) makeUIHandler() appnet.HandlerMap {
+func (ar *AppProc) makeCtrlHandlerMap() appnet.HandlerMap {
 	// TODO(evanlinjin): implement.
 	return appnet.HandlerMap{}
 }

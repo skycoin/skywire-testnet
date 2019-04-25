@@ -85,7 +85,7 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 		return true
 	})
 	*out = Summary{
-		PubKey:          r.node.c.Node.PubKey,
+		PubKey:          r.node.conf.Node.PubKey,
 		NodeVersion:     Version,
 		AppProtoVersion: supportedProtocolVersion,
 		Apps:            r.node.Apps(),

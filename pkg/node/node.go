@@ -35,12 +35,12 @@ const supportedProtocolVersion = "0.0.1"
 // Node provides messaging runtime for Apps by setting up all
 // necessary connections and performing messaging gateway functions.
 type Node struct {
-	c  *Config
-	m  *messaging.Client
-	tm *transport.Manager
-	rt routing.Table
-	r  router.Router
-	am router.ProcManager
+	conf *Config
+	mc   *messaging.Client
+	tm   *transport.Manager
+	rt   routing.Table
+	r    router.Router
+	pm   router.ProcManager
 
 	rootBinDir   string
 	rootLocalDir string
@@ -56,7 +56,7 @@ type Node struct {
 
 // NewNode constructs new Node.
 func NewNode(config *Config) (*Node, error) {
-	node := &Node{c: config}
+	node := &Node{conf: config}
 
 	node.Logger = logging.NewMasterLogger()
 	node.logger = node.Logger.PackageLogger("skywire")
@@ -75,8 +75,8 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.m = messaging.NewClient(mConfig)
-	node.m.Logger = node.Logger.PackageLogger("messenger")
+	node.mc = messaging.NewClient(mConfig)
+	node.mc.Logger = node.Logger.PackageLogger("messenger")
 
 	/* SETUP: TRANSPORT MANAGER */
 
@@ -94,7 +94,7 @@ func NewNode(config *Config) (*Node, error) {
 		LogStore:        logStore,
 		DefaultNodes:    config.TrustedNodes,
 	}
-	node.tm, err = transport.NewManager(tmConfig, node.m)
+	node.tm, err = transport.NewManager(tmConfig, node.mc)
 	if err != nil {
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
@@ -116,7 +116,7 @@ func NewNode(config *Config) (*Node, error) {
 
 	/* SETUP: APPS */
 
-	node.am = router.NewProcManager(10)
+	node.pm = router.NewProcManager(10)
 	node.apps = make(map[string]*app.Meta)
 
 	localDir, err := config.LocalDir()
@@ -179,7 +179,7 @@ func (node *Node) Start() error {
 
 	/* START: MESSAGING */
 
-	err := node.m.ConnectToInitialServers(ctx, node.c.Messaging.ServerCount)
+	err := node.mc.ConnectToInitialServers(ctx, node.conf.Messaging.ServerCount)
 	if err != nil {
 		return fmt.Errorf("messaging: %s", err)
 	}
@@ -192,7 +192,7 @@ func (node *Node) Start() error {
 
 	/* START: AUTO-START APPS */
 
-	for _, ac := range node.c.AutoStartApps {
+	for _, ac := range node.conf.AutoStartApps {
 		node.aMx.RLock()
 		m, ok := node.apps[ac.App]
 		node.aMx.RUnlock()
@@ -200,9 +200,9 @@ func (node *Node) Start() error {
 			node.logger.Warnf("failed to auto-start app '%s': %s", ac.App,
 				errors.New("app not found"))
 		}
-		proc, err := node.am.RunProc(node.r, ac.Port, m, &app.ExecConfig{
-			HostPK:  node.c.Node.PubKey,
-			HostSK:  node.c.Node.SecKey,
+		proc, err := node.pm.RunProc(node.r, ac.Port, m, &app.ExecConfig{
+			HostPK:  node.conf.Node.PubKey,
+			HostSK:  node.conf.Node.SecKey,
 			WorkDir: filepath.Join(node.rootLocalDir, ac.App),
 			BinLoc:  filepath.Join(node.rootBinDir, ac.App),
 			Args:    ac.Args,
@@ -234,7 +234,7 @@ func (node *Node) Start() error {
 	/* START: ROUTER */
 
 	node.logger.Info("Starting packet router")
-	if err := node.r.Serve(ctx, node.am); err != nil {
+	if err := node.r.Serve(ctx, node.pm); err != nil {
 		return fmt.Errorf("failed to start Node: %s", err)
 	}
 
@@ -262,7 +262,7 @@ func (node *Node) Close() (err error) {
 	}
 
 	node.logger.Info("stopping apps_manager ...")
-	if e := node.am.Close(); e != nil {
+	if e := node.pm.Close(); e != nil {
 		err = e
 		node.logger.Errorf("apps_manager stopped with error: %s", err)
 	}
@@ -297,9 +297,9 @@ func (node *Node) StartProc(appName string, args []string, port uint16) (router.
 	if !ok {
 		return 0, fmt.Errorf("app of name '%s' not found", appName)
 	}
-	proc, err := node.am.RunProc(node.r, port, m, &app.ExecConfig{
-		HostPK:  node.c.Node.PubKey,
-		HostSK:  node.c.Node.SecKey,
+	proc, err := node.pm.RunProc(node.r, port, m, &app.ExecConfig{
+		HostPK:  node.conf.Node.PubKey,
+		HostSK:  node.conf.Node.SecKey,
 		WorkDir: filepath.Join(node.rootLocalDir, appName),
 		BinLoc:  filepath.Join(node.rootBinDir, appName),
 		Args:    args,
@@ -312,7 +312,7 @@ func (node *Node) StartProc(appName string, args []string, port uint16) (router.
 
 // StopProc stops a process of pid.
 func (node *Node) StopProc(pid router.ProcID) error {
-	proc, ok := node.am.Proc(pid)
+	proc, ok := node.pm.Proc(pid)
 	if !ok {
 		return router.ErrProcNotFound
 	}
