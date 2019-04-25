@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/internal/metrics"
+	"github.com/skycoin/skywire/pkg/metrics"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
