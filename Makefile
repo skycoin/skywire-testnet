@@ -99,6 +99,8 @@ host-apps: ## Build app
 	${OPTS} go build -race -o ./apps/therealproxy-client  ./cmd/apps/therealproxy-client
 	${OPTS} go build -race -o ./apps/therealssh  ./cmd/apps/therealssh
 	${OPTS} go build -race -o ./apps/therealssh-client  ./cmd/apps/therealssh-client
+	${OPTS} go build -race -o ./apps/server-test ./cmd/apps/server-test
+	${OPTS} go build -race -o ./apps/client-test ./cmd/apps/client-test
 
 # Bin 
 bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`

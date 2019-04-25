@@ -1,0 +1,50 @@
+{
+	"version": "1.0",
+	"node": {
+		"static_public_key": "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
+		"static_secret_key": "42bca4df2f3189b28872d40e6c61aacd5e85b8e91f8fea65780af27c142419e5"
+	},
+	"messaging": {
+		"discovery": "http://localhost:9090",
+		"server_count": 1
+	},
+	"transport": {
+		"discovery": "http://localhost:9091",
+		"log_store": {
+			"type": "file",
+			"location": "./localA/transport_logs"
+		}
+	},
+	"routing": {
+		"setup_nodes": [
+			"02603d53d49b6575a0b8cee05b70dd23c86e42cd6cba99af769d61a6196ea2bcb1"
+		],
+		"route_finder": "http://localhost:9092",
+		"table": {
+			"type": "boltdb",
+			"location": "./localA/routing.db"
+		}
+	},
+	"auto_start_apps": [
+	 {
+      "app": "server-test",
+	"version":"1.0",
+      "port": 1,
+      "args": []
+    },
+	 {
+      "app": "client-test",
+	"version":"1.0",
+      "port": 2,
+      "args": []
+    }
+	],
+	"trusted_nodes": [],
+	"manager_nodes": [],
+	"apps_path": "./apps",
+	"local_path": "./localA",
+	"log_level": "info",
+	"interfaces": {
+		"rpc": "localhost:3436"
+	}
+}
