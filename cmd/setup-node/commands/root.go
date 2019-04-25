@@ -15,7 +15,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/internal/metrics"
+	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/setup"
 )
 
