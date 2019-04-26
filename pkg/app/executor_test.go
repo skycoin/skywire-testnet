@@ -48,7 +48,7 @@ fi`
 	return err
 }
 
-func TestNewHost(t *testing.T) {
+func TestNewExecutor(t *testing.T) {
 	const runs = 20
 
 	wkDir, err := os.Getwd()
