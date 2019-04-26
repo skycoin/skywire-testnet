@@ -54,7 +54,7 @@ type AppProc struct {
 	stopped unsafe.Pointer
 
 	pid ProcID
-	e   *app.Executor
+	e   app.Executor
 	lps map[app.LoopMeta]*loopDispatch
 	mx  sync.RWMutex
 	log *logging.Logger
@@ -147,8 +147,8 @@ func (ar *AppProc) ConfirmLoop(lm app.LoopMeta, tpID uuid.UUID, rtID routing.Rou
 	ld, isNew := setOrGetLoop(lm, tpID, rtID)
 	if isNew {
 		ns, err := noise.KKAndSecp256k1(noise.Config{
-			LocalPK:   ar.e.Conf().HostPK,
-			LocalSK:   ar.e.Conf().HostSK,
+			LocalPK:   ar.e.Config().HostPK,
+			LocalSK:   ar.e.Config().HostSK,
 			RemotePK:  lm.Remote.PubKey,
 			Initiator: false,
 		})
@@ -235,8 +235,8 @@ func (ar *AppProc) makeDataHandlerMap() appnet.HandlerMap {
 
 		// prepare noise
 		ns, err := noise.KKAndSecp256k1(noise.Config{
-			LocalPK:   ar.e.Conf().HostPK,
-			LocalSK:   ar.e.Conf().HostSK,
+			LocalPK:   ar.e.Config().HostPK,
+			LocalSK:   ar.e.Config().HostSK,
 			RemotePK:  rAddr.PubKey,
 			Initiator: true,
 		})
@@ -252,7 +252,7 @@ func (ar *AppProc) makeDataHandlerMap() appnet.HandlerMap {
 		lPort := ar.pm.AllocPort(ar.pid)
 
 		lm := app.LoopMeta{
-			Local:  app.LoopAddr{PubKey: ar.e.Conf().HostPK, Port: lPort},
+			Local:  app.LoopAddr{PubKey: ar.e.Config().HostPK, Port: lPort},
 			Remote: rAddr,
 		}
 

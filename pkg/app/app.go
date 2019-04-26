@@ -23,7 +23,8 @@ const (
 	// ProtocolVersion is the supported protocol version.
 	ProtocolVersion = "0.0.1"
 
-	setupCmdName = "sw-setup"
+	// SetupCmdName is the command that is triggered on an app to grab it's meta.
+	SetupCmdName = "sw-setup"
 )
 
 var (
@@ -88,7 +89,7 @@ func Setup(appName, appVersion string) {
 	}
 
 	// If command is of format: "<app> sw-setup", print json-encoded Meta, otherwise, serve app.
-	if len(os.Args) == 2 && os.Args[1] == setupCmdName {
+	if len(os.Args) == 2 && os.Args[1] == SetupCmdName {
 		if base := filepath.Base(os.Args[0]); appName != base {
 			log.Fatalf("Registered name '%s' does not match executable name '%s'.", appName, base)
 		}
