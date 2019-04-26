@@ -35,7 +35,7 @@ var (
 func ObtainMeta(hostPK cipher.PubKey, binLoc string) (*Meta, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), obtainMetaTimeout)
 	defer cancel()
-	raw, err := exec.CommandContext(ctx, binLoc, setupCmdName).Output()
+	raw, err := exec.CommandContext(ctx, binLoc, SetupCmdName).Output()
 	l := log.
 		WithField("_bin", binLoc).
 		WithField("_stdout", string(raw))

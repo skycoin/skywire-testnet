@@ -44,7 +44,7 @@ if [[ $# -eq 1 && $1 = '%s' ]]; then echo '%s'; exit 0
 elif [[ -n "${PK}" ]]; then echo "host: ${PK}"; while [ 1 ]; do test $? -gt 128 && exit 0; done
 else exit 1
 fi`
-	_, err = fmt.Fprintf(f, template, EnvHostPK, setupCmdName, string(jm))
+	_, err = fmt.Fprintf(f, template, EnvHostPK, SetupCmdName, string(jm))
 	return err
 }
 
