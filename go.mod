@@ -7,9 +7,11 @@ require (
 	github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/pty v1.1.4
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
@@ -23,4 +25,5 @@ require (
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/crypto v0.0.0-20190422171913-f8560614bab0
 	golang.org/x/net v0.0.0-20190420063019-afa5a82059c6
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

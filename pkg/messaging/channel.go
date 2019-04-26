@@ -7,7 +7,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/skycoin/skywire/internal/ioutil"
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -196,25 +195,4 @@ func (c *channel) readEncrypted(ctx context.Context, p []byte) (n int, err error
 	}
 
 	return copy(p, data), nil
-}
-
-type ackedChannel struct {
-	*channel
-	rw *ioutil.AckReadWriter
-}
-
-func newAckedChannel(c *channel) *ackedChannel {
-	return &ackedChannel{c, ioutil.NewAckReadWriter(c, 100*time.Millisecond)}
-}
-
-func (c *ackedChannel) Write(p []byte) (n int, err error) {
-	return c.rw.Write(p)
-}
-
-func (c *ackedChannel) Read(p []byte) (n int, err error) {
-	return c.rw.Read(p)
-}
-
-func (c *ackedChannel) Close() error {
-	return c.rw.Close()
 }
