@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/skycoin/skywire/internal/metrics"
+	"github.com/skycoin/skywire/pkg/metrics"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 

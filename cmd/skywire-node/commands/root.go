@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bufio"
 	"encoding/json"
+	"io"
 	"log"
 	"log/syslog"
 	"os"
@@ -21,15 +23,15 @@ import (
 const configEnv = "SW_CONFIG"
 
 var (
-	syslogAddr string
-	tag        string
+	syslogAddr   string
+	tag          string
+	cfgFromStdin bool
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "skywire-node [config-path]",
 	Short: "App Node for skywire",
 	Run: func(_ *cobra.Command, args []string) {
-		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.NodeDefaults())
 
 		logger := logging.MustGetLogger(tag)
 
@@ -42,14 +44,22 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		file, err := os.Open(configPath)
-		if err != nil {
-			logger.Fatalf("Failed to open config: %s", err)
+		var rdr io.Reader
+		var err error
+		if !cfgFromStdin {
+			configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.NodeDefaults())
+			rdr, err = os.Open(configPath)
+			if err != nil {
+				logger.Fatalf("Failed to open config: %s", err)
+			}
+		} else {
+			logger.Info("Reading config from STDIN")
+			rdr = bufio.NewReader(os.Stdin)
 		}
 
 		conf := &node.Config{}
-		if err := json.NewDecoder(file).Decode(&conf); err != nil {
-			logger.Fatalf("Failed to decode %s: %s", configPath, err)
+		if err := json.NewDecoder(rdr).Decode(&conf); err != nil {
+			logger.Fatalf("Failed to decode %s: %s", rdr, err)
 		}
 
 		node, err := node.NewNode(conf)
@@ -87,6 +97,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().StringVarP(&syslogAddr, "syslog", "", "none", "syslog server address. E.g. localhost:514")
 	rootCmd.Flags().StringVarP(&tag, "tag", "", "skywire", "logging tag")
+	rootCmd.Flags().BoolVarP(&cfgFromStdin, "stdin", "i", false, "read config from STDIN")
 }
 
 // Execute executes root CLI command.
