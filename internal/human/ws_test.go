@@ -8,9 +8,10 @@ import (
 	"testing"
 
 	"github.com/gorilla/websocket"
-	"github.com/skycoin/skywire/internal/color"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/internal/color"
 )
 
 func TestWebsocketGrabber(t *testing.T) {
