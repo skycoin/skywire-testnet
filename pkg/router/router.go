@@ -64,6 +64,10 @@ type router struct {
 	rfc  routeFinder.Client
 }
 
+func (r *router) String() string {
+	return fmt.Sprintf("router{%v, %v, %v, %v, %v }\n", r.log, r.conf, r.tpm, r.rtm, r.rfc)
+}
+
 // Serve starts transport listening loop.
 func (r *router) Serve(ctx context.Context, pm ProcManager) error {
 

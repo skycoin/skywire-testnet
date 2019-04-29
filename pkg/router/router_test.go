@@ -1,16 +1,43 @@
 package router
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/pkg/cipher"
+	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 func TestMain(m *testing.M) {
 	lvl, _ := logging.LevelFromString("error") // nolint: errcheck
 	logging.SetLevel(lvl)
 	os.Exit(m.Run())
+}
+
+func Example_router() {
+
+	logger := logging.MustGetLogger("router")
+	pk, sk := cipher.GenerateKeyPair()
+	conf := &Config{
+		PubKey:     pk,
+		SecKey:     sk,
+		SetupNodes: []cipher.PubKey{},
+	}
+
+	r := router{
+		log:  logger,
+		conf: conf,
+		tpm:  &transport.Manager{},
+		rtm:  &RoutingTableManager{},
+		rfc:  routeFinder.NewHTTP("localhost"),
+	}
+
+	fmt.Printf("r.conf is empty: %v\n", r.conf == &Config{})
+
+	//Output: r.conf is empty: false
 }
 
 // func TestRouterForwarding(t *testing.T) {
