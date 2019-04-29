@@ -2,6 +2,7 @@ package netutil
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -46,6 +47,9 @@ func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	fmt.Println("Bytes read", n)
+	fmt.Print("Bytes not read ", pc.readBuf.Len(), "\n")
 
 	return n, err
 }
