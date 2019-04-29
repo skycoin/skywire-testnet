@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"time"
+	"unicode/utf8"
 )
 
 // PrefixedConn will inherit net.Conn from the interface.
@@ -39,8 +40,26 @@ func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 	return &d
 }
 
+// removeAtBytes remove a rune from a bytes.Buffer at ith location
+func removeAtBytes(p []byte, i int) []byte {
+	j := 0
+	k := 0
+	for k < len(p) {
+		_, n := utf8.DecodeRune(p[k:])
+		if i == j {
+			p = p[:k+copy(p[k:], p[k+n:])]
+		}
+		j++
+		k += n
+	}
+	return p
+}
+
 // Read reads in prefixed data from root connection and reads it into the appropriate branch connection
 func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
+
+	// Remove the first byte from the bytes.Buffer
+	pc.readBuf.Truncate(len(removeAtBytes(pc.readBuf.Bytes(), 0)))
 
 	// The bytes.Buffer readBuf reads data into b
 	n, err = pc.readBuf.Read(b)

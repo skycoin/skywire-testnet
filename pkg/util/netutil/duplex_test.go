@@ -18,7 +18,7 @@ func TestPrefixedConn_Read(t *testing.T) {
 	sDuplex := NewRPCDuplex(sConn, true)
 	// cDuplex := NewRPCDuplex(cConn, false)
 
-	sDuplex.serverConn.readBuf.Write([]byte("\x00foo")) // Passed
+	sDuplex.serverConn.readBuf.Write([]byte("\000foo")) // Passed
 	// sDuplex.clientConn.readBuf.Write([]byte("foo")) // Failed
 	// cDuplex.serverConn.readBuf.Write([]byte("foo")) // Failed
 	// cDuplex.clientConn.readBuf.Write([]byte("foo")) // Failed
@@ -52,4 +52,5 @@ func TestPrefixedConn_Write(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 4, n)
 	assert.Equal(t, []byte("\x00foo"), buf)
+
 }
