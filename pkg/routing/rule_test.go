@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -9,6 +10,25 @@ import (
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )
+
+func ExampleAppRule() {
+	expireAt := time.Now().Add(2 * time.Minute)
+	pk, _ := cipher.GenerateKeyPair()
+	appRule := AppRule(expireAt, 2, pk, 3, 4)
+
+	fmt.Printf("len(appRule): %v\n", len(appRule))
+
+	// Output: len(appRule): 50
+}
+
+func ExampleForwardRule() {
+	trID := uuid.New()
+	expireAt := time.Now().Add(2 * time.Minute)
+	fwdRule := ForwardRule(expireAt, 2, trID)
+	fmt.Printf("len(fwdRule): %v\n", len(fwdRule))
+
+	// Output: len(fwdRule): 29
+}
 
 func TestAppRule(t *testing.T) {
 	expireAt := time.Now().Add(2 * time.Minute)

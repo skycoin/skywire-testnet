@@ -3,7 +3,6 @@ package router
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -68,31 +67,7 @@ type router struct {
 // Serve starts transport listening loop.
 func (r *router) Serve(ctx context.Context, pm ProcManager) error {
 
-	setupPKs := make(map[cipher.PubKey]struct{})
-	for _, pk := range r.conf.SetupNodes {
-		setupPKs[pk] = struct{}{}
-	}
-
-	// determines if the given transport is established with a setup node.
-	isSetup := func(tp transport.Transport) bool {
-		pk, ok := r.tpm.Remote(tp.Edges())
-		if !ok {
-			return false
-		}
-		_, ok = setupPKs[pk]
-		return ok
-	}
-
-	// serves a given transport with the 'handler' running in a loop.
-	// the loop exits on error.
-	serve := func(tp transport.Transport, handle func(ProcManager, io.ReadWriter) error) {
-		for {
-			if err := handle(pm, tp); err != nil && err != io.EOF {
-				r.log.Warnf("Stopped serving Transport: %s", err)
-				return
-			}
-		}
-	}
+	rh := makeRouterHandlers(r, pm)
 
 	// listens for transports.
 	go func() {
@@ -103,17 +78,17 @@ func (r *router) Serve(ctx context.Context, pm ProcManager) error {
 				if !ok {
 					return
 				}
-				if !isSetup(tp) {
-					go serve(tp, r.handleTransport)
+				if !rh.isSetup()(tp) {
+					go rh.serve()(tp, r.handleTransport)
 				} else {
-					go serve(tp, r.handleSetup)
+					go rh.serve()(tp, r.handleSetup)
 				}
 			case tp, ok := <-dialCh:
 				if !ok {
 					return
 				}
-				if !isSetup(tp) {
-					go serve(tp, r.handleTransport)
+				if !rh.isSetup()(tp) {
+					go rh.serve()(tp, r.handleTransport)
 				}
 			}
 		}
@@ -245,128 +220,12 @@ func (r *router) handleTransport(am ProcManager, rw io.ReadWriter) error {
 
 func (r *router) handleSetup(am ProcManager, rw io.ReadWriter) error {
 
-	// triggered when a 'AddRules' packet is received from SetupNode
-	addRules := func(rules []routing.Rule) ([]routing.RouteID, error) {
-		res := make([]routing.RouteID, len(rules))
-		for idx, rule := range rules {
-			routeID, err := r.rtm.AddRule(rule)
-			if err != nil {
-				return nil, fmt.Errorf("routing table: %s", err)
-			}
-			res[idx] = routeID
-			r.log.Infof("Added new Routing Rule with ID %d %s", routeID, rule)
-		}
-		return res, nil
-	}
-
-	// triggered when a 'DeleteRules' packet is received from SetupNode
-	deleteRules := func(rtIDs []routing.RouteID) ([]routing.RouteID, error) {
-		err := r.rtm.DeleteRules(rtIDs...)
-		if err != nil {
-			return nil, fmt.Errorf("routing table: %s", err)
-		}
-
-		r.log.Infof("Removed Routing Rules with IDs %s", rtIDs)
-		return rtIDs, nil
-	}
-
-	// triggered when a 'ConfirmLoop' packet is received from SetupNode
-	confirmLoop := func(ld setup.LoopData) ([]byte, error) {
-		lm := makeLoopMeta(r.conf.PubKey, ld)
-
-		appRtID, appRule, ok := r.rtm.FindAppRule(lm)
-		if !ok {
-			return nil, errors.New("unknown loop")
-		}
-		fwdRule, err := r.rtm.FindFwdRule(ld.RouteID)
-		if err != nil {
-			return nil, err
-		}
-
-		proc, ok := am.ProcOfPort(lm.Local.Port)
-		if !ok {
-			return nil, ErrProcNotFound
-		}
-		msg, err := proc.ConfirmLoop(lm, fwdRule.TransportID(), fwdRule.RouteID(), ld.NoiseMessage)
-		if err != nil {
-			return nil, fmt.Errorf("confirm: %s", err)
-		}
-
-		r.log.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRtID)
-		appRule.SetRouteID(ld.RouteID)
-
-		if err := r.rtm.SetRule(appRtID, appRule); err != nil {
-			return nil, fmt.Errorf("routing table: %s", err)
-		}
-
-		r.log.Infof("Confirmed loop with %s", lm.Remote)
-		return msg, nil
-	}
-
-	// triggered when a 'LoopClosed' packet is received from SetupNode
-	loopClosed := func(ld setup.LoopData) error {
-		lm := makeLoopMeta(r.conf.PubKey, ld)
-
-		proc, ok := am.ProcOfPort(lm.Local.Port)
-		if !ok {
-			return ErrProcNotFound
-		}
-		return proc.ConfirmCloseLoop(lm)
-	}
-
-	proto := setup.NewSetupProtocol(rw)
-
-	t, body, err := proto.ReadPacket()
+	sh, err := makeSetupHandlers(r, am, rw)
 	if err != nil {
 		return err
 	}
 
-	reject := func(err error) error {
-		r.log.Infof("Setup request with type %s failed: %s", t, err)
-		return proto.WritePacket(setup.RespFailure, err.Error())
-	}
-
-	respondWith := func(v interface{}, err error) error {
-		if err != nil {
-			return reject(err)
-		}
-		return proto.WritePacket(setup.RespSuccess, v)
-	}
-
-	r.log.Infof("Got new Setup request with type %s", t)
-
-	switch t {
-	case setup.PacketAddRules:
-		var rules []routing.Rule
-		if err := json.Unmarshal(body, &rules); err != nil {
-			return reject(err)
-		}
-		return respondWith(addRules(rules))
-
-	case setup.PacketDeleteRules:
-		var rtIDs []routing.RouteID
-		if err := json.Unmarshal(body, &rtIDs); err != nil {
-			return reject(err)
-		}
-		return respondWith(deleteRules(rtIDs))
-
-	case setup.PacketConfirmLoop:
-		var ld setup.LoopData
-		if err := json.Unmarshal(body, &ld); err != nil {
-			return reject(err)
-		}
-		return respondWith(confirmLoop(ld))
-
-	case setup.PacketLoopClosed:
-		var ld setup.LoopData
-		if err := json.Unmarshal(body, &ld); err != nil {
-			return reject(err)
-		}
-		return respondWith(nil, loopClosed(ld))
-
-	default:
-		return reject(errors.New("unknown foundation packet"))
-	}
+	return sh.handle()
 }
 
 func makeLoopMeta(lPK cipher.PubKey, ld setup.LoopData) app.LoopMeta {

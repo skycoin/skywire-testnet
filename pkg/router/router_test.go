@@ -13,76 +13,76 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-//func TestRouterForwarding(t *testing.T) {
-//	client := transport.NewDiscoveryMock()
-//	logStore := transport.InMemoryTransportLogStore()
-//
-//	pk1, sk1 := cipher.GenerateKeyPair()
-//	pk2, sk2 := cipher.GenerateKeyPair()
-//	pk3, sk3 := cipher.GenerateKeyPair()
-//
-//	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
-//	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
-//	c3 := &transport.ManagerConfig{PubKey: pk3, SecKey: sk3, DiscoveryClient: client, LogStore: logStore}
-//
-//	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-//	f3, f4 := transport.NewMockFactoryPair(pk2, pk3)
-//	f3.SetType("mock2")
-//	f4.SetType("mock2")
-//
-//	m1, err := transport.NewManager(c1, f1)
-//	require.NoError(t, err)
-//
-//	m2, err := transport.NewManager(c2, f2, f3)
-//	require.NoError(t, err)
-//
-//	m3, err := transport.NewManager(c3, f4)
-//	require.NoError(t, err)
-//
-//	rt := routing.InMemoryRoutingTable()
-//	conf := &Config{
-//		Logger:           logging.MustGetLogger("routesetup"),
-//		PubKey:           pk2,
-//		SecKey:           sk2,
-//		TransportManager: m2,
-//		RoutingTable:     rt,
-//	}
-//	r := New(conf)
-//	errCh := make(chan error)
-//	go func() {
-//		errCh <- r.Serve(context.TODO())
-//	}()
-//
-//	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
-//	require.NoError(t, err)
-//
-//	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
-//	require.NoError(t, err)
-//
-//	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.ID)
-//	routeID, err := rt.AddRule(rule)
-//	require.NoError(t, err)
-//
-//	time.Sleep(100 * time.Millisecond)
-//
-//	_, err = tr1.Write(routing.MakePacket(routeID, []byte("foo")))
-//	require.NoError(t, err)
-//
-//	packet := make(routing.Packet, 9)
-//	_, err = tr3.Read(packet)
-//	require.NoError(t, err)
-//	assert.Equal(t, uint16(3), packet.Size())
-//	assert.Equal(t, routing.RouteID(4), packet.RouteID())
-//	assert.Equal(t, []byte("foo"), packet.Payload())
-//
-//	require.NoError(t, m1.Close())
-//	require.NoError(t, m3.Close())
-//
-//	time.Sleep(100 * time.Millisecond)
-//
-//	require.NoError(t, r.Close())
-//	require.NoError(t, <-errCh)
-//}
+// func TestRouterForwarding(t *testing.T) {
+// 	client := transport.NewDiscoveryMock()
+// 	logStore := transport.InMemoryTransportLogStore()
+
+// 	pk1, sk1 := cipher.GenerateKeyPair()
+// 	pk2, sk2 := cipher.GenerateKeyPair()
+// 	pk3, sk3 := cipher.GenerateKeyPair()
+
+// 	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
+// 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
+// 	c3 := &transport.ManagerConfig{PubKey: pk3, SecKey: sk3, DiscoveryClient: client, LogStore: logStore}
+
+// 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
+// 	f3, f4 := transport.NewMockFactoryPair(pk2, pk3)
+// 	f3.SetType("mock2")
+// 	f4.SetType("mock2")
+
+// 	m1, err := transport.NewManager(c1, f1)
+// 	require.NoError(t, err)
+
+// 	m2, err := transport.NewManager(c2, f2, f3)
+// 	require.NoError(t, err)
+
+// 	m3, err := transport.NewManager(c3, f4)
+// 	require.NoError(t, err)
+
+// 	rt := routing.InMemoryRoutingTable()
+// 	conf := &Config{
+// 		Logger:           logging.MustGetLogger("routesetup"),
+// 		PubKey:           pk2,
+// 		SecKey:           sk2,
+// 		TransportManager: m2,
+// 		RoutingTable:     rt,
+// 	}
+// 	r := New(conf)
+// 	errCh := make(chan error)
+// 	go func() {
+// 		errCh <- r.Serve(context.TODO())
+// 	}()
+
+// 	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
+// 	require.NoError(t, err)
+
+// 	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
+// 	require.NoError(t, err)
+
+// 	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.ID)
+// 	routeID, err := rt.AddRule(rule)
+// 	require.NoError(t, err)
+
+// 	time.Sleep(100 * time.Millisecond)
+
+// 	_, err = tr1.Write(routing.MakePacket(routeID, []byte("foo")))
+// 	require.NoError(t, err)
+
+// 	packet := make(routing.Packet, 9)
+// 	_, err = tr3.Read(packet)
+// 	require.NoError(t, err)
+// 	assert.Equal(t, uint16(3), packet.Size())
+// 	assert.Equal(t, routing.RouteID(4), packet.RouteID())
+// 	assert.Equal(t, []byte("foo"), packet.Payload())
+
+// 	require.NoError(t, m1.Close())
+// 	require.NoError(t, m3.Close())
+
+// 	time.Sleep(100 * time.Millisecond)
+
+// 	require.NoError(t, r.Close())
+// 	require.NoError(t, <-errCh)
+// }
 
 // TODO(evanlinjin): re-implement.
 //func TestRouterAppInit(t *testing.T) {
