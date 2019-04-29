@@ -39,12 +39,6 @@ func (ld *loopDispatch) IsConfirmed() bool { return ld.rtID != 0 }
 // ProcID is the execution ID of a running App.
 type ProcID uint16
 
-//type ProcInfo struct {
-//	PID  ProcID         `json:"pid"`
-//	App  app.Meta       `json:"app"`
-//	Exec app.ExecConfig `json:"exec"`
-//}
-
 // AppProc hosts an App and keeps track or whether the App is running or not.
 // It also manages incoming/outgoing packets to/from the App when the app is running.
 type AppProc struct {
