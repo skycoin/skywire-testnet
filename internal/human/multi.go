@@ -27,13 +27,13 @@ func (g *MultiGrabber) GrabInput(ctx context.Context, msg, details string, opts 
 	resultCh := make(chan multiGrabInputResult, len(g.grabbers))
 
 	for _, grabber := range g.grabbers {
-		go func() {
-			res, err := grabber.GrabInput(ctx, msg, details, opts)
+		go func(ig InputGrabber) {
+			res, err := ig.GrabInput(ctx, msg, details, opts)
 			resultCh <- multiGrabInputResult{
 				result: res,
 				err:    err,
 			}
-		}()
+		}(grabber)
 	}
 
 	firstResult := <-resultCh
