@@ -67,7 +67,7 @@ func TestProcManager_RunProc(t *testing.T) {
 
 	// ProcManager.RunProc() should fail with invalid binLoc.
 	// The returned error should contain "invalid binary file".
-	t.Run("MustFailWithInvalidBinLoc", func(t *testing.T) {
+	t.Run("c", func(t *testing.T) {
 
 		invalidLoc := filepath.Join(tempDir, "app0")
 

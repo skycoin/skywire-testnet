@@ -8,19 +8,18 @@
 
 .idea/
 
-/skywire.json
 /*-config.json
 /apps/
 /skywire/
 /local/
 
+/node
 pkg/node/apps/
 pkg/node/bar/
 pkg/node/foo/
 
-/manager-node
-/skywire-node
-/skywire-cli
-/therealssh-cli
-/node
+# Ignores binaries.
+/*-node
+/*-cli
+
 /users.db
