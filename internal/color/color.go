@@ -4,15 +4,21 @@ import (
 	fatihcolor "github.com/fatih/color"
 )
 
+// Color is a color that the console output may be colorized to.
 type Color string
 
 const (
+	// Black color.
 	Black Color = "black"
-	Red   Color = "red"
+	// Red color.
+	Red Color = "red"
+	// Green color.
 	Green Color = "green"
-	Blue  Color = "blue"
+	// Blue color.
+	Blue Color = "blue"
 )
 
+// ColorizeText colorizes the passed string and returns the result.
 func (c Color) ColorizeText(s string) string {
 	switch c {
 	case Black:
