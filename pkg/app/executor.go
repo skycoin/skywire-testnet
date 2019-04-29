@@ -23,6 +23,8 @@ import (
 // EnvHostPK is the env provided to the hosted App for it to obtain the host's public key.
 const EnvHostPK = "SW_APP_HOST"
 
+const obtainMetaTimeout = time.Second * 10
+
 // Errors associated with the app.Executor structure.
 var (
 	ErrAlreadyStarted = errors.New("app is already started")
@@ -31,9 +33,9 @@ var (
 
 // ObtainMeta runs '<app> sw-setup' to obtain app meta.
 func ObtainMeta(hostPK cipher.PubKey, binLoc string) (*Meta, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), obtainMetaTimeout)
 	defer cancel()
-	raw, err := exec.CommandContext(ctx, binLoc, setupCmdName).Output()
+	raw, err := exec.CommandContext(ctx, binLoc, SetupCmdName).Output()
 	l := log.
 		WithField("_bin", binLoc).
 		WithField("_stdout", string(raw))
@@ -96,22 +98,31 @@ func (ec *ExecConfig) AppName() string {
 // Regarding thread-safety;
 // - The .Start() and .Stop() members should always be executed on the same thread/go-routine.
 // - The .Call() and .CallUI() members are thread-safe, as long as one .Start() command is run prior.
-type Executor struct {
-	c       *ExecConfig
-	m       *Meta
-	proc    *os.Process
-	lpProto *appnet.Protocol // used for establishing and sending/receiving packets within the Skywire Network.
-	uiProto *appnet.Protocol // used for proxying the user interface of the Skywire App (e.g. for access by the Manager Node).
-	wg      *sync.WaitGroup
-	log     *logging.Logger
+type Executor interface {
+	Run(dataHM, ctrlHM appnet.HandlerMap) (<-chan struct{}, error)
+	Stop() error
+	Config() *ExecConfig
+	Meta() *Meta
+	Call(t appnet.FrameType, reqData []byte) ([]byte, error)
+	CallUI(t appnet.FrameType, reqData []byte) ([]byte, error)
 }
 
-// NewExecutor creates a structure that is used by an App's host.
-func NewExecutor(l *logging.Logger, m *Meta, c *ExecConfig) (*Executor, error) {
+type executor struct {
+	c     *ExecConfig
+	m     *Meta
+	proc  *os.Process
+	dataP *appnet.Protocol // Data Protocol: used for establishing and sending/receiving packets within the Skywire Network.
+	ctrlP *appnet.Protocol // Control Protocol: used for proxying the App's interface (e.g. for access by the Manager Node).
+	wg    *sync.WaitGroup  // Also used to determine whether app is running or not (nil == not running).
+	log   *logging.Logger
+}
+
+// NewExecutor creates the main implementation of Executor that is used by an App's host.
+func NewExecutor(l *logging.Logger, m *Meta, c *ExecConfig) (Executor, error) {
 	if err := c.Process(); err != nil {
 		return nil, err
 	}
-	return &Executor{
+	return &executor{
 		c:   c,
 		m:   m,
 		log: l,
@@ -120,7 +131,7 @@ func NewExecutor(l *logging.Logger, m *Meta, c *ExecConfig) (*Executor, error) {
 
 // Run executes the App and serves the 2 piped connections.
 // When the App quits, the <-chan struct{} output will be notified.
-func (h *Executor) Run(lpHandler, uiHandler appnet.HandlerMap) (<-chan struct{}, error) {
+func (h *executor) Run(dataHM, ctrlHM appnet.HandlerMap) (<-chan struct{}, error) {
 	if h.wg != nil {
 		return nil, ErrAlreadyStarted
 	}
@@ -142,19 +153,19 @@ func (h *Executor) Run(lpHandler, uiHandler appnet.HandlerMap) (<-chan struct{},
 		return nil, fmt.Errorf("run_app: %s", err)
 	}
 	h.proc = cmd.Process
-	h.lpProto = appnet.NewProtocol(hostConn)
-	h.uiProto = appnet.NewProtocol(uiHostConn)
+	h.dataP = appnet.NewProtocol(hostConn)
+	h.ctrlP = appnet.NewProtocol(uiHostConn)
 	h.wg = new(sync.WaitGroup)
 	h.wg.Add(3)
 	doneCh := make(chan struct{}, 1)
 	go func() {
-		if err := h.lpProto.Serve(lpHandler); err != nil {
+		if err := h.dataP.Serve(dataHM); err != nil {
 			h.log.Errorf("proto exited with err: %s", err.Error())
 		}
 		h.wg.Done()
 	}()
 	go func() {
-		if err := h.uiProto.Serve(uiHandler); err != nil {
+		if err := h.ctrlP.Serve(ctrlHM); err != nil {
 			h.log.Errorf("ui proto exited with err: %s", err.Error())
 		}
 		h.wg.Done()
@@ -163,8 +174,8 @@ func (h *Executor) Run(lpHandler, uiHandler appnet.HandlerMap) (<-chan struct{},
 		if err := cmd.Wait(); err != nil {
 			h.log.Warnf("cmd exited with err: %s", err.Error())
 		}
-		_ = h.lpProto.Close() //nolint:errcheck
-		_ = h.uiProto.Close() //nolint:errcheck
+		_ = h.dataP.Close() //nolint:errcheck
+		_ = h.ctrlP.Close() //nolint:errcheck
 		h.wg.Done()
 		doneCh <- struct{}{}
 		close(doneCh)
@@ -173,7 +184,7 @@ func (h *Executor) Run(lpHandler, uiHandler appnet.HandlerMap) (<-chan struct{},
 }
 
 // Stop sends a SIGTERM signal to the app, and waits for the app to quit.
-func (h *Executor) Stop() error {
+func (h *executor) Stop() error {
 	if h.wg == nil {
 		return ErrAlreadyStopped
 	}
@@ -183,18 +194,18 @@ func (h *Executor) Stop() error {
 	return err
 }
 
-// Conf obtains the internal config.
-func (h *Executor) Conf() *ExecConfig { return h.c }
+// Config obtains the internal config.
+func (h *executor) Config() *ExecConfig { return h.c }
 
 // Meta returns the hosted app's meta data.
-func (h *Executor) Meta() *Meta { return h.m }
+func (h *executor) Meta() *Meta { return h.m }
 
 // Call sends a command to the App via the regular piped connection.
-func (h *Executor) Call(t appnet.FrameType, reqData []byte) ([]byte, error) {
-	return h.lpProto.Call(t, reqData)
+func (h *executor) Call(t appnet.FrameType, reqData []byte) ([]byte, error) {
+	return h.dataP.Call(t, reqData)
 }
 
 // CallUI sends a command to the App via the ui piped connection.
-func (h *Executor) CallUI(t appnet.FrameType, reqData []byte) ([]byte, error) {
-	return h.uiProto.Call(t, reqData)
+func (h *executor) CallUI(t appnet.FrameType, reqData []byte) ([]byte, error) {
+	return h.ctrlP.Call(t, reqData)
 }

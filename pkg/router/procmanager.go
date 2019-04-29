@@ -54,7 +54,7 @@ type AppProc struct {
 	stopped unsafe.Pointer
 
 	pid ProcID
-	e   *app.Executor
+	e   app.Executor
 	lps map[app.LoopMeta]*loopDispatch
 	mx  sync.RWMutex
 	log *logging.Logger
@@ -82,7 +82,7 @@ func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecCo
 		pm:      pm,
 		r:       r,
 	}
-	done, err := exec.Run(proc.makeHandler(), proc.makeUIHandler())
+	done, err := exec.Run(proc.makeDataHandlerMap(), proc.makeCtrlHandlerMap())
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +147,8 @@ func (ar *AppProc) ConfirmLoop(lm app.LoopMeta, tpID uuid.UUID, rtID routing.Rou
 	ld, isNew := setOrGetLoop(lm, tpID, rtID)
 	if isNew {
 		ns, err := noise.KKAndSecp256k1(noise.Config{
-			LocalPK:   ar.e.Conf().HostPK,
-			LocalSK:   ar.e.Conf().HostSK,
+			LocalPK:   ar.e.Config().HostPK,
+			LocalSK:   ar.e.Config().HostSK,
 			RemotePK:  lm.Remote.PubKey,
 			Initiator: false,
 		})
@@ -226,7 +226,7 @@ func failWith(err error) respondFunc {
 	return func() ([]byte, error) { return nil, err }
 }
 
-func (ar *AppProc) makeHandler() appnet.HandlerMap {
+func (ar *AppProc) makeDataHandlerMap() appnet.HandlerMap {
 
 	// triggered when App sends 'CreateLoop' frame to Host
 	requestLoop := func(rAddr app.LoopAddr) respondFunc {
@@ -235,8 +235,8 @@ func (ar *AppProc) makeHandler() appnet.HandlerMap {
 
 		// prepare noise
 		ns, err := noise.KKAndSecp256k1(noise.Config{
-			LocalPK:   ar.e.Conf().HostPK,
-			LocalSK:   ar.e.Conf().HostSK,
+			LocalPK:   ar.e.Config().HostPK,
+			LocalSK:   ar.e.Config().HostSK,
 			RemotePK:  rAddr.PubKey,
 			Initiator: true,
 		})
@@ -252,7 +252,7 @@ func (ar *AppProc) makeHandler() appnet.HandlerMap {
 		lPort := ar.pm.AllocPort(ar.pid)
 
 		lm := app.LoopMeta{
-			Local:  app.LoopAddr{PubKey: ar.e.Conf().HostPK, Port: lPort},
+			Local:  app.LoopAddr{PubKey: ar.e.Config().HostPK, Port: lPort},
 			Remote: rAddr,
 		}
 
@@ -348,7 +348,7 @@ func (ar *AppProc) makeHandler() appnet.HandlerMap {
 	}
 }
 
-func (ar *AppProc) makeUIHandler() appnet.HandlerMap {
+func (ar *AppProc) makeCtrlHandlerMap() appnet.HandlerMap {
 	// TODO(evanlinjin): implement.
 	return appnet.HandlerMap{}
 }

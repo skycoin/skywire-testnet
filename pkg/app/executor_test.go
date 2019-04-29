@@ -44,12 +44,12 @@ if [[ $# -eq 1 && $1 = '%s' ]]; then echo '%s'; exit 0
 elif [[ -n "${PK}" ]]; then echo "host: ${PK}"; while [ 1 ]; do test $? -gt 128 && exit 0; done
 else exit 1
 fi`
-	_, err = fmt.Fprintf(f, template, EnvHostPK, setupCmdName, string(jm))
+	_, err = fmt.Fprintf(f, template, EnvHostPK, SetupCmdName, string(jm))
 	return err
 }
 
-func TestNewHost(t *testing.T) {
-	const appCount = 20
+func TestNewExecutor(t *testing.T) {
+	const runs = 20
 
 	wkDir, err := os.Getwd()
 	require.NoError(t, err)
@@ -59,7 +59,7 @@ func TestNewHost(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { require.NoError(t, os.RemoveAll(appDir)) }()
 
-	for i := 0; i < appCount; i++ {
+	for i := 0; i < runs; i++ {
 		var (
 			pk, sk = cipher.GenerateKeyPair()
 			m      = randMeta(i, pk)

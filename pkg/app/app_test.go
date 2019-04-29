@@ -145,7 +145,7 @@ func TestAccept(t *testing.T) {
 	hProto, teardown := setup(t, lAddr.PubKey, nil)
 	defer teardown()
 
-	const count = 10
+	const runs = 10
 
 	type Result struct {
 		Loop net.Conn
@@ -154,7 +154,7 @@ func TestAccept(t *testing.T) {
 	resultCh := make(chan Result)
 	defer close(resultCh)
 
-	for i := 0; i < count; i++ {
+	for i := 0; i < runs; i++ {
 		go func() {
 			loop, err := Accept()
 			resultCh <- Result{Loop: loop, Err: err}
@@ -182,6 +182,7 @@ func TestLoopConn_Write(t *testing.T) {
 	lm := randLoopMeta()
 
 	const dataCount = 10
+
 	dataCh := make(chan []byte, dataCount)
 	defer close(dataCh)
 
