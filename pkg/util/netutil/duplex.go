@@ -2,7 +2,7 @@ package netutil
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/binary"
 	"io"
 	"log"
 	"net"
@@ -58,17 +58,16 @@ func removeAtBytes(p []byte, i int) []byte {
 // Read reads in prefixed data from root connection and reads it into the appropriate branch connection
 func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 
-	// Remove the first byte from the bytes.Buffer
-	pc.readBuf.Truncate(len(removeAtBytes(pc.readBuf.Bytes(), 0)))
-
+	// Remove the first three byte from the bytes.Buffer
+	for i := 0; i < 3; i++ {
+		pc.readBuf.Truncate(len(removeAtBytes(pc.readBuf.Bytes(), 0)))
+	}
 	// The bytes.Buffer readBuf reads data into b
 	n, err = pc.readBuf.Read(b)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	fmt.Println("Bytes read", n)
-	fmt.Print("Bytes not read ", pc.readBuf.Len(), "\n")
 
 	return n, err
 }
@@ -76,9 +75,17 @@ func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 // Write prefixes data to the connection and then writes this prefixed data to the root connection.
 func (pc *PrefixedConn) Write(b []byte) (n int, err error) {
 
-	n, err = pc.writeConn.Write(append([]byte{pc.prefix}, b...))
+	buf := make([]byte, 3)
+	buf[0] = byte(pc.prefix)
+	binary.BigEndian.PutUint16(buf[1:3], uint16(len(b)))
+
+	n, err = pc.writeConn.Write(append(buf, b...))
+
+	// Write returns the number of bytes written from p (0 <= n <= len(p))
+	// and any error encountered that caused the write to stop early.
+	// Write must return a non-nil error if it returns n < len(p).
 	if n > 0 {
-		n--
+		n = n - 3
 	}
 	return n, err
 }

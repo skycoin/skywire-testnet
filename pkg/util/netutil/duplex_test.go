@@ -16,10 +16,11 @@ func TestPrefixedConn_Read(t *testing.T) {
 
 	pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
 
-	pc.readBuf.WriteString("\000foo")
+	pc.readBuf.WriteString("\x00\x00\x03foo")
 
 	bs := make([]byte, 3)
 	n, err := pc.Read(bs)
+
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 	assert.Equal(t, []byte("foo"), bs)
@@ -36,5 +37,5 @@ func TestPrefixedConn_Write(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
-	assert.Equal(t, string([]byte("\x00foo")), buffer.String())
+	assert.Equal(t, string([]byte("\x00\x00\x03foo")), buffer.String())
 }
