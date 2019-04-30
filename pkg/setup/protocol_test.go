@@ -6,6 +6,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,6 +20,22 @@ func ExampleNewSetupProtocol() {
 	fmt.Printf("Success: %v\n", sProto != nil)
 
 	// Output: Success: true
+}
+
+func ExampleLoopData() {
+
+	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+
+	loopData := LoopData{
+		RemotePK:     pk,
+		RemotePort:   0,
+		LocalPort:    0,
+		RouteID:      routing.RouteID(0),
+		NoiseMessage: []byte{},
+	}
+	fmt.Printf("%v\n", loopData)
+
+	// Output: {02de45c828055aa84aa687d958caa9e5bd758a59c6bff530c71a6372940496f722 0 0 0 []}
 }
 
 func TestNewProtocol(t *testing.T) {
