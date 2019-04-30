@@ -1,6 +1,7 @@
 package router
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -52,7 +53,7 @@ type mockSh struct {
 	err      error
 }
 
-func makeMockSh(packetType setup.PacketType, packetBody []byte) (*mockSh, error) {
+func makeMockSh() (*mockSh, error) {
 	connInit, connResp := net.Pipe()
 	r := makeMockRouter()
 	pm := NewProcManager(10) //IDK why it's 10
@@ -60,7 +61,7 @@ func makeMockSh(packetType setup.PacketType, packetBody []byte) (*mockSh, error)
 
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- sprotoInit.WritePacket(packetType, packetBody)
+		errChan <- sprotoInit.WritePacket(setup.PacketType(0), []byte{})
 	}()
 
 	sh, err := makeSetupHandlers(r, pm, connResp)
@@ -77,23 +78,21 @@ func (shEnv *mockSh) TearDown() {
 }
 
 func Example_makeMockSh() {
-	env, err := makeMockSh(setup.PacketAddRules, []byte("Hello"))
+	env, err := makeMockSh()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
 	defer env.TearDown()
 
-	// time.Sleep(10 * time.Millisecond)
-
 	fmt.Printf("sh.packetType: %v\n", env.sh.packetType)
 	fmt.Printf("sh.packetBody: %v\n", string(env.sh.packetBody))
 
 	//Output: sh.packetType: AddRules
-	// sh.packetBody: "SGVsbG8="
+	// sh.packetBody: ""
 }
 
 func Example_setupHandlers_reject() {
-	env, err := makeMockSh(setup.RespFailure, []byte(string(setup.RespFailure)))
+	env, err := makeMockSh()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -114,7 +113,7 @@ func Example_setupHandlers_reject() {
 }
 
 func Example_setupHandlers_respondWith() {
-	env, err := makeMockSh(setup.RespSuccess, []byte(string(setup.RespSuccess)))
+	env, err := makeMockSh()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -135,7 +134,7 @@ func Example_setupHandlers_respondWith() {
 }
 
 func Example_setupHandlers_addRules() {
-	env, err := makeMockSh(setup.PacketAddRules, []byte(string(setup.PacketAddRules)))
+	env, err := makeMockSh()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -155,7 +154,7 @@ func Example_setupHandlers_addRules() {
 }
 
 func Example_setupHandlers_deleteRules() {
-	env, err := makeMockSh(setup.PacketDeleteRules, []byte(string(setup.PacketDeleteRules)))
+	env, err := makeMockSh()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -184,7 +183,7 @@ func Example_setupHandlers_deleteRules() {
 }
 
 func Example_setupHandlers_confirmLoop() {
-	env, err := makeMockSh(setup.PacketConfirmLoop, []byte(string(setup.PacketConfirmLoop)))
+	env, err := makeMockSh()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -209,7 +208,7 @@ func Example_setupHandlers_confirmLoop() {
 }
 
 func Example_setupHandlers_loopClosed() {
-	env, err := makeMockSh(setup.PacketCloseLoop, []byte(string(setup.PacketCloseLoop)))
+	env, err := makeMockSh()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -234,60 +233,124 @@ func Example_setupHandlers_loopClosed() {
 
 // WIP
 type handleTestCase struct {
-	packetType     setup.PacketType
-	packetBodyFunc func() []byte
-	runnerFunc     func() error
+	packetType setup.PacketType
+	bodyFunc   func(*mockSh) (*mockSh, error)
 }
 
 var handleTestCases = []handleTestCase{
 	handleTestCase{
 		packetType: setup.PacketAddRules,
-		packetBodyFunc: func() []byte {
-			return nil
-		},
-		runnerFunc: func() error {
-			return nil
+		bodyFunc: func(env *mockSh) (*mockSh, error) {
+
+			trID := uuid.New()
+			expireAt := time.Now().Add(2 * time.Minute)
+			rules := []routing.Rule{
+				routing.ForwardRule(expireAt, 2, trID),
+			}
+			body, err := json.Marshal(rules)
+			env.sh.packetBody = body
+
+			return env, err
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketDeleteRules,
-		packetBodyFunc: func() []byte {
-			return nil
-		},
-		runnerFunc: func() error {
-			return nil
+		bodyFunc: func(env *mockSh) (*mockSh, error) {
+
+			// add rules
+			trID := uuid.New()
+			expireAt := time.Now().Add(2 * time.Minute)
+			rules := []routing.Rule{
+				routing.ForwardRule(expireAt, 2, trID),
+			}
+			routes, err := env.sh.addRules(rules)
+			if err != nil {
+				fmt.Printf("error on addRules: %v\n", err)
+			}
+
+			body, err := json.Marshal(routes)
+
+			env.sh.packetBody = body
+			return env, err
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketConfirmLoop,
-		packetBodyFunc: func() []byte {
-			return nil
-		},
-		runnerFunc: func() error {
-			return nil
+		bodyFunc: func(env *mockSh) (*mockSh, error) {
+			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+
+			// TODO(alexyu): test with known loop
+			unknownLoopData := setup.LoopData{
+				RemotePK:     pk,
+				RemotePort:   0,
+				LocalPort:    0,
+				RouteID:      routing.RouteID(0),
+				NoiseMessage: []byte{},
+			}
+			body, err := json.Marshal(unknownLoopData)
+
+			env.sh.packetBody = body
+			return env, err
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketLoopClosed,
-		packetBodyFunc: func() []byte {
-			return nil
-		},
-		runnerFunc: func() error {
-			return nil
+		bodyFunc: func(env *mockSh) (*mockSh, error) {
+			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+
+			// TODO(alexyu): test with known loop
+			unknownLoopData := setup.LoopData{
+				RemotePK:     pk,
+				RemotePort:   0,
+				LocalPort:    0,
+				RouteID:      routing.RouteID(0),
+				NoiseMessage: []byte{},
+			}
+			body, err := json.Marshal(unknownLoopData)
+
+			env.sh.packetBody = body
+			return env, err
+
 		},
 	},
 }
 
-// WIP
 func Example_handle() {
+	fmt.Println("Start")
 	for _, tc := range handleTestCases {
-		env, err := makeMockSh(tc.packetType, tc.packetBodyFunc())
+		env, err := makeMockSh()
 		if err != nil {
-			fmt.Printf("error: %v\n", err)
+			fmt.Printf("makeMockSh: %v\n", err)
 		}
+
+		env, err = tc.bodyFunc(env)
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
+
+		errCh := make(chan error, 1)
+		go func() {
+			env.sh.packetType = tc.packetType
+			errCh <- env.sh.handle()
+		}()
+
+		sprotoInit := setup.NewSetupProtocol(env.connInit)
+		pt, data, err := sprotoInit.ReadPacket()
+		fmt.Printf("handle %v  success: %v\n", tc.packetType, <-errCh == nil)
+		fmt.Printf("response: %v %v %v\n", pt, string(data), err)
+
 		env.TearDown()
 	}
 	fmt.Println("Finish")
 
-	// Output: Finish
+	// Output: Start
+	// handle AddRules  success: true
+	// response: RespSuccess [1] <nil>
+	// handle DeleteRules  success: true
+	// response: RespSuccess [1] <nil>
+	// handle ConfirmLoop  success: true
+	// response: RespFailure "unknown loop" <nil>
+	// handle LoopClosed  success: true
+	// response: RespFailure "proc not found" <nil>
+	// Finish
 }
