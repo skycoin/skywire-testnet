@@ -113,5 +113,80 @@ func Example_setupHandlers_reject() {
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
 	// Output: rejectFunc signature: func(error) error
-	// Unknown(254) "reject test" <nil>
+	// RespFailure "reject test" <nil>
+}
+
+func Example_setupHandlers_respondWith() {
+	env, err := makeMockSh(setup.PacketAddRules, []byte("Hello"))
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	defer env.TearDown()
+
+	// Create respondWith func
+	respondWithFunc := env.sh.respondWith()
+	fmt.Printf("respondWithFunc signature: %T\n", respondWithFunc)
+
+	// Output: respondWithFunc signature: func(interface {}, error) error
+}
+
+func Example_setupHandlers_addRules() {
+	env, err := makeMockSh(setup.PacketAddRules, []byte("Hello"))
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	defer env.TearDown()
+
+	addRulesFunc := env.sh.addRules()
+	fmt.Printf("addRulesFunc signature: %T\n", addRulesFunc)
+
+	// Output: addRulesFunc signature: func([]routing.Rule) ([]routing.RouteID, error)
+
+}
+
+func Example_setupHandlers_deleteRules() {
+	env, err := makeMockSh(setup.PacketAddRules, []byte("Hello"))
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	defer env.TearDown()
+
+	deleteRulesFunc := env.sh.deleteRules()
+	fmt.Printf("deleteRulesFunc signature: %T\n", deleteRulesFunc)
+
+	// Output: deleteRulesFunc signature: func([]routing.RouteID) ([]routing.RouteID, error)
+
+}
+
+func Example_setupHandlers_confirmLoop() {
+	env, err := makeMockSh(setup.PacketAddRules, []byte("Hello"))
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	defer env.TearDown()
+
+	confirmLoopFunc := env.sh.confirmLoop()
+	fmt.Printf("confirmLoopFunc signature: %T\n", confirmLoopFunc)
+
+	// Output: confirmLoopFunc signature: func(setup.LoopData) ([]uint8, error)
+
+}
+
+func Example_setupHandlers_loopClosed() {
+	env, err := makeMockSh(setup.PacketAddRules, []byte("Hello"))
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	defer env.TearDown()
+
+	loopClosedFunc := env.sh.loopClosed()
+	fmt.Printf("loopClosed signature: %T\n", loopClosedFunc)
+
+	// Output: loopClosed signature: func(setup.LoopData) error
+
+}
+
+func Example_setupHandlers_handle() {
+
+	// Output: ZZZ
 }

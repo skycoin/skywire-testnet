@@ -30,7 +30,12 @@ func (sp PacketType) String() string {
 		return "CloseLoop"
 	case PacketLoopClosed:
 		return "LoopClosed"
+	case RespFailure:
+		return "RespFailure"
+	case RespSuccess:
+		return "RespSuccess"
 	}
+
 	return fmt.Sprintf("Unknown(%d)", sp)
 }
 
