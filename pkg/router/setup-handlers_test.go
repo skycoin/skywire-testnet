@@ -99,14 +99,10 @@ func Example_setupHandlers_reject() {
 	}
 	defer env.TearDown()
 
-	// Create reject func
-	rejectFunc := env.sh.reject()
-	fmt.Printf("rejectFunc signature: %T\n", rejectFunc)
-
 	// Use reject func
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- rejectFunc(errors.New("reject test"))
+		errChan <- env.sh.reject(errors.New("reject test"))
 	}()
 
 	// Receve reject message
@@ -114,8 +110,7 @@ func Example_setupHandlers_reject() {
 	pt, data, err := sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
-	// Output: rejectFunc signature: func(error) error
-	// RespFailure "reject test" <nil>
+	// Output: RespFailure "reject test" <nil>
 }
 
 func Example_setupHandlers_respondWith() {
@@ -125,14 +120,10 @@ func Example_setupHandlers_respondWith() {
 	}
 	defer env.TearDown()
 
-	// Create respondWith func
-	respondWithFunc := env.sh.respondWith()
-	fmt.Printf("respondWithFunc signature: %T\n", respondWithFunc)
-
 	// Use respondWith func
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- respondWithFunc("Success test", nil)
+		errChan <- env.sh.respondWith("Success test", nil)
 	}()
 
 	// Receve respondWith message
@@ -140,8 +131,7 @@ func Example_setupHandlers_respondWith() {
 	pt, data, err := sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
-	// Output: respondWithFunc signature: func(interface {}, error) error
-	// RespSuccess "Success test" <nil>
+	// Output: RespSuccess "Success test" <nil>
 }
 
 func Example_setupHandlers_addRules() {
@@ -151,23 +141,17 @@ func Example_setupHandlers_addRules() {
 	}
 	defer env.TearDown()
 
-	// Create addRulesFunc
-	addRulesFunc := env.sh.addRules()
-	fmt.Printf("addRulesFunc signature: %T\n", addRulesFunc)
-
 	// Use addRulesFunc
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
 	rules := []routing.Rule{
 		routing.ForwardRule(expireAt, 2, trID),
 	}
-	rID, err := addRulesFunc(rules)
+	rID, err := env.sh.addRules(rules)
 
-	fmt.Printf("routeId, err : %v, %v\n", rID, err)
+	fmt.Printf("routeId, err: %v, %v\n", rID, err)
 
-	// Output: addRulesFunc signature: func([]routing.Rule) ([]routing.RouteID, error)
-	// routeId, err : [1], <nil>
-
+	// Output: routeId, err: [1], <nil>
 }
 
 func Example_setupHandlers_deleteRules() {
@@ -177,33 +161,26 @@ func Example_setupHandlers_deleteRules() {
 	}
 	defer env.TearDown()
 
-	addRulesFunc := env.sh.addRules()
-
 	// add rules
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
 	rules := []routing.Rule{
 		routing.ForwardRule(expireAt, 2, trID),
 	}
-	routes, err := addRulesFunc(rules)
+	routes, err := env.sh.addRules(rules)
 	if err != nil {
 		fmt.Printf("error on addRules: %v\n", err)
 	}
 
-	// Create deleteRulesFunc
-	deleteRulesFunc := env.sh.deleteRules()
-	fmt.Printf("deleteRulesFunc signature: %T\n", deleteRulesFunc)
-
 	//Use deleteRulesFunc
-	deletedRoutes, err := deleteRulesFunc(routes)
+	// TODO(alexyu): test for unknown routes
+	deletedRoutes, err := env.sh.deleteRules(routes)
 	if err != nil {
 		fmt.Printf("error in deleteRules: %v\n", err)
 	}
 	fmt.Printf("deletedRoutes, err: %v, %v\n", deletedRoutes, err)
 
-	// Output: deleteRulesFunc signature: func([]routing.RouteID) ([]routing.RouteID, error)
-	// deletedRoutes, err: [1], <nil>
-
+	// Output: deletedRoutes, err: [1], <nil>
 }
 
 func Example_setupHandlers_confirmLoop() {
@@ -213,11 +190,8 @@ func Example_setupHandlers_confirmLoop() {
 	}
 	defer env.TearDown()
 
-	// Create confirmLoopFunc
-	confirmLoopFunc := env.sh.confirmLoop()
-	fmt.Printf("confirmLoopFunc signature: %T\n", confirmLoopFunc)
-
 	// Use confirmLoopFunc
+	// TODO(alexyu): test for known loops
 	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
 
 	unknownLoopData := setup.LoopData{
@@ -228,12 +202,10 @@ func Example_setupHandlers_confirmLoop() {
 		NoiseMessage: []byte{},
 	}
 
-	res, err := confirmLoopFunc(unknownLoopData)
+	res, err := env.sh.confirmLoop(unknownLoopData)
 	fmt.Printf("confirmLoop(unknownLoopData): %v %v\n", res, err)
 
-	// Output: confirmLoopFunc signature: func(setup.LoopData) ([]uint8, error)
-	// confirmLoop(unknownLoopData): [] unknown loop
-
+	// Output: confirmLoop(unknownLoopData): [] unknown loop
 }
 
 func Example_setupHandlers_loopClosed() {
@@ -243,11 +215,8 @@ func Example_setupHandlers_loopClosed() {
 	}
 	defer env.TearDown()
 
-	// Create loopClosedFunc
-	loopClosedFunc := env.sh.loopClosed()
-	fmt.Printf("loopClosed signature: %T\n", loopClosedFunc)
-
 	// Use loopClosedFunc
+	// TODO(alexyu): test with known loops
 	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
 	unknownLoopData := setup.LoopData{
 		RemotePK:     pk,
@@ -257,14 +226,68 @@ func Example_setupHandlers_loopClosed() {
 		NoiseMessage: []byte{},
 	}
 
-	loopClosedErr := loopClosedFunc(unknownLoopData)
+	loopClosedErr := env.sh.loopClosed(unknownLoopData)
 	fmt.Printf("loopClosed(unknownLoopData): %v\n", loopClosedErr)
 
-	// Output: loopClosed signature: func(setup.LoopData) error
-	// loopClosed(unknownLoopData): proc not found
-
+	// Output: loopClosed(unknownLoopData): proc not found
 }
 
-func Example_setupHandlers_handle() {
+// WIP
+type handleTestCase struct {
+	packetType     setup.PacketType
+	packetBodyFunc func() []byte
+	runnerFunc     func() error
+}
 
+var handleTestCases = []handleTestCase{
+	handleTestCase{
+		packetType: setup.PacketAddRules,
+		packetBodyFunc: func() []byte {
+			return nil
+		},
+		runnerFunc: func() error {
+			return nil
+		},
+	},
+	handleTestCase{
+		packetType: setup.PacketDeleteRules,
+		packetBodyFunc: func() []byte {
+			return nil
+		},
+		runnerFunc: func() error {
+			return nil
+		},
+	},
+	handleTestCase{
+		packetType: setup.PacketConfirmLoop,
+		packetBodyFunc: func() []byte {
+			return nil
+		},
+		runnerFunc: func() error {
+			return nil
+		},
+	},
+	handleTestCase{
+		packetType: setup.PacketLoopClosed,
+		packetBodyFunc: func() []byte {
+			return nil
+		},
+		runnerFunc: func() error {
+			return nil
+		},
+	},
+}
+
+// WIP
+func Example_handle() {
+	for _, tc := range handleTestCases {
+		env, err := makeMockSh(tc.packetType, tc.packetBodyFunc())
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+		}
+		env.TearDown()
+	}
+	fmt.Println("Finish")
+
+	// Output: Finish
 }
