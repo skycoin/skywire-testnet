@@ -31,6 +31,14 @@ func TestNewProtocol(t *testing.T) {
 	}{
 		{PacketType(0), "this is a test!"},
 		{PacketType(255), "this is another test!"},
+		{PacketAddRules, string(PacketAddRules)},
+		{PacketDeleteRules, string(PacketDeleteRules)},
+		{PacketCreateLoop, string(PacketCreateLoop)},
+		{PacketConfirmLoop, string(PacketConfirmLoop)},
+		{PacketCloseLoop, string(PacketCloseLoop)},
+		{PacketLoopClosed, string(PacketLoopClosed)},
+		{RespFailure, string(RespFailure)},
+		{RespSuccess, string(RespSuccess)},
 	}
 
 	for _, c := range cases {

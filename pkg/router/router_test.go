@@ -8,6 +8,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/skycoin/skywire/pkg/cipher"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
+	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
@@ -20,6 +21,7 @@ func TestMain(m *testing.M) {
 func Example_router() {
 
 	logger := logging.MustGetLogger("router")
+
 	pk, sk := cipher.GenerateKeyPair()
 	conf := &Config{
 		PubKey:     pk,
@@ -27,12 +29,19 @@ func Example_router() {
 		SetupNodes: []cipher.PubKey{},
 	}
 
+	_, tpm, _ := transport.MockTransportManager()
+	rtm := NewRoutingTableManager(
+		logging.MustGetLogger("rt_manager"),
+		routing.InMemoryRoutingTable(),
+		DefaultRouteKeepalive,
+		DefaultRouteCleanupDuration)
+
 	r := router{
 		log:  logger,
 		conf: conf,
-		tpm:  &transport.Manager{},
-		rtm:  &RoutingTableManager{},
-		rfc:  routeFinder.NewHTTP("localhost"),
+		tpm:  tpm,
+		rtm:  rtm,
+		rfc:  routeFinder.NewMock(),
 	}
 
 	fmt.Printf("r.conf is empty: %v\n", r.conf == &Config{})
