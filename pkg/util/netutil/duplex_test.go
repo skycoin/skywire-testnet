@@ -1,56 +1,40 @@
 package netutil
 
 import (
-	"net"
+	"bytes"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// TestPrefixedConn_Read reads in a slice of bytes with a prefix and removes it
 func TestPrefixedConn_Read(t *testing.T) {
-	sConn, cConn := net.Pipe()
-	defer func() {
-		require.NoError(t, sConn.Close())
-		require.NoError(t, cConn.Close())
-	}()
+	var c io.Writer
+	var readBuf bytes.Buffer
 
-	sDuplex := NewRPCDuplex(sConn, true)
-	// cDuplex := NewRPCDuplex(cConn, false)
+	pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
 
-	sDuplex.serverConn.readBuf.Write([]byte("\000foo")) // Passed
-	// sDuplex.clientConn.readBuf.Write([]byte("foo")) // Failed
-	// cDuplex.serverConn.readBuf.Write([]byte("foo")) // Failed
-	// cDuplex.clientConn.readBuf.Write([]byte("foo")) // Failed
+	pc.readBuf.WriteString("\000foo")
 
-	// Make a []byte with size of 4 because read removes a prefix
-	buf := make([]byte, 3)
-	n, err := sDuplex.serverConn.Read(buf)
+	bs := make([]byte, 3)
+	n, err := pc.Read(bs)
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
-	assert.Equal(t, []byte("foo"), buf)
+	assert.Equal(t, []byte("foo"), bs)
 }
 
+// TestPrefixedConn_Writes reads in a slice of bytes with a prefix and removes it
 func TestPrefixedConn_Write(t *testing.T) {
-	sConn, cConn := net.Pipe()
-	defer func() {
-		require.NoError(t, sConn.Close())
-		require.NoError(t, cConn.Close())
-	}()
 
-	cDuplex := NewRPCDuplex(cConn, true)
+	buffer := bytes.Buffer{}
+	var readBuf bytes.Buffer
 
-	go func() {
-		n, err := cDuplex.clientConn.Write([]byte("foo"))
-		require.NoError(t, err)
-		assert.Equal(t, 3, n)
-	}()
+	pc := &PrefixedConn{prefix: 0, writeConn: &buffer, readBuf: readBuf}
+	n, err := pc.Write([]byte("foo"))
 
-	// Make a []byte with size of 4 because Write appends a prefix
-	buf := make([]byte, 4)
-	n, err := sConn.Read(buf)
 	require.NoError(t, err)
-	assert.Equal(t, 4, n)
-	assert.Equal(t, []byte("\x00foo"), buf)
-
+	assert.Equal(t, 3, n)
+	assert.Equal(t, string([]byte("\x00foo")), buffer.String())
 }
