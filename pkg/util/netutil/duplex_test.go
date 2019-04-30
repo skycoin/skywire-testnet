@@ -26,7 +26,7 @@ func TestPrefixedConn_Read(t *testing.T) {
 	assert.Equal(t, []byte("foo"), bs)
 }
 
-// TestPrefixedConn_Writes reads in a slice of bytes with a prefix and removes it
+// TestPrefixedConn_Writes writes len(p) bytes from p to underlying data stream and appends it with a prefix
 func TestPrefixedConn_Write(t *testing.T) {
 
 	buffer := bytes.Buffer{}

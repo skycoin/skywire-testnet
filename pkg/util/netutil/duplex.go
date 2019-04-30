@@ -23,7 +23,7 @@ type RPCDuplex struct {
 	serverConn *PrefixedConn
 }
 
-// NewRPCDuplex initiates a new RPCDuplex struct and reads in the
+// NewRPCDuplex initiates a new RPCDuplex struct
 func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 	var d RPCDuplex
 	var buf bytes.Buffer
