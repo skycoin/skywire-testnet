@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -27,21 +28,20 @@ func makeMockRouter() *router {
 	}
 
 	// TODO(alexyu):  This mock must be simplified
-	_, tpm, _ := transport.MockTransportManager()
+	_, tpm, _ := transport.MockTransportManager() //nolint: errcheck
 	rtm := NewRoutingTableManager(
 		logging.MustGetLogger("rt_manager"),
 		routing.InMemoryRoutingTable(),
 		DefaultRouteKeepalive,
 		DefaultRouteCleanupDuration)
 
-	r := router{
+	return &router{
 		log:  logger,
 		conf: conf,
 		tpm:  tpm,
 		rtm:  rtm,
 		rfc:  routeFinder.NewMock(),
 	}
-	return &r
 }
 
 type mockSh struct {
@@ -75,6 +75,10 @@ func makeMockSh() (*mockSh, error) {
 func (shEnv *mockSh) TearDown() {
 	shEnv.connResp.Close()
 	shEnv.connInit.Close()
+	err := shEnv.sh.r.Close()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func Example_makeMockSh() {
@@ -191,7 +195,7 @@ func Example_setupHandlers_confirmLoop() {
 
 	// Use confirmLoopFunc
 	// TODO(alexyu): test for known loops
-	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) //nolint: errcheck
 
 	unknownLoopData := setup.LoopData{
 		RemotePK:     pk,
@@ -216,7 +220,7 @@ func Example_setupHandlers_loopClosed() {
 
 	// Use loopClosedFunc
 	// TODO(alexyu): test with known loops
-	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) //nolint: errcheck
 	unknownLoopData := setup.LoopData{
 		RemotePK:     pk,
 		RemotePort:   0,
@@ -277,7 +281,7 @@ var handleTestCases = []handleTestCase{
 	handleTestCase{
 		packetType: setup.PacketConfirmLoop,
 		bodyFunc: func(env *mockSh) (*mockSh, error) {
-			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) // nolint: errcheck
 
 			// TODO(alexyu): test with known loop
 			unknownLoopData := setup.LoopData{
@@ -296,7 +300,7 @@ var handleTestCases = []handleTestCase{
 	handleTestCase{
 		packetType: setup.PacketLoopClosed,
 		bodyFunc: func(env *mockSh) (*mockSh, error) {
-			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) // nolint: errcheck
 
 			// TODO(alexyu): test with known loop
 			unknownLoopData := setup.LoopData{

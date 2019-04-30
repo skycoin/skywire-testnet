@@ -6,10 +6,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func ExampleNewSetupProtocol() {
@@ -24,7 +25,7 @@ func ExampleNewSetupProtocol() {
 
 func ExampleLoopData() {
 
-	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData"))
+	pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) //  nolint: errcheck
 
 	loopData := LoopData{
 		RemotePK:     pk,

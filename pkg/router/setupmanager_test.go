@@ -1,83 +1,46 @@
 package router
 
-//func TestRouteManagerGetRule(t *testing.T) {
-//	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
-//	rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
-//
-//	expiredRule := routing.ForwardRule(time.Now().Add(-10*time.Minute), 3, uuid.New())
-//	expiredID, err := rt.AddRule(expiredRule)
-//	require.NoError(t, err)
-//
-//	rule := routing.ForwardRule(time.Now().Add(10*time.Minute), 3, uuid.New())
-//	id, err := rt.AddRule(rule)
-//	require.NoError(t, err)
-//
-//	_, err = rm.GetRule(expiredID)
-//	require.Error(t, err)
-//
-//	_, err = rm.GetRule(123)
-//	require.Error(t, err)
-//
-//	r, err := rm.GetRule(id)
-//	require.NoError(t, err)
-//	assert.Equal(t, rule, r)
-//}
-//
-//func TestRouteManagerRemoveLoopRule(t *testing.T) {
-//	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
-//	rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
-//
-//	pk, _ := cipher.GenerateKeyPair()
-//	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
-//	_, err := rt.AddRule(rule)
-//	require.NoError(t, err)
-//
-//	addr := &app.LoopMeta{Local: app.LoopAddr{Port: 3}, Remote: app.LoopAddr{PubKey: pk, Port: 3}}
-//	require.NoError(t, rm.RemoveLoopRule(addr))
-//	assert.Equal(t, 1, rt.Count())
-//
-//	addr = &app.LoopMeta{Local: app.LoopAddr{Port: 2}, Remote: app.LoopAddr{PubKey: pk, Port: 3}}
-//	require.NoError(t, rm.RemoveLoopRule(addr))
-//	assert.Equal(t, 0, rt.Count())
-//}
-//
-//func TestRouteManagerAddRemoveRule(t *testing.T) {
-//	done := make(chan struct{})
-//	expired := time.NewTimer(time.Second * 5)
-//	go func() {
-//		select {
-//		case <-done:
-//			return
-//		case <-expired.C:
-//		}
-//	}()
-//	defer func() {
-//		close(done)
-//	}()
-//	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
-//	rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
-//
-//	in, out := net.Pipe()
-//	errCh := make(chan error)
-//	go func() {
-//		errCh <- rm.handleSetupNode(out)
-//	}()
-//
-//	proto := setup.NewSetupProtocol(in)
-//
-//	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
-//	id, err := setup.AddRule(proto, rule)
-//	require.NoError(t, err)
-//	assert.Equal(t, routing.RouteID(1), id)
-//
-//	assert.Equal(t, 1, rt.Count())
-//	r, err := rt.Rule(id)
-//	require.NoError(t, err)
-//	assert.Equal(t, rule, r)
-//
-//	require.NoError(t, in.Close())
-//	require.NoError(t, <-errCh)
-//}
+// func TestRouteManagerAddRemoveRule(t *testing.T) {
+// 	done := make(chan struct{})
+// 	expired := time.NewTimer(time.Second * 5)
+// 	go func() {
+// 		select {
+// 		case <-done:
+// 			return
+// 		case <-expired.C:
+// 		}
+// 	}()
+// 	defer func() {
+// 		close(done)
+// 	}()
+// 	rt := NewRoutingTableManager(
+// 		logging.MustGetLogger("rt_manager"),
+// 		routing.InMemoryRoutingTable(),
+// 		DefaultRouteKeepalive,
+// 		DefaultRouteCleanupDuration)
+
+// 	in, out := net.Pipe()
+// 	errCh := make(chan error)
+// 	go func() {
+// 		errCh <- rt.handleSetupNode(out)
+// 	}()
+
+// 	proto := setup.NewSetupProtocol(in)
+
+// 	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
+// 	id, err := setup.AddRule(proto, rule)
+// 	require.NoError(t, err)
+// 	assert.Equal(t, routing.RouteID(1), id)
+
+// 	assert.Equal(t, 1, rt.Count())
+// 	r, err := rt.Rule(id)
+// 	require.NoError(t, err)
+// 	assert.Equal(t, rule, r)
+
+// 	require.NoError(t, in.Close())
+// 	require.NoError(t, <-errCh)
+// }
+
 //
 //func TestRouteManagerDeleteRules(t *testing.T) {
 //	rt := NewRoutingTableManager(routing.InMemoryRoutingTable())

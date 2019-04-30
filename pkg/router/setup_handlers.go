@@ -18,7 +18,7 @@ type setupHandlers struct {
 	packetBody []byte
 }
 
-func makeSetupHandlers(r *router, am ProcManager, rw io.ReadWriter) (setupHandlers, error) {
+func makeSetupHandlers(r *router, pm ProcManager, rw io.ReadWriter) (setupHandlers, error) {
 	sproto := setup.NewSetupProtocol(rw)
 
 	packetType, packetBody, err := sproto.ReadPacket()
@@ -28,7 +28,7 @@ func makeSetupHandlers(r *router, am ProcManager, rw io.ReadWriter) (setupHandle
 
 	r.log.Infof("Got new Setup request with type %s", packetType)
 
-	return setupHandlers{r, am, sproto, packetType, packetBody}, nil
+	return setupHandlers{r, pm, sproto, packetType, packetBody}, nil
 }
 
 // triggered when a 'AddRules' packet is received from SetupNode

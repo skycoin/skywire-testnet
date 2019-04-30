@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -29,7 +30,8 @@ func Example_router() {
 		SetupNodes: []cipher.PubKey{},
 	}
 
-	_, tpm, _ := transport.MockTransportManager()
+	// TODO(alex): substitute with cleaner implementation
+	_, tpm, _ := transport.MockTransportManager() //nolint: errcheck
 	rtm := NewRoutingTableManager(
 		logging.MustGetLogger("rt_manager"),
 		routing.InMemoryRoutingTable(),

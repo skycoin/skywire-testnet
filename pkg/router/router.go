@@ -38,7 +38,7 @@ type Config struct {
 // Router manages routing table by communicating with setup nodes, forward packets according to local rules and
 // manages loops for apps.
 type Router interface {
-	Serve(ctx context.Context, am ProcManager) error
+	Serve(ctx context.Context, pm ProcManager) error
 	FindRoutesAndSetupLoop(lm app.LoopMeta, nsMsg []byte) error
 	ForwardPacket(tpID uuid.UUID, rtID routing.RouteID, payload []byte) error
 	CloseLoop(lm app.LoopMeta) error
@@ -180,7 +180,7 @@ func (r *router) fetchBestRoutes(srcPK, dstPK cipher.PubKey) (fwdRt routing.Rout
 	return forwardRoutes[0], reverseRoutes[0], nil
 }
 
-func (r *router) handleTransport(am ProcManager, rw io.ReadWriter) error {
+func (r *router) handleTransport(pm ProcManager, rw io.ReadWriter) error {
 	packet := make(routing.Packet, 6)
 	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
@@ -203,7 +203,7 @@ func (r *router) handleTransport(am ProcManager, rw io.ReadWriter) error {
 		return r.ForwardPacket(rule.TransportID(), rule.RouteID(), payload)
 
 	case routing.RuleApp:
-		proc, ok := am.ProcOfPort(rule.LocalPort())
+		proc, ok := pm.ProcOfPort(rule.LocalPort())
 		if !ok {
 			return ErrProcNotFound
 		}
@@ -218,9 +218,9 @@ func (r *router) handleTransport(am ProcManager, rw io.ReadWriter) error {
 	}
 }
 
-func (r *router) handleSetup(am ProcManager, rw io.ReadWriter) error {
+func (r *router) handleSetup(pm ProcManager, rw io.ReadWriter) error {
 
-	sh, err := makeSetupHandlers(r, am, rw)
+	sh, err := makeSetupHandlers(r, pm, rw)
 	if err != nil {
 		return err
 	}
