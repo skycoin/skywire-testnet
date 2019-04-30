@@ -36,7 +36,10 @@
       "app": "client-test",
 	"version":"1.0",
       "port": 2,
-      "args": []
+      "args": [
+	"024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
+	"1"
+	]
     }
 	],
 	"trusted_nodes": [],
