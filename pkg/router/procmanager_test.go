@@ -65,25 +65,32 @@ func TestProcManager_RunProc(t *testing.T) {
 	// Pre-determined key pair for the host node.
 	hPK, hSK := cipher.GenerateKeyPair()
 
+	makeMeta := func(appName string) app.Meta {
+		return app.Meta{
+			AppName: appName,
+			AppVersion: "1.0",
+			ProtocolVersion: app.ProtocolVersion,
+			Host: hPK,
+		}
+	}
+
+	makeConf := func(binLoc string) app.ExecConfig {
+		return app.ExecConfig{
+			HostPK: hPK,
+			HostSK: hSK,
+			WorkDir: ".",
+			BinLoc: binLoc,
+		}
+	}
+
 	// ProcManager.RunProc() should fail with invalid binLoc.
 	// The returned error should contain "invalid binary file".
 	t.Run("c", func(t *testing.T) {
 
 		invalidLoc := filepath.Join(tempDir, "app0")
 
-		meta := app.Meta{
-			AppName:         "app0",
-			AppVersion:      "1.0",
-			ProtocolVersion: app.ProtocolVersion,
-			Host:            hPK,
-		}
-
-		conf := app.ExecConfig{
-			HostPK:  hPK,
-			HostSK:  hSK,
-			WorkDir: ".",
-			BinLoc:  invalidLoc,
-		}
+		meta := makeMeta("app0")
+		conf := makeConf(invalidLoc)
 
 		pm := NewProcManager(10)
 
@@ -106,29 +113,19 @@ func TestProcManager_RunProc(t *testing.T) {
 			AppName string
 			Port    uint16
 		}{
-			{AppName: "app0", Port: 4},
-			{AppName: "app1", Port: 5},
-			{AppName: "app2", Port: 34},
+			{AppName: "run_proc_app_0", Port: 4},
+			{AppName: "run_proc_app_1", Port: 5},
+			{AppName: "run_proc_app_2", Port: 34},
 		}
 
 		for i, c := range cases {
 
-			meta := app.Meta{
-				AppName:         c.AppName,
-				AppVersion:      "1.0",
-				ProtocolVersion: app.ProtocolVersion,
-				Host:            hPK,
-			}
+			meta := makeMeta(c.AppName)
 
 			binLoc := filepath.Join(tempDir, c.AppName)
 			require.NoError(t, apptest.GenerateMockApp(binLoc, meta), i)
 
-			conf := app.ExecConfig{
-				HostPK:  hPK,
-				HostSK:  hSK,
-				WorkDir: ".",
-				BinLoc:  binLoc,
-			}
+			conf := makeConf(binLoc)
 
 			proc, err := pm.RunProc(r, c.Port, &meta, &conf)
 			require.NoError(t, err)
@@ -162,7 +159,6 @@ func TestProcManager_RunProc(t *testing.T) {
 	// ProcIDs should be assigned starting from 1 and increment with every subsequent call to ProcManager.RunProc(),
 	// even when the proc fails to start.
 	// A proc that fails to start, should not be obtainable via ProcManager.Proc() or ProcManager.ProcOfPort().
-	// TODO(evanlinjin): Implement.
 	t.Run("MustAssignCorrectProcIDs", func(t *testing.T) {
 
 		cases := []struct {
@@ -170,7 +166,27 @@ func TestProcManager_RunProc(t *testing.T) {
 			Port     uint16
 			ValidApp bool // if set to false, test should use a non-existent binLoc to ensure .RunProc() fails.
 		}{
-			{},
+			{AppName: "run_proc_app_10", Port: 0, ValidApp: false},
+			{AppName: "run_proc_app_11", Port: 5, ValidApp: true},
+			{AppName: "run_proc_app_12", Port: 0, ValidApp: true},
+			{AppName: "run_proc_app_13", Port: 23, ValidApp: false},
+			{AppName: "run_proc_app_14", Port: 35, ValidApp: true},
+		}
+
+		for _, c := range cases {
+
+			meta := makeMeta(c.AppName)
+
+			binLoc := filepath.Join(tempDir, c.AppName)
+
+			if c.ValidApp {
+				require.NoError(t, apptest.GenerateMockApp(binLoc, meta))
+			}
+
+			_ = makeConf(binLoc)
+
+			// TODO(evanlinjin): Finish.
+
 		}
 
 		t.Skip("Not implemented!", cases)
@@ -183,11 +199,23 @@ func TestProcManager_RunProc(t *testing.T) {
 	})
 }
 
-// ProcManager.AllocPort() must fail when allocating a used port.
 // ProcManager.AllocPort() must increment the port on each call (even on unsuccessful allocations).
 // ProcManager.AllocPort() must start allocating ports from the specified minPort.
 // TODO(evanlinjin): Implement.
 func TestProcManager_AllocPort(t *testing.T) {
+
+	//minPort := uint16(10)
+	//
+	//cases := []struct{
+	//	AppName string
+	//	ExpOK   bool // expected bool result from Proc() and ProcOfPort()
+	//}{
+	//	{AppName: "alloc_port_app_0", ExpOK: true},
+	//	{AppName: "alloc_port_app_1", ExpOK: false},
+	//	{AppName: "alloc_port_app_2", ExpOK: false},
+	//	{AppName: "alloc_port_app_3", ExpOK: true},
+	//}
+
 	t.Skip("Not implemented!")
 }
 
