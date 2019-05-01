@@ -67,18 +67,6 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 	return out, err
 }
 
-// Apps calls Apps.
-func (rc *rpcClient) Apps() ([]router.AppInfo, error) {
-	states := make([]router.AppInfo, 0)
-	err := rc.Call("Apps", &struct{}{}, &states)
-	return states, err
-}
-
-// StartApp calls StartApp.
-func (rc *rpcClient) StartApp(appName string) error {
-	return rc.Call("StartApp", &appName, &struct{}{})
-}
-
 // StartProc starts a new process of an app with given configuration
 func (rc *rpcClient) StartProc(appName string, args []string, port uint16) (router.ProcID, error) {
 	var proc router.ProcID
@@ -97,16 +85,10 @@ func (rc *rpcClient) StopProc(pid router.ProcID) error {
 }
 
 // ListProcs list all the processes handled by node
-func (rc *rpcClient) ListProcs() []router.ProcInfo {
-
-}
-
-// SetAutoStart calls SetAutoStart.
-func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
-	return rc.Call("SetAutoStart", &SetAutoStartIn{
-		AppName:   appName,
-		AutoStart: autostart,
-	}, &struct{}{})
+func (rc *rpcClient) ListProcs() ([]router.ProcInfo, error) {
+	var procsInfo []router.ProcInfo
+	 err := rc.Call("ListProcs", &struct {}{}, &procsInfo)
+	return procsInfo, err
 }
 
 // TransportTypes calls TransportTypes.
@@ -288,6 +270,30 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 		return nil
 	})
 	return &out, err
+}
+
+// StartProc starts a new process of an app with given configuration
+func (mc *mockRPCClient) StartProc(appName string, args []string, port uint16) (router.ProcID, error) {
+	var proc router.ProcID
+	err := rc.Call("StartProc", &StartProcIn{
+		appName: appName,
+		args: args,
+		port: port,
+	}, &proc)
+
+	return proc, err
+}
+
+// StopProc stops process by it's ID
+func (mc *mockRPCClient) StopProc(pid router.ProcID) error {
+	return rc.Call("StopProc", &pid, struct {}{})
+}
+
+// ListProcs list all the processes handled by node
+func (mc *mockRPCClient) ListProcs() ([]router.ProcInfo, error) {
+	var procsInfo []router.ProcInfo
+	err := rc.Call("ListProcs", &struct {}{}, &procsInfo)
+	return procsInfo, err
 }
 
 // TransportTypes implements RPCClient.
