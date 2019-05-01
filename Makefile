@@ -93,12 +93,12 @@ dep: ## Sorts dependencies
 
 # Apps 
 host-apps: ## Build app 
-	${OPTS} go build -race -o ./apps/chat.v1.0 ./cmd/apps/chat	
-	${OPTS} go build -race -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-	${OPTS} go build -race -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-	${OPTS} go build -race -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	${OPTS} go build -race -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-	${OPTS} go build -race -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	${OPTS} go build -race -o ./apps/chat ./cmd/apps/chat
+	${OPTS} go build -race -o ./apps/helloworld ./cmd/apps/helloworld
+	${OPTS} go build -race -o ./apps/therealproxy ./cmd/apps/therealproxy
+	${OPTS} go build -race -o ./apps/therealproxy-client  ./cmd/apps/therealproxy-client
+	${OPTS} go build -race -o ./apps/therealssh  ./cmd/apps/therealssh
+	${OPTS} go build -race -o ./apps/therealssh-client  ./cmd/apps/therealssh-client
 
 # Bin 
 bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`

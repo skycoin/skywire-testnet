@@ -2,6 +2,7 @@ package noise
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -112,6 +113,7 @@ func (rw *ReadWriter) initiatorHandshake() error {
 			return err
 		}
 
+		fmt.Println("APP: Write(HS)", msg)
 		if _, err := rw.lrw.Write(msg); err != nil {
 			return err
 		}

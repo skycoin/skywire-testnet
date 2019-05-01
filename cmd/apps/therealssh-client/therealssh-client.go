@@ -13,20 +13,16 @@ import (
 )
 
 func main() {
+	app.Setup("therealssh-client", "1.0")
+	defer app.Close()
+
 	var rpcAddr = flag.String("rpc", ":2222", "Client RPC address to listen on")
 	var debug = flag.Bool("debug", false, "enable debug messages")
 	flag.Parse()
 
-	config := &app.Config{AppName: "therealssh-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
-	sshApp, err := app.Setup(config)
-	if err != nil {
-		log.Fatal("Setup failure: ", err)
-	}
-	defer sshApp.Close()
-
 	ssh.Debug = *debug
 
-	rpc, client, err := ssh.NewClient(*rpcAddr, sshApp)
+	rpc, client, err := ssh.NewClient(*rpcAddr, app.Dial)
 	if err != nil {
 		log.Fatal("Client setup failure: ", err)
 	}

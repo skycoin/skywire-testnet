@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/app"
+
 	"github.com/google/uuid"
 
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -70,7 +72,7 @@ type Summary struct {
 	PubKey          cipher.PubKey       `json:"local_pk"`
 	NodeVersion     string              `json:"node_version"`
 	AppProtoVersion string              `json:"app_protocol_version"`
-	Apps            []*AppState         `json:"apps"`
+	Apps            []*app.Meta         `json:"apps"`
 	Transports      []*TransportSummary `json:"transports"`
 	RoutesCount     int                 `json:"routes_count"`
 }
@@ -83,7 +85,7 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 		return true
 	})
 	*out = Summary{
-		PubKey:          r.node.config.Node.StaticPubKey,
+		PubKey:          r.node.conf.Node.PubKey,
 		NodeVersion:     Version,
 		AppProtoVersion: supportedProtocolVersion,
 		Apps:            r.node.Apps(),
@@ -97,32 +99,31 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	<<< APP MANAGEMENT >>>
 */
 
-// Apps returns list of Apps registered on the Node.
-func (r *RPC) Apps(_ *struct{}, reply *[]*AppState) error {
-	*reply = r.node.Apps()
-	return nil
-}
-
-// StartApp start App with provided name.
-func (r *RPC) StartApp(name *string, _ *struct{}) error {
-	return r.node.StartApp(*name)
-}
-
-// StopApp stops App with provided name.
-func (r *RPC) StopApp(name *string, _ *struct{}) error {
-	return r.node.StopApp(*name)
-}
-
-// SetAutoStartIn is input for SetAutoStart.
-type SetAutoStartIn struct {
-	AppName   string
-	AutoStart bool
-}
-
-// SetAutoStart sets auto-start settings for an app.
-func (r *RPC) SetAutoStart(in *SetAutoStartIn, _ *struct{}) error {
-	return r.node.SetAutoStart(in.AppName, in.AutoStart)
-}
+//// Apps returns list of Apps registered on the Node.
+//func (r *RPC) Apps(_ *struct{}, reply *[]*app.Meta) error {
+//	*reply = r.node.Apps()
+//	return nil
+//}
+//// StartApp start App with provided name.
+//func (r *RPC) StartApp(name *string, _ *struct{}) error {
+//	return r.node.StartProc(*name)
+//}
+//
+//// StopApp stops App with provided name.
+//func (r *RPC) StopApp(name *string, _ *struct{}) error {
+//	return r.node.StopApp(*name)
+//}
+//
+//// SetAutoStartIn is input for SetAutoStart.
+//type SetAutoStartIn struct {
+//	AppName   string
+//	AutoStart bool
+//}
+//
+//// SetAutoStart sets auto-start settings for an app.
+//func (r *RPC) SetAutoStart(in *SetAutoStartIn, _ *struct{}) error {
+//	return r.node.SetAutoStart(in.AppName, in.AutoStart)
+//}
 
 /*
 	<<< TRANSPORT MANAGEMENT >>>

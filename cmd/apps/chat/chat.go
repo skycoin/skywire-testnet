@@ -21,22 +21,16 @@ import (
 var addr = flag.String("addr", ":8000", "address to bind")
 
 var (
-	chatApp    *app.App
 	clientChan chan string
 	chatConns  map[cipher.PubKey]net.Conn
 	connsMu    sync.Mutex
 )
 
 func main() {
-	flag.Parse()
+	app.Setup("chat", "1.0")
+	defer app.Close()
 
-	var err error
-	config := &app.Config{AppName: "chat", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
-	chatApp, err = app.Setup(config)
-	if err != nil {
-		log.Fatal("Setup failure: ", err)
-	}
-	defer chatApp.Close()
+	flag.Parse()
 
 	chatConns = make(map[cipher.PubKey]net.Conn)
 	go listenLoop()
@@ -51,13 +45,13 @@ func main() {
 
 func listenLoop() {
 	for {
-		conn, err := chatApp.Accept()
+		conn, err := app.Accept()
 		if err != nil {
 			log.Println("failed to accept conn: ", err)
 			return
 		}
 
-		raddr := conn.RemoteAddr().(*app.Addr)
+		raddr := conn.RemoteAddr().(*app.LoopAddr)
 		connsMu.Lock()
 		chatConns[raddr.PubKey] = conn
 		connsMu.Unlock()
@@ -67,7 +61,7 @@ func listenLoop() {
 }
 
 func handleConn(conn net.Conn) {
-	raddr := conn.RemoteAddr().(*app.Addr)
+	raddr := conn.RemoteAddr().(*app.LoopAddr)
 	for {
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
@@ -97,14 +91,14 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	addr := &app.Addr{PubKey: pk, Port: 1}
+	addr := app.LoopAddr{PubKey: pk, Port: 1}
 	connsMu.Lock()
 	conn := chatConns[pk]
 	connsMu.Unlock()
 
 	if conn == nil {
 		var err error
-		conn, err = chatApp.Dial(addr)
+		conn, err = app.Dial(addr)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -131,10 +125,10 @@ func sseHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	clientChan = make(chan string)
+
 	go func() {
 		<-req.Context().Done()
 		close(clientChan)
-		clientChan = nil
 		log.Println("SSE connection were closed.")
 	}()
 

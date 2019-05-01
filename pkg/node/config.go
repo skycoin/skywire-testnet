@@ -2,10 +2,9 @@ package node
 
 import (
 	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"github.com/skycoin/skywire/pkg/messaging"
 
@@ -16,38 +15,52 @@ import (
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
 )
 
+// KeyFields is a member of Config.
+type KeyFields struct {
+	PubKey cipher.PubKey `json:"static_public_key"`
+	SecKey cipher.SecKey `json:"static_secret_key"`
+}
+
+// MessagingFields is a member of Config.
+type MessagingFields struct {
+	Discovery   string `json:"discovery"`
+	ServerCount int    `json:"server_count"`
+}
+
+// LogStoreFields is a member of TransportFields.
+type LogStoreFields struct {
+	Type     string `json:"type"`
+	Location string `json:"location"`
+}
+
+// TransportFields is a member of Config.
+type TransportFields struct {
+	Discovery string         `json:"discovery"`
+	LogStore  LogStoreFields `json:"log_store"`
+}
+
+// RoutingTableFields is a member of RoutingFields.
+type RoutingTableFields struct {
+	Type     string `json:"type"`
+	Location string `json:"location"`
+}
+
+// RoutingFields is a member of Config.
+type RoutingFields struct {
+	SetupNodes  []cipher.PubKey    `json:"setup_nodes"`
+	RouteFinder string             `json:"route_finder"`
+	Table       RoutingTableFields `json:"table"`
+}
+
 // Config defines configuration parameters for Node.
 type Config struct {
-	Version string `json:"version"`
+	Version   string          `json:"version"`
+	Node      KeyFields       `json:"node"`
+	Messaging MessagingFields `json:"messaging"`
+	Transport TransportFields `json:"transport"`
+	Routing   RoutingFields   `json:"routing"`
 
-	Node struct {
-		StaticPubKey cipher.PubKey `json:"static_public_key"`
-		StaticSecKey cipher.SecKey `json:"static_secret_key"`
-	} `json:"node"`
-
-	Messaging struct {
-		Discovery   string `json:"discovery"`
-		ServerCount int    `json:"server_count"`
-	} `json:"messaging"`
-
-	Transport struct {
-		Discovery string `json:"discovery"`
-		LogStore  struct {
-			Type     string `json:"type"`
-			Location string `json:"location"`
-		} `json:"log_store"`
-	} `json:"transport"`
-
-	Routing struct {
-		SetupNodes  []cipher.PubKey `json:"setup_nodes"`
-		RouteFinder string          `json:"route_finder"`
-		Table       struct {
-			Type     string `json:"type"`
-			Location string `json:"location"`
-		} `json:"table"`
-	} `json:"routing"`
-
-	Apps []AppConfig `json:"apps"`
+	AutoStartApps []AutoStartConfig `json:"auto_start_apps"`
 
 	TrustedNodes []cipher.PubKey `json:"trusted_nodes"`
 	ManagerNodes []ManagerConfig `json:"manager_nodes"`
@@ -70,8 +83,8 @@ func (c *Config) MessagingConfig() (*messaging.Config, error) {
 	}
 
 	return &messaging.Config{
-		PubKey:     c.Node.StaticPubKey,
-		SecKey:     c.Node.StaticSecKey,
+		PubKey:     c.Node.PubKey,
+		SecKey:     c.Node.SecKey,
 		Discovery:  mClient.NewHTTP(msgConfig.Discovery),
 		Retries:    5,
 		RetryDelay: time.Second,
@@ -84,7 +97,7 @@ func (c *Config) TransportDiscovery() (transport.DiscoveryClient, error) {
 		return nil, errors.New("empty transport_discovery")
 	}
 
-	return trClient.NewHTTP(c.Transport.Discovery, c.Node.StaticPubKey, c.Node.StaticSecKey)
+	return trClient.NewHTTP(c.Transport.Discovery, c.Node.PubKey, c.Node.SecKey)
 }
 
 // TransportLogStore returns configure transport.LogStore.
@@ -105,19 +118,6 @@ func (c *Config) RoutingTable() (routing.Table, error) {
 	return routing.InMemoryRoutingTable(), nil
 }
 
-// AppsConfig decodes AppsConfig from a local json config file.
-func (c *Config) AppsConfig() ([]AppConfig, error) {
-	apps := []AppConfig{}
-	for _, app := range c.Apps {
-		if app.Version == "" {
-			app.Version = c.Version
-		}
-		apps = append(apps, app)
-	}
-
-	return apps, nil
-}
-
 // AppsDir returns absolute path for directory with application
 // binaries. Directory will be created if necessary.
 func (c *Config) AppsDir() (string, error) {
@@ -125,7 +125,7 @@ func (c *Config) AppsDir() (string, error) {
 		return "", errors.New("empty AppsPath")
 	}
 
-	return ensureDir(c.AppsPath)
+	return pathutil.EnsureDir(c.AppsPath)
 }
 
 // LocalDir returns absolute path for app work directory. Directory
@@ -135,24 +135,7 @@ func (c *Config) LocalDir() (string, error) {
 		return "", errors.New("empty AppsPath")
 	}
 
-	return ensureDir(c.LocalPath)
-}
-
-func ensureDir(path string) (string, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("failed to expand path: %s", err)
-	}
-
-	if _, err := os.Stat(absPath); !os.IsNotExist(err) {
-		return absPath, nil
-	}
-
-	if err := os.MkdirAll(absPath, 0750); err != nil {
-		return "", fmt.Errorf("failed to create dir: %s", err)
-	}
-
-	return absPath, nil
+	return pathutil.EnsureDir(c.LocalPath)
 }
 
 // ManagerConfig represents a connection to a manager.
@@ -161,13 +144,11 @@ type ManagerConfig struct {
 	Addr   string        `json:"address"`
 }
 
-// AppConfig defines app startup parameters.
-type AppConfig struct {
-	Version   string   `json:"version"`
-	App       string   `json:"app"`
-	AutoStart bool     `json:"auto_start"`
-	Port      uint16   `json:"port"`
-	Args      []string `json:"args"`
+// AutoStartConfig defines app startup parameters.
+type AutoStartConfig struct {
+	App  string   `json:"app"`
+	Port uint16   `json:"port"`
+	Args []string `json:"args"`
 }
 
 // InterfaceConfig defines listening interfaces for skywire Node.

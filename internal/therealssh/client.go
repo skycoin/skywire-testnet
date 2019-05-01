@@ -12,26 +12,20 @@ import (
 
 	"github.com/kr/pty"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/cipher"
 )
-
-// Dialer dials to a remote node.
-type Dialer interface {
-	Dial(raddr *app.Addr) (net.Conn, error)
-}
 
 // Client proxies CLI's requests to a remote server. Control messages
 // are sent via RPC interface. PTY data is exchanged via unix socket.
 type Client struct {
-	dialer Dialer
-	chans  *chanList
+	dial  app.DialFunc
+	chans *chanList
 }
 
 // NewClient construct new RPC listener and Client from a given RPC address and app dialer.
-func NewClient(rpcAddr string, d Dialer) (net.Listener, *Client, error) {
-	client := &Client{chans: newChanList(), dialer: d}
+func NewClient(rpcAddr string, d app.DialFunc) (net.Listener, *Client, error) {
+	client := &Client{chans: newChanList(), dial: d}
 	rpcClient := &RPCClient{client}
 	if err := rpc.Register(rpcClient); err != nil {
 		return nil, nil, fmt.Errorf("RPC register failure: %s", err)
@@ -47,7 +41,7 @@ func NewClient(rpcAddr string, d Dialer) (net.Listener, *Client, error) {
 
 // OpenChannel requests new Channel on the remote Server.
 func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, channel *Channel, cErr error) {
-	conn, err := c.dialer.Dial(&app.Addr{PubKey: remotePK, Port: Port})
+	conn, err := c.dial(app.LoopAddr{PubKey: remotePK, Port: Port})
 	if err != nil {
 		cErr = fmt.Errorf("dial failed: %s", err)
 		return
@@ -105,7 +99,7 @@ func (c *Client) serveConn(conn net.Conn) error {
 			return err
 		}
 
-		raddr := conn.RemoteAddr().(*app.Addr)
+		raddr := conn.RemoteAddr().(*app.LoopAddr)
 		payload := buf[:n]
 
 		if len(payload) < 5 {

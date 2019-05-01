@@ -21,10 +21,10 @@ import (
 type RPCClient interface {
 	Summary() (*Summary, error)
 
-	Apps() ([]*AppState, error)
-	StartApp(appName string) error
-	StopApp(appName string) error
-	SetAutoStart(appName string, autostart bool) error
+	//Apps() ([]*app.Meta, error)
+	//StartApp(appName string) error
+	//StopApp(appName string) error
+	//SetAutoStart(appName string, autostart bool) error
 
 	TransportTypes() ([]string, error)
 	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
@@ -65,30 +65,30 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 	return out, err
 }
 
-// Apps calls Apps.
-func (rc *rpcClient) Apps() ([]*AppState, error) {
-	states := make([]*AppState, 0)
-	err := rc.Call("Apps", &struct{}{}, &states)
-	return states, err
-}
-
-// StartApp calls StartApp.
-func (rc *rpcClient) StartApp(appName string) error {
-	return rc.Call("StartApp", &appName, &struct{}{})
-}
-
-// StopApp calls StopApp.
-func (rc *rpcClient) StopApp(appName string) error {
-	return rc.Call("StopApp", &appName, &struct{}{})
-}
-
-// SetAutoStart calls SetAutoStart.
-func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
-	return rc.Call("SetAutoStart", &SetAutoStartIn{
-		AppName:   appName,
-		AutoStart: autostart,
-	}, &struct{}{})
-}
+//// Apps calls Apps.
+//func (rc *rpcClient) Apps() ([]router.AppInfo, error) {
+//	states := make([]router.AppInfo, 0)
+//	err := rc.Call("Apps", &struct{}{}, &states)
+//	return states, err
+//}
+//
+//// StartApp calls StartApp.
+//func (rc *rpcClient) StartApp(appName string) error {
+//	return rc.Call("StartApp", &appName, &struct{}{})
+//}
+//
+//// StopApp calls StopApp.
+//func (rc *rpcClient) StopApp(appName string) error {
+//	return rc.Call("StopApp", &appName, &struct{}{})
+//}
+//
+//// SetAutoStart calls SetAutoStart.
+//func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
+//	return rc.Call("SetAutoStart", &SetAutoStartIn{
+//		AppName:   appName,
+//		AutoStart: autostart,
+//	}, &struct{}{})
+//}
 
 // TransportTypes calls TransportTypes.
 func (rc *rpcClient) TransportTypes() ([]string, error) {
@@ -227,10 +227,18 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			PubKey:          localPK,
 			NodeVersion:     Version,
 			AppProtoVersion: supportedProtocolVersion,
-			Apps: []*AppState{
-				{Name: "foo.v1.0", AutoStart: false, Port: 10},
-				{Name: "bar.v2.0", AutoStart: false, Port: 20},
-			},
+			//Apps: []router.AppInfo{
+			//	{
+			//		Meta:   app.Meta{AppName: "foo", AppVersion: "1.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
+			//		State:  router.AppState{Running: false, Loops: 2},
+			//		Config: router.AppConfig{AutoStart: false, Port: 2},
+			//	},
+			//	{
+			//		Meta:   app.Meta{AppName: "bar", AppVersion: "2.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
+			//		State:  router.AppState{Running: false, Loops: 3},
+			//		Config: router.AppConfig{AutoStart: false, Port: 3},
+			//	},
+			//},
 			Transports:  tps,
 			RoutesCount: rt.Count(),
 		},
@@ -255,52 +263,45 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 	var out Summary
 	err := mc.do(false, func() error {
 		out = *mc.s
-		for _, app := range mc.s.Apps {
-			out.Apps = append(out.Apps, &(*app))
-		}
-		for _, tp := range mc.s.Transports {
-			out.Transports = append(out.Transports, &(*tp))
-		}
+		copy(out.Apps, mc.s.Apps)
+		copy(out.Transports, mc.s.Transports)
 		out.RoutesCount = mc.s.RoutesCount
 		return nil
 	})
 	return &out, err
 }
 
-// Apps implements RPCClient.
-func (mc *mockRPCClient) Apps() ([]*AppState, error) {
-	var apps []*AppState
-	err := mc.do(false, func() error {
-		for _, app := range mc.s.Apps {
-			apps = append(apps, &(*app))
-		}
-		return nil
-	})
-	return apps, err
-}
-
-// StartApp implements RPCClient.
-func (*mockRPCClient) StartApp(string) error {
-	return nil
-}
-
-// StopApp implements RPCClient.
-func (*mockRPCClient) StopApp(string) error {
-	return nil
-}
-
-// SetAutoStart implements RPCClient.
-func (mc *mockRPCClient) SetAutoStart(appName string, autostart bool) error {
-	return mc.do(true, func() error {
-		for _, app := range mc.s.Apps {
-			if app.Name == appName {
-				app.AutoStart = autostart
-				return nil
-			}
-		}
-		return fmt.Errorf("app of name '%s' does not exist", appName)
-	})
-}
+//// Apps implements RPCClient.
+//func (mc *mockRPCClient) Apps() ([]router.AppInfo, error) {
+//	var apps []router.AppInfo
+//	err := mc.do(false, func() error {
+//		copy(apps, mc.s.Apps)
+//		return nil
+//	})
+//	return apps, err
+//}
+//
+//// StartApp implements RPCClient.
+//func (*mockRPCClient) StartApp(string) error {
+//	return nil
+//}
+//
+//// StopApp implements RPCClient.
+//func (*mockRPCClient) StopApp(string) error {
+//	return nil
+//}
+//
+//// SetAutoStart implements RPCClient.
+//func (mc *mockRPCClient) SetAutoStart(appName string, autostart bool) error {
+//	return mc.do(true, func() error {
+//		for _, a := range mc.s.Apps {
+//			if a.AppName == appName {
+//				return nil
+//			}
+//		}
+//		return fmt.Errorf("app of name '%s' does not exist", appName)
+//	})
+//}
 
 // TransportTypes implements RPCClient.
 func (mc *mockRPCClient) TransportTypes() ([]string, error) {
