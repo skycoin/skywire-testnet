@@ -67,19 +67,19 @@ func TestProcManager_RunProc(t *testing.T) {
 
 	makeMeta := func(appName string) app.Meta {
 		return app.Meta{
-			AppName: appName,
-			AppVersion: "1.0",
+			AppName:         appName,
+			AppVersion:      "1.0",
 			ProtocolVersion: app.ProtocolVersion,
-			Host: hPK,
+			Host:            hPK,
 		}
 	}
 
 	makeConf := func(binLoc string) app.ExecConfig {
 		return app.ExecConfig{
-			HostPK: hPK,
-			HostSK: hSK,
+			HostPK:  hPK,
+			HostSK:  hSK,
 			WorkDir: ".",
-			BinLoc: binLoc,
+			BinLoc:  binLoc,
 		}
 	}
 
