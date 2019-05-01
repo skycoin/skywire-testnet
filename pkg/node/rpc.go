@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"errors"
+	"github.com/skycoin/skywire/pkg/router"
 	"time"
 
 	"github.com/skycoin/skywire/pkg/app"
@@ -99,31 +100,42 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	<<< APP MANAGEMENT >>>
 */
 
-//// Apps returns list of Apps registered on the Node.
-//func (r *RPC) Apps(_ *struct{}, reply *[]*app.Meta) error {
-//	*reply = r.node.Apps()
-//	return nil
-//}
-//// StartApp start App with provided name.
-//func (r *RPC) StartApp(name *string, _ *struct{}) error {
-//	return r.node.StartProc(*name)
-//}
-//
-//// StopApp stops App with provided name.
-//func (r *RPC) StopApp(name *string, _ *struct{}) error {
-//	return r.node.StopApp(*name)
-//}
-//
-//// SetAutoStartIn is input for SetAutoStart.
-//type SetAutoStartIn struct {
-//	AppName   string
-//	AutoStart bool
-//}
-//
-//// SetAutoStart sets auto-start settings for an app.
-//func (r *RPC) SetAutoStart(in *SetAutoStartIn, _ *struct{}) error {
-//	return r.node.SetAutoStart(in.AppName, in.AutoStart)
-//}
+// Apps returns list of Apps registered on the Node.
+func (r *RPC) Apps(_ *struct{}, reply *[]*app.Meta) error {
+	*reply = r.node.Apps()
+	return nil
+}
+
+// StartProcIn is input for StartProc
+type StartProcIn struct {
+	appName string
+	args []string
+	port uint16
+}
+
+// StartProc starts a new process of an app with given configuration
+func (r *RPC) StartProc(in *StartProcIn, out *router.ProcID) error {
+	var err error
+	*out, err = r.node.StartProc(in.appName, in.args, in.port)
+	return err
+}
+
+// StopProc stops process by it's ID
+func (r *RPC) StopProc(pid *router.ProcID, _ *struct{}) error {
+	return r.node.StopProc(*pid)
+}
+
+// ListProcs list all the processes handled by node
+func (r *RPC) ListProcs(_ *struct{}, out *[]router.ProcInfo) error {
+	*out = r.node.ListProcs()
+	return nil
+}
+
+// SetAutoStartIn is input for SetAutoStart.
+type SetAutoStartIn struct {
+	AppName   string
+	AutoStart bool
+}
 
 /*
 	<<< TRANSPORT MANAGEMENT >>>

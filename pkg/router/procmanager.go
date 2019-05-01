@@ -64,6 +64,7 @@ type AppProc struct {
 	r  Router
 }
 
+
 // NewAppProc creates a new AppProc
 func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecConfig) (*AppProc, error) {
 	// [2019-04-23T17:18:54+08:00] INFO [proc.2(chat)]: log message.
@@ -362,6 +363,7 @@ type ProcManager interface {
 	ProcOfPort(lPort uint16) (*AppProc, bool)
 	RangeProcIDs(fn ProcIDFunc)
 	RangePorts(fn PortFunc)
+	ListProcs() []ProcInfo
 
 	Close() error
 }
@@ -437,6 +439,31 @@ func (pm *procManager) Proc(pid ProcID) (*AppProc, bool) {
 		return proc, true
 	}
 	return nil, false
+}
+
+// ProcInfo holds information about procs to be used on RPC methods to display such information
+type ProcInfo struct {
+	PID ProcID `json:"proc-id"`
+	*app.ExecConfig
+	*app.Meta
+}
+
+// ListProcs list meta info about the processes managed by procManager
+func (pm *procManager) ListProcs() []ProcInfo {
+	pm.mx.RLock()
+	defer pm.mx.RUnlock()
+
+	procsList := make([]ProcInfo, len(pm.procs))
+	i := 0
+	for pid, proc := range pm.procs {
+		procsList[i] = ProcInfo{
+			PID: pid,
+			ExecConfig: proc.e.Config(),
+			Meta: proc.e.Meta(),
+		}
+	}
+
+	return procsList
 }
 
 func (pm *procManager) ProcOfPort(lPort uint16) (*AppProc, bool) {

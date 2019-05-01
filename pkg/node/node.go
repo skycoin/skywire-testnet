@@ -318,3 +318,8 @@ func (node *Node) StopProc(pid router.ProcID) error {
 	}
 	return proc.Stop()
 }
+
+// ListProcs list meta info about the processes managed by procManager
+func (node *Node) ListProcs() []router.ProcInfo {
+	return node.pm.ListProcs()
+}

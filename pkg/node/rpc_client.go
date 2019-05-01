@@ -3,6 +3,8 @@ package node
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/router"
 	"math/rand"
 	"net/rpc"
 	"sync"
@@ -21,10 +23,10 @@ import (
 type RPCClient interface {
 	Summary() (*Summary, error)
 
-	//Apps() ([]*app.Meta, error)
-	//StartApp(appName string) error
-	//StopApp(appName string) error
-	//SetAutoStart(appName string, autostart bool) error
+	Apps() ([]*app.Meta, error)
+	StartProc(appName string, args[]string, port uint16) (router.ProcID, error)
+	StopProc(pid router.ProcID) error
+	ListProcs() []router.ProcInfo
 
 	TransportTypes() ([]string, error)
 	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
@@ -65,30 +67,47 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 	return out, err
 }
 
-//// Apps calls Apps.
-//func (rc *rpcClient) Apps() ([]router.AppInfo, error) {
-//	states := make([]router.AppInfo, 0)
-//	err := rc.Call("Apps", &struct{}{}, &states)
-//	return states, err
-//}
-//
-//// StartApp calls StartApp.
-//func (rc *rpcClient) StartApp(appName string) error {
-//	return rc.Call("StartApp", &appName, &struct{}{})
-//}
-//
-//// StopApp calls StopApp.
-//func (rc *rpcClient) StopApp(appName string) error {
-//	return rc.Call("StopApp", &appName, &struct{}{})
-//}
-//
-//// SetAutoStart calls SetAutoStart.
-//func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
-//	return rc.Call("SetAutoStart", &SetAutoStartIn{
-//		AppName:   appName,
-//		AutoStart: autostart,
-//	}, &struct{}{})
-//}
+// Apps calls Apps.
+func (rc *rpcClient) Apps() ([]router.AppInfo, error) {
+	states := make([]router.AppInfo, 0)
+	err := rc.Call("Apps", &struct{}{}, &states)
+	return states, err
+}
+
+// StartApp calls StartApp.
+func (rc *rpcClient) StartApp(appName string) error {
+	return rc.Call("StartApp", &appName, &struct{}{})
+}
+
+// StartProc starts a new process of an app with given configuration
+func (rc *rpcClient) StartProc(appName string, args []string, port uint16) (router.ProcID, error) {
+	var proc router.ProcID
+	err := rc.Call("StartProc", &StartProcIn{
+		appName: appName,
+		args: args,
+		port: port,
+	}, &proc)
+
+	return proc, err
+}
+
+// StopProc stops process by it's ID
+func (rc *rpcClient) StopProc(pid router.ProcID) error {
+	return rc.Call("StopProc", &pid, struct {}{})
+}
+
+// ListProcs list all the processes handled by node
+func (rc *rpcClient) ListProcs() []router.ProcInfo {
+
+}
+
+// SetAutoStart calls SetAutoStart.
+func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
+	return rc.Call("SetAutoStart", &SetAutoStartIn{
+		AppName:   appName,
+		AutoStart: autostart,
+	}, &struct{}{})
+}
 
 // TransportTypes calls TransportTypes.
 func (rc *rpcClient) TransportTypes() ([]string, error) {
@@ -270,38 +289,6 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 	})
 	return &out, err
 }
-
-//// Apps implements RPCClient.
-//func (mc *mockRPCClient) Apps() ([]router.AppInfo, error) {
-//	var apps []router.AppInfo
-//	err := mc.do(false, func() error {
-//		copy(apps, mc.s.Apps)
-//		return nil
-//	})
-//	return apps, err
-//}
-//
-//// StartApp implements RPCClient.
-//func (*mockRPCClient) StartApp(string) error {
-//	return nil
-//}
-//
-//// StopApp implements RPCClient.
-//func (*mockRPCClient) StopApp(string) error {
-//	return nil
-//}
-//
-//// SetAutoStart implements RPCClient.
-//func (mc *mockRPCClient) SetAutoStart(appName string, autostart bool) error {
-//	return mc.do(true, func() error {
-//		for _, a := range mc.s.Apps {
-//			if a.AppName == appName {
-//				return nil
-//			}
-//		}
-//		return fmt.Errorf("app of name '%s' does not exist", appName)
-//	})
-//}
 
 // TransportTypes implements RPCClient.
 func (mc *mockRPCClient) TransportTypes() ([]string, error) {
