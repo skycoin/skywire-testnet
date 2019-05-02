@@ -12,7 +12,7 @@ import (
 
 type setupHandlers struct {
 	r          *router
-	am         ProcManager
+	pm         ProcManager
 	sproto     *setup.Protocol
 	packetType setup.PacketType
 	packetBody []byte
@@ -69,7 +69,7 @@ func (sh setupHandlers) confirmLoop(ld setup.LoopData) ([]byte, error) {
 		return nil, err
 	}
 
-	proc, ok := sh.am.ProcOfPort(lm.Local.Port)
+	proc, ok := sh.pm.ProcOfPort(lm.Local.Port)
 	if !ok {
 		return nil, ErrProcNotFound
 	}
@@ -93,7 +93,7 @@ func (sh setupHandlers) confirmLoop(ld setup.LoopData) ([]byte, error) {
 func (sh setupHandlers) loopClosed(ld setup.LoopData) error {
 	lm := makeLoopMeta(sh.r.conf.PubKey, ld)
 
-	proc, ok := sh.am.ProcOfPort(lm.Local.Port)
+	proc, ok := sh.pm.ProcOfPort(lm.Local.Port)
 	if !ok {
 		return ErrProcNotFound
 	}

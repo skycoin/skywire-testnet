@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -15,49 +16,42 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-// var rtTestCases []func(rtm *RoutingTableManager) error {
-
-// }
-
-func TestManagedRoutingTableCleanup(t *testing.T) {
-	rt := NewRoutingTableManager(
+func mockRTM() *RoutingTableManager {
+	return NewRoutingTableManager(
 		logging.MustGetLogger("rt_manager"),
 		routing.InMemoryRoutingTable(),
-		DefaultRouteKeepalive,
+		time.Second,
 		DefaultRouteCleanupDuration)
+}
 
-	go rt.Run()
-	defer func() { rt.Stop() }()
+func TestManagedRoutingTableCleanup(t *testing.T) {
+	rtm := mockRTM()
 
-	id, err := rt.AddRule(routing.ForwardRule(time.Now().Add(time.Hour), 3, uuid.New()))
+	go rtm.Run()
+	defer func() { rtm.Stop() }()
+
+	id, err := rtm.AddRule(routing.ForwardRule(time.Now().Add(time.Hour), 3, uuid.New()))
 	require.NoError(t, err)
 
-	_, err = rt.Rule(id)
+	_, err = rtm.Rule(id)
 	require.NoError(t, err)
 
-	_, err = rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New()))
+	_, err = rtm.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New()))
 	require.NoError(t, err)
 
-	_, err = rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New()))
+	_, err = rtm.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New()))
 	require.NoError(t, err)
 
-	assert.Equal(t, 3, rt.Count())
+	assert.Equal(t, 3, rtm.Count())
 
-	assert.NotNil(t, rt.activity[id])
+	assert.NotNil(t, rtm.activity[id])
 
-	require.NoError(t, rt.Cleanup())
-	assert.Equal(t, 1, rt.Count())
+	require.NoError(t, rtm.Cleanup())
+	assert.Equal(t, 1, rtm.Count())
 }
 
 func TestRouteManagerAddRule(t *testing.T) {
-	// rt := NewRoutingTableManager(routing.InMemoryRoutingTable())
-	rt := NewRoutingTableManager(
-		logging.MustGetLogger("rt_manager"),
-		routing.InMemoryRoutingTable(),
-		DefaultRouteKeepalive,
-		DefaultRouteCleanupDuration)
-
-	// rm := &setupManager{logging.MustGetLogger("routesetup"), rt, nil}
+	rt := mockRTM()
 
 	expiredRule := routing.ForwardRule(time.Now().Add(-10*time.Minute), 3, uuid.New())
 	expiredID, err := rt.AddRule(expiredRule)
@@ -97,4 +91,28 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 	addr = app.LoopMeta{Local: app.LoopAddr{Port: 2}, Remote: app.LoopAddr{PubKey: pk, Port: 3}}
 	require.NoError(t, rt.DeleteAppRule(addr))
 	assert.Equal(t, 0, rt.Count())
+}
+
+func ExampleRoutingTableManager_FindFwdRule() {
+	rtm := mockRTM()
+
+	//TODO(alex): tests for existing loops
+	rule, err := rtm.FindFwdRule(routing.RouteID(0))
+	// r, err: = rtm.FindFwdRule(routing.RouteID{0})
+	fmt.Printf("rule, err: %v, %v\n", rule, err)
+
+	// Output: rule, err: %!v(PANIC=String method: runtime error: index out of range), routing table: unknown RouteID
+}
+
+func ExampleRoutingTableManager_Run() {
+
+	rtm := mockRTM()
+	rtm.ticker = time.NewTicker(10 * time.Millisecond)
+
+	go rtm.Run()
+	time.Sleep(1 * time.Second)
+	fmt.Println("Success")
+
+	// Output: Success
+
 }

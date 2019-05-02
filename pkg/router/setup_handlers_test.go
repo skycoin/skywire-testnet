@@ -4,99 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
-	"github.com/skycoin/skywire/pkg/transport"
 )
 
-func makeMockRouter() *router {
-	logger := logging.MustGetLogger("router")
-
-	pk, sk := cipher.GenerateKeyPair()
-	conf := &Config{
-		PubKey:     pk,
-		SecKey:     sk,
-		SetupNodes: []cipher.PubKey{},
-	}
-
-	// TODO(alexyu):  This mock must be simplified
-	_, tpm, _ := transport.MockTransportManager() //nolint: errcheck
-	rtm := NewRoutingTableManager(
-		logging.MustGetLogger("rt_manager"),
-		routing.InMemoryRoutingTable(),
-		DefaultRouteKeepalive,
-		DefaultRouteCleanupDuration)
-
-	return &router{
-		log:  logger,
-		conf: conf,
-		tpm:  tpm,
-		rtm:  rtm,
-		rfc:  routeFinder.NewMock(),
-	}
-}
-
-type mockSh struct {
-	r        *router
-	pm       ProcManager
-	connResp net.Conn
-	connInit net.Conn
-	sh       setupHandlers
-	err      error
-}
-
-func makeMockSh() (*mockSh, error) {
-	connInit, connResp := net.Pipe()
-	r := makeMockRouter()
-	pm := NewProcManager(10) //IDK why it's 10
-	sprotoInit := setup.NewSetupProtocol(connInit)
-
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- sprotoInit.WritePacket(setup.PacketType(0), []byte{})
-	}()
-
-	sh, err := makeSetupHandlers(r, pm, connResp)
-	if err != nil {
-		return &mockSh{}, err
-	}
-
-	return &mockSh{r, pm, connResp, connInit, sh, <-errChan}, nil
-}
-
-func (shEnv *mockSh) TearDown() {
-	shEnv.connResp.Close()
-	shEnv.connInit.Close()
-	err := shEnv.sh.r.Close()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func Example_makeMockSh() {
-	env, err := makeMockSh()
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-	}
-	defer env.TearDown()
-
-	fmt.Printf("sh.packetType: %v\n", env.sh.packetType)
-	fmt.Printf("sh.packetBody: %v\n", string(env.sh.packetBody))
-
-	//Output: sh.packetType: AddRules
-	// sh.packetBody: ""
-}
-
 func Example_setupHandlers_reject() {
-	env, err := makeMockSh()
+	env, err := makeMockEnv()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -117,7 +35,7 @@ func Example_setupHandlers_reject() {
 }
 
 func Example_setupHandlers_respondWith() {
-	env, err := makeMockSh()
+	env, err := makeMockEnv()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -138,7 +56,7 @@ func Example_setupHandlers_respondWith() {
 }
 
 func Example_setupHandlers_addRules() {
-	env, err := makeMockSh()
+	env, err := makeMockEnv()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -158,7 +76,7 @@ func Example_setupHandlers_addRules() {
 }
 
 func Example_setupHandlers_deleteRules() {
-	env, err := makeMockSh()
+	env, err := makeMockEnv()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -187,7 +105,7 @@ func Example_setupHandlers_deleteRules() {
 }
 
 func Example_setupHandlers_confirmLoop() {
-	env, err := makeMockSh()
+	env, err := makeMockEnv()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -212,7 +130,7 @@ func Example_setupHandlers_confirmLoop() {
 }
 
 func Example_setupHandlers_loopClosed() {
-	env, err := makeMockSh()
+	env, err := makeMockEnv()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
@@ -238,13 +156,13 @@ func Example_setupHandlers_loopClosed() {
 // WIP
 type handleTestCase struct {
 	packetType setup.PacketType
-	bodyFunc   func(*mockSh) (*mockSh, error)
+	bodyFunc   func(*mockEnv) (*mockEnv, error)
 }
 
 var handleTestCases = []handleTestCase{
 	handleTestCase{
 		packetType: setup.PacketAddRules,
-		bodyFunc: func(env *mockSh) (*mockSh, error) {
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
 
 			trID := uuid.New()
 			expireAt := time.Now().Add(2 * time.Minute)
@@ -259,7 +177,7 @@ var handleTestCases = []handleTestCase{
 	},
 	handleTestCase{
 		packetType: setup.PacketDeleteRules,
-		bodyFunc: func(env *mockSh) (*mockSh, error) {
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
 
 			// add rules
 			trID := uuid.New()
@@ -280,7 +198,7 @@ var handleTestCases = []handleTestCase{
 	},
 	handleTestCase{
 		packetType: setup.PacketConfirmLoop,
-		bodyFunc: func(env *mockSh) (*mockSh, error) {
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
 			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) // nolint: errcheck
 
 			// TODO(alexyu): test with known loop
@@ -299,7 +217,7 @@ var handleTestCases = []handleTestCase{
 	},
 	handleTestCase{
 		packetType: setup.PacketLoopClosed,
-		bodyFunc: func(env *mockSh) (*mockSh, error) {
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
 			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) // nolint: errcheck
 
 			// TODO(alexyu): test with known loop
@@ -322,9 +240,9 @@ var handleTestCases = []handleTestCase{
 func Example_handle() {
 	fmt.Println("Start")
 	for _, tc := range handleTestCases {
-		env, err := makeMockSh()
+		env, err := makeMockEnv()
 		if err != nil {
-			fmt.Printf("makeMockSh: %v\n", err)
+			fmt.Printf("makeMockEnv: %v\n", err)
 		}
 
 		env, err = tc.bodyFunc(env)
