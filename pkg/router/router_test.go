@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/internal/noise"
@@ -152,29 +154,6 @@ func Example_router_CloseLoop() {
 	// Output: CloseLoop error: route setup: no nodes
 }
 
-func Example_router_handleSetup() {
-
-	env, err := makeMockEnv()
-	if err != nil {
-		fmt.Printf("makeMockEnv: %v\n", err)
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- env.r.handleSetup(env.pm, env.connResp)
-	}()
-
-	sprotoInit := setup.NewSetupProtocol(env.connInit)
-	sprotoInit.WritePacket(setup.PacketType(0), "Hello") //nolint: errcheck
-	pt, data, err := sprotoInit.ReadPacket()
-	fmt.Printf("handle success: %v\n", <-errCh == nil)
-	fmt.Printf("response: %v %v %v\n", pt, string(data), err)
-
-	// Output: handle success: true
-	// response: RespFailure "json: cannot unmarshal string into Go value of type []routing.Rule" <nil>
-
-}
-
 func Example_router_handleTransport() {
 
 	//
@@ -185,44 +164,235 @@ func Example_router_Serve() {
 	//
 }
 
-func TestRouterCloseLoopOnAppClose(t *testing.T) {
-	client := transport.NewDiscoveryMock()
+func Example_router_handleSetup() {
+
+	env, err := makeMockEnv()
+	if err != nil {
+		fmt.Printf("makeMockEnv: %v\n", err)
+	}
+
+	// // trInitCh, _ := env.t
+	// trLocalCh, _ := env.tpmLocal.Observe()
+	// trLocal := <-trLocalCh
+	// trSetupCh, _ := env.tpmSetup.Observe()
+	// trSetup := <-trSetupCh
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- env.r.handleSetup(env.pm, env.connInit)
+	}()
+
+	sprotoInit := setup.NewSetupProtocol(env.connResp)
+	sprotoInit.WritePacket(setup.PacketType(0), "Hello") //nolint: errcheck
+	pt, data, err := sprotoInit.ReadPacket()
+	fmt.Printf("handle success: %v\n", <-errCh == nil)
+	fmt.Printf("response: %v %v %v\n", pt, string(data), err)
+
+	// Output: handle success: true
+	// response: RespFailure "json: cannot unmarshal string into Go value of type []routing.Rule" <nil>
+
+}
+
+type mockRouterEnv struct {
+	r  *router
+	pm ProcManager
+
+	tpmLocal *transport.Manager
+	tpmSetup *transport.Manager
+
+	pkSetup   cipher.PubKey
+	pkRespond cipher.PubKey
+
+	rt routing.Table
+
+	routeID routing.RouteID
+}
+
+func makeMockRouter() *router {
+	logger := logging.MustGetLogger("router")
+
+	pk, sk := cipher.GenerateKeyPair()
+
+	// TODO(alexyu): SetupNodes
+
+	conf := &Config{
+		PubKey:     pk,
+		SecKey:     sk,
+		SetupNodes: []cipher.PubKey{},
+	}
+
+	// TODO(alexyu):  This mock must be simplified
+	_, tpm, _ := transport.MockTransportManager() //nolint: errcheck
+	rtm := NewRoutingTableManager(
+		logging.MustGetLogger("rt_manager"),
+		routing.InMemoryRoutingTable(),
+		DefaultRouteKeepalive,
+		DefaultRouteCleanupDuration)
+
+	return &router{
+		log:  logger,
+		conf: conf,
+		tpm:  tpm,
+		rtm:  rtm,
+		rfc:  routeFinder.NewMock(),
+	}
+}
+
+func makeMockEnv() (*mockEnv, error) {
+	connInit, connResp := net.Pipe()
+	// r := makeMockRouter()
+	env, err := makeMockRouterEnv()
+	if err != nil {
+		return &mockEnv{}, err
+	}
+	r := env.r
+
+	pm := NewProcManager(10) //IDK why it's 10
+	sprotoInit := setup.NewSetupProtocol(connInit)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- sprotoInit.WritePacket(setup.PacketType(0), []byte{})
+	}()
+
+	sh, err := makeSetupHandlers(r, pm, connResp)
+	if err != nil {
+		return &mockEnv{}, err
+	}
+
+	return &mockEnv{r, pm, connResp, connInit, sh, <-errCh}, nil
+}
+
+func makeMockRouterEnv() (*mockRouterEnv, error) {
+	dClient := transport.NewDiscoveryMock()
 	rfc := routeFinder.NewMock()
 	logStore := transport.InMemoryTransportLogStore()
 
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
-	pk3, _ := cipher.GenerateKeyPair()
+	pkLocal, skLocal, _ := cipher.GenerateDeterministicKeyPair([]byte("local"))
+	pkSetup, skSetup, _ := cipher.GenerateDeterministicKeyPair([]byte("setup"))
+	pkRespond, _, _ := cipher.GenerateDeterministicKeyPair([]byte("respond"))
 
-	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f1.SetType("messaging")
+	fLocal, fSetup := transport.NewMockFactoryPair(pkLocal, pkSetup)
+	fLocal.SetType("messaging")
 
-	tpm1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
-	require.NoError(t, err)
+	tpmLocal, err := transport.NewManager(&transport.ManagerConfig{PubKey: pkLocal, SecKey: skLocal, DiscoveryClient: dClient, LogStore: logStore}, fLocal)
+	if err != nil {
+		return &mockRouterEnv{}, err
+	}
 
-	tpm2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
-	require.NoError(t, err)
-	go tpm2.Serve(context.TODO()) // nolint: errcheck
+	tpmSetup, err := transport.NewManager(&transport.ManagerConfig{PubKey: pkSetup, SecKey: skSetup, DiscoveryClient: dClient, LogStore: logStore}, fSetup)
+	if err != nil {
+		return &mockRouterEnv{}, err
+	}
+
+	go tpmSetup.Serve(context.TODO()) // nolint: errcheck
 
 	rt := routing.InMemoryRoutingTable()
-	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5)
+
+	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pkRespond, 6, 5)
 	routeID, err := rt.AddRule(rule)
-	require.NoError(t, err)
-	fmt.Printf("%v\n", routeID)
+	if err != nil {
+		return &mockRouterEnv{}, err
+	}
+
+	logger := logging.MustGetLogger("mockRouterEnv")
 
 	conf := &Config{
-		PubKey:     pk1,
-		SecKey:     sk1,
-		SetupNodes: []cipher.PubKey{pk2},
+		PubKey:     pkLocal,
+		SecKey:     skLocal,
+		SetupNodes: []cipher.PubKey{pkSetup},
 	}
-	logger := logging.MustGetLogger("routesetup")
 
-	r := New(logger, tpm1, rt, rfc, conf)
-	fmt.Printf("%v\n", r)
+	r := &router{
+		log:  logger,
+		conf: conf,
+		tpm:  tpmLocal,
+		rtm:  NewRoutingTableManager(logger, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
+		rfc:  rfc,
+	}
+	pm := NewProcManager(10)
+
+	return &mockRouterEnv{
+		r:  r,
+		pm: pm,
+
+		tpmSetup: tpmSetup,
+		tpmLocal: tpmLocal,
+
+		pkSetup:   pkSetup,
+		pkRespond: pkRespond,
+
+		routeID: routeID,
+		rt:      rt,
+	}, nil
+}
+
+func (rEnv *mockRouterEnv) TearDown() error {
+	errCh := make(chan error, 4)
+	errCh <- rEnv.tpmLocal.Close()
+	errCh <- rEnv.tpmSetup.Close()
+	errCh <- rEnv.r.Close()
+	errCh <- rEnv.pm.Close()
+
+	for err := range errCh {
+		if err != nil {
+			close(errCh)
+			return err
+		}
+	}
+	close(errCh)
+	return nil
+}
+
+// func TestRouterSetupLoopLocal(t *testing.T) {
+
+// 	env, err := makeMockRouterEnv()
+// 	pk, sk := cipher.GenerateKeyPair()
+// 	conf := &Config{
+// 		Logger: logging.MustGetLogger("routesetup"),
+// 		PubKey: pk,
+// 		SecKey: sk,
+// 	}
+// 	r := New(conf)
+
+// 	appConn, hostConn := net.Pipe()
+// 	go r.ServeApp(hostConn, 5) // nolint: errcheck
+// 	fmt.Println("TEST: Served router.")
+
+// 	// Emulate App.
+// 	appProto := appnet.NewProtocol(appConn)
+// 	go appProto.Serve(appnet.HandlerMap{
+// 		appnet.FrameConfirmLoop: func(*appnet.Protocol, []byte) ([]byte, error) {
+// 			return nil, nil
+// 		},
+// 	}) // nolint: errcheck
+// 	fmt.Println("TEST: Served app.")
+
+// 	rAddr := app.LoopAddr{PubKey: pk, Port: 5}
+
+// 	resp, err := appProto.Call(appnet.FrameCreateLoop, rAddr.Encode())
+// 	require.NoError(t, err)
+// 	fmt.Println("TEST: App call okay!")
+
+// 	var lm app.LoopMeta
+// 	require.NoError(t, lm.Decode(resp))
+
+// 	ll, err := r.pm.GetLoop(10, &app.LoopAddr{PubKey: pk, Port: 5})
+// 	require.NoError(t, err)
+// 	require.NotNil(t, ll)
+
+// 	assert.Equal(t, pk, lm.Local.PubKey)
+// 	assert.Equal(t, uint16(10), lm.Local.Port)
+// }
+
+// Old test. Does not make sense now
+func TestRouterCloseLoop(t *testing.T) {
+	env, err := makeMockRouterEnv()
+	require.NoError(t, err)
 
 	errCh := make(chan error)
 	go func() {
-		acceptCh, _ := tpm2.Observe()
+		acceptCh, _ := env.tpmSetup.Observe()
 		tr := <-acceptCh
 
 		proto := setup.NewSetupProtocol(tr)
@@ -243,7 +413,60 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 			return
 		}
 
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != pk3 {
+		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRespond {
+			errCh <- errors.New("invalid payload")
+			return
+		}
+
+		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+
+}
+
+// This test is mmeaningless now
+func TestRouterRouteExpiration(t *testing.T) {
+	env, err := makeMockRouterEnv()
+	require.NoError(t, err)
+
+	go env.r.Serve(context.TODO(), env.pm) // nolint
+
+	time.Sleep(110 * time.Millisecond)
+
+	assert.Equal(t, 1, env.rt.Count())
+	require.NoError(t, env.r.Close())
+}
+
+func TestRouterAncientTest(t *testing.T) {
+
+	env, err := makeMockRouterEnv()
+	require.NoError(t, err)
+
+	errCh := make(chan error)
+	go func() {
+		acceptCh, _ := env.tpmSetup.Observe()
+		tr := <-acceptCh
+
+		proto := setup.NewSetupProtocol(tr)
+		p, data, err := proto.ReadPacket()
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		if p != setup.PacketCloseLoop {
+			errCh <- errors.New("unknown command")
+			return
+		}
+
+		ld := &setup.LoopData{}
+		if err := json.Unmarshal(data, ld); err != nil {
+			errCh <- err
+			return
+		}
+
+		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRespond {
 			errCh <- errors.New("invalid payload")
 			return
 		}
@@ -253,8 +476,8 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 
 	// rw, rwIn := net.Pipe()
 	// // go r.ServeApp(rwIn, 5) // nolint: errcheck
-	pm := NewProcManager(10)
-	go r.Serve(context.TODO(), pm)
+
+	go env.r.Serve(context.TODO(), env.pm)
 	// proto := appnet.NewProtocol(rw)
 	// go proto.Serve(nil) // nolint: errcheck
 

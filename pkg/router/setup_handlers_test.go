@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,15 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
 )
+
+type mockEnv struct {
+	r        *router
+	pm       ProcManager
+	connResp net.Conn
+	connInit net.Conn
+	sh       setupHandlers
+	err      error
+}
 
 func Example_setupHandlers_reject() {
 	env, err := makeMockEnv()
@@ -72,7 +82,7 @@ func Example_setupHandlers_addRules() {
 
 	fmt.Printf("routeId, err: %v, %v\n", rID, err)
 
-	// Output: routeId, err: [1], <nil>
+	// Output: routeId, err: [2], <nil>
 }
 
 func Example_setupHandlers_deleteRules() {
@@ -101,7 +111,7 @@ func Example_setupHandlers_deleteRules() {
 	}
 	fmt.Printf("deletedRoutes, err: %v, %v\n", deletedRoutes, err)
 
-	// Output: deletedRoutes, err: [1], <nil>
+	// Output: deletedRoutes, err: [2], <nil>
 }
 
 func Example_setupHandlers_confirmLoop() {
@@ -267,9 +277,9 @@ func Example_handle() {
 
 	// Output: Start
 	// handle AddRules  success: true
-	// response: RespSuccess [1] <nil>
+	// response: RespSuccess [2] <nil>
 	// handle DeleteRules  success: true
-	// response: RespSuccess [1] <nil>
+	// response: RespSuccess [2] <nil>
 	// handle ConfirmLoop  success: true
 	// response: RespFailure "unknown loop" <nil>
 	// handle LoopClosed  success: true
