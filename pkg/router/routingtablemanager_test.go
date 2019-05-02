@@ -110,7 +110,7 @@ func ExampleRoutingTableManager_Run() {
 	rtm.ticker = time.NewTicker(10 * time.Millisecond)
 
 	go rtm.Run()
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond)
 	fmt.Println("Success")
 
 	// Output: Success

@@ -24,9 +24,16 @@ func Example_makeRouterHandlers() {
 
 }
 
-func Example_roouterHandlers_isSetup() {
+func Example_routerHandlers_isSetup() {
+	env, err := makeMockEnv()
+	if err != nil {
+		fmt.Printf("%v\n", err)
+	}
+	defer env.TearDown()
 
 }
+
+// Output:
 
 func Example_routerHandlers_serve() {
 
@@ -50,4 +57,5 @@ func Example_routerHandlers_serve() {
 	err = rh.serve(tr, handler)
 	fmt.Printf("serve: %v\n", err)
 
+	// Output: serve: handler error
 }

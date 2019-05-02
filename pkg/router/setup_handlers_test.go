@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,15 +12,6 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
 )
-
-type mockEnv struct {
-	r        *router
-	pm       ProcManager
-	connResp net.Conn
-	connInit net.Conn
-	sh       setupHandlers
-	err      error
-}
 
 func Example_setupHandlers_reject() {
 	env, err := makeMockEnv()
