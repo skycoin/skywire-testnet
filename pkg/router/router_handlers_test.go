@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 func Example_makeRouterHandlers() {
@@ -31,9 +33,23 @@ func Example_routerHandlers_isSetup() {
 	}
 	defer env.TearDown()
 
-}
+	pkLocal := env.r.conf.PubKey
+	pkSetup := env.r.conf.SetupNodes[0]
+	pkRespond := env.mockRouterEnv.pkRespond
 
-// Output:
+	trFalse := transport.NewMockTransport(nil, pkLocal, pkRespond)
+	trTrue := transport.NewMockTransport(nil, pkLocal, pkSetup)
+	trNotOk := transport.NewMockTransport(nil, pkSetup, pkRespond)
+
+	rh := makeRouterHandlers(env.r, env.pm)
+	fmt.Printf("rh.isSetup(trTrue): %v\n", rh.isSetup(trTrue))
+	fmt.Printf("rh.isSetup(trFalse): %v\n", rh.isSetup(trFalse))
+	fmt.Printf("rh.isSetup(trNotOk): %v\n", rh.isSetup(trNotOk))
+
+	// Output: rh.isSetup(trTrue): true
+	// rh.isSetup(trFalse): false
+	// rh.isSetup(trNotOk): false
+}
 
 func Example_routerHandlers_serve() {
 
@@ -49,13 +65,12 @@ func Example_routerHandlers_serve() {
 		fmt.Printf("transport: %s", err)
 	}
 
-	var handler handlerFunc
-	handler = func(ProcManager, io.ReadWriter) error {
-		return errors.New("handler error")
+	handler := func(ProcManager, io.ReadWriter) error {
+		err := errors.New("handler error")
+		return err
 	}
 
 	err = rh.serve(tr, handler)
 	fmt.Printf("serve: %v\n", err)
-
 	// Output: serve: handler error
 }

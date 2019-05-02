@@ -30,6 +30,7 @@ type mockRouterEnv struct {
 	routeID routing.RouteID
 }
 
+//TODO(alex): throw away this
 func makeMockRouter() *router {
 	logger := logging.MustGetLogger("router")
 
@@ -65,19 +66,22 @@ type mockEnv struct {
 	pm       ProcManager
 	connResp net.Conn
 	connInit net.Conn
-	sh       setupHandlers
-	err      error
+
+	sh  setupHandlers
+	err error
+
+	*mockRouterEnv
 }
 
 func makeMockEnv() (*mockEnv, error) {
-	connInit, connResp := net.Pipe()
+
 	// r := makeMockRouter()
 	env, err := makeMockRouterEnv()
 	if err != nil {
 		return &mockEnv{}, err
 	}
-	r := env.r
 
+	connInit, connResp := net.Pipe()
 	pm := env.pm //IDK why it's 10
 	sprotoInit := setup.NewSetupProtocol(connInit)
 
@@ -86,12 +90,12 @@ func makeMockEnv() (*mockEnv, error) {
 		errCh <- sprotoInit.WritePacket(setup.PacketType(0), []byte{})
 	}()
 
-	sh, err := makeSetupHandlers(r, pm, connResp)
+	sh, err := makeSetupHandlers(env.r, pm, connResp)
 	if err != nil {
 		return &mockEnv{}, err
 	}
 
-	return &mockEnv{r, pm, connResp, connInit, sh, <-errCh}, nil
+	return &mockEnv{env.r, pm, connResp, connInit, sh, <-errCh, env}, nil
 }
 
 func makeMockRouterEnv() (*mockRouterEnv, error) {

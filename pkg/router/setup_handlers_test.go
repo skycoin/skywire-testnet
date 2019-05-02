@@ -176,9 +176,15 @@ var handleTestCases = []handleTestCase{
 		},
 	},
 	handleTestCase{
+		packetType: setup.PacketAddRules,
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
+			env.sh.packetBody = []byte("invalid packet body")
+			return env, nil
+		},
+	},
+	handleTestCase{
 		packetType: setup.PacketDeleteRules,
 		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
-
 			// add rules
 			trID := uuid.New()
 			expireAt := time.Now().Add(2 * time.Minute)
@@ -194,6 +200,13 @@ var handleTestCases = []handleTestCase{
 
 			env.sh.packetBody = body
 			return env, err
+		},
+	},
+	handleTestCase{
+		packetType: setup.PacketDeleteRules,
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
+			env.sh.packetBody = []byte("invalid packet body")
+			return env, nil
 		},
 	},
 	handleTestCase{
@@ -216,6 +229,13 @@ var handleTestCases = []handleTestCase{
 		},
 	},
 	handleTestCase{
+		packetType: setup.PacketConfirmLoop,
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
+			env.sh.packetBody = []byte("invalid packet body")
+			return env, nil
+		},
+	},
+	handleTestCase{
 		packetType: setup.PacketLoopClosed,
 		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
 			pk, _, _ := cipher.GenerateDeterministicKeyPair([]byte("loopData")) // nolint: errcheck
@@ -233,6 +253,20 @@ var handleTestCases = []handleTestCase{
 			env.sh.packetBody = body
 			return env, err
 
+		},
+	},
+	handleTestCase{
+		packetType: setup.PacketLoopClosed,
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
+			env.sh.packetBody = []byte("invalid packet body")
+			return env, nil
+		},
+	},
+	handleTestCase{
+		packetType: setup.PacketType(42),
+		bodyFunc: func(env *mockEnv) (*mockEnv, error) {
+			env.sh.packetBody = []byte("invalid packet body")
+			return env, nil
 		},
 	},
 }
@@ -268,11 +302,22 @@ func Example_handle() {
 	// Output: Start
 	// handle AddRules  success: true
 	// response: RespSuccess [2] <nil>
+	// handle AddRules  success: true
+	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
 	// handle DeleteRules  success: true
 	// response: RespSuccess [2] <nil>
+	// handle DeleteRules  success: true
+	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
 	// handle ConfirmLoop  success: true
 	// response: RespFailure "unknown loop" <nil>
+	// handle ConfirmLoop  success: true
+	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
 	// handle LoopClosed  success: true
 	// response: RespFailure "proc not found" <nil>
+	// handle LoopClosed  success: true
+	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
+	// handle Unknown(42)  success: true
+	// response: RespFailure "unknown foundation packet" <nil>
 	// Finish
+
 }
