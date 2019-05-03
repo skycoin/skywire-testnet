@@ -3,12 +3,13 @@ package node
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/router"
 	"math/rand"
 	"net/rpc"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/router"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -24,9 +25,9 @@ type RPCClient interface {
 	Summary() (*Summary, error)
 
 	Apps() ([]*app.Meta, error)
-	StartProc(appName string, args[]string, port uint16) (router.ProcID, error)
+	StartProc(appName string, args []string, port uint16) (router.ProcID, error)
 	StopProc(pid router.ProcID) error
-	ListProcs() []router.ProcInfo
+	ListProcs() ([]*router.ProcInfo, error)
 
 	TransportTypes() ([]string, error)
 	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
@@ -67,13 +68,20 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 	return out, err
 }
 
+// Apps returns metadata for every app in node
+func (rc *rpcClient) Apps() ([]*app.Meta, error) {
+	metas := make([]*app.Meta, 0)
+	err := rc.Call("Apps", &struct{}{}, &metas)
+	return metas, err
+}
+
 // StartProc starts a new process of an app with given configuration
 func (rc *rpcClient) StartProc(appName string, args []string, port uint16) (router.ProcID, error) {
 	var proc router.ProcID
 	err := rc.Call("StartProc", &StartProcIn{
 		appName: appName,
-		args: args,
-		port: port,
+		args:    args,
+		port:    port,
 	}, &proc)
 
 	return proc, err
@@ -81,13 +89,13 @@ func (rc *rpcClient) StartProc(appName string, args []string, port uint16) (rout
 
 // StopProc stops process by it's ID
 func (rc *rpcClient) StopProc(pid router.ProcID) error {
-	return rc.Call("StopProc", &pid, struct {}{})
+	return rc.Call("StopProc", &pid, struct{}{})
 }
 
 // ListProcs list all the processes handled by node
-func (rc *rpcClient) ListProcs() ([]router.ProcInfo, error) {
-	var procsInfo []router.ProcInfo
-	 err := rc.Call("ListProcs", &struct {}{}, &procsInfo)
+func (rc *rpcClient) ListProcs() ([]*router.ProcInfo, error) {
+	var procsInfo []*router.ProcInfo
+	err := rc.Call("ListProcs", &struct{}{}, &procsInfo)
 	return procsInfo, err
 }
 
@@ -174,6 +182,7 @@ func (rc *rpcClient) Loops() ([]LoopInfo, error) {
 // MockRPCClient mocks RPCClient.
 type mockRPCClient struct {
 	s       *Summary
+	apps    []*app.Meta
 	tpTypes []string
 	rt      routing.Table
 	sync.RWMutex
@@ -187,6 +196,11 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	localPK, _ := cipher.GenerateKeyPair()
 
 	log.Infof("generating mock client with: localPK(%s) maxTps(%d) maxRules(%d)", localPK, maxTps, maxRules)
+
+	apps := []*app.Meta{
+		{AppName: "foo", AppVersion: "1.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
+		{AppName: "bar", AppVersion: "2.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
+	}
 
 	tps := make([]*TransportSummary, r.Intn(maxTps+1))
 	for i := range tps {
@@ -224,22 +238,33 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	}
 	log.Printf("rtCount: %d", rt.Count())
 	return localPK, &mockRPCClient{
+		apps: apps,
 		s: &Summary{
 			PubKey:          localPK,
 			NodeVersion:     Version,
 			AppProtoVersion: supportedProtocolVersion,
-			//Apps: []router.AppInfo{
-			//	{
-			//		Meta:   app.Meta{AppName: "foo", AppVersion: "1.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
-			//		State:  router.AppState{Running: false, Loops: 2},
-			//		Config: router.AppConfig{AutoStart: false, Port: 2},
-			//	},
-			//	{
-			//		Meta:   app.Meta{AppName: "bar", AppVersion: "2.0", ProtocolVersion: app.ProtocolVersion, Host: localPK},
-			//		State:  router.AppState{Running: false, Loops: 3},
-			//		Config: router.AppConfig{AutoStart: false, Port: 3},
-			//	},
-			//},
+			Procs: []*router.ProcInfo{
+				{
+					PID:  20,
+					Port: 0,
+					Meta: apps[0],
+					ExecConfig: &app.ExecConfig{
+						WorkDir: "home",
+						Args:    []string{},
+						BinLoc:  "apps",
+					},
+				},
+				{
+					PID:  200,
+					Port: 1,
+					Meta: apps[1],
+					ExecConfig: &app.ExecConfig{
+						WorkDir: "home",
+						Args:    []string{},
+						BinLoc:  "apps",
+					},
+				},
+			},
 			Transports:  tps,
 			RoutesCount: rt.Count(),
 		},
@@ -264,7 +289,7 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 	var out Summary
 	err := mc.do(false, func() error {
 		out = *mc.s
-		copy(out.Apps, mc.s.Apps)
+		copy(out.Procs, mc.s.Procs)
 		copy(out.Transports, mc.s.Transports)
 		out.RoutesCount = mc.s.RoutesCount
 		return nil
@@ -272,28 +297,24 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 	return &out, err
 }
 
+// Apps implements apps method of rpc interface
+func (mc *mockRPCClient) Apps() ([]*app.Meta, error) {
+	return mc.apps, nil
+}
+
 // StartProc starts a new process of an app with given configuration
 func (mc *mockRPCClient) StartProc(appName string, args []string, port uint16) (router.ProcID, error) {
-	var proc router.ProcID
-	err := rc.Call("StartProc", &StartProcIn{
-		appName: appName,
-		args: args,
-		port: port,
-	}, &proc)
-
-	return proc, err
+	return 0, nil
 }
 
 // StopProc stops process by it's ID
 func (mc *mockRPCClient) StopProc(pid router.ProcID) error {
-	return rc.Call("StopProc", &pid, struct {}{})
+	return nil
 }
 
 // ListProcs list all the processes handled by node
-func (mc *mockRPCClient) ListProcs() ([]router.ProcInfo, error) {
-	var procsInfo []router.ProcInfo
-	err := rc.Call("ListProcs", &struct {}{}, &procsInfo)
-	return procsInfo, err
+func (mc *mockRPCClient) ListProcs() ([]*router.ProcInfo, error) {
+	return mc.s.Procs, nil
 }
 
 // TransportTypes implements RPCClient.

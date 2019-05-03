@@ -39,12 +39,6 @@ func (ld *loopDispatch) IsConfirmed() bool { return ld.rtID != 0 }
 // ProcID is the execution ID of a running App.
 type ProcID uint16
 
-//type ProcInfo struct {
-//	PID  ProcID         `json:"pid"`
-//	App  app.Meta       `json:"app"`
-//	Exec app.ExecConfig `json:"exec"`
-//}
-
 // AppProc hosts an App and keeps track or whether the App is running or not.
 // It also manages incoming/outgoing packets to/from the App when the app is running.
 type AppProc struct {
@@ -53,35 +47,30 @@ type AppProc struct {
 	// unsafe.Pointer is used alongside 'atomic' module for fast, thread-safe access.
 	stopped unsafe.Pointer
 
-	pid ProcID
-	e   app.Executor
-	lps map[app.LoopMeta]*loopDispatch
-	mx  sync.RWMutex
-	log *logging.Logger
+	pid  ProcID
+	e    app.Executor
+	lps  map[app.LoopMeta]*loopDispatch
+	mx   sync.RWMutex
+	log  *logging.Logger
+	port uint16
 
 	// back-references
 	pm ProcManager
 	r  Router
 }
 
-
 // NewAppProc creates a new AppProc
-func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecConfig) (*AppProc, error) {
-	// [2019-04-23T17:18:54+08:00] INFO [proc.2(chat)]: log message.
-	log := logging.MustGetLogger(fmt.Sprintf("proc.%d(%s)", pid, c.AppName()))
+func NewAppProc(pm ProcManager, r Router, port uint16, pid ProcID, exec app.Executor) (*AppProc, error) {
 
-	exec, err := app.NewExecutor(log, m, c)
-	if err != nil {
-		return nil, err
-	}
 	proc := &AppProc{
 		stopped: unsafe.Pointer(new(bool)), //nolint:gosec
 		pid:     pid,
 		e:       exec,
 		lps:     make(map[app.LoopMeta]*loopDispatch),
-		log:     log,
+		log:     exec.Logger(),
 		pm:      pm,
 		r:       r,
+		port:    port,
 	}
 	done, err := exec.Run(proc.makeDataHandlerMap(), proc.makeCtrlHandlerMap())
 	if err != nil {
@@ -90,9 +79,9 @@ func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecCo
 	go func() {
 		<-done
 		if err := proc.Stop(); err != nil && err != app.ErrAlreadyStopped {
-			log.Warnf("stopped with error: %s", err)
+			proc.log.Warnf("stopped with error: %s", err)
 		}
-		log.Info("stopped cleanly")
+		proc.log.Info("stopped cleanly")
 	}()
 	return proc, nil
 }
@@ -356,14 +345,14 @@ func (ar *AppProc) makeCtrlHandlerMap() appnet.HandlerMap {
 
 // ProcManager manages local Apps and the associated ports and loops.
 type ProcManager interface {
-	RunProc(r Router, port uint16, m *app.Meta, c *app.ExecConfig) (*AppProc, error)
+	RunProc(r Router, port uint16, exec app.Executor) (*AppProc, error)
 	AllocPort(pid ProcID) uint16
 
 	Proc(pid ProcID) (*AppProc, bool)
 	ProcOfPort(lPort uint16) (*AppProc, bool)
 	RangeProcIDs(fn ProcIDFunc)
 	RangePorts(fn PortFunc)
-	ListProcs() []ProcInfo
+	ListProcs() []*ProcInfo
 
 	Close() error
 }
@@ -392,7 +381,7 @@ type procManager struct {
 	log *logging.Logger
 }
 
-func (pm *procManager) RunProc(r Router, port uint16, m *app.Meta, c *app.ExecConfig) (*AppProc, error) {
+func (pm *procManager) RunProc(r Router, port uint16, exec app.Executor) (*AppProc, error) {
 	pm.mx.Lock()
 	defer pm.mx.Unlock()
 
@@ -406,8 +395,13 @@ func (pm *procManager) RunProc(r Router, port uint16, m *app.Meta, c *app.ExecCo
 		}
 	}
 
+
+	// [2019-04-23T17:18:54+08:00] INFO [proc.2(chat)]: log message.
+	log := logging.MustGetLogger(fmt.Sprintf("proc.%d(%s)", pid, exec.Meta().AppName))
+	exec.SetLogger(log)
+
 	// run app
-	proc, err := NewAppProc(pm, r, pid, m, c)
+	proc, err := NewAppProc(pm, r, port, pid, exec)
 	if err != nil {
 		return nil, err
 	}
@@ -443,23 +437,25 @@ func (pm *procManager) Proc(pid ProcID) (*AppProc, bool) {
 
 // ProcInfo holds information about procs to be used on RPC methods to display such information
 type ProcInfo struct {
-	PID ProcID `json:"proc-id"`
+	PID  ProcID `json:"proc-id"`
+	Port uint16 `json:"port"`
 	*app.ExecConfig
 	*app.Meta
 }
 
 // ListProcs list meta info about the processes managed by procManager
-func (pm *procManager) ListProcs() []ProcInfo {
+func (pm *procManager) ListProcs() []*ProcInfo {
 	pm.mx.RLock()
 	defer pm.mx.RUnlock()
 
-	procsList := make([]ProcInfo, len(pm.procs))
+	procsList := make([]*ProcInfo, len(pm.procs))
 	i := 0
 	for pid, proc := range pm.procs {
-		procsList[i] = ProcInfo{
-			PID: pid,
+		procsList[i] = &ProcInfo{
+			PID:        pid,
+			Port:       proc.port,
 			ExecConfig: proc.e.Config(),
-			Meta: proc.e.Meta(),
+			Meta:       proc.e.Meta(),
 		}
 	}
 

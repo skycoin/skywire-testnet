@@ -76,7 +76,7 @@ func TestNewExecutor(t *testing.T) {
 
 		// Create app host and check obtained AppMeta.
 		host, err := NewExecutor(
-			logging.MustGetLogger("executor"),
+			logging.MustGetLogger("AppExecutor"),
 			meta,
 			&ExecConfig{
 				HostPK:  pk,

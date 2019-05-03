@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/rpc"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -200,13 +201,19 @@ func (node *Node) Start() error {
 			node.logger.Warnf("failed to auto-start app '%s': %s", ac.App,
 				errors.New("app not found"))
 		}
-		proc, err := node.pm.RunProc(node.r, ac.Port, m, &app.ExecConfig{
+
+		e, err := app.NewExecutor(nil, m, &app.ExecConfig{
 			HostPK:  node.conf.Node.PubKey,
 			HostSK:  node.conf.Node.SecKey,
 			WorkDir: filepath.Join(node.rootLocalDir, ac.App),
 			BinLoc:  filepath.Join(node.rootBinDir, ac.App),
 			Args:    ac.Args,
 		})
+		if err != nil {
+			node.logger.Fatal(err)
+		}
+
+		proc, err := node.pm.RunProc(node.r, ac.Port, e)
 		if err != nil {
 			node.logger.Warnf("failed to auto-start app '%s': %s", ac.App, err)
 		}
@@ -285,6 +292,7 @@ func (node *Node) Apps() []*app.Meta {
 	for _, m := range node.apps {
 		res = append(res, m)
 	}
+	sort.Slice(res, func(i, j int) bool { return res[i].AppName < res[j].AppName })
 	node.aMx.RUnlock()
 	return res
 }
@@ -297,13 +305,18 @@ func (node *Node) StartProc(appName string, args []string, port uint16) (router.
 	if !ok {
 		return 0, fmt.Errorf("app of name '%s' not found", appName)
 	}
-	proc, err := node.pm.RunProc(node.r, port, m, &app.ExecConfig{
+	e, err := app.NewExecutor(nil, m, &app.ExecConfig{
 		HostPK:  node.conf.Node.PubKey,
 		HostSK:  node.conf.Node.SecKey,
 		WorkDir: filepath.Join(node.rootLocalDir, appName),
 		BinLoc:  filepath.Join(node.rootBinDir, appName),
 		Args:    args,
 	})
+	if err != nil {
+		node.logger.Fatal(err)
+	}
+
+	proc, err := node.pm.RunProc(node.r, port, e)
 	if err != nil {
 		return 0, err
 	}
@@ -320,6 +333,6 @@ func (node *Node) StopProc(pid router.ProcID) error {
 }
 
 // ListProcs list meta info about the processes managed by procManager
-func (node *Node) ListProcs() []router.ProcInfo {
+func (node *Node) ListProcs() []*router.ProcInfo {
 	return node.pm.ListProcs()
 }

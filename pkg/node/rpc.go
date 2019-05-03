@@ -3,8 +3,9 @@ package node
 import (
 	"context"
 	"errors"
-	"github.com/skycoin/skywire/pkg/router"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/router"
 
 	"github.com/skycoin/skywire/pkg/app"
 
@@ -73,7 +74,7 @@ type Summary struct {
 	PubKey          cipher.PubKey       `json:"local_pk"`
 	NodeVersion     string              `json:"node_version"`
 	AppProtoVersion string              `json:"app_protocol_version"`
-	Apps            []*app.Meta         `json:"apps"`
+	Procs           []*router.ProcInfo  `json:"procs"`
 	Transports      []*TransportSummary `json:"transports"`
 	RoutesCount     int                 `json:"routes_count"`
 }
@@ -89,7 +90,7 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 		PubKey:          r.node.conf.Node.PubKey,
 		NodeVersion:     Version,
 		AppProtoVersion: supportedProtocolVersion,
-		Apps:            r.node.Apps(),
+		Procs:           r.node.ListProcs(),
 		Transports:      summaries,
 		RoutesCount:     r.node.rt.Count(),
 	}
@@ -106,11 +107,15 @@ func (r *RPC) Apps(_ *struct{}, reply *[]*app.Meta) error {
 	return nil
 }
 
+/*
+	<<< PROC MANAGEMENT >>>
+*/
+
 // StartProcIn is input for StartProc
 type StartProcIn struct {
 	appName string
-	args []string
-	port uint16
+	args    []string
+	port    uint16
 }
 
 // StartProc starts a new process of an app with given configuration
@@ -126,7 +131,7 @@ func (r *RPC) StopProc(pid *router.ProcID, _ *struct{}) error {
 }
 
 // ListProcs list all the processes handled by node
-func (r *RPC) ListProcs(_ *struct{}, out *[]router.ProcInfo) error {
+func (r *RPC) ListProcs(_ *struct{}, out *[]*router.ProcInfo) error {
 	*out = r.node.ListProcs()
 	return nil
 }

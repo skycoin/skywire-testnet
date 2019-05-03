@@ -58,7 +58,7 @@ func ObtainMeta(hostPK cipher.PubKey, binLoc string) (*Meta, error) {
 	return &meta, err
 }
 
-// ExecConfig configures the executor.
+// ExecConfig configures the AppExecutor.
 type ExecConfig struct {
 	HostPK  cipher.PubKey `json:"-"`
 	HostSK  cipher.SecKey `json:"-"`
@@ -105,9 +105,12 @@ type Executor interface {
 	Meta() *Meta
 	Call(t appnet.FrameType, reqData []byte) ([]byte, error)
 	CallUI(t appnet.FrameType, reqData []byte) ([]byte, error)
+	SetLogger(logger *logging.Logger)
+	Logger() *logging.Logger
 }
 
-type executor struct {
+// AppExecutor handles execution of apps
+type AppExecutor struct {
 	c     *ExecConfig
 	m     *Meta
 	proc  *os.Process
@@ -122,7 +125,7 @@ func NewExecutor(l *logging.Logger, m *Meta, c *ExecConfig) (Executor, error) {
 	if err := c.Process(); err != nil {
 		return nil, err
 	}
-	return &executor{
+	return &AppExecutor{
 		c:   c,
 		m:   m,
 		log: l,
@@ -131,7 +134,7 @@ func NewExecutor(l *logging.Logger, m *Meta, c *ExecConfig) (Executor, error) {
 
 // Run executes the App and serves the 2 piped connections.
 // When the App quits, the <-chan struct{} output will be notified.
-func (h *executor) Run(dataHM, ctrlHM appnet.HandlerMap) (<-chan struct{}, error) {
+func (h *AppExecutor) Run(dataHM, ctrlHM appnet.HandlerMap) (<-chan struct{}, error) {
 	if h.wg != nil {
 		return nil, ErrAlreadyStarted
 	}
@@ -184,7 +187,7 @@ func (h *executor) Run(dataHM, ctrlHM appnet.HandlerMap) (<-chan struct{}, error
 }
 
 // Stop sends a SIGTERM signal to the app, and waits for the app to quit.
-func (h *executor) Stop() error {
+func (h *AppExecutor) Stop() error {
 	if h.wg == nil {
 		return ErrAlreadyStopped
 	}
@@ -195,17 +198,27 @@ func (h *executor) Stop() error {
 }
 
 // Config obtains the internal config.
-func (h *executor) Config() *ExecConfig { return h.c }
+func (h *AppExecutor) Config() *ExecConfig { return h.c }
 
 // Meta returns the hosted app's meta data.
-func (h *executor) Meta() *Meta { return h.m }
+func (h *AppExecutor) Meta() *Meta { return h.m }
 
 // Call sends a command to the App via the regular piped connection.
-func (h *executor) Call(t appnet.FrameType, reqData []byte) ([]byte, error) {
+func (h *AppExecutor) Call(t appnet.FrameType, reqData []byte) ([]byte, error) {
 	return h.dataP.Call(t, reqData)
 }
 
 // CallUI sends a command to the App via the ui piped connection.
-func (h *executor) CallUI(t appnet.FrameType, reqData []byte) ([]byte, error) {
+func (h *AppExecutor) CallUI(t appnet.FrameType, reqData []byte) ([]byte, error) {
 	return h.ctrlP.Call(t, reqData)
+}
+
+// SetLogger set's logger to be used by app executor
+func (h *AppExecutor) SetLogger(logger *logging.Logger) {
+	h.log = logger
+}
+
+// Logger returns the logger used by AppExecutor
+func (h *AppExecutor) Logger() *logging.Logger {
+	return h.log
 }

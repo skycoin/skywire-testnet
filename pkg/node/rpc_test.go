@@ -1,73 +1,95 @@
 package node
 
-// TODO(evanlinjin): rewrite tests.
-//func TestListApps(t *testing.T) {
-//	apps := []AppConfig{
-//		{App: "foo", AutoStart: false, Port: 10},
-//		{App: "bar", AutoStart: true, Port: 11},
-//	}
-//
-//	sApps := map[string]*appBind{
-//		"bar": {},
-//	}
-//	rpc := &RPC{&Node{c: &Config{Apps: apps}, startedApps: sApps}}
-//
-//	var reply []*AppState
-//	require.NoError(t, rpc.Apps(nil, &reply))
-//	require.Len(t, reply, 2)
-//
-//	app1 := reply[0]
-//	assert.Equal(t, "foo", app1.Name)
-//	assert.False(t, app1.AutoStart)
-//	assert.Equal(t, uint16(10), app1.Port)
-//	assert.Equal(t, AppStatusStopped, app1.Status)
-//
-//	app2 := reply[1]
-//	assert.Equal(t, "bar", app2.Name)
-//	assert.True(t, app2.AutoStart)
-//	assert.Equal(t, uint16(11), app2.Port)
-//	assert.Equal(t, AppStatusRunning, app2.Status)
-//}
-//
-//func TestStartStopApp(t *testing.T) {
-//	router := new(mockRouter)
-//	executer := new(MockExecuter)
-//	defer os.RemoveAll("chat")
-//
-//	apps := []AppConfig{{App: "foo", AutoStart: false, Port: 10}}
-//	node := &Node{c: &Config{Apps: apps}, r: router, executer: executer, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
-//
-//	rpc := &RPC{node: node}
-//	unknownApp := "bar"
-//	app := "foo"
-//
-//	err := rpc.StartApp(&unknownApp, nil)
-//	require.Error(t, err)
-//	assert.Equal(t, ErrUnknownApp, err)
-//
-//	require.NoError(t, rpc.StartApp(&app, nil))
-//	time.Sleep(100 * time.Millisecond)
-//
-//	executer.Lock()
-//	require.Len(t, executer.cmds, 1)
-//	assert.Equal(t, "foo.v1.0", executer.cmds[0].Path)
-//	assert.Equal(t, "foo/v1.0", executer.cmds[0].Dir)
-//	executer.Unlock()
-//	node.startedMu.Lock()
-//	assert.NotNil(t, node.startedApps["foo"])
-//	node.startedMu.Unlock()
-//
-//	err = rpc.StopApp(&unknownApp, nil)
-//	require.Error(t, err)
-//	assert.Equal(t, ErrUnknownApp, err)
-//
-//	require.NoError(t, rpc.StopApp(&app, nil))
-//	time.Sleep(100 * time.Millisecond)
-//
-//	node.startedMu.Lock()
-//	assert.Nil(t, node.startedApps["foo"])
-//	node.startedMu.Unlock()
-//}
+import (
+	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/internal/appnet"
+	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/router"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"os"
+	"testing"
+	"time"
+)
+
+func TestListApps(t *testing.T) {
+	apps := []AutoStartConfig{
+		{App: "foo", Port: 0, Args: []string{}},
+		{App: "bar", Port: 3, Args: []string{}},
+	}
+	metas := map[string]*app.Meta {
+		"foo":{AppName:"foo", AppVersion:"1.0", ProtocolVersion:supportedProtocolVersion},
+		"bar":{AppName:"bar", AppVersion:"1.0", ProtocolVersion:supportedProtocolVersion},
+	}
+
+	rpc := &RPC{&Node{conf: &Config{AutoStartApps: apps}, apps: metas}}
+
+	var reply []*app.Meta
+	require.NoError(t, rpc.Apps(nil, &reply))
+	require.Len(t, reply, 2)
+
+	// apps are sorted by lexical order of their name
+	app1 := reply[0]
+	assert.Equal(t, "bar", app1.AppName)
+	assert.Equal(t, "1.0", app1.AppVersion)
+	assert.Equal(t, supportedProtocolVersion, app1.ProtocolVersion)
+
+	app2 := reply[1]
+	assert.Equal(t, "foo", app2.AppName)
+	assert.Equal(t, "1.0", app2.AppVersion)
+	assert.Equal(t, supportedProtocolVersion, app2.ProtocolVersion)
+}
+
+func TestStartStopApp(t *testing.T) {
+	pk, _,err := cipher.GenerateDeterministicKeyPair([]byte("test"))
+	require.NoError(t, err)
+
+	node := &Node{pm: &mockProcManager{},
+		apps: map[string]*app.Meta{
+			"foo":{AppName:"foo",AppVersion:"1.0",ProtocolVersion:supportedProtocolVersion, Host: pk},
+		},
+	}
+
+	rpc := &RPC{node: node}
+	unknownApp := "bar"
+	app := "foo"
+
+	err := rpc.StartProc(&StartProcIn{
+		appName: unknownApp,
+		port: 10,
+		args: []string{},
+	}, nil)
+	require.Error(t, err)
+	assert.Equal(t, ErrUnknownApp, err)
+
+	require.NoError(t, rpc.StartProc(&StartProcIn{
+		appName: app,
+		port: 10,
+		args: []string{},
+	}, nil))
+	time.Sleep(100 * time.Millisecond)
+
+	executer.Lock()
+	require.Len(t, executer.cmds, 1)
+	assert.Equal(t, "foo.v1.0", executer.cmds[0].Path)
+	assert.Equal(t, "foo/v1.0", executer.cmds[0].Dir)
+	executer.Unlock()
+	node.startedMu.Lock()
+	assert.NotNil(t, node.startedApps["foo"])
+	node.startedMu.Unlock()
+
+	err = rpc.StopApp(&unknownApp, nil)
+	require.Error(t, err)
+	assert.Equal(t, ErrUnknownApp, err)
+
+	require.NoError(t, rpc.StopApp(&app, nil))
+	time.Sleep(100 * time.Millisecond)
+
+	node.startedMu.Lock()
+	assert.Nil(t, node.startedApps["foo"])
+	node.startedMu.Unlock()
+}
 //
 //func TestRPC(t *testing.T) {
 //	r := new(mockRouter)
@@ -123,7 +145,7 @@ package node
 //	print := func(t *testing.T, name string, v interface{}) {
 //		j, err := json.MarshalIndent(v, name+": ", "  ")
 //		require.NoError(t, err)
-//		t.Log(string(j))
+//		t.log(string(j))
 //	}
 //
 //	t.Run("Summary", func(t *testing.T) {
@@ -236,3 +258,153 @@ package node
 //
 //	// TODO: Test add/remove transports
 //}
+
+
+func newMockProcManager() *mockProcManager {
+	return &mockProcManager{
+		procs: make(map[router.ProcID]*router.AppProc),
+		ports: make(map[uint16]router.ProcID),
+		metas: make(map[router.ProcID]*app.Meta),
+	}
+}
+
+type mockProcManager struct  {
+	minPort     uint16
+	currentPort uint16
+	currentPID  router.ProcID
+
+	procs map[router.ProcID]*router.AppProc
+	ports map[uint16]router.ProcID
+	metas map[router.ProcID]*app.Meta
+}
+
+func (pm *mockProcManager) RunProc(r router.Router, port uint16, exec app.Executor) (*router.AppProc, error) {
+	//pid := pm.nextFreePID()
+	panic("implement me")
+}
+
+func (pm *mockProcManager) AllocPort(pid router.ProcID) uint16 {
+	panic("implement me")
+}
+
+func (pm *mockProcManager) Proc(pid router.ProcID) (*router.AppProc, bool) {
+	panic("implement me")
+}
+
+func (pm *mockProcManager) ProcOfPort(lPort uint16) (*router.AppProc, bool) {
+	panic("implement me")
+}
+
+func (pm *mockProcManager) RangeProcIDs(fn router.ProcIDFunc) {
+	panic("implement me")
+}
+
+func (pm *mockProcManager) RangePorts(fn router.PortFunc) {
+	panic("implement me")
+}
+
+func (pm *mockProcManager) ListProcs() []*router.ProcInfo {
+	panic("implement me")
+}
+
+func (pm *mockProcManager) Close() error {
+	panic("implement me")
+}
+
+// returns true (with the proc) if given proc of pid is running.
+func (pm *mockProcManager) procRunning(pid router.ProcID) (*router.AppProc, bool) {
+	if proc, ok := pm.procs[pid]; ok && !proc.Stopped() {
+		return proc, true
+	}
+	return nil, false
+}
+
+// returns true (with the proc) id port is allocated to a running app.
+func (pm *mockProcManager) portAllocated(port uint16) (*router.AppProc, bool) {
+	pid, ok := pm.ports[port]
+	if !ok {
+		return nil, false
+	}
+	return pm.procRunning(pid)
+}
+
+// returns the next available and valid pid.
+func (pm *mockProcManager) nextFreePID() router.ProcID {
+	for {
+		if pm.currentPID++; pm.currentPID == 0 {
+			continue
+		}
+		if _, ok := pm.procRunning(pm.currentPID); ok {
+			continue
+		}
+		return pm.currentPID
+	}
+}
+
+// returns the next available and valid port.
+func (pm *mockProcManager) nextFreePort() uint16 {
+	for {
+		if pm.currentPort++; pm.currentPort < pm.minPort {
+			continue
+		}
+		if _, ok := pm.portAllocated(pm.currentPort); ok {
+			continue
+		}
+		return pm.currentPort
+	}
+}
+
+
+func newMockExecutor(meta *app.Meta, c *app.ExecConfig) *mockExecutor {
+	return &mockExecutor{
+		stop: make(chan struct{}),
+		meta: meta,
+		c: c,
+	}
+}
+
+type mockExecutor struct {
+	stop chan struct{}
+	meta *app.Meta
+	log *logging.Logger
+	c *app.ExecConfig
+}
+
+func (m *mockExecutor) Run(_, _ appnet.HandlerMap) (<-chan struct{}, error) {
+	done := make(chan struct{})
+	go func() {
+		<- m.stop
+		done <- struct{}{}
+	}()
+
+	return done, nil
+}
+
+func (m *mockExecutor) Stop() error {
+	m.stop <- struct{}{}
+	return nil
+}
+
+func (m *mockExecutor) Config() *app.ExecConfig {
+	return m.c
+}
+
+func (m *mockExecutor) Meta() *app.Meta {
+	return m.meta
+}
+
+func (*mockExecutor) Call(t appnet.FrameType, reqData []byte) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (*mockExecutor) CallUI(t appnet.FrameType, reqData []byte) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (m *mockExecutor) SetLogger(logger *logging.Logger) {
+	m.log = logger
+}
+
+func (m *mockExecutor) Logger() *logging.Logger {
+	return m.log
+}
