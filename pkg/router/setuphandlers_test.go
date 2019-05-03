@@ -166,28 +166,22 @@ func Example_setupHandlers_deleteRules() {
 	// deletedRoutes, err: [1], <nil>
 }
 
-func Example_setupHandlers_confirmLoop() {
-	env, err := makeMockRouterEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
-	// defer env.TearDown()
+func printRules(routeID routing.RouteID, rule routing.Rule) (next bool) {
+	fmt.Printf("%v %v\n", routeID, rule)
+	next = true
+	return
+}
 
-	envSh, err := makeSetupHandlersEnv()
-	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
+func printPorts(port uint16, proc *AppProc) (next bool) {
+	fmt.Printf("%v %v\n", port, proc)
+	next = true
+	return
+}
 
-	unknownLoopData := setup.LoopData{
-		RemotePK:     env.pkRemote,
-		RemotePort:   3,
-		LocalPort:    2,
-		RouteID:      routing.RouteID(1),
-		NoiseMessage: []byte{},
-	}
-
-	res, err := envSh.sh.confirmLoop(unknownLoopData)
-	fmt.Printf("confirmLoop(unknownLoopData): %v %v\n", res, err)
-
-	// Output: makeMockRouterEnv success: true
-	// makeSetupHandlersEnv success: true
-	// confirmLoop(unknownLoopData): [] unknown loop
+func printProcIDs(pid ProcID, proc *AppProc) (next bool) {
+	fmt.Printf("%v %v\n", pid, proc)
+	next = true
+	return
 }
 
 func Example_setupHandlers_loopClosed() {

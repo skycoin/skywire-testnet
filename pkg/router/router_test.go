@@ -22,7 +22,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	lvl, _ := logging.LevelFromString("error") // nolint: errcheck
+	lvl, _ := logging.LevelFromString("info") // nolint: errcheck
 	logging.SetLevel(lvl)
 	os.Exit(m.Run())
 }
