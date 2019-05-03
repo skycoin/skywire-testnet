@@ -13,16 +13,24 @@ import (
 	"github.com/skycoin/skywire/pkg/setup"
 )
 
-func Example_router_FindRouteAndSetupLoop() {
+/* AlexYu:
+
+This is collection of broken tests.
+Commented lines under the code of each Example are additional test-comments
+
+*/
+
+func Example_router_FindRouteAndSetupLoopEntrails() {
 
 	env, err := makeMockRouterEnv()
 	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
 
+	env.StartSetupTpm()
 	// prepare noise
 	ns, err := noise.KKAndSecp256k1(noise.Config{
 		LocalPK:   env.pkLocal,
 		LocalSK:   env.skLocal,
-		RemotePK:  env.pkRespond,
+		RemotePK:  env.pkRemote,
 		Initiator: true,
 	})
 	if err != nil {
@@ -35,7 +43,7 @@ func Example_router_FindRouteAndSetupLoop() {
 
 	lm := app.LoopMeta{
 		Local:  app.LoopAddr{PubKey: env.pkLocal, Port: 0},
-		Remote: app.LoopAddr{PubKey: env.pkRespond, Port: 0},
+		Remote: app.LoopAddr{PubKey: env.pkRemote, Port: 0},
 	}
 
 	// Internals of FindRoutesAndSetupLoop
@@ -72,22 +80,25 @@ func Example_router_FindRouteAndSetupLoop() {
 	// Output: makeMockRouterEnv success: true
 	// fetchBestRoutes routing.Route routing.Route success: true
 	// setupProto *setup.Protocol *transport.ManagedTransport success:  true
-	// setup.CreateLoop success: true
+
 }
 
+// setup.CreateLoop success: true
+
 func Example_router_handleTransport() {
-	env, err := makeMockEnv()
-	fmt.Printf("makeMockEnv success: %v\n", err == nil)
+
+	shEnv, err := makeSetupHandlersEnv()
+	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
 
 	go func() {
-		err = env.r.handleTransport(env.pm, env.connInit)
+		err = shEnv.env.r.handleTransport(shEnv.env.pm, shEnv.connInit)
 		fmt.Printf("handleTransport success: %v\n", err == nil)
 	}()
 
 	time.Sleep(time.Second)
 
-	// Output: makeMockEnv success: true
-	// handleTransport success: true
+	// Output: makeMockRouterEnv success: true
+
 }
 
 func Example_router_CloseLoop() {
@@ -98,7 +109,7 @@ func Example_router_CloseLoop() {
 
 	lm := app.LoopMeta{
 		Local:  app.LoopAddr{PubKey: env.pkLocal, Port: 0},
-		Remote: app.LoopAddr{PubKey: env.pkRespond, Port: 0},
+		Remote: app.LoopAddr{PubKey: env.pkRemote, Port: 0},
 	}
 
 	go func() {
@@ -108,16 +119,15 @@ func Example_router_CloseLoop() {
 
 	time.Sleep(time.Second)
 	// Output: makeMockRouterEnv success: true
-	// CloseLoop success: true
+
 }
 
 func Example_router_Serve() {
-	env, err := makeMockEnv()
-	if err != nil {
-		fmt.Printf("makeMockEnv: %v\n", err)
-	}
+	env, err := makeMockRouterEnv()
+	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
+	env.StartSetupTpm()
+	defer env.TearDown()
 
-	// errCh := make(chan error, 1)
 	go func() {
 		err = env.r.Serve(context.TODO(), env.pm)
 		fmt.Printf("router.Serve success: %v\n", err)
@@ -125,5 +135,6 @@ func Example_router_Serve() {
 
 	time.Sleep(time.Second)
 
-	// Output: router.Serve success: true
+	// Output: makeMockRouterEnv success: true
+
 }

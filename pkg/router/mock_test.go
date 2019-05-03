@@ -3,82 +3,55 @@ package router
 import (
 	"context"
 	"fmt"
-	"net"
-	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/setup"
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
 type mockRouterEnv struct {
-	r  *router
-	pm ProcManager
+	// Keys
+	pkLocal  cipher.PubKey
+	skLocal  cipher.SecKey
+	pkSetup  cipher.PubKey
+	pkRemote cipher.PubKey
 
+	// TransportManagers
 	tpmLocal *transport.Manager
 	tpmSetup *transport.Manager
 
-	pkLocal   cipher.PubKey
-	skLocal   cipher.SecKey
-	pkSetup   cipher.PubKey
-	pkRespond cipher.PubKey
+	// routing.Table
+	routingTable routing.Table
+	rtm          *RoutingTableManager
 
-	rt      routing.Table
-	routeID routing.RouteID
+	// ProcManager and router
+	pm ProcManager
+	r  *router
 }
 
-type mockEnv struct {
-	r        *router
-	pm       ProcManager
-	connResp net.Conn
-	connInit net.Conn
-
-	sh  setupHandlers
-	err error
-
-	*mockRouterEnv
-}
-
-func makeMockEnv() (*mockEnv, error) {
-
-	env, err := makeMockRouterEnv()
-	if err != nil {
-		return &mockEnv{}, err
-	}
-
-	connInit, connResp := net.Pipe()
-	pm := env.pm //IDK why it's 10
-	sprotoInit := setup.NewSetupProtocol(connInit)
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- sprotoInit.WritePacket(setup.PacketType(0), []byte{})
-	}()
-
-	sh, err := makeSetupHandlers(env.r, pm, connResp)
-	if err != nil {
-		return &mockEnv{}, err
-	}
-
-	return &mockEnv{env.r, pm, connResp, connInit, sh, <-errCh, env}, nil
+func (env *mockRouterEnv) StartSetupTpm() {
+	go env.tpmSetup.Serve(context.TODO()) // nolint: errcheck
 }
 
 func makeMockRouterEnv() (*mockRouterEnv, error) {
+	// PKs
+	pkLocal, skLocal, _ := cipher.GenerateDeterministicKeyPair([]byte("local")) // nolint: errcheck
+	pkSetup, skSetup, _ := cipher.GenerateDeterministicKeyPair([]byte("setup")) // nolint: errcheck
+	pkRemote, _, _ := cipher.GenerateDeterministicKeyPair([]byte("respond"))    // nolint: errcheck
+
+	// discovery client, route finder client, logStore, logger
 	dClient := transport.NewDiscoveryMock()
 	rfc := routeFinder.NewMock()
 	logStore := transport.InMemoryTransportLogStore()
 
-	pkLocal, skLocal, _ := cipher.GenerateDeterministicKeyPair([]byte("local")) // nolint: errcheck
-	pkSetup, skSetup, _ := cipher.GenerateDeterministicKeyPair([]byte("setup")) // nolint: errcheck
-	pkRespond, _, _ := cipher.GenerateDeterministicKeyPair([]byte("respond"))   // nolint: errcheck
-
+	// TransportFactories
 	fLocal, fSetup := transport.NewMockFactoryPair(pkLocal, pkSetup)
 	fLocal.SetType("messaging")
 
+	// TransportManagers
 	tpmLocal, err := transport.NewManager(&transport.ManagerConfig{PubKey: pkLocal, SecKey: skLocal, DiscoveryClient: dClient, LogStore: logStore}, fLocal)
 	if err != nil {
 		return &mockRouterEnv{}, err
@@ -89,90 +62,59 @@ func makeMockRouterEnv() (*mockRouterEnv, error) {
 		return &mockRouterEnv{}, err
 	}
 
-	go tpmSetup.Serve(context.TODO()) // nolint: errcheck
+	// RoutingTable
+	routingTable := routing.InMemoryRoutingTable()
 
-	rt := routing.InMemoryRoutingTable()
-
-	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pkRespond, 6, 5)
-	routeID, err := rt.AddRule(rule)
-	if err != nil {
-		return &mockRouterEnv{}, err
-	}
-
+	// ProcManager & Router
+	pm := NewProcManager(10)
 	logger := logging.MustGetLogger("mockRouterEnv")
-
 	conf := &Config{
 		PubKey:     pkLocal,
 		SecKey:     skLocal,
 		SetupNodes: []cipher.PubKey{pkSetup},
 	}
 
+	rtm := NewRoutingTableManager(logger, routingTable, DefaultRouteKeepalive, DefaultRouteCleanupDuration)
 	r := &router{
 		log:  logger,
 		conf: conf,
 		tpm:  tpmLocal,
-		rtm:  NewRoutingTableManager(logger, rt, DefaultRouteKeepalive, DefaultRouteCleanupDuration),
+		rtm:  rtm,
 		rfc:  rfc,
 	}
-	pm := NewProcManager(10)
 
 	return &mockRouterEnv{
-		r:  r,
-		pm: pm,
+		pkLocal:  pkLocal,
+		skLocal:  skLocal,
+		pkSetup:  pkSetup,
+		pkRemote: pkRemote,
 
 		tpmSetup: tpmSetup,
 		tpmLocal: tpmLocal,
 
-		pkLocal:   pkLocal,
-		skLocal:   skLocal,
-		pkSetup:   pkSetup,
-		pkRespond: pkRespond,
+		routingTable: routingTable,
+		rtm:          rtm,
 
-		routeID: routeID,
-		rt:      rt,
+		r:  r,
+		pm: pm,
 	}, nil
 }
 
-func (rEnv *mockRouterEnv) TearDown() error {
-	errCh := make(chan error, 4)
-	errCh <- rEnv.tpmLocal.Close()
-	errCh <- rEnv.tpmSetup.Close()
-	errCh <- rEnv.r.Close()
-	errCh <- rEnv.pm.Close()
-
-	for err := range errCh {
-		if err != nil {
-			close(errCh)
-			return err
-		}
-	}
-	close(errCh)
-	return nil
+func (env *mockRouterEnv) TearDown() {
+	env.r.Close()
+	env.pm.Close()
 }
 
-func (shEnv *mockEnv) TearDown() {
-	shEnv.connResp.Close()
-	shEnv.connInit.Close()
-	err := shEnv.sh.r.Close()
-	if err != nil {
-		panic(err)
-	}
-	err = shEnv.sh.pm.Close()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func Example_makeMockEnv() {
-	env, err := makeMockEnv()
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-	}
+func Example_makeMockRouterEnv() {
+	env, err := makeMockRouterEnv()
+	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
 	defer env.TearDown()
 
-	fmt.Printf("sh.packetType: %v\n", env.sh.packetType)
-	fmt.Printf("sh.packetBody: %v\n", string(env.sh.packetBody))
+	fmt.Printf("PKs:\n pkLocal: %v\n pkSetup: %v\n pkRemote: %v\n", env.pkLocal, env.pkSetup, env.pkRemote)
 
-	//Output: sh.packetType: AddRules
-	// sh.packetBody: ""
+	// Output: makeMockRouterEnv success: true
+	// PKs:
+	//  pkLocal: 0387935e7035f5bdffb0ec3e4c872bcc4c71d9c3372bf325e71dd5a4879f2939f7
+	//  pkSetup: 03c868f201347b705dd7c9282cce5586d61f92aeb0d6edf8c7f1c52b6f447dff94
+	//  pkRemote: 02b49835e8b6888bec290026ea81032f4da2c6195d25c74eccf50640bbdf49a3b5
 }

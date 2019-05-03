@@ -109,10 +109,19 @@ func ExampleRoutingTableManager_Run() {
 	rtm := mockRTM()
 	rtm.ticker = time.NewTicker(10 * time.Millisecond)
 
+	if _, err := rtm.AddRule(routing.ForwardRule(
+		time.Now().Add(-1*time.Minute), 2, uuid.New())); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Printf("rtm.Count after adding expired rule:  %v\n", rtm.Count())
+
 	go rtm.Run()
 	time.Sleep(100 * time.Millisecond)
-	fmt.Println("Success")
 
-	// Output: Success
+	fmt.Printf("rtm.Count after Run(): %v\n", rtm.Count())
+
+	// Output: rtm.Count after adding expired rule:  1
+	// rtm.Count after Run(): 0
 
 }

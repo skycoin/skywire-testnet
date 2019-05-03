@@ -55,6 +55,7 @@ func Example_router_setupProto() {
 
 	env, err := makeMockRouterEnv()
 	fmt.Printf("Environment created: %v\n", err == nil)
+	env.StartSetupTpm()
 
 	pr, tr, err := env.r.setupProto(context.TODO())
 
@@ -102,8 +103,8 @@ func Example_router() {
 // TODO(alex): test for existing transport
 func Example_router_ForwardPacket() {
 
-	env, err := makeMockEnv()
-	fmt.Printf("makeMockeEnv success: %v\n", err == nil)
+	env, err := makeMockRouterEnv()
+	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
 
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
@@ -114,28 +115,28 @@ func Example_router_ForwardPacket() {
 		fmt.Printf("router.ForwardPacket error: %v\n", err)
 	}
 
-	// Output: router.ForwardPacket error: transport not found
+	// Output: makeMockRouterEnv success: true
+	// router.ForwardPacket error: transport not found
 }
 
 func Example_router_handleSetup() {
 
-	env, err := makeMockEnv()
-	if err != nil {
-		fmt.Printf("makeMockEnv: %v\n", err)
-	}
+	envSh, err := makeSetupHandlersEnv()
+	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- env.r.handleSetup(env.pm, env.connInit)
+		errCh <- envSh.env.r.handleSetup(envSh.env.pm, envSh.connInit)
 	}()
 
-	sprotoInit := setup.NewSetupProtocol(env.connResp)
+	sprotoInit := setup.NewSetupProtocol(envSh.connResp)
 	sprotoInit.WritePacket(setup.PacketType(0), "Hello") //nolint: errcheck
 	pt, data, err := sprotoInit.ReadPacket()
 	fmt.Printf("handle success: %v\n", <-errCh == nil)
 	fmt.Printf("response: %v %v %v\n", pt, string(data), err)
 
-	// Output: handle success: true
+	// Output: makeSetupHandlersEnv success: true
+	// handle success: true
 	// response: RespFailure "json: cannot unmarshal string into Go value of type []routing.Rule" <nil>
 
 }
@@ -168,7 +169,7 @@ func TestRouterCloseLoop(t *testing.T) {
 			return
 		}
 
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRespond {
+		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRemote {
 			errCh <- errors.New("invalid payload")
 			return
 		}
@@ -180,17 +181,30 @@ func TestRouterCloseLoop(t *testing.T) {
 
 }
 
-// This test is mmeaningless now
+// This test is mostly mmeaningless now - expiration is done by RoutingTableManager
 func TestRouterRouteExpiration(t *testing.T) {
-	env, err := makeMockRouterEnv()
-	require.NoError(t, err)
 
-	go env.r.Serve(context.TODO(), env.pm) // nolint
+	envSh, err := makeSetupHandlersEnv()
+	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
 
-	time.Sleep(110 * time.Millisecond)
+	// Add expired ForwardRule
+	trID := uuid.New()
+	expireAt := time.Now().Add(-10 * time.Millisecond)
+	rules := []routing.Rule{
+		routing.ForwardRule(expireAt, 2, trID),
+	}
+	_, err = envSh.sh.addRules(rules)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, envSh.env.routingTable.Count())
 
-	assert.Equal(t, 1, env.rt.Count())
-	require.NoError(t, env.r.Close())
+	// Set RoutingTableManager ticker to fast cleanup
+	envSh.env.rtm.ticker = time.NewTicker(10 * time.Millisecond)
+	go envSh.env.r.Serve(context.TODO(), envSh.env.pm) // nolint
+
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, envSh.env.routingTable.Count())
+	// require.NoError(t, envSh.env.r.Close())
 }
 
 func TestRouterAncientTest(t *testing.T) {
@@ -221,7 +235,7 @@ func TestRouterAncientTest(t *testing.T) {
 			return
 		}
 
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRespond {
+		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRemote {
 			errCh <- errors.New("invalid payload")
 			return
 		}
