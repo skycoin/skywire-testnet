@@ -14,19 +14,36 @@ import (
 // TestPrefixedConn_Read reads data from the butter pushed in by
 // the Original connection
 func TestPrefixedConn_Read(t *testing.T) {
-	var c io.Writer
-	var readBuf bytes.Buffer
 
-	pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
+	t.Run("successful prefixedConn read", func(t *testing.T) {
+		var c io.Writer
+		var readBuf bytes.Buffer
 
-	pc.readBuf.WriteString("foo")
+		pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
 
-	bs := make([]byte, 3)
-	n, err := pc.Read(bs)
+		pc.readBuf.WriteString("foo")
 
-	require.NoError(t, err)
-	assert.Equal(t, 3, n)
-	assert.Equal(t, []byte("foo"), bs)
+		bs := make([]byte, 3)
+		n, err := pc.Read(bs)
+
+		require.NoError(t, err)
+		assert.Equal(t, 3, n)
+		assert.Equal(t, []byte("foo"), bs)
+	})
+
+	t.Run("empty buffer prefixedConn read", func(t *testing.T) {
+		var c io.Writer
+		var readBuf bytes.Buffer
+
+		pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
+
+		var bs []byte
+		n, err := pc.Read(bs)
+
+		require.NoError(t, err)
+		assert.Equal(t, 0, n)
+		assert.Equal(t, []byte(nil), bs)
+	})
 
 }
 
@@ -52,8 +69,9 @@ func TestPrefixedConn_Write(t *testing.T) {
 // a prefix of 0 and wrote a msg "foo" with byte size of 3.
 // 1) Prefix: Want(0) -- Got(0)
 // 2) size: Want(3) -- Got(3)
-func TestReadHeader(t *testing.T) {
+func TestRPCDuplex_ReadHeader(t *testing.T) {
 	// errCh := make(chan error)
+	buf := make([]byte, defaultByteSize)
 	connA, connB := net.Pipe()
 	defer connA.Close()
 	defer connB.Close()
@@ -76,17 +94,19 @@ func TestReadHeader(t *testing.T) {
 	assert.Equal(t, byte(0), prefix)
 	assert.Equal(t, uint16(len(msg)), size)
 	// require.NoError(t, <-errCh)
+
+	// To prevent read/write on closed pipe
+	connB.Read(buf)
 }
 
-// TestForward forwards data based on the prefix to appropriate prefixedConn
-//
-// Case Tested: aDuplex's clientConn is the initiator and has a prefix of 0
-// and wrote a msg "foo" with byte size of 3 to bDuplex's serverConn
-// 1) Msg: Want("foo") -- Got("foo")
-func TestForward(t *testing.T) {
+// TestRPCDuplex_Forward forwards data based on the prefix to appropriate prefixedConn
+func TestRPCDuplex_Forward(t *testing.T) {
 
+	// Case Tested: aDuplex's clientConn is the initiator and has a prefix of 0
+	// and wrote a msg "foo" with byte size of 3 to bDuplex's serverConn
+	// 1) Msg: Want("No error") -- Got("No error")
 	t.Run("aDuplex's clientConn is Initiator", func(t *testing.T) {
-		errCh := make(chan error)
+
 		connA, connB := net.Pipe()
 		defer connA.Close()
 		defer connB.Close()
@@ -95,20 +115,43 @@ func TestForward(t *testing.T) {
 		bDuplex := NewRPCDuplex(connB, false)
 
 		msg := []byte("foo")
-
 		go func() {
 			_, err := aDuplex.clientConn.Write(msg)
 			if err != nil {
 				log.Fatalln("Error writing from conn", err)
 			}
-			errCh <- err
 		}()
 
 		prefix, size := bDuplex.ReadHeader()
+		err := bDuplex.Forward(prefix, size)
+		require.NoError(t, err)
 
-		buf := bDuplex.Forward(prefix, size)
-		assert.Equal(t, "foo", string(buf))
-		require.NoError(t, <-errCh)
+	})
+
+	// Case Tested: bDuplex's clientConn is the initiator and has a prefix of 1
+	// and wrote a msg "foo" with byte size of 3 to aDuplex's serverConn
+	// 1) Msg: Want("No error") -- Got("No error")
+	t.Run("bDuplex's clientConn is Initiator", func(t *testing.T) {
+
+		connA, connB := net.Pipe()
+		defer connA.Close()
+		defer connB.Close()
+
+		aDuplex := NewRPCDuplex(connA, true)
+		bDuplex := NewRPCDuplex(connB, false)
+
+		msg := []byte("foo")
+		go func() {
+			_, err := bDuplex.clientConn.Write(msg)
+			if err != nil {
+				log.Fatalln("Error writing from conn", err)
+			}
+		}()
+
+		prefix, size := aDuplex.ReadHeader()
+		err := aDuplex.Forward(prefix, size)
+		require.NoError(t, err)
+
 	})
 
 }

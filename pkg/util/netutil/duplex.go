@@ -3,15 +3,29 @@ package netutil
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"log"
 	"net"
 	"time"
 )
 
-// By default bufio.Writer uses 4096 bytes long buffer as per
-// https://github.com/golang/go/blob/c6c0f47e92771c9b4fced87b94c04f66e5d6eba5/src/bufio/bufio.go#L18
-const defaultByteSize = 4096
+// ==========================================================================================================================
+// 	RPCDuplex Logic
+// ==========================================================================================================================
+//
+// 			   --------------------------------------------------------------------------------------------------------------
+// 			   | PrefixedConn																		   ------------------	|
+// 			   |					     ----------------											   |				|	|
+// 	 <--- Read | <----------------- Read |    Buffer    | <---Write <---------- -prefix <-------- Read | 	Original	|	|
+// 			   |						 ----------------											   | 	Conn		|	|
+// 			   |																					   |				|	|
+//   ---> Write|-------------------- +prefix --------------------------------------------------> Write |				|	|
+// 			   |																					   ------------------	|
+// 			   |																											|
+// 			   --------------------------------------------------------------------------------------------------------------
+
+const defaultByteSize = 3
 
 // PrefixedConn will inherit the net.Conn interface.
 type PrefixedConn struct {
@@ -71,66 +85,83 @@ func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 }
 
 // Forward forwards data from Original conn to PrefixedConn given the prefix
-func (d *RPCDuplex) Forward(prefix byte, size uint16) []byte {
+// ---------------------------------------------------------------------
+// A Initiator (0-prefixed) -> B (0-prefixed): A talks to B's RPC server
+// A Initiator (1-prefixed) -> B (1-prefixed): A talks to B's RPC client
+// A (0-prefixed) <- B Initiator (0-prefixed): B talks to A's RPC server
+// A (1-prefixed) <- B Initiator (1-prefixed): B talks to A's RPC client
+func (d *RPCDuplex) Forward(prefix byte, size uint16) error {
 
 	// Using the original conn to push data into the buffer
 	buf := make([]byte, defaultByteSize)
-	_, err := d.conn.Read(buf)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	c := make(chan []byte)
 
-	// ====================
-	// FORWARDING LOGIC
-	// ====================
-	// A Initiator (0-prefixed) -> B (0-prefixed): A talks to B's RPC server
-	// A Initiator (1-prefixed) -> B (1-prefixed): A talks to B's RPC client
-	// A (0-prefixed) <- B Initiator (0-prefixed): B talks to A's RPC server
-	// A (1-prefixed) <- B Initiator (1-prefixed): B talks to A's RPC client
+	// Event loop Testing
+	go func(buf []byte) {
 
-	if (prefix == 0 && d.serverConn.prefix == 0) || (prefix == 1 && d.serverConn.prefix == 1) {
-		d.serverConn.readBuf.Write(buf)
+		for {
+			_, err := d.conn.Read(buf)
+			switch err {
+			case nil:
+				c <- buf
+			case io.EOF:
+				continue
+			default:
+				log.Fatalln(err)
+			}
+		}
+	}(buf)
+
+	buf = <-c
+
+	if prefix == d.serverConn.prefix {
 		_, err := d.serverConn.Read(buf[:size])
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		// log.Println("PrefixedConn.serverConn:", n)
-		// log.Println("PrefixedConn.serverConn:", string(buf))
-
-	} else if (prefix == 1 && d.clientConn.prefix == 1) || (prefix == 0 && d.clientConn.prefix == 0) {
-		d.clientConn.readBuf.Write(buf)
+		return err
+	} else if prefix == d.clientConn.prefix {
 		_, err := d.clientConn.Read(buf[:size])
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		// log.Println("PrefixedConn.clientConn:", n)
-		// log.Println("PrefixedConn.clientConn:", string(buf))
+		return err
+	} else {
+		log.Fatalln(errors.New("error encountered while forwarding packets"))
 	}
 
-	return buf[:size]
+	return nil
 
 }
 
 // Read reads in prefixed data from root connection
 func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 
-	// The bytes.Buffer readBuf reads data into b
-	n, err = pc.readBuf.Read(b)
-
+	// readBuf takes the data from OriginalConn and writes it into the buffer
+	_, err = pc.readBuf.Write(b)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	return n, err
+	// The bytes.Buffer readBuf then reads this data back into b
+	for {
+		n, err = pc.readBuf.Read(b)
+		switch err {
+		case nil:
+			// log.Println("bytes read:", n)
+			// log.Println("msg in b:", string(b))
+			return n, err
+		case io.EOF:
+			// log.Println("bytes read:", n)
+			// log.Println("msg in b:", string(b))
+			// log.Println("empty Buffer", io.EOF)
+			continue
+		default:
+			log.Fatalln(err)
+			return n, err
+		}
+	}
+
 }
 
 // Write prefixes data to the connection and then writes this prefixed data to the root connection.
 func (pc *PrefixedConn) Write(b []byte) (n int, err error) {
 
-	buf := make([]byte, 3)
+	buf := make([]byte, defaultByteSize)
 	buf[0] = byte(pc.prefix)
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(b)))
 
