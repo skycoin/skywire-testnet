@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/noise"
-	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -53,6 +51,22 @@ func ExampleNew() {
 	// Output: Router created: true
 }
 
+func Example_router_setupProto() {
+
+	env, err := makeMockRouterEnv()
+	fmt.Printf("Environment created: %v\n", err == nil)
+
+	pr, tr, err := env.r.setupProto(context.TODO())
+
+	fmt.Printf("Protocol: %T\nTransport %T\nerror: %v\n", pr, tr, err)
+
+	// Output: Environment created: true
+	// Protocol: *setup.Protocol
+	// Transport *transport.ManagedTransport
+	// error: <nil>
+
+}
+
 func Example_router() {
 
 	logger := logging.MustGetLogger("router")
@@ -88,109 +102,19 @@ func Example_router() {
 // TODO(alex): test for existing transport
 func Example_router_ForwardPacket() {
 
-	// r := makeMockRouter()
-	env, _ := makeMockEnv()
-	r := env.r
+	env, err := makeMockEnv()
+	fmt.Printf("makeMockeEnv success: %v\n", err == nil)
 
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
 	fwdRule := routing.ForwardRule(expireAt, 2, trID)
 
 	payload := []byte("ForwardPacket")
-	if err := r.ForwardPacket(fwdRule.TransportID(), fwdRule.RouteID(), payload); err != nil {
+	if err := env.r.ForwardPacket(fwdRule.TransportID(), fwdRule.RouteID(), payload); err != nil {
 		fmt.Printf("router.ForwardPacket error: %v\n", err)
 	}
 
 	// Output: router.ForwardPacket error: transport not found
-}
-
-func Example_router_FetchRouteAndSetupLoop() {
-
-	r := makeMockRouter()
-
-	initPK, initSK, _ := cipher.GenerateDeterministicKeyPair([]byte("init")) // nolint: errcheck
-	respPK, _, _ := cipher.GenerateDeterministicKeyPair([]byte("resp"))      // nolint: errcheck
-
-	// prepare noise
-	ns, err := noise.KKAndSecp256k1(noise.Config{
-		LocalPK:   initPK,
-		LocalSK:   initSK,
-		RemotePK:  respPK,
-		Initiator: true,
-	})
-	if err != nil {
-		fmt.Printf("noise.KKAndSecp256k1 error: %v\n", err)
-	}
-	msg, err := ns.HandshakeMessage()
-	if err != nil {
-		fmt.Printf("ns.HandshakeMessage error: %v\n", err)
-	}
-
-	// allocate local listening port for the new loop
-	// lPort := ar.pm.AllocPort(ar.pid)
-
-	lm := app.LoopMeta{
-		Local:  app.LoopAddr{PubKey: initPK, Port: 0},
-		Remote: app.LoopAddr{PubKey: respPK, Port: 0},
-	}
-
-	err = r.FindRoutesAndSetupLoop(lm, msg)
-	fmt.Printf("FindRoutesAndSetupLoop error: %v\n", err)
-
-	// Output: FindRoutesAndSetupLoop error: route setup: no nodes
-}
-
-func Example_router_CloseLoop() {
-	r := makeMockRouter()
-	// env, _ := makeMockEnv()
-	// r := env.r
-
-	initPK, _, _ := cipher.GenerateDeterministicKeyPair([]byte("init")) // nolint: errcheck
-	respPK, _, _ := cipher.GenerateDeterministicKeyPair([]byte("resp")) // nolint: errcheck
-
-	lm := app.LoopMeta{
-		Local:  app.LoopAddr{PubKey: initPK, Port: 0},
-		Remote: app.LoopAddr{PubKey: respPK, Port: 0},
-	}
-
-	err := r.CloseLoop(lm)
-	fmt.Printf("CloseLoop error: %v\n", err)
-
-	// Output: CloseLoop error: route setup: no nodes
-}
-
-func Example_router_handleTransport() {
-	env, err := makeMockEnv()
-	if err != nil {
-		fmt.Printf("makeMockEnv: %v\n", err)
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- env.r.handleTransport(env.pm, env.connInit)
-	}()
-
-	time.Sleep(time.Second)
-	close(errCh)
-
-	// Output:
-}
-
-func Example_router_Serve() {
-	env, err := makeMockEnv()
-	if err != nil {
-		fmt.Printf("makeMockEnv: %v\n", err)
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- env.r.Serve(context.TODO(), env.pm)
-	}()
-
-	time.Sleep(time.Second)
-	close(errCh)
-	// fmt.Printf("r.Serve: %v\n", <-errCh)
-	// Output:
 }
 
 func Example_router_handleSetup() {
@@ -308,7 +232,8 @@ func TestRouterAncientTest(t *testing.T) {
 	// rw, rwIn := net.Pipe()
 	// // go r.ServeApp(rwIn, 5) // nolint: errcheck
 
-	go env.r.Serve(context.TODO(), env.pm)
+	go env.r.Serve(context.TODO(), env.pm) // nolint: errcheck
+
 	// proto := appnet.NewProtocol(rw)
 	// go proto.Serve(nil) // nolint: errcheck
 

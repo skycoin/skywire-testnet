@@ -79,16 +79,16 @@ func (r *router) Serve(ctx context.Context, pm ProcManager) error {
 					return
 				}
 				if !rh.isSetup(tp) {
-					go rh.serve(tp, r.handleTransport)
+					go rh.serve(tp, r.handleTransport) //nolint: errcheck
 				} else {
-					go rh.serve(tp, r.handleSetup)
+					go rh.serve(tp, r.handleSetup) //nolint: errcheck
 				}
 			case tp, ok := <-dialCh:
 				if !ok {
 					return
 				}
 				if !rh.isSetup(tp) {
-					go rh.serve(tp, r.handleTransport)
+					go rh.serve(tp, r.handleTransport) //nolint: errcheck
 				}
 			}
 		}

@@ -22,43 +22,13 @@ type mockRouterEnv struct {
 	tpmLocal *transport.Manager
 	tpmSetup *transport.Manager
 
+	pkLocal   cipher.PubKey
+	skLocal   cipher.SecKey
 	pkSetup   cipher.PubKey
 	pkRespond cipher.PubKey
 
-	rt routing.Table
-
+	rt      routing.Table
 	routeID routing.RouteID
-}
-
-//TODO(alex): throw away this
-func makeMockRouter() *router {
-	logger := logging.MustGetLogger("router")
-
-	pk, sk := cipher.GenerateKeyPair()
-
-	// TODO(alexyu): SetupNodes
-
-	conf := &Config{
-		PubKey:     pk,
-		SecKey:     sk,
-		SetupNodes: []cipher.PubKey{},
-	}
-
-	// TODO(alexyu):  This mock must be simplified
-	_, tpm, _ := transport.MockTransportManager() //nolint: errcheck
-	rtm := NewRoutingTableManager(
-		logging.MustGetLogger("rt_manager"),
-		routing.InMemoryRoutingTable(),
-		DefaultRouteKeepalive,
-		DefaultRouteCleanupDuration)
-
-	return &router{
-		log:  logger,
-		conf: conf,
-		tpm:  tpm,
-		rtm:  rtm,
-		rfc:  routeFinder.NewMock(),
-	}
 }
 
 type mockEnv struct {
@@ -75,7 +45,6 @@ type mockEnv struct {
 
 func makeMockEnv() (*mockEnv, error) {
 
-	// r := makeMockRouter()
 	env, err := makeMockRouterEnv()
 	if err != nil {
 		return &mockEnv{}, err
@@ -103,9 +72,9 @@ func makeMockRouterEnv() (*mockRouterEnv, error) {
 	rfc := routeFinder.NewMock()
 	logStore := transport.InMemoryTransportLogStore()
 
-	pkLocal, skLocal, _ := cipher.GenerateDeterministicKeyPair([]byte("local"))
-	pkSetup, skSetup, _ := cipher.GenerateDeterministicKeyPair([]byte("setup"))
-	pkRespond, _, _ := cipher.GenerateDeterministicKeyPair([]byte("respond"))
+	pkLocal, skLocal, _ := cipher.GenerateDeterministicKeyPair([]byte("local")) // nolint: errcheck
+	pkSetup, skSetup, _ := cipher.GenerateDeterministicKeyPair([]byte("setup")) // nolint: errcheck
+	pkRespond, _, _ := cipher.GenerateDeterministicKeyPair([]byte("respond"))   // nolint: errcheck
 
 	fLocal, fSetup := transport.NewMockFactoryPair(pkLocal, pkSetup)
 	fLocal.SetType("messaging")
@@ -154,6 +123,8 @@ func makeMockRouterEnv() (*mockRouterEnv, error) {
 		tpmSetup: tpmSetup,
 		tpmLocal: tpmLocal,
 
+		pkLocal:   pkLocal,
+		skLocal:   skLocal,
 		pkSetup:   pkSetup,
 		pkRespond: pkRespond,
 

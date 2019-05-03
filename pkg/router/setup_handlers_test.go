@@ -62,17 +62,18 @@ func Example_setupHandlers_addRules() {
 	}
 	defer env.TearDown()
 
-	// Use addRulesFunc
+	// Add ForwardRule
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
 	rules := []routing.Rule{
 		routing.ForwardRule(expireAt, 2, trID),
+		routing.AppRule(time.Now(), 3, env.pkRespond, 3, 2),
 	}
 	rID, err := env.sh.addRules(rules)
 
 	fmt.Printf("routeId, err: %v, %v\n", rID, err)
 
-	// Output: routeId, err: [2], <nil>
+	// Output: routeId, err: [2 3], <nil>
 }
 
 func Example_setupHandlers_deleteRules() {
@@ -117,9 +118,9 @@ func Example_setupHandlers_confirmLoop() {
 
 	unknownLoopData := setup.LoopData{
 		RemotePK:     pk,
-		RemotePort:   0,
-		LocalPort:    0,
-		RouteID:      routing.RouteID(0),
+		RemotePort:   3,
+		LocalPort:    2,
+		RouteID:      routing.RouteID(1),
 		NoiseMessage: []byte{},
 	}
 
