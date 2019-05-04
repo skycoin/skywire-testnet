@@ -9,8 +9,8 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
-func rhTestEnvironment() (*testEnv, error) {
-	env := &testEnv{}
+func rhTestEnvironment() (*TEnv, error) {
+	env := &TEnv{}
 	_, err := env.runSteps(
 		GenKeys(),
 		AddTransportManagers(),
@@ -22,21 +22,21 @@ func rhTestEnvironment() (*testEnv, error) {
 
 func Example_makeRouterHandlers() {
 	env, err := rhTestEnvironment()
-	fmt.Printf("testEnv creation success: %v\n", err == nil)
+	fmt.Printf("TEnv creation success: %v\n", err == nil)
 	defer env.TearDown()
 
 	rh := makeRouterHandlers(env.R, env.procMgr)
 	fmt.Printf("isSetup: %T\n", rh.isSetup)
 	fmt.Printf("serve: %T\n", rh.serve)
 
-	// Output: testEnv creation success: true
+	// Output: TEnv creation success: true
 	// isSetup: func(transport.Transport) bool
 	// serve: func(transport.Transport, router.handlerFunc) error
 }
 
 func Example_routerHandlers_isSetup() {
 	env, err := rhTestEnvironment()
-	fmt.Printf("testEnv creation success: %v\n", err == nil)
+	fmt.Printf("TEnv creation success: %v\n", err == nil)
 	defer env.TearDown()
 
 	trFalse := transport.NewMockTransport(nil, env.pkLocal, env.pkRemote)
@@ -48,14 +48,14 @@ func Example_routerHandlers_isSetup() {
 	fmt.Printf("rh.isSetup(trFalse): %v\n", rh.isSetup(trFalse))
 	fmt.Printf("rh.isSetup(trNotOk): %v\n", rh.isSetup(trNotOk))
 
-	// Output: testEnv creation success: true
+	// Output: TEnv creation success: true
 	// rh.isSetup(trTrue): true
 	// rh.isSetup(trFalse): false
 	// rh.isSetup(trNotOk): false
 }
 
 func Example_routerHandlers_serve() {
-	env := &testEnv{}
+	env := &TEnv{}
 	env.runSteps(
 		GenKeys(),
 		AddTransportManagers(),

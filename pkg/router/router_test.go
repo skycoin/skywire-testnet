@@ -118,21 +118,21 @@ func Example_router_ForwardPacket() {
 
 func Example_router_handleSetup() {
 
-	env := &testEnv{}
+	env := &TEnv{}
 	_, err := env.runSteps(
 		GenKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		AddSetupHandlersEnv(),
 	)
-	fmt.Printf("testEnv.runSteps success: %v\n", err == nil)
+	fmt.Printf("TEnv.runSteps success: %v\n", err == nil)
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- env.R.handleSetup(env.procMgr, env.SH.connInit)
+		errCh <- env.R.handleSetup(env.procMgr, env.connInit)
 	}()
 
-	sprotoInit := setup.NewSetupProtocol(env.SH.connResp)
+	sprotoInit := setup.NewSetupProtocol(env.connResp)
 	sprotoInit.WritePacket(setup.PacketType(0), "Hello") //nolint: errcheck
 	pt, data, err := sprotoInit.ReadPacket()
 	fmt.Printf("handle success: %v\n", <-errCh == nil)
@@ -187,7 +187,7 @@ func TestRouterCloseLoop(t *testing.T) {
 // This test is mostly mmeaningless now - expiration is done by RoutingTableManager
 func TestRouterRouteExpiration(t *testing.T) {
 
-	env := &testEnv{}
+	env := &TEnv{}
 	_, err := env.runSteps(
 		GenKeys(),
 		AddTransportManagers(),
@@ -195,7 +195,7 @@ func TestRouterRouteExpiration(t *testing.T) {
 		StartSetupTransportManager(),
 		AddSetupHandlersEnv(),
 	)
-	fmt.Printf("testEnv success: %v\n", err == nil)
+	fmt.Printf("TEnv success: %v\n", err == nil)
 	defer env.TearDown()
 
 	// Add expired ForwardRule
@@ -204,7 +204,7 @@ func TestRouterRouteExpiration(t *testing.T) {
 	rules := []routing.Rule{
 		routing.ForwardRule(expireAt, 2, trID),
 	}
-	_, err = env.SH.stpHandlers.addRules(rules)
+	_, err = env.stpHandlers.addRules(rules)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, env.routingTable.Count())

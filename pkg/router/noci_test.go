@@ -10,8 +10,8 @@ import (
 	"github.com/skycoin/skywire/pkg/app"
 )
 
-func routerTestEnv() (env *testEnv, err error) {
-	env = &testEnv{}
+func routerTestEnv() (env *TEnv, err error) {
+	env = &TEnv{}
 	_, err = env.runSteps(
 		ChangeLogLevel("error"),
 		GenKeys(),
@@ -28,7 +28,7 @@ func Example_router_handleTransport() {
 	fmt.Printf("routerTestEnv success: %v\n", err == nil)
 
 	go func() {
-		err = env.R.handleTransport(env.procMgr, env.SH.connInit)
+		err = env.R.handleTransport(env.procMgr, env.connInit)
 		fmt.Printf("handleTransport success: %v\n", err == nil)
 	}()
 
@@ -38,10 +38,10 @@ func Example_router_handleTransport() {
 }
 
 func Example_router_CloseLoop() {
-	env, err := makeMockRouterEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
-	// env, _ := makeMockEnv()
-	r := env.r
+	env, err := routerTestEnv()
+	fmt.Printf("routerTestEnv success: %v\n", err == nil)
+
+	r := env.R
 
 	lm := app.LoopMeta{
 		Local:  app.LoopAddr{PubKey: env.pkLocal, Port: 0},

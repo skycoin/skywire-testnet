@@ -13,17 +13,8 @@ import (
 	"github.com/skycoin/skywire/pkg/setup"
 )
 
-type mockShEnv struct {
-	// env *testEnv
-	stpHandlers setupHandlers
-
-	connResp   net.Conn
-	connInit   net.Conn
-	sprotoInit *setup.Protocol
-}
-
-func AddSetupHandlersEnv() envStep {
-	return func(env *testEnv) (stepname string, err error) {
+func AddSetupHandlersEnv() CfgStep {
+	return func(env *TEnv) (stepname string, err error) {
 		stepname = "AddSetupHandersEnv"
 
 		connInit, connResp := net.Pipe()
@@ -38,19 +29,16 @@ func AddSetupHandlersEnv() envStep {
 		if err != nil {
 			return
 		}
-
-		env.SH = &mockShEnv{
-			stpHandlers: stpHandlers,
-			connResp:    connResp,
-			connInit:    connInit,
-			sprotoInit:  sprotoInit,
-		}
+		env.stpHandlers = stpHandlers
+		env.connResp = connResp
+		env.connInit = connInit
+		env.sprotoInit = sprotoInit
 		return
 	}
 }
 
-func setupHandlersTestEnv() (env *testEnv, err error) {
-	env = &testEnv{}
+func setupHandlersTestEnv() (env *TEnv, err error) {
+	env = &TEnv{}
 	_, err = env.runSteps(
 		GenKeys(),
 		AddTransportManagers(),
@@ -60,57 +48,23 @@ func setupHandlersTestEnv() (env *testEnv, err error) {
 	return
 }
 
-// func makeSetupHandlersEnv() (*mockShEnv, error) {
-
-// 	env, err := makeMockRouterEnv()
-// 	if err != nil {
-// 		return &mockShEnv{}, err
-// 	}
-
-// 	connInit, connResp := net.Pipe()
-// 	sprotoInit := setup.NewSetupProtocol(connInit)
-
-// 	errCh := make(chan error, 1)
-// 	go func() {
-// 		errCh <- sprotoInit.WritePacket(setup.PacketType(42), []byte("Ultimate Answer"))
-// 	}()
-
-// 	sh, err := makeSetupHandlers(env.R, env.procMgr, connResp)
-// 	if err != nil {
-// 		return &mockShEnv{}, err
-// 	}
-
-// 	return &mockShEnv{
-// 		env:      env,
-// 		connResp: connResp,
-// 		connInit: connInit,
-// 		sh:       sh,
-// 	}, <-errCh
-// }
-
-func (SH *mockShEnv) TearDown() {
-	SH.connResp.Close()
-	SH.connInit.Close()
-	// SH.env.TearDown()
-}
-
 func Example_makeSetupHandlersEnv() {
 
 	env, err := setupHandlersTestEnv()
 
 	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
-	fmt.Printf("envSh.packetType: %v\n", env.SH.stpHandlers.packetType)
-	fmt.Printf("envSh.packetBody: %v\n", string(env.SH.stpHandlers.packetBody))
+	fmt.Printf("envSh.packetType: %v\n", env.stpHandlers.packetType)
+	fmt.Printf("envSh.packetBody: %v\n", string(env.stpHandlers.packetBody))
 	defer env.TearDown()
 
 	go func() {
-		if _, err = env.SH.connInit.Write([]byte("Hello")); err != nil {
+		if _, err = env.connInit.Write([]byte("Hello")); err != nil {
 			fmt.Println(err)
 		}
 	}()
 
 	var buf []byte
-	n, err := env.SH.connResp.Read(buf)
+	n, err := env.connResp.Read(buf)
 	fmt.Printf("envSh.connResp.Read: %v, %v, %v\n", string(buf), n, err == nil)
 
 	//Output: makeSetupHandlersEnv success: true
@@ -128,14 +82,14 @@ func Example_setupHandlers_reject() {
 	// Use reject func
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- env.SH.stpHandlers.reject(errors.New("reject test"))
+		errChan <- env.stpHandlers.reject(errors.New("reject test"))
 	}()
 
 	// Receve reject message
-	pt, data, err := env.SH.sprotoInit.ReadPacket()
+	pt, data, err := env.sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
-	// Output: makeSetupHandlersEnv success: true
+	// Output: setupHandlersTestEnv success: true
 	// RespFailure "reject test" <nil>
 }
 
@@ -147,11 +101,11 @@ func Example_setupHandlers_respondWith() {
 	// Use respondWith func
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- env.SH.stpHandlers.respondWith("Success test", nil)
+		errChan <- env.stpHandlers.respondWith("Success test", nil)
 	}()
 
 	// Receve respondWith message
-	pt, data, err := env.SH.sprotoInit.ReadPacket()
+	pt, data, err := env.sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
 	// Output: makeSetupHandlersEnv success: true
@@ -160,14 +114,14 @@ func Example_setupHandlers_respondWith() {
 
 func Example_setupHandlers_addRules() {
 
-	env := &testEnv{}
+	env := &TEnv{}
 	_, err := env.runSteps(
 		GenKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		AddSetupHandlersEnv(),
 	)
-	fmt.Printf("testEnv success: %v\n", err == nil)
+	fmt.Printf("TEnv success: %v\n", err == nil)
 
 	// Add ForwardRule
 	trID := uuid.New()
@@ -176,11 +130,11 @@ func Example_setupHandlers_addRules() {
 		routing.ForwardRule(expireAt, 2, trID),
 		routing.AppRule(time.Now(), 3, env.pkRemote, 3, 2),
 	}
-	rID, err := env.SH.stpHandlers.addRules(rules)
+	rID, err := env.stpHandlers.addRules(rules)
 
 	fmt.Printf("routeId, err: %v, %v\n", rID, err)
 
-	// Output: makeSetupHandlersEnv success: true
+	// Output: TEnv success: true
 	// routeId, err: [1 2], <nil>
 }
 
@@ -195,18 +149,18 @@ func Example_setupHandlers_deleteRules() {
 	rules := []routing.Rule{
 		routing.ForwardRule(expireAt, 2, trID),
 	}
-	routes, err := env.SH.stpHandlers.addRules(rules)
+	routes, err := env.stpHandlers.addRules(rules)
 	if err != nil {
 		fmt.Printf("error on addRules: %v\n", err)
 	}
 
-	deletedRoutes, err := env.SH.stpHandlers.deleteRules(routes)
+	deletedRoutes, err := env.stpHandlers.deleteRules(routes)
 	if err != nil {
 		fmt.Printf("error in deleteRules: %v\n", err)
 	}
 	fmt.Printf("deletedRoutes, err: %v, %v\n", deletedRoutes, err)
 
-	// Output: makeSetupHandlersEnv success: true
+	// Output: success: true
 	// deletedRoutes, err: [1], <nil>
 }
 
@@ -222,74 +176,73 @@ func Example_setupHandlers_loopClosed() {
 		NoiseMessage: []byte{},
 	}
 
-	loopClosedErr := env.SH.stpHandlers.loopClosed(unknownLoopData)
+	loopClosedErr := env.stpHandlers.loopClosed(unknownLoopData)
 	fmt.Printf("loopClosed(unknownLoopData): %v\n", loopClosedErr)
 
-	// Output: makeMockRouterEnv success: true
-	// makeSetupHandlersEnv success: true
+	// Output: setupHandlersTestEnv success: true
 	// loopClosed(unknownLoopData): proc not found
 }
 
-// WIP
 type handleTestCase struct {
 	packetType setup.PacketType
-	bodyFunc   func(*testEnv) (*testEnv, error)
+	bodyFunc   CfgStep
 }
 
 var handleTestCases = []handleTestCase{
 	handleTestCase{
 		packetType: setup.PacketAddRules,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
-
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/1", setup.PacketAddRules)
 			trID := uuid.New()
 			expireAt := time.Now().Add(2 * time.Minute)
 			rules := []routing.Rule{
 				routing.ForwardRule(expireAt, 2, trID),
 			}
 			body, err := json.Marshal(rules)
-			env.SH.stpHandlers.packetBody = body
-
-			return env, err
+			env.stpHandlers.packetBody = body
+			return
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketAddRules,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
-			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
-			return env, nil
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/2", setup.PacketAddRules)
+			env.stpHandlers.packetBody = []byte("invalid packet body")
+			return
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketDeleteRules,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/1", setup.PacketDeleteRules)
 			// add rules
 			trID := uuid.New()
 			expireAt := time.Now().Add(2 * time.Minute)
 			rules := []routing.Rule{
 				routing.ForwardRule(expireAt, 2, trID),
 			}
-			routes, err := env.SH.stpHandlers.addRules(rules)
+			routes, err := env.stpHandlers.addRules(rules)
 			if err != nil {
 				fmt.Printf("error on addRules: %v\n", err)
 			}
 
 			body, err := json.Marshal(routes)
-
-			env.SH.stpHandlers.packetBody = body
-			return env, err
+			env.stpHandlers.packetBody = body
+			return
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketDeleteRules,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
-			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
-			return env, nil
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/2", setup.PacketDeleteRules)
+			env.stpHandlers.packetBody = []byte("invalid packet body")
+			return
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketConfirmLoop,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
-
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/1", setup.PacketConfirmLoop)
 			loopData := setup.LoopData{
 				RemotePK:     env.pkLocal,
 				RemotePort:   0,
@@ -299,20 +252,22 @@ var handleTestCases = []handleTestCase{
 			}
 			body, err := json.Marshal(loopData)
 
-			env.SH.stpHandlers.packetBody = body
-			return env, err
+			env.stpHandlers.packetBody = body
+			return
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketConfirmLoop,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
-			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
-			return env, nil
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/2", setup.PacketConfirmLoop)
+			env.stpHandlers.packetBody = []byte("invalid packet body")
+			return
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketLoopClosed,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/1", setup.PacketLoopClosed)
 
 			unknownLoopData := setup.LoopData{
 				RemotePK:     env.pkRemote,
@@ -323,23 +278,25 @@ var handleTestCases = []handleTestCase{
 			}
 			body, err := json.Marshal(unknownLoopData)
 
-			env.SH.stpHandlers.packetBody = body
-			return env, err
+			env.stpHandlers.packetBody = body
+			return
 
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketLoopClosed,
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
-			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
-			return env, nil
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = fmt.Sprintf("%v/2", setup.PacketLoopClosed)
+			env.stpHandlers.packetBody = []byte("invalid packet body")
+			return
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketType(42),
-		bodyFunc: func(env *testEnv) (*testEnv, error) {
-			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
-			return env, nil
+		bodyFunc: func(env *TEnv) (testName string, err error) {
+			testName = string(setup.PacketType(42))
+			env.stpHandlers.packetBody = []byte("invalid packet body")
+			return
 		},
 	},
 }
@@ -348,46 +305,45 @@ func Example_handle() {
 	fmt.Println("Start")
 	for _, tc := range handleTestCases {
 
-		env := &testEnv{}
+		env := &TEnv{}
 		_, err := env.runSteps(
 			GenKeys(),
 			AddTransportManagers(),
 			AddProcManagerAndRouter(),
 			AddSetupHandlersEnv(),
 		)
-		// envSh, err := makeSetupHandlersEnv()
 		if err != nil {
 			fmt.Println(err)
 		}
 		defer env.TearDown()
 
-		env, err = tc.bodyFunc(env)
+		testName, err := tc.bodyFunc(env)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}
 
 		errCh := make(chan error, 1)
 		go func() {
-			env.SH.stpHandlers.packetType = tc.packetType
-			errCh <- env.SH.stpHandlers.handle()
+			env.stpHandlers.packetType = tc.packetType
+			errCh <- env.stpHandlers.handle()
 		}()
 
-		pt, data, err := env.SH.sprotoInit.ReadPacket()
-		fmt.Printf("response: %v %v %v\n", pt, string(data), err)
+		pt, data, err := env.sprotoInit.ReadPacket()
+		fmt.Printf("Test %v response: %v %v %v\n", testName, pt, string(data), err)
 
 	}
 	fmt.Println("Finish")
 
 	// Output: Start
-	// response: RespSuccess [1] <nil>
-	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
-	// response: RespSuccess [1] <nil>
-	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
-	// response: RespFailure "unknown loop" <nil>
-	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
-	// response: RespFailure "proc not found" <nil>
-	// response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
-	// response: RespFailure "unknown foundation packet" <nil>
+	// Test AddRules/1 response: RespSuccess [1] <nil>
+	// Test AddRules/2 response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
+	// Test DeleteRules/1 response: RespSuccess [1] <nil>
+	// Test DeleteRules/2 response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
+	// Test ConfirmLoop/1 response: RespFailure "unknown loop" <nil>
+	// Test ConfirmLoop/2 response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
+	// Test LoopClosed/1 response: RespFailure "proc not found" <nil>
+	// Test LoopClosed/2 response: RespFailure "invalid character 'i' looking for beginning of value" <nil>
+	// Test * response: RespFailure "unknown foundation packet" <nil>
 	// Finish
 
 }

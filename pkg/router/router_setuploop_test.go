@@ -15,7 +15,7 @@ import (
 
 func Example_router_FindRouteAndSetupLoopEntrails() {
 
-	env := &testEnv{}
+	env := &TEnv{}
 	_, err := env.runSteps(
 		ChangeLogLevel("error"),
 		GenKeys(),
@@ -23,7 +23,7 @@ func Example_router_FindRouteAndSetupLoopEntrails() {
 		AddProcManagerAndRouter(),
 		StartSetupTransportManager(),
 	)
-	fmt.Printf("testEnv started: %v\n", err == nil)
+	fmt.Printf("TEnv started: %v\n", err == nil)
 
 	// prepare noise
 	ns, err := noise.KKAndSecp256k1(noise.Config{
@@ -76,7 +76,7 @@ func Example_router_FindRouteAndSetupLoopEntrails() {
 
 	time.Sleep(time.Second)
 
-	// Output: testEnv started: true
+	// Output: TEnv started: true
 	// fetchBestRoutes routing.Route routing.Route success: true
 	// setupProto *setup.Protocol *transport.ManagedTransport success:  true
 
