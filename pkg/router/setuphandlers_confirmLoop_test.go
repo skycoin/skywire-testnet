@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"reflect"
-	"runtime"
 	"testing"
 	"time"
 
@@ -21,8 +19,7 @@ import (
 )
 
 type confirmLoopEnv struct {
-	envSh *mockShEnv
-	env   *mockRouterEnv
+	env *testEnv
 
 	appRule    routing.Rule
 	appRtID    routing.RouteID
@@ -37,13 +34,19 @@ type confirmLoopEnv struct {
 
 func makeConfirmLoopEnv() (*confirmLoopEnv, error) {
 	loopEnv := &confirmLoopEnv{}
-	envSh, err := makeSetupHandlersEnv()
+	env := &testEnv{}
+	_, err := env.runSteps(
+		GenKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+
 	if err != nil {
 		return loopEnv, err
 	}
 
-	loopEnv.envSh = envSh
-	loopEnv.env = envSh.env
+	loopEnv.env = env
 
 	return loopEnv, nil
 }
@@ -57,19 +60,19 @@ func Example_makeConfirmLoopEnv() {
 }
 
 func (loopEnv *confirmLoopEnv) TearDown() {
-	loopEnv.envSh.TearDown()
+	loopEnv.env.TearDown()
 }
 
 // Subtests
 
-type subTest func(*confirmLoopEnv) (string, error)
+type loopSubTest func(*confirmLoopEnv) (string, error)
 
 // Preparation
 // Step 1: Rules and routes
-func AddRules() subTest {
-	return func(loopEnv *confirmLoopEnv) (subTestName string, err error) {
+func AddRules() loopSubTest {
+	return func(loopEnv *confirmLoopEnv) (loopSubTestName string, err error) {
 
-		subTestName = "1.1.AddRules/appRule"
+		loopSubTestName = "1.1.AddRules/appRule"
 		loopEnv.appRule = routing.AppRule(time.Now().Add(360*time.Second), 3, loopEnv.env.pkRemote, 3, 2)
 		_, err = loopEnv.env.rtm.AddRule(loopEnv.appRule)
 		if err != nil {
@@ -77,14 +80,14 @@ func AddRules() subTest {
 		}
 		// loopEnv.appRule = appRule
 
-		subTestName = "1.2.AddRules/fwdRule"
+		loopSubTestName = "1.2.AddRules/fwdRule"
 		fwdRule := routing.ForwardRule(time.Now().Add(360*time.Second), 3, uuid.New())
 		fwdRouteID, err := loopEnv.env.rtm.AddRule(fwdRule)
 		if err != nil {
 			return
 		}
 
-		subTestName = "1.AddRules"
+		loopSubTestName = "1.AddRules"
 		loopEnv.fwdRule = fwdRule
 		loopEnv.fwdRouteID = fwdRouteID
 
@@ -93,9 +96,9 @@ func AddRules() subTest {
 }
 
 // PrintRules - prints rules from Procmanager.RangeRules
-func PrintRules() subTest {
-	return func(loopEnv *confirmLoopEnv) (subTestName string, err error) {
-		subTestName = "PrintRules"
+func PrintRules() loopSubTest {
+	return func(loopEnv *confirmLoopEnv) (loopSubTestName string, err error) {
+		loopSubTestName = "PrintRules"
 		err = loopEnv.env.rtm.RangeRules(
 			func(routeID routing.RouteID, rule routing.Rule) (next bool) {
 				fmt.Printf("%v %v\n", routeID, rule)
@@ -108,47 +111,46 @@ func PrintRules() subTest {
 }
 
 // Step 2: LoopData
-func AddLoopData() subTest {
-	return func(loopEnv *confirmLoopEnv) (subTestName string, err error) {
-		envSh := loopEnv.envSh
+func AddLoopData() loopSubTest {
+	return func(loopEnv *confirmLoopEnv) (loopSubTestName string, err error) {
 
-		subTestName = "2.1.LoopData/noise.KKAndSecp256k1"
+		loopSubTestName = "2.1.LoopData/noise.KKAndSecp256k1"
 		ns, err := noise.KKAndSecp256k1(noise.Config{
-			LocalPK:   envSh.env.pkLocal,
-			LocalSK:   envSh.env.skLocal,
-			RemotePK:  envSh.env.pkRemote,
+			LocalPK:   loopEnv.env.pkLocal,
+			LocalSK:   loopEnv.env.skLocal,
+			RemotePK:  loopEnv.env.pkRemote,
 			Initiator: true,
 		})
 		if err != nil {
 			return
 		}
 
-		subTestName = "2.2.LoopData/ns.HandshakeMessage"
+		loopSubTestName = "2.2.LoopData/ns.HandshakeMessage"
 		nsRes, err := ns.HandshakeMessage()
 		if err != nil {
 			return
 		}
 		// LoopData
 		loopData := setup.LoopData{
-			RemotePK:     envSh.env.pkRemote,
+			RemotePK:     loopEnv.env.pkRemote,
 			RemotePort:   3,
 			LocalPort:    2,
 			RouteID:      loopEnv.fwdRouteID,
 			NoiseMessage: nsRes,
 		}
 
-		subTestName = "2.LoopData"
+		loopSubTestName = "2.LoopData"
 		loopEnv.loopData = loopData
 		return
 	}
 }
 
 // Step 3: Apps
-func AddApps(workdir string) subTest {
+func AddApps(workdir string) loopSubTest {
 	return func(loopEnv *confirmLoopEnv) (string, error) {
-		appMeta := &app.Meta{AppName: "helloworld", Host: loopEnv.envSh.env.pkLocal}
+		appMeta := &app.Meta{AppName: "helloworld", Host: loopEnv.env.pkLocal}
 
-		_, err := loopEnv.env.pm.RunProc(loopEnv.env.r, 2, appMeta, &app.ExecConfig{
+		_, err := loopEnv.env.procMgr.RunProc(loopEnv.env.R, 2, appMeta, &app.ExecConfig{
 			HostPK:  loopEnv.env.pkLocal,
 			HostSK:  loopEnv.env.skLocal,
 			WorkDir: filepath.Join(workdir),
@@ -161,21 +163,21 @@ func AddApps(workdir string) subTest {
 
 // Stage 2: Entrails of confirmLoop
 // Step 4: Check LoopData, routes
-func CheckRulesAndPorts() subTest {
-	return func(loopEnv *confirmLoopEnv) (subTestName string, err error) {
-		envSh := loopEnv.envSh
+func CheckRulesAndPorts() loopSubTest {
+	return func(loopEnv *confirmLoopEnv) (loopSubTestName string, err error) {
+		envSh := loopEnv.env.SH
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("error in %v", subTestName)
+				err = fmt.Errorf("error in %v", loopSubTestName)
 			}
 		}()
 
 		// Entrails of confirmLoop
-		loopMeta := makeLoopMeta(envSh.sh.r.conf.PubKey, loopEnv.loopData)
+		loopMeta := makeLoopMeta(loopEnv.env.R.conf.PubKey, loopEnv.loopData)
 		loopEnv.loopMeta = loopMeta
 
-		subTestName = "4.1.CheckRulesAndPorts/FindAppRule"
-		appRtID, appRule, ok := envSh.sh.r.rtm.FindAppRule(loopMeta)
+		loopSubTestName = "4.1.CheckRulesAndPorts/FindAppRule"
+		appRtID, appRule, ok := loopEnv.env.R.rtm.FindAppRule(loopMeta)
 		if !ok {
 			err = errors.New("AppRule not found")
 			return
@@ -183,14 +185,14 @@ func CheckRulesAndPorts() subTest {
 		loopEnv.appRtID = appRtID
 		loopEnv.appRule = appRule
 
-		subTestName = "4.2.CheckRulesAndPorts/FindFwdRule"
-		foundFwdRule, err := envSh.sh.r.rtm.FindFwdRule(loopEnv.loopData.RouteID)
+		loopSubTestName = "4.2.CheckRulesAndPorts/FindFwdRule"
+		foundFwdRule, err := loopEnv.env.R.rtm.FindFwdRule(loopEnv.loopData.RouteID)
 		if err != nil {
 			err = errors.New("FwdRule not found")
 			return
 		}
 
-		subTestName = "4.3.CheckRulesAndPorts/ProcOfPort"
+		loopSubTestName = "4.3.CheckRulesAndPorts/ProcOfPort"
 		proc, ok := envSh.sh.pm.ProcOfPort(loopMeta.Local.Port)
 		if !ok {
 			err = errors.New("ProcOfPort not found")
@@ -198,43 +200,39 @@ func CheckRulesAndPorts() subTest {
 		}
 		loopEnv.proc = proc
 
-		subTestName, _ = "4.4.CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.RouteID()
-		subTestName, _ = "4.5.CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.TransportID()
-		subTestName = "4.CheckRulesAndPorts"
+		loopSubTestName, _ = "4.4.CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.RouteID()
+		loopSubTestName, _ = "4.5.CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.TransportID()
+		loopSubTestName = "4.CheckRulesAndPorts"
 		return
 	}
 }
 
 // Step 5: ConfirmLoop and then SetRouteID & setRule
-func ConfirmLoopAndFinish() subTest {
-	return func(loopEnv *confirmLoopEnv) (subTestName string, err error) {
+func ConfirmLoopAndFinish() loopSubTest {
+	return func(loopEnv *confirmLoopEnv) (loopSubTestName string, err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("error in %v", subTestName)
+				err = fmt.Errorf("error in %v", loopSubTestName)
 			}
 		}()
 
-		subTestName = "5.1.ConfirmLoopAndFinish/ConfirmLoop"
+		loopSubTestName = "5.1.ConfirmLoopAndFinish/ConfirmLoop"
 		_, err = loopEnv.proc.ConfirmLoop(loopEnv.loopMeta, loopEnv.fwdRule.TransportID(), loopEnv.fwdRule.RouteID(), loopEnv.loopData.NoiseMessage)
 		if err != nil {
 			return
 		}
 
-		subTestName = "5.2.ConfirmLoopAndFinish/SetRouteID"
+		loopSubTestName = "5.2.ConfirmLoopAndFinish/SetRouteID"
 		loopEnv.appRule.SetRouteID(loopEnv.loopData.RouteID)
 
-		subTestName = "5.3.ConfirmLoopAndFinish/SetRule"
-		err = loopEnv.envSh.sh.r.rtm.SetRule(loopEnv.appRtID, loopEnv.appRule)
+		loopSubTestName = "5.3.ConfirmLoopAndFinish/SetRule"
+		err = loopEnv.env.R.rtm.SetRule(loopEnv.appRtID, loopEnv.appRule)
 
 		return
 	}
 }
 
-func GetFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
-}
-
-func (loopEnv *confirmLoopEnv) RunSubTests(t *testing.T, subtests ...subTest) {
+func (loopEnv *confirmLoopEnv) RunSubTests(t *testing.T, subtests ...loopSubTest) {
 	for _, st := range subtests {
 		t.Run(GetFunctionName(st), func(t *testing.T) {
 			subStep, err := st(loopEnv)
@@ -243,7 +241,7 @@ func (loopEnv *confirmLoopEnv) RunSubTests(t *testing.T, subtests ...subTest) {
 	}
 }
 
-func (loopEnv *confirmLoopEnv) RunSubExamples(verbose bool, subtests ...subTest) (err error) {
+func (loopEnv *confirmLoopEnv) RunSubExamples(verbose bool, subtests ...loopSubTest) (err error) {
 	for _, st := range subtests {
 		stepName, err := st(loopEnv)
 		if verbose {
@@ -324,7 +322,7 @@ func Example_setupHandlers_confirmLoop() {
 	)
 	fmt.Printf("Startup loopEnv: success = %v\n", err == nil)
 
-	sh := loopEnv.envSh.sh
+	sh := loopEnv.env.SH.stpHandlers
 	res, err := sh.confirmLoop(loopEnv.loopData)
 	fmt.Printf("confirmLoop(loopData): %v %v\n", res, err)
 

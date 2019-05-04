@@ -7,7 +7,7 @@ package router
 
 // 	errCh := make(chan error)
 // 	go func() {
-// 		errCh <- env.r.Serve(context.TODO(), env.pm)
+// 		errCh <- env.R.Serve(context.TODO(), env.procMgr)
 // 	}()
 
 // 	trLocal, err := env.tpmLocal.CreateTransport(context.TODO(), env.pkSetup, "messaging", true)

@@ -3,8 +3,12 @@ package router
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"runtime"
+	"testing"
 
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
@@ -12,109 +16,226 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
-type mockRouterEnv struct {
+type testEnv struct {
 	// Keys
 	pkLocal  cipher.PubKey
 	skLocal  cipher.SecKey
 	pkSetup  cipher.PubKey
+	skSetup  cipher.SecKey
 	pkRemote cipher.PubKey
-
 	// TransportManagers
 	tpmLocal *transport.Manager
 	tpmSetup *transport.Manager
-
+	rfc      routeFinder.Client
 	// routing.Table
 	routingTable routing.Table
 	rtm          *RoutingTableManager
-
 	// ProcManager and router
-	pm ProcManager
-	r  *router
+	procMgr ProcManager
+	R       *router
+
+	SH *mockShEnv
 }
 
-func (env *mockRouterEnv) StartSetupTpm() {
-	go env.tpmSetup.Serve(context.TODO()) // nolint: errcheck
+// envStep defines steps in creating test environments
+type envStep func(*testEnv) (testName string, err error)
+
+func (env *testEnv) runSteps(steps ...envStep) (stepName string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("error in %v", stepName)
+		}
+	}()
+	for _, step := range steps {
+		stepName, err = step(env)
+	}
+	return
 }
 
-func makeMockRouterEnv() (*mockRouterEnv, error) {
-	// PKs
-	pkLocal, skLocal, _ := cipher.GenerateDeterministicKeyPair([]byte("local")) // nolint: errcheck
-	pkSetup, skSetup, _ := cipher.GenerateDeterministicKeyPair([]byte("setup")) // nolint: errcheck
-	pkRemote, _, _ := cipher.GenerateDeterministicKeyPair([]byte("respond"))    // nolint: errcheck
+// envSteps collection
 
-	// discovery client, route finder client, logStore, logger
-	dClient := transport.NewDiscoveryMock()
-	rfc := routeFinder.NewMock()
-	logStore := transport.InMemoryTransportLogStore()
+// GenKeys generates Local, Setup and Remote keys for test environments
+func GenKeys() envStep {
+	return func(env *testEnv) (testName string, err error) {
+		testName = "GenKeys"
+		env.pkLocal, env.skLocal, _ = cipher.GenerateDeterministicKeyPair([]byte("local")) // nolint: errcheck
+		env.pkSetup, env.skSetup, _ = cipher.GenerateDeterministicKeyPair([]byte("setup")) // nolint: errcheck
+		env.pkRemote, _, _ = cipher.GenerateDeterministicKeyPair([]byte("remote"))         // nolint: errcheck
+		return
+	}
+}
 
-	// TransportFactories
-	fLocal, fSetup := transport.NewMockFactoryPair(pkLocal, pkSetup)
-	fLocal.SetType("messaging")
+// AddTransportManagers adds transport.Manager for Local and Setup
+func AddTransportManagers() envStep {
+	return func(env *testEnv) (testName string, err error) {
+		testName = "AddTransportManagers"
 
-	// TransportManagers
-	tpmLocal, err := transport.NewManager(&transport.ManagerConfig{PubKey: pkLocal, SecKey: skLocal, DiscoveryClient: dClient, LogStore: logStore}, fLocal)
+		dClient := transport.NewDiscoveryMock()
+		env.rfc = routeFinder.NewMock()
+		logStore := transport.InMemoryTransportLogStore()
+		// TransportFactories
+		fLocal, fSetup := transport.NewMockFactoryPair(env.pkLocal, env.pkSetup)
+		fLocal.SetType("messaging")
+		// TransportManagers
+		env.tpmLocal, err = transport.NewManager(&transport.ManagerConfig{
+			PubKey:          env.pkLocal,
+			SecKey:          env.skLocal,
+			DiscoveryClient: dClient,
+			LogStore:        logStore}, fLocal)
+		if err != nil {
+			return
+		}
+
+		env.tpmSetup, err = transport.NewManager(&transport.ManagerConfig{
+			PubKey:          env.pkSetup,
+			SecKey:          env.skSetup,
+			DiscoveryClient: dClient,
+			LogStore:        logStore}, fSetup)
+
+		return
+	}
+}
+
+// StartSetupTransportManager - starts TransportManager of Setup
+func StartSetupTransportManager() envStep {
+	return func(env *testEnv) (testName string, err error) {
+		go env.tpmSetup.Serve(context.TODO()) // nolint: errcheck
+		testName = "StartSetupTransportManager"
+		return
+	}
+}
+
+// AddProcManagerAndRouter adds to environment ProcManager and router with RoutingTableManager
+func AddProcManagerAndRouter() envStep {
+	return func(env *testEnv) (testName string, err error) {
+		testName = "ProcManagerAndRouter"
+
+		env.procMgr = NewProcManager(10)
+		logger := logging.MustGetLogger("testEnv")
+		conf := &Config{
+			PubKey:     env.pkLocal,
+			SecKey:     env.skLocal,
+			SetupNodes: []cipher.PubKey{env.pkSetup},
+		}
+		env.routingTable = routing.InMemoryRoutingTable()
+		env.rtm = NewRoutingTableManager(logger, env.routingTable, DefaultRouteKeepalive, DefaultRouteCleanupDuration)
+		env.R = &router{
+			log:  logger,
+			conf: conf,
+			tpm:  env.tpmLocal,
+			rtm:  env.rtm,
+			rfc:  env.rfc,
+		}
+		return
+	}
+}
+
+// TearDown - closes open connections, stops running processes
+func (env *testEnv) TearDown() error {
+	err := env.R.Close()
 	if err != nil {
-		return &mockRouterEnv{}, err
+		return err
 	}
-
-	tpmSetup, err := transport.NewManager(&transport.ManagerConfig{PubKey: pkSetup, SecKey: skSetup, DiscoveryClient: dClient, LogStore: logStore}, fSetup)
-	if err != nil {
-		return &mockRouterEnv{}, err
-	}
-
-	// RoutingTable
-	routingTable := routing.InMemoryRoutingTable()
-
-	// ProcManager & Router
-	pm := NewProcManager(10)
-	logger := logging.MustGetLogger("mockRouterEnv")
-	conf := &Config{
-		PubKey:     pkLocal,
-		SecKey:     skLocal,
-		SetupNodes: []cipher.PubKey{pkSetup},
-	}
-
-	rtm := NewRoutingTableManager(logger, routingTable, DefaultRouteKeepalive, DefaultRouteCleanupDuration)
-	r := &router{
-		log:  logger,
-		conf: conf,
-		tpm:  tpmLocal,
-		rtm:  rtm,
-		rfc:  rfc,
-	}
-
-	return &mockRouterEnv{
-		pkLocal:  pkLocal,
-		skLocal:  skLocal,
-		pkSetup:  pkSetup,
-		pkRemote: pkRemote,
-
-		tpmSetup: tpmSetup,
-		tpmLocal: tpmLocal,
-
-		routingTable: routingTable,
-		rtm:          rtm,
-
-		r:  r,
-		pm: pm,
-	}, nil
+	return env.procMgr.Close()
 }
 
-func (env *mockRouterEnv) TearDown() {
-	env.r.Close()
-	env.pm.Close()
+// TearDown - closes open connections, stops running processes
+func TearDown() envStep {
+	return func(env *testEnv) (testName string, err error) {
+		testName = "TearDown"
+		err = env.TearDown()
+		return
+	}
 }
 
-func Example_makeMockRouterEnv() {
-	env, err := makeMockRouterEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
-	defer env.TearDown()
+func ChangeLogLevel(logLevel string) envStep {
+	return func(env *testEnv) (testName string, err error) {
+		testName = "ChangeLogLevel"
+		lvl, err := logging.LevelFromString(logLevel) // nolint: errcheck
+		logging.SetLevel(lvl)
+		return
+	}
+}
 
-	fmt.Printf("PKs:\n pkLocal: %v\n pkSetup: %v\n pkRemote: %v\n", env.pkLocal, env.pkSetup, env.pkRemote)
+func makeMockRouterEnv() (env *testEnv, err error) {
+	env = &testEnv{}
+	_, err = env.runSteps(
+		ChangeLogLevel("error"),
+		GenKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+	)
+	return
+}
 
-	// Output: makeMockRouterEnv success: true
-	// PKs:
-	//  pkLocal: 0387935e7035f5bdffb0ec3e4c872bcc4c71d9c3372bf325e71dd5a4879f2939f7
-	//  pkSetup: 03c868f201347b705dd7c9282cce5586d61f92aeb0d6edf8c7f1c52b6f447dff94
-	//  pkRemote: 02b49835e8b6888bec290026ea81032f4da2c6195d25c74eccf50640bbdf49a3b5
+func Example_testEnv_runStepsAsExamples() {
+	env := &testEnv{}
+	_, err := env.runStepsAsExamples(true,
+		ChangeLogLevel("info"),
+		GenKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		TearDown(),
+	)
+	fmt.Printf("Success: %v\n", err == nil)
+
+	// Output: ChangeLogLevel success: true
+	// GenKeys success: true
+	// AddTransportManagers success: true
+	// ProcManagerAndRouter success: true
+	// TearDown success: true
+	// Success: true
+}
+
+// runStepsAsTests - runs envSteps in Test-form
+func (env *testEnv) runStepsAsTests(t *testing.T, steps ...envStep) (stepName string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("error in %v", stepName)
+		}
+	}()
+	for _, step := range steps {
+		t.Run(GetFunctionName(step), func(t *testing.T) {
+			stepName, err = step(env)
+			require.NoError(t, err, stepName)
+		})
+	}
+	return
+}
+
+// GetFunctionName gets a reflected function name
+func GetFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func Test_testEnv_runStepsAsTests(t *testing.T) {
+	env := &testEnv{}
+	_, err := env.runStepsAsTests(t,
+		ChangeLogLevel("info"),
+		GenKeys(),
+		AddTransportManagers(),
+		StartSetupTransportManager(),
+		AddProcManagerAndRouter(),
+		TearDown(),
+	)
+	fmt.Printf("Success: %v\n", err == nil)
+}
+
+// runStepsAsExamples - runs envSteps in Example-form
+func (env *testEnv) runStepsAsExamples(verbose bool, steps ...envStep) (stepName string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("error in %v", stepName)
+		}
+	}()
+	for _, step := range steps {
+		stepName, err = step(env)
+		if verbose {
+			fmt.Printf("%v success: %v\n", stepName, err == nil)
+		}
+		if err != nil {
+			return
+		}
+	}
+	return
 }

@@ -10,29 +10,31 @@ import (
 	"github.com/skycoin/skywire/pkg/app"
 )
 
-/* AlexYu:
-
-This is collection of broken tests.
-Commented lines under the code of each Example are additional test-comments
-
-*/
-
-// setup.CreateLoop success: true
+func routerTestEnv() (env *testEnv, err error) {
+	env = &testEnv{}
+	_, err = env.runSteps(
+		ChangeLogLevel("error"),
+		GenKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+	return
+}
 
 func Example_router_handleTransport() {
 
-	shEnv, err := makeSetupHandlersEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
+	env, err := routerTestEnv()
+	fmt.Printf("routerTestEnv success: %v\n", err == nil)
 
 	go func() {
-		err = shEnv.env.r.handleTransport(shEnv.env.pm, shEnv.connInit)
+		err = env.R.handleTransport(env.procMgr, env.SH.connInit)
 		fmt.Printf("handleTransport success: %v\n", err == nil)
 	}()
 
 	time.Sleep(time.Second)
 
 	// Output: makeMockRouterEnv success: true
-
 }
 
 func Example_router_CloseLoop() {
@@ -59,16 +61,14 @@ func Example_router_CloseLoop() {
 func Example_router_Serve() {
 	env, err := makeMockRouterEnv()
 	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
-	env.StartSetupTpm()
-	defer env.TearDown()
+	env.runSteps(StartSetupTransportManager())
 
 	go func() {
-		err = env.r.Serve(context.TODO(), env.pm)
+		err = env.R.Serve(context.TODO(), env.procMgr)
 		fmt.Printf("router.Serve success: %v\n", err)
 	}()
 
 	time.Sleep(time.Second)
 
 	// Output: makeMockRouterEnv success: true
-
 }

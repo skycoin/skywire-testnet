@@ -14,64 +14,103 @@ import (
 )
 
 type mockShEnv struct {
-	env *mockRouterEnv
-	sh  setupHandlers
+	// env *testEnv
+	stpHandlers setupHandlers
 
 	connResp   net.Conn
 	connInit   net.Conn
 	sprotoInit *setup.Protocol
 }
 
-func makeSetupHandlersEnv() (*mockShEnv, error) {
-	env, err := makeMockRouterEnv()
-	if err != nil {
-		return &mockShEnv{}, err
+func AddSetupHandlersEnv() envStep {
+	return func(env *testEnv) (stepname string, err error) {
+		stepname = "AddSetupHandersEnv"
+
+		connInit, connResp := net.Pipe()
+		sprotoInit := setup.NewSetupProtocol(connInit)
+
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- sprotoInit.WritePacket(setup.PacketType(42), []byte("Ultimate Answer"))
+		}()
+
+		stpHandlers, err := makeSetupHandlers(env.R, env.procMgr, connResp)
+		if err != nil {
+			return
+		}
+
+		env.SH = &mockShEnv{
+			stpHandlers: stpHandlers,
+			connResp:    connResp,
+			connInit:    connInit,
+			sprotoInit:  sprotoInit,
+		}
+		return
 	}
-
-	connInit, connResp := net.Pipe()
-	sprotoInit := setup.NewSetupProtocol(connInit)
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- sprotoInit.WritePacket(setup.PacketType(42), []byte("Ultimate Answer"))
-	}()
-
-	sh, err := makeSetupHandlers(env.r, env.pm, connResp)
-	if err != nil {
-		return &mockShEnv{}, err
-	}
-
-	return &mockShEnv{
-		env:      env,
-		connResp: connResp,
-		connInit: connInit,
-		sh:       sh,
-	}, <-errCh
 }
 
-func (shEnv *mockShEnv) TearDown() {
-	shEnv.connResp.Close()
-	shEnv.connInit.Close()
-	// shEnv.env.TearDown()
+func setupHandlersTestEnv() (env *testEnv, err error) {
+	env = &testEnv{}
+	_, err = env.runSteps(
+		GenKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+	return
+}
+
+// func makeSetupHandlersEnv() (*mockShEnv, error) {
+
+// 	env, err := makeMockRouterEnv()
+// 	if err != nil {
+// 		return &mockShEnv{}, err
+// 	}
+
+// 	connInit, connResp := net.Pipe()
+// 	sprotoInit := setup.NewSetupProtocol(connInit)
+
+// 	errCh := make(chan error, 1)
+// 	go func() {
+// 		errCh <- sprotoInit.WritePacket(setup.PacketType(42), []byte("Ultimate Answer"))
+// 	}()
+
+// 	sh, err := makeSetupHandlers(env.R, env.procMgr, connResp)
+// 	if err != nil {
+// 		return &mockShEnv{}, err
+// 	}
+
+// 	return &mockShEnv{
+// 		env:      env,
+// 		connResp: connResp,
+// 		connInit: connInit,
+// 		sh:       sh,
+// 	}, <-errCh
+// }
+
+func (SH *mockShEnv) TearDown() {
+	SH.connResp.Close()
+	SH.connInit.Close()
+	// SH.env.TearDown()
 }
 
 func Example_makeSetupHandlersEnv() {
 
-	envSh, err := makeSetupHandlersEnv()
+	env, err := setupHandlersTestEnv()
 
 	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
-	fmt.Printf("envSh.packetType: %v\n", envSh.sh.packetType)
-	fmt.Printf("envSh.packetBody: %v\n", string(envSh.sh.packetBody))
-	defer envSh.TearDown()
+	fmt.Printf("envSh.packetType: %v\n", env.SH.stpHandlers.packetType)
+	fmt.Printf("envSh.packetBody: %v\n", string(env.SH.stpHandlers.packetBody))
+	defer env.TearDown()
 
 	go func() {
-		if _, err = envSh.connInit.Write([]byte("Hello")); err != nil {
+		if _, err = env.SH.connInit.Write([]byte("Hello")); err != nil {
 			fmt.Println(err)
 		}
 	}()
 
 	var buf []byte
-	n, err := envSh.connResp.Read(buf)
+	n, err := env.SH.connResp.Read(buf)
 	fmt.Printf("envSh.connResp.Read: %v, %v, %v\n", string(buf), n, err == nil)
 
 	//Output: makeSetupHandlersEnv success: true
@@ -83,17 +122,17 @@ func Example_makeSetupHandlersEnv() {
 
 func Example_setupHandlers_reject() {
 
-	envSh, err := makeSetupHandlersEnv()
-	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
+	env, err := setupHandlersTestEnv()
+	fmt.Printf("setupHandlersTestEnv success: %v\n", err == nil)
 
 	// Use reject func
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- envSh.sh.reject(errors.New("reject test"))
+		errChan <- env.SH.stpHandlers.reject(errors.New("reject test"))
 	}()
 
 	// Receve reject message
-	pt, data, err := envSh.sprotoInit.ReadPacket()
+	pt, data, err := env.SH.sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
 	// Output: makeSetupHandlersEnv success: true
@@ -102,18 +141,17 @@ func Example_setupHandlers_reject() {
 
 func Example_setupHandlers_respondWith() {
 
-	envSh, err := makeSetupHandlersEnv()
+	env, err := setupHandlersTestEnv()
 	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
 
 	// Use respondWith func
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- envSh.sh.respondWith("Success test", nil)
+		errChan <- env.SH.stpHandlers.respondWith("Success test", nil)
 	}()
 
 	// Receve respondWith message
-
-	pt, data, err := envSh.sprotoInit.ReadPacket()
+	pt, data, err := env.SH.sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
 	// Output: makeSetupHandlersEnv success: true
@@ -122,17 +160,23 @@ func Example_setupHandlers_respondWith() {
 
 func Example_setupHandlers_addRules() {
 
-	envSh, err := makeSetupHandlersEnv()
-	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
+	env := &testEnv{}
+	_, err := env.runSteps(
+		GenKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+	fmt.Printf("testEnv success: %v\n", err == nil)
 
 	// Add ForwardRule
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
 	rules := []routing.Rule{
 		routing.ForwardRule(expireAt, 2, trID),
-		routing.AppRule(time.Now(), 3, envSh.env.pkRemote, 3, 2),
+		routing.AppRule(time.Now(), 3, env.pkRemote, 3, 2),
 	}
-	rID, err := envSh.sh.addRules(rules)
+	rID, err := env.SH.stpHandlers.addRules(rules)
 
 	fmt.Printf("routeId, err: %v, %v\n", rID, err)
 
@@ -142,8 +186,8 @@ func Example_setupHandlers_addRules() {
 
 func Example_setupHandlers_deleteRules() {
 
-	envSh, err := makeSetupHandlersEnv()
-	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
+	env, err := setupHandlersTestEnv()
+	fmt.Printf("success: %v\n", err == nil)
 
 	// add rules
 	trID := uuid.New()
@@ -151,14 +195,12 @@ func Example_setupHandlers_deleteRules() {
 	rules := []routing.Rule{
 		routing.ForwardRule(expireAt, 2, trID),
 	}
-	routes, err := envSh.sh.addRules(rules)
+	routes, err := env.SH.stpHandlers.addRules(rules)
 	if err != nil {
 		fmt.Printf("error on addRules: %v\n", err)
 	}
 
-	// delete rules
-	// TODO(alexyu): test for unknown routes
-	deletedRoutes, err := envSh.sh.deleteRules(routes)
+	deletedRoutes, err := env.SH.stpHandlers.deleteRules(routes)
 	if err != nil {
 		fmt.Printf("error in deleteRules: %v\n", err)
 	}
@@ -169,12 +211,8 @@ func Example_setupHandlers_deleteRules() {
 }
 
 func Example_setupHandlers_loopClosed() {
-	env, err := makeMockRouterEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
-	// defer env.TearDown()
-
-	envSh, err := makeSetupHandlersEnv()
-	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
+	env, err := setupHandlersTestEnv()
+	fmt.Printf("setupHandlersTestEnv success: %v\n", err == nil)
 
 	unknownLoopData := setup.LoopData{
 		RemotePK:     env.pkSetup,
@@ -184,7 +222,7 @@ func Example_setupHandlers_loopClosed() {
 		NoiseMessage: []byte{},
 	}
 
-	loopClosedErr := envSh.sh.loopClosed(unknownLoopData)
+	loopClosedErr := env.SH.stpHandlers.loopClosed(unknownLoopData)
 	fmt.Printf("loopClosed(unknownLoopData): %v\n", loopClosedErr)
 
 	// Output: makeMockRouterEnv success: true
@@ -195,13 +233,13 @@ func Example_setupHandlers_loopClosed() {
 // WIP
 type handleTestCase struct {
 	packetType setup.PacketType
-	bodyFunc   func(*mockShEnv) (*mockShEnv, error)
+	bodyFunc   func(*testEnv) (*testEnv, error)
 }
 
 var handleTestCases = []handleTestCase{
 	handleTestCase{
 		packetType: setup.PacketAddRules,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
 
 			trID := uuid.New()
 			expireAt := time.Now().Add(2 * time.Minute)
@@ -209,51 +247,51 @@ var handleTestCases = []handleTestCase{
 				routing.ForwardRule(expireAt, 2, trID),
 			}
 			body, err := json.Marshal(rules)
-			env.sh.packetBody = body
+			env.SH.stpHandlers.packetBody = body
 
 			return env, err
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketAddRules,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
-			env.sh.packetBody = []byte("invalid packet body")
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
+			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
 			return env, nil
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketDeleteRules,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
 			// add rules
 			trID := uuid.New()
 			expireAt := time.Now().Add(2 * time.Minute)
 			rules := []routing.Rule{
 				routing.ForwardRule(expireAt, 2, trID),
 			}
-			routes, err := env.sh.addRules(rules)
+			routes, err := env.SH.stpHandlers.addRules(rules)
 			if err != nil {
 				fmt.Printf("error on addRules: %v\n", err)
 			}
 
 			body, err := json.Marshal(routes)
 
-			env.sh.packetBody = body
+			env.SH.stpHandlers.packetBody = body
 			return env, err
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketDeleteRules,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
-			env.sh.packetBody = []byte("invalid packet body")
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
+			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
 			return env, nil
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketConfirmLoop,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
 
 			loopData := setup.LoopData{
-				RemotePK:     env.env.pkLocal,
+				RemotePK:     env.pkLocal,
 				RemotePort:   0,
 				LocalPort:    0,
 				RouteID:      routing.RouteID(0),
@@ -261,23 +299,23 @@ var handleTestCases = []handleTestCase{
 			}
 			body, err := json.Marshal(loopData)
 
-			env.sh.packetBody = body
+			env.SH.stpHandlers.packetBody = body
 			return env, err
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketConfirmLoop,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
-			env.sh.packetBody = []byte("invalid packet body")
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
+			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
 			return env, nil
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketLoopClosed,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
 
 			unknownLoopData := setup.LoopData{
-				RemotePK:     env.env.pkRemote,
+				RemotePK:     env.pkRemote,
 				RemotePort:   0,
 				LocalPort:    0,
 				RouteID:      routing.RouteID(0),
@@ -285,22 +323,22 @@ var handleTestCases = []handleTestCase{
 			}
 			body, err := json.Marshal(unknownLoopData)
 
-			env.sh.packetBody = body
+			env.SH.stpHandlers.packetBody = body
 			return env, err
 
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketLoopClosed,
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
-			env.sh.packetBody = []byte("invalid packet body")
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
+			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
 			return env, nil
 		},
 	},
 	handleTestCase{
 		packetType: setup.PacketType(42),
-		bodyFunc: func(env *mockShEnv) (*mockShEnv, error) {
-			env.sh.packetBody = []byte("invalid packet body")
+		bodyFunc: func(env *testEnv) (*testEnv, error) {
+			env.SH.stpHandlers.packetBody = []byte("invalid packet body")
 			return env, nil
 		},
 	},
@@ -310,24 +348,31 @@ func Example_handle() {
 	fmt.Println("Start")
 	for _, tc := range handleTestCases {
 
-		envSh, err := makeSetupHandlersEnv()
+		env := &testEnv{}
+		_, err := env.runSteps(
+			GenKeys(),
+			AddTransportManagers(),
+			AddProcManagerAndRouter(),
+			AddSetupHandlersEnv(),
+		)
+		// envSh, err := makeSetupHandlersEnv()
 		if err != nil {
 			fmt.Println(err)
 		}
-		defer envSh.TearDown()
+		defer env.TearDown()
 
-		envSh, err = tc.bodyFunc(envSh)
+		env, err = tc.bodyFunc(env)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}
 
 		errCh := make(chan error, 1)
 		go func() {
-			envSh.sh.packetType = tc.packetType
-			errCh <- envSh.sh.handle()
+			env.SH.stpHandlers.packetType = tc.packetType
+			errCh <- env.SH.stpHandlers.handle()
 		}()
 
-		pt, data, err := envSh.sprotoInit.ReadPacket()
+		pt, data, err := env.SH.sprotoInit.ReadPacket()
 		fmt.Printf("response: %v %v %v\n", pt, string(data), err)
 
 	}

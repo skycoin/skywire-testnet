@@ -15,10 +15,16 @@ import (
 
 func Example_router_FindRouteAndSetupLoopEntrails() {
 
-	env, err := makeMockRouterEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
+	env := &testEnv{}
+	_, err := env.runSteps(
+		ChangeLogLevel("error"),
+		GenKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		StartSetupTransportManager(),
+	)
+	fmt.Printf("testEnv started: %v\n", err == nil)
 
-	env.StartSetupTpm()
 	// prepare noise
 	ns, err := noise.KKAndSecp256k1(noise.Config{
 		LocalPK:   env.pkLocal,
@@ -40,7 +46,7 @@ func Example_router_FindRouteAndSetupLoopEntrails() {
 	}
 
 	// Internals of FindRoutesAndSetupLoop
-	fwdRt, rvsRt, err := env.r.fetchBestRoutes(lm.Local.PubKey, lm.Remote.PubKey)
+	fwdRt, rvsRt, err := env.R.fetchBestRoutes(lm.Local.PubKey, lm.Remote.PubKey)
 	fmt.Printf("fetchBestRoutes %T %T success: %v\n", fwdRt, rvsRt, err == nil)
 
 	loop := routing.Loop{
@@ -52,7 +58,7 @@ func Example_router_FindRouteAndSetupLoopEntrails() {
 		Reverse:      rvsRt,
 	}
 
-	sProto, tp, err := env.r.setupProto(context.Background())
+	sProto, tp, err := env.R.setupProto(context.Background())
 	fmt.Printf("setupProto %T %T success:  %v\n", sProto, tp, err == nil)
 
 	// defer func() { _ = tp.Close() }()
@@ -63,14 +69,14 @@ func Example_router_FindRouteAndSetupLoopEntrails() {
 		fmt.Printf("setup.CreateLoop success: %v\n", err)
 	}()
 
-	// go func() {
-	// 	err = r.FindRoutesAndSetupLoop(lm, msg)
-	// 	fmt.Printf("FindRoutesAndSetupLoop error: %v\n", err)
-	// }()
+	go func() {
+		err = env.R.FindRoutesAndSetupLoop(lm, nsMsg)
+		fmt.Printf("FindRoutesAndSetupLoop error: %v\n", err)
+	}()
 
 	time.Sleep(time.Second)
 
-	// Output: makeMockRouterEnv success: true
+	// Output: testEnv started: true
 	// fetchBestRoutes routing.Route routing.Route success: true
 	// setupProto *setup.Protocol *transport.ManagedTransport success:  true
 
