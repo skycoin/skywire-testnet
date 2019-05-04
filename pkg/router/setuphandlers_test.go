@@ -14,15 +14,12 @@ import (
 )
 
 type mockShEnv struct {
-	connResp net.Conn
-	connInit net.Conn
-
-	sprotoInit *setup.Protocol
-
-	sh  setupHandlers
-	err error
-
 	env *mockRouterEnv
+	sh  setupHandlers
+
+	connResp   net.Conn
+	connInit   net.Conn
+	sprotoInit *setup.Protocol
 }
 
 func makeSetupHandlersEnv() (*mockShEnv, error) {
@@ -44,7 +41,12 @@ func makeSetupHandlersEnv() (*mockShEnv, error) {
 		return &mockShEnv{}, err
 	}
 
-	return &mockShEnv{connResp, connInit, sprotoInit, sh, <-errCh, env}, nil
+	return &mockShEnv{
+		env:      env,
+		connResp: connResp,
+		connInit: connInit,
+		sh:       sh,
+	}, <-errCh
 }
 
 func (shEnv *mockShEnv) TearDown() {
@@ -164,24 +166,6 @@ func Example_setupHandlers_deleteRules() {
 
 	// Output: makeSetupHandlersEnv success: true
 	// deletedRoutes, err: [1], <nil>
-}
-
-func printRules(routeID routing.RouteID, rule routing.Rule) (next bool) {
-	fmt.Printf("%v %v\n", routeID, rule)
-	next = true
-	return
-}
-
-func printPorts(port uint16, proc *AppProc) (next bool) {
-	fmt.Printf("%v %v\n", port, proc)
-	next = true
-	return
-}
-
-func printProcIDs(pid ProcID, proc *AppProc) (next bool) {
-	fmt.Printf("%v %v\n", pid, proc)
-	next = true
-	return
 }
 
 func Example_setupHandlers_loopClosed() {
