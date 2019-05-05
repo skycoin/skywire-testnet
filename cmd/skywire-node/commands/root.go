@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -16,6 +17,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
+	utClient "github.com/skycoin/skywire/internal/uptime-tracker/client"
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
@@ -66,6 +68,28 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			logger.Fatal("Failed to initialise node: ", err)
 		}
+
+		go func() {
+			if conf.Uptime.Tracker == "" {
+				return
+			}
+
+			uptimeTracker, err := utClient.NewHTTP(conf.Uptime.Tracker, conf.Node.PubKey, conf.Node.SecKey)
+			if err != nil {
+				logger.Error("Failed to connect to uptime tracker: ", err)
+				return
+			}
+
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+
+			for range ticker.C {
+				ctx := context.Background()
+				if err := uptimeTracker.UpdateNodeUptime(ctx); err != nil {
+					logger.Error("Failed to update node uptime: ", err)
+				}
+			}
+		}()
 
 		go func() {
 			if err := node.Start(); err != nil {
