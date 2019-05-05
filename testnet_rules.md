@@ -57,7 +57,7 @@ Different locations are required due to the fact that we want to spread out the 
 * Eligible for rewards are only the whitelisted nodes, that **comply with the Skywire testnet rules** and **meet the 75% uptime requirement** during the month.
 * The whitelist is being **updated retroactively on a monthly basis** so it is **not important** in which week you are being approved for the whitelist.
 * **Official Skyminers are whitelisted by default after purchase.**
-* The rewards are **paid every month around the 5th** or with a short delay, depending if other things delay the process.
+* The rewards are **paid every subsequent month around the 5th** or with a short delay, depending if other things delay the process.
 * The deadline to submit complaints is being published in the monthly Skywire status update emails and in the [Skywire PSA channel on Telegram](https://t.me/SkywirePSA).
 
 <br> 
@@ -105,7 +105,7 @@ Summary:
 We are calculating the underlying Skycoin price for your rewards based on the moving average exponential method:
 - timespan 1M on the Tradingview SKY/USD chart
 - 30 day length
-- starting on the 5th day of the subsequent month at 00:00
+- starting on the 1st day of the subsequent month at 00:00
 
 #### Reward Details - April
 Rewards are being paid on a node by node basis. The total amount you may earn is 8 per node rewards for each miner.
