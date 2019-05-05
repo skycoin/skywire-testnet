@@ -52,6 +52,11 @@ type RoutingFields struct {
 	Table       RoutingTableFields `json:"table"`
 }
 
+// UptimeFields is a member of Config.
+type UptimeFields struct {
+	Tracker string `json:"tracker"`
+}
+
 // Config defines configuration parameters for Node.
 type Config struct {
 	Version   string          `json:"version"`
@@ -59,6 +64,7 @@ type Config struct {
 	Messaging MessagingFields `json:"messaging"`
 	Transport TransportFields `json:"transport"`
 	Routing   RoutingFields   `json:"routing"`
+	Uptime    UptimeFields    `json:"uptime"`
 
 	AutoStartApps []AutoStartConfig `json:"auto_start_apps"`
 
