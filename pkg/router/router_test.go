@@ -51,23 +51,6 @@ func ExampleNew() {
 	// Output: Router created: true
 }
 
-func Example_router_setupProto() {
-
-	env, err := makeMockRouterEnv()
-	fmt.Printf("Environment created: %v\n", err == nil)
-	env.runStepsAsExamples(true, StartSetupTransportManager())
-
-	pr, tr, err := env.R.setupProto(context.TODO())
-
-	fmt.Printf("Protocol: %T\nTransport %T\nerror: %v\n", pr, tr, err)
-
-	// Output: Environment created: true
-	// Protocol: *setup.Protocol
-	// Transport *transport.ManagedTransport
-	// error: <nil>
-
-}
-
 func Example_router() {
 	logger := logging.MustGetLogger("router")
 	pk, sk := cipher.GenerateKeyPair()
@@ -77,7 +60,7 @@ func Example_router() {
 		SetupNodes: []cipher.PubKey{},
 	}
 
-	// TODO(alex): substitute with cleaner implementation
+	// Look into CfgStep AddProcManagerAndRouter() for more correct example
 	_, tpm, _ := transport.MockTransportManager() //nolint: errcheck
 	rtm := NewRoutingTableManager(
 		logging.MustGetLogger("rt_manager"),
@@ -97,11 +80,41 @@ func Example_router() {
 	//Output: r.conf is empty: false
 }
 
+func Example_router_setupProto() {
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		StartSetupTransportManager(),
+	)
+	fmt.Printf("env.Run success: %v\n", err == nil)
+
+	pr, tr, err := env.R.setupProto(context.TODO())
+
+	fmt.Printf("router.setupProto:\n\tProtocol: %T\n\tTransport %T\n\terror: %v\n", pr, tr, err)
+	env.PrintTearDown()
+
+	// Output: env.Run success: true
+	// router.setupProto:
+	// 	Protocol: *setup.Protocol
+	// 	Transport *transport.ManagedTransport
+	// 	error: <nil>
+	// env.TearDown() success: true
+
+}
+
 // TODO(alex): test for existing transport
 func Example_router_ForwardPacket() {
 
-	env, err := makeMockRouterEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		StartSetupTransportManager(),
+	)
+	fmt.Printf("env.Run success: %v\n", err == nil)
 
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
@@ -112,20 +125,21 @@ func Example_router_ForwardPacket() {
 		fmt.Printf("router.ForwardPacket error: %v\n", err)
 	}
 
-	// Output: makeMockRouterEnv success: true
+	// Output: env.Run success: true
 	// router.ForwardPacket error: transport not found
 }
 
 func Example_router_handleSetup() {
 
 	env := &TEnv{}
-	_, err := env.runSteps(
-		GenKeys(),
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		AddSetupHandlersEnv(),
+		StartSetupTransportManager(),
 	)
-	fmt.Printf("TEnv.runSteps success: %v\n", err == nil)
+	fmt.Printf("env.Run success: %v\n", err == nil)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -138,7 +152,7 @@ func Example_router_handleSetup() {
 	fmt.Printf("handle success: %v\n", <-errCh == nil)
 	fmt.Printf("response: %v %v %v\n", pt, string(data), err)
 
-	// Output: makeSetupHandlersEnv success: true
+	// Output: env.Run success: true
 	// handle success: true
 	// response: RespFailure "json: cannot unmarshal string into Go value of type []routing.Rule" <nil>
 
@@ -146,7 +160,12 @@ func Example_router_handleSetup() {
 
 // Old test. Does not make sense now
 func TestRouterCloseLoop(t *testing.T) {
-	env, err := makeMockRouterEnv()
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+	)
 	require.NoError(t, err)
 
 	errCh := make(chan error)
@@ -184,19 +203,18 @@ func TestRouterCloseLoop(t *testing.T) {
 
 }
 
-// This test is mostly mmeaningless now - expiration is done by RoutingTableManager
+// This test is mostly meaningless now - expiration is done by RoutingTableManager
 func TestRouterRouteExpiration(t *testing.T) {
 
 	env := &TEnv{}
-	_, err := env.runSteps(
-		GenKeys(),
+	_, err := env.Run(
+		GenerateKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		StartSetupTransportManager(),
 		AddSetupHandlersEnv(),
 	)
 	fmt.Printf("TEnv success: %v\n", err == nil)
-	defer env.TearDown()
 
 	// Add expired ForwardRule
 	trID := uuid.New()
@@ -209,74 +227,13 @@ func TestRouterRouteExpiration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, env.routingTable.Count())
 
-	// // Set RoutingTableManager ticker to fast cleanup
-	// env.rtm.ticker = time.NewTicker(10 * time.Millisecond)
-	// go env.R.Serve(context.TODO(), env.procMgr) // nolint
+	// Set RoutingTableManager ticker to fast cleanup
+	env.rtm.ticker = time.NewTicker(10 * time.Millisecond)
+	go env.R.Serve(context.TODO(), env.procMgr) // nolint
 
-	// time.Sleep(time.Second)
+	time.Sleep(time.Second)
 
-	// assert.Equal(t, 0, env.routingTable.Count())
-	// require.NoError(t, envSh.env.R.Close())
-}
+	assert.Equal(t, 0, env.routingTable.Count())
 
-func TestRouterAncientTest(t *testing.T) {
-
-	env, err := makeMockRouterEnv()
-	require.NoError(t, err)
-
-	errCh := make(chan error)
-	go func() {
-		acceptCh, _ := env.tpmSetup.Observe()
-		tr := <-acceptCh
-
-		proto := setup.NewSetupProtocol(tr)
-		p, data, err := proto.ReadPacket()
-		if err != nil {
-			errCh <- err
-			return
-		}
-
-		if p != setup.PacketCloseLoop {
-			errCh <- errors.New("unknown command")
-			return
-		}
-
-		ld := &setup.LoopData{}
-		if err := json.Unmarshal(data, ld); err != nil {
-			errCh <- err
-			return
-		}
-
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRemote {
-			errCh <- errors.New("invalid payload")
-			return
-		}
-
-		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
-	}()
-
-	// rw, rwIn := net.Pipe()
-	// // go r.ServeApp(rwIn, 5) // nolint: errcheck
-
-	go env.R.Serve(context.TODO(), env.procMgr) // nolint: errcheck
-
-	// proto := appnet.NewProtocol(rw)
-	// go proto.Serve(nil) // nolint: errcheck
-
-	time.Sleep(100 * time.Millisecond)
-
-	// raddr := &app.LoopAddr{PubKey: pk3, Port: 6}
-	// require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
-
-	// require.NoError(t, rw.Close())
-
-	// time.Sleep(100 * time.Millisecond)
-
-	// require.NoError(t, <-errCh)
-	// _, err = r.pm.Get(5)
-	// require.Error(t, err)
-
-	// rule, err = rt.Rule(routeID)
-	// require.NoError(t, err)
-	// require.Nil(t, rule)
+	env.NoErrorTearDown(t)
 }

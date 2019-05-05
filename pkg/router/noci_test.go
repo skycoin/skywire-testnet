@@ -4,17 +4,23 @@ package router
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/setup"
 )
 
 func routerTestEnv() (env *TEnv, err error) {
 	env = &TEnv{}
-	_, err = env.runSteps(
+	_, err = env.Run(
 		ChangeLogLevel("error"),
-		GenKeys(),
+		GenerateDeterministicKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		AddSetupHandlersEnv(),
@@ -59,16 +65,87 @@ func Example_router_CloseLoop() {
 }
 
 func Example_router_Serve() {
-	env, err := makeMockRouterEnv()
-	fmt.Printf("makeMockRouterEnv success: %v\n", err == nil)
-	env.runSteps(StartSetupTransportManager())
+	env, err := routerTestEnv()
+	fmt.Printf("routerTestEnv success: %v\n", err == nil)
+	_, err = env.Run(StartSetupTransportManager())
+	fmt.Printf("StartSetupTransportManager success: %v\n", err == nil)
 
 	go func() {
 		err = env.R.Serve(context.TODO(), env.procMgr)
-		fmt.Printf("router.Serve success: %v\n", err)
+		fmt.Printf("router.Serve error: %v\n", err)
 	}()
 
 	time.Sleep(time.Second)
 
-	// Output: makeMockRouterEnv success: true
+	// Output: routerTestEnv success: true
+	// StartSetupTransportManager success: true
+}
+
+func TestRouterAncientTest(t *testing.T) {
+
+	env := &TEnv{}
+	_, err := env.RunAsTest(t,
+		// ChangeLogLevel("error"),
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+	)
+	require.NoError(t, err)
+
+	errCh := make(chan error)
+	go func() {
+		acceptCh, _ := env.tpmSetup.Observe()
+		tr := <-acceptCh
+
+		proto := setup.NewSetupProtocol(tr)
+		p, data, err := proto.ReadPacket()
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		if p != setup.PacketCloseLoop {
+			errCh <- errors.New("unknown command")
+			return
+		}
+
+		ld := &setup.LoopData{}
+		if err := json.Unmarshal(data, ld); err != nil {
+			errCh <- err
+			return
+		}
+
+		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != env.pkRemote {
+			errCh <- errors.New("invalid payload")
+			return
+		}
+
+		errCh <- proto.WritePacket(setup.RespSuccess, []byte{})
+	}()
+
+	// rw, rwIn := net.Pipe()
+	// // go r.ServeApp(rwIn, 5) // nolint: errcheck
+
+	go env.R.Serve(context.TODO(), env.procMgr) // nolint: errcheck
+
+	// proto := appnet.NewProtocol(rw)
+	// go proto.Serve(nil) // nolint: errcheck
+
+	time.Sleep(100 * time.Millisecond)
+
+	// raddr := &app.LoopAddr{PubKey: pk3, Port: 6}
+	// require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
+
+	// require.NoError(t, rw.Close())
+
+	// time.Sleep(100 * time.Millisecond)
+
+	// require.NoError(t, <-errCh)
+	// _, err = r.pm.Get(5)
+	// require.Error(t, err)
+
+	// rule, err = rt.Rule(routeID)
+	// require.NoError(t, err)
+	// require.Nil(t, rule)
+	env.NoErrorTearDown(t)
 }

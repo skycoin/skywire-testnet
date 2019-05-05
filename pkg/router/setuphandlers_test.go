@@ -37,25 +37,20 @@ func AddSetupHandlersEnv() CfgStep {
 	}
 }
 
-func setupHandlersTestEnv() (env *TEnv, err error) {
-	env = &TEnv{}
-	_, err = env.runSteps(
-		GenKeys(),
+func Example_makeSetupHandlersEnv() {
+
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		AddSetupHandlersEnv(),
 	)
-	return
-}
 
-func Example_makeSetupHandlersEnv() {
-
-	env, err := setupHandlersTestEnv()
-
-	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
-	fmt.Printf("envSh.packetType: %v\n", env.stpHandlers.packetType)
-	fmt.Printf("envSh.packetBody: %v\n", string(env.stpHandlers.packetBody))
-	defer env.TearDown()
+	fmt.Printf("env.Run() success: %v\n", err == nil)
+	fmt.Printf("packetType: %v\n", env.stpHandlers.packetType)
+	fmt.Printf("packetBody: %v\n", string(env.stpHandlers.packetBody))
+	defer env.PrintTearDown()
 
 	go func() {
 		if _, err = env.connInit.Write([]byte("Hello")); err != nil {
@@ -67,17 +62,25 @@ func Example_makeSetupHandlersEnv() {
 	n, err := env.connResp.Read(buf)
 	fmt.Printf("envSh.connResp.Read: %v, %v, %v\n", string(buf), n, err == nil)
 
-	//Output: makeSetupHandlersEnv success: true
-	// envSh.packetType: Unknown(42)
-	// envSh.packetBody: "VWx0aW1hdGUgQW5zd2Vy"
+	// Output: env.Run() success: true
+	// packetType: Unknown(42)
+	// packetBody: "VWx0aW1hdGUgQW5zd2Vy"
 	// envSh.connResp.Read: , 0, true
+	// env.TearDown() success: true
 
 }
 
 func Example_setupHandlers_reject() {
 
-	env, err := setupHandlersTestEnv()
-	fmt.Printf("setupHandlersTestEnv success: %v\n", err == nil)
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+
+	fmt.Printf("env.Run() success: %v\n", err == nil)
 
 	// Use reject func
 	errChan := make(chan error, 1)
@@ -89,14 +92,22 @@ func Example_setupHandlers_reject() {
 	pt, data, err := env.sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
-	// Output: setupHandlersTestEnv success: true
+	// Output: env.Run() success: true
 	// RespFailure "reject test" <nil>
+
 }
 
 func Example_setupHandlers_respondWith() {
 
-	env, err := setupHandlersTestEnv()
-	fmt.Printf("makeSetupHandlersEnv success: %v\n", err == nil)
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+
+	fmt.Printf("env.Run() success: %v\n", err == nil)
 
 	// Use respondWith func
 	errChan := make(chan error, 1)
@@ -108,20 +119,21 @@ func Example_setupHandlers_respondWith() {
 	pt, data, err := env.sprotoInit.ReadPacket()
 	fmt.Printf("%v %v %v", pt, string(data), err)
 
-	// Output: makeSetupHandlersEnv success: true
+	// Output: env.Run() success: true
 	// RespSuccess "Success test" <nil>
+
 }
 
 func Example_setupHandlers_addRules() {
 
 	env := &TEnv{}
-	_, err := env.runSteps(
-		GenKeys(),
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		AddSetupHandlersEnv(),
 	)
-	fmt.Printf("TEnv success: %v\n", err == nil)
+	fmt.Printf("env.Run() success: %v\n", err == nil)
 
 	// Add ForwardRule
 	trID := uuid.New()
@@ -134,14 +146,21 @@ func Example_setupHandlers_addRules() {
 
 	fmt.Printf("routeId, err: %v, %v\n", rID, err)
 
-	// Output: TEnv success: true
+	// Output: env.Run() success: true
 	// routeId, err: [1 2], <nil>
+
 }
 
 func Example_setupHandlers_deleteRules() {
 
-	env, err := setupHandlersTestEnv()
-	fmt.Printf("success: %v\n", err == nil)
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+	fmt.Printf("env.Run() success: %v\n", err == nil)
 
 	// add rules
 	trID := uuid.New()
@@ -160,13 +179,19 @@ func Example_setupHandlers_deleteRules() {
 	}
 	fmt.Printf("deletedRoutes, err: %v, %v\n", deletedRoutes, err)
 
-	// Output: success: true
+	// Output: env.Run() success: true
 	// deletedRoutes, err: [1], <nil>
 }
 
 func Example_setupHandlers_loopClosed() {
-	env, err := setupHandlersTestEnv()
-	fmt.Printf("setupHandlersTestEnv success: %v\n", err == nil)
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+	)
+	fmt.Printf("env.Run() success: %v\n", err == nil)
 
 	unknownLoopData := setup.LoopData{
 		RemotePK:     env.pkSetup,
@@ -179,7 +204,7 @@ func Example_setupHandlers_loopClosed() {
 	loopClosedErr := env.stpHandlers.loopClosed(unknownLoopData)
 	fmt.Printf("loopClosed(unknownLoopData): %v\n", loopClosedErr)
 
-	// Output: setupHandlersTestEnv success: true
+	// Output: env.Run() success: true
 	// loopClosed(unknownLoopData): proc not found
 }
 
@@ -306,8 +331,8 @@ func Example_handle() {
 	for _, tc := range handleTestCases {
 
 		env := &TEnv{}
-		_, err := env.runSteps(
-			GenKeys(),
+		_, err := env.Run(
+			GenerateDeterministicKeys(),
 			AddTransportManagers(),
 			AddProcManagerAndRouter(),
 			AddSetupHandlersEnv(),
@@ -315,7 +340,6 @@ func Example_handle() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		defer env.TearDown()
 
 		testName, err := tc.bodyFunc(env)
 		if err != nil {
@@ -331,7 +355,11 @@ func Example_handle() {
 		pt, data, err := env.sprotoInit.ReadPacket()
 		fmt.Printf("Test %v response: %v %v %v\n", testName, pt, string(data), err)
 
+		if err := env.TearDown(); err != nil {
+			fmt.Printf("env.TearDown() error: %v\n", err)
+		}
 	}
+
 	fmt.Println("Finish")
 
 	// Output: Start

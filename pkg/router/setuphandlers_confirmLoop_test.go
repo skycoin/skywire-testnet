@@ -18,23 +18,30 @@ import (
 	"github.com/skycoin/skywire/pkg/setup"
 )
 
-func makeConfirmLoopEnv() (*TEnv, error) {
+func ExamplePrintRules() {
 	env := &TEnv{}
-	_, err := env.runSteps(
-		GenKeys(),
+	_, err := env.RunAsExample(true,
+		GenerateDeterministicKeys(),
 		AddTransportManagers(),
 		AddProcManagerAndRouter(),
 		AddSetupHandlersEnv(),
+		AddRules(),
+		PrintRules(),
 	)
-	return env, err
-}
+	fmt.Printf("env.Run() success: %v\n", err == nil)
+	env.PrintTearDown()
 
-func Example_makeConfirmLoopEnv() {
-	env, err := makeConfirmLoopEnv()
-	fmt.Printf("makeLoopEnv success: %v\n", err == nil)
-	defer env.TearDown()
-
-	// Output: makeLoopEnv success: true
+	// 	Output: GenerateDeterministicKeys success: true
+	// AddTransportManagers success: true
+	// ProcManagerAndRouter success: true
+	// AddSetupHandersEnv success: true
+	// 1.AddRules success: true
+	// env.rtm.RangeRules:
+	//   1 App: <resp-rid: 3><remote-pk: 027d96fa1bd3108a2a86c7e3ba79bd7b5559e34c8d481a1012b47caa7a5c99870e><remote-port: 3><local-port: 2>
+	//   2 Forward: <next-rid: 3><next-tid: 33ecb29a-2c91-4de3-b46f-8a8f9227f3cd>
+	// PrintRules success: true
+	// env.Run() success: true
+	// env.TearDown() success: true
 }
 
 // Subtests
@@ -42,9 +49,9 @@ func Example_makeConfirmLoopEnv() {
 // Preparation
 // Step 1: Rules and routes
 func AddRules() CfgStep {
-	return func(env *TEnv) (CfgStepName string, err error) {
+	return func(env *TEnv) (cfgStepName string, err error) {
 
-		CfgStepName = "1.1.AddRules/appRule"
+		cfgStepName = "1.1.AddRules/appRule"
 		env.appRule = routing.AppRule(time.Now().Add(360*time.Second), 3, env.pkRemote, 3, 2)
 		_, err = env.rtm.AddRule(env.appRule)
 		if err != nil {
@@ -52,14 +59,14 @@ func AddRules() CfgStep {
 		}
 		// env.appRule = appRule
 
-		CfgStepName = "1.2.AddRules/fwdRule"
+		cfgStepName = "1.2.AddRules/fwdRule"
 		fwdRule := routing.ForwardRule(time.Now().Add(360*time.Second), 3, uuid.New())
 		fwdRouteID, err := env.rtm.AddRule(fwdRule)
 		if err != nil {
 			return
 		}
 
-		CfgStepName = "1.AddRules"
+		cfgStepName = "1.AddRules"
 		env.fwdRule = fwdRule
 		env.fwdRouteID = fwdRouteID
 
@@ -69,11 +76,12 @@ func AddRules() CfgStep {
 
 // PrintRules - prints rules from Procmanager.RangeRules
 func PrintRules() CfgStep {
-	return func(env *TEnv) (CfgStepName string, err error) {
-		CfgStepName = "PrintRules"
+	return func(env *TEnv) (cfgStepName string, err error) {
+		cfgStepName = "PrintRules"
+		fmt.Println("env.rtm.RangeRules:")
 		err = env.rtm.RangeRules(
 			func(routeID routing.RouteID, rule routing.Rule) (next bool) {
-				fmt.Printf("%v %v\n", routeID, rule)
+				fmt.Printf("  %v %v\n", routeID, rule)
 				next = true
 				return
 			},
@@ -82,11 +90,11 @@ func PrintRules() CfgStep {
 	}
 }
 
-// Step 2: LoopData
+// AddLoopData creates setup.LoopData for initiating ConfirmLoop
 func AddLoopData() CfgStep {
-	return func(env *TEnv) (CfgStepName string, err error) {
+	return func(env *TEnv) (cfgStepName string, err error) {
 
-		CfgStepName = "2.1.LoopData/noise.KKAndSecp256k1"
+		cfgStepName = "LoopData/noise.KKAndSecp256k1"
 		ns, err := noise.KKAndSecp256k1(noise.Config{
 			LocalPK:   env.pkLocal,
 			LocalSK:   env.skLocal,
@@ -97,7 +105,7 @@ func AddLoopData() CfgStep {
 			return
 		}
 
-		CfgStepName = "2.2.LoopData/ns.HandshakeMessage"
+		cfgStepName = "LoopData/ns.HandshakeMessage"
 		nsRes, err := ns.HandshakeMessage()
 		if err != nil {
 			return
@@ -111,44 +119,36 @@ func AddLoopData() CfgStep {
 			NoiseMessage: nsRes,
 		}
 
-		CfgStepName = "2.LoopData"
+		cfgStepName = "LoopData"
 		env.loopData = loopData
 		return
 	}
 }
 
-// Step 3: Apps
-func AddApps(workdir string) CfgStep {
-	return func(env *TEnv) (string, error) {
-		appMeta := &app.Meta{AppName: "helloworld", Host: env.pkLocal}
+func AddAppAndRunProc(workdir, appname string) CfgStep {
+	return func(env *TEnv) (testName string, err error) {
+		testName = "AddAppAndRunProc"
+		appMeta := &app.Meta{AppName: appname, Host: env.pkLocal}
 
-		_, err := env.procMgr.RunProc(env.R, 2, appMeta, &app.ExecConfig{
+		_, err = env.procMgr.RunProc(env.R, 2, appMeta, &app.ExecConfig{
 			HostPK:  env.pkLocal,
 			HostSK:  env.skLocal,
 			WorkDir: filepath.Join(workdir),
-			BinLoc:  filepath.Join(workdir, "helloworld"),
+			BinLoc:  filepath.Join(workdir, appname),
 		})
 
-		return "3.Apps", err
+		return
 	}
 }
 
-// Stage 2: Entrails of confirmLoop
-// Step 4: Check LoopData, routes
+// CheckRulesAndPorts: stage 2 of confirmLoop
 func CheckRulesAndPorts() CfgStep {
-	return func(env *TEnv) (CfgStepName string, err error) {
-
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("error in %v", CfgStepName)
-			}
-		}()
-
+	return func(env *TEnv) (cfgStepName string, err error) {
 		// Entrails of confirmLoop
 		loopMeta := makeLoopMeta(env.R.conf.PubKey, env.loopData)
 		env.loopMeta = loopMeta
 
-		CfgStepName = "4.1.CheckRulesAndPorts/FindAppRule"
+		cfgStepName = "CheckRulesAndPorts/FindAppRule"
 		appRtID, appRule, ok := env.R.rtm.FindAppRule(loopMeta)
 		if !ok {
 			err = errors.New("AppRule not found")
@@ -157,14 +157,14 @@ func CheckRulesAndPorts() CfgStep {
 		env.appRtID = appRtID
 		env.appRule = appRule
 
-		CfgStepName = "4.2.CheckRulesAndPorts/FindFwdRule"
+		cfgStepName = "CheckRulesAndPorts/FindFwdRule"
 		foundFwdRule, err := env.R.rtm.FindFwdRule(env.loopData.RouteID)
 		if err != nil {
 			err = errors.New("FwdRule not found")
 			return
 		}
 
-		CfgStepName = "4.3.CheckRulesAndPorts/ProcOfPort"
+		cfgStepName = "CheckRulesAndPorts/ProcOfPort"
 		proc, ok := env.procMgr.ProcOfPort(loopMeta.Local.Port)
 		if !ok {
 			err = errors.New("ProcOfPort not found")
@@ -172,109 +172,120 @@ func CheckRulesAndPorts() CfgStep {
 		}
 		env.proc = proc
 
-		CfgStepName, _ = "4.4.CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.RouteID()
-		CfgStepName, _ = "4.5.CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.TransportID()
-		CfgStepName = "4.CheckRulesAndPorts"
+		// Those checks could be a source of panics. That's why they checked here
+		cfgStepName, _ = "CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.RouteID()     // nolint: ineffassign
+		cfgStepName, _ = "CheckRulesAndPorts/foundFwdRule.RouteID()", foundFwdRule.TransportID() // nolint: ineffassign
+		cfgStepName = "CheckRulesAndPorts"
 		return
 	}
 }
 
-// Step 5: ConfirmLoop and then SetRouteID & setRule
+// ConfirmLoopAndFinish: final stage of confirmLoop. ConfirmLoop and then SetRouteID & setRule
 func ConfirmLoopAndFinish() CfgStep {
-	return func(env *TEnv) (CfgStepName string, err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("error in %v", CfgStepName)
-			}
-		}()
-
-		CfgStepName = "5.1.ConfirmLoopAndFinish/ConfirmLoop"
+	return func(env *TEnv) (cfgStepName string, err error) {
+		cfgStepName = "ConfirmLoopAndFinish/ConfirmLoop"
 		_, err = env.proc.ConfirmLoop(env.loopMeta, env.fwdRule.TransportID(), env.fwdRule.RouteID(), env.loopData.NoiseMessage)
 		if err != nil {
 			return
 		}
 
-		CfgStepName = "5.2.ConfirmLoopAndFinish/SetRouteID"
+		cfgStepName = "ConfirmLoopAndFinish/SetRouteID"
 		env.appRule.SetRouteID(env.loopData.RouteID)
 
-		CfgStepName = "5.3.ConfirmLoopAndFinish/SetRule"
+		cfgStepName = "ConfirmLoopAndFinish/SetRule"
 		err = env.R.rtm.SetRule(env.appRtID, env.appRule)
-
 		return
 	}
 }
 
 // printPorts - prints ports when passed into Procmanager.RangePorts
-func printPorts(port uint16, proc *AppProc) (next bool) {
+func printPorts(port uint16, proc *AppProc) (next bool) { // nolint: deadcode, unused
 	fmt.Printf("%v %v\n", port, proc)
 	next = true
 	return
 }
 
 // printProcIDS - prints ports when passed into Procmanager.RangeProcIDs
-func printProcIDs(pid ProcID, proc *AppProc) (next bool) {
+func printProcIDs(pid ProcID, proc *AppProc) (next bool) { // nolint: deadcode, unused
 	fmt.Printf("%v %v\n", pid, proc)
 	next = true
 	return
 }
 
 func Test_setupHandlers_confirmLoop(t *testing.T) {
-	env, err := makeConfirmLoopEnv()
-	defer env.TearDown()
-	require.NoError(t, err)
+	env := &TEnv{}
 
-	env.runStepsAsTests(t,
+	_, err := env.RunAsTest(t,
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
 		AddRules(),
 		AddLoopData(),
-		AddApps("/tmp/apps"),
+		AddAppAndRunProc("/bin", "sh"),
 		CheckRulesAndPorts(),
 		ConfirmLoopAndFinish(),
 	)
+	require.NoError(t, err)
+	require.NoError(t, env.TearDown())
 }
 
 func Example_setupHandlers_confirmLoopEntrails() {
-	env, err := makeConfirmLoopEnv()
-	fmt.Printf("Start env: success = %v\n", err == nil)
-	defer env.TearDown()
-
-	_, err = env.runStepsAsExamples(true,
+	env := &TEnv{}
+	_, err := env.RunAsExample(true,
+		GenerateKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+		// Preparation for confirmLoop
 		AddRules(),
 		AddLoopData(),
-		AddApps("/tmp/apps"),
+		AddAppAndRunProc("/bin", "sh"), // This step is unstable
+		//confirmLoop entrails
 		CheckRulesAndPorts(),
 		ConfirmLoopAndFinish(),
 	)
 
-	fmt.Printf("Finish success: %v\n", err)
+	fmt.Printf("env.Run success: %v\n", err == nil)
 	fmt.Println(err)
 
-	// Output: Start env: success = true
+	fmt.Printf("env.TearDown() success: %v\n", env.TearDown() == nil)
+
+	// Output: GenerateKeys success: true
+	// AddTransportManagers success: true
+	// ProcManagerAndRouter success: true
+	// AddSetupHandersEnv success: true
 	// 1.AddRules success: true
-	// 2.LoopData success: true
-	// 3.Apps success: true
-	// 4.CheckRulesAndPorts success: true
-	// 5.1.ConfirmLoopAndFinish/ConfirmLoop success: false
-	// Finish success: chacha20poly1305: message authentication failed
+	// LoopData success: true
+	// AddAppAndRunProc success: true
+	// CheckRulesAndPorts success: true
+	// ConfirmLoopAndFinish/ConfirmLoop success: false
+	// env.Run success: false
 	// chacha20poly1305: message authentication failed
 }
 
-// All together
 func Example_setupHandlers_confirmLoop() {
-
-	env, err := makeConfirmLoopEnv()
-	fmt.Printf("Create env: success = %v\n", err == nil)
-	defer env.TearDown()
-
-	_, err = env.runStepsAsExamples(false,
+	env := &TEnv{}
+	_, err := env.RunAsExample(true,
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		AddProcManagerAndRouter(),
+		AddSetupHandlersEnv(),
+		StartSetupTransportManager(),
+		// Preparation for confirmLoop
 		AddRules(),
 		AddLoopData(),
-		AddApps("/tmp/apps"),
+		AddAppAndRunProc("/bin", "sh"),
 	)
+	fmt.Printf("env.Run success: %v\n", err == nil)
+
 	fmt.Printf("Startup env: success = %v\n", err == nil)
 
 	sh := env.stpHandlers
 	res, err := sh.confirmLoop(env.loopData)
 	fmt.Printf("confirmLoop(loopData): %v %v\n", res, err)
+
+	fmt.Printf("env.TearDown() success: %v\n", env.TearDown() == nil)
 
 	// Output: Start env: success = true
 	// confirmLoop(loopData): [] confirm: chacha20poly1305: message authentication failed

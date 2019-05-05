@@ -9,35 +9,37 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
-func rhTestEnvironment() (*TEnv, error) {
+func Example_makeRouterHandlers() {
 	env := &TEnv{}
-	_, err := env.runSteps(
-		GenKeys(),
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
 		AddTransportManagers(),
 		StartSetupTransportManager(),
 		AddProcManagerAndRouter(),
 	)
-	return env, err
-}
-
-func Example_makeRouterHandlers() {
-	env, err := rhTestEnvironment()
-	fmt.Printf("TEnv creation success: %v\n", err == nil)
-	defer env.TearDown()
+	fmt.Printf("env.Run success: %v\n", err == nil)
 
 	rh := makeRouterHandlers(env.R, env.procMgr)
-	fmt.Printf("isSetup: %T\n", rh.isSetup)
-	fmt.Printf("serve: %T\n", rh.serve)
+	fmt.Printf("isSetup signature: %T\n", rh.isSetup)
+	fmt.Printf("serve signature: %T\n", rh.serve)
 
-	// Output: TEnv creation success: true
-	// isSetup: func(transport.Transport) bool
-	// serve: func(transport.Transport, router.handlerFunc) error
+	env.PrintTearDown()
+
+	// Output: env.Run success: true
+	// isSetup signature: func(transport.Transport) bool
+	// serve signature: func(transport.Transport, router.handlerFunc) error
+	// env.TearDown() success: true
 }
 
 func Example_routerHandlers_isSetup() {
-	env, err := rhTestEnvironment()
-	fmt.Printf("TEnv creation success: %v\n", err == nil)
-	defer env.TearDown()
+	env := &TEnv{}
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
+		AddTransportManagers(),
+		StartSetupTransportManager(),
+		AddProcManagerAndRouter(),
+	)
+	fmt.Printf("env.Run success: %v\n", err == nil)
 
 	trFalse := transport.NewMockTransport(nil, env.pkLocal, env.pkRemote)
 	trTrue := transport.NewMockTransport(nil, env.pkLocal, env.pkSetup)
@@ -48,20 +50,24 @@ func Example_routerHandlers_isSetup() {
 	fmt.Printf("rh.isSetup(trFalse): %v\n", rh.isSetup(trFalse))
 	fmt.Printf("rh.isSetup(trNotOk): %v\n", rh.isSetup(trNotOk))
 
-	// Output: TEnv creation success: true
+	env.PrintTearDown()
+
+	// Output: env.Run success: true
 	// rh.isSetup(trTrue): true
 	// rh.isSetup(trFalse): false
 	// rh.isSetup(trNotOk): false
+	// env.TearDown() success: true
 }
 
 func Example_routerHandlers_serve() {
 	env := &TEnv{}
-	env.runSteps(
-		GenKeys(),
+	_, err := env.Run(
+		GenerateDeterministicKeys(),
 		AddTransportManagers(),
 		StartSetupTransportManager(),
 		AddProcManagerAndRouter(),
 	)
+	fmt.Printf("env.Run success: %v\n", err == nil)
 
 	rh := makeRouterHandlers(env.R, env.procMgr)
 
@@ -79,7 +85,10 @@ func Example_routerHandlers_serve() {
 		return err
 	}
 
-	err = rh.serve(tr, handler)
-	fmt.Printf("serve: %v\n", err)
-	// Output: serve: handler test message
+	fmt.Printf("serve: %v\n", rh.serve(tr, handler))
+	env.PrintTearDown()
+
+	// Output: env.Run success: true
+	// serve: handler test message
+	// env.TearDown() success: true
 }
