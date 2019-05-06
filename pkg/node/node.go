@@ -42,6 +42,7 @@ type Node struct {
 	rt   routing.Table
 	r    router.Router
 	pm   router.ProcManager
+	ef	 app.ExecutorFactory
 
 	rootBinDir   string
 	rootLocalDir string
