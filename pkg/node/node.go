@@ -25,9 +25,6 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
-// ErrUnknownApp represents lookup error for App related calls.
-var ErrUnknownApp = errors.New("unknown app")
-
 // Version is the node version.
 const Version = "0.0.1"
 
@@ -118,6 +115,9 @@ func NewNode(config *Config) (*Node, error) {
 
 	/* SETUP: APPS */
 
+	if node.ef == nil {
+		node.ef = app.NewExecutorFactory()
+	}
 	node.pm = router.NewProcManager(10)
 	node.apps = make(map[string]*app.Meta)
 
@@ -203,7 +203,7 @@ func (node *Node) Start() error {
 				errors.New("app not found"))
 		}
 
-		e, err := app.NewExecutor(nil, m, &app.ExecConfig{
+		e, err := node.ef.New(nil, m, &app.ExecConfig{
 			HostPK:  node.conf.Node.PubKey,
 			HostSK:  node.conf.Node.SecKey,
 			WorkDir: filepath.Join(node.rootLocalDir, ac.App),
@@ -306,7 +306,7 @@ func (node *Node) StartProc(appName string, args []string, port uint16) (router.
 	if !ok {
 		return 0, fmt.Errorf("app of name '%s' not found", appName)
 	}
-	e, err := app.NewExecutor(nil, m, &app.ExecConfig{
+	e, err := node.ef.New(nil, m, &app.ExecConfig{
 		HostPK:  node.conf.Node.PubKey,
 		HostSK:  node.conf.Node.SecKey,
 		WorkDir: filepath.Join(node.rootLocalDir, appName),
