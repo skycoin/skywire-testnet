@@ -10,25 +10,9 @@ import (
 	"time"
 )
 
-// ==========================================================================================================================
-// 	RPCDuplex Logic
-// ==========================================================================================================================
-//
-// 			   --------------------------------------------------------------------------------------------------------------
-// 			   | PrefixedConn																		   ------------------	|
-// 			   |					     ----------------											   |				|	|
-// 	 <--- Read | <----------------- Read |    Buffer    | <---Write <---------- -prefix <-------- Read | 	Original	|	|
-// 			   |						 ----------------											   | 	Conn		|	|
-// 			   |																					   |				|	|
-//   ---> Write|-------------------- +prefix --------------------------------------------------> Write |				|	|
-// 			   |																					   ------------------	|
-// 			   |																											|
-// 			   --------------------------------------------------------------------------------------------------------------
-
-const defaultByteSize = 3
-
 // PrefixedConn will inherit the net.Conn interface.
 type PrefixedConn struct {
+	name      string
 	prefix    byte
 	writeConn io.Writer    // Original connection. net.Conn has a write method therefore it implements the writer interface.
 	readBuf   bytes.Buffer // Read data from original connection. It is RPCDuplex's responsibility to push to here.
@@ -48,11 +32,11 @@ func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 
 	// PrefixedConn implements net.Conn and assigned it to d.clientConn and d.serverConn
 	if initiator {
-		d.clientConn = &PrefixedConn{prefix: 0, writeConn: conn, readBuf: buf}
-		d.serverConn = &PrefixedConn{prefix: 1, writeConn: conn, readBuf: buf}
+		d.clientConn = &PrefixedConn{name: "clientConn", prefix: 0, writeConn: conn, readBuf: buf}
+		d.serverConn = &PrefixedConn{name: "serverConn", prefix: 1, writeConn: conn, readBuf: buf}
 	} else {
-		d.clientConn = &PrefixedConn{prefix: 1, writeConn: conn, readBuf: buf}
-		d.serverConn = &PrefixedConn{prefix: 0, writeConn: conn, readBuf: buf}
+		d.clientConn = &PrefixedConn{name: "clientConn", prefix: 1, writeConn: conn, readBuf: buf}
+		d.serverConn = &PrefixedConn{name: "serverConn", prefix: 0, writeConn: conn, readBuf: buf}
 	}
 
 	d.conn = conn
@@ -63,7 +47,7 @@ func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 // ReadHeader reads the first three bytes of the data and returns the prefix and size of the packets
 func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 
-	var bs = make([]byte, defaultByteSize)
+	var bs = make([]byte, 3)
 	var size uint16
 
 	// Read the 1st byte from prefix
@@ -90,46 +74,42 @@ func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 // A Initiator (1-prefixed) -> B (1-prefixed): A talks to B's RPC client
 // A (0-prefixed) <- B Initiator (0-prefixed): B talks to A's RPC server
 // A (1-prefixed) <- B Initiator (1-prefixed): B talks to A's RPC client
-func (d *RPCDuplex) Forward(prefix byte, size uint16) error {
+func (d *RPCDuplex) Forward(prefix byte, size uint16) (*PrefixedConn, []byte) {
 
 	// Using the original conn to push data into the buffer
-	buf := make([]byte, defaultByteSize)
-	c := make(chan []byte)
+	data := make([]byte, size)
 
-	// Event loop Testing
-	go func(buf []byte) {
+	// Event loop to read from originalConn and break when data is available
 
-		for {
-			_, err := d.conn.Read(buf)
-			switch err {
-			case nil:
-				c <- buf
-			case io.EOF:
-				continue
-			default:
-				log.Fatalln(err)
-			}
+L:
+	for {
+		_, err := d.conn.Read(data)
+		switch err {
+		case nil:
+			break L
+		default:
+			log.Fatalln(err)
 		}
-	}(buf)
-
-	buf = <-c
+	}
 
 	if prefix == d.serverConn.prefix {
-		_, err := d.serverConn.Read(buf[:size])
-		return err
+		return d.serverConn, data[:size]
 	} else if prefix == d.clientConn.prefix {
-		_, err := d.clientConn.Read(buf[:size])
-		return err
+		return d.clientConn, data[:size]
 	} else {
 		log.Fatalln(errors.New("error encountered while forwarding packets"))
 	}
 
-	return nil
+	return nil, data[:size]
 
 }
 
-// Read reads in prefixed data from root connection
+// Read reads in prefixed data from root connection.......
 func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
+
+	if pc.readBuf.Len() != 0 {
+		return pc.readBuf.Read(b)
+	}
 
 	// readBuf takes the data from OriginalConn and writes it into the buffer
 	_, err = pc.readBuf.Write(b)
@@ -161,7 +141,7 @@ func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 // Write prefixes data to the connection and then writes this prefixed data to the root connection.
 func (pc *PrefixedConn) Write(b []byte) (n int, err error) {
 
-	buf := make([]byte, defaultByteSize)
+	buf := make([]byte, 3)
 	buf[0] = byte(pc.prefix)
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(b)))
 
