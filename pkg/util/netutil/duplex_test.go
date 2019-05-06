@@ -12,151 +12,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPrefixedConn_Read reads data from the butter pushed in by
-// the Original connection
-func TestPrefixedConn_Read(t *testing.T) {
-
-	t.Run("successful prefixedConn read", func(t *testing.T) {
-		var c io.Writer
-		var readBuf bytes.Buffer
-
-		pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
-
-		pc.readBuf.WriteString("foo")
-
-		bs := make([]byte, 3)
-		n, err := pc.Read(bs)
-
-		require.NoError(t, err)
-		assert.Equal(t, 3, n)
-		assert.Equal(t, []byte("foo"), bs)
-	})
-
-	t.Run("empty buffer prefixedConn read", func(t *testing.T) {
-		var c io.Writer
-		var readBuf bytes.Buffer
-
-		pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
-
-		var bs []byte
-		n, err := pc.Read(bs)
-
-		require.NoError(t, err)
-		assert.Equal(t, 0, n)
-		assert.Equal(t, []byte(nil), bs)
-	})
-
-}
-
-// TestPrefixedConn_Writes writes len(p) bytes from p to
-// data stream and appends it with a header that is in total 3 bytes
-func TestPrefixedConn_Write(t *testing.T) {
-
-	buffer := bytes.Buffer{}
-	var readBuf bytes.Buffer
-
-	pc := &PrefixedConn{prefix: 0, writeConn: &buffer, readBuf: readBuf}
-	n, err := pc.Write([]byte("foo"))
-
-	require.NoError(t, err)
-	assert.Equal(t, 3, n)
-	assert.Equal(t, string([]byte("\x00\x00\x03foo")), buffer.String())
-}
-
-// TestReadHeader reads the first three bytes of the data and
-// returns the prefix and size of the packets.
-//
-// Case Tested: aDuplex's clientConn is the initiator and has
-// a prefix of 0 and wrote a msg "foo" with byte size of 3.
-// 1) Prefix: Want(0) -- Got(0)
-// 2) size: Want(3) -- Got(3)
-func TestRPCDuplex_ReadHeader(t *testing.T) {
-	// errCh := make(chan error)
-	buf := make([]byte, 3)
-	connA, connB := net.Pipe()
-	defer connA.Close()
-	defer connB.Close()
-
-	aDuplex := NewRPCDuplex(connA, true)
-	bDuplex := NewRPCDuplex(connB, false)
-
-	msg := []byte("foo")
-
-	go func() {
-		_, err := aDuplex.clientConn.Write(msg)
-		if err != nil {
-			log.Fatalln("Error writing from conn", err)
-		}
-		// errCh <- err
-	}()
-
-	prefix, size := bDuplex.ReadHeader()
-
-	assert.Equal(t, byte(0), prefix)
-	assert.Equal(t, uint16(len(msg)), size)
-	// require.NoError(t, <-errCh)
-
-	// To prevent read/write on closed pipe
-	connB.Read(buf)
-}
-
-// TestRPCDuplex_Forward forwards data based on the prefix to appropriate prefixedConn
-func TestRPCDuplex_Forward(t *testing.T) {
-
-	t.Run("aDuplex's clientConn is Initiator", func(t *testing.T) {
-
-		connA, connB := net.Pipe()
-
-		var bs []byte
-
-		aDuplex := NewRPCDuplex(connA, true)
-		bDuplex := NewRPCDuplex(connB, false)
-
-		msg := []byte("foo")
-		go func() {
-			_, err := aDuplex.clientConn.Write(msg)
-			if err != nil {
-				log.Fatalln("Error writing from conn", err)
-			}
-		}()
-
-		prefix, size := bDuplex.ReadHeader()
-		pc, bs := bDuplex.Forward(prefix, size)
-		assert.Equal(t, "serverConn", pc.name)
-		assert.Equal(t, "foo", string(bs))
-
-	})
-}
-
+// whoWrites determines which Duplex writes the msg and which one is reading the msg from test input
 func whoWrites(whoWrites string, aDuplex *RPCDuplex, bDuplex *RPCDuplex) (*RPCDuplex, *RPCDuplex) {
 
 	if whoWrites == "aDuplex" {
-
 		msgWriter := aDuplex
 		msgReader := bDuplex
-
 		return msgReader, msgWriter
 	}
 
 	return bDuplex, aDuplex
 }
 
-func fromWhichBranch(branchConn string, msgWriter *RPCDuplex) *PrefixedConn {
-
+// fromWhichBranch determines which branch writes the msg and which one is reading the msg from test input
+func fromWhichBranch(branchConn string, msgWriter *RPCDuplex, msgReader *RPCDuplex) (*PrefixedConn, *PrefixedConn) {
 	if branchConn == "clientConn" {
-		return msgWriter.clientConn
+		return msgWriter.clientConn, msgReader.serverConn
 	}
-
-	return msgWriter.serverConn
+	return msgWriter.serverConn, msgReader.clientConn
 }
 
 var tables = []struct {
-	description  string
-	msg          string
-	whoWrites    string
-	initiatorA   bool
-	initiatorB   bool
-	branchConn   string
+	// Inputs
+	description string
+	msg         string
+	initiatorA  bool
+	initiatorB  bool
+	whoWrites   string
+	branchConn  string
+
+	// Expected Result
 	expectedMsg  string
 	expectedSize uint16
 	expectedConn string
@@ -268,11 +153,12 @@ func TestNewRPCDuplex(t *testing.T) {
 		t.Run(tt.description, func(t *testing.T) {
 
 			assert := assert.New(t)
+			bs := make([]byte, 20)
+
 			connA, connB := net.Pipe()
 			defer connA.Close()
 			defer connB.Close()
 
-			// connA.SetReadDeadline(time.Now().Add(time.Second * 3))
 			connA.SetDeadline(time.Now().Add(time.Second * 3))
 			connB.SetDeadline(time.Now().Add(time.Second * 3))
 
@@ -280,17 +166,14 @@ func TestNewRPCDuplex(t *testing.T) {
 			aDuplex := NewRPCDuplex(connA, tt.initiatorA)
 			bDuplex := NewRPCDuplex(connB, tt.initiatorB)
 
-			// Assign to variables as to who is writing the msg and who is reading the msg
+			// Determine who is writing the msg and who is reading the msg from test input
 			msgReader, msgWriter := whoWrites(tt.whoWrites, aDuplex, bDuplex)
 
-			// Assign to pcWriter as to whether writer is writing from clientConn or serverConn
-			pcWriter := fromWhichBranch(tt.branchConn, msgWriter)
+			// Determine who is writing and reading from clientConn or serverConn from test input
+			pcWriter, pcReader := fromWhichBranch(tt.branchConn, msgWriter, msgReader)
 
 			msg := []byte(tt.msg)
 
-			// TO DO: Send multiple packets instead of one...
-			// TO DO: Fix prefixedConn's read method... review logic for prefixedConn.Read(), RPCDuplex.ReadHeader() and RPCDuplex.Forward()
-			// Look at Len_read_writer.go and link.go as examples.
 			go func() {
 
 				n, err := pcWriter.Write([]byte(msg))
@@ -302,23 +185,269 @@ func TestNewRPCDuplex(t *testing.T) {
 
 			}()
 
-			// TO DO: FIX RACE CONDITION -  go test -race -v -run NewRPCDuplex
 			time.Sleep(time.Millisecond * 1)
 
-			prefix, size := msgReader.ReadHeader()
+			msgReader.Serve()
+			n, err := pcReader.Read(bs)
 
-			assert.Equal(tt.expectedSize, size, "length of message read from header should be equal")
-
-			pc, bs := msgReader.Forward(prefix, size)
-
-			assert.Equal(tt.expectedConn, pc.name, "sent to incorrect branchConn")
-
-			n, err := pc.Read(bs)
+			// Trim Null characters after bs
+			bs = bytes.Trim(bs, "\x00")
 
 			assert.Nil(err)
+			assert.Equal(tt.expectedConn, pcReader.name, "msg forwarded to wrong channel")
 			assert.Equal(tt.expectedSize, uint16(n), "length of message read from prefixedConn.Read() should be equal")
 			assert.Equal(tt.expectedMsg, string(bs), "message content should be equal")
 
 		})
 	}
 }
+
+// TestPrefixedConn_Read reads data from the buffer pushed in by
+// the Original connection
+func TestPrefixedConn_Read(t *testing.T) {
+
+	// Want(3, "foo") - Get(3, "foo")
+	t.Run("successful prefixedConn read", func(t *testing.T) {
+		var c io.Writer
+		var readBuf bytes.Buffer
+
+		pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
+
+		pc.readBuf.WriteString("foo")
+
+		bs := make([]byte, 3)
+		n, err := pc.Read(bs)
+
+		require.NoError(t, err)
+		assert.Equal(t, 3, n)
+		assert.Equal(t, []byte("foo"), bs)
+	})
+
+	// Want(0, nil) - Get(0, nil)
+	t.Run("len(bs) is zero prefixedConn read", func(t *testing.T) {
+		var c io.Writer
+		var readBuf bytes.Buffer
+
+		pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
+
+		var bs []byte
+		n, err := pc.Read(bs)
+
+		require.NoError(t, err)
+		assert.Equal(t, 0, n)
+		assert.Equal(t, []byte(nil), bs)
+	})
+
+	// // Want(io.EOF; loop forever) - Get(io.EOF; loop forever)
+	// t.Run("empty buffer prefixedConn read", func(t *testing.T) {
+	// 	var c io.Writer
+	// 	var readBuf bytes.Buffer
+
+	// 	pc := &PrefixedConn{prefix: 0, writeConn: c, readBuf: readBuf}
+
+	// 	bs := make([]byte, 3)
+	// 	n, err := pc.Read(bs)
+
+	// 	require.NoError(t, err)
+	// 	assert.Equal(t, 0, n)
+	// })
+
+}
+
+// TestPrefixedConn_Writes writes len(p) bytes from p to
+// data stream and appends it with a header that is in total 3 bytes
+func TestPrefixedConn_Write(t *testing.T) {
+
+	buffer := bytes.Buffer{}
+	var readBuf bytes.Buffer
+
+	pc := &PrefixedConn{prefix: 0, writeConn: &buffer, readBuf: readBuf}
+	n, err := pc.Write([]byte("foo"))
+
+	require.NoError(t, err)
+	assert.Equal(t, 3, n)
+	assert.Equal(t, string([]byte("\x00\x00\x03foo")), buffer.String())
+}
+
+// TestReadHeader reads the first three bytes of the data and
+// returns the prefix and size of the packets.
+func TestRPCDuplex_ReadHeader(t *testing.T) {
+
+	// Case Tested: aDuplex's clientConn is the initiator and has
+	// a prefix of 0 and wrote a msg "foo" with byte size of 3.
+	// 1) Prefix: Want(0) -- Got(0)
+	// 2) size: Want(3) -- Got(3)
+	t.Run("successfully read prefix and size from clientConn to serverConn", func(t *testing.T) {
+		connA, connB := net.Pipe()
+
+		aDuplex := NewRPCDuplex(connA, true)
+		bDuplex := NewRPCDuplex(connB, false)
+
+		msg := []byte("foo")
+
+		go func() {
+			_, err := aDuplex.clientConn.Write(msg)
+			if err != nil {
+				log.Fatalln("Error writing from conn", err)
+			}
+		}()
+
+		prefix, size := bDuplex.ReadHeader()
+
+		assert.Equal(t, byte(0), prefix)
+		assert.Equal(t, uint16(len(msg)), size)
+	})
+
+	// Case Tested: aDuplex's serverConn is the initiator and has
+	// a prefix of 1 and wrote a msg "hello" with byte size of 5.
+	// 1) Prefix: Want(1) -- Got(1)
+	// 2) size: Want(5) -- Got(5)
+	t.Run("successfully read prefix and size from serverConn to clientConn", func(t *testing.T) {
+		connA, connB := net.Pipe()
+
+		aDuplex := NewRPCDuplex(connA, true)
+		bDuplex := NewRPCDuplex(connB, false)
+
+		msg := []byte("hello")
+
+		go func() {
+			_, err := aDuplex.serverConn.Write(msg)
+			if err != nil {
+				log.Fatalln("Error writing from conn", err)
+			}
+		}()
+
+		prefix, size := bDuplex.ReadHeader()
+
+		assert.Equal(t, byte(1), prefix)
+		assert.Equal(t, uint16(5), size)
+	})
+}
+
+// TestRPCDuplex_Forward forwards one packet from Original conn to
+// PrefixedConn given the prefix and size of payload. If reading from
+// Original Conn returns an err; that err is returned.
+func TestRPCDuplex_Forward(t *testing.T) {
+
+	connA, connB := net.Pipe()
+
+	aDuplex := NewRPCDuplex(connA, true)
+	bDuplex := NewRPCDuplex(connB, false)
+
+	msg := []byte("foo")
+	go func() {
+		_, err := aDuplex.clientConn.Write(msg)
+		if err != nil {
+			log.Fatalln("Error writing from conn", err)
+		}
+	}()
+
+	prefix, size := bDuplex.ReadHeader()
+	err := bDuplex.Forward(prefix, size)
+	require.NoError(t, err)
+}
+
+// TestRPCDuplex_Serve continuously calls forward in a loop alongside with ReadHeader.
+// Case Tested: aDuplex's clientConn writes a msg to bDuplex's serverConn
+func TestRPCDuplex_Serve(t *testing.T) {
+
+	t.Run("successfully serve and read once from prefixedConn", func(t *testing.T) {
+		bs := make([]byte, 3)
+
+		connA, connB := net.Pipe()
+
+		aDuplex := NewRPCDuplex(connA, true)
+		bDuplex := NewRPCDuplex(connB, false)
+
+		msg := []byte("foo")
+		go func() {
+			_, err := aDuplex.clientConn.Write(msg)
+			if err != nil {
+				log.Fatalln("Error writing from conn", err)
+			}
+		}()
+
+		bDuplex.Serve()
+		n, err := bDuplex.serverConn.Read(bs)
+
+		require.NoError(t, err)
+		assert.Equal(t, 3, n)
+		assert.Equal(t, "foo", string(bs))
+	})
+
+	t.Run("successfully serve and read multiple times from prefixedConn", func(t *testing.T) {
+		bs := make([]byte, 3)
+
+		connA, connB := net.Pipe()
+
+		aDuplex := NewRPCDuplex(connA, true)
+		bDuplex := NewRPCDuplex(connB, false)
+
+		msg := []byte("fooBar")
+		go func() {
+			_, err := aDuplex.clientConn.Write(msg)
+			if err != nil {
+				log.Fatalln("Error writing from conn", err)
+			}
+		}()
+
+		bDuplex.Serve()
+		// Read once from buffer
+		n, err := bDuplex.serverConn.Read(bs)
+
+		require.NoError(t, err)
+		assert.Equal(t, 3, n)
+		assert.Equal(t, "foo", string(bs))
+
+		// Read remaining from buffer
+		n, err = bDuplex.serverConn.Read(bs)
+		require.NoError(t, err)
+		assert.Equal(t, 3, n)
+		assert.Equal(t, "Bar", string(bs))
+	})
+
+	// t.Run("successfully serve and read forever from prefixedConn", func(t *testing.T) {
+	// 	bs := make([]byte, 3)
+
+	// 	connA, connB := net.Pipe()
+
+	// 	aDuplex := NewRPCDuplex(connA, true)
+	// 	bDuplex := NewRPCDuplex(connB, false)
+
+	// 	msg := []byte("fooBar")
+	// 	go func() {
+	// 		_, err := aDuplex.clientConn.Write(msg)
+	// 		if err != nil {
+	// 			log.Fatalln("Error writing from conn", err)
+	// 		}
+	// 	}()
+
+	// 	time.Sleep(time.Millisecond * 1)
+
+	// 	go func() {
+	// 		_, err := aDuplex.clientConn.Write([]byte("hi"))
+	// 		if err != nil {
+	// 			log.Println(nil)
+	// 		}
+	// 	}()
+
+	// 	time.Sleep(time.Millisecond * 1)
+
+	// 	bDuplex.Serve()
+
+	// 	for {
+	// 		bDuplex.serverConn.Read(bs)
+	// 		log.Println(string(bs))
+	// 	}
+	// })
+
+}
+
+// TO DO: FIX RACE CONDITION -  go test -race -v -run NewRPCDuplex
+// time.Sleep(time.Millisecond * 1)
+
+// for i := 0; i < expectedMsgCount; i++ {
+// 	msg := fmt.Sprintf("Hello world %d!", i)
+// 	_, err := initConn.Send(1, []byte(msg))
+// 	require.NoError(t, err)
+// }

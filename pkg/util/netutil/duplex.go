@@ -47,7 +47,7 @@ func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 // ReadHeader reads the first three bytes of the data and returns the prefix and size of the packets
 func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 
-	var bs = make([]byte, 3)
+	var bs = make([]byte, 2)
 	var size uint16
 
 	// Read the 1st byte from prefix
@@ -68,22 +68,14 @@ func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 	return prefix, size
 }
 
-// Forward forwards data from Original conn to PrefixedConn given the prefix
-// ---------------------------------------------------------------------
-// A Initiator (0-prefixed) -> B (0-prefixed): A talks to B's RPC server
-// A Initiator (1-prefixed) -> B (1-prefixed): A talks to B's RPC client
-// A (0-prefixed) <- B Initiator (0-prefixed): B talks to A's RPC server
-// A (1-prefixed) <- B Initiator (1-prefixed): B talks to A's RPC client
-func (d *RPCDuplex) Forward(prefix byte, size uint16) (*PrefixedConn, []byte) {
-
-	// Using the original conn to push data into the buffer
-	data := make([]byte, size)
-
-	// Event loop to read from originalConn and break when data is available
+// Serve continuously calls forward in a loop alongside with ReadHeader
+func (d *RPCDuplex) Serve() {
 
 L:
 	for {
-		_, err := d.conn.Read(data)
+		prefix, size := d.ReadHeader()
+
+		err := d.Forward(prefix, size)
 		switch err {
 		case nil:
 			break L
@@ -91,44 +83,46 @@ L:
 			log.Fatalln(err)
 		}
 	}
+}
 
+// Forward forwards one packet from Original conn to PrefixedConn given the prefix and size of payload
+func (d *RPCDuplex) Forward(prefix byte, size uint16) error {
+
+	data := make([]byte, size)
+
+	_, err := d.conn.Read(data)
+	if err != nil {
+		return err
+	}
+
+	// Using the original conn to push data into the buffer
 	if prefix == d.serverConn.prefix {
-		return d.serverConn, data[:size]
+		d.serverConn.readBuf.Write(data[:size])
 	} else if prefix == d.clientConn.prefix {
-		return d.clientConn, data[:size]
+		d.clientConn.readBuf.Write(data[:size])
 	} else {
 		log.Fatalln(errors.New("error encountered while forwarding packets"))
 	}
 
-	return nil, data[:size]
+	return nil
 
 }
 
-// Read reads in prefixed data from root connection.......
+// Read reads in prefixed data from root connection
 func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 
-	if pc.readBuf.Len() != 0 {
-		return pc.readBuf.Read(b)
-	}
+	// log.Println("Buffer len:", pc.readBuf.Len())
 
-	// readBuf takes the data from OriginalConn and writes it into the buffer
-	_, err = pc.readBuf.Write(b)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// The bytes.Buffer readBuf then reads this data back into b
+	// Read reads the next len(p) bytes from the buffer or until the buffer
+	// is drained. The return value n is the number of bytes read. If the
+	// buffer has no data to return, err is io.EOF (unless len(p) is zero);
+	// otherwise it is nil.
 	for {
 		n, err = pc.readBuf.Read(b)
 		switch err {
 		case nil:
-			// log.Println("bytes read:", n)
-			// log.Println("msg in b:", string(b))
 			return n, err
 		case io.EOF:
-			// log.Println("bytes read:", n)
-			// log.Println("msg in b:", string(b))
-			// log.Println("empty Buffer", io.EOF)
 			continue
 		default:
 			log.Fatalln(err)
