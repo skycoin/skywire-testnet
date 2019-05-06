@@ -1,4 +1,4 @@
-package client
+package utclient
 
 import (
 	"context"
@@ -21,14 +21,13 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 func TestClientAuth(t *testing.T) {
 	wg := sync.WaitGroup{}
 
+	headerCh := make(chan http.Header, 1)
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			switch url := r.URL.String(); url {
 			case "/":
 				defer wg.Done()
-				assert.Equal(t, testPubKey.Hex(), r.Header.Get("SW-Public"))
-				assert.Equal(t, "1", r.Header.Get("SW-Nonce"))
-				assert.NotEmpty(t, r.Header.Get("SW-Sig")) // TODO: check for the right key
+				headerCh <- r.Header
 
 			case fmt.Sprintf("/security/nonces/%s", testPubKey):
 				fmt.Fprintf(w, `{"edge": "%s", "next_nonce": 1}`, testPubKey)
@@ -45,22 +44,31 @@ func TestClientAuth(t *testing.T) {
 	c := client.(*httpClient)
 
 	wg.Add(1)
-	_, err = c.Get(context.Background(), "/")
+	_, err = c.Get(context.TODO(), "/")
 	require.NoError(t, err)
+
+	header := <-headerCh
+	assert.Equal(t, testPubKey.Hex(), header.Get("SW-Public"))
+	assert.Equal(t, "1", header.Get("SW-Nonce"))
+	assert.NotEmpty(t, header.Get("SW-Sig")) // TODO: check for the right key
 
 	wg.Wait()
 }
 
 func TestUpdateNodeUptime(t *testing.T) {
+	urlCh := make(chan string, 1)
 	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/update", r.URL.String())
+		urlCh <- r.URL.String()
 	})))
 	defer srv.Close()
 
 	c, err := NewHTTP(srv.URL, testPubKey, testSecKey)
 	require.NoError(t, err)
-	err = c.UpdateNodeUptime(context.Background())
+
+	err = c.UpdateNodeUptime(context.TODO())
 	require.NoError(t, err)
+
+	assert.Equal(t, "/update", <-urlCh)
 }
 
 func authHandler(next http.Handler) http.Handler {
