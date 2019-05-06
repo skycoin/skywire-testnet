@@ -2,7 +2,6 @@ package netutil
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -65,10 +64,7 @@ func (d *RPCDuplex) Forward() error {
 	// Reads into data from conn until original conn is close
 	data, err := ioutil.ReadAll(d.conn)
 	if err != nil {
-		if err != io.EOF {
-			fmt.Println("read error:", err)
-		}
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	// //or ???
