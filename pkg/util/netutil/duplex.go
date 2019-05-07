@@ -42,7 +42,7 @@ func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 	return &d
 }
 
-// ReadHeader reads the first bytes of the data and returns the prefix of the packet
+// ReadHeader reads the first three bytes of the data and returns the prefix and size of the packet
 func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 
 	var bs = make([]byte, 2)
@@ -66,7 +66,7 @@ func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 	return prefix, size
 }
 
-// Serve calls Forward() in a loop and would wait
+// Serve calls Forward() in a loop and direct the packets to the appropriate branchConn based on it's prefix
 func (d *RPCDuplex) Serve() error {
 
 	for {
@@ -82,12 +82,13 @@ func (d *RPCDuplex) Serve() error {
 	}
 }
 
-// Forward forwards one packet from Original conn to PrefixedConn based on the packet's prefix
+// Forward forwards one packet from Original conn to appropriate PrefixedConn based on the packet's prefix
 func (d *RPCDuplex) Forward() error {
 
 	// Reads 1st byte of prefixed connection to determine which conn to forward to
 	prefix, size := d.ReadHeader()
 
+	// Reads packet with size 'size' from Original Conn into data
 	data := make([]byte, size)
 	_, err := d.conn.Read(data)
 	if err != nil {
@@ -112,7 +113,9 @@ func (d *RPCDuplex) Forward() error {
 
 }
 
-// Read reads in data from original conn through PrefixedConn's chan []byte
+// Read reads in data from original conn through PrefixedConn's chan [].
+// If read []byte is smaller than length of packet, io.ErrShortBuffer
+// is raised.
 func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 
 	// Reads in data from chan []byte pushed from Original Conn
