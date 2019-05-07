@@ -1,7 +1,6 @@
 package netutil
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -207,13 +206,10 @@ func TestNewRPCDuplex(t *testing.T) {
 			close(pcReader.readChan)
 			close(pcWriter.readChan)
 
-			// Trim Null characters after bs
-			bs = bytes.Trim(bs, "\x00")
-
 			assert.Nil(err)
 			assert.Equal(tt.expectedConn, pcReader.name, "msg forwarded to wrong channel")
 			assert.Equal(tt.expectedSize, uint16(n), "length of message read from prefixedConn.Read() should be equal")
-			assert.Equal(tt.expectedMsg, string(bs), "message content should be equal")
+			assert.Equal(tt.expectedMsg, string(bs[:n]), "message content should be equal")
 		})
 	}
 }
@@ -222,8 +218,8 @@ func TestNewRPCDuplex(t *testing.T) {
 // Test Case: aDuplex's clientConn sends n consecutive message to bDuplex's serverConn
 func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 
-	assert := assert.New(t)
 	bs := make([]byte, 256)
+	assert := assert.New(t)
 	expectedMsgCount := 5
 
 	connA, connB := net.Pipe()
@@ -248,18 +244,12 @@ func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 		assert.Nil(err)
 	}()
 
-	// Read all the message sent to bDuplex's serverConn
+	// // Read all the message sent to bDuplex's serverConn
 	for i := 0; i < expectedMsgCount; i++ {
-		_, err := bDuplex.serverConn.Read(bs)
-
-		// Trim Null characters after bs
-		bs = bytes.Trim(bs, "\x00")
-
-		log.Println(string(bs))
-
+		n, err := bDuplex.serverConn.Read(bs)
 		assert.Nil(err)
 		assert.Equal("serverConn", bDuplex.serverConn.name, "msg forwarded to wrong channel")
-		assert.Equal(fmt.Sprintf("foo%d", i), string(bs), "message content should be equal")
+		assert.Equal(fmt.Sprintf("foo%d", i), string(bs[:n]), "message content should be equal")
 	}
 
 	// Close channel
