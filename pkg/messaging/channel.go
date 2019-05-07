@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/skycoin/skywire/internal/noise"
@@ -27,6 +28,8 @@ type channel struct {
 	doneChan  chan struct{}
 
 	noise *noise.Noise
+	rMx   sync.Mutex
+	wMx   sync.Mutex
 }
 
 // Edges returns the public keys of the channel's edge nodes
@@ -90,6 +93,9 @@ func (c *channel) Write(p []byte) (n int, err error) {
 		error
 	})
 	go func() {
+		c.wMx.Lock()
+		defer c.wMx.Unlock()
+
 		data := c.noise.EncryptUnsafe(p)
 		buf := make([]byte, 2)
 		binary.BigEndian.PutUint16(buf, uint16(len(data)))
@@ -147,6 +153,9 @@ func (c *channel) close() {
 }
 
 func (c *channel) readEncrypted(ctx context.Context, p []byte) (n int, err error) {
+	c.rMx.Lock()
+	defer c.rMx.Unlock()
+
 	buf := new(bytes.Buffer)
 	readAtLeast := func(d []byte) (int, error) {
 		for {
