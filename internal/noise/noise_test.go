@@ -48,13 +48,13 @@ func TestKKAndSecp256k1(t *testing.T) {
 	require.True(t, nI.HandshakeFinished())
 	require.True(t, nR.HandshakeFinished())
 
-	encrypted := nI.Encrypt([]byte("foo"))
-	decrypted, err := nR.Decrypt(encrypted)
+	encrypted := nI.EncryptUnsafe([]byte("foo"))
+	decrypted, err := nR.DecryptUnsafe(encrypted)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), decrypted)
 
-	encrypted = nR.Encrypt([]byte("bar"))
-	decrypted, err = nI.Decrypt(encrypted)
+	encrypted = nR.EncryptUnsafe([]byte("bar"))
+	decrypted, err = nI.DecryptUnsafe(encrypted)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("bar"), decrypted)
 
@@ -105,13 +105,13 @@ func TestXKAndSecp256k1(t *testing.T) {
 	require.True(t, nI.HandshakeFinished())
 	require.True(t, nR.HandshakeFinished())
 
-	encrypted := nI.Encrypt([]byte("foo"))
-	decrypted, err := nR.Decrypt(encrypted)
+	encrypted := nI.EncryptUnsafe([]byte("foo"))
+	decrypted, err := nR.DecryptUnsafe(encrypted)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), decrypted)
 
-	encrypted = nR.Encrypt([]byte("bar"))
-	decrypted, err = nI.Decrypt(encrypted)
+	encrypted = nR.EncryptUnsafe([]byte("bar"))
+	decrypted, err = nI.DecryptUnsafe(encrypted)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("bar"), decrypted)
 

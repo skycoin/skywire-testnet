@@ -90,7 +90,7 @@ func (c *channel) Write(p []byte) (n int, err error) {
 		error
 	})
 	go func() {
-		data := c.noise.Encrypt(p)
+		data := c.noise.EncryptUnsafe(p)
 		buf := make([]byte, 2)
 		binary.BigEndian.PutUint16(buf, uint16(len(data)))
 		n, err := c.link.Send(c.ID, append(buf, data...))
@@ -181,7 +181,7 @@ func (c *channel) readEncrypted(ctx context.Context, p []byte) (n int, err error
 		return 0, err
 	}
 
-	data, err := c.noise.Decrypt(encrypted)
+	data, err := c.noise.DecryptUnsafe(encrypted)
 	if err != nil {
 		return 0, err
 	}

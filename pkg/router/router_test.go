@@ -197,11 +197,11 @@ func TestRouterApp(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, uint16(19), packet.Size())
 	assert.Equal(t, routing.RouteID(4), packet.RouteID())
-	decrypted, err := ni2.Decrypt(packet.Payload())
+	decrypted, err := ni2.DecryptUnsafe(packet.Payload())
 	require.NoError(t, err)
 	assert.Equal(t, []byte("bar"), decrypted)
 
-	_, err = tr2.Write(routing.MakePacket(routeID, ni2.Encrypt([]byte("foo"))))
+	_, err = tr2.Write(routing.MakePacket(routeID, ni2.EncryptUnsafe([]byte("foo"))))
 	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
