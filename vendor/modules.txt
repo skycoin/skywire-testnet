@@ -4,6 +4,8 @@ github.com/armon/go-socks5
 github.com/beorn7/perks/quantile
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/fatih/color v1.7.0
+github.com/fatih/color
 # github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6
 github.com/flynn/noise
 # github.com/go-chi/chi v4.0.2+incompatible
@@ -17,6 +19,8 @@ github.com/google/uuid
 github.com/gorilla/handlers
 # github.com/gorilla/securecookie v1.1.1
 github.com/gorilla/securecookie
+# github.com/gorilla/websocket v1.4.0
+github.com/gorilla/websocket
 # github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 github.com/hashicorp/yamux
 # github.com/inconshreveable/mousetrap v1.0.0
@@ -27,7 +31,7 @@ github.com/konsorten/go-windows-terminal-sequences
 github.com/kr/pty
 # github.com/mattn/go-colorable v0.1.1
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.5
+# github.com/mattn/go-isatty v0.0.7
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -72,7 +76,7 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.etcd.io/bbolt v1.3.2
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20190422171913-f8560614bab0
+# golang.org/x/crypto v0.0.0-20190506204251-e1dfcc566284
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
@@ -81,7 +85,7 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
-# golang.org/x/net v0.0.0-20190420063019-afa5a82059c6
+# golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
 golang.org/x/net/context
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks

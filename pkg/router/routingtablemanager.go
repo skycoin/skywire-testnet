@@ -90,14 +90,16 @@ func (rtm *RoutingTableManager) DeleteAppRule(lm app.LoopMeta) error {
 
 // FindAppRule finds an APP rule with given LoopMeta.
 func (rtm *RoutingTableManager) FindAppRule(lm app.LoopMeta) (rtID routing.RouteID, rule routing.Rule, ok bool) {
-	_ = rtm.RangeRules(func(id routing.RouteID, r routing.Rule) bool { //nolint:errcheck
+	_ = rtm.RangeRules(func(id routing.RouteID, r routing.Rule) (next bool) { //nolint:errcheck
+		if r.Type() != routing.RuleApp {
+			return true
+		}
 		var (
-			typesMatch  = r.Type() == routing.RuleApp
 			rPKsMatch   = r.RemotePK() == lm.Remote.PubKey
 			rPortsMatch = r.RemotePort() == lm.Remote.Port
 			lPortsMatch = r.LocalPort() == lm.Local.Port
 		)
-		if typesMatch && rPKsMatch && rPortsMatch && lPortsMatch {
+		if rPKsMatch && rPortsMatch && lPortsMatch {
 			rtID, rule, ok = id, r, true
 			return false
 		}
