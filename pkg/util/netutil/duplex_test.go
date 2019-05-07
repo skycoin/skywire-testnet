@@ -168,8 +168,8 @@ func TestNewRPCDuplex(t *testing.T) {
 
 			connA, connB := net.Pipe()
 
-			connA.SetDeadline(time.Now().Add(time.Second * 3))
-			connB.SetDeadline(time.Now().Add(time.Second * 3))
+			connA.SetDeadline(time.Now().Add(time.Second * 10))
+			connB.SetDeadline(time.Now().Add(time.Second * 10))
 
 			// Create two instances of RPCDuplex
 			aDuplex := NewRPCDuplex(connA, tt.initiatorA)
@@ -233,9 +233,12 @@ func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 	go func() {
 		for i := 0; i < expectedMsgCount; i++ {
 			msg := fmt.Sprintf("foo%d", i)
-			_, err := aDuplex.clientConn.Write([]byte(msg))
+			n, err := aDuplex.clientConn.Write([]byte(msg))
+			// log.Println(msg, n)
 			assert.Nil(err)
+			assert.Equal(len(msg), n)
 			wg.Done()
+			time.Sleep(time.Nanosecond * 250)
 		}
 	}()
 
@@ -247,11 +250,12 @@ func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 
 	// Read all the message sent to bDuplex's serverConn
 	for i := 0; i < expectedMsgCount; i++ {
-		_, err := bDuplex.serverConn.Read(bs)
-		// log.Println(string(bs[:n]))
+		n, err := bDuplex.serverConn.Read(bs)
+		// log.Println(string(bs[:n]), n)
 		assert.Nil(err)
 		assert.Equal("serverConn", bDuplex.serverConn.name, "msg forwarded to wrong channel")
-		// assert.Equal(fmt.Sprintf("foo%d", i), string(bs[:n]), "message content should be equal")
+		assert.Equal(len(fmt.Sprintf("foo%d", i)), n, "message content should be equal")
+		assert.Equal(fmt.Sprintf("foo%d", i), string(bs[:n]), "message content should be equal")
 	}
 
 	// Close channel
