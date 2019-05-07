@@ -99,17 +99,16 @@ type ExecutorFactory interface {
 	New(l *logging.Logger, m *Meta, c *ExecConfig) (Executor, error)
 }
 
-type appExecutorFactory struct {}
+type appExecutorFactory struct{}
 
 func (*appExecutorFactory) New(l *logging.Logger, m *Meta, c *ExecConfig) (Executor, error) {
-	return NewExecutor(l,m,c)
+	return NewExecutor(l, m, c)
 }
 
 // NewExecutorFactory returns the default implementation of ExecutorFactory
 func NewExecutorFactory() ExecutorFactory {
 	return &appExecutorFactory{}
 }
-
 
 // Executor is used by the App's host to run, stop and communicate with the App.
 // Regarding thread-safety;

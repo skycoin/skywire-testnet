@@ -79,9 +79,9 @@ func (rc *rpcClient) Apps() ([]*app.Meta, error) {
 func (rc *rpcClient) StartProc(appName string, args []string, port uint16) (router.ProcID, error) {
 	var proc router.ProcID
 	err := rc.Call("StartProc", &StartProcIn{
-		appName: appName,
-		args:    args,
-		port:    port,
+		AppName: appName,
+		Args:    args,
+		Port:    port,
 	}, &proc)
 
 	return proc, err
@@ -89,7 +89,7 @@ func (rc *rpcClient) StartProc(appName string, args []string, port uint16) (rout
 
 // StopProc stops process by it's ID
 func (rc *rpcClient) StopProc(pid router.ProcID) error {
-	return rc.Call("StopProc", &pid, struct{}{})
+	return rc.Call("StopProc", &pid, &struct{}{})
 }
 
 // ListProcs list all the processes handled by node

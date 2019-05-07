@@ -2,28 +2,31 @@ package node
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/skycoin/skywire/internal/appnet"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/router"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
-var startedApp string
-var stoppedApp string
+var (
+	startChan chan string
+	stopChan  chan string
+)
 
 func TestListApps(t *testing.T) {
 	apps := []AutoStartConfig{
 		{App: "foo", Port: 0, Args: []string{}},
 		{App: "bar", Port: 3, Args: []string{}},
 	}
-	metas := map[string]*app.Meta {
-		"foo":{AppName:"foo", AppVersion:"1.0", ProtocolVersion:supportedProtocolVersion},
-		"bar":{AppName:"bar", AppVersion:"1.0", ProtocolVersion:supportedProtocolVersion},
+	metas := map[string]*app.Meta{
+		"foo": {AppName: "foo", AppVersion: "1.0", ProtocolVersion: supportedProtocolVersion},
+		"bar": {AppName: "bar", AppVersion: "1.0", ProtocolVersion: supportedProtocolVersion},
 	}
 
 	rpc := &RPC{&Node{conf: &Config{AutoStartApps: apps}, apps: metas}}
@@ -44,62 +47,94 @@ func TestListApps(t *testing.T) {
 	assert.Equal(t, supportedProtocolVersion, app2.ProtocolVersion)
 }
 
-func TestStartStopApp(t *testing.T) {
-	defer func() {
-		startedApp = ""
-		stoppedApp = ""
-	}()
+func TestRPC(t *testing.T) {
+	startChan = make(chan string)
+	stopChan = make(chan string)
+	unknownApp := "bar"
+	validAppName := "foo"
 
-	pk, sk,err := cipher.GenerateDeterministicKeyPair([]byte("test"))
+	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("test"))
 	require.NoError(t, err)
 
 	node := &Node{
 		pm: newMockProcManager(),
 		apps: map[string]*app.Meta{
-			"foo":{AppName:"foo",AppVersion:"1.0",ProtocolVersion:supportedProtocolVersion, Host: pk},
+			"foo":  {AppName: "foo", AppVersion: "1.0", ProtocolVersion: supportedProtocolVersion, Host: pk},
+			"foo2": {AppName: "foo2", AppVersion: "1.0", ProtocolVersion: supportedProtocolVersion, Host: pk},
 		},
 		ef: &mockExecutorFactory{},
 		conf: &Config{
 			Node: KeyFields{
-				PubKey:pk,
-				SecKey:sk,
+				PubKey: pk,
+				SecKey: sk,
 			},
 		},
 		rootBinDir: "apps",
 	}
 
 	rpc := &RPC{node: node}
-	unknownApp := "bar"
-	app := "foo"
-	var pid router.ProcID
 
-	err = rpc.StartProc(&StartProcIn{
-		appName: unknownApp,
-		port: 10,
-		args: []string{},
-	}, &pid)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found", )
+	t.Run("start-stop apps", func(t *testing.T) {
+		var pid router.ProcID
 
-	require.NoError(t, rpc.StartProc(&StartProcIn{
-		appName: app,
-		port: 10,
-		args: []string{},
-	}, &pid))
-	time.Sleep(50*time.Millisecond)
+		err = rpc.StartProc(&StartProcIn{
+			AppName: unknownApp,
+			Port:    10,
+			Args:    []string{},
+		}, &pid)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
 
-	mockFactory := node.ef.(*mockExecutorFactory)
+		require.NoError(t, rpc.StartProc(&StartProcIn{
+			AppName: validAppName,
+			Port:    10,
+			Args:    []string{},
+		}, &pid))
 
-	assert.Equal(t, startedApp, app)
-	assert.NotEqual(t, 0, pid)
-	assert.Equal(t, "apps/foo", mockFactory.binLoc)
-	assert.Equal(t, "foo", mockFactory.workDir)
+		mockFactory := node.ef.(*mockExecutorFactory)
 
-	mockManager := node.pm.(*mockProcManager)
-	require.NoError(t, rpc.StopProc(&mockManager.currentPID, nil))
-	time.Sleep(50*time.Millisecond)
-	assert.Equal(t, stoppedApp, app)
+		assert.Equal(t, <-startChan, validAppName)
+		assert.NotEqual(t, 0, pid)
+		assert.Equal(t, "apps/foo", mockFactory.binLoc)
+		assert.Equal(t, "foo", mockFactory.workDir)
+
+		mockManager := node.pm.(*mockProcManager)
+		require.NoError(t, rpc.StopProc(&mockManager.currentPID, nil))
+		assert.Equal(t, <-stopChan, validAppName)
+
+	})
+
+	t.Run("list procs", func(t *testing.T) {
+		var pid router.ProcID
+
+		require.NoError(t, rpc.StartProc(&StartProcIn{
+			AppName: validAppName,
+			Port:    10,
+			Args:    []string{},
+		}, &pid))
+
+		require.NoError(t, rpc.StartProc(&StartProcIn{
+			AppName: validAppName,
+			Port:    10,
+			Args:    []string{},
+		}, &pid))
+
+		ls := make([]*router.ProcInfo, 0)
+		require.NoError(t, rpc.ListProcs(nil, &ls))
+		assert.Len(t, ls, 2)
+	})
+
+	t.Run("apps", func(t *testing.T) {
+		apps := make([]*app.Meta, 0)
+
+		require.NoError(t, rpc.Apps(nil, &apps))
+		require.Len(t, apps, 2)
+
+		assert.Equal(t, node.apps[apps[0].AppName], apps[0])
+		assert.Equal(t, node.apps[apps[1].AppName], apps[1])
+	})
 }
+
 //
 //func TestRPC(t *testing.T) {
 //	r := new(mockRouter)
@@ -196,20 +231,20 @@ func TestStartStopApp(t *testing.T) {
 //
 //	// TODO(evanlinjin): For some reason, this freezes.
 //	//t.Run("StopStartApp", func(t *testing.T) {
-//	//	appName := "foo"
-//	//	require.NoError(t, gateway.StopApp(&appName, &struct{}{}))
-//	//	require.NoError(t, gateway.StartApp(&appName, &struct{}{}))
-//	//	require.NoError(t, client.StopApp(appName))
-//	//	require.NoError(t, client.StartApp(appName))
+//	//	AppName := "foo"
+//	//	require.NoError(t, gateway.StopApp(&AppName, &struct{}{}))
+//	//	require.NoError(t, gateway.StartApp(&AppName, &struct{}{}))
+//	//	require.NoError(t, client.StopApp(AppName))
+//	//	require.NoError(t, client.StartApp(AppName))
 //	//})
 //
 //	t.Run("SetAutoStart", func(t *testing.T) {
 //		unknownAppName := "whoAmI"
-//		appName := "foo"
+//		AppName := "foo"
 //
 //		in1 := SetAutoStartIn{AppName: unknownAppName, AutoStart: true}
-//		in2 := SetAutoStartIn{AppName: appName, AutoStart: true}
-//		in3 := SetAutoStartIn{AppName: appName, AutoStart: false}
+//		in2 := SetAutoStartIn{AppName: AppName, AutoStart: true}
+//		in3 := SetAutoStartIn{AppName: AppName, AutoStart: false}
 //
 //		// Test with RPC Server
 //
@@ -269,42 +304,44 @@ func TestStartStopApp(t *testing.T) {
 //	// TODO: Test add/remove transports
 //}
 
-
 func newMockProcManager() *mockProcManager {
 	return &mockProcManager{
-		procs: make(map[router.ProcID]*router.AppProc),
-		ports: make(map[uint16]router.ProcID),
-		metas: make(map[router.ProcID]*app.Meta),
+		procs:      make(map[router.ProcID]*router.AppProc),
+		ports:      make(map[uint16]router.ProcID),
+		metas:      make(map[router.ProcID]*app.Meta),
+		portOfProc: make(map[router.ProcID]uint16),
+		execs:      make(map[router.ProcID]app.Executor),
 	}
 }
 
-type mockProcManager struct  {
-	minPort     uint16
-	currentPort uint16
-	currentPID  router.ProcID
+type mockProcManager struct {
+	currentPID router.ProcID
 
-	procs map[router.ProcID]*router.AppProc
-	ports map[uint16]router.ProcID
-	metas map[router.ProcID]*app.Meta
+	procs      map[router.ProcID]*router.AppProc
+	ports      map[uint16]router.ProcID
+	portOfProc map[router.ProcID]uint16
+	metas      map[router.ProcID]*app.Meta
+	execs      map[router.ProcID]app.Executor
 }
 
 func (pm *mockProcManager) RunProc(r router.Router, port uint16, exec app.Executor) (*router.AppProc, error) {
 	// grab next available pid
 	pid := pm.nextFreePID()
 
-	// check port
+	// check Port
 	if port != 0 {
 		if proc, ok := pm.portAllocated(port); ok {
-			return nil, fmt.Errorf("port already allocated to pid %d", proc.ProcID())
+			return nil, fmt.Errorf("Port already allocated to pid %d", proc.ProcID())
 		}
 	}
-
 
 	p, err := router.NewAppProc(pm, r, port, pid, exec)
 	if err != nil {
 		return nil, err
 	}
 
+	pm.portOfProc[pid] = port
+	pm.execs[pid] = exec
 	pm.procs[pid] = p
 	return p, nil
 }
@@ -331,11 +368,23 @@ func (pm *mockProcManager) RangePorts(fn router.PortFunc) {
 }
 
 func (pm *mockProcManager) ListProcs() []*router.ProcInfo {
-	panic("implement me")
+	procsList := make([]*router.ProcInfo, 0)
+	for pid, proc := range pm.procs {
+		if !proc.Stopped() {
+			procsList = append(procsList, &router.ProcInfo{
+				PID:        pid,
+				Port:       pm.portOfProc[pid],
+				ExecConfig: pm.execs[pid].Config(),
+				Meta:       pm.execs[pid].Meta(),
+			})
+		}
+	}
+
+	return procsList
 }
 
 func (pm *mockProcManager) Close() error {
-	panic("implement me")
+	return nil
 }
 
 // returns true (with the proc) if given proc of pid is running.
@@ -346,7 +395,7 @@ func (pm *mockProcManager) procRunning(pid router.ProcID) (*router.AppProc, bool
 	return nil, false
 }
 
-// returns true (with the proc) id port is allocated to a running app.
+// returns true (with the proc) id Port is allocated to a running app.
 func (pm *mockProcManager) portAllocated(port uint16) (*router.AppProc, bool) {
 	pid, ok := pm.ports[port]
 	if !ok {
@@ -368,22 +417,9 @@ func (pm *mockProcManager) nextFreePID() router.ProcID {
 	}
 }
 
-// returns the next available and valid port.
-func (pm *mockProcManager) nextFreePort() uint16 {
-	for {
-		if pm.currentPort++; pm.currentPort < pm.minPort {
-			continue
-		}
-		if _, ok := pm.portAllocated(pm.currentPort); ok {
-			continue
-		}
-		return pm.currentPort
-	}
-}
-
 type mockExecutorFactory struct {
 	workDir string
-	binLoc string
+	binLoc  string
 }
 
 func (m *mockExecutorFactory) New(_ *logging.Logger, meta *app.Meta, c *app.ExecConfig) (app.Executor, error) {
@@ -396,25 +432,25 @@ func newMockExecutor(meta *app.Meta, c *app.ExecConfig) *mockExecutor {
 	return &mockExecutor{
 		stop: make(chan struct{}),
 		meta: meta,
-		c: c,
-		log: logging.MustGetLogger("rpc_test"),
+		c:    c,
+		log:  logging.MustGetLogger("rpc_test"),
 	}
 }
 
 type mockExecutor struct {
 	stop chan struct{}
 	meta *app.Meta
-	log *logging.Logger
-	c *app.ExecConfig
+	log  *logging.Logger
+	c    *app.ExecConfig
 }
 
 func (m *mockExecutor) Run(_, _ appnet.HandlerMap) (<-chan struct{}, error) {
 	done := make(chan struct{})
 	go func() {
-		startedApp = m.meta.AppName
-		<- m.stop
+		startChan <- m.meta.AppName
+		<-m.stop
 		done <- struct{}{}
-		stoppedApp = m.meta.AppName
+		stopChan <- m.meta.AppName
 	}()
 
 	return done, nil

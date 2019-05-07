@@ -127,7 +127,7 @@ func TestMain(m *testing.M) {
 //		conf *AppConfig
 //		err  string
 //	}{
-//		{&AppConfig{App: "chat", Version: "1.0", Port: 2}, "can't bind to reserved port 2"},
+//		{&AppConfig{App: "chat", Version: "1.0", Port: 2}, "can't bind to reserved Port 2"},
 //		{&AppConfig{App: "chat", Version: "1.0", Port: 10}, "app chat is already started"},
 //		{&AppConfig{App: "foo", Version: "1.0", Port: 11}, "failed to run app executable: foo"},
 //	}
@@ -171,13 +171,13 @@ func TestMain(m *testing.M) {
 //	return nil
 //}
 //
-//func (r *mockRouter) ServeApp(conn net.Conn, port uint16) error {
+//func (r *mockRouter) ServeApp(conn net.Conn, Port uint16) error {
 //	r.Lock()
 //	if r.ports == nil {
 //		r.ports = []uint16{}
 //	}
 //
-//	r.ports = append(r.ports, port)
+//	r.ports = append(r.ports, Port)
 //	r.Unlock()
 //
 //	if r.errChan == nil {

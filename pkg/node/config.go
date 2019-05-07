@@ -147,11 +147,11 @@ type ManagerConfig struct {
 // AutoStartConfig defines app startup parameters.
 type AutoStartConfig struct {
 	App  string   `json:"app"`
-	Port uint16   `json:"port"`
-	Args []string `json:"args"`
+	Port uint16   `json:"Port"`
+	Args []string `json:"Args"`
 }
 
 // InterfaceConfig defines listening interfaces for skywire Node.
 type InterfaceConfig struct {
-	RPCAddress string `json:"rpc"` // RPC address and port for command-line interface (leave blank to disable RPC interface).
+	RPCAddress string `json:"rpc"` // RPC address and Port for command-line interface (leave blank to disable RPC interface).
 }

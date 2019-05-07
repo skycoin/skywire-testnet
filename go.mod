@@ -23,7 +23,10 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.3.0
 	go.etcd.io/bbolt v1.3.2
-	golang.org/x/crypto v0.0.0-20190422171913-f8560614bab0
-	golang.org/x/net v0.0.0-20190420063019-afa5a82059c6
+	golang.org/x/crypto v0.0.0-20190506204251-e1dfcc566284
+	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+	golang.org/x/sys v0.0.0-20190507053917-2953c62de483 // indirect
+	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/tools v0.0.0-20190506145303-2d16b83fe98c // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

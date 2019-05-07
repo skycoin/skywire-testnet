@@ -395,7 +395,6 @@ func (pm *procManager) RunProc(r Router, port uint16, exec app.Executor) (*AppPr
 		}
 	}
 
-
 	// [2019-04-23T17:18:54+08:00] INFO [proc.2(chat)]: log message.
 	log := logging.MustGetLogger(fmt.Sprintf("proc.%d(%s)", pid, exec.Meta().AppName))
 	exec.SetLogger(log)
@@ -448,14 +447,15 @@ func (pm *procManager) ListProcs() []*ProcInfo {
 	pm.mx.RLock()
 	defer pm.mx.RUnlock()
 
-	procsList := make([]*ProcInfo, len(pm.procs))
-	i := 0
+	procsList := make([]*ProcInfo, 0)
 	for pid, proc := range pm.procs {
-		procsList[i] = &ProcInfo{
-			PID:        pid,
-			Port:       proc.port,
-			ExecConfig: proc.e.Config(),
-			Meta:       proc.e.Meta(),
+		if !proc.Stopped() {
+			procsList = append(procsList, &ProcInfo{
+				PID:        pid,
+				Port:       proc.port,
+				ExecConfig: proc.e.Config(),
+				Meta:       proc.e.Meta(),
+			})
 		}
 	}
 

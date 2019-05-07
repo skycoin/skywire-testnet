@@ -113,15 +113,15 @@ func (r *RPC) Apps(_ *struct{}, reply *[]*app.Meta) error {
 
 // StartProcIn is input for StartProc
 type StartProcIn struct {
-	appName string
-	args    []string
-	port    uint16
+	AppName string
+	Args    []string
+	Port    uint16
 }
 
 // StartProc starts a new process of an app with given configuration
 func (r *RPC) StartProc(in *StartProcIn, out *router.ProcID) error {
 	var err error
-	*out, err = r.node.StartProc(in.appName, in.args, in.port)
+	*out, err = r.node.StartProc(in.AppName, in.Args, in.Port)
 	return err
 }
 
