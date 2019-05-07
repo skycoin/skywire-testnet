@@ -2,9 +2,11 @@ package netutil
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -126,26 +128,36 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "clientConn",
 	},
-	{description: "aDuplex's serverConn (initiator) sends 10 bytes msg to bDuplex's clientConn",
-		msg:          "Helloworld",
-		initiatorA:   true,
-		initiatorB:   false,
-		whoWrites:    "aDuplex",
-		branchConn:   "clientConn",
-		expectedMsg:  "Helloworld",
+	{description: "bDuplex's serverConn sends 10 bytes msg to aDuplex's clientConn (initiator)",
+		msg:          "helloworld",
+		initiatorA:   false,
+		initiatorB:   true,
+		whoWrites:    "bDuplex",
+		branchConn:   "serverConn",
+		expectedMsg:  "helloworld",
 		expectedSize: uint16(10),
-		expectedConn: "serverConn",
+		expectedConn: "clientConn",
 	},
-	{description: "aDuplex's serverConn (initiator) sends empty string to bDuplex's clientConn",
-		msg:          "",
-		initiatorA:   true,
-		initiatorB:   false,
-		whoWrites:    "aDuplex",
-		branchConn:   "clientConn",
-		expectedMsg:  "",
-		expectedSize: uint16(0),
-		expectedConn: "serverConn",
+	{description: "bDuplex's serverConn sends 20 bytes msg to aDuplex's clientConn (initiator)",
+		msg:          "helloworld. Skycoin is best coin!",
+		initiatorA:   false,
+		initiatorB:   true,
+		whoWrites:    "bDuplex",
+		branchConn:   "serverConn",
+		expectedMsg:  "helloworld. Skycoin is best coin!",
+		expectedSize: uint16(33),
+		expectedConn: "clientConn",
 	},
+	// {description: "aDuplex's serverConn (initiator) sends empty string to bDuplex's clientConn",
+	// 	msg:          "",
+	// 	initiatorA:   true,
+	// 	initiatorB:   false,
+	// 	whoWrites:    "aDuplex",
+	// 	branchConn:   "clientConn",
+	// 	expectedMsg:  "",
+	// 	expectedSize: uint16(0),
+	// 	expectedConn: "serverConn",
+	// },
 }
 
 func TestNewRPCDuplex(t *testing.T) {
@@ -153,11 +165,9 @@ func TestNewRPCDuplex(t *testing.T) {
 		t.Run(tt.description, func(t *testing.T) {
 
 			assert := assert.New(t)
-			bs := make([]byte, 10)
+			bs := make([]byte, 256)
 
 			connA, connB := net.Pipe()
-			defer connA.Close()
-			defer connB.Close()
 
 			connA.SetDeadline(time.Now().Add(time.Second * 3))
 			connB.SetDeadline(time.Now().Add(time.Second * 3))
@@ -174,17 +184,28 @@ func TestNewRPCDuplex(t *testing.T) {
 
 			msg := []byte(tt.msg)
 
+			var wg sync.WaitGroup
+			wg.Add(1)
 			go func() {
 				n, err := pcWriter.Write([]byte(msg))
-				if err != nil {
-					log.Fatalln("Error writing from conn", err)
-				}
+				assert.Nil(err)
 				assert.Equal(tt.expectedSize, uint16(n), "length of message written should be equal")
-				pcWriter.Close()
+				wg.Done()
 			}()
 
-			err := msgReader.Forward()
+			// Read prefix and forward to the appropriate channel
+			go func() {
+				err := msgReader.Serve()
+				assert.Nil(err)
+			}()
+
+			// Read from one of the PrefixedConn; either serverConn or clientConn
 			n, err := pcReader.Read(bs)
+
+			// Close channel
+			wg.Wait()
+			close(pcReader.readChan)
+			close(pcWriter.readChan)
 
 			// Trim Null characters after bs
 			bs = bytes.Trim(bs, "\x00")
@@ -197,10 +218,62 @@ func TestNewRPCDuplex(t *testing.T) {
 	}
 }
 
+// Test sending multiple message in a single connection and recieving them
+// Test Case: aDuplex's clientConn sends n consecutive message to bDuplex's serverConn
+func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
+
+	assert := assert.New(t)
+	bs := make([]byte, 256)
+	expectedMsgCount := 5
+
+	connA, connB := net.Pipe()
+
+	aDuplex := NewRPCDuplex(connA, true)
+	bDuplex := NewRPCDuplex(connB, false)
+
+	var wg sync.WaitGroup
+	wg.Add(expectedMsgCount)
+	go func() {
+		for i := 0; i < expectedMsgCount; i++ {
+			msg := fmt.Sprintf("foo%d", i)
+			_, err := aDuplex.clientConn.Write([]byte(msg))
+			assert.Nil(err)
+			wg.Done()
+		}
+	}()
+
+	// Read prefix and forward to the appropriate channel
+	go func() {
+		err := bDuplex.Serve()
+		assert.Nil(err)
+	}()
+
+	// Read all the message sent to bDuplex's serverConn
+	for i := 0; i < expectedMsgCount; i++ {
+		_, err := bDuplex.serverConn.Read(bs)
+
+		// Trim Null characters after bs
+		bs = bytes.Trim(bs, "\x00")
+
+		log.Println(string(bs))
+
+		assert.Nil(err)
+		assert.Equal("serverConn", bDuplex.serverConn.name, "msg forwarded to wrong channel")
+		assert.Equal(fmt.Sprintf("foo%d", i), string(bs), "message content should be equal")
+	}
+
+	// Close channel
+	wg.Wait()
+	close(aDuplex.clientConn.readChan)
+	close(bDuplex.serverConn.readChan)
+}
+
 // TestRPCDuplex_Forward forwards one packet Original conn to PrefixedConn based on the packet's prefix
 func TestRPCDuplex_Forward(t *testing.T) {
 
 	connA, connB := net.Pipe()
+	defer connA.Close()
+	defer connB.Close()
 
 	aDuplex := NewRPCDuplex(connA, true)
 	bDuplex := NewRPCDuplex(connB, false)
@@ -211,17 +284,14 @@ func TestRPCDuplex_Forward(t *testing.T) {
 		if err != nil {
 			log.Fatalln("Error writing from conn", err)
 		}
-		aDuplex.conn.Close()
 	}()
 
 	err := bDuplex.Forward()
 
 	bs := <-bDuplex.serverConn.readChan
-	bs = bytes.Trim(bs, "\x00")
+
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), bs)
-
-	bDuplex.conn.Close()
 }
 
 // TestPrefixedConn_Read reads data pushed in by
@@ -286,8 +356,8 @@ func TestPrefixedConn_Write(t *testing.T) {
 
 	msg, err := ioutil.ReadAll(connB)
 	require.NoError(t, err)
-	assert.Equal(t, 4, len(msg))
-	assert.Equal(t, string([]byte("\x00foo")), string(msg))
+	assert.Equal(t, 6, len(msg))
+	assert.Equal(t, string([]byte("\x00\x00\x03foo")), string(msg))
 }
 
 // TestReadHeader reads the first bytes of the data and
@@ -312,9 +382,10 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 			}
 		}()
 
-		prefix := bDuplex.ReadHeader()
+		prefix, size := bDuplex.ReadHeader()
 
 		assert.Equal(t, byte(0), prefix)
+		assert.Equal(t, uint16(3), size)
 	})
 
 	// Case Tested: aDuplex's serverConn is the initiator and has
@@ -335,69 +406,9 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 			}
 		}()
 
-		prefix := bDuplex.ReadHeader()
+		prefix, size := bDuplex.ReadHeader()
+
 		assert.Equal(t, byte(1), prefix)
+		assert.Equal(t, uint16(5), size)
 	})
 }
-
-// func TestRandomTest(t *testing.T) {
-
-// 	connA, connB := net.Pipe()
-
-// 	aDuplex := NewRPCDuplex(connA, true)
-// 	bDuplex := NewRPCDuplex(connB, false)
-
-// 	msg := []byte("aaaafoo")
-// 	go func() {
-// 		_, err := aDuplex.clientConn.Write(msg)
-// 		// fmt.Fprintf(aDuplex.clientConn, "Bar")
-// 		if err != nil {
-// 			log.Fatalln("Error writing from conn", err)
-// 		}
-
-// 		// aDuplex.conn.Close()
-// 	}()
-
-// 	for {
-// 		err := bDuplex.Forward()
-// 		bs := <-bDuplex.serverConn.readChan
-// 		bs = bytes.Trim(bs, "\x00")
-
-// 		log.Println(string(bs))
-
-// 		assert.Nil(t, err)
-// 		assert.Equal(t, []byte("fooBaar"), bs)
-// 		assert.Equal(t, 6, len(bs))
-// 	}
-
-// ======================
-
-// // errCh := make(chan error)
-// ch := make(chan []byte)
-
-// go func() {
-// 	for i := 0; i < 2; i++ {
-// 		log.Println("Code got here")
-// 		// err := bDuplex.Forward()
-// 		bDuplex.Forward()
-// 		bs := <-bDuplex.serverConn.readChan
-// 		bs = bytes.Trim(bs, "\x00")
-
-// 		// errCh <- err
-// 		ch <- bs
-// 		log.Println(string(bs))
-// 		log.Println("Code finish")
-// 	}
-// 	close(ch)
-// 	// close(errCh)
-// }()
-
-// for bs := range ch {
-// 	assert.Equal(t, []byte("afoo"), bs)
-// }
-
-// for err := range errCh {
-// 	assert.Nil(t, err)
-// }
-
-// }
