@@ -38,6 +38,7 @@ func TestNewReadWriter(t *testing.T) {
 			RemotePK:  aPK,
 			Initiator: false,
 		})
+		require.NoError(t, err)
 
 		aConn, bConn := net.Pipe()
 		defer func() {
@@ -78,11 +79,11 @@ func TestNewReadWriter(t *testing.T) {
 						n, err := aRW.Write(b)
 						wCh <- Result{n: n, err: err, b: b}
 					}(i, j)
-					go func(i, j int) {
+					go func() {
 						buf := make([]byte, 100)
 						n, err := bRW.Read(buf)
 						rCh <- Result{n: n, err: err, b: buf[:n]}
-					}(i, j)
+					}()
 				}
 			}(i)
 		}
