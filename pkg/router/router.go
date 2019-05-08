@@ -230,7 +230,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 		return errors.New("unknown loop")
 	}
 
-	data, err := l.noise.Decrypt(payload)
+	data, err := l.noise.DecryptUnsafe(payload)
 	if err != nil {
 		return fmt.Errorf("noise: %s", err)
 	}
@@ -260,7 +260,7 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 		return errors.New("unknown transport")
 	}
 
-	p := routing.MakePacket(l.routeID, l.noise.Encrypt(packet.Payload))
+	p := routing.MakePacket(l.routeID, l.noise.EncryptUnsafe(packet.Payload))
 	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Addr.Port, l.routeID)
 	_, err = tr.Write(p)
 	return err

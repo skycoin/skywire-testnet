@@ -34,14 +34,14 @@ func TestChannelRead(t *testing.T) {
 	require.Equal(t, ErrDeadlineExceeded, err)
 
 	go func() {
-		data := rn.Encrypt([]byte("foo"))
+		data := rn.EncryptUnsafe([]byte("foo"))
 		buf := make([]byte, 2)
 		binary.BigEndian.PutUint16(buf, uint16(len(data)))
 		buf = append(buf, data...)
 		c.readChan <- buf[0:3]
 		c.readChan <- buf[3:]
 
-		data = rn.Encrypt([]byte("foo"))
+		data = rn.EncryptUnsafe([]byte("foo"))
 		buf = make([]byte, 2)
 		binary.BigEndian.PutUint16(buf, uint16(len(data)))
 		buf = append(buf, data...)
@@ -95,7 +95,7 @@ func TestChannelWrite(t *testing.T) {
 	assert.Equal(t, byte(10), buf[3])
 	require.Equal(t, uint16(19), binary.BigEndian.Uint16(buf[4:]))
 
-	data, err := rn.Decrypt(buf[6:])
+	data, err := rn.DecryptUnsafe(buf[6:])
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), data)
 

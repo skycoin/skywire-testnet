@@ -2,8 +2,6 @@ package noise
 
 import (
 	"crypto/rand"
-	"sync"
-	"sync/atomic"
 
 	"github.com/flynn/noise"
 
@@ -22,6 +20,7 @@ type Config struct {
 }
 
 // Noise handles the handshake and the frame's cryptography.
+// All operations on Noise are not guaranteed to be thread-safe.
 type Noise struct {
 	pk   cipher.PubKey
 	sk   cipher.SecKey
@@ -32,11 +31,8 @@ type Noise struct {
 	enc     *noise.CipherState
 	dec     *noise.CipherState
 
-	encN uint32
-	decN uint32
-
-	encMu sync.Mutex
-	decMu sync.Mutex
+	encN uint32 // counter to inform encrypting CipherState to re-key
+	decN uint32 // counter to inform decrypting CipherState to re-key
 }
 
 // New creates a new Noise with:
@@ -123,39 +119,21 @@ func (ns *Noise) RemoteStatic() cipher.PubKey {
 // EncryptUnsafe encrypts plaintext without interlocking, should only
 // be used with external lock.
 func (ns *Noise) EncryptUnsafe(plaintext []byte) []byte {
-	atomic.AddUint32(&ns.encN, 1)
-	if atomic.CompareAndSwapUint32(&ns.encN, packetsTillRekey, 0) {
+	if ns.encN++; ns.encN > packetsTillRekey {
 		ns.enc.Rekey()
+		ns.encN = 0
 	}
-
 	return ns.enc.Encrypt(nil, nil, plaintext)
-}
-
-// Encrypt encrypts plaintext.
-func (ns *Noise) Encrypt(plaintext []byte) []byte {
-	ns.encMu.Lock()
-	res := ns.EncryptUnsafe(plaintext)
-	ns.encMu.Unlock()
-	return res
 }
 
 // DecryptUnsafe decrypts ciphertext without interlocking, should only
 // be used with external lock.
 func (ns *Noise) DecryptUnsafe(ciphertext []byte) ([]byte, error) {
-	atomic.AddUint32(&ns.decN, 1)
-	if atomic.CompareAndSwapUint32(&ns.decN, packetsTillRekey, 0) {
+	if ns.decN++; ns.decN > packetsTillRekey {
 		ns.dec.Rekey()
+		ns.decN = 0
 	}
-
 	return ns.dec.Decrypt(nil, nil, ciphertext)
-}
-
-// Decrypt decrypts ciphertext.
-func (ns *Noise) Decrypt(ciphertext []byte) ([]byte, error) {
-	ns.decMu.Lock()
-	res, err := ns.DecryptUnsafe(ciphertext)
-	ns.decMu.Unlock()
-	return res, err
 }
 
 // HandshakeFinished indicate whether handshake was completed.
