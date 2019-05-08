@@ -28,8 +28,8 @@ type channel struct {
 	doneChan  chan struct{}
 
 	noise *noise.Noise
-	rMx   sync.Mutex
-	wMx   sync.Mutex
+	rMx   *sync.Mutex
+	wMx   *sync.Mutex
 }
 
 // Edges returns the public keys of the channel's edge nodes
@@ -58,6 +58,8 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 		closeChan: make(chan struct{}),
 		doneChan:  make(chan struct{}),
 		noise:     noiseInstance,
+		rMx: new(sync.Mutex),
+		wMx: new(sync.Mutex),
 	}, nil
 }
 
@@ -88,27 +90,26 @@ func (c *channel) Write(p []byte) (n int, err error) {
 		defer cancel()
 	}
 
-	writeChan := make(chan struct {
-		int
-		error
-	})
-	go func() {
-		c.wMx.Lock()
-		defer c.wMx.Unlock()
+	c.wMx.Lock()
+	defer c.wMx.Unlock()
 
-		data := c.noise.EncryptUnsafe(p)
-		buf := make([]byte, 2)
-		binary.BigEndian.PutUint16(buf, uint16(len(data)))
-		n, err := c.link.Send(c.ID, append(buf, data...))
-		writeChan <- struct {
-			int
-			error
-		}{n - (len(data) - len(p) + 2), err}
+	data := c.noise.EncryptUnsafe(p)
+
+	buf := make([]byte, 2+len(data))
+	binary.BigEndian.PutUint16(buf[:2], uint16(len(data)))
+	copy(buf[2:], data)
+
+	done := make(chan struct{}, 1)
+	defer close(done)
+	go func() {
+		n, err = c.link.Send(c.ID, buf)
+		n = n - (len(data) - len(p) + 2)
+		done <- struct{}{}
 	}()
 
 	select {
-	case w := <-writeChan:
-		return w.int, w.error
+	case <-done:
+		return n, err
 	case <-ctx.Done():
 		return 0, ErrDeadlineExceeded
 	}
