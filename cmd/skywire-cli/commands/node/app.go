@@ -3,6 +3,7 @@ package node
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -14,11 +15,13 @@ import (
 
 var (
 	startAppArgs []string
+	startAppPort uint16
 )
 
 func init() {
 	startAppCmd.Flags().StringSliceVarP(&startAppArgs, "args", "a", []string{},
 		"args in the form \"arg1,arg2,arg3...\". For flags: \"--flag,value\"")
+	startAppCmd.Flags().Uint16VarP(&startAppPort, "port", "p", 0, "port in which started app process will listen")
 
 	RootCmd.AddCommand(
 		lsAppsCmd,
@@ -49,13 +52,11 @@ var lsAppsCmd = &cobra.Command{
 }
 
 var startAppCmd = &cobra.Command{
-	Use:   "start-app <name> <port>",
+	Use:   "start-app <name>",
 	Short: "Starts a process of given app on given port if possible",
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		port := parseUint("port", args[1], 16)
-
-		pid, err := rpcClient().StartProc(args[0], startAppArgs, uint16(port))
+		pid, err := rpcClient().StartProc(args[0], startAppArgs, startAppPort)
 		internal.Catch(err, "starting process...")
 
 		fmt.Println("app process started with pid: ", pid)
@@ -84,10 +85,21 @@ var lsProcsCmd = &cobra.Command{
 		_, err = fmt.Fprintln(w, "name\tversion\tprotocol_version\tworkdir\tbin_loc\targs\tpid\tport")
 		internal.Catch(err)
 
+		sort.Slice(infos, func(i, j int) bool {
+			return infos[i].PID < infos[j].PID
+		})
+
 		for _, info := range infos {
-			_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\n", info.Meta.AppName, info.AppVersion,
+			var port string
+			if info.Port == 0 {
+				port = "not bound"
+			} else {
+				port = fmt.Sprint(info.Port)
+			}
+
+			_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%d\t%s\n", info.Meta.AppName, info.AppVersion,
 				info.ProtocolVersion, info.WorkDir, info.BinLoc, strings.Join(info.Args, " "),
-				info.PID, info.Port)
+				info.PID, port)
 			internal.Catch(err)
 		}
 		internal.Catch(w.Flush())
