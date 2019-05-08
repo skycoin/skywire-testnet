@@ -100,6 +100,10 @@ func NewNode(config *Config) (*Node, error) {
 	}
 	node.tm.Logger = node.Logger.PackageLogger("tp_manager")
 
+	/* SETUP: PROC MANAGER */
+
+	node.pm = router.NewProcManager(10)
+
 	/* SETUP: ROUTER */
 
 	node.rt, err = config.RoutingTable()
@@ -111,12 +115,17 @@ func NewNode(config *Config) (*Node, error) {
 		SecKey:     sk,
 		SetupNodes: config.Routing.SetupNodes,
 	}
-	r := router.New(node.Logger.PackageLogger("router"), node.tm, node.rt, routeFinder.NewHTTP(config.Routing.RouteFinder), rConf)
+	r := router.New(
+		node.Logger.PackageLogger("router"),
+		node.tm,
+		node.rt,
+		routeFinder.NewHTTP(config.Routing.RouteFinder),
+		node.pm,
+		rConf)
 	node.r = r
 
 	/* SETUP: APPS */
 
-	node.pm = router.NewProcManager(10)
 	node.apps = make(map[string]*app.Meta)
 
 	localDir, err := config.LocalDir()
@@ -234,7 +243,7 @@ func (node *Node) Start() error {
 	/* START: ROUTER */
 
 	node.logger.Info("Starting packet router")
-	if err := node.r.Serve(ctx, node.pm); err != nil {
+	if err := node.r.Serve(ctx); err != nil {
 		return fmt.Errorf("failed to start Node: %s", err)
 	}
 
