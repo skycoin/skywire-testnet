@@ -88,27 +88,28 @@ func (c *channel) Write(p []byte) (n int, err error) {
 		defer cancel()
 	}
 
-	writeChan := make(chan struct {
-		int
-		error
-	})
-	go func() {
-		c.wMx.Lock()
-		defer c.wMx.Unlock()
+	c.wMx.Lock()
+	defer c.wMx.Unlock()
+	data := c.noise.EncryptUnsafe(p)
 
-		data := c.noise.EncryptUnsafe(p)
-		buf := make([]byte, 2)
-		binary.BigEndian.PutUint16(buf, uint16(len(data)))
-		n, err := c.link.Send(c.ID, append(buf, data...))
-		writeChan <- struct {
-			int
-			error
-		}{n - (len(data) - len(p) + 2), err}
+	buf := make([]byte, 2+len(data))
+	binary.BigEndian.PutUint16(buf[:2], uint16(len(data)))
+	copy(buf[2:], data)
+
+	done := make(chan struct{}, 1)
+	defer close(done)
+	go func() {
+		n, err = c.link.Send(c.ID, buf)
+		n = n - (len(data) - len(p) + 2)
+		select {
+		case done <- struct{}{}:
+		default:
+		}
 	}()
 
 	select {
-	case w := <-writeChan:
-		return w.int, w.error
+	case <-done:
+		return n, err
 	case <-ctx.Done():
 		return 0, ErrDeadlineExceeded
 	}
