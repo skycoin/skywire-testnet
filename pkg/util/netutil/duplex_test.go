@@ -168,8 +168,11 @@ func TestNewRPCDuplex(t *testing.T) {
 
 			connA, connB := net.Pipe()
 
-			connA.SetDeadline(time.Now().Add(time.Second * 10))
-			connB.SetDeadline(time.Now().Add(time.Second * 10))
+			err := connA.SetDeadline(time.Now().Add(time.Second * 10))
+			assert.Nil(err)
+
+			err = connB.SetDeadline(time.Now().Add(time.Second * 10))
+			assert.Nil(err)
 
 			// Create two instances of RPCDuplex
 			aDuplex := NewRPCDuplex(connA, tt.initiatorA)
@@ -214,7 +217,7 @@ func TestNewRPCDuplex(t *testing.T) {
 	}
 }
 
-// Test sending multiple messages in a single connection and recieving them
+// Test sending multiple messages in a single connection and receiving them
 // in the appropriate branchConn.
 // Test Case: aDuplex's clientConn sends n consecutive message to bDuplex's serverConn
 func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
