@@ -16,7 +16,9 @@ import (
 )
 
 type channel struct {
-	ID       byte
+	id   byte // This is to be changed.
+	idMx sync.RWMutex
+
 	remotePK cipher.PubKey
 	link     *Link
 	buf      *bytes.Buffer
@@ -57,6 +59,21 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 		doneChan:  make(chan struct{}),
 		noise:     noiseInstance,
 	}, nil
+}
+
+// ID obtains the channel's id.
+func (c *channel) ID() byte {
+	c.idMx.RLock()
+	id := c.id
+	c.idMx.RUnlock()
+	return id
+}
+
+// SetID set's the channel's id.
+func (c *channel) SetID(id byte) {
+	c.idMx.Lock()
+	c.id = id
+	c.idMx.Unlock()
 }
 
 // Edges returns the public keys of the channel's edge nodes
@@ -122,7 +139,7 @@ func (c *channel) Write(p []byte) (n int, err error) {
 	done := make(chan struct{}, 1)
 	defer close(done)
 	go func() {
-		n, err = c.link.Send(c.ID, buf)
+		n, err = c.link.Send(c.ID(), buf)
 		n = n - (len(data) - len(p) + 2)
 		select {
 		case done <- struct{}{}:
@@ -143,7 +160,7 @@ func (c *channel) Close() error {
 		return ErrChannelClosed
 	}
 
-	if _, err := c.link.SendCloseChannel(c.ID); err != nil {
+	if _, err := c.link.SendCloseChannel(c.ID()); err != nil {
 		return err
 	}
 

@@ -81,7 +81,7 @@ func TestChannelWrite(t *testing.T) {
 
 	c, err := newChannel(true, sk, remotePK, l)
 	require.NoError(t, err)
-	c.ID = 10
+	c.SetID(10)
 
 	rn := handshakeChannel(t, c, remotePK, remoteSK)
 
@@ -118,7 +118,7 @@ func TestChannelClose(t *testing.T) {
 
 	c, err := newChannel(true, sk, remotePK, l)
 	require.NoError(t, err)
-	c.ID = 10
+	c.SetID(10)
 
 	handshakeChannel(t, c, remotePK, remoteSK)
 

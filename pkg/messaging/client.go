@@ -179,7 +179,7 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 		return nil, ctx.Err()
 	}
 
-	c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", localID, channel.ID, remote)
+	c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", localID, channel.ID(), remote) // TODO: race condition
 	return channel, nil
 }
 
@@ -314,10 +314,10 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 	switch frameType {
 	case FrameTypeCloseChannel:
 		clientLink.chans.remove(channelID)
-		_, sendErr = l.SendChannelClosed(channel.ID)
+		_, sendErr = l.SendChannelClosed(channel.ID())
 		c.Logger.Debugf("Closed channel ID %d", channelID)
 	case FrameTypeChannelOpened:
-		channel.ID = body[1]
+		channel.SetID(body[1])
 		if err := channel.ProcessMessage(body[2:]); err != nil {
 			sendErr = fmt.Errorf("noise handshake: %s", err)
 		}
@@ -327,7 +327,7 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 		default:
 		}
 	case FrameTypeChannelClosed:
-		channel.ID = body[0]
+		channel.SetID(body[0])
 		select {
 		case channel.waitChan <- false:
 		case channel.closeChan <- struct{}{}:
@@ -390,7 +390,7 @@ func (c *Client) openChannel(rID byte, remotePK []byte, noiseMsg []byte, chanLin
 	}
 
 	channel, err := newChannel(false, c.secKey, pubKey, chanLink.link)
-	channel.ID = rID
+	channel.SetID(rID)
 	if err != nil {
 		err = fmt.Errorf("noise setup: %s", err)
 		return
