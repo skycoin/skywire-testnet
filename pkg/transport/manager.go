@@ -185,9 +185,6 @@ func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
 
 // Serve runs listening loop across all registered factories.
 func (tm *Manager) Serve(ctx context.Context) error {
-	tm.ReconnectTransports(ctx)
-	tm.CreateDefaultTransports(ctx)
-
 	var wg sync.WaitGroup
 	for _, factory := range tm.factories {
 		wg.Add(1)
