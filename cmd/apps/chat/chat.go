@@ -82,7 +82,9 @@ func handleConn(conn net.Conn) {
 		clientMsg, _ := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])}) // nolint
 		select {
 		case clientCh <- string(clientMsg):
+			log.Printf("received and sent to ui: %s\n", clientMsg)
 		default:
+			log.Printf("received and trashed: %s\n", clientMsg)
 		}
 	}
 }
