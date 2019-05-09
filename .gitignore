@@ -12,7 +12,7 @@
 /*-config.json
 /apps/
 /skywire/
-/local/
+/local*
 
 pkg/node/apps/
 pkg/node/bar/
