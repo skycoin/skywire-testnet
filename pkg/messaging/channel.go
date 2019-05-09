@@ -6,7 +6,9 @@ import (
 	"encoding/binary"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -20,7 +22,7 @@ type channel struct {
 	buf      *bytes.Buffer
 
 	deadline time.Time
-	closed   bool
+	closed   unsafe.Pointer // unsafe.Pointer is used alongside 'atomic' module for fast, thread-safe access.
 
 	waitChan  chan bool
 	readChan  chan []byte
@@ -53,6 +55,7 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 		remotePK:  remote,
 		link:      link,
 		buf:       new(bytes.Buffer),
+		closed:    unsafe.Pointer(new(bool)), //nolint:gosec
 		waitChan:  make(chan bool),
 		readChan:  make(chan []byte),
 		closeChan: make(chan struct{}),
@@ -77,7 +80,7 @@ func (c *channel) Read(p []byte) (n int, err error) {
 }
 
 func (c *channel) Write(p []byte) (n int, err error) {
-	if c.closed {
+	if c.isClosed() {
 		return 0, ErrChannelClosed
 	}
 
@@ -116,7 +119,7 @@ func (c *channel) Write(p []byte) (n int, err error) {
 }
 
 func (c *channel) Close() error {
-	if c.closed {
+	if c.isClosed() {
 		return ErrChannelClosed
 	}
 
@@ -124,7 +127,7 @@ func (c *channel) Close() error {
 		return err
 	}
 
-	c.closed = true
+	c.setClosed(true)
 
 	select {
 	case <-c.closeChan:
@@ -206,3 +209,7 @@ func (c *channel) readEncrypted(ctx context.Context, p []byte) (n int, err error
 
 	return copy(p, data), nil
 }
+
+// for getting and setting the 'closed' status.
+func (c *channel) isClosed() bool   { return *(*bool)(atomic.LoadPointer(&c.closed)) }
+func (c *channel) setClosed(v bool) { atomic.StorePointer(&c.closed, unsafe.Pointer(&v)) } //nolint:gosec
