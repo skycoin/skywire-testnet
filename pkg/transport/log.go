@@ -71,6 +71,7 @@ func (tls *fileTransportLogStore) Entry(id uuid.UUID) (*LogEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open: %s", err)
 	}
+	defer func() { _ = f.Close() }() //nolint:errcheck
 
 	entry := &LogEntry{}
 	if err := json.NewDecoder(f).Decode(entry); err != nil {
@@ -85,6 +86,7 @@ func (tls *fileTransportLogStore) Record(id uuid.UUID, entry *LogEntry) error {
 	if err != nil {
 		return fmt.Errorf("open: %s", err)
 	}
+	defer func() { _ = f.Close() }() //nolint:errcheck
 
 	if err := json.NewEncoder(f).Encode(entry); err != nil {
 		return fmt.Errorf("json: %s", err)
