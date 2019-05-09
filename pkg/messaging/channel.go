@@ -30,13 +30,8 @@ type channel struct {
 	doneChan  chan struct{}
 
 	noise *noise.Noise
-	rMx   sync.Mutex
-	wMx   sync.Mutex
-}
-
-// Edges returns the public keys of the channel's edge nodes
-func (c *channel) Edges() [2]cipher.PubKey {
-	return transport.SortPubKeys(c.link.Local(), c.remotePK)
+	rMx   sync.Mutex // lock for decrypt cipher state
+	wMx   sync.Mutex // lock for encrypt cipher state
 }
 
 func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link *Link) (*channel, error) {
@@ -62,6 +57,31 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 		doneChan:  make(chan struct{}),
 		noise:     noiseInstance,
 	}, nil
+}
+
+// Edges returns the public keys of the channel's edge nodes
+func (c *channel) Edges() [2]cipher.PubKey {
+	return transport.SortPubKeys(c.link.Local(), c.remotePK)
+}
+
+// HandshakeMessage prepares a handshake message safely.
+func (c *channel) HandshakeMessage() ([]byte, error) {
+	c.rMx.Lock()
+	c.wMx.Lock()
+	res, err := c.noise.HandshakeMessage()
+	c.rMx.Unlock()
+	c.wMx.Unlock()
+	return res, err
+}
+
+// ProcessMessage reads a handshake message safely.
+func (c *channel) ProcessMessage(msg []byte) error {
+	c.rMx.Lock()
+	c.wMx.Lock()
+	err := c.noise.ProcessMessage(msg)
+	c.rMx.Unlock()
+	c.wMx.Unlock()
+	return err
 }
 
 func (c *channel) Read(p []byte) (n int, err error) {
