@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )
+
+var settlementMux sync.Mutex
 
 type settlementHandshake func(tm *Manager, tr Transport) (*Entry, error)
 
@@ -41,10 +44,12 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 		if !ok {
 			return nil, errors.New("error creating signed entry")
 		}
+
 		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
 			return nil, fmt.Errorf("settlementInitiatorHandshake NewSignedEntry: %s\n sEntry: %v", err, sEntry)
 		}
 
+		settlementMux.Lock()
 		if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
 			return nil, fmt.Errorf("write: %s", err)
 		}
@@ -53,6 +58,7 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 		if err := json.NewDecoder(tr).Decode(respSEntry); err != nil {
 			return nil, fmt.Errorf("read: %s", err)
 		}
+		settlementMux.Unlock()
 
 		//  Verifying remote signature
 		remote, ok := tm.Remote(tr.Edges())
