@@ -13,11 +13,10 @@ import (
 type settlementHandshake func(tm *Manager, tr Transport) (*Entry, error)
 
 func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.Duration) (entry *Entry, err error) {
-	done := make(chan struct{}, 1)
-	defer close(done)
+	done := make(chan struct{})
 	go func() {
 		entry, err = handshake(tm, tr)
-		done <- struct{}{}
+		close(done)
 	}()
 	select {
 	case <-done:
