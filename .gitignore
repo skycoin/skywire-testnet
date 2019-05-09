@@ -24,3 +24,7 @@ pkg/node/foo/
 /therealssh-cli
 /node
 /users.db
+/*-node
+/*-cli
+/*.json
+/*.sh
