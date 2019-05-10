@@ -26,7 +26,7 @@ func whoWrites(whoWrites string, aDuplex *RPCDuplex, bDuplex *RPCDuplex) (*RPCDu
 }
 
 // fromWhichBranch determines which branch writes the msg and which one is reading the msg from test input
-func fromWhichBranch(branchConn string, msgWriter *RPCDuplex, msgReader *RPCDuplex) (*PrefixedConn, *PrefixedConn) {
+func fromWhichBranch(branchConn string, msgWriter *RPCDuplex, msgReader *RPCDuplex) (*branchConn, *branchConn) {
 	if branchConn == "clientConn" {
 		return msgWriter.clientConn, msgReader.serverConn
 	}
@@ -47,7 +47,7 @@ var tables = []struct {
 	expectedSize uint16
 	expectedConn string
 }{
-	{description: "aDuplex's clientConn (initiator) sends msg to bDuplex's serverConn",
+	{description: "aDuplex's_clientConn_(initiator)_sends msg_to_bDuplex's_serverConn",
 		msg:          "foo",
 		initiatorA:   true,
 		initiatorB:   false,
@@ -57,7 +57,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "serverConn",
 	},
-	{description: "aDuplex's serverConn (initiator) sends msg to bDuplex's clientConn",
+	{description: "aDuplex's_serverConn_(initiator)_sends_msg_to_bDuplex's_clientConn",
 		msg:          "foo",
 		initiatorA:   true,
 		initiatorB:   false,
@@ -67,7 +67,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "clientConn",
 	},
-	{description: "bDuplex's clientConn (initiator) sends msg to aDuplex's serverConn",
+	{description: "bDuplex's_clientConn_(initiator)_sends_msg_to_aDuplex's_serverConn",
 		msg:          "foo",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -77,7 +77,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "serverConn",
 	},
-	{description: "bDuplex's serverConn (initiator) sends msg to aDuplex's clientConn",
+	{description: "bDuplex's_serverConn_(initiator)_sends_msg_to_aDuplex's_clientConn",
 		msg:          "foo",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -87,7 +87,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "clientConn",
 	},
-	{description: "aDuplex's clientConn sends msg to bDuplex's serverConn (initiator)",
+	{description: "aDuplex's_clientConn_sends_msg_to_bDuplex's_serverConn_(initiator)",
 		msg:          "bar",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -97,7 +97,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "serverConn",
 	},
-	{description: "aDuplex's serverConn sends msg to bDuplex's clientConn (initiator)",
+	{description: "aDuplex's_serverConn_sends_msg_to_bDuplex's_clientConn_(initiator)",
 		msg:          "bar",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -107,7 +107,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "clientConn",
 	},
-	{description: "bDuplex's clientConn sends msg to aDuplex's serverConn (initiator)",
+	{description: "bDuplex's_clientConn_sends_msg_to_aDuplex's_serverConn_(initiator)",
 		msg:          "bar",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -117,7 +117,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "serverConn",
 	},
-	{description: "bDuplex's serverConn sends msg to aDuplex's clientConn (initiator)",
+	{description: "bDuplex's_serverConn_sends_msg_to_aDuplex's_clientConn_(initiator)",
 		msg:          "bar",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -127,7 +127,7 @@ var tables = []struct {
 		expectedSize: uint16(3),
 		expectedConn: "clientConn",
 	},
-	{description: "bDuplex's serverConn sends 10 bytes msg to aDuplex's clientConn (initiator)",
+	{description: "bDuplex's_serverConn_sends_10_bytes_msg_to_aDuplex's_clientConn_(initiator)",
 		msg:          "helloworld",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -137,7 +137,7 @@ var tables = []struct {
 		expectedSize: uint16(10),
 		expectedConn: "clientConn",
 	},
-	{description: "bDuplex's serverConn sends 20 bytes msg to aDuplex's clientConn (initiator)",
+	{description: "bDuplex's_serverConn_sends_20_bytes_msg_to_aDuplex's_clientConn_(initiator)",
 		msg:          "helloworld. Skycoin is best coin!",
 		initiatorA:   false,
 		initiatorB:   true,
@@ -147,7 +147,7 @@ var tables = []struct {
 		expectedSize: uint16(33),
 		expectedConn: "clientConn",
 	},
-	// {description: "aDuplex's serverConn (initiator) sends empty string to bDuplex's clientConn",
+	// {description: "aDuplex's_serverConn_(initiator)_sends_empty_string_to_bDuplex's_clientConn",
 	// 	msg:          "",
 	// 	initiatorA:   true,
 	// 	initiatorB:   false,
@@ -164,7 +164,7 @@ func TestNewRPCDuplex(t *testing.T) {
 		t.Run(tt.description, func(t *testing.T) {
 
 			assert := assert.New(t)
-			bs := make([]byte, 256)
+			b := make([]byte, 256)
 
 			connA, connB := net.Pipe()
 
@@ -201,18 +201,17 @@ func TestNewRPCDuplex(t *testing.T) {
 				assert.Nil(err)
 			}()
 
-			// Read from one of the PrefixedConn; either serverConn or clientConn
-			n, err := pcReader.Read(bs)
+			// Read from one of the branchConn; either serverConn or clientConn
+			n, err := pcReader.Read(b)
 
 			// Close channel
 			wg.Wait()
-			close(pcReader.readChan)
-			close(pcWriter.readChan)
+			close(pcReader.readCh)
+			close(pcWriter.readCh)
 
 			assert.Nil(err)
-			assert.Equal(tt.expectedConn, pcReader.name, "msg forwarded to wrong channel")
-			assert.Equal(tt.expectedSize, uint16(n), "length of message read from prefixedConn.Read() should be equal")
-			assert.Equal(tt.expectedMsg, string(bs[:n]), "message content should be equal")
+			assert.Equal(tt.expectedSize, uint16(n), "length of message read from branchConn.Read() should be equal")
+			assert.Equal(tt.expectedMsg, string(b[:n]), "message content should be equal")
 		})
 	}
 }
@@ -222,9 +221,10 @@ func TestNewRPCDuplex(t *testing.T) {
 // Test Case: aDuplex's clientConn sends n consecutive message to bDuplex's serverConn
 func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 
-	bs := make([]byte, 256)
+	b := make([]byte, 256)
 	assert := assert.New(t)
 	expectedMsgCount := 10000
+	// ch := make(chan int, expectedMsgCount)
 
 	connA, connB := net.Pipe()
 
@@ -253,21 +253,20 @@ func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 
 	// Read all the message sent to bDuplex's serverConn
 	for i := 0; i < expectedMsgCount; i++ {
-		n, err := bDuplex.serverConn.Read(bs)
-		// log.Println(string(bs[:n]), n)
+		n, err := bDuplex.serverConn.Read(b)
+		// log.Println(string(b[:n]), n)
 		assert.Nil(err)
-		assert.Equal("serverConn", bDuplex.serverConn.name, "msg forwarded to wrong channel")
 		assert.Equal(len(fmt.Sprintf("foo%d", i)), n, "message content should be equal")
-		assert.Equal(fmt.Sprintf("foo%d", i), string(bs[:n]), "message content should be equal")
+		assert.Equal(fmt.Sprintf("foo%d", i), string(b[:n]), "message content should be equal")
 	}
 
 	// Close channel
 	wg.Wait()
-	close(aDuplex.clientConn.readChan)
-	close(bDuplex.serverConn.readChan)
+	close(aDuplex.clientConn.readCh)
+	close(bDuplex.serverConn.readCh)
 }
 
-// TestRPCDuplex_Forward forwards one packet Original conn to PrefixedConn
+// TestRPCDuplex_Forward forwards one packet Original conn to branchConn
 // based on the packet's prefix
 func TestRPCDuplex_Forward(t *testing.T) {
 
@@ -288,65 +287,63 @@ func TestRPCDuplex_Forward(t *testing.T) {
 
 	err := bDuplex.Forward()
 
-	bs := <-bDuplex.serverConn.readChan
-
 	require.NoError(t, err)
-	assert.Equal(t, []byte("foo"), bs)
+	assert.Equal(t, []byte("foo"), <-bDuplex.serverConn.readCh)
 }
 
-// TestPrefixedConn_Read reads data pushed in by
+// TestbranchConn_Read reads data pushed in by
 // the Original connection
-func TestPrefixedConn_Read(t *testing.T) {
+func TestBranchConn_Read(t *testing.T) {
 
-	t.Run("successful prefixedConn read", func(t *testing.T) {
+	t.Run("successful_branchConn_read", func(t *testing.T) {
 
 		ch := make(chan []byte)
-		pc := &PrefixedConn{prefix: 0, readChan: ch}
+		pc := &branchConn{prefix: 0, readCh: ch}
 
 		msg := []byte("foo")
 
 		go func() {
-			pc.readChan <- msg
+			pc.readCh <- msg
 		}()
 
-		bs := make([]byte, 3)
-		n, err := pc.Read(bs)
+		b := make([]byte, 3)
+		n, err := pc.Read(b)
 
 		require.NoError(t, err)
 		assert.Equal(t, 3, n)
-		assert.Equal(t, []byte("foo"), bs)
+		assert.Equal(t, []byte("foo"), b)
 	})
 
-	t.Run("empty prefixedConn read", func(t *testing.T) {
+	t.Run("empty_branchConn_read", func(t *testing.T) {
 
 		ch := make(chan []byte)
-		pc := &PrefixedConn{prefix: 0, readChan: ch}
+		pc := &branchConn{prefix: 0, readCh: ch}
 
 		msg := []byte("")
 
 		go func() {
-			pc.readChan <- msg
+			pc.readCh <- msg
 		}()
 
-		var bs []byte
-		n, err := pc.Read(bs)
+		var b []byte
+		n, err := pc.Read(b)
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, []byte(nil), bs)
+		assert.Equal(t, []byte(nil), b)
 	})
 }
 
-// TestPrefixedConn_Writes writes len(p) bytes from p to
+// TestbranchConn_Writes writes len(p) bytes from p to
 // data stream and appends it with a 1 byte prefix and
 // 2 byte encoded length of the packet.
-func TestPrefixedConn_Write(t *testing.T) {
+func TestBranchConn_Write(t *testing.T) {
 
 	connA, connB := net.Pipe()
 	var ch chan []byte
 	defer connB.Close()
 
-	pc := &PrefixedConn{Conn: connA, readChan: ch}
+	pc := &branchConn{Conn: connA, readCh: ch}
 
 	go func() {
 		n, err := pc.Write([]byte("foo"))
@@ -369,7 +366,7 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 	// a prefix of 0 and wrote a msg "foo" with size 3
 	// 1) prefix: Want(0) -- Got(0)
 	// 1) size: Want(3) -- Got(3)
-	t.Run("successfully read prefix from clientConn to serverConn", func(t *testing.T) {
+	t.Run("successfully_read_prefix_from_clientConn_to_serverConn", func(t *testing.T) {
 		connA, connB := net.Pipe()
 
 		aDuplex := NewRPCDuplex(connA, true)
@@ -394,7 +391,7 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 	// a prefix of 1 and wrote a msg "hello" of size 5
 	// 1) prefix: Want(1) -- Got(1)
 	// 2) size: Want(5) -- Got(5)
-	t.Run("successfully read prefix from serverConn to clientConn", func(t *testing.T) {
+	t.Run("successfully_read_prefix_from_serverConn_to_clientConn", func(t *testing.T) {
 		connA, connB := net.Pipe()
 
 		aDuplex := NewRPCDuplex(connA, true)

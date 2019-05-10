@@ -8,34 +8,35 @@ import (
 	"net"
 )
 
-// PrefixedConn will inherit the net.Conn interface.
-type PrefixedConn struct {
+const readChSize int = 2
+
+// branchConn will inherit the net.Conn interface.
+type branchConn struct {
 	net.Conn
-	prefix   byte
-	name     string
-	readChan chan []byte
+	prefix byte
+	readCh chan []byte
 }
 
 // RPCDuplex holds the basic structure of two prefixed connections and the original connection
 type RPCDuplex struct {
 	conn       net.Conn
-	clientConn *PrefixedConn
-	serverConn *PrefixedConn
+	clientConn *branchConn
+	serverConn *branchConn
 }
 
 // NewRPCDuplex initiates a new RPCDuplex struct
 func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 	var d RPCDuplex
-	clientCh := make(chan []byte)
-	serverCh := make(chan []byte)
+	clientCh := make(chan []byte, readChSize)
+	serverCh := make(chan []byte, readChSize)
 
-	// PrefixedConn implements net.Conn and assigned it to d.clientConn and d.serverConn
+	// branchConn implements net.Conn and assigned it to d.clientConn and d.serverConn
 	if initiator {
-		d.clientConn = &PrefixedConn{Conn: conn, prefix: 0, name: "clientConn", readChan: clientCh}
-		d.serverConn = &PrefixedConn{Conn: conn, prefix: 1, name: "serverConn", readChan: serverCh}
+		d.clientConn = &branchConn{Conn: conn, prefix: 0, readCh: clientCh}
+		d.serverConn = &branchConn{Conn: conn, prefix: 1, readCh: serverCh}
 	} else {
-		d.clientConn = &PrefixedConn{Conn: conn, prefix: 1, name: "clientConn", readChan: clientCh}
-		d.serverConn = &PrefixedConn{Conn: conn, prefix: 0, name: "serverConn", readChan: serverCh}
+		d.clientConn = &branchConn{Conn: conn, prefix: 1, readCh: clientCh}
+		d.serverConn = &branchConn{Conn: conn, prefix: 0, readCh: serverCh}
 	}
 	d.conn = conn
 
@@ -45,23 +46,18 @@ func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 // ReadHeader reads the first three bytes of the data and returns the prefix and size of the packet
 func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 
-	var bs = make([]byte, 2)
+	var b = make([]byte, 3)
 	var size uint16
 
-	// Read the 1st byte from prefix
-	_, err := d.conn.Read(bs[:1])
+	// Read the first three byte of packet
+	// 1st byte is prefix and the 2nd and 3rd byte is the encoded size
+	_, err := d.conn.Read(b[:3])
 	if err != nil {
-		log.Fatalln("error reading prefix from conn", err)
-	}
-	prefix := bs[0]
-
-	// Reads the encoded size from the 2nd and 3rd byte
-	_, err = d.conn.Read(bs[:2])
-	if err != nil {
-		log.Fatalln("error reading size from conn", err)
+		log.Fatalln("error reading header from conn", err)
 	}
 
-	size = binary.BigEndian.Uint16(bs)
+	prefix := b[0]
+	size = binary.BigEndian.Uint16(b[1:3])
 
 	return prefix, size
 }
@@ -82,7 +78,7 @@ func (d *RPCDuplex) Serve() error {
 	}
 }
 
-// Forward forwards one packet from Original conn to appropriate PrefixedConn based on the packet's prefix
+// Forward forwards one packet from Original conn to appropriate branchConn based on the packet's prefix
 func (d *RPCDuplex) Forward() error {
 
 	// Reads 1st byte of prefixed connection to determine which conn to forward to
@@ -98,28 +94,26 @@ func (d *RPCDuplex) Forward() error {
 		return nil
 	}
 
-	// Push data from original conn into prefixedConn's chan []byte
-	go func() {
-		if prefix == d.serverConn.prefix {
-			d.serverConn.readChan <- data
-		} else if prefix == d.clientConn.prefix {
-			d.clientConn.readChan <- data
-		} else {
-			log.Fatalln(errors.New("error encountered while forwarding packets"))
-		}
-	}()
+	// Push data from original conn into branchConn's chan []byte
+	if prefix == d.serverConn.prefix {
+		d.serverConn.readCh <- data
+	} else if prefix == d.clientConn.prefix {
+		d.clientConn.readCh <- data
+	} else {
+		log.Fatalln(errors.New("error encountered while forwarding packets"))
+	}
 
 	return nil
 
 }
 
-// Read reads in data from original conn through PrefixedConn's chan [].
+// Read reads in data from original conn through branchConn's chan [].
 // If read []byte is smaller than length of packet, io.ErrShortBuffer
 // is raised.
-func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
+func (pc *branchConn) Read(b []byte) (n int, err error) {
 
 	// Reads in data from chan []byte pushed from Original Conn
-	data := <-pc.readChan
+	data := <-pc.readCh
 
 	// Compare length of data with b to check if a longer buffer is required
 	if len(data) > len(b) {
@@ -132,7 +126,7 @@ func (pc *PrefixedConn) Read(b []byte) (n int, err error) {
 
 // Write prefixes a connection with either 0 or 1 and writes this prefixed data stream
 // back to the original conn
-func (pc *PrefixedConn) Write(b []byte) (n int, err error) {
+func (pc *branchConn) Write(b []byte) (n int, err error) {
 
 	buf := make([]byte, 3)
 	buf[0] = byte(pc.prefix)
