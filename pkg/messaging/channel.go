@@ -26,10 +26,11 @@ type channel struct {
 	deadline time.Time
 	closed   unsafe.Pointer // unsafe.Pointer is used alongside 'atomic' module for fast, thread-safe access.
 
-	waitChan  chan bool
-	readChan  chan []byte
-	closeChan chan struct{}
-	doneChan  chan struct{}
+	waitChan    chan bool // waits for remote response (whether channel is accepted or not).
+	readChan    chan []byte
+	closeChan   chan struct{}
+	closeChanMx sync.RWMutex // TODO(evanlinjin): This is a hack to avoid race conditions when closing channel.
+	doneChan    chan struct{}
 
 	noise *noise.Noise
 	rMx   sync.Mutex // lock for decrypt cipher state
@@ -53,7 +54,7 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 		link:      link,
 		buf:       new(bytes.Buffer),
 		closed:    unsafe.Pointer(new(bool)), //nolint:gosec
-		waitChan:  make(chan bool),
+		waitChan:  make(chan bool, 1),        // should allows receive one reply.
 		readChan:  make(chan []byte),
 		closeChan: make(chan struct{}),
 		doneChan:  make(chan struct{}),
@@ -189,7 +190,10 @@ func (c *channel) close() {
 	case <-c.doneChan:
 	default:
 		close(c.doneChan)
-		close(c.closeChan)
+
+		c.closeChanMx.Lock()   // TODO(evanlinjin): START(avoid race condition).
+		close(c.closeChan)     // TODO(evanlinjin): data race.
+		c.closeChanMx.Unlock() // TODO(evanlinjin): END(avoid race condition).
 	}
 }
 

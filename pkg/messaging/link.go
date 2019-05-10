@@ -38,6 +38,8 @@ func DefaultLinkConfig() *LinkConfig {
 // Link represents a messaging connection in the perspective of an instance.
 type Link struct {
 	rw        io.ReadWriteCloser
+	rMx       sync.Mutex
+	wMx       sync.Mutex
 	config    *LinkConfig
 	callbacks *Callbacks
 }
@@ -172,7 +174,9 @@ func (c *Link) handleData(payload Frame, n int, err error) error {
 
 func (c *Link) writeFrame(t FrameType, body []byte) (int, error) {
 	payload := MakeFrame(t, body)
+	c.wMx.Lock()
 	n, err := WriteFrame(c.rw, payload)
+	c.wMx.Unlock()
 	if err != nil {
 		return 0, err
 	}
