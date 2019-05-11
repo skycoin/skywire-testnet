@@ -3,15 +3,20 @@ package netutil
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type chReadWrite struct {
+	i   int
+	n   int
+	err error
+	msg string
+}
 
 // whoWrites determines which Duplex writes the msg and which one is reading the msg from test input
 func whoWrites(whoWrites string, aDuplex *RPCDuplex, bDuplex *RPCDuplex) (*RPCDuplex, *RPCDuplex) {
@@ -43,128 +48,101 @@ var tables = []struct {
 	branchConn  string
 
 	// Expected Result
-	expectedMsg  string
-	expectedSize uint16
-	expectedConn string
+	expectedMsg string
 }{
-	{description: "aDuplex's_clientConn_(initiator)_sends msg_to_bDuplex's_serverConn",
-		msg:          "foo",
-		initiatorA:   true,
-		initiatorB:   false,
-		whoWrites:    "aDuplex",
-		branchConn:   "clientConn",
-		expectedMsg:  "foo",
-		expectedSize: uint16(3),
-		expectedConn: "serverConn",
+	{description: "aDuplex's_clientConn_(initiator)_sends_multiple_msg_to_bDuplex's_serverConn",
+		msg:         "foo%d",
+		initiatorA:  true,
+		initiatorB:  false,
+		whoWrites:   "aDuplex",
+		branchConn:  "clientConn",
+		expectedMsg: "foo%d",
 	},
-	{description: "aDuplex's_serverConn_(initiator)_sends_msg_to_bDuplex's_clientConn",
-		msg:          "foo",
-		initiatorA:   true,
-		initiatorB:   false,
-		whoWrites:    "aDuplex",
-		branchConn:   "serverConn",
-		expectedMsg:  "foo",
-		expectedSize: uint16(3),
-		expectedConn: "clientConn",
+	{description: "aDuplex's_serverConn_(initiator)_sends_multiple_msg_to_bDuplex's_clientConn",
+		msg:         "foo%d",
+		initiatorA:  true,
+		initiatorB:  false,
+		whoWrites:   "aDuplex",
+		branchConn:  "serverConn",
+		expectedMsg: "foo%d",
 	},
-	{description: "bDuplex's_clientConn_(initiator)_sends_msg_to_aDuplex's_serverConn",
-		msg:          "foo",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "bDuplex",
-		branchConn:   "clientConn",
-		expectedMsg:  "foo",
-		expectedSize: uint16(3),
-		expectedConn: "serverConn",
+	{description: "bDuplex's_clientConn_(initiator)_sends_multiple_msg_to_aDuplex's_serverConn",
+		msg:         "foo%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "bDuplex",
+		branchConn:  "clientConn",
+		expectedMsg: "foo%d",
 	},
-	{description: "bDuplex's_serverConn_(initiator)_sends_msg_to_aDuplex's_clientConn",
-		msg:          "foo",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "bDuplex",
-		branchConn:   "serverConn",
-		expectedMsg:  "foo",
-		expectedSize: uint16(3),
-		expectedConn: "clientConn",
+	{description: "bDuplex's_serverConn_(initiator)_sends_multiple_msg_to_aDuplex's_clientConn",
+		msg:         "foo%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "bDuplex",
+		branchConn:  "serverConn",
+		expectedMsg: "foo%d",
 	},
-	{description: "aDuplex's_clientConn_sends_msg_to_bDuplex's_serverConn_(initiator)",
-		msg:          "bar",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "aDuplex",
-		branchConn:   "clientConn",
-		expectedMsg:  "bar",
-		expectedSize: uint16(3),
-		expectedConn: "serverConn",
+	{description: "aDuplex's_clientConn_sends_multiple_msg_to_bDuplex's_serverConn_(initiator)",
+		msg:         "bar%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "aDuplex",
+		branchConn:  "clientConn",
+		expectedMsg: "bar%d",
 	},
-	{description: "aDuplex's_serverConn_sends_msg_to_bDuplex's_clientConn_(initiator)",
-		msg:          "bar",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "aDuplex",
-		branchConn:   "serverConn",
-		expectedMsg:  "bar",
-		expectedSize: uint16(3),
-		expectedConn: "clientConn",
+	{description: "aDuplex's_serverConn_sends_multiple_msg_to_bDuplex's_clientConn_(initiator)",
+		msg:         "bar%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "aDuplex",
+		branchConn:  "serverConn",
+		expectedMsg: "bar%d",
 	},
-	{description: "bDuplex's_clientConn_sends_msg_to_aDuplex's_serverConn_(initiator)",
-		msg:          "bar",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "bDuplex",
-		branchConn:   "clientConn",
-		expectedMsg:  "bar",
-		expectedSize: uint16(3),
-		expectedConn: "serverConn",
+	{description: "bDuplex's_clientConn_sends_multiple_msg_to_aDuplex's_serverConn_(initiator)",
+		msg:         "bar%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "bDuplex",
+		branchConn:  "clientConn",
+		expectedMsg: "bar%d",
 	},
-	{description: "bDuplex's_serverConn_sends_msg_to_aDuplex's_clientConn_(initiator)",
-		msg:          "bar",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "bDuplex",
-		branchConn:   "serverConn",
-		expectedMsg:  "bar",
-		expectedSize: uint16(3),
-		expectedConn: "clientConn",
+	{description: "bDuplex's_serverConn_sends_multiple_msg_to_aDuplex's_clientConn_(initiator)",
+		msg:         "bar%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "bDuplex",
+		branchConn:  "serverConn",
+		expectedMsg: "bar%d",
 	},
-	{description: "bDuplex's_serverConn_sends_10_bytes_msg_to_aDuplex's_clientConn_(initiator)",
-		msg:          "helloworld",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "bDuplex",
-		branchConn:   "serverConn",
-		expectedMsg:  "helloworld",
-		expectedSize: uint16(10),
-		expectedConn: "clientConn",
+	{description: "bDuplex's_serverConn_sends_multiple_10_bytes_msg_to_aDuplex's_clientConn_(initiator)",
+		msg:         "helloworld%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "bDuplex",
+		branchConn:  "serverConn",
+		expectedMsg: "helloworld%d",
 	},
-	{description: "bDuplex's_serverConn_sends_20_bytes_msg_to_aDuplex's_clientConn_(initiator)",
-		msg:          "helloworld. Skycoin is best coin!",
-		initiatorA:   false,
-		initiatorB:   true,
-		whoWrites:    "bDuplex",
-		branchConn:   "serverConn",
-		expectedMsg:  "helloworld. Skycoin is best coin!",
-		expectedSize: uint16(33),
-		expectedConn: "clientConn",
+	{description: "bDuplex's_serverConn_sends_multiple_20_bytes_msg_to_aDuplex's_clientConn_(initiator)",
+		msg:         "helloworld. Skycoin is best coin!%d",
+		initiatorA:  false,
+		initiatorB:  true,
+		whoWrites:   "bDuplex",
+		branchConn:  "serverConn",
+		expectedMsg: "helloworld. Skycoin is best coin!%d",
 	},
-	// {description: "aDuplex's_serverConn_(initiator)_sends_empty_string_to_bDuplex's_clientConn",
-	// 	msg:          "",
-	// 	initiatorA:   true,
-	// 	initiatorB:   false,
-	// 	whoWrites:    "aDuplex",
-	// 	branchConn:   "clientConn",
-	// 	expectedMsg:  "",
-	// 	expectedSize: uint16(0),
-	// 	expectedConn: "serverConn",
-	// },
 }
 
+// Test sending multiple messages in a single connection and receiving them
+// in the appropriate branchConn with multiple test cases
 func TestNewRPCDuplex(t *testing.T) {
 	for _, tt := range tables {
 		t.Run(tt.description, func(t *testing.T) {
 
-			assert := assert.New(t)
 			b := make([]byte, 256)
+			assert := assert.New(t)
+			expectedMsgCount := 100
+			chWrite := make(chan chReadWrite, expectedMsgCount)
+			chRead := make(chan chReadWrite, expectedMsgCount)
 
 			connA, connB := net.Pipe()
 
@@ -184,34 +162,52 @@ func TestNewRPCDuplex(t *testing.T) {
 			// Determine who is writing and reading from clientConn or serverConn from test input
 			pcWriter, pcReader := fromWhichBranch(tt.branchConn, msgWriter, msgReader)
 
-			msg := []byte(tt.msg)
-
-			var wg sync.WaitGroup
-			wg.Add(1)
 			go func() {
-				n, err := pcWriter.Write([]byte(msg))
-				assert.Nil(err)
-				assert.Equal(tt.expectedSize, uint16(n), "length of message written should be equal")
-				wg.Done()
+				for i := 0; i < expectedMsgCount; i++ {
+					msg := fmt.Sprintf(tt.msg, i)
+					n, err := pcWriter.Write([]byte(msg))
+					chWrite <- chReadWrite{i: i, n: n, err: err, msg: msg}
+				}
+				close(chWrite)
 			}()
 
 			// Read prefix and forward to the appropriate channel
+			errCh := make(chan error)
 			go func() {
 				err := msgReader.Serve()
-				assert.Nil(err)
+				errCh <- err
 			}()
+			close(errCh)
 
-			// Read from one of the branchConn; either serverConn or clientConn
-			n, err := pcReader.Read(b)
+			// Loop through write channel
+			for i := range chWrite {
+				// Read from one of the branchConn; either serverConn or clientConn
+				n, err := pcReader.Read(b)
+
+				// Send struct to chRead
+				chRead <- chReadWrite{i: i.i, n: n, err: err, msg: string(b[:n])}
+
+				// Assert variables from chWrite
+				assert.Nil(i.err)
+				assert.Equal(len(i.msg), i.n, "message length written should be equal")
+				assert.Equal(fmt.Sprintf(tt.expectedMsg, i.i), i.msg, "message content written should be equal")
+			}
+			close(chRead)
+
+			// Assert variables from chRead
+			for i := range chRead {
+				// log.Println(i)
+				assert.Nil(i.err)
+				assert.Equal(len(i.msg), i.n, "message length read from branchConn.Read() should be equal")
+				assert.Equal(fmt.Sprintf(tt.expectedMsg, i.i), i.msg, "message content read from branchConn.Read() should be equal")
+			}
+
+			// Assert error from msgReader.Serve()
+			assert.Nil(<-errCh)
 
 			// Close channel
-			wg.Wait()
 			close(pcReader.readCh)
 			close(pcWriter.readCh)
-
-			assert.Nil(err)
-			assert.Equal(tt.expectedSize, uint16(n), "length of message read from branchConn.Read() should be equal")
-			assert.Equal(tt.expectedMsg, string(b[:n]), "message content should be equal")
 		})
 	}
 }
@@ -223,45 +219,57 @@ func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 
 	b := make([]byte, 256)
 	assert := assert.New(t)
-	expectedMsgCount := 10000
-	// ch := make(chan int, expectedMsgCount)
+	expectedMsgCount := 1000
+	chWrite := make(chan chReadWrite, expectedMsgCount)
+	chRead := make(chan chReadWrite, expectedMsgCount)
 
 	connA, connB := net.Pipe()
 
 	aDuplex := NewRPCDuplex(connA, true)
 	bDuplex := NewRPCDuplex(connB, false)
 
-	var wg sync.WaitGroup
-	wg.Add(expectedMsgCount)
 	go func() {
 		for i := 0; i < expectedMsgCount; i++ {
 			msg := fmt.Sprintf("foo%d", i)
 			n, err := aDuplex.clientConn.Write([]byte(msg))
-			// log.Println(msg, n)
-			assert.Nil(err)
-			assert.Equal(len(msg), n)
-			wg.Done()
-			time.Sleep(time.Nanosecond * 250)
+			chWrite <- chReadWrite{i: i, n: n, err: err, msg: msg}
 		}
+		close(chWrite)
 	}()
 
 	// Read prefix and forward to the appropriate channel
+	errCh := make(chan error)
 	go func() {
 		err := bDuplex.Serve()
-		assert.Nil(err)
+		errCh <- err
 	}()
+	close(errCh)
 
-	// Read all the message sent to bDuplex's serverConn
-	for i := 0; i < expectedMsgCount; i++ {
+	for i := range chWrite {
 		n, err := bDuplex.serverConn.Read(b)
-		// log.Println(string(b[:n]), n)
-		assert.Nil(err)
-		assert.Equal(len(fmt.Sprintf("foo%d", i)), n, "message content should be equal")
-		assert.Equal(fmt.Sprintf("foo%d", i), string(b[:n]), "message content should be equal")
+
+		// Send to chRead
+		chRead <- chReadWrite{i: i.i, n: n, err: err, msg: string(b[:n])}
+
+		// Assert variables from chWrite
+		assert.Nil(i.err)
+		assert.Equal(len(i.msg), i.n, "message length should be equal")
+		assert.Equal(fmt.Sprintf("foo%d", i.i), i.msg, "message content should be equal")
+	}
+	close(chRead)
+
+	// Assert variables from chRead
+	for i := range chRead {
+		// log.Println(i)
+		assert.Nil(i.err)
+		assert.Equal(len(i.msg), i.n, "message length should be equal")
+		assert.Equal(fmt.Sprintf("foo%d", i.i), i.msg, "message content should be equal")
 	}
 
+	// Assert error from bDuplex.Serve
+	assert.Nil(<-errCh)
+
 	// Close channel
-	wg.Wait()
 	close(aDuplex.clientConn.readCh)
 	close(bDuplex.serverConn.readCh)
 }
@@ -271,24 +279,23 @@ func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 func TestRPCDuplex_Forward(t *testing.T) {
 
 	connA, connB := net.Pipe()
-	defer connA.Close()
 	defer connB.Close()
 
 	aDuplex := NewRPCDuplex(connA, true)
 	bDuplex := NewRPCDuplex(connB, false)
 
 	msg := []byte("foo")
+	errCh := make(chan error, 1)
 	go func() {
 		_, err := aDuplex.clientConn.Write(msg)
-		if err != nil {
-			log.Fatalln("Error writing from conn", err)
-		}
+		connA.Close()
+		errCh <- err
 	}()
 
 	err := bDuplex.Forward()
-
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), <-bDuplex.serverConn.readCh)
+	require.NoError(t, <-errCh)
 }
 
 // TestbranchConn_Read reads data pushed in by
@@ -345,14 +352,19 @@ func TestBranchConn_Write(t *testing.T) {
 
 	pc := &branchConn{Conn: connA, readCh: ch}
 
+	nCh := make(chan int, 1)
+	errCh := make(chan error, 1)
 	go func() {
 		n, err := pc.Write([]byte("foo"))
-		require.NoError(t, err)
-		assert.Equal(t, 3, n)
-		connA.Close()
+		pc.Conn.Close()
+		nCh <- n
+		errCh <- err
 	}()
 
 	msg, err := ioutil.ReadAll(connB)
+
+	assert.Equal(t, 3, <-nCh)
+	require.NoError(t, <-errCh)
 	require.NoError(t, err)
 	assert.Equal(t, 6, len(msg))
 	assert.Equal(t, string([]byte("\x00\x00\x03foo")), string(msg))
@@ -374,17 +386,26 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 
 		msg := []byte("foo")
 
+		errCh := make(chan error)
 		go func() {
 			_, err := aDuplex.clientConn.Write(msg)
-			if err != nil {
-				log.Fatalln("Error writing from conn", err)
-			}
+			aDuplex.conn.Close()
+			errCh <- err
 		}()
 
 		prefix, size := bDuplex.ReadHeader()
 
 		assert.Equal(t, byte(0), prefix)
 		assert.Equal(t, uint16(3), size)
+
+		// Read packets so that channel doesn't block
+		b := make([]byte, size)
+		n, err := bDuplex.conn.Read(b)
+		require.NoError(t, err)
+		require.NoError(t, <-errCh)
+		assert.Equal(t, 3, n)
+		assert.Equal(t, string([]byte("foo")), string(b))
+
 	})
 
 	// Case Tested: aDuplex's serverConn is the initiator and has
@@ -399,16 +420,24 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 
 		msg := []byte("hello")
 
+		errCh := make(chan error)
 		go func() {
 			_, err := aDuplex.serverConn.Write(msg)
-			if err != nil {
-				log.Fatalln("Error writing from conn", err)
-			}
+			aDuplex.conn.Close()
+			errCh <- err
 		}()
 
 		prefix, size := bDuplex.ReadHeader()
 
 		assert.Equal(t, byte(1), prefix)
 		assert.Equal(t, uint16(5), size)
+
+		// Read packets so that channel doesn't block
+		b := make([]byte, size)
+		n, err := bDuplex.conn.Read(b)
+		require.NoError(t, err)
+		require.NoError(t, <-errCh)
+		assert.Equal(t, 5, n)
+		assert.Equal(t, string([]byte("hello")), string(b))
 	})
 }

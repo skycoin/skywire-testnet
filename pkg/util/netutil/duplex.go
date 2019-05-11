@@ -8,7 +8,7 @@ import (
 	"net"
 )
 
-const readChSize int = 2
+const readChSize int = 1
 
 // branchConn will inherit the net.Conn interface.
 type branchConn struct {
@@ -133,6 +133,5 @@ func (pc *branchConn) Write(b []byte) (n int, err error) {
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(b)))
 
 	n, err = pc.Conn.Write(append(buf, b...))
-
 	return n - 3, err
 }
