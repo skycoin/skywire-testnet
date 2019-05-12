@@ -13,8 +13,14 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/skycoin/skywire/pkg/cipher"
+)
+
+const (
+	retryInterval            = 100 * time.Millisecond
+	invalidNonceErrorMessage = "SW-Nonce does not match"
 )
 
 // NextNonceResponse represents a ServeHTTP response for json encoding
@@ -71,11 +77,6 @@ func NewClient(ctx context.Context, addr string, key cipher.PubKey, sec cipher.S
 // Do performs a new authenticated Request and returns the response. Internally, if the request was
 // successful nonce is incremented
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	req.Header.Add("SW-Public", c.key.Hex())
-
-	// use nonce, later, if no err from req update such nonce
-	req.Header.Add("SW-Nonce", strconv.FormatUint(uint64(c.getCurrentNonce()), 10))
-
 	body := make([]byte, 0)
 	if req.ContentLength != 0 {
 		auxBody, err := ioutil.ReadAll(req.Body)
@@ -86,16 +87,42 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		req.Body = ioutil.NopCloser(bytes.NewBuffer(auxBody))
 		body = auxBody
 	}
-	sign, err := Sign(body, c.getCurrentNonce(), c.sec)
-	if err != nil {
-		return nil, err
-	}
 
-	req.Header.Add("SW-Sig", sign.Hex())
+	var res *http.Response
+	for {
+		nonce := c.getCurrentNonce()
+		sign, err := Sign(body, nonce, c.sec)
+		if err != nil {
+			return nil, err
+		}
 
-	res, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
+		// use nonce, later, if no err from req update such nonce
+		req.Header.Set("SW-Nonce", strconv.FormatUint(uint64(nonce), 10))
+		req.Header.Set("SW-Sig", sign.Hex())
+		req.Header.Set("SW-Public", c.key.Hex())
+
+		res, err = c.client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		isNonceValid, err := c.isNonceValid(res)
+		if err != nil {
+			return nil, err
+		}
+
+		if isNonceValid {
+			break
+		}
+
+		nonce, err = c.Nonce(context.Background(), c.key)
+		if err != nil {
+			return nil, err
+		}
+		c.SetNonce(nonce)
+
+		res.Body.Close()
+		time.Sleep(retryInterval)
 	}
 
 	if res.StatusCode == http.StatusOK {
@@ -142,6 +169,26 @@ func (c *Client) getCurrentNonce() Nonce {
 
 func (c *Client) incrementNonce() {
 	atomic.AddUint64(&c.nonce, 1)
+}
+
+func (c *Client) isNonceValid(res *http.Response) (bool, error) {
+	var serverResponse HTTPResponse
+
+	auxRespBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return false, err
+	}
+	res.Body.Close()
+	res.Body = ioutil.NopCloser(bytes.NewBuffer(auxRespBody))
+
+	if err := json.Unmarshal(auxRespBody, &serverResponse); err != nil || serverResponse.Error == nil {
+		return true, nil
+	}
+
+	isAuthorized := serverResponse.Error.Code != http.StatusUnauthorized
+	hasValidNonce := serverResponse.Error.Message != invalidNonceErrorMessage
+
+	return isAuthorized && hasValidNonce, nil
 }
 
 func sanitizedAddr(addr string) string {
