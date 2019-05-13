@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	maxRetries               = 10
 	retryInterval            = 100 * time.Millisecond
 	invalidNonceErrorMessage = "SW-Nonce does not match"
 )
@@ -89,7 +90,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	var res *http.Response
-	for {
+	for retriesCount := 0; retriesCount < maxRetries; retriesCount++ {
 		nonce := c.getCurrentNonce()
 		sign, err := Sign(body, nonce, c.sec)
 		if err != nil {
@@ -104,6 +105,10 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		res, err = c.client.Do(req)
 		if err != nil {
 			return nil, err
+		}
+
+		if retriesCount == maxRetries {
+			break
 		}
 
 		isNonceValid, err := c.isNonceValid(res)
