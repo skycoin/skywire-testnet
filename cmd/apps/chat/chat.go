@@ -21,22 +21,25 @@ import (
 var addr = flag.String("addr", ":8000", "address to bind")
 
 var (
-	chatApp    *app.App
-	clientChan chan string
-	chatConns  map[cipher.PubKey]net.Conn
-	connsMu    sync.Mutex
+	chatApp   *app.App
+	clientCh  chan string
+	chatConns map[cipher.PubKey]net.Conn
+	connsMu   sync.Mutex
 )
 
 func main() {
 	flag.Parse()
 
-	var err error
-	config := &app.Config{AppName: "chat", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
-	chatApp, err = app.Setup(config)
+	a, err := app.Setup(&app.Config{AppName: "chat", AppVersion: "1.0", ProtocolVersion: "0.0.1"})
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer chatApp.Close()
+	defer func() { _ = a.Close() }()
+
+	chatApp = a
+
+	clientCh = make(chan string)
+	defer close(clientCh)
 
 	chatConns = make(map[cipher.PubKey]net.Conn)
 	go listenLoop()
@@ -78,8 +81,10 @@ func handleConn(conn net.Conn) {
 
 		clientMsg, _ := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])}) // nolint
 		select {
-		case clientChan <- string(clientMsg):
+		case clientCh <- string(clientMsg):
+			log.Printf("received and sent to ui: %s\n", clientMsg)
 		default:
+			log.Printf("received and trashed: %s\n", clientMsg)
 		}
 	}
 }
@@ -130,21 +135,23 @@ func sseHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	clientChan = make(chan string)
-
-	go func() {
-		<-req.Context().Done()
-		close(clientChan)
-		log.Println("SSE connection were closed.")
-	}()
-
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Transfer-Encoding", "chunked")
 
-	for msg := range clientChan {
-		fmt.Fprintf(w, "data: %s\n\n", msg)
-		f.Flush()
+	for {
+		select {
+		case msg, ok := <-clientCh:
+			if !ok {
+				return
+			}
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", msg)
+			f.Flush()
+
+		case <-req.Context().Done():
+			log.Println("SSE connection were closed.")
+			return
+		}
 	}
 }

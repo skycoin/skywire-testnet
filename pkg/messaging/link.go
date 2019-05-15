@@ -78,7 +78,6 @@ func (c *Link) Open(wg *sync.WaitGroup) error {
 	c.callbacks.HandshakeComplete(c)
 
 	// Event loops.
-	var done = make(chan struct{})
 	wg.Add(1)
 	go func() {
 		// Exits when connection is closed.
@@ -87,7 +86,6 @@ func (c *Link) Open(wg *sync.WaitGroup) error {
 		}
 		// TODO(evanlinjin): Determine if the 'close' is initiated from remote instance.
 		c.callbacks.Close(c, false)
-		close(done)
 		wg.Done()
 	}()
 

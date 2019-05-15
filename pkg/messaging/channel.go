@@ -6,7 +6,9 @@ import (
 	"encoding/binary"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -14,27 +16,25 @@ import (
 )
 
 type channel struct {
-	ID       byte
+	id   byte // This is to be changed.
+	idMx sync.RWMutex
+
 	remotePK cipher.PubKey
 	link     *Link
 	buf      *bytes.Buffer
 
 	deadline time.Time
-	closed   bool
+	closed   unsafe.Pointer // unsafe.Pointer is used alongside 'atomic' module for fast, thread-safe access.
 
-	waitChan  chan bool
-	readChan  chan []byte
-	closeChan chan struct{}
-	doneChan  chan struct{}
+	waitChan    chan bool // waits for remote response (whether channel is accepted or not).
+	readChan    chan []byte
+	closeChan   chan struct{}
+	closeChanMx sync.RWMutex // TODO(evanlinjin): This is a hack to avoid race conditions when closing channel.
+	doneChan    chan struct{}
 
 	noise *noise.Noise
-	rMx   sync.Mutex
-	wMx   sync.Mutex
-}
-
-// Edges returns the public keys of the channel's edge nodes
-func (c *channel) Edges() [2]cipher.PubKey {
-	return transport.SortPubKeys(c.link.Local(), c.remotePK)
+	rMx   sync.Mutex // lock for decrypt cipher state
+	wMx   sync.Mutex // lock for encrypt cipher state
 }
 
 func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link *Link) (*channel, error) {
@@ -53,12 +53,53 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 		remotePK:  remote,
 		link:      link,
 		buf:       new(bytes.Buffer),
-		waitChan:  make(chan bool),
+		closed:    unsafe.Pointer(new(bool)), //nolint:gosec
+		waitChan:  make(chan bool, 1),        // should allows receive one reply.
 		readChan:  make(chan []byte),
 		closeChan: make(chan struct{}),
 		doneChan:  make(chan struct{}),
 		noise:     noiseInstance,
 	}, nil
+}
+
+// ID obtains the channel's id.
+func (c *channel) ID() byte {
+	c.idMx.RLock()
+	id := c.id
+	c.idMx.RUnlock()
+	return id
+}
+
+// SetID set's the channel's id.
+func (c *channel) SetID(id byte) {
+	c.idMx.Lock()
+	c.id = id
+	c.idMx.Unlock()
+}
+
+// Edges returns the public keys of the channel's edge nodes
+func (c *channel) Edges() [2]cipher.PubKey {
+	return transport.SortPubKeys(c.link.Local(), c.remotePK)
+}
+
+// HandshakeMessage prepares a handshake message safely.
+func (c *channel) HandshakeMessage() ([]byte, error) {
+	c.rMx.Lock()
+	c.wMx.Lock()
+	res, err := c.noise.HandshakeMessage()
+	c.rMx.Unlock()
+	c.wMx.Unlock()
+	return res, err
+}
+
+// ProcessMessage reads a handshake message safely.
+func (c *channel) ProcessMessage(msg []byte) error {
+	c.rMx.Lock()
+	c.wMx.Lock()
+	err := c.noise.ProcessMessage(msg)
+	c.rMx.Unlock()
+	c.wMx.Unlock()
+	return err
 }
 
 func (c *channel) Read(p []byte) (n int, err error) {
@@ -77,7 +118,7 @@ func (c *channel) Read(p []byte) (n int, err error) {
 }
 
 func (c *channel) Write(p []byte) (n int, err error) {
-	if c.closed {
+	if c.isClosed() {
 		return 0, ErrChannelClosed
 	}
 
@@ -88,42 +129,43 @@ func (c *channel) Write(p []byte) (n int, err error) {
 		defer cancel()
 	}
 
-	writeChan := make(chan struct {
-		int
-		error
-	})
-	go func() {
-		c.wMx.Lock()
-		defer c.wMx.Unlock()
+	c.wMx.Lock()
+	defer c.wMx.Unlock()
+	data := c.noise.EncryptUnsafe(p)
 
-		data := c.noise.EncryptUnsafe(p)
-		buf := make([]byte, 2)
-		binary.BigEndian.PutUint16(buf, uint16(len(data)))
-		n, err := c.link.Send(c.ID, append(buf, data...))
-		writeChan <- struct {
-			int
-			error
-		}{n - (len(data) - len(p) + 2), err}
+	buf := make([]byte, 2+len(data))
+	binary.BigEndian.PutUint16(buf[:2], uint16(len(data)))
+	copy(buf[2:], data)
+
+	done := make(chan struct{}, 1)
+	defer close(done)
+	go func() {
+		n, err = c.link.Send(c.ID(), buf)
+		n = n - (len(data) - len(p) + 2)
+		select {
+		case done <- struct{}{}:
+		default:
+		}
 	}()
 
 	select {
-	case w := <-writeChan:
-		return w.int, w.error
+	case <-done:
+		return n, err
 	case <-ctx.Done():
 		return 0, ErrDeadlineExceeded
 	}
 }
 
 func (c *channel) Close() error {
-	if c.closed {
+	if c.isClosed() {
 		return ErrChannelClosed
 	}
 
-	if _, err := c.link.SendCloseChannel(c.ID); err != nil {
+	if _, err := c.link.SendCloseChannel(c.ID()); err != nil {
 		return err
 	}
 
-	c.closed = true
+	c.setClosed(true)
 
 	select {
 	case <-c.closeChan:
@@ -148,7 +190,10 @@ func (c *channel) close() {
 	case <-c.doneChan:
 	default:
 		close(c.doneChan)
-		close(c.closeChan)
+
+		c.closeChanMx.Lock()   // TODO(evanlinjin): START(avoid race condition).
+		close(c.closeChan)     // TODO(evanlinjin): data race.
+		c.closeChanMx.Unlock() // TODO(evanlinjin): END(avoid race condition).
 	}
 }
 
@@ -205,3 +250,7 @@ func (c *channel) readEncrypted(ctx context.Context, p []byte) (n int, err error
 
 	return copy(p, data), nil
 }
+
+// for getting and setting the 'closed' status.
+func (c *channel) isClosed() bool   { return *(*bool)(atomic.LoadPointer(&c.closed)) }
+func (c *channel) setClosed(v bool) { atomic.StorePointer(&c.closed, unsafe.Pointer(&v)) } //nolint:gosec
