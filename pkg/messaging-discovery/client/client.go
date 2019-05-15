@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -25,8 +26,9 @@ type APIClient interface {
 // HTTPClient represents a client that communicates with a messaging-discovery service through http, it
 // implements APIClient
 type httpClient struct {
-	client  http.Client
-	address string
+	client    http.Client
+	address   string
+	updateMux sync.Mutex // for thread-safe sequence incrementing
 }
 
 // NewHTTP constructs a new APIClient that communicates with discovery via http.
@@ -116,6 +118,9 @@ func (c *httpClient) SetEntry(ctx context.Context, e *Entry) error {
 
 // UpdateEntry updates Entry in messaging discovery.
 func (c *httpClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry) error {
+	c.updateMux.Lock()
+	defer c.updateMux.Unlock()
+
 	e.Sequence++
 	e.Timestamp = time.Now().UnixNano()
 	err := e.Sign(sk)
@@ -123,12 +128,31 @@ func (c *httpClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 		return err
 	}
 
-	err = c.SetEntry(ctx, e)
-	if err != nil {
-		e.Sequence--
+	for {
+		err = c.SetEntry(ctx, e)
+		if err != nil && err != ErrValidationWrongSequence {
+			e.Sequence--
+			return err
+		}
+		if err == ErrValidationWrongSequence {
+			rE, entryErr := c.Entry(ctx, e.Static)
+			if entryErr != nil {
+				return err
+			}
+			if rE.Timestamp > e.Timestamp { // If there is a more up to date entry drop update
+				e.Sequence = rE.Sequence
+				return nil
+			}
+			e.Sequence = rE.Sequence + 1
+			err := e.Sign(sk)
+			if err != nil {
+				return err
+			}
+		}
+		if err == nil {
+			return nil
+		}
 	}
-
-	return err
 }
 
 // AvailableServers returns list of available servers.
