@@ -45,7 +45,7 @@ type Client struct {
 	key    cipher.PubKey
 	sec    cipher.SecKey
 	Addr   string // sanitized address of the client, which may differ from addr used in NewClient
-	nonce  uint64
+	nonce  uint64 // has to be handled with the atomic package at all time
 }
 
 // NewClient creates a new client setting a public key to the client to be used for Auth.
@@ -164,7 +164,7 @@ func (c *Client) doRequest(req *http.Request, body []byte) (*http.Response, erro
 }
 
 func (c *Client) getCurrentNonce() Nonce {
-	return Nonce(c.nonce)
+	return Nonce(atomic.LoadUint64(&c.nonce))
 }
 
 func (c *Client) incrementNonce() {
