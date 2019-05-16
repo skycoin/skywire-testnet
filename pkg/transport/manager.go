@@ -280,7 +280,7 @@ func (tm *Manager) Close() error {
 	}
 
 	tm.Logger.Info("Closing transport manager")
-	tm.mu.RLock()
+	tm.mu.Lock()
 	close(tm.doneChan)
 	statuses := make([]*Status, 0)
 	for _, tr := range tm.transports {
@@ -291,7 +291,7 @@ func (tm *Manager) Close() error {
 		tr.Close()
 	}
 	tm.transports = make(map[uuid.UUID]*ManagedTransport)
-	tm.mu.RUnlock()
+	tm.mu.Unlock()
 
 	if _, err := tm.config.DiscoveryClient.UpdateStatuses(context.Background(), statuses...); err != nil {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)

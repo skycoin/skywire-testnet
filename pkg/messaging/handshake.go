@@ -102,12 +102,13 @@ type Handshake func(dec *json.Decoder, enc *json.Encoder) error
 // Do performs a handshake with a given timeout.
 // Non-nil error is returned on failure.
 func (handshake Handshake) Do(dec *json.Decoder, enc *json.Encoder, timeout time.Duration) (err error) {
-	errCh := make(chan error, 1)
+	done := make(chan struct{})
 	go func() {
-		errCh <- handshake(dec, enc)
+		err = handshake(dec, enc)
+		close(done)
 	}()
 	select {
-	case err = <-errCh:
+	case <-done:
 		return err
 	case <-time.After(timeout):
 		return ErrHandshakeFailed
