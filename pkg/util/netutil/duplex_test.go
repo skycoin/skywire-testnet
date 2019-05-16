@@ -3,13 +3,30 @@ package netutil
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
+	"net/rpc"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// ==================================================
+//  TEST
+type API struct{}
+
+type Person struct {
+	Name string
+}
+
+func (API) SayHello(person Person, reply *Person) error {
+	*reply = person
+	return nil
+}
+
+// ==================================================
 
 type chReadWrite struct {
 	i   int
@@ -132,6 +149,45 @@ var tables = []struct {
 	},
 }
 
+func TestNewRPCDuplex_SingleMessage(t *testing.T) {
+
+	connA, connB := net.Pipe()
+
+	rpcSrvA := rpc.NewServer()
+	rpcSrvB := rpc.NewServer()
+
+	aDuplex := NewRPCDuplex(connA, rpcSrvA, true)
+	bDuplex := NewRPCDuplex(connB, rpcSrvB, false)
+
+	go func() {
+		msg := []byte("API.SayHello")
+		aDuplex.clientConn.Write([]byte(msg))
+	}()
+
+	aDuplex.rpcS.Register(new(API))
+	bDuplex.rpcS.Register(new(API))
+
+	// Serve RPC server, read prefix and forward to the appropriate channel
+	go func() {
+		bDuplex.Serve()
+	}()
+
+	time.Sleep(time.Second * 1)
+
+	var reply Person
+	a := Person{"Anto"}
+	bClient := bDuplex.Client()
+
+	// // Call RPC method through server
+	err := bClient.Call("API.SayHello", a, &reply)
+	if err != nil {
+		log.Fatal("error", err)
+	}
+
+	fmt.Println(reply.Name)
+
+}
+
 // Test sending multiple messages in a single connection and receiving them
 // in the appropriate branchConn with multiple test cases
 func TestNewRPCDuplex(t *testing.T) {
@@ -152,10 +208,12 @@ func TestNewRPCDuplex(t *testing.T) {
 			err = connB.SetDeadline(time.Now().Add(time.Second * 10))
 			assert.Nil(err)
 
-			// Create two instances of RPCDuplex
-			aDuplex := NewRPCDuplex(connA, tt.initiatorA)
-			bDuplex := NewRPCDuplex(connB, tt.initiatorB)
+			// Create two instances of RPCDuplex and rpcServer
+			rpcSrvA := rpc.NewServer()
+			rpcSrvB := rpc.NewServer()
 
+			aDuplex := NewRPCDuplex(connA, rpcSrvA, true)
+			bDuplex := NewRPCDuplex(connB, rpcSrvB, false)
 			// Determine who is writing the msg and who is reading the msg from test input
 			msgReader, msgWriter := whoWrites(tt.whoWrites, aDuplex, bDuplex)
 
@@ -225,8 +283,11 @@ func TestNewRPCDuplex_MultipleMessages(t *testing.T) {
 
 	connA, connB := net.Pipe()
 
-	aDuplex := NewRPCDuplex(connA, true)
-	bDuplex := NewRPCDuplex(connB, false)
+	rpcSrvA := rpc.NewServer()
+	rpcSrvB := rpc.NewServer()
+
+	aDuplex := NewRPCDuplex(connA, rpcSrvA, true)
+	bDuplex := NewRPCDuplex(connB, rpcSrvB, false)
 
 	go func() {
 		for i := 0; i < expectedMsgCount; i++ {
@@ -281,8 +342,11 @@ func TestRPCDuplex_Forward(t *testing.T) {
 	connA, connB := net.Pipe()
 	defer connB.Close()
 
-	aDuplex := NewRPCDuplex(connA, true)
-	bDuplex := NewRPCDuplex(connB, false)
+	rpcSrvA := rpc.NewServer()
+	rpcSrvB := rpc.NewServer()
+
+	aDuplex := NewRPCDuplex(connA, rpcSrvA, true)
+	bDuplex := NewRPCDuplex(connB, rpcSrvB, false)
 
 	msg := []byte("foo")
 	errCh := make(chan error, 1)
@@ -381,8 +445,11 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 	t.Run("successfully_read_prefix_from_clientConn_to_serverConn", func(t *testing.T) {
 		connA, connB := net.Pipe()
 
-		aDuplex := NewRPCDuplex(connA, true)
-		bDuplex := NewRPCDuplex(connB, false)
+		rpcSrvA := rpc.NewServer()
+		rpcSrvB := rpc.NewServer()
+
+		aDuplex := NewRPCDuplex(connA, rpcSrvA, true)
+		bDuplex := NewRPCDuplex(connB, rpcSrvB, false)
 
 		msg := []byte("foo")
 
@@ -415,8 +482,11 @@ func TestRPCDuplex_ReadHeader(t *testing.T) {
 	t.Run("successfully_read_prefix_from_serverConn_to_clientConn", func(t *testing.T) {
 		connA, connB := net.Pipe()
 
-		aDuplex := NewRPCDuplex(connA, true)
-		bDuplex := NewRPCDuplex(connB, false)
+		rpcSrvA := rpc.NewServer()
+		rpcSrvB := rpc.NewServer()
+
+		aDuplex := NewRPCDuplex(connA, rpcSrvA, true)
+		bDuplex := NewRPCDuplex(connB, rpcSrvB, false)
 
 		msg := []byte("hello")
 

@@ -6,9 +6,8 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/rpc"
 )
-
-const readChSize int = 1
 
 // branchConn will inherit the net.Conn interface.
 type branchConn struct {
@@ -22,13 +21,15 @@ type RPCDuplex struct {
 	conn       net.Conn
 	clientConn *branchConn
 	serverConn *branchConn
+	rpcS       *rpc.Server
+	rpcC       *rpc.Client
 }
 
 // NewRPCDuplex initiates a new RPCDuplex struct
-func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
+func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool) *RPCDuplex {
 	var d RPCDuplex
-	clientCh := make(chan []byte, readChSize)
-	serverCh := make(chan []byte, readChSize)
+	clientCh := make(chan []byte, 1)
+	serverCh := make(chan []byte, 1)
 
 	// branchConn implements net.Conn and assigned it to d.clientConn and d.serverConn
 	if initiator {
@@ -39,9 +40,13 @@ func NewRPCDuplex(conn net.Conn, initiator bool) *RPCDuplex {
 		d.serverConn = &branchConn{Conn: conn, prefix: 0, readCh: serverCh}
 	}
 	d.conn = conn
+	d.rpcS = srv
 
 	return &d
 }
+
+// Client returns the internal RPC Client.
+func (d *RPCDuplex) Client() *rpc.Client { return d.rpcC }
 
 // ReadHeader reads the first three bytes of the data and returns the prefix and size of the packet
 func (d *RPCDuplex) ReadHeader() (byte, uint16) {
@@ -62,7 +67,7 @@ func (d *RPCDuplex) ReadHeader() (byte, uint16) {
 	return prefix, size
 }
 
-// Serve calls Forward() in a loop and direct the packets to the appropriate branchConn based on it's prefix
+// Serve is a blocking function that serves the RPC server and runs the event loop that forwards data to branchConns.
 func (d *RPCDuplex) Serve() error {
 
 	for {
@@ -77,6 +82,15 @@ func (d *RPCDuplex) Serve() error {
 		}
 	}
 }
+
+// A ---> B (A is initiator, B is responder)
+// Prefix read/writes with either 0 (talk to RPC server) or 1 (talk to RPC client).
+
+// A -> B (0-prefixed) : Talk to B's RPC server.
+// A -> B (1-prefixed) : Talk to B's RPC client.
+// A <- B (0-prefixed) : Talk to A's RPC client.
+// A <- B (1-prefixed) : Talk to A's RPC server.
+// 0 prefix (net.Conn), 1 prefix (net.Conn)
 
 // Forward forwards one packet from Original conn to appropriate branchConn based on the packet's prefix
 func (d *RPCDuplex) Forward() error {
@@ -96,15 +110,24 @@ func (d *RPCDuplex) Forward() error {
 
 	// Push data from original conn into branchConn's chan []byte
 	if prefix == d.serverConn.prefix {
+
+		// Serve conn and init new branch client
+		go d.rpcS.ServeConn(d.clientConn)
+		d.rpcC = rpc.NewClient(d.serverConn)
+
 		d.serverConn.readCh <- data
 	} else if prefix == d.clientConn.prefix {
+
+		// Serve conn and init new branch client
+		go d.rpcS.ServeConn(d.serverConn)
+		d.rpcC = rpc.NewClient(d.clientConn)
+
 		d.clientConn.readCh <- data
 	} else {
 		log.Fatalln(errors.New("error encountered while forwarding packets"))
 	}
 
 	return nil
-
 }
 
 // Read reads in data from original conn through branchConn's chan [].
