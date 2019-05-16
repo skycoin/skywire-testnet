@@ -44,7 +44,7 @@ type Client struct {
 	client http.Client
 	key    cipher.PubKey
 	sec    cipher.SecKey
-	Addr   string // sanitized address of the client, which may differ from addr used in NewClient
+	addr   string // sanitized address of the client, which may differ from addr used in NewClient
 	nonce  uint64 // has to be handled with the atomic package at all time
 }
 
@@ -59,7 +59,7 @@ func NewClient(ctx context.Context, addr string, key cipher.PubKey, sec cipher.S
 		client: http.Client{},
 		key:    key,
 		sec:    sec,
-		Addr:   sanitizedAddr(addr),
+		addr:   sanitizedAddr(addr),
 	}
 
 	// request server for a nonce
@@ -119,7 +119,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 
 // Nonce calls the remote API to retrieve the next expected nonce
 func (c *Client) Nonce(ctx context.Context, key cipher.PubKey) (Nonce, error) {
-	req, err := http.NewRequest(http.MethodGet, c.Addr+"/security/nonces/"+key.Hex(), nil)
+	req, err := http.NewRequest(http.MethodGet, c.addr+"/security/nonces/"+key.Hex(), nil)
 	if err != nil {
 		return 0, err
 	}
@@ -146,6 +146,11 @@ func (c *Client) Nonce(ctx context.Context, key cipher.PubKey) (Nonce, error) {
 // SetNonce sets client current nonce to given nonce
 func (c *Client) SetNonce(n Nonce) {
 	atomic.StoreUint64(&c.nonce, uint64(n))
+}
+
+// Addr returns sanitized address of the client
+func (c *Client) Addr() string {
+	return c.addr
 }
 
 func (c *Client) doRequest(req *http.Request, body []byte) (*http.Response, error) {
