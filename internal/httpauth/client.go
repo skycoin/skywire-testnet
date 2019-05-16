@@ -13,14 +13,11 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (
-	maxRetries               = 10
-	retryInterval            = 100 * time.Millisecond
 	invalidNonceErrorMessage = "SW-Nonce does not match"
 )
 
@@ -89,45 +86,28 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		body = auxBody
 	}
 
-	var res *http.Response
-	for retriesCount := 0; retriesCount < maxRetries; retriesCount++ {
-		nonce := c.getCurrentNonce()
-		sign, err := Sign(body, nonce, c.sec)
-		if err != nil {
-			return nil, err
-		}
+	res, err := c.doRequest(req, body)
+	if err != nil {
+		return nil, err
+	}
 
-		// use nonce, later, if no err from req update such nonce
-		req.Header.Set("SW-Nonce", strconv.FormatUint(uint64(nonce), 10))
-		req.Header.Set("SW-Sig", sign.Hex())
-		req.Header.Set("SW-Public", c.key.Hex())
+	isNonceValid, err := isNonceValid(res)
+	if err != nil {
+		return nil, err
+	}
 
-		res, err = c.client.Do(req)
-		if err != nil {
-			return nil, err
-		}
-
-		if retriesCount == maxRetries {
-			break
-		}
-
-		isNonceValid, err := c.isNonceValid(res)
-		if err != nil {
-			return nil, err
-		}
-
-		if isNonceValid {
-			break
-		}
-
-		nonce, err = c.Nonce(context.Background(), c.key)
+	if !isNonceValid {
+		nonce, err := c.Nonce(context.Background(), c.key)
 		if err != nil {
 			return nil, err
 		}
 		c.SetNonce(nonce)
 
 		res.Body.Close()
-		time.Sleep(retryInterval)
+		res, err = c.doRequest(req, body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if res.StatusCode == http.StatusOK {
@@ -168,6 +148,21 @@ func (c *Client) SetNonce(n Nonce) {
 	atomic.StoreUint64(&c.nonce, uint64(n))
 }
 
+func (c *Client) doRequest(req *http.Request, body []byte) (*http.Response, error) {
+	nonce := c.getCurrentNonce()
+	sign, err := Sign(body, nonce, c.sec)
+	if err != nil {
+		return nil, err
+	}
+
+	// use nonce, later, if no err from req update such nonce
+	req.Header.Set("SW-Nonce", strconv.FormatUint(uint64(nonce), 10))
+	req.Header.Set("SW-Sig", sign.Hex())
+	req.Header.Set("SW-Public", c.key.Hex())
+
+	return c.client.Do(req)
+}
+
 func (c *Client) getCurrentNonce() Nonce {
 	return Nonce(c.nonce)
 }
@@ -176,7 +171,10 @@ func (c *Client) incrementNonce() {
 	atomic.AddUint64(&c.nonce, 1)
 }
 
-func (c *Client) isNonceValid(res *http.Response) (bool, error) {
+// isNonceValid checks if `res` contains an invalid nonce error.
+// The error is occurred if status code equals to `http.StatusUnauthorized`
+// and body contains `invalidNonceErrorMessage`.
+func isNonceValid(res *http.Response) (bool, error) {
 	var serverResponse HTTPResponse
 
 	auxRespBody, err := ioutil.ReadAll(res.Body)

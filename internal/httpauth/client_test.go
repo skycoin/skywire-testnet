@@ -47,7 +47,8 @@ func TestClient(t *testing.T) {
 	checkResp(t, headers, b, pk, 1)
 }
 
-func TestBadNonce(t *testing.T) {
+// TestClient_BadNonce tests if `Client` retries the request if an invalid nonce is set.
+func TestClient_BadNonce(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 
 	headerCh := make(chan http.Header, 1)
@@ -71,35 +72,6 @@ func TestBadNonce(t *testing.T) {
 
 	headers := <-headerCh
 	checkResp(t, headers, b, pk, 1)
-}
-
-func TestTooManyRetries(t *testing.T) {
-	pk, sk := cipher.GenerateKeyPair()
-
-	respCh := make(chan string, maxRetries)
-	ts := newBadNonceServer(pk, respCh)
-	defer ts.Close()
-
-	c, err := NewClient(context.TODO(), ts.URL, pk, sk)
-	require.NoError(t, err)
-
-	req, err := http.NewRequest("GET", ts.URL+"/foo", bytes.NewBufferString(payload))
-	require.NoError(t, err)
-	res, err := c.Do(req)
-	require.NoError(t, err)
-
-	b, err := ioutil.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-	assert.Equal(t, payload, string(b))
-
-	for i := 0; i < maxRetries-1; i++ {
-		resp := <-respCh
-		assert.Equal(t, errorMessage, resp)
-	}
-
-	resp := <-respCh
-	assert.Equal(t, payload, resp)
 }
 
 func checkResp(t *testing.T, headers http.Header, body []byte, pk cipher.PubKey, nonce int) {
@@ -129,28 +101,6 @@ func newTestServer(pk cipher.PubKey, headerCh chan<- http.Header) *httptest.Serv
 				nonce++
 			}
 			fmt.Fprint(w, respMessage)
-		}
-	}))
-}
-
-func newBadNonceServer(pk cipher.PubKey, respCh chan<- string) *httptest.Server {
-	nonce := 1
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.String() == fmt.Sprintf("/security/nonces/%s", pk) {
-			json.NewEncoder(w).Encode(&NextNonceResponse{pk, Nonce(nonce)}) // nolint: errcheck
-		} else {
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				return
-			}
-			defer r.Body.Close()
-			respMessage := string(body)
-			if nonce < maxRetries || r.Header.Get("Sw-Nonce") != strconv.Itoa(nonce) {
-				respMessage = errorMessage
-			}
-			nonce++
-			fmt.Fprint(w, respMessage)
-			respCh <- respMessage
 		}
 	}))
 }
