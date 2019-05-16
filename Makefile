@@ -114,12 +114,12 @@ release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and a
 	${OPTS} go build -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -o ./manager-node ./cmd/manager-node 
 	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
-	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
-	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-	${OPTS} go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-	${OPTS} go build -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	${OPTS} go build -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-	${OPTS} go build -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	${OPTS} go build -o ./apps/chat ./cmd/apps/chat
+	${OPTS} go build -o ./apps/helloworld ./cmd/apps/helloworld
+	${OPTS} go build -o ./apps/therealproxy ./cmd/apps/therealproxy
+	${OPTS} go build -o ./apps/therealproxy-client  ./cmd/apps/therealproxy-client
+	${OPTS} go build -o ./apps/therealssh  ./cmd/apps/therealssh
+	${OPTS} go build -o ./apps/therealssh-client  ./cmd/apps/therealssh-client
 
 
 
