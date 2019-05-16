@@ -13,21 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ==================================================
-//  TEST
-type API struct{}
-
-type Person struct {
-	Name string
-}
-
-func (API) SayHello(person Person, reply *Person) error {
-	*reply = person
-	return nil
-}
-
-// ==================================================
-
 type chReadWrite struct {
 	i   int
 	n   int
@@ -149,7 +134,23 @@ var tables = []struct {
 	},
 }
 
-func TestNewRPCDuplex_SingleMessage(t *testing.T) {
+// ==================================================
+// API is a receiver which we will use Register to publishes the receiver's methods in the DefaultServer.
+type API struct{}
+
+// Person is a struct that A will use to expose it's RPC method
+type Person struct {
+	Name string
+}
+
+// SayHello is a RPC method
+// RPC methods must look schematically like: func (t *T) MethodName(argType T1, replyType *T2) error
+func (API) SayHello(person Person, reply *Person) error {
+	*reply = person
+	return nil
+}
+
+func TestNewRPCDuplex_RPCMessage(t *testing.T) {
 
 	connA, connB := net.Pipe()
 
@@ -159,32 +160,36 @@ func TestNewRPCDuplex_SingleMessage(t *testing.T) {
 	aDuplex := NewRPCDuplex(connA, rpcSrvA, true)
 	bDuplex := NewRPCDuplex(connB, rpcSrvB, false)
 
+	aDuplex.rpcS.Register(new(API))
+	bDuplex.rpcS.Register(new(API))
+
 	go func() {
 		msg := []byte("API.SayHello")
 		aDuplex.clientConn.Write([]byte(msg))
 	}()
 
-	aDuplex.rpcS.Register(new(API))
-	bDuplex.rpcS.Register(new(API))
-
-	// Serve RPC server, read prefix and forward to the appropriate channel
 	go func() {
 		bDuplex.Serve()
 	}()
 
-	time.Sleep(time.Second * 1)
+	b := make([]byte, 256)
+	n, err := bDuplex.serverConn.Read(b)
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println(string(b[:n]))
 
 	var reply Person
 	a := Person{"Anto"}
 	bClient := bDuplex.Client()
 
-	// // Call RPC method through server
-	err := bClient.Call("API.SayHello", a, &reply)
+	err = bClient.Call(string(b[:n]), a, &reply)
 	if err != nil {
-		log.Fatal("error", err)
+		log.Println(err)
 	}
 
-	fmt.Println(reply.Name)
+	log.Println(reply.Name)
 
 }
 
