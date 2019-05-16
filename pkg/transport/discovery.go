@@ -55,9 +55,12 @@ func (td *mockDiscoveryClient) GetTransportByID(ctx context.Context, id uuid.UUI
 		return nil, errors.New("transport not found")
 	}
 
-	e := &EntryWithStatus{}
-	*e = entry
-	return e, nil
+	return &EntryWithStatus{
+		Entry:      entry.Entry,
+		IsUp:       entry.IsUp,
+		Registered: entry.Registered,
+		Statuses:   entry.Statuses,
+	}, nil
 }
 
 func (td *mockDiscoveryClient) GetTransportsByEdge(ctx context.Context, pk cipher.PubKey) ([]*EntryWithStatus, error) {

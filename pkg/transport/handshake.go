@@ -12,16 +12,14 @@ import (
 
 type settlementHandshake func(tm *Manager, tr Transport) (*Entry, error)
 
-func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.Duration) (*Entry, error) {
-	var entry *Entry
-	errCh := make(chan error, 1)
+func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.Duration) (entry *Entry, err error) {
+	done := make(chan struct{})
 	go func() {
-		e, err := handshake(tm, tr)
-		entry = e
-		errCh <- err
+		entry, err = handshake(tm, tr)
+		close(done)
 	}()
 	select {
-	case err := <-errCh:
+	case <-done:
 		return entry, err
 	case <-time.After(timeout):
 		return nil, errors.New("deadline exceeded")

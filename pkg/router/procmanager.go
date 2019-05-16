@@ -27,14 +27,39 @@ var (
 // loopDispatch contains the necessities to dispatch packets for a given route.
 // It also contains encryption data.
 type loopDispatch struct {
-	trID uuid.UUID
-	rtID routing.RouteID
-	ns   *noise.Noise
+	trID  uuid.UUID
+	rtID  routing.RouteID
+	ns    *noise.Noise
+	encMx sync.Mutex // noise encryption lock
+	decMx sync.Mutex // noise decryption lock
 }
 
 // IsConfirmed determines whether the loop is fully established.
 // To confirm a loop, 2 sets of frames are sent back and forth.
 func (ld *loopDispatch) IsConfirmed() bool { return ld.rtID != 0 }
+
+// EncryptAndForward encrypts and forwards a packet in a thread-safe manner.
+func (ld *loopDispatch) EncryptAndForward(r Router, plaintext []byte) error {
+	ld.encMx.Lock()
+	ciphertext := ld.ns.EncryptUnsafe(plaintext)
+	err := r.ForwardPacket(ld.trID, ld.rtID, ciphertext)
+	ld.encMx.Unlock()
+	return err
+}
+
+// DecryptAndConsume decrypts and consumes a packet in a thread-safe manner.
+func (ld *loopDispatch) DecryptAndConsume(e app.Executor, lm app.LoopMeta, ciphertext []byte) error {
+	ld.decMx.Lock()
+	defer ld.decMx.Unlock()
+
+	plaintext, err := ld.ns.DecryptUnsafe(ciphertext)
+	if err != nil {
+		return fmt.Errorf("%s: %s", ErrDecryptionFailed.Error(), err.Error())
+	}
+	df := &app.DataFrame{Meta: lm, Data: plaintext}
+	_, err = e.Call(appnet.FrameData, df.Encode())
+	return err
+}
 
 // ProcID is the execution ID of a running App.
 type ProcID uint16
@@ -82,7 +107,7 @@ func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecCo
 		pm:      pm,
 		r:       r,
 	}
-	done, err := exec.Run(proc.makeDataHandlerMap(), proc.makeCtrlHandlerMap())
+	done, err := exec.Run(proc.makeDataHandlers(), proc.makeCtrlHandlers())
 	if err != nil {
 		return nil, err
 	}
@@ -97,58 +122,58 @@ func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecCo
 }
 
 // ProcID returns the process ID.
-func (ar *AppProc) ProcID() ProcID {
-	return ar.pid
+func (ap *AppProc) ProcID() ProcID {
+	return ap.pid
 }
 
 // Stopped returns true if process is stopped.
-func (ar *AppProc) Stopped() bool {
-	return *(*bool)(atomic.LoadPointer(&ar.stopped))
+func (ap *AppProc) Stopped() bool {
+	return *(*bool)(atomic.LoadPointer(&ap.stopped))
 }
 
 // Stop sends SIGTERM to the hosted App, closes all loops and ends handling of packets.
 // An error is returned if app does not end cleanly, or if app already stopped.
-func (ar *AppProc) Stop() error {
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
+func (ap *AppProc) Stop() error {
+	ap.mx.Lock()
+	defer ap.mx.Unlock()
 
 	// load 'true' to 'stopped'.
 	t := true
-	atomic.StorePointer(&ar.stopped, unsafe.Pointer(&t)) //nolint:gosec
+	atomic.StorePointer(&ap.stopped, unsafe.Pointer(&t)) //nolint:gosec
 
-	ar.log.Info("stopping...")
+	ap.log.Info("stopping...")
 
-	for lm := range ar.lps {
-		_ = ar.r.CloseLoop(lm)                               //nolint:errcheck
-		_, _ = ar.e.Call(appnet.FrameCloseLoop, lm.Encode()) //nolint:errcheck
-		delete(ar.lps, lm)
+	for lm := range ap.lps {
+		_ = ap.r.CloseLoop(lm)                               //nolint:errcheck
+		_, _ = ap.e.Call(appnet.FrameCloseLoop, lm.Encode()) //nolint:errcheck
+		delete(ap.lps, lm)
 	}
 
-	return ar.e.Stop()
+	return ap.e.Stop()
 }
 
 // ConfirmLoop attempts to confirm a loop with the hosted App.
-func (ar *AppProc) ConfirmLoop(lm app.LoopMeta, tpID uuid.UUID, rtID routing.RouteID, nsMsg []byte) ([]byte, error) {
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
+func (ap *AppProc) ConfirmLoop(lm app.LoopMeta, tpID uuid.UUID, rtID routing.RouteID, nsMsg []byte) ([]byte, error) {
+	ap.mx.Lock()
+	defer ap.mx.Unlock()
 
 	// if loop 'lm' is not found, sets a new loop with tpID and rtID.
 	// else, retrieve loop 'lm'.
 	// returns true if a new loop is set.
 	setOrGetLoop := func(lm app.LoopMeta, tpID uuid.UUID, rtID routing.RouteID) (*loopDispatch, bool) {
-		if ld, ok := ar.lps[lm]; ok {
+		if ld, ok := ap.lps[lm]; ok {
 			return ld, false
 		}
 		ld := &loopDispatch{trID: tpID, rtID: rtID}
-		ar.lps[lm] = ld
+		ap.lps[lm] = ld
 		return ld, true
 	}
 
 	ld, isNew := setOrGetLoop(lm, tpID, rtID)
 	if isNew {
 		ns, err := noise.KKAndSecp256k1(noise.Config{
-			LocalPK:   ar.e.Config().HostPK,
-			LocalSK:   ar.e.Config().HostSK,
+			LocalPK:   ap.e.Config().HostPK,
+			LocalSK:   ap.e.Config().HostSK,
 			RemotePK:  lm.Remote.PubKey,
 			Initiator: false,
 		})
@@ -163,8 +188,8 @@ func (ar *AppProc) ConfirmLoop(lm app.LoopMeta, tpID uuid.UUID, rtID routing.Rou
 			return nil, err
 		}
 		ld.ns, ld.trID, ld.rtID = ns, tpID, rtID
-		if _, err := ar.e.Call(appnet.FrameConfirmLoop, lm.Encode()); err != nil {
-			ar.log.Warnf("Failed to notify App about new loop: %s", err)
+		if _, err := ap.e.Call(appnet.FrameConfirmLoop, lm.Encode()); err != nil {
+			ap.log.Warnf("Failed to notify App about new loop: %s", err)
 		}
 		return nsResp, nil
 	}
@@ -175,182 +200,36 @@ func (ar *AppProc) ConfirmLoop(lm app.LoopMeta, tpID uuid.UUID, rtID routing.Rou
 		return nil, err
 	}
 	ld.trID, ld.rtID = tpID, rtID
-	if _, err := ar.e.Call(appnet.FrameConfirmLoop, lm.Encode()); err != nil {
-		ar.log.Warnf("Failed to notify App about new loop: %s", err)
+	if _, err := ap.e.Call(appnet.FrameConfirmLoop, lm.Encode()); err != nil {
+		ap.log.Warnf("Failed to notify App about new loop: %s", err)
 	}
 	return nil, nil
 }
 
 // ConfirmCloseLoop attempts to inform the hosted App that a loop is closed.
-func (ar *AppProc) ConfirmCloseLoop(lm app.LoopMeta) error {
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
+func (ap *AppProc) ConfirmCloseLoop(lm app.LoopMeta) error {
+	ap.mx.Lock()
+	defer ap.mx.Unlock()
 
-	delete(ar.lps, lm)
+	delete(ap.lps, lm)
 
-	if _, err := ar.e.Call(appnet.FrameCloseLoop, lm.Encode()); err != nil {
+	if _, err := ap.e.Call(appnet.FrameCloseLoop, lm.Encode()); err != nil {
 		return err
 	}
-	ar.log.Infof("confirm close loop: %s", lm.String())
+	ap.log.Infof("confirm close loop: %s", lm.String())
 	return nil
 }
 
 // ConsumePacket attempts to send a DataFrame to the hosted App.
-func (ar *AppProc) ConsumePacket(lm app.LoopMeta, ciphertext []byte) error {
-	ar.mx.RLock()
-	defer ar.mx.RUnlock()
+func (ap *AppProc) ConsumePacket(lm app.LoopMeta, ciphertext []byte) error {
+	ap.mx.RLock()
+	defer ap.mx.RUnlock()
 
-	ld, ok := ar.lps[lm]
+	ld, ok := ap.lps[lm]
 	if !ok {
 		return ErrLoopNotFound
 	}
-	plaintext, err := ld.ns.Decrypt(ciphertext)
-	if err != nil {
-		return fmt.Errorf("%s: %s", ErrDecryptionFailed.Error(), err.Error())
-	}
-	df := &app.DataFrame{Meta: lm, Data: plaintext}
-	_, err = ar.e.Call(appnet.FrameData, df.Encode())
-	return err
-}
-
-// respondFunc is for allowing the separation of;
-//  - operations that should be under the protection of sync.RWMutex
-//  - operations that don't need to be under the protection of sync.RWMutex
-// For example, if we define a function as `func action() respondFunc`;
-//  1. logic in 'action' can be protected by sync.RWMutex.
-//  2. the returned 'respondFunc' can be made to not be under the same protection.
-type respondFunc func() ([]byte, error)
-
-// returns a 'respondFunc' that always returns the given error.
-func failWith(err error) respondFunc {
-	return func() ([]byte, error) { return nil, err }
-}
-
-func (ar *AppProc) makeDataHandlerMap() appnet.HandlerMap {
-
-	// triggered when App sends 'CreateLoop' frame to Host
-	requestLoop := func(rAddr app.LoopAddr) respondFunc {
-		ar.mx.Lock()
-		defer ar.mx.Unlock()
-
-		// prepare noise
-		ns, err := noise.KKAndSecp256k1(noise.Config{
-			LocalPK:   ar.e.Config().HostPK,
-			LocalSK:   ar.e.Config().HostSK,
-			RemotePK:  rAddr.PubKey,
-			Initiator: true,
-		})
-		if err != nil {
-			return failWith(err)
-		}
-		msg, err := ns.HandshakeMessage()
-		if err != nil {
-			return failWith(err)
-		}
-
-		// allocate local listening port for the new loop
-		lPort := ar.pm.AllocPort(ar.pid)
-
-		lm := app.LoopMeta{
-			Local:  app.LoopAddr{PubKey: ar.e.Config().HostPK, Port: lPort},
-			Remote: rAddr,
-		}
-
-		// keep track of the new loop (if not already exists)
-		if _, ok := ar.lps[lm]; ok {
-			return failWith(ErrLoopAlreadyExists)
-		}
-		ar.lps[lm] = &loopDispatch{ns: ns}
-
-		// if loop is of loopback type (dst app is on localhost) send to local app, else send to router.
-		if lm.IsLoopback() {
-			return func() ([]byte, error) {
-				a2, ok := ar.pm.ProcOfPort(lm.Remote.Port)
-				if !ok {
-					return nil, ErrProcNotFound
-				}
-				_, err := a2.e.Call(appnet.FrameConfirmLoop, lm.Swap().Encode())
-				return lm.Encode(), err
-			}
-		}
-		return func() ([]byte, error) {
-			return lm.Encode(), ar.r.FindRoutesAndSetupLoop(lm, msg)
-		}
-	}
-
-	// triggered when App sends 'CloseLoop' frame to Host
-	closeLoop := func(lm app.LoopMeta) respondFunc {
-		ar.mx.Lock()
-		delete(ar.lps, lm)
-		ar.mx.Unlock()
-
-		if lm.IsLoopback() {
-			return func() ([]byte, error) {
-				a2, ok := ar.pm.ProcOfPort(lm.Remote.Port)
-				if !ok {
-					return nil, ErrProcNotFound
-				}
-				_, err := a2.e.Call(appnet.FrameCloseLoop, lm.Encode())
-				return nil, err
-			}
-		}
-		return func() ([]byte, error) {
-			return nil, ar.r.CloseLoop(lm)
-		}
-	}
-
-	// triggered when App sends 'Data' frame to Host
-	fwdPacket := func(lm app.LoopMeta, plaintext []byte) respondFunc {
-		if lm.IsLoopback() {
-			return func() ([]byte, error) {
-				rA, ok := ar.pm.ProcOfPort(lm.Remote.Port)
-				if !ok {
-					return nil, ErrLoopNotFound
-				}
-				df := app.DataFrame{Meta: *lm.Swap(), Data: plaintext}
-				_, err := rA.e.Call(appnet.FrameData, df.Encode())
-				return nil, err
-			}
-		}
-		ar.mx.RLock()
-		ld, ok := ar.lps[lm]
-		ar.mx.RUnlock()
-		if !ok {
-			return failWith(ErrLoopNotFound)
-		}
-		return func() ([]byte, error) {
-			return nil, ar.r.ForwardPacket(ld.trID, ld.rtID, ld.ns.Encrypt(plaintext))
-		}
-	}
-
-	return appnet.HandlerMap{
-		appnet.FrameCreateLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
-			var rAddr app.LoopAddr
-			if err := rAddr.Decode(b); err != nil {
-				return nil, err
-			}
-			return requestLoop(rAddr)()
-		},
-		appnet.FrameCloseLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
-			var lm app.LoopMeta
-			if err := lm.Decode(b); err != nil {
-				return nil, err
-			}
-			return closeLoop(lm)()
-		},
-		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
-			var df app.DataFrame
-			if err := df.Decode(b); err != nil {
-				return nil, err
-			}
-			return fwdPacket(df.Meta, df.Data)()
-		},
-	}
-}
-
-func (ar *AppProc) makeCtrlHandlerMap() appnet.HandlerMap {
-	// TODO(evanlinjin): implement.
-	return appnet.HandlerMap{}
+	return ld.DecryptAndConsume(ap.e, lm, ciphertext)
 }
 
 // ProcManager manages local Apps and the associated ports and loops.
