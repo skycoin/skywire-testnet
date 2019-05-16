@@ -116,13 +116,12 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
-
 	assert.Equal(t, []string{"mock"}, m1.Factories())
 
-	errCh := make(chan error, 2)
-	go func() {
-		errCh <- m1.Serve(context.TODO())
-	}()
+	m1.ReconnectTransports(context.TODO())
+
+	m1errCh := make(chan error, 1)
+	go func() { m1errCh <- m1.Serve(context.TODO()) }()
 
 	m2, err := NewManager(c2, f2)
 	require.NoError(t, err)
@@ -147,11 +146,12 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	m2, err = NewManager(c2, f2)
 	require.NoError(t, err)
 
-	go func() {
-		errCh <- m2.Serve(context.TODO()) // nolint
-	}()
+	m2.ReconnectTransports(context.TODO())
 
-	time.Sleep(time.Second) // TODO: this time.Sleep looks fishy - figure out later
+	m2errCh := make(chan error, 1)
+	go func() { m2errCh <- m2.Serve(context.TODO()) }()
+
+	//time.Sleep(time.Second * 1) // TODO: this time.Sleep looks fishy - figure out later
 	dEntry3, err := client.GetTransportByID(context.TODO(), tr2.ID)
 	require.NoError(t, err)
 
@@ -160,8 +160,8 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())
 
-	require.NoError(t, <-errCh)
-	require.NoError(t, <-errCh)
+	require.NoError(t, <-m1errCh)
+	require.NoError(t, <-m2errCh)
 }
 
 func TestTransportManagerLogs(t *testing.T) {

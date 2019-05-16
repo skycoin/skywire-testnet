@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/skycoin/skywire/internal/ioutil"
@@ -14,63 +15,44 @@ import (
 type ReadWriter struct {
 	lrw *ioutil.LenReadWriter
 	ns  *Noise
+
+	rMx sync.Mutex
+	wMx sync.Mutex
 }
 
 // NewReadWriter constructs a new ReadWriter.
 func NewReadWriter(rw io.ReadWriter, ns *Noise) *ReadWriter {
-	return &ReadWriter{ioutil.NewLenReadWriter(rw), ns}
+	return &ReadWriter{
+		lrw: ioutil.NewLenReadWriter(rw),
+		ns:  ns,
+	}
 }
 
-// ReadPacket returns single received len prepended packet.
-func (rw *ReadWriter) ReadPacket() (data []byte, err error) {
-	data, err = rw.lrw.ReadPacket()
+func (rw *ReadWriter) Read(p []byte) (int, error) {
+	rw.rMx.Lock()
+	defer rw.rMx.Unlock()
+
+	ciphertext, err := rw.lrw.ReadPacket()
 	if err != nil {
-		return
+		return 0, err
 	}
-
-	return rw.ns.Decrypt(data)
-}
-
-// ReadPacketUnsafe returns single received len prepended packet using DecryptUnsafe.
-func (rw *ReadWriter) ReadPacketUnsafe() (data []byte, err error) {
-	data, err = rw.lrw.ReadPacket()
+	plaintext, err := rw.ns.DecryptUnsafe(ciphertext)
 	if err != nil {
-		return
+		return 0, err
 	}
-
-	return rw.ns.DecryptUnsafe(data)
-}
-
-func (rw *ReadWriter) Read(p []byte) (n int, err error) {
-	var data []byte
-	data, err = rw.ReadPacket()
-	if err != nil {
-		return
+	if len(plaintext) > len(p) {
+		return 0, io.ErrShortBuffer
 	}
-
-	if len(data) > len(p) {
-		err = io.ErrShortBuffer
-		return
-	}
-
-	return copy(p, data), nil
-}
-
-// WriteUnsafe implements io.Writer using EncryptUnsafe.
-func (rw *ReadWriter) WriteUnsafe(p []byte) (n int, err error) {
-	encrypted := rw.ns.EncryptUnsafe(p)
-	n, err = rw.lrw.Write(encrypted)
-	if n != len(encrypted) {
-		err = io.ErrShortWrite
-		return
-	}
-	return len(p), err
+	return copy(p, plaintext), nil
 }
 
 func (rw *ReadWriter) Write(p []byte) (n int, err error) {
-	encrypted := rw.ns.Encrypt(p)
-	n, err = rw.lrw.Write(encrypted)
-	if n != len(encrypted) {
+	rw.wMx.Lock()
+	defer rw.wMx.Unlock()
+
+	ciphertext := rw.ns.EncryptUnsafe(p)
+	n, err = rw.lrw.Write(ciphertext)
+	if n != len(ciphertext) {
 		err = io.ErrShortWrite
 		return
 	}

@@ -1,8 +1,8 @@
 package noise
 
 import (
-	"bytes"
 	"errors"
+	"io"
 	"math"
 	"net"
 	"net/rpc"
@@ -147,10 +147,7 @@ func (a Addr) String() string {
 // Conn wraps a net.Conn and encrypts the connection with noise.
 type Conn struct {
 	net.Conn
-	buf bytes.Buffer
-	rMu sync.Mutex
-	wMu sync.Mutex
-	ns  *ReadWriter
+	ns *ReadWriter
 }
 
 // WrapConn wraps a provided net.Conn with noise.
@@ -164,36 +161,15 @@ func WrapConn(conn net.Conn, ns *Noise, hsTimeout time.Duration) (*Conn, error) 
 
 // Read reads from the noise-encrypted connection.
 func (c *Conn) Read(b []byte) (int, error) {
-	c.rMu.Lock()
-	defer c.rMu.Unlock()
-	// First check buffer.
-	if c.buf.Len() > 0 {
-		return c.buf.Read(b)
-	}
-	// Grab packet, and copy to 'b'.
-	// If packet is too large, copy len(b) and Write the rest to buffer.
-	plainText, err := c.ns.ReadPacketUnsafe()
-	if err != nil {
-		return 0, err
-	}
-	n := copy(b, plainText)
-	if n < len(plainText) {
-		c.buf.Write(plainText[n:]) // Will panic if buffer is too large.
-	}
-	return n, nil
+	return c.ns.Read(b)
 }
 
 // Write writes to the noise-encrypted connection.
 func (c *Conn) Write(b []byte) (int, error) {
 	if len(b) > math.MaxUint16 {
-		return 0, ErrPacketTooBig
+		return 0, io.ErrShortWrite
 	}
-	c.wMu.Lock()
-	defer c.wMu.Unlock()
-	if _, err := c.ns.WriteUnsafe(b); err != nil {
-		return 0, err
-	}
-	return len(b), nil
+	return c.ns.Write(b)
 }
 
 // LocalAddr returns the local address of the connection.

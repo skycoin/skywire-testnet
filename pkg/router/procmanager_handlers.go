@@ -19,34 +19,35 @@ func failWith(err error) respondFunc {
 	return func() ([]byte, error) { return nil, err }
 }
 
-func makeDataHandlers(ap *AppProc) appnet.HandlerMap {
+// creates a HandlerMap that handles incoming data from an App.
+func (ap *AppProc) makeDataHandlers() appnet.HandlerMap {
 	return appnet.HandlerMap{
 		appnet.FrameCreateLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
 			var rAddr app.LoopAddr
 			if err := rAddr.Decode(b); err != nil {
 				return nil, err
 			}
-			return handleRequestLoop(ap, rAddr)()
+			return ap.handleRequestLoop(rAddr)()
 		},
 		appnet.FrameCloseLoop: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
 			var lm app.LoopMeta
 			if err := lm.Decode(b); err != nil {
 				return nil, err
 			}
-			return handleCloseLoop(ap, lm)()
+			return ap.handleCloseLoop(lm)()
 		},
 		appnet.FrameData: func(_ *appnet.Protocol, b []byte) ([]byte, error) {
 			var df app.DataFrame
 			if err := df.Decode(b); err != nil {
 				return nil, err
 			}
-			return handleDataFrame(ap, df.Meta, df.Data)()
+			return ap.handleDataFrame(df.Meta, df.Data)()
 		},
 	}
 }
 
 // triggered when App sends 'CreateLoop' frame to Host
-func handleRequestLoop(ap *AppProc, rAddr app.LoopAddr) respondFunc {
+func (ap *AppProc) handleRequestLoop(rAddr app.LoopAddr) respondFunc {
 	ap.mx.Lock()
 	defer ap.mx.Unlock()
 
@@ -96,7 +97,7 @@ func handleRequestLoop(ap *AppProc, rAddr app.LoopAddr) respondFunc {
 }
 
 // triggered when App sends 'CloseLoop' frame to Host
-func handleCloseLoop(ap *AppProc, lm app.LoopMeta) respondFunc {
+func (ap *AppProc) handleCloseLoop(lm app.LoopMeta) respondFunc {
 	ap.mx.Lock()
 	delete(ap.lps, lm)
 	ap.mx.Unlock()
@@ -117,7 +118,7 @@ func handleCloseLoop(ap *AppProc, lm app.LoopMeta) respondFunc {
 }
 
 // triggered when App sends 'Data' frame to Host
-func handleDataFrame(ap *AppProc, lm app.LoopMeta, plaintext []byte) respondFunc {
+func (ap *AppProc) handleDataFrame(lm app.LoopMeta, plaintext []byte) respondFunc {
 	if lm.IsLoopback() {
 		return func() ([]byte, error) {
 			rA, ok := ap.pm.ProcOfPort(lm.Remote.Port)
@@ -136,11 +137,11 @@ func handleDataFrame(ap *AppProc, lm app.LoopMeta, plaintext []byte) respondFunc
 		return failWith(ErrLoopNotFound)
 	}
 	return func() ([]byte, error) {
-		return nil, ap.r.ForwardPacket(ld.trID, ld.rtID, ld.ns.Encrypt(plaintext))
+		return nil, ld.EncryptAndForward(ap.r, plaintext)
 	}
 }
 
-func makeCtrlHandlers(_ *AppProc) appnet.HandlerMap {
+func (*AppProc) makeCtrlHandlers() appnet.HandlerMap {
 	// TODO(evanlinjin): implement.
 	return appnet.HandlerMap{}
 }

@@ -21,9 +21,9 @@ import (
 var addr = flag.String("addr", ":8000", "address to bind")
 
 var (
-	clientChan chan string
-	chatConns  map[cipher.PubKey]net.Conn
-	connsMu    sync.Mutex
+	clientCh  chan string
+	chatConns map[cipher.PubKey]net.Conn
+	connsMu   sync.Mutex
 )
 
 func main() {
@@ -31,6 +31,9 @@ func main() {
 	defer app.Close()
 
 	flag.Parse()
+
+	clientCh = make(chan string)
+	defer close(clientCh)
 
 	chatConns = make(map[cipher.PubKey]net.Conn)
 	go listenLoop()
@@ -72,8 +75,10 @@ func handleConn(conn net.Conn) {
 
 		clientMsg, _ := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])}) // nolint
 		select {
-		case clientChan <- string(clientMsg):
+		case clientCh <- string(clientMsg):
+			log.Printf("received and sent to ui: %s\n", clientMsg)
 		default:
+			log.Printf("received and trashed: %s\n", clientMsg)
 		}
 	}
 }
@@ -124,21 +129,23 @@ func sseHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	clientChan = make(chan string)
-
-	go func() {
-		<-req.Context().Done()
-		close(clientChan)
-		log.Println("SSE connection were closed.")
-	}()
-
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Transfer-Encoding", "chunked")
 
-	for msg := range clientChan {
-		fmt.Fprintf(w, "data: %s\n\n", msg)
-		f.Flush()
+	for {
+		select {
+		case msg, ok := <-clientCh:
+			if !ok {
+				return
+			}
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", msg)
+			f.Flush()
+
+		case <-req.Context().Done():
+			log.Println("SSE connection were closed.")
+			return
+		}
 	}
 }

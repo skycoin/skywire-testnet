@@ -20,17 +20,25 @@ type fConn struct {
 
 // MockFactory implements Factory over net.Pipe connections.
 type MockFactory struct {
-	local cipher.PubKey
-	in    chan *fConn
-	out   chan *fConn
-	fType string
+	local   cipher.PubKey
+	inDone  chan struct{}
+	outDone chan struct{}
+	in      chan *fConn
+	out     chan *fConn
+	fType   string
 }
 
 // NewMockFactoryPair constructs a pair of MockFactories.
 func NewMockFactoryPair(local, remote cipher.PubKey) (*MockFactory, *MockFactory) {
-	in := make(chan *fConn)
-	out := make(chan *fConn)
-	return &MockFactory{local, in, out, "mock"}, &MockFactory{remote, out, in, "mock"}
+	var (
+		inDone  = make(chan struct{})
+		outDone = make(chan struct{})
+		in      = make(chan *fConn)
+		out     = make(chan *fConn)
+	)
+	a := &MockFactory{local, inDone, outDone, in, out, "mock"}
+	b := &MockFactory{remote, outDone, inDone, out, in, "mock"}
+	return a, b
 }
 
 // SetType sets type of transport.
@@ -40,26 +48,33 @@ func (f *MockFactory) SetType(fType string) {
 
 // Accept waits for new net.Conn notification from another MockFactory.
 func (f *MockFactory) Accept(ctx context.Context) (Transport, error) {
-	conn, more := <-f.in
-	if !more {
-		return nil, errors.New("factory: closed")
+	select {
+	case conn, ok := <-f.in:
+		if ok {
+			return NewMockTransport(conn, f.local, conn.PubKey), nil
+		}
+	case <-f.inDone:
 	}
-	return NewMockTransport(conn, f.local, conn.PubKey), nil
+	return nil, errors.New("factory: closed")
 }
 
 // Dial creates pair of net.Conn via net.Pipe and passes one end to another MockFactory.
 func (f *MockFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
 	in, out := net.Pipe()
-	f.out <- &fConn{in, f.local}
-	return NewMockTransport(out, f.local, remote), nil
+	select {
+	case <-f.outDone:
+		return nil, errors.New("factory: closed")
+	case f.out <- &fConn{in, f.local}:
+		return NewMockTransport(out, f.local, remote), nil
+	}
 }
 
 // Close closes notification channel between a pair of MockFactories.
 func (f *MockFactory) Close() error {
 	select {
-	case <-f.in:
+	case <-f.inDone:
 	default:
-		close(f.in)
+		close(f.inDone)
 	}
 	return nil
 }

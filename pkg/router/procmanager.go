@@ -27,14 +27,39 @@ var (
 // loopDispatch contains the necessities to dispatch packets for a given route.
 // It also contains encryption data.
 type loopDispatch struct {
-	trID uuid.UUID
-	rtID routing.RouteID
-	ns   *noise.Noise
+	trID  uuid.UUID
+	rtID  routing.RouteID
+	ns    *noise.Noise
+	encMx sync.Mutex // noise encryption lock
+	decMx sync.Mutex // noise decryption lock
 }
 
 // IsConfirmed determines whether the loop is fully established.
 // To confirm a loop, 2 sets of frames are sent back and forth.
 func (ld *loopDispatch) IsConfirmed() bool { return ld.rtID != 0 }
+
+// EncryptAndForward encrypts and forwards a packet in a thread-safe manner.
+func (ld *loopDispatch) EncryptAndForward(r Router, plaintext []byte) error {
+	ld.encMx.Lock()
+	ciphertext := ld.ns.EncryptUnsafe(plaintext)
+	err := r.ForwardPacket(ld.trID, ld.rtID, ciphertext)
+	ld.encMx.Unlock()
+	return err
+}
+
+// DecryptAndConsume decrypts and consumes a packet in a thread-safe manner.
+func (ld *loopDispatch) DecryptAndConsume(e app.Executor, lm app.LoopMeta, ciphertext []byte) error {
+	ld.decMx.Lock()
+	defer ld.decMx.Unlock()
+
+	plaintext, err := ld.ns.DecryptUnsafe(ciphertext)
+	if err != nil {
+		return fmt.Errorf("%s: %s", ErrDecryptionFailed.Error(), err.Error())
+	}
+	df := &app.DataFrame{Meta: lm, Data: plaintext}
+	_, err = e.Call(appnet.FrameData, df.Encode())
+	return err
+}
 
 // ProcID is the execution ID of a running App.
 type ProcID uint16
@@ -82,7 +107,7 @@ func NewAppProc(pm ProcManager, r Router, pid ProcID, m *app.Meta, c *app.ExecCo
 		pm:      pm,
 		r:       r,
 	}
-	done, err := exec.Run(makeDataHandlers(proc), makeCtrlHandlers(proc))
+	done, err := exec.Run(proc.makeDataHandlers(), proc.makeCtrlHandlers())
 	if err != nil {
 		return nil, err
 	}
@@ -204,13 +229,7 @@ func (ap *AppProc) ConsumePacket(lm app.LoopMeta, ciphertext []byte) error {
 	if !ok {
 		return ErrLoopNotFound
 	}
-	plaintext, err := ld.ns.Decrypt(ciphertext)
-	if err != nil {
-		return fmt.Errorf("%s: %s", ErrDecryptionFailed.Error(), err.Error())
-	}
-	df := &app.DataFrame{Meta: lm, Data: plaintext}
-	_, err = ap.e.Call(appnet.FrameData, df.Encode())
-	return err
+	return ld.DecryptAndConsume(ap.e, lm, ciphertext)
 }
 
 // ProcManager manages local Apps and the associated ports and loops.

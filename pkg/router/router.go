@@ -86,16 +86,16 @@ func (r *router) Serve(ctx context.Context) error {
 					return
 				}
 				if !r.isSetupTp(tp) {
-					go r.serveTp(tp, multiplexTransportPacket)
+					go r.serveTp(tp, r.multiplexTransportPacket)
 				} else {
-					go r.serveTp(tp, multiplexSetupPacket)
+					go r.serveTp(tp, r.multiplexSetupPacket)
 				}
 			case tp, ok := <-dialCh:
 				if !ok {
 					return
 				}
 				if !r.isSetupTp(tp) {
-					go r.serveTp(tp, multiplexTransportPacket)
+					go r.serveTp(tp, r.multiplexTransportPacket)
 				}
 			}
 		}
@@ -122,7 +122,7 @@ func (r *router) isSetupTp(tp transport.Transport) bool {
 // the loop exits on error.
 func (r *router) serveTp(tp transport.Transport, handle tpHandlerFunc) {
 	for {
-		if err := handle(r, tp); err != nil && err != io.EOF {
+		if err := handle(tp); err != nil && err != io.EOF {
 			r.log.Warnf("Stopped serving Transport: %s", err)
 			return
 		}

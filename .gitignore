@@ -12,15 +12,19 @@
 /*-config.json
 /apps/
 /skywire/
-/local/
+/local*
 
 pkg/node/apps/
 pkg/node/bar/
 pkg/node/foo/
 
-/manager-node
-/skywire-node
+/*-node
 /skywire-cli
 /therealssh-cli
 /node
 /users.db
+/*-node
+/*-cli
+/*.json
+/*.sh
+/*.log

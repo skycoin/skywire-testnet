@@ -15,11 +15,11 @@ import (
 )
 
 // handles either regular transports or setup transports for one packet.
-type tpHandlerFunc func(*router, io.ReadWriter) error
+type tpHandlerFunc func(io.ReadWriter) error
 
 // implements 'tpHandlerFunc'
-// obtains and handles a transport packet from 'rw'
-func multiplexTransportPacket(r *router, rw io.ReadWriter) error {
+// obtains and handles a received transport packet from 'rw'
+func (r *router) multiplexTransportPacket(rw io.ReadWriter) error {
 	packet := make(routing.Packet, 6)
 	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
@@ -58,8 +58,8 @@ func multiplexTransportPacket(r *router, rw io.ReadWriter) error {
 }
 
 // implements 'tpHandlerFunc'
-// obtains and handles a setup packet from 'rw'
-func multiplexSetupPacket(r *router, rw io.ReadWriter) error {
+// obtains and handles a received setup packet from 'rw'
+func (r *router) multiplexSetupPacket(rw io.ReadWriter) error {
 	proto := setup.NewSetupProtocol(rw)
 
 	t, body, err := proto.ReadPacket()

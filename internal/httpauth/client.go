@@ -137,7 +137,7 @@ func (c *Client) SetNonce(n Nonce) {
 }
 
 func (c *Client) getCurrentNonce() Nonce {
-	return Nonce(c.nonce)
+	return Nonce(atomic.LoadUint64(&c.nonce))
 }
 
 func (c *Client) incrementNonce() {
