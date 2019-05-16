@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -65,7 +64,7 @@ func (c *httpClient) Entry(ctx context.Context, publicKey cipher.PubKey) (*Entry
 			return nil, err
 		}
 
-		return nil, errors.New(message.String())
+		return nil, errFromString(message.String())
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&entry)
@@ -110,8 +109,7 @@ func (c *httpClient) SetEntry(ctx context.Context, e *Entry) error {
 		if err != nil {
 			return err
 		}
-
-		return errors.New(httpResponse.String())
+		return errFromString(httpResponse.Message)
 	}
 	return nil
 }
@@ -130,11 +128,11 @@ func (c *httpClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 
 	for {
 		err = c.SetEntry(ctx, e)
-		if err != nil && err != ErrValidationWrongSequence {
-			e.Sequence--
-			return err
-		}
-		if err == ErrValidationWrongSequence {
+		if err != nil {
+			if err != ErrValidationWrongSequence {
+				e.Sequence--
+				return err
+			}
 			rE, entryErr := c.Entry(ctx, e.Static)
 			if entryErr != nil {
 				return err
@@ -148,10 +146,9 @@ func (c *httpClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 			if err != nil {
 				return err
 			}
+			continue
 		}
-		if err == nil {
-			return nil
-		}
+		return nil
 	}
 }
 
@@ -181,7 +178,7 @@ func (c *httpClient) AvailableServers(ctx context.Context) ([]*Entry, error) {
 			return nil, err
 		}
 
-		return nil, errors.New(message.String())
+		return nil, errFromString(message.String())
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&entries)

@@ -287,6 +287,14 @@ func TestNewMockUpdateEntriesEndpoint(t *testing.T) {
 				e.Server.Address = "different one"
 			},
 		},
+		{
+			name:                "udpate retries on wrong sequence",
+			responseShouldError: false,
+			secretKey:           sk,
+			entryPreHook: func(entry *client.Entry) {
+				entry.Sequence = 3
+			},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -91,7 +91,30 @@ func (m *mockClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 		return err
 	}
 
-	return m.SetEntry(ctx, e)
+	for {
+		err = m.SetEntry(ctx, e)
+		if err != nil {
+			if err != ErrValidationWrongSequence {
+				e.Sequence--
+				return err
+			}
+			rE, entryErr := m.Entry(ctx, e.Static)
+			if entryErr != nil {
+				return err
+			}
+			if rE.Timestamp > e.Timestamp { // If there is a more up to date entry drop update
+				e.Sequence = rE.Sequence
+				return nil
+			}
+			e.Sequence = rE.Sequence + 1
+			err := e.Sign(sk)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		return nil
+	}
 }
 
 // AvailableServers returns all the servers that the APIClient mock has

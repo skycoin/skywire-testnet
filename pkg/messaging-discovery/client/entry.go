@@ -28,7 +28,31 @@ var (
 	ErrValidationNoClientOrServer = NewEntryValidationError("entry has neither client or server field")
 	ErrValidationWrongSequence    = NewEntryValidationError("sequence field of new entry is not sequence of old entry + 1")
 	ErrValidationWrongTime        = NewEntryValidationError("previous entry timestamp is not set before current entry timestamp")
+
+	errReverseMap = map[string]error{
+		ErrKeyNotFound.Error():                ErrKeyNotFound,
+		ErrUnexpected.Error():                 ErrUnexpected,
+		ErrUnauthorized.Error():               ErrUnauthorized,
+		ErrBadInput.Error():                   ErrBadInput,
+		ErrValidationNonZeroSequence.Error():  ErrValidationNonZeroSequence,
+		ErrValidationNilEphemerals.Error():    ErrValidationNilEphemerals,
+		ErrValidationNilKeys.Error():          ErrValidationNilKeys,
+		ErrValidationNonNilEphemerals.Error(): ErrValidationNonNilEphemerals,
+		ErrValidationNoSignature.Error():      ErrValidationNoSignature,
+		ErrValidationNoVersion.Error():        ErrValidationNoVersion,
+		ErrValidationNoClientOrServer.Error(): ErrValidationNoClientOrServer,
+		ErrValidationWrongSequence.Error():    ErrValidationWrongSequence,
+		ErrValidationWrongTime.Error():        ErrValidationWrongTime,
+	}
 )
+
+func errFromString(s string) error {
+	err, ok := errReverseMap[s]
+	if !ok {
+		return ErrUnexpected
+	}
+	return err
+}
 
 // EntryValidationError represents transient error caused by invalid
 // data in Entry
