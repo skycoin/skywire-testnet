@@ -1,15 +1,18 @@
-* Skywire Chat app
+# Skywire Chat app
 
-Chat implements basic text messaging between skywire nodes. Messaging
-UI is exposed via web interface. Chat only supports one WEB client
-user at a time.
+Chat implements basic text messaging between skywire nodes.
 
-** Local setup
+Messaging UI is exposed via web interface.
+
+Chat only supports one WEB client user at a time.
+
+## Local setup
 
 Create 2 node config files:
 
-~skywire1.json~
-#+BEGIN_SRC js
+`skywire1.json`
+
+```json
   "apps": [
     {
       "app": "chat",
@@ -18,10 +21,11 @@ Create 2 node config files:
       "port": 1
     }
   ]
-#+END_SRC
+```
 
-~skywire2.json~
-#+BEGIN_SRC js
+`skywire2.json`
+
+```json
   "apps": [
     {
       "app": "chat",
@@ -31,14 +35,14 @@ Create 2 node config files:
       "args": ["-addr", ":8001"]
     }
   ]
-#+END_SRC
+```
 
 Compile binaries and start 2 nodes:
 
-#+BEGIN_SRC bash
+```bash
 $ go build -o apps/chat.v1.0 ./cmd/apps/chat
 $ ./skywire-node skywire1.json
 $ ./skywire-node skywire2.json
-#+END_SRC
+```
 
-Chat interface will be available on ports ~8000~ and ~8001~.
+Chat interface will be available on ports `8000` and `8001`.

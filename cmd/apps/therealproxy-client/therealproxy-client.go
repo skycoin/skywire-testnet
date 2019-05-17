@@ -40,10 +40,14 @@ func main() {
 		log.Fatal("Failed to dial to a server: ", err)
 	}
 
+	log.Printf("Connected to %v\n", pk)
+
 	client, err := therealproxy.NewClient(conn)
 	if err != nil {
 		log.Fatal("Failed to create a new client: ", err)
 	}
+
+	log.Printf("Serving  %v\n", addr)
 
 	log.Fatal(client.ListenAndServe(*addr))
 }

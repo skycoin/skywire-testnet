@@ -1,15 +1,20 @@
-* Skywire SOCKS5 proxy app
+# Skywire SOCKS5 proxy app
 
-~therealproxy~ app implements SOCKS5 functionality over skywire
-net. Any conventional SOCKS5 client should be able to connect to the
-proxy client. Currently the server supports authentication with a user and passcode pair that are set in the configuration file. If none are provided, the server does not require authentication. 
+`therealproxy` app implements SOCKS5 functionality over skywire
+net.
+Any conventional SOCKS5 client should be able to connect to the
+proxy client.
+Currently the server supports authentication with a user and passcode pair
+that are set in the configuration file.
+If none are provided, the server does not require authentication.
 
-** Local setup
+## Local setup
 
 Create 2 node config files:
 
-~skywire1.json~
-#+BEGIN_SRC js
+- `skywire1.json`
+
+```json
   "apps": [
     {
       "app": "therealproxy",
@@ -19,10 +24,11 @@ Create 2 node config files:
       "args": ["-passcode", "123456"]
     }
   ]
-#+END_SRC
+```
 
-~skywire2.json~
-#+BEGIN_SRC js
+- `skywire2.json`
+
+```json
   "apps": [
     {
       "app": "therealproxy-client",
@@ -32,19 +38,19 @@ Create 2 node config files:
       "args": ["-srv", "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7"]
     }
   ]
-#+END_SRC
+```
 
 Compile binaries and start 2 nodes:
 
-#+BEGIN_SRC bash
+```sh
 $ go build -o apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 $ go build -o apps/therealproxy-client.v1.0 ./cmd/apps/therealproxy-client
 $ ./skywire-node skywire1.json
 $ ./skywire-node skywire2.json
-#+END_SRC
+```
 
-You should be able to connect to a secondary node via ~curl~:
+You should be able to connect to a secondary node via `curl`:
 
-#+BEGIN_SRC bash
+```sh
 $ curl -v -x socks5://123456:@localhost:1080 https://api.ipify.org
-#+END_SRC
+```
