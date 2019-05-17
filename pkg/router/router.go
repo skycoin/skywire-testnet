@@ -81,7 +81,7 @@ func (r *Router) Serve(ctx context.Context) error {
 	acceptCh, dialCh := r.tm.Observe()
 	go func() {
 		for tr := range acceptCh {
-			go func(t transport.Transport) {
+			go func(t *transport.ManagedTransport) {
 				for {
 					var err error
 					if r.isSetupTransport(t) {
@@ -92,7 +92,12 @@ func (r *Router) Serve(ctx context.Context) error {
 
 					if err != nil {
 						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
+							r.Logger.Warnf("Stopped serving Transport %s. Proceeding to close: %s", tr.ID, err)
+							if err := r.tm.DeleteTransport(t.ID); err != nil {
+								r.Logger.Warnf("Unable to delete transport %s: %s", tr.ID, err)
+							} else {
+								r.tm.ReconnectTransports(ctx)
+							}
 						}
 						return
 					}
@@ -107,11 +112,16 @@ func (r *Router) Serve(ctx context.Context) error {
 				continue
 			}
 
-			go func(t transport.Transport) {
+			go func(t *transport.ManagedTransport) {
 				for {
 					if err := r.serveTransport(t); err != nil {
 						if err != io.EOF {
 							r.Logger.Warnf("Stopped serving Transport: %s", err)
+						}
+						if err := r.tm.DeleteTransport(t.ID); err != nil {
+							r.Logger.Warnf("Unable to delete transport %s: %s", tr.ID, err)
+						} else {
+							r.tm.ReconnectTransports(ctx)
 						}
 						return
 					}

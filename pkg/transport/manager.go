@@ -256,11 +256,13 @@ func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tp
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
 func (tm *Manager) DeleteTransport(id uuid.UUID) error {
+	tm.Logger.Info("Inside Manager.DeleteTransport. Updating map")
 	tm.mu.Lock()
 	tr := tm.transports[id]
 	delete(tm.transports, id)
 	tm.mu.Unlock()
 
+	tm.Logger.Info("Inside Manager.DeleteTransport. Updating discovery status..")
 	if _, err := tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: id, IsUp: false}); err != nil {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)
 	}
