@@ -8,8 +8,8 @@ import (
 
 // Exposed Http messages
 var (
-	MsgEntrySet              = HTTPMessage{Code: http.StatusOK, Message: "wrote a new entry"}
-	MsgEntryUpdated          = HTTPMessage{Code: http.StatusOK, Message: "wrote new entry iteration"}
+	MsgEntrySet     = HTTPMessage{Code: http.StatusOK, Message: "wrote a new entry"}
+	MsgEntryUpdated = HTTPMessage{Code: http.StatusOK, Message: "wrote new entry iteration"}
 )
 
 // HTTPMessage represents a message to be returned as an http response
