@@ -53,7 +53,7 @@ func (c *apiClient) Post(ctx context.Context, path string, payload interface{}) 
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.client.Addr+path, body)
+	req, err := http.NewRequest("POST", c.client.Addr()+path, body)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *apiClient) Post(ctx context.Context, path string, payload interface{}) 
 
 // Get performs a new GET request.
 func (c *apiClient) Get(ctx context.Context, path string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", c.client.Addr+path, new(bytes.Buffer))
+	req, err := http.NewRequest("GET", c.client.Addr()+path, new(bytes.Buffer))
 	if err != nil {
 		return nil, err
 	}
