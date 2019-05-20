@@ -128,27 +128,26 @@ func (c *httpClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 
 	for {
 		err = c.SetEntry(ctx, e)
-		if err != nil {
-			if err != ErrValidationWrongSequence {
-				e.Sequence--
-				return err
-			}
-			rE, entryErr := c.Entry(ctx, e.Static)
-			if entryErr != nil {
-				return err
-			}
-			if rE.Timestamp > e.Timestamp { // If there is a more up to date entry drop update
-				e.Sequence = rE.Sequence
-				return nil
-			}
-			e.Sequence = rE.Sequence + 1
-			err := e.Sign(sk)
-			if err != nil {
-				return err
-			}
-			continue
+		if err == nil {
+			return nil
 		}
-		return nil
+		if err != ErrValidationWrongSequence {
+			e.Sequence--
+			return err
+		}
+		rE, entryErr := c.Entry(ctx, e.Static)
+		if entryErr != nil {
+			return err
+		}
+		if rE.Timestamp > e.Timestamp { // If there is a more up to date entry drop update
+			e.Sequence = rE.Sequence
+			return nil
+		}
+		e.Sequence = rE.Sequence + 1
+		err := e.Sign(sk)
+		if err != nil {
+			return err
+		}
 	}
 }
 
