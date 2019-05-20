@@ -92,11 +92,22 @@ func (r *Router) Serve(ctx context.Context) error {
 
 					if err != nil {
 						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport %s. Proceeding to close: %s", tr.ID, err)
+							r.Logger.Warnf("Stopped serving Transport %s. Proceeding to re-dial: %s", tr.ID, err)
+							remote, ok := r.tm.Remote(tr.Edges())
+							if !ok {
+								r.Logger.Warnf("remote pubkey not found in edges")
+							}
+							tt := t.Type()
+							public := t.Public
+
 							if err := r.tm.DeleteTransport(t.ID); err != nil {
 								r.Logger.Warnf("Unable to delete transport %s: %s", tr.ID, err)
 							} else {
-								r.tm.ReconnectTransports(ctx)
+								r.Logger.Warnf("Reconnecting to transports...")
+								_, err := r.tm.CreateTransport(ctx, remote, tt, public)
+								if err != nil {
+									r.Logger.Warnf("Imposible to reconnect to transport: ", err)
+								}
 							}
 						}
 						return
@@ -116,12 +127,23 @@ func (r *Router) Serve(ctx context.Context) error {
 				for {
 					if err := r.serveTransport(t); err != nil {
 						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
-						}
-						if err := r.tm.DeleteTransport(t.ID); err != nil {
-							r.Logger.Warnf("Unable to delete transport %s: %s", tr.ID, err)
-						} else {
-							r.tm.ReconnectTransports(ctx)
+							r.Logger.Warnf("Stopped serving Transport %s. Proceeding to re-dial: %s", tr.ID, err)
+							remote, ok := r.tm.Remote(tr.Edges())
+							if !ok {
+								r.Logger.Warnf("remote pubkey not found in edges")
+							}
+							tt := t.Type()
+							public := t.Public
+
+							if err := r.tm.DeleteTransport(t.ID); err != nil {
+								r.Logger.Warnf("Unable to delete transport %s: %s", tr.ID, err)
+							} else {
+								r.Logger.Warnf("Reconnecting to transports...")
+								_, err := r.tm.CreateTransport(ctx, remote, tt, public)
+								if err != nil {
+									r.Logger.Warnf("Imposible to reconnect to transport: ", err)
+								}
+							}
 						}
 						return
 					}
