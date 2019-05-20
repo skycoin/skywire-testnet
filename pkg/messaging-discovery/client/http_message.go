@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 )
@@ -20,10 +19,4 @@ type HTTPMessage struct {
 
 func (h HTTPMessage) String() string {
 	return fmt.Sprintf("status code: %d. message: %s", h.Code, h.Message)
-}
-
-// ToError returns an error representing the httpMessage for error comparisons, this is preferred for this type instead
-// of implementing error
-func (h HTTPMessage) ToError() error {
-	return errors.New(h.String())
 }
