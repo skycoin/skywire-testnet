@@ -96,7 +96,7 @@ func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool, rpcUse bool) *
 	// My only way to circumvent this issue at the moment is to simply declare at start
 	// whether we are creating the duplex for calling RPC only. Further investigation
 	// required in order to over come this issue
-	if rpcUse == true {
+	if rpcUse {
 		d.rpcUse = rpcUse
 		d.rpcC = rpc.NewClient(d.clientConn)
 		// d.rpcC = rpc.NewClient(d.serverConn)
@@ -161,7 +161,7 @@ func (d *RPCDuplex) forward() error {
 // Serve is a blocking function that serves the RPC server and runs the event loop that forwards data to branchConns.
 func (d *RPCDuplex) Serve() error {
 
-	if d.rpcUse == true {
+	if d.rpcUse {
 		go d.rpcS.ServeConn(d.serverConn)
 		// go d.rpcS.ServeConn(d.clientConn)
 	}

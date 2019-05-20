@@ -349,7 +349,6 @@ func TestRPCDuplex_Serve(t *testing.T) {
 
 	var r int
 	for i := 0; i < 10; i++ {
-
 		require.NoError(t, dA.Client().Call("RPC.Double", i, &r))
 		require.Equal(t, i*2, r)
 		log.Println("aDuplex:", r)
