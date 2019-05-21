@@ -481,6 +481,7 @@ func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni 
 	return
 }
 
+// IsSetupTransport checks whether `tr` is running in the `setup`mode.
 func (r *Router) IsSetupTransport(tr transport.Transport) bool {
 	for _, pk := range r.config.SetupNodes {
 		remote, ok := r.tm.Remote(tr.Edges())
