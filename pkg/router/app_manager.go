@@ -3,6 +3,7 @@ package router
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -90,6 +91,7 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {
+	fmt.Println("am.forwardAppPacket() called")
 	packet := &app.Packet{}
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err

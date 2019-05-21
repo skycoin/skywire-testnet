@@ -92,23 +92,7 @@ func (r *Router) Serve(ctx context.Context) error {
 
 					if err != nil {
 						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport %s. Proceeding to re-dial: %s", tr.ID, err)
-							remote, ok := r.tm.Remote(tr.Edges())
-							if !ok {
-								r.Logger.Warnf("remote pubkey not found in edges")
-							}
-							tt := t.Type()
-							public := t.Public
-
-							if err := r.tm.DeleteTransport(t.ID); err != nil {
-								r.Logger.Warnf("Unable to delete transport %s: %s", tr.ID, err)
-							} else {
-								r.Logger.Warnf("Reconnecting to transports...")
-								_, err := r.tm.CreateTransport(ctx, remote, tt, public)
-								if err != nil {
-									r.Logger.Warnf("Imposible to reconnect to transport: ", err)
-								}
-							}
+							r.Logger.Warnf("Stopped serving Transport %s: %s", tr.ID, err)
 						}
 						return
 					}
@@ -137,11 +121,12 @@ func (r *Router) Serve(ctx context.Context) error {
 
 							if err := r.tm.DeleteTransport(t.ID); err != nil {
 								r.Logger.Warnf("Unable to delete transport %s: %s", tr.ID, err)
+
 							} else {
 								r.Logger.Warnf("Reconnecting to transports...")
 								_, err := r.tm.CreateTransport(ctx, remote, tt, public)
 								if err != nil {
-									r.Logger.Warnf("Imposible to reconnect to transport: ", err)
+									r.Logger.Warnf("Impossible to reconnect to transport: ", err)
 								}
 							}
 						}
@@ -256,6 +241,7 @@ func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
+	fmt.Println("r.consumePacket() called")
 	raddr := &app.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 	l, err := r.pm.GetLoop(rule.LocalPort(), raddr)
 	if err != nil {
