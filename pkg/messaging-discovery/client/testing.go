@@ -86,12 +86,12 @@ func (m *mockClient) SetEntry(ctx context.Context, e *Entry) error {
 func (m *mockClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry) error {
 	e.Sequence++
 	e.Timestamp = time.Now().UnixNano()
-	err := e.Sign(sk)
-	if err != nil {
-		return err
-	}
 
 	for {
+		err := e.Sign(sk)
+		if err != nil {
+			return err
+		}
 		err = m.SetEntry(ctx, e)
 		if err == nil {
 			return nil
@@ -109,10 +109,6 @@ func (m *mockClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 			return nil
 		}
 		e.Sequence = rE.Sequence + 1
-		err := e.Sign(sk)
-		if err != nil {
-			return err
-		}
 	}
 }
 

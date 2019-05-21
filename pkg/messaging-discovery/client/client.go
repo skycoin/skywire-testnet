@@ -121,12 +121,12 @@ func (c *httpClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 
 	e.Sequence++
 	e.Timestamp = time.Now().UnixNano()
-	err := e.Sign(sk)
-	if err != nil {
-		return err
-	}
 
 	for {
+		err := e.Sign(sk)
+		if err != nil {
+			return err
+		}
 		err = c.SetEntry(ctx, e)
 		if err == nil {
 			return nil
@@ -144,10 +144,6 @@ func (c *httpClient) UpdateEntry(ctx context.Context, sk cipher.SecKey, e *Entry
 			return nil
 		}
 		e.Sequence = rE.Sequence + 1
-		err := e.Sign(sk)
-		if err != nil {
-			return err
-		}
 	}
 }
 
