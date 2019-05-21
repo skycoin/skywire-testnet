@@ -40,24 +40,27 @@ type RPC struct {
 
 // TransportSummary summarizes a Transport.
 type TransportSummary struct {
-	ID     uuid.UUID           `json:"id"`
-	Local  cipher.PubKey       `json:"local_pk"`
-	Remote cipher.PubKey       `json:"remote_pk"`
-	Type   string              `json:"type"`
-	Log    *transport.LogEntry `json:"log,omitempty"`
+	ID      uuid.UUID           `json:"id"`
+	Local   cipher.PubKey       `json:"local_pk"`
+	Remote  cipher.PubKey       `json:"remote_pk"`
+	Type    string              `json:"type"`
+	Log     *transport.LogEntry `json:"log,omitempty"`
+	IsSetup bool                `json:"is_setup"`
 }
 
-func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport, includeLogs bool) *TransportSummary {
+func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport,
+	includeLogs bool, isSetup bool) *TransportSummary {
 	remote, ok := tm.Remote(tp.Edges())
 	if !ok {
 		return &TransportSummary{}
 	}
 
 	summary := &TransportSummary{
-		ID:     tp.ID,
-		Local:  tm.Local(),
-		Remote: remote,
-		Type:   tp.Type(),
+		ID:      tp.ID,
+		Local:   tm.Local(),
+		Remote:  remote,
+		Type:    tp.Type(),
+		IsSetup: isSetup,
 	}
 	if includeLogs {
 		summary.Log = tp.LogEntry
@@ -79,7 +82,8 @@ type Summary struct {
 func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	var summaries []*TransportSummary
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-		summaries = append(summaries, newTransportSummary(r.node.tm, tp, false))
+		summaries = append(summaries,
+			newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp)))
 		return true
 	})
 	*out = Summary{
@@ -168,7 +172,7 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
 		if remote, ok := r.node.tm.Remote(tp.Edges()); ok {
 			if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), remote) {
-				*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs))
+				*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs, r.node.router.IsSetupTransport(tp)))
 			}
 			return true
 		}
@@ -183,7 +187,7 @@ func (r *RPC) Transport(in *uuid.UUID, out *TransportSummary) error {
 	if tp == nil {
 		return ErrNotFound
 	}
-	*out = *newTransportSummary(r.node.tm, tp, true)
+	*out = *newTransportSummary(r.node.tm, tp, true, r.node.router.IsSetupTransport(tp))
 	return nil
 }
 
@@ -208,7 +212,7 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 	if err != nil {
 		return err
 	}
-	*out = *newTransportSummary(r.node.tm, tp, false)
+	*out = *newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp))
 	return nil
 }
 
