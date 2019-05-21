@@ -108,7 +108,7 @@ var rmTpCmd = &cobra.Command{
 func printTransports(tps ...*node.TransportSummary) {
 	sortTransports(tps...)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
-	_, err := fmt.Fprintln(w, "type\tid\tlocal\tremote\tmode-of-operation")
+	_, err := fmt.Fprintln(w, "type\tid\tlocal\tremote\tmode")
 	internal.Catch(err)
 	for _, tp := range tps {
 		tpMode := "regular"
