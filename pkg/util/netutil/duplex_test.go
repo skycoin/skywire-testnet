@@ -326,7 +326,7 @@ func TestNewRPCDuplex(t *testing.T) {
 					case io.EOF:
 						errChB <- err
 					default:
-						errChA <- err
+						errChB <- err
 					}
 				}
 			}()
