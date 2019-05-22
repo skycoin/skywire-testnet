@@ -312,8 +312,11 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	}
 
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
+	if _, ok := tm.transports[entry.ID]; ok {
+		return nil, errors.New("transport already exists")
+	}
+	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
@@ -328,7 +331,7 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 			tm.Logger.Infof("Transport %s closed", managedTr.ID)
 			return
 		case <-tm.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
+			tm.Logger.Infof("Transport %s closed because manager is closed", managedTr.ID)
 			return
 		case err := <-managedTr.errChan:
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
@@ -384,8 +387,11 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
+	if _, ok := tm.transports[entry.ID]; ok {
+		return nil, errors.New("transport already exists")
+	}
+	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 
 	tm.transports[entry.ID] = managedTr
 	select {
@@ -402,7 +408,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 			tm.Logger.Infof("Transport %s closed", managedTr.ID)
 			return
 		case <-tm.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
+			tm.Logger.Infof("Transport %s closed because manager closed", managedTr.ID)
 			return
 		case err := <-managedTr.errChan:
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
