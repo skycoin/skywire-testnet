@@ -11,13 +11,6 @@ import (
 
 const bufferSize = 8
 
-// We need to have a Close function of branchConn perform the following;
-
-// close the internal readCh.
-// end all awaiting branchConn.Read calls.
-// also close the sibling branchConn (e.g. closing serverConn should also close clientConn).
-// end RPCDuplex.Serve().
-
 // branchConn will inherit the net.Conn interface.
 type branchConn struct {
 	net.Conn
@@ -54,13 +47,11 @@ func (bc *branchConn) Write(b []byte) (n int, err error) {
 	return n - 3, err
 }
 
-// Close closes all opened connections and channels
-// func (bc *branchConn) Close() error {
-
-// 	bc.Conn.Close()
-// 	close(bc.readCh)
-// 	return nil
-// }
+// Close closes all internal readCh and branchConn
+func (bc *branchConn) Close() error {
+	close(bc.readCh)
+	return bc.Conn.Close()
+}
 
 // RPCDuplex holds the basic structure of two prefixed connections and the original connection
 type RPCDuplex struct {
@@ -97,6 +88,20 @@ func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool) *RPCDuplex {
 
 // Client returns the internal RPC Client.
 func (d *RPCDuplex) Client() *rpc.Client { return d.rpcC }
+
+// Close closes all opened connections and channels
+func (d *RPCDuplex) Close() error {
+
+	if err := d.clientConn.Close(); err != nil {
+		return err
+	}
+
+	if err := d.serverConn.Close(); err != nil {
+		return err
+	}
+
+	return d.conn.Close()
+}
 
 // forward forwards one packet from Original conn to appropriate branchConn based on the packet's prefix
 func (d *RPCDuplex) forward() error {

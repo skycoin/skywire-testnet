@@ -15,6 +15,133 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBranchConn_Read(t *testing.T) {
+
+	// Read reads in data from original conn through branchConn's readCh which is
+	// a type of chan [].
+	t.Run("successful_branchConn_read", func(t *testing.T) {
+
+		ch := make(chan []byte, 1)
+		bc := &branchConn{prefix: 0, readCh: ch}
+		msg := []byte("foo")
+
+		bc.readCh <- msg
+
+		b := make([]byte, 3)
+		n, err := bc.Read(b)
+
+		require.NoError(t, err)
+		assert.Equal(t, 3, n)
+		assert.Equal(t, []byte("foo"), b)
+	})
+
+	// Read reads in empty data from original conn through branchConn's readCh which is
+	// a type of chan []. It should return 0 length read and b should be nil
+	t.Run("empty_branchConn_read", func(t *testing.T) {
+
+		ch := make(chan []byte, 1)
+		bc := &branchConn{prefix: 0, readCh: ch}
+		msg := []byte("")
+
+		bc.readCh <- msg
+
+		var b []byte
+		n, err := bc.Read(b)
+
+		require.NoError(t, err)
+		assert.Equal(t, 0, n)
+		assert.Equal(t, []byte(nil), b)
+	})
+}
+
+var tablesWrite = []struct {
+	// Inputs
+	description string
+
+	// Expected Result
+	lenMsg      int
+	prefix      byte
+	lenPayload  uint16
+	expectedMsg []byte
+}{
+	// TestbranchConn_Writes writes len(p) bytes from p to
+	// data stream and appends it with a 1 byte prefix and
+	// 2 byte encoded length of the packet. Thus, length
+	// of message should equal to length of payload + 3
+	{description: "len(msg)_equal_len(payload)+3",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+	// The first byte of the message is the prefix that
+	// will be used to direct packets to their respective
+	// branchConn. The prefix is a byte of either 0 or 1.
+	{description: "msg[0]_prefix_is_0",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+	// The 2nd and 3rd byte is the encoded length of the payload
+	// with the binary package. The decoded length of the payload
+	// will be in uint16 and is 3.
+	{description: "msg[1:3]_decodes_to_len(payload)",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+	// The bytes after the 3rd byte will be the initial message
+	// itself. It should equal to the payload. In this case,
+	// the message "foo" should equal to "foo"
+	{description: "msg[3:]_equal_to_payload)",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+}
+
+func TestBranchConn_Write(t *testing.T) {
+
+	for _, tt := range tablesWrite {
+		t.Run(tt.description, func(t *testing.T) {
+			var err error
+			var ch chan []byte
+
+			connA, connB := net.Pipe()
+			defer connB.Close()
+
+			bc := &branchConn{Conn: connA, readCh: ch}
+			payload := "foo"
+
+			done := make(chan struct{})
+			defer close(done)
+
+			go func() {
+				_, err = bc.Write([]byte(payload))
+				bc.Conn.Close()
+				done <- struct{}{}
+			}()
+
+			msg, err := ioutil.ReadAll(connB)
+			if err != nil {
+				log.Println(err)
+			}
+
+			lenPayload := binary.BigEndian.Uint16(msg[1:3])
+			<-done
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.lenMsg, len(payload)+3)
+			assert.Equal(t, tt.prefix, msg[0])
+			assert.Equal(t, tt.lenPayload, lenPayload)
+			assert.Equal(t, tt.expectedMsg, msg[3:])
+		})
+	}
+}
+
 type chReadWrite struct {
 	i   int
 	n   int
@@ -261,7 +388,6 @@ func TestRPCDuplex_Forward(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), <-bDuplex.serverConn.readCh)
 	require.NoError(t, <-errCh)
-
 }
 
 // RPC is a receiver which we will use Register to publishes the receiver's methods in the DefaultServer.
@@ -303,131 +429,7 @@ func TestRPCDuplex_Serve(t *testing.T) {
 		require.Equal(t, i*2, r)
 		// log.Println("bDuplex:", r)
 	}
-}
 
-func TestBranchConn_Read(t *testing.T) {
-
-	// Read reads in data from original conn through branchConn's readCh which is
-	// a type of chan [].
-	t.Run("successful_branchConn_read", func(t *testing.T) {
-
-		ch := make(chan []byte, 1)
-		bc := &branchConn{prefix: 0, readCh: ch}
-		msg := []byte("foo")
-
-		bc.readCh <- msg
-
-		b := make([]byte, 3)
-		n, err := bc.Read(b)
-
-		require.NoError(t, err)
-		assert.Equal(t, 3, n)
-		assert.Equal(t, []byte("foo"), b)
-	})
-
-	// Read reads in empty data from original conn through branchConn's readCh which is
-	// a type of chan []. It should return 0 length read and b should be nil
-	t.Run("empty_branchConn_read", func(t *testing.T) {
-
-		ch := make(chan []byte, 1)
-		bc := &branchConn{prefix: 0, readCh: ch}
-		msg := []byte("")
-
-		bc.readCh <- msg
-
-		var b []byte
-		n, err := bc.Read(b)
-
-		require.NoError(t, err)
-		assert.Equal(t, 0, n)
-		assert.Equal(t, []byte(nil), b)
-	})
-}
-
-var tablesWrite = []struct {
-	// Inputs
-	description string
-
-	// Expected Result
-	lenMsg      int
-	prefix      byte
-	lenPayload  uint16
-	expectedMsg []byte
-}{
-	// TestbranchConn_Writes writes len(p) bytes from p to
-	// data stream and appends it with a 1 byte prefix and
-	// 2 byte encoded length of the packet. Thus, length
-	// of message should equal to length of payload + 3
-	{description: "len(msg)_equal_len(payload)+3",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-	// The first byte of the message is the prefix that
-	// will be used to direct packets to their respective
-	// branchConn. The prefix is a byte of either 0 or 1.
-	{description: "msg[0]_prefix_is_0",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-	// The 2nd and 3rd byte is the encoded length of the payload
-	// with the binary package. The decoded length of the payload
-	// will be in uint16 and is 3.
-	{description: "msg[1:3]_decodes_to_len(payload)",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-	// The bytes after the 3rd byte will be the initial message
-	// itself. It should equal to the payload. In this case,
-	// the message "foo" should equal to "foo"
-	{description: "msg[3:]_equal_to_payload)",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-}
-
-func TestBranchConn_Write(t *testing.T) {
-
-	for _, tt := range tablesWrite {
-		t.Run(tt.description, func(t *testing.T) {
-			var err error
-			var ch chan []byte
-
-			connA, connB := net.Pipe()
-			defer connB.Close()
-
-			bc := &branchConn{Conn: connA, readCh: ch}
-			payload := "foo"
-
-			done := make(chan struct{})
-			defer close(done)
-
-			go func() {
-				_, err = bc.Write([]byte(payload))
-				bc.Conn.Close()
-				done <- struct{}{}
-			}()
-
-			msg, err := ioutil.ReadAll(connB)
-			if err != nil {
-				log.Println(err)
-			}
-
-			lenPayload := binary.BigEndian.Uint16(msg[1:3])
-			<-done
-
-			assert.NoError(t, err)
-			assert.Equal(t, tt.lenMsg, len(payload)+3)
-			assert.Equal(t, tt.prefix, msg[0])
-			assert.Equal(t, tt.lenPayload, lenPayload)
-			assert.Equal(t, tt.expectedMsg, msg[3:])
-		})
-	}
+	assert.Nil(t, dA.Close())
+	assert.Nil(t, dB.Close())
 }
