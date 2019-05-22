@@ -244,35 +244,33 @@ func (node *Node) Start() error {
 // Close safely stops spawned Apps and messaging Node.
 func (node *Node) Close() (err error) {
 	if node.rpcListener != nil {
-		node.logger.Info("Stopping RPC interface")
-		if rpcErr := node.rpcListener.Close(); rpcErr != nil && err == nil {
-			err = rpcErr
+		if err = node.rpcListener.Close(); err != nil {
+			node.logger.WithError(err).Error("failed to stop RPC interface")
+		} else {
+			node.logger.Info("RPC interface stopped successfully")
 		}
 	}
-	for _, dialer := range node.rpcDialers {
-		err = dialer.Close()
+	for i, dialer := range node.rpcDialers {
+		if err = dialer.Close(); err != nil {
+			node.logger.WithError(err).Errorf("(%d) failed to stop RPC dialer", i)
+		} else {
+			node.logger.Infof("(%d) RPC dialer closed successfully", i)
+		}
 	}
-
 	node.startedMu.Lock()
-	for app, bind := range node.startedApps {
-		if appErr := node.stopApp(app, bind); appErr != nil && err == nil {
-			err = appErr
+	for a, bind := range node.startedApps {
+		if err = node.stopApp(a, bind); err != nil {
+			node.logger.WithError(err).Errorf("(%s) failed to stop app", a)
+		} else {
+			node.logger.Infof("(%s) app stopped successfully", a)
 		}
 	}
 	node.startedMu.Unlock()
-
-	if node.rpcListener != nil {
-		node.logger.Info("Stopping RPC interface")
-		if rpcErr := node.rpcListener.Close(); rpcErr != nil && err == nil {
-			err = rpcErr
-		}
+	if err = node.router.Close(); err != nil {
+		node.logger.WithError(err).Error("failed to stop router")
+	} else {
+		node.logger.Info("router stopped successfully")
 	}
-
-	node.logger.Info("Stopping router")
-	if msgErr := node.router.Close(); msgErr != nil && err == nil {
-		err = msgErr
-	}
-
 	return err
 }
 
