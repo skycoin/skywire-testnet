@@ -74,8 +74,8 @@ func (tm *Manager) Observe() (accept <-chan *ManagedTransport, dial <-chan *Mana
 		for {
 			select {
 			case <-tm.doneChan:
-				close(dialCh)
-				close(acceptCh)
+				// close(dialCh)
+				// close(acceptCh)
 				return
 			case tr := <-tm.acceptedTrChan:
 				acceptCh <- tr
