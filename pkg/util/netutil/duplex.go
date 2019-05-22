@@ -11,6 +11,13 @@ import (
 
 const bufferSize = 8
 
+// We need to have a Close function of branchConn perform the following;
+
+// close the internal readCh.
+// end all awaiting branchConn.Read calls.
+// also close the sibling branchConn (e.g. closing serverConn should also close clientConn).
+// end RPCDuplex.Serve().
+
 // branchConn will inherit the net.Conn interface.
 type branchConn struct {
 	net.Conn
@@ -47,6 +54,14 @@ func (bc *branchConn) Write(b []byte) (n int, err error) {
 	return n - 3, err
 }
 
+// Close closes all opened connections and channels
+// func (bc *branchConn) Close() error {
+
+// 	bc.Conn.Close()
+// 	close(bc.readCh)
+// 	return nil
+// }
+
 // RPCDuplex holds the basic structure of two prefixed connections and the original connection
 type RPCDuplex struct {
 	conn       net.Conn
@@ -54,11 +69,10 @@ type RPCDuplex struct {
 	serverConn *branchConn
 	rpcS       *rpc.Server
 	rpcC       *rpc.Client
-	rpcUse     bool
 }
 
 // NewRPCDuplex initiates a new RPCDuplex struct
-func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool, rpcUse bool) *RPCDuplex {
+func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool) *RPCDuplex {
 	var d RPCDuplex
 	clientCh := make(chan []byte, bufferSize)
 	serverCh := make(chan []byte, bufferSize)
@@ -74,32 +88,8 @@ func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool, rpcUse bool) *
 	d.conn = conn
 	d.rpcS = srv
 
-	// Right now, the duplex can call RPC methods under the following condition:
-	// Init rpc.NewClient(d.clientConn) and serve rpc.ServeConn(d.serverConn)
-	// or
-	// Init rpc.NewClient(d.serverConn) and serve rpc.ServeConn(d.clientConn)
-	//
-	// However, branchConn read/write will hang if a new rpc client is created
-	// or a rpc connection with either one of the branch connection is served.
-	//
-	// It will only be able to read/write message under the following condition:
-	// 1) client writes multiple messages to server
-	// Init rpc.NewClient(d.clientConn) and serve rpc.ServeConn(d.clientConn)
-	//
-	// 2) server writes multiple messages to client
-	// Init rpc.NewClient(d.serverConn) and serve rpc.ServeConn(d.serverConn)
-	//
-	// 3) We don't create any new rpc client and we don't serve the rpc servers
-
-	// This means that the duplex can either call RPC methods or
-	// read/write packets with branchConn. It cannot do both at the same time.
-	// My only way to circumvent this issue at the moment is to simply declare at start
-	// whether we are creating the duplex for calling RPC only. Further investigation
-	// required in order to over come this issue
-	if rpcUse {
-		d.rpcUse = rpcUse
+	if srv != nil {
 		d.rpcC = rpc.NewClient(d.clientConn)
-		// d.rpcC = rpc.NewClient(d.serverConn)
 	}
 
 	return &d
@@ -108,35 +98,22 @@ func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool, rpcUse bool) *
 // Client returns the internal RPC Client.
 func (d *RPCDuplex) Client() *rpc.Client { return d.rpcC }
 
-// readHeader reads the first three bytes of the data and returns the prefix and size of the packet
-func (d *RPCDuplex) readHeader() (byte, uint16) {
+// forward forwards one packet from Original conn to appropriate branchConn based on the packet's prefix
+func (d *RPCDuplex) forward() error {
 
 	var b = make([]byte, 3)
 
-	// Read the first three byte of packet
-	// 1st byte is prefix and the 2nd and 3rd byte is the encoded size
-	_, err := d.conn.Read(b[:3])
-	if err != nil {
+	// Reads the first three bytes of the data and returns the prefix and size of the packet
+	if _, err := d.conn.Read(b[:3]); err != nil {
 		log.Fatalln("error reading header from conn", err)
 	}
 
 	prefix := b[0]
 	size := binary.BigEndian.Uint16(b[1:3])
 
-	return prefix, size
-}
-
-// forward forwards one packet from Original conn to appropriate branchConn based on the packet's prefix
-func (d *RPCDuplex) forward() error {
-
-	// Reads 1st byte of prefixed connection to determine which conn to forward to
-	prefix, size := d.readHeader()
-
-	// Reads packet with size 'size' from Original Conn into data
+	// Reads the rest of the packet into data with prefixed size
 	data := make([]byte, size)
-	// n, err := d.conn.Read(data)
-	_, err := d.conn.Read(data)
-	if err != nil {
+	if _, err := d.conn.Read(data); err != nil {
 		if err == io.EOF {
 			return nil
 		}
@@ -144,12 +121,10 @@ func (d *RPCDuplex) forward() error {
 	}
 
 	// Push data from original conn into branchConn's chan []byte
-	switch {
-	case prefix == d.serverConn.prefix:
-		// log.Println("serverConn", string(data[:n]))
+	switch prefix {
+	case d.serverConn.prefix:
 		d.serverConn.readCh <- data
-	case prefix == d.clientConn.prefix:
-		// log.Println("clientConn", string(data[:n]))
+	case d.clientConn.prefix:
 		d.clientConn.readCh <- data
 	default:
 		log.Fatalln(errors.New("error encountered while forwarding packets, data header contains incorrect or empty prefix"))
@@ -161,10 +136,7 @@ func (d *RPCDuplex) forward() error {
 // Serve is a blocking function that serves the RPC server and runs the event loop that forwards data to branchConns.
 func (d *RPCDuplex) Serve() error {
 
-	if d.rpcUse {
-		go d.rpcS.ServeConn(d.serverConn)
-		// go d.rpcS.ServeConn(d.clientConn)
-	}
+	go d.rpcS.ServeConn(d.serverConn)
 
 	for {
 		err := d.forward()

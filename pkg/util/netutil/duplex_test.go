@@ -1,7 +1,9 @@
 package netutil
 
 import (
+	"encoding/binary"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -152,11 +154,9 @@ func TestNewRPCDuplex(t *testing.T) {
 			assert.Nil(connB.SetDeadline(time.Now().Add(time.Second * 10)))
 
 			// Create two instances of RPCDuplex and rpcServer
-			rpcSrvA := rpc.NewServer()
-			rpcSrvB := rpc.NewServer()
+			aDuplex := NewRPCDuplex(connA, nil, true)
+			bDuplex := NewRPCDuplex(connB, nil, false)
 
-			aDuplex := NewRPCDuplex(connA, rpcSrvA, true, false)
-			bDuplex := NewRPCDuplex(connB, rpcSrvB, false, false)
 			// Determine who is writing the msg and who is reading the msg from test input
 			msgReader, msgWriter := whoWrites(tt.whoWrites, aDuplex, bDuplex)
 
@@ -173,12 +173,36 @@ func TestNewRPCDuplex(t *testing.T) {
 			}()
 
 			// Read prefix and forward to the appropriate channel
-			errChA := make(chan error)
-			go func() { errChA <- aDuplex.Serve() }()
+			errChA := make(chan error, 1)
+			go func() {
+				for {
+					err := aDuplex.forward()
+					switch err {
+					case nil:
+						continue
+					case io.EOF:
+						errChA <- err
+					default:
+						errChA <- err
+					}
+				}
+			}()
 			close(errChA)
 
-			errChB := make(chan error)
-			go func() { errChB <- bDuplex.Serve() }()
+			errChB := make(chan error, 1)
+			go func() {
+				for {
+					err := bDuplex.forward()
+					switch err {
+					case nil:
+						continue
+					case io.EOF:
+						errChB <- err
+					default:
+						errChA <- err
+					}
+				}
+			}()
 			close(errChB)
 
 			// Loop through write channel
@@ -190,7 +214,7 @@ func TestNewRPCDuplex(t *testing.T) {
 				chRead <- chReadWrite{i: i.i, n: n, err: err, msg: string(b[:n])}
 
 				// Assert variables from chWrite
-				log.Println("chWrite:", i)
+				// log.Println("chWrite:", i)
 				assert.Nil(i.err)
 				assert.Equal(len(i.msg), i.n, "message length written should be equal")
 				assert.Equal(fmt.Sprintf(tt.expectedMsg, i.i), i.msg, "message content written should be equal")
@@ -199,13 +223,13 @@ func TestNewRPCDuplex(t *testing.T) {
 
 			// Assert variables from chRead
 			for i := range chRead {
-				log.Println("chRead: ", i)
+				// log.Println("chRead: ", i)
 				assert.Nil(i.err)
 				assert.Equal(len(i.msg), i.n, "message length read from branchConn.Read() should be equal")
 				assert.Equal(fmt.Sprintf(tt.expectedMsg, i.i), i.msg, "message content read from branchConn.Read() should be equal")
 			}
 
-			// Assert error from msgReader.Serve()
+			// Assert error from msgReader.Forward()
 			assert.Nil(<-errChA)
 			assert.Nil(<-errChB)
 
@@ -216,84 +240,6 @@ func TestNewRPCDuplex(t *testing.T) {
 	}
 }
 
-// TestReadHeader reads the first-three bytes of the data and
-// returns the prefix and size of the packet
-func TestRPCDuplex_ReadHeader(t *testing.T) {
-
-	// Case Tested: aDuplex's clientConn is the initiator and has
-	// a prefix of 0 and wrote a msg "foo" with size 3
-	// 1) prefix: Want(0) -- Got(0)
-	// 1) size: Want(3) -- Got(3)
-	t.Run("successfully_read_prefix_from_clientConn_to_serverConn", func(t *testing.T) {
-		connA, connB := net.Pipe()
-
-		rpcSrvA := rpc.NewServer()
-		rpcSrvB := rpc.NewServer()
-
-		aDuplex := NewRPCDuplex(connA, rpcSrvA, true, false)
-		bDuplex := NewRPCDuplex(connB, rpcSrvB, false, false)
-
-		msg := []byte("foo")
-
-		errCh := make(chan error)
-		go func() {
-			_, err := aDuplex.clientConn.Write(msg)
-			aDuplex.conn.Close()
-			errCh <- err
-		}()
-
-		prefix, size := bDuplex.readHeader()
-
-		assert.Equal(t, byte(0), prefix)
-		assert.Equal(t, uint16(3), size)
-
-		// Read packets so that channel doesn't block
-		b := make([]byte, size)
-		n, err := bDuplex.conn.Read(b)
-		require.NoError(t, err)
-		require.NoError(t, <-errCh)
-		assert.Equal(t, 3, n)
-		assert.Equal(t, string([]byte("foo")), string(b))
-
-	})
-
-	// Case Tested: aDuplex's serverConn is the initiator and has
-	// a prefix of 1 and wrote a msg "hello" of size 5
-	// 1) prefix: Want(1) -- Got(1)
-	// 2) size: Want(5) -- Got(5)
-	t.Run("successfully_read_prefix_from_serverConn_to_clientConn", func(t *testing.T) {
-		connA, connB := net.Pipe()
-
-		rpcSrvA := rpc.NewServer()
-		rpcSrvB := rpc.NewServer()
-
-		aDuplex := NewRPCDuplex(connA, rpcSrvA, true, false)
-		bDuplex := NewRPCDuplex(connB, rpcSrvB, false, false)
-
-		msg := []byte("hello")
-
-		errCh := make(chan error)
-		go func() {
-			_, err := aDuplex.serverConn.Write(msg)
-			aDuplex.conn.Close()
-			errCh <- err
-		}()
-
-		prefix, size := bDuplex.readHeader()
-
-		assert.Equal(t, byte(1), prefix)
-		assert.Equal(t, uint16(5), size)
-
-		// Read packets so that channel doesn't block
-		b := make([]byte, size)
-		n, err := bDuplex.conn.Read(b)
-		require.NoError(t, err)
-		require.NoError(t, <-errCh)
-		assert.Equal(t, 5, n)
-		assert.Equal(t, string([]byte("hello")), string(b))
-	})
-}
-
 // TestRPCDuplex_Forward forwards one packet Original conn to branchConn
 // based on the packet's prefix
 func TestRPCDuplex_Forward(t *testing.T) {
@@ -301,16 +247,12 @@ func TestRPCDuplex_Forward(t *testing.T) {
 	connA, connB := net.Pipe()
 	defer connB.Close()
 
-	rpcSrvA := rpc.NewServer()
-	rpcSrvB := rpc.NewServer()
+	bDuplex := NewRPCDuplex(connB, nil, false)
 
-	aDuplex := NewRPCDuplex(connA, rpcSrvA, true, false)
-	bDuplex := NewRPCDuplex(connB, rpcSrvB, false, false)
-
-	msg := []byte("foo")
+	msg := []byte("\x00\x00\x03foo")
 	errCh := make(chan error, 1)
 	go func() {
-		_, err := aDuplex.clientConn.Write(msg)
+		_, err := connA.Write(msg)
 		connA.Close()
 		errCh <- err
 	}()
@@ -319,6 +261,7 @@ func TestRPCDuplex_Forward(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), <-bDuplex.serverConn.readCh)
 	require.NoError(t, <-errCh)
+
 }
 
 // RPC is a receiver which we will use Register to publishes the receiver's methods in the DefaultServer.
@@ -330,6 +273,9 @@ func (RPC) Double(i int, reply *int) error {
 	return nil
 }
 
+// TestRPCDuplex_Serve test communication between two RPC Duplex. When both Duplex
+// is created and served, both duplex's client should be able to successfully call
+// the rpc method 'double' from rpc.server
 func TestRPCDuplex_Serve(t *testing.T) {
 	cA, cB := net.Pipe()
 
@@ -340,38 +286,36 @@ func TestRPCDuplex_Serve(t *testing.T) {
 	require.NoError(t, serverB.RegisterName("RPC", new(RPC)))
 
 	errChA := make(chan error)
-	dA := NewRPCDuplex(cA, serverA, true, true)
+	dA := NewRPCDuplex(cA, serverA, true)
 	go func() { errChA <- dA.Serve() }()
 
 	errChB := make(chan error)
-	dB := NewRPCDuplex(cB, serverB, false, true)
+	dB := NewRPCDuplex(cB, serverB, false)
 	go func() { errChB <- dB.Serve() }()
 
 	var r int
 	for i := 0; i < 10; i++ {
 		require.NoError(t, dA.Client().Call("RPC.Double", i, &r))
 		require.Equal(t, i*2, r)
-		log.Println("aDuplex:", r)
+		// log.Println("aDuplex:", r)
 
 		require.NoError(t, dB.Client().Call("RPC.Double", i, &r))
 		require.Equal(t, i*2, r)
-		log.Println("bDuplex:", r)
+		// log.Println("bDuplex:", r)
 	}
 }
 
-// TestbranchConn_Read reads data pushed in by
-// the Original connection
 func TestBranchConn_Read(t *testing.T) {
 
+	// Read reads in data from original conn through branchConn's readCh which is
+	// a type of chan [].
 	t.Run("successful_branchConn_read", func(t *testing.T) {
 
-		ch := make(chan []byte)
+		ch := make(chan []byte, 1)
 		bc := &branchConn{prefix: 0, readCh: ch}
 		msg := []byte("foo")
 
-		go func() {
-			bc.readCh <- msg
-		}()
+		bc.readCh <- msg
 
 		b := make([]byte, 3)
 		n, err := bc.Read(b)
@@ -381,15 +325,15 @@ func TestBranchConn_Read(t *testing.T) {
 		assert.Equal(t, []byte("foo"), b)
 	})
 
+	// Read reads in empty data from original conn through branchConn's readCh which is
+	// a type of chan []. It should return 0 length read and b should be nil
 	t.Run("empty_branchConn_read", func(t *testing.T) {
 
-		ch := make(chan []byte)
+		ch := make(chan []byte, 1)
 		bc := &branchConn{prefix: 0, readCh: ch}
 		msg := []byte("")
 
-		go func() {
-			bc.readCh <- msg
-		}()
+		bc.readCh <- msg
 
 		var b []byte
 		n, err := bc.Read(b)
@@ -400,31 +344,90 @@ func TestBranchConn_Read(t *testing.T) {
 	})
 }
 
-// TestbranchConn_Writes writes len(p) bytes from p to
-// data stream and appends it with a 1 byte prefix and
-// 2 byte encoded length of the packet.
+var tablesWrite = []struct {
+	// Inputs
+	description string
+
+	// Expected Result
+	lenMsg      int
+	prefix      byte
+	lenPayload  uint16
+	expectedMsg []byte
+}{
+	// TestbranchConn_Writes writes len(p) bytes from p to
+	// data stream and appends it with a 1 byte prefix and
+	// 2 byte encoded length of the packet. Thus, length
+	// of message should equal to length of payload + 3
+	{description: "len(msg)_equal_len(payload)+3",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+	// The first byte of the message is the prefix that
+	// will be used to direct packets to their respective
+	// branchConn. The prefix is a byte of either 0 or 1.
+	{description: "msg[0]_prefix_is_0",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+	// The 2nd and 3rd byte is the encoded length of the payload
+	// with the binary package. The decoded length of the payload
+	// will be in uint16 and is 3.
+	{description: "msg[1:3]_decodes_to_len(payload)",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+	// The bytes after the 3rd byte will be the initial message
+	// itself. It should equal to the payload. In this case,
+	// the message "foo" should equal to "foo"
+	{description: "msg[3:]_equal_to_payload)",
+		lenMsg:      6,
+		prefix:      byte(0),
+		lenPayload:  uint16(3),
+		expectedMsg: []byte("foo"),
+	},
+}
+
 func TestBranchConn_Write(t *testing.T) {
 
-	connA, connB := net.Pipe()
-	var ch chan []byte
-	defer connB.Close()
+	for _, tt := range tablesWrite {
+		t.Run(tt.description, func(t *testing.T) {
+			var err error
+			var ch chan []byte
 
-	bc := &branchConn{Conn: connA, readCh: ch}
+			connA, connB := net.Pipe()
+			defer connB.Close()
 
-	nCh := make(chan int, 1)
-	errCh := make(chan error, 1)
-	go func() {
-		n, err := bc.Write([]byte("foo"))
-		bc.Conn.Close()
-		nCh <- n
-		errCh <- err
-	}()
+			bc := &branchConn{Conn: connA, readCh: ch}
+			payload := "foo"
 
-	msg, err := ioutil.ReadAll(connB)
+			done := make(chan struct{})
+			defer close(done)
 
-	assert.Equal(t, 3, <-nCh)
-	require.NoError(t, <-errCh)
-	require.NoError(t, err)
-	assert.Equal(t, 6, len(msg))
-	assert.Equal(t, string([]byte("\x00\x00\x03foo")), string(msg))
+			go func() {
+				_, err = bc.Write([]byte(payload))
+				bc.Conn.Close()
+				done <- struct{}{}
+			}()
+
+			msg, err := ioutil.ReadAll(connB)
+			if err != nil {
+				log.Println(err)
+			}
+
+			lenPayload := binary.BigEndian.Uint16(msg[1:3])
+			<-done
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.lenMsg, len(payload)+3)
+			assert.Equal(t, tt.prefix, msg[0])
+			assert.Equal(t, tt.lenPayload, lenPayload)
+			assert.Equal(t, tt.expectedMsg, msg[3:])
+		})
+	}
 }
