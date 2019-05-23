@@ -86,15 +86,16 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 
 // Close closes underlying
 func (tr *ManagedTransport) Close() error {
-	tr.mu.RLock()
+	tr.mu.Lock()
 	err := tr.Transport.Close()
-	tr.mu.RUnlock()
 
 	select {
 	case <-tr.doneChan:
 	default:
-		close(tr.doneChan)
+		tr.doneChan <- struct{}{}
+		//close(tr.doneChan)
 	}
+	tr.mu.Unlock()
 
 	return err
 }

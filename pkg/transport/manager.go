@@ -313,8 +313,14 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
 	tm.mu.Lock()
-	if _, ok := tm.transports[entry.ID]; ok {
-		return nil, errors.New("transport already exists")
+	if otr, ok := tm.transports[entry.ID]; ok {
+		defer tm.mu.Unlock()
+		select {
+		case <-tm.doneChan:
+		case tm.dialedTrChan <- otr:
+		default:
+		}
+		return otr, nil
 	}
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.transports[entry.ID] = managedTr
@@ -328,7 +334,7 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	go func() {
 		select {
 		case <-managedTr.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
+			tm.Logger.Infof("Transport %s closed (dialed transport)", managedTr.ID)
 			return
 		case <-tm.doneChan:
 			tm.Logger.Infof("Transport %s closed because manager is closed", managedTr.ID)
@@ -388,11 +394,19 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
 	tm.mu.Lock()
-	if _, ok := tm.transports[entry.ID]; ok {
-		return nil, errors.New("transport already exists")
-	}
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 
+	// if exists, send done signal to previous one
+	if otr, ok := tm.transports[entry.ID]; ok {
+		defer tm.mu.Unlock()
+		select {
+		case <-tm.doneChan:
+		case tm.acceptedTrChan <- otr:
+		default:
+		}
+		return otr, nil
+	}
+
+	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
@@ -405,7 +419,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	go func() {
 		select {
 		case <-managedTr.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
+			tm.Logger.Infof("Transport %s closed (acceptedTransport)", managedTr.ID)
 			return
 		case <-tm.doneChan:
 			tm.Logger.Infof("Transport %s closed because manager closed", managedTr.ID)

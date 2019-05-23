@@ -239,7 +239,6 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 		err = fmt.Errorf("transport: %s", err)
 		return
 	}
-	defer tr.Close()
 
 	proto := NewSetupProtocol(tr)
 	res, err := ConfirmLoop(proto, ld)
@@ -248,6 +247,10 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 	}
 
 	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.RemotePK, ld.RemotePort, ld.LocalPort)
+	err = sn.tm.DeleteTransport(tr.ID)
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 
@@ -256,7 +259,6 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
-	defer tr.Close()
 
 	proto := NewSetupProtocol(tr)
 	if err := LoopClosed(proto, ld); err != nil {
@@ -264,6 +266,10 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 	}
 
 	sn.Logger.Infof("Closed loop on %s. LocalPort: %d", on, ld.LocalPort)
+	err = sn.tm.DeleteTransport(tr.ID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -273,7 +279,6 @@ func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID rout
 		err = fmt.Errorf("transport: %s", err)
 		return
 	}
-	defer tr.Close()
 
 	proto := NewSetupProtocol(tr)
 	routeID, err = AddRule(proto, rule)
@@ -282,5 +287,9 @@ func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID rout
 	}
 
 	sn.Logger.Infof("Set rule of type %s on %s with ID %d", rule.Type(), pubKey, routeID)
+	err = sn.tm.DeleteTransport(tr.ID)
+	if err != nil {
+		return routeID, err
+	}
 	return routeID, nil
 }
