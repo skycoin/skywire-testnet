@@ -33,8 +33,8 @@ type Manager struct {
 	entries    []*Entry
 
 	doneChan       chan struct{}
-	acceptedTrChan chan *ManagedTransport
-	dialedTrChan   chan *ManagedTransport
+	AcceptedTrChan chan *ManagedTransport
+	DialedTrChan   chan *ManagedTransport
 	mu             sync.RWMutex
 }
 
@@ -59,8 +59,8 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 		factories:      fMap,
 		transports:     make(map[uuid.UUID]*ManagedTransport),
 		entries:        mEntries,
-		acceptedTrChan: make(chan *ManagedTransport, 10),
-		dialedTrChan:   make(chan *ManagedTransport, 10),
+		AcceptedTrChan: make(chan *ManagedTransport, 10),
+		DialedTrChan:   make(chan *ManagedTransport, 10),
 		doneChan:       make(chan struct{}),
 	}, nil
 }
@@ -68,23 +68,7 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 // Observe returns channel for notifications about new Transport
 // registration. Only single observer is supported.
 func (tm *Manager) Observe() (accept <-chan *ManagedTransport, dial <-chan *ManagedTransport) {
-	dialCh := make(chan *ManagedTransport)
-	acceptCh := make(chan *ManagedTransport)
-	go func() {
-		for {
-			select {
-			case <-tm.doneChan:
-				close(dialCh)
-				close(acceptCh)
-				return
-			case tr := <-tm.acceptedTrChan:
-				acceptCh <- tr
-			case tr := <-tm.dialedTrChan:
-				dialCh <- tr
-			}
-		}
-	}()
-	return acceptCh, dialCh
+	return tm.AcceptedTrChan, tm.DialedTrChan
 }
 
 // Factories returns all the factory types contained within the TransportManager.
@@ -317,7 +301,7 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
-	case tm.dialedTrChan <- managedTr:
+	case tm.DialedTrChan <- managedTr:
 	default:
 	}
 	tm.mu.Unlock()
@@ -390,7 +374,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
-	case tm.acceptedTrChan <- managedTr:
+	case tm.AcceptedTrChan <- managedTr:
 	default:
 	}
 	tm.mu.Unlock()

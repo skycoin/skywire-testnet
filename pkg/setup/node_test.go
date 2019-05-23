@@ -273,15 +273,14 @@ func newMockNode(tm *transport.Manager) *mockNode {
 }
 
 func (n *mockNode) serve() error {
-	acceptCh, dialCh := n.tm.Observe()
 	go func() {
-		for tr := range dialCh {
+		for tr := range n.tm.DialedTrChan {
 			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
 		}
 	}()
 
 	go func() {
-		for tr := range acceptCh {
+		for tr := range n.tm.AcceptedTrChan {
 			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
 		}
 	}()
