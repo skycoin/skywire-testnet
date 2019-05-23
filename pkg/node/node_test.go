@@ -253,3 +253,7 @@ func (r *mockRouter) Close() error {
 	r.Unlock()
 	return nil
 }
+
+func (r *mockRouter) IsSetupTransport(tr transport.Transport) bool {
+	return false
+}
