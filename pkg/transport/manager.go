@@ -68,22 +68,6 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 // Observe returns channel for notifications about new Transport
 // registration. Only single observer is supported.
 func (tm *Manager) Observe() (accept <-chan *ManagedTransport, dial <-chan *ManagedTransport) {
-	// dialCh := make(chan *ManagedTransport)
-	// acceptCh := make(chan *ManagedTransport)
-	// go func() {
-	// 	for {
-	// 		select {
-	// 		case <-tm.doneChan:
-	// 			// close(dialCh)
-	// 			// close(acceptCh)
-	// 			return
-	// 		case tr := <-tm.acceptedTrChan:
-	// 			acceptCh <- tr
-	// 		case tr := <-tm.dialedTrChan:
-	// 			dialCh <- tr
-	// 		}
-	// 	}
-	// }()
 	return tm.AcceptedTrChan, tm.DialedTrChan
 }
 

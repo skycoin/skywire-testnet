@@ -90,9 +90,8 @@ func (sn *Node) Serve(ctx context.Context) error {
 		sn.Logger.Info("Connected to messaging servers")
 	}
 
-	acceptCh, dialCh := sn.tm.Observe()
 	go func() {
-		for tr := range acceptCh {
+		for tr := range sn.tm.AcceptedTrChan {
 			go func(t transport.Transport) {
 				for {
 					if err := sn.serveTransport(t); err != nil {
@@ -105,7 +104,7 @@ func (sn *Node) Serve(ctx context.Context) error {
 	}()
 
 	go func() {
-		for range dialCh {
+		for range sn.tm.DialedTrChan {
 		}
 	}()
 

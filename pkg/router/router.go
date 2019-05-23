@@ -78,8 +78,6 @@ func New(config *Config) *Router {
 
 // Serve starts transport listening loop.
 func (r *Router) Serve(ctx context.Context) error {
-	// acceptCh, dialCh := r.tm.Observe()
-
 	go func() {
 		for tr := range r.tm.AcceptedTrChan {
 			go func(t transport.Transport) {
