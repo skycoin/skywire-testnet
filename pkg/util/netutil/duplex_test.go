@@ -54,56 +54,58 @@ func TestBranchConn_Read(t *testing.T) {
 	})
 }
 
-var tablesWrite = []struct {
-	// Inputs
-	description string
-
-	// Expected Result
-	lenMsg      int
-	prefix      byte
-	lenPayload  uint16
-	expectedMsg []byte
-}{
-	// TestbranchConn_Writes writes len(p) bytes from p to
-	// data stream and appends it with a 1 byte prefix and
-	// 2 byte encoded length of the packet. Thus, length
-	// of message should equal to length of payload + 3
-	{description: "len(msg)_equal_len(payload)+3",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-	// The first byte of the message is the prefix that
-	// will be used to direct packets to their respective
-	// branchConn. The prefix is a byte of either 0 or 1.
-	{description: "msg[0]_prefix_is_0",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-	// The 2nd and 3rd byte is the encoded length of the payload
-	// with the binary package. The decoded length of the payload
-	// will be in uint16 and is 3.
-	{description: "msg[1:3]_decodes_to_len(payload)",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-	// The bytes after the 3rd byte will be the initial message
-	// itself. It should equal to the payload. In this case,
-	// the message "foo" should equal to "foo"
-	{description: "msg[3:]_equal_to_payload)",
-		lenMsg:      6,
-		prefix:      byte(0),
-		lenPayload:  uint16(3),
-		expectedMsg: []byte("foo"),
-	},
-}
-
+// TestbranchConn_Writes tests for the following:
+// Ensure len(msg) is equal to len(payload) + 3.
+// Ensure msg[0] is the right prefix.
+// Ensure msg[1:3] decodes to len(payload).
+// Ensure msg[3:] is equal to payload.
 func TestBranchConn_Write(t *testing.T) {
+
+	var tablesWrite = []struct {
+		// Inputs
+		description string
+		payload     string
+		inputPrefix byte
+
+		// Expected Result
+		lenMsg      int
+		prefix      byte
+		lenPayload  uint16
+		expectedMsg []byte
+	}{
+		{description: "len(msg)_equal_len(payload)+3",
+			payload:     "foo",
+			inputPrefix: byte(0),
+			lenMsg:      6,
+			prefix:      byte(0),
+			lenPayload:  uint16(3),
+			expectedMsg: []byte("foo"),
+		},
+		{description: "msg[0]_prefix_is_1",
+			payload:     "bar",
+			inputPrefix: byte(1),
+			lenMsg:      6,
+			prefix:      byte(1),
+			lenPayload:  uint16(3),
+			expectedMsg: []byte("bar"),
+		},
+		{description: "msg[1:3]_decodes_to_len(payload)",
+			payload:     "foobar",
+			inputPrefix: byte(0),
+			lenMsg:      9,
+			prefix:      byte(0),
+			lenPayload:  uint16(6),
+			expectedMsg: []byte("foobar"),
+		},
+		{description: "msg[3:]_equal_to_payload)",
+			payload:     "helloworld",
+			inputPrefix: byte(0),
+			lenMsg:      13,
+			prefix:      byte(0),
+			lenPayload:  uint16(10),
+			expectedMsg: []byte("helloworld"),
+		},
+	}
 
 	for _, tt := range tablesWrite {
 		t.Run(tt.description, func(t *testing.T) {
@@ -113,11 +115,10 @@ func TestBranchConn_Write(t *testing.T) {
 			connA, connB := net.Pipe()
 			defer connB.Close()
 
-			bc := &branchConn{Conn: connA, readCh: ch}
-			payload := "foo"
+			bc := &branchConn{Conn: connA, prefix: tt.inputPrefix, readCh: ch}
+			payload := tt.payload
 
 			done := make(chan struct{})
-			defer close(done)
 
 			go func() {
 				_, err = bc.Write([]byte(payload))
@@ -134,10 +135,12 @@ func TestBranchConn_Write(t *testing.T) {
 			<-done
 
 			assert.NoError(t, err)
-			assert.Equal(t, tt.lenMsg, len(payload)+3)
-			assert.Equal(t, tt.prefix, msg[0])
-			assert.Equal(t, tt.lenPayload, lenPayload)
-			assert.Equal(t, tt.expectedMsg, msg[3:])
+			assert.Equal(t, tt.lenMsg, len(payload)+3, "len(msg) should equal to len(payload)+3")
+			assert.Equal(t, tt.prefix, msg[0], "incorrect prefix")
+			assert.Equal(t, tt.lenPayload, lenPayload, "decoded length should equal to length of payload")
+			assert.Equal(t, tt.expectedMsg, msg[3:], "message content should be equal")
+
+			close(done)
 		})
 	}
 }
