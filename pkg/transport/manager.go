@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -314,7 +315,11 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
 	tm.mu.Lock()
 	if otr, ok := tm.transports[entry.ID]; ok {
-		defer tm.mu.Unlock()
+		tm.Logger.Warnf("transport with ID: %s already exists, returning it instead as dialed....", entry.ID)
+		defer func(tm *Manager) {
+			tm.mu.Unlock()
+			fmt.Println("dialed mux returned")
+		}(tm)
 		select {
 		case <-tm.doneChan:
 		case tm.dialedTrChan <- otr:
@@ -331,7 +336,7 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	}
 	tm.mu.Unlock()
 
-	go func() {
+	go func(tm *Manager, tr *ManagedTransport) {
 		select {
 		case <-managedTr.doneChan:
 			tm.Logger.Infof("Transport %s closed (dialed transport)", managedTr.ID)
@@ -351,7 +356,7 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 				managedTr.updateTransport(tr)
 			}
 		}
-	}()
+	}(tm, managedTr)
 
 	go tm.manageTransportLogs(managedTr)
 
@@ -397,7 +402,11 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 
 	// if exists, send done signal to previous one
 	if otr, ok := tm.transports[entry.ID]; ok {
-		defer tm.mu.Unlock()
+		tm.Logger.Warnf("transport with ID: %s already exists, returning it instead as accepted....", entry.ID)
+		defer func(tm *Manager) {
+			tm.mu.Unlock()
+			fmt.Println("accepted mux returned")
+		}(tm)
 		select {
 		case <-tm.doneChan:
 		case tm.acceptedTrChan <- otr:
@@ -416,7 +425,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	tm.mu.Unlock()
 
 	// go func(managedTr *ManagedTransport, tm *Manager) {
-	go func() {
+	go func(tm *Manager, tr *ManagedTransport) {
 		select {
 		case <-managedTr.doneChan:
 			tm.Logger.Infof("Transport %s closed (acceptedTransport)", managedTr.ID)
@@ -430,7 +439,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 				tm.Logger.Warnf("Failed to delete transport: %s", err)
 			}
 		}
-	}()
+	}(tm, managedTr)
 
 	go tm.manageTransportLogs(managedTr)
 

@@ -109,17 +109,26 @@ func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) er
 
 		go func() {
 			if handleFunc == nil {
-				p.writeFrame(FrameSuccess, id, nil) // nolint: errcheck
+				err := p.writeFrame(FrameSuccess, id, nil) // nolint: errcheck
+				if err != nil {
+					fmt.Println("got err writing FrameSuccess when nil handleFunc: ", err)
+				}
 				return
 			}
 
 			res, err := handleFunc(fType, frame[2:])
 			if err != nil {
-				p.writeFrame(FrameFailure, id, err) // nolint: errcheck
+				err := p.writeFrame(FrameFailure, id, err) // nolint: errcheck
+				if err != nil {
+					fmt.Println("got err writing FrameFailure: ", err)
+				}
 				return
 			}
 
-			p.writeFrame(FrameSuccess, id, res) // nolint: errcheck
+			err = p.writeFrame(FrameSuccess, id, res) // nolint: errcheck
+			if err != nil {
+				fmt.Println("got err writing FrameSuccess: ", err)
+			}
 		}()
 	}
 }

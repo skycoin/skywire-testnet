@@ -158,6 +158,7 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 		return 0, nil
 	}
 
+	sn.Logger.Info("1")
 	sn.Logger.Infof("Creating new Route %s", route)
 	r := make([]*Hop, len(route))
 
@@ -274,11 +275,13 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 }
 
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
+	sn.Logger.Info("setupRule before CreateTransport...")
 	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, "messaging", false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return
 	}
+	sn.Logger.Info("setup rule after CreateTransport")
 
 	proto := NewSetupProtocol(tr)
 	routeID, err = AddRule(proto, rule)
