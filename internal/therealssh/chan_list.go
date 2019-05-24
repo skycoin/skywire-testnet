@@ -5,14 +5,14 @@ import "sync"
 type chanList struct {
 	sync.Mutex
 
-	chans []*SshChannel
+	chans []*SSHChannel
 }
 
 func newChanList() *chanList {
-	return &chanList{chans: []*SshChannel{}}
+	return &chanList{chans: []*SSHChannel{}}
 }
 
-func (c *chanList) add(sshCh *SshChannel) uint32 {
+func (c *chanList) add(sshCh *SSHChannel) uint32 {
 	c.Lock()
 	defer c.Unlock()
 
@@ -27,7 +27,7 @@ func (c *chanList) add(sshCh *SshChannel) uint32 {
 	return uint32(len(c.chans) - 1)
 }
 
-func (c *chanList) getChannel(id uint32) *SshChannel {
+func (c *chanList) getChannel(id uint32) *SSHChannel {
 	c.Lock()
 	defer c.Unlock()
 
@@ -38,10 +38,10 @@ func (c *chanList) getChannel(id uint32) *SshChannel {
 	return nil
 }
 
-func (c *chanList) dropAll() []*SshChannel {
+func (c *chanList) dropAll() []*SSHChannel {
 	c.Lock()
 	defer c.Unlock()
-	var r []*SshChannel
+	var r []*SSHChannel
 
 	for _, ch := range c.chans {
 		if ch == nil {

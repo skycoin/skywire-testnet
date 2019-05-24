@@ -25,8 +25,8 @@ const Port = 2
 // Debug enables debug messages.
 var Debug = false
 
-// SshChannel defines communication channel parameters.
-type SshChannel struct {
+// SSHChannel defines communication channel parameters.
+type SSHChannel struct {
 	RemoteID   uint32
 	RemoteAddr *app.Addr
 
@@ -38,25 +38,25 @@ type SshChannel struct {
 	dataCh   chan []byte
 }
 
-// OpenChannel constructs new SshChannel with empty Session.
-func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *SshChannel {
-	return &SshChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
+// OpenChannel constructs new SSHChannel with empty Session.
+func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *SSHChannel {
+	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
 }
 
-// OpenClientChannel constructs new client SshChannel with empty Session.
-func OpenClientChannel(remoteID uint32, remotePK cipher.PubKey, conn net.Conn) *SshChannel {
+// OpenClientChannel constructs new client SSHChannel with empty Session.
+func OpenClientChannel(remoteID uint32, remotePK cipher.PubKey, conn net.Conn) *SSHChannel {
 	ch := OpenChannel(remoteID, &app.Addr{PubKey: remotePK, Port: Port}, conn)
 	return ch
 }
 
 // Send sends command message.
-func (sshCh *SshChannel) Send(cmd CommandType, payload []byte) error {
+func (sshCh *SSHChannel) Send(cmd CommandType, payload []byte) error {
 	data := appendU32([]byte{byte(cmd)}, sshCh.RemoteID)
 	_, err := sshCh.conn.Write(append(data, payload...))
 	return err
 }
 
-func (sshCh *SshChannel) Read(p []byte) (int, error) {
+func (sshCh *SSHChannel) Read(p []byte) (int, error) {
 	data, more := <-sshCh.dataCh
 	if !more {
 		return 0, io.EOF
@@ -65,14 +65,14 @@ func (sshCh *SshChannel) Read(p []byte) (int, error) {
 	return copy(p, data), nil
 }
 
-func (sshCh *SshChannel) Write(p []byte) (n int, err error) {
+func (sshCh *SSHChannel) Write(p []byte) (n int, err error) {
 	n = len(p)
 	err = sshCh.Send(CmdChannelData, p)
 	return
 }
 
 // Request sends request message and waits for response.
-func (sshCh *SshChannel) Request(requestType RequestType, payload []byte) ([]byte, error) {
+func (sshCh *SSHChannel) Request(requestType RequestType, payload []byte) ([]byte, error) {
 	debug("sending request %x", requestType)
 	req := append([]byte{byte(requestType)}, payload...)
 
@@ -89,7 +89,7 @@ func (sshCh *SshChannel) Request(requestType RequestType, payload []byte) ([]byt
 }
 
 // Serve starts request handling loop.
-func (sshCh *SshChannel) Serve() error {
+func (sshCh *SSHChannel) Serve() error {
 	for data := range sshCh.msgCh {
 		var err error
 		debug("new request %x", data[0])
@@ -136,12 +136,12 @@ func (sshCh *SshChannel) Serve() error {
 
 // SocketPath returns unix socket location. This socket is normally
 // used by the CLI to exchange PTY data with a client app.
-func (sshCh *SshChannel) SocketPath() string {
+func (sshCh *SSHChannel) SocketPath() string {
 	return filepath.Join(os.TempDir(), fmt.Sprintf("therealsshd-%d", sshCh.RemoteID))
 }
 
 // ServeSocket starts socket handling loop.
-func (sshCh *SshChannel) ServeSocket() error {
+func (sshCh *SSHChannel) ServeSocket() error {
 	os.Remove(sshCh.SocketPath())
 	debug("waiting for new socket connections on: %s", sshCh.SocketPath())
 	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: sshCh.SocketPath(), Net: "unix"})
@@ -178,7 +178,7 @@ func (sshCh *SshChannel) ServeSocket() error {
 }
 
 // OpenPTY creates new PTY Session for the Channel.
-func (sshCh *SshChannel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
+func (sshCh *SSHChannel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
 	if sshCh.session != nil {
 		return errors.New("session is already started")
 	}
@@ -194,12 +194,12 @@ func (sshCh *SshChannel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
 }
 
 // Shell starts shell process on Channel's PTY session.
-func (sshCh *SshChannel) Shell() error {
+func (sshCh *SSHChannel) Shell() error {
 	return sshCh.Start("shell")
 }
 
 // Start executes provided command on Channel's PTY session.
-func (sshCh *SshChannel) Start(command string) error {
+func (sshCh *SSHChannel) Start(command string) error {
 	if sshCh.session == nil {
 		return errors.New("session is not started")
 	}
@@ -214,7 +214,7 @@ func (sshCh *SshChannel) Start(command string) error {
 	return sshCh.session.Start(command)
 }
 
-func (sshCh *SshChannel) serveSession() error {
+func (sshCh *SSHChannel) serveSession() error {
 	defer func() {
 		sshCh.Send(CmdChannelServerClose, nil) // nolint
 		sshCh.Close()
@@ -236,7 +236,7 @@ func (sshCh *SshChannel) serveSession() error {
 }
 
 // WindowChange resize PTY Session size.
-func (sshCh *SshChannel) WindowChange(sz *pty.Winsize) error {
+func (sshCh *SSHChannel) WindowChange(sz *pty.Winsize) error {
 	if sshCh.session == nil {
 		return errors.New("session is not started")
 	}
@@ -245,7 +245,7 @@ func (sshCh *SshChannel) WindowChange(sz *pty.Winsize) error {
 }
 
 // Close safely closes Channel resources.
-func (sshCh *SshChannel) Close() error {
+func (sshCh *SSHChannel) Close() error {
 	select {
 	case <-sshCh.dataCh:
 	default:
