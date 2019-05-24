@@ -7,15 +7,25 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"sync"
 )
 
 const bufferSize = 8
 
+// closeCh ensures that branchConn's readCh channel is closed once
+var closeCh sync.Once
+
 // branchConn will inherit the net.Conn interface.
 type branchConn struct {
+	duplex *RPCDuplex
 	net.Conn
 	prefix byte
 	readCh chan []byte
+}
+
+// Close calls Duplex.Close to close internal readCh for both branchConn
+func (bc *branchConn) Close() error {
+	return bc.duplex.Close()
 }
 
 // Read reads in data from original conn through branchConn's chan [].
@@ -24,7 +34,10 @@ type branchConn struct {
 func (bc *branchConn) Read(b []byte) (n int, err error) {
 
 	// Reads in data from chan []byte pushed from Original Conn
-	data := <-bc.readCh
+	data, ok := <-bc.readCh
+	if !ok {
+		return 0, io.ErrClosedPipe
+	}
 
 	// Compare length of data with b to check if a longer buffer is required
 	if len(data) > len(b) {
@@ -38,19 +51,12 @@ func (bc *branchConn) Read(b []byte) (n int, err error) {
 // Write prefixes a connection with either 0 or 1 and writes this prefixed data stream
 // back to the original conn
 func (bc *branchConn) Write(b []byte) (n int, err error) {
-
 	buf := make([]byte, 3)
 	buf[0] = byte(bc.prefix)
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(b)))
 
 	n, err = bc.Conn.Write(append(buf, b...))
 	return n - 3, err
-}
-
-// Close closes all internal readCh and branchConn
-func (bc *branchConn) Close() error {
-	close(bc.readCh)
-	return bc.Conn.Close()
 }
 
 // RPCDuplex holds the basic structure of two prefixed connections and the original connection
@@ -83,24 +89,30 @@ func NewRPCDuplex(conn net.Conn, srv *rpc.Server, initiator bool) *RPCDuplex {
 		d.rpcC = rpc.NewClient(d.clientConn)
 	}
 
+	d.clientConn.duplex = &d
+	d.serverConn.duplex = &d
+
 	return &d
 }
 
 // Client returns the internal RPC Client.
 func (d *RPCDuplex) Client() *rpc.Client { return d.rpcC }
 
-// Close closes all opened connections and channels
+// closeDone close both branchConn's readCh
+func (d *RPCDuplex) closeDone() {
+
+	close(d.clientConn.readCh)
+	close(d.serverConn.readCh)
+}
+
+// Close calls closeDone which close both branchConn's readCh
 func (d *RPCDuplex) Close() error {
 
-	if err := d.clientConn.Close(); err != nil {
-		return err
-	}
+	closeCh.Do(func() {
+		d.closeDone()
+	})
 
-	if err := d.serverConn.Close(); err != nil {
-		return err
-	}
-
-	return d.conn.Close()
+	return errors.New("branchConn closed")
 }
 
 // forward forwards one packet from Original conn to appropriate branchConn based on the packet's prefix
@@ -151,7 +163,7 @@ func (d *RPCDuplex) Serve() error {
 		case io.EOF:
 			return nil
 		default:
-			log.Fatalln(err)
+			return err
 		}
 	}
 }

@@ -2,6 +2,7 @@ package netutil
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -363,9 +364,6 @@ func TestNewRPCDuplex(t *testing.T) {
 			assert.Nil(<-errChA)
 			assert.Nil(<-errChB)
 
-			// Close channel
-			close(bcReader.readCh)
-			close(bcWriter.readCh)
 		})
 	}
 }
@@ -414,11 +412,11 @@ func TestRPCDuplex_Serve(t *testing.T) {
 	serverB := rpc.NewServer()
 	require.NoError(t, serverB.RegisterName("RPC", new(RPC)))
 
-	errChA := make(chan error)
+	errChA := make(chan error, 1)
 	dA := NewRPCDuplex(cA, serverA, true)
 	go func() { errChA <- dA.Serve() }()
 
-	errChB := make(chan error)
+	errChB := make(chan error, 1)
 	dB := NewRPCDuplex(cB, serverB, false)
 	go func() { errChB <- dB.Serve() }()
 
@@ -433,6 +431,65 @@ func TestRPCDuplex_Serve(t *testing.T) {
 		// log.Println("bDuplex:", r)
 	}
 
-	assert.Nil(t, dA.Close())
-	assert.Nil(t, dB.Close())
+	close(errChA)
+	close(errChB)
+	assert.Nil(t, <-errChA)
+	assert.Nil(t, <-errChB)
+
+}
+
+func TestRPCDuplex_Close(t *testing.T) {
+
+	// Closing RPCDuplex should close both branchConn's readCh; therefore, it
+	// should panic with "write to closed channel" when data is pushed to it
+	t.Run("readCh_panic_when_write_read_to_closed_channel", func(t *testing.T) {
+
+		cA, cB := net.Pipe()
+
+		dA := NewRPCDuplex(cA, nil, true)
+		dB := NewRPCDuplex(cB, nil, false)
+
+		errChA := make(chan error, 1)
+		go func() {
+			_, err := dA.clientConn.Write([]byte("foo"))
+			errChA <- err
+		}()
+
+		err := dB.Close()
+		assert.Equal(t, err, errors.New("branchConn closed"))
+
+		assert.Panics(t, func() { dB.forward() })
+		assert.Nil(t, <-errChA)
+	})
+
+	// Closing branchConn or RPCDuplex multiple times shouldn't result in panic
+	t.Run("closing_branchConn_multiple_times", func(t *testing.T) {
+
+		cA, cB := net.Pipe()
+
+		serverA := rpc.NewServer()
+		require.NoError(t, serverA.RegisterName("RPC", new(RPC)))
+
+		serverB := rpc.NewServer()
+		require.NoError(t, serverB.RegisterName("RPC", new(RPC)))
+
+		errChA := make(chan error, 1)
+		dA := NewRPCDuplex(cA, serverA, true)
+		go func() { errChA <- dA.Serve() }()
+
+		errChB := make(chan error, 1)
+		dB := NewRPCDuplex(cB, serverB, false)
+		go func() { errChB <- dB.Serve() }()
+
+		for i := 0; i < 3; i++ {
+			require.Equal(t, dA.clientConn.Close(), errors.New("branchConn closed"))
+			require.Equal(t, dB.serverConn.Close(), errors.New("branchConn closed"))
+		}
+
+		close(errChA)
+		close(errChB)
+		assert.Nil(t, <-errChA)
+		assert.Nil(t, <-errChB)
+	})
+
 }
