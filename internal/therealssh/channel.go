@@ -25,8 +25,8 @@ const Port = 2
 // Debug enables debug messages.
 var Debug = false
 
-// Channel defines communication channel parameters.
-type Channel struct {
+// SshChannel defines communication channel parameters.
+type SshChannel struct {
 	RemoteID   uint32
 	RemoteAddr *app.Addr
 
@@ -38,26 +38,26 @@ type Channel struct {
 	dataCh   chan []byte
 }
 
-// OpenChannel constructs new Channel with empty Session.
-func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *Channel {
-	return &Channel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
+// OpenChannel constructs new SshChannel with empty Session.
+func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *SshChannel {
+	return &SshChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
 }
 
-// OpenClientChannel constructs new client Channel with empty Session.
-func OpenClientChannel(remoteID uint32, remotePK cipher.PubKey, conn net.Conn) *Channel {
+// OpenClientChannel constructs new client SshChannel with empty Session.
+func OpenClientChannel(remoteID uint32, remotePK cipher.PubKey, conn net.Conn) *SshChannel {
 	ch := OpenChannel(remoteID, &app.Addr{PubKey: remotePK, Port: Port}, conn)
 	return ch
 }
 
 // Send sends command message.
-func (c *Channel) Send(cmd CommandType, payload []byte) error {
-	data := appendU32([]byte{byte(cmd)}, c.RemoteID)
-	_, err := c.conn.Write(append(data, payload...))
+func (sshCh *SshChannel) Send(cmd CommandType, payload []byte) error {
+	data := appendU32([]byte{byte(cmd)}, sshCh.RemoteID)
+	_, err := sshCh.conn.Write(append(data, payload...))
 	return err
 }
 
-func (c *Channel) Read(p []byte) (int, error) {
-	data, more := <-c.dataCh
+func (sshCh *SshChannel) Read(p []byte) (int, error) {
+	data, more := <-sshCh.dataCh
 	if !more {
 		return 0, io.EOF
 	}
@@ -65,22 +65,22 @@ func (c *Channel) Read(p []byte) (int, error) {
 	return copy(p, data), nil
 }
 
-func (c *Channel) Write(p []byte) (n int, err error) {
+func (sshCh *SshChannel) Write(p []byte) (n int, err error) {
 	n = len(p)
-	err = c.Send(CmdChannelData, p)
+	err = sshCh.Send(CmdChannelData, p)
 	return
 }
 
 // Request sends request message and waits for response.
-func (c *Channel) Request(requestType RequestType, payload []byte) ([]byte, error) {
+func (sshCh *SshChannel) Request(requestType RequestType, payload []byte) ([]byte, error) {
 	debug("sending request %x", requestType)
 	req := append([]byte{byte(requestType)}, payload...)
 
-	if err := c.Send(CmdChannelRequest, req); err != nil {
+	if err := sshCh.Send(CmdChannelRequest, req); err != nil {
 		return nil, fmt.Errorf("request failure: %s", err)
 	}
 
-	data := <-c.msgCh
+	data := <-sshCh.msgCh
 	if data[0] == ResponseFail {
 		return nil, fmt.Errorf("request failure: %s", string(data[1:]))
 	}
@@ -89,8 +89,8 @@ func (c *Channel) Request(requestType RequestType, payload []byte) ([]byte, erro
 }
 
 // Serve starts request handling loop.
-func (c *Channel) Serve() error {
-	for data := range c.msgCh {
+func (sshCh *SshChannel) Serve() error {
+	for data := range sshCh.msgCh {
 		var err error
 		debug("new request %x", data[0])
 		switch RequestType(data[0]) {
@@ -106,17 +106,17 @@ func (c *Channel) Serve() error {
 			width := binary.BigEndian.Uint32(data[9:])
 			height := binary.BigEndian.Uint32(data[13:])
 			size := &pty.Winsize{Cols: uint16(cols), Rows: uint16(rows), X: uint16(width), Y: uint16(height)}
-			err = c.OpenPTY(u, size)
+			err = sshCh.OpenPTY(u, size)
 		case RequestShell:
-			err = c.Shell()
+			err = sshCh.Shell()
 		case RequestExec:
-			err = c.Start(string(data[1:]))
+			err = sshCh.Start(string(data[1:]))
 		case RequestWindowChange:
 			cols := binary.BigEndian.Uint32(data[1:])
 			rows := binary.BigEndian.Uint32(data[5:])
 			width := binary.BigEndian.Uint32(data[9:])
 			height := binary.BigEndian.Uint32(data[13:])
-			err = c.WindowChange(&pty.Winsize{Cols: uint16(cols), Rows: uint16(rows), X: uint16(width), Y: uint16(height)})
+			err = sshCh.WindowChange(&pty.Winsize{Cols: uint16(cols), Rows: uint16(rows), X: uint16(width), Y: uint16(height)})
 		}
 
 		var res []byte
@@ -126,7 +126,7 @@ func (c *Channel) Serve() error {
 			res = []byte{ResponseConfirm}
 		}
 
-		if err := c.Send(CmdChannelResponse, res); err != nil {
+		if err := sshCh.Send(CmdChannelResponse, res); err != nil {
 			return fmt.Errorf("failed to respond: %s", err)
 		}
 	}
@@ -136,20 +136,20 @@ func (c *Channel) Serve() error {
 
 // SocketPath returns unix socket location. This socket is normally
 // used by the CLI to exchange PTY data with a client app.
-func (c *Channel) SocketPath() string {
-	return filepath.Join(os.TempDir(), fmt.Sprintf("therealsshd-%d", c.RemoteID))
+func (sshCh *SshChannel) SocketPath() string {
+	return filepath.Join(os.TempDir(), fmt.Sprintf("therealsshd-%d", sshCh.RemoteID))
 }
 
 // ServeSocket starts socket handling loop.
-func (c *Channel) ServeSocket() error {
-	os.Remove(c.SocketPath())
-	debug("waiting for new socket connections on: %s", c.SocketPath())
-	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: c.SocketPath(), Net: "unix"})
+func (sshCh *SshChannel) ServeSocket() error {
+	os.Remove(sshCh.SocketPath())
+	debug("waiting for new socket connections on: %s", sshCh.SocketPath())
+	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: sshCh.SocketPath(), Net: "unix"})
 	if err != nil {
 		return fmt.Errorf("failed to open unix socket: %s", err)
 	}
 
-	c.listener = l
+	sshCh.listener = l
 	conn, err := l.AcceptUnix()
 	if err != nil {
 		return fmt.Errorf("failed to accept connection: %s", err)
@@ -158,19 +158,19 @@ func (c *Channel) ServeSocket() error {
 	debug("got new socket connection")
 	defer func() {
 		conn.Close()
-		c.listener.Close()
-		c.listener = nil
-		os.Remove(c.SocketPath())
+		sshCh.listener.Close()
+		sshCh.listener = nil
+		os.Remove(sshCh.SocketPath())
 	}()
 
 	go func() {
-		if _, err := io.Copy(c, conn); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+		if _, err := io.Copy(sshCh, conn); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			log.Println("failed to write to server:", err)
 			return
 		}
 	}()
 
-	if _, err := io.Copy(conn, c); err != nil {
+	if _, err := io.Copy(conn, sshCh); err != nil {
 		return fmt.Errorf("failed to write to client: %s", err)
 	}
 
@@ -178,15 +178,15 @@ func (c *Channel) ServeSocket() error {
 }
 
 // OpenPTY creates new PTY Session for the Channel.
-func (c *Channel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
-	if c.session != nil {
+func (sshCh *SshChannel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
+	if sshCh.session != nil {
 		return errors.New("session is already started")
 	}
 
 	debug("starting new session for %s with %#v", user.Username, sz)
-	c.session, err = OpenSession(user, sz)
+	sshCh.session, err = OpenSession(user, sz)
 	if err != nil {
-		c.session = nil
+		sshCh.session = nil
 		return
 	}
 
@@ -194,40 +194,40 @@ func (c *Channel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
 }
 
 // Shell starts shell process on Channel's PTY session.
-func (c *Channel) Shell() error {
-	return c.Start("shell")
+func (sshCh *SshChannel) Shell() error {
+	return sshCh.Start("shell")
 }
 
 // Start executes provided command on Channel's PTY session.
-func (c *Channel) Start(command string) error {
-	if c.session == nil {
+func (sshCh *SshChannel) Start(command string) error {
+	if sshCh.session == nil {
 		return errors.New("session is not started")
 	}
 
 	go func() {
-		if err := c.serveSession(); err != nil {
+		if err := sshCh.serveSession(); err != nil {
 			log.Println("Session failure:", err)
 		}
 	}()
 
 	debug("starting new pty process %s", command)
-	return c.session.Start(command)
+	return sshCh.session.Start(command)
 }
 
-func (c *Channel) serveSession() error {
+func (sshCh *SshChannel) serveSession() error {
 	defer func() {
-		c.Send(CmdChannelServerClose, nil) // nolint
-		c.Close()
+		sshCh.Send(CmdChannelServerClose, nil) // nolint
+		sshCh.Close()
 	}()
 
 	go func() {
-		if _, err := io.Copy(c.session, c); err != nil {
+		if _, err := io.Copy(sshCh.session, sshCh); err != nil {
 			log.Println("PTY copy: ", err)
 			return
 		}
 	}()
 
-	_, err := io.Copy(c, c.session)
+	_, err := io.Copy(sshCh, sshCh.session)
 	if err != nil && !strings.Contains(err.Error(), "input/output error") {
 		return fmt.Errorf("client copy: %s", err)
 	}
@@ -236,30 +236,30 @@ func (c *Channel) serveSession() error {
 }
 
 // WindowChange resize PTY Session size.
-func (c *Channel) WindowChange(sz *pty.Winsize) error {
-	if c.session == nil {
+func (sshCh *SshChannel) WindowChange(sz *pty.Winsize) error {
+	if sshCh.session == nil {
 		return errors.New("session is not started")
 	}
 
-	return c.session.WindowChange(sz)
+	return sshCh.session.WindowChange(sz)
 }
 
 // Close safely closes Channel resources.
-func (c *Channel) Close() error {
+func (sshCh *SshChannel) Close() error {
 	select {
-	case <-c.dataCh:
+	case <-sshCh.dataCh:
 	default:
-		close(c.dataCh)
+		close(sshCh.dataCh)
 	}
-	close(c.msgCh)
+	close(sshCh.msgCh)
 
 	var sErr, lErr error
-	if c.session != nil {
-		sErr = c.session.Close()
+	if sshCh.session != nil {
+		sErr = sshCh.session.Close()
 	}
 
-	if c.listener != nil {
-		lErr = c.listener.Close()
+	if sshCh.listener != nil {
+		lErr = sshCh.listener.Close()
 	}
 
 	if sErr != nil {

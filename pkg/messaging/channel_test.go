@@ -131,26 +131,26 @@ func TestChannelClose(t *testing.T) {
 	assert.Equal(t, byte(10), buf[3])
 }
 
-func handshakeChannel(t *testing.T, c *channel, pk cipher.PubKey, sk cipher.SecKey) *noise.Noise {
+func handshakeChannel(t *testing.T, mCh *msgChannel, pk cipher.PubKey, sk cipher.SecKey) *noise.Noise {
 	t.Helper()
 
 	noiseConf := noise.Config{
 		LocalSK:   sk,
 		LocalPK:   pk,
-		RemotePK:  c.link.Local(),
+		RemotePK:  mCh.link.Local(),
 		Initiator: false,
 	}
 
 	n, err := noise.KKAndSecp256k1(noiseConf)
 	require.NoError(t, err)
 
-	msg, err := c.noise.HandshakeMessage()
+	msg, err := mCh.noise.HandshakeMessage()
 	require.NoError(t, err)
 
 	require.NoError(t, n.ProcessMessage(msg))
 	msg, err = n.HandshakeMessage()
 	require.NoError(t, err)
 
-	require.NoError(t, c.noise.ProcessMessage(msg))
+	require.NoError(t, mCh.noise.ProcessMessage(msg))
 	return n
 }
