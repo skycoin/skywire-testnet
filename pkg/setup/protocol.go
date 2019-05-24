@@ -75,18 +75,24 @@ func NewSetupProtocol(rw io.ReadWriter) *Protocol {
 
 // ReadPacket reads a single setup packet.
 func (p *Protocol) ReadPacket() (PacketType, []byte, error) {
+	fmt.Println("ReadPacket")
 	rawLen := make([]byte, 2)
 	if _, err := io.ReadFull(p.rw, rawLen); err != nil {
+		fmt.Println("errored on first readfull ", err)
 		return 0, nil, err
 	}
+	fmt.Println("ReadPacket first readfull")
 	rawBody := make([]byte, binary.BigEndian.Uint16(rawLen))
 	_, err := io.ReadFull(p.rw, rawBody)
 	if err != nil {
+		fmt.Println("ReadPacket second readfull")
 		return 0, nil, err
 	}
 	if len(rawBody) == 0 {
+		fmt.Println("empty packet,", err)
 		return 0, nil, errors.New("empty packet")
 	}
+	fmt.Println("returning from ReadPacket")
 	return PacketType(rawBody[0]), rawBody[1:], nil
 }
 

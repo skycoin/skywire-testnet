@@ -275,6 +275,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 }
 
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
+	defer fmt.Println("returning from setupRule")
 	sn.Logger.Info("setupRule before CreateTransport...")
 	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, "messaging", false)
 	if err != nil {
@@ -284,10 +285,12 @@ func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID rout
 	sn.Logger.Info("setup rule after CreateTransport")
 
 	proto := NewSetupProtocol(tr)
+	fmt.Println("AddRule")
 	routeID, err = AddRule(proto, rule)
 	if err != nil {
 		return
 	}
+	fmt.Println("RuleAdded")
 
 	sn.Logger.Infof("Set rule of type %s on %s with ID %d", rule.Type(), pubKey, routeID)
 	err = sn.tm.DeleteTransport(tr.ID)

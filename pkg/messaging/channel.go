@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -35,6 +36,7 @@ type channel struct {
 	noise *noise.Noise
 	rMx   sync.Mutex // lock for decrypt cipher state
 	wMx   sync.Mutex // lock for encrypt cipher state
+	pMx   sync.Mutex // for handshake and processMessage
 }
 
 func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link *Link) (*channel, error) {
@@ -84,26 +86,27 @@ func (c *channel) Edges() [2]cipher.PubKey {
 
 // HandshakeMessage prepares a handshake message safely.
 func (c *channel) HandshakeMessage() ([]byte, error) {
-	c.rMx.Lock()
-	c.wMx.Lock()
+	c.pMx.Lock()
+	defer c.pMx.Unlock()
 	res, err := c.noise.HandshakeMessage()
-	c.rMx.Unlock()
-	c.wMx.Unlock()
 	return res, err
 }
 
 // ProcessMessage reads a handshake message safely.
 func (c *channel) ProcessMessage(msg []byte) error {
-	c.rMx.Lock()
-	c.wMx.Lock()
+	c.pMx.Lock()
+	defer c.pMx.Unlock()
 	err := c.noise.ProcessMessage(msg)
-	c.rMx.Unlock()
-	c.wMx.Unlock()
 	return err
 }
 
 func (c *channel) Read(p []byte) (n int, err error) {
+	fmt.Println("inside Read previous lock")
+	c.rMx.Lock()
+	fmt.Println("inside Read after lock")
+	defer c.rMx.Unlock()
 	if c.buf.Len() != 0 {
+		fmt.Println("Read buf len 0, returning previous")
 		return c.buf.Read(p)
 	}
 
@@ -198,9 +201,6 @@ func (c *channel) close() {
 }
 
 func (c *channel) readEncrypted(ctx context.Context, p []byte) (n int, err error) {
-	c.rMx.Lock()
-	defer c.rMx.Unlock()
-
 	buf := new(bytes.Buffer)
 	readAtLeast := func(d []byte) (int, error) {
 		for {
