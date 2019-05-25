@@ -93,7 +93,7 @@ Open a new command window
 
 ```
 cd $GOPATH/bin
-./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 
+./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001
 ```
 
 `tip: If you run with the above command, you will not be able to close the current window or you will close Skywire Node.`
@@ -167,7 +167,7 @@ If you use a modern Linux OS (released after 2017) you are using systemd as init
 
 Please note that the manager instance will start also a local node, so you must select just a manager on a net and the rest will be nodes.
 
-###### Installing & start of mananger unit file on systemd 
+###### Installing & start of mananger unit file on systemd
 
 ```
 cp ${GOPATH}/src/github.com/skycoin/skywire/static/script/upgrade/data/skywire-manager.service /etc/systemd/system/
@@ -175,7 +175,7 @@ systemctl enable skywire-manager
 systemctl start skywire-manager
 ```
 
-###### Installing & start of nodes unit file on systemd 
+###### Installing & start of nodes unit file on systemd
 
 ```
 cp ${GOPATH}/src/github.com/skycoin/skywire/static/script/upgrade/data/skywire-node.service /etc/systemd/system/
@@ -297,7 +297,7 @@ Default password is 'samos'.
 
 ### Upgrade the presetted system images
 
-The base images has a few [known bugs](https://github.com/skycoin/skywire/issues/171), we have built a one time upgrade script to fix that until we upgrade the new presseted system images. 
+The base images has a few [known bugs](https://github.com/skycoin/skywire/issues/171), we have built a one time upgrade script to fix that until we upgrade the new presseted system images.
 
 If you want to upgrade the presetted system images please see [this one time upgrade instructions](static/script/upgrade/).
 
@@ -332,3 +332,37 @@ Download [Pure Image](https://downloads.skycoin.net/skywire-images/skywire_pure.
 The images are in https://github.com/skycoin/Orange-Pi-H5
 
 Instructions for building the images are in https://github.com/skycoin/Orange-Pi-H5/wiki/How-to-build-the-images
+
+## Deployment Packages
+
+### Debian / Armbian
+
+Community maintained debian packages for skywire on various architectures are provided [here](https://github.com/Skyfleet/skydebs/releases/tag/skydebs)
+
+These can be installed, for example, with:
+
+'sudo dpkg -i skywire-aarch64-20190505-1.deb'
+
+### Archlinux / ArchlinuxARM
+
+PKGBUILD scripts for various sky packages are available in the Archlinux User Repos (AUR)
+It's recommended to use `yay` as an AUR package manager.
+
+```
+sudo pacman -Syy
+sudo pacman -S base-devel
+sudo pacman -Syu
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -sci
+```
+
+[Available packages](https://aur.archlinux.org/packages/?O=0&K=skycoin) can then be installed with commands such as:
+
+```
+yay -S skywire
+```
+or
+```
+yay -S skywire-mainnet
+```
