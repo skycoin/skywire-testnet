@@ -64,7 +64,7 @@ type Client struct {
 	links map[cipher.PubKey]*clientLink
 	mu    sync.RWMutex
 
-	newChan  chan *channel
+	newChan  chan *msgChannel
 	doneChan chan struct{}
 }
 
@@ -78,7 +78,7 @@ func NewClient(conf *Config) *Client {
 		retries:    conf.Retries,
 		retryDelay: conf.RetryDelay,
 		links:      make(map[cipher.PubKey]*clientLink),
-		newChan:    make(chan *channel),
+		newChan:    make(chan *msgChannel),
 		doneChan:   make(chan struct{}),
 	}
 	config := &LinkConfig{

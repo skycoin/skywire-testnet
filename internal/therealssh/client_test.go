@@ -19,7 +19,7 @@ func TestClientOpenChannel(t *testing.T) {
 	c := &Client{dialer, newChanList()}
 
 	type data struct {
-		ch  *Channel
+		ch  *SSHChannel
 		err error
 	}
 	resCh := make(chan data)
