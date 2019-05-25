@@ -4,23 +4,23 @@
 
 ## Notes on this release
 
-This is a public testing version of the Skywire mainnet and is intended for developers use to find bugs only. It is not yet intended to replace the testnet and miners should not install this software on their miners or they may lose their reward eligibility. 
+This is a public testing version of the Skywire mainnet and is intended for developers use to find bugs only. It is not yet intended to replace the testnet and miners should not install this software on their miners or they may lose their reward eligibility.
 
-The software is still under heavy development and the current version is intended for public testing purposes only. A GUI interface and various guides on how to use Skywire, application development on Skywire and contribution policies will follow in the near future. For now this version of the software can be used by developers to test the functionality and file bug issues to help the development. 
+The software is still under heavy development and the current version is intended for public testing purposes only. A GUI interface and various guides on how to use Skywire, application development on Skywire and contribution policies will follow in the near future. For now this version of the software can be used by developers to test the functionality and file bug issues to help the development.
 
-## Architecture 
+## Architecture
 
-Skywire is a decentralized and private network. Skywire separates the data and control plane of the network and assigns the tasks of network coordination and administration to dedicated services, while the nodes follow the rules that were created by the control plane and execute them. 
+Skywire is a decentralized and private network. Skywire separates the data and control plane of the network and assigns the tasks of network coordination and administration to dedicated services, while the nodes follow the rules that were created by the control plane and execute them.
 
-The core of Skywire is the Skywire node which hosts applications and is the gateway to use the network. It establishes connections, called transports, to other nodes, requests the setup of routes and forwards packets for other nodes on a route. The Skywire node exposes an API to applications for using the networking protocol of Skywire. 
+The core of Skywire is the Skywire node which hosts applications and is the gateway to use the network. It establishes connections, called transports, to other nodes, requests the setup of routes and forwards packets for other nodes on a route. The Skywire node exposes an API to applications for using the networking protocol of Skywire.
 
-In order to detach control plane tasks from the network nodes, there are 3 other services that maintain a picture of the network topology, calculate routes (currently based on the number of hops, but will be extended to other metrics) and set the routing rules on the nodes. 
+In order to detach control plane tasks from the network nodes, there are 3 other services that maintain a picture of the network topology, calculate routes (currently based on the number of hops, but will be extended to other metrics) and set the routing rules on the nodes.
 
 The transport discovery maintains a picture of the network topology, by allowing Skywire nodes to advertise transports that they established with other nodes. It also allows to upload a status to indicate whether a given transport is currently working or not.
 
-On the basis of this information the route finder calculates the most efficient route in the network. Nodes request a route to a given public key and the route finder will calculate the best route and return the transports that the packet will be sent over to reach the intended node. 
+On the basis of this information the route finder calculates the most efficient route in the network. Nodes request a route to a given public key and the route finder will calculate the best route and return the transports that the packet will be sent over to reach the intended node.
 
-This information is sent from a node to the Setup Node, which sets the routing rules in all nodes along a route. Skywire nodes determine, which nodes they accept routing rules from, so only a whitelisted node can send routing rules to a node in the network. The only information the Skywire node gets for routing is a Routing ID and an associated rule that defines which transport to send a packet to (or to consume the packet). Therefore nodes along a route only know the last and next hop along the route, but not where the packet originates from and where it is sent to. Skywire supports source routing, so nodes can specify a path that a packet is supposed to take in the network. 
+This information is sent from a node to the Setup Node, which sets the routing rules in all nodes along a route. Skywire nodes determine, which nodes they accept routing rules from, so only a whitelisted node can send routing rules to a node in the network. The only information the Skywire node gets for routing is a Routing ID and an associated rule that defines which transport to send a packet to (or to consume the packet). Therefore nodes along a route only know the last and next hop along the route, but not where the packet originates from and where it is sent to. Skywire supports source routing, so nodes can specify a path that a packet is supposed to take in the network.
 
 There are currently two types of transports that nodes can use. The messaging transport is a transport between two nodes that uses an intermediary messaging server to relay packets between them. The connection to a specific node and the connection to a messaging server is facilitated by a discovery service, that allows nodes to advertise the messaging servers over which they can be contacted. This transport is used by the setup node to send routing rules and can be used for other applications as well. It allows nodes behind NATs to communicate. The second transport type is TCP, which sets up a connection between two servers with a public IP. More transport types will be supported in the future and custom transport implementations can be written for specific use cases.
 
@@ -206,7 +206,7 @@ Inside docker container it is mounted on `/sky`
 
 Structure of `./node` partially replicates structure of project root directory.
 
-Note that files created inside docker container has ownership `root:root`, 
+Note that files created inside docker container has ownership `root:root`,
 so in case you want to `rm -rf ./node` (or other file operations) - you will need `sudo` it.
 
 Look at "Recipes: Creating new dockerized node" for further details.
@@ -362,4 +362,38 @@ $ curl --data  {'"recipient":"'$SW_NODE_B_PK'", "message":"Hello Joe!"}' -X POST
 $ curl --data  {'"recipient":"'$SW_NODE_A_PK'", "message":"System is working!"}' -X POST  http://$SW_NODE_B:8000/message
 # Teardown
 $ make stop && make docker-stop
+```
+
+## Deployment Packages
+
+### Debian / Armbian
+
+Community maintained debian packages for skywire on various architectures are provided [here](https://github.com/Skyfleet/skydebs/releases/tag/skydebs)
+
+These can be installed, for example, with:
+
+'sudo dpkg -i skywire-mainnet-aarch64-20190505-1.deb'
+
+### Archlinux / ArchlinuxARM
+
+PKGBUILD scripts for various sky packages are available in the Archlinux User Repos (AUR)
+It's recommended to use `yay` as an AUR package manager.
+
+```
+sudo pacman -Syy
+sudo pacman -S base-devel
+sudo pacman -Syu
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -sci
+```
+
+[Available packages](https://aur.archlinux.org/packages/?O=0&K=skycoin) can then be installed with commands such as:
+
+```
+yay -S skywire
+```
+or
+```
+yay -S skywire-mainnet
 ```
