@@ -332,9 +332,8 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 		case channel.waitChan <- false:
 		default:
 		}
-		if channel.OnChannelClosed() {
-			clientLink.chans.remove(channelID)
-		}
+		channel.OnChannelClosed()
+		clientLink.chans.remove(channelID)
 	case FrameTypeSend:
 		go func() {
 			select {
