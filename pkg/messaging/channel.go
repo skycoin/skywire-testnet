@@ -153,18 +153,20 @@ func (mCh *msgChannel) Write(p []byte) (n int, err error) {
 	}
 }
 
-func (mCh *msgChannel) RequestClose() error {
+func (mCh *msgChannel) Close() error {
 	select {
 	case <-mCh.doneChan:
 		return ErrChannelClosed
 	default:
 	}
 
-	if _, err := mCh.link.SendCloseChannel(mCh.ID()); err != nil {
-		return err
+	if mCh.close() {
+		if _, err := mCh.link.SendCloseChannel(mCh.ID()); err != nil {
+			return err
+		}
 	}
 
-	mCh.close()
+	return nil
 }
 
 func (mCh *msgChannel) SetDeadline(t time.Time) error {
@@ -183,7 +185,7 @@ func (mCh *msgChannel) OnChannelClosed() bool {
 func (mCh *msgChannel) close() bool {
 	closed := false
 	mCh.doneOnce.Do(func() {
-		close(mc.doneChan)
+		close(mCh.doneChan)
 		closed = true
 	})
 	return closed
