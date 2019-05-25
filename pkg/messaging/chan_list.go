@@ -5,20 +5,20 @@ import "sync"
 type chanList struct {
 	sync.Mutex
 
-	chans map[byte]*channel
+	chans map[byte]*msgChannel
 }
 
 func newChanList() *chanList {
-	return &chanList{chans: map[byte]*channel{}}
+	return &chanList{chans: map[byte]*msgChannel{}}
 }
 
-func (c *chanList) add(channel *channel) byte {
+func (c *chanList) add(mCh *msgChannel) byte {
 	c.Lock()
 	defer c.Unlock()
 
 	for i := byte(0); i < 255; i++ {
 		if c.chans[i] == nil {
-			c.chans[i] = channel
+			c.chans[i] = mCh
 			return i
 		}
 	}
@@ -26,7 +26,7 @@ func (c *chanList) add(channel *channel) byte {
 	panic("no free channels")
 }
 
-func (c *chanList) get(id byte) *channel {
+func (c *chanList) get(id byte) *msgChannel {
 	c.Lock()
 	ch := c.chans[id]
 	c.Unlock()
@@ -40,10 +40,10 @@ func (c *chanList) remove(id byte) {
 	c.Unlock()
 }
 
-func (c *chanList) dropAll() []*channel {
+func (c *chanList) dropAll() []*msgChannel {
 	c.Lock()
 	defer c.Unlock()
-	var r []*channel
+	var r []*msgChannel
 
 	for _, ch := range c.chans {
 		if ch == nil {

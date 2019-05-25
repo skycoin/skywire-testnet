@@ -71,6 +71,7 @@ type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
 	ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
+	IsSetupTransport(tr transport.Transport) bool
 }
 
 // Node provides messaging runtime for Apps by setting up all
