@@ -328,14 +328,13 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 		}
 	case FrameTypeChannelClosed:
 		channel.SetID(body[0])
-		channel.closeChanMx.RLock() // TODO(evanlinjin): START(avoid race condition).
 		select {
 		case channel.waitChan <- false:
-		case channel.closeChan <- struct{}{}: // TODO(evanlinjin): data race.
-			clientLink.chans.remove(channelID)
 		default:
 		}
-		channel.closeChanMx.RUnlock() // TODO(evanlinjin): END(avoid race condition).
+		if channel.OnChannelClosed() {
+			clientLink.chans.remove(channelID)
+		}
 	case FrameTypeSend:
 		go func() {
 			select {
