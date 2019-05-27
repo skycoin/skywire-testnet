@@ -1,6 +1,8 @@
 package messaging
 
-import "sync"
+import (
+	"sync"
+)
 
 type chanList struct {
 	sync.Mutex

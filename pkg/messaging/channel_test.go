@@ -103,7 +103,9 @@ func TestChannelWrite(t *testing.T) {
 	_, err = c.Write([]byte("foo"))
 	require.Equal(t, ErrDeadlineExceeded, err)
 
-	c.setClosed(true)
+	closed := c.close()
+	require.True(t, closed)
+
 	_, err = c.Write([]byte("foo"))
 	require.Equal(t, ErrChannelClosed, err)
 }
