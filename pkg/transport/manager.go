@@ -169,7 +169,7 @@ func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
 
 // Serve runs listening loop across all registered factories.
 func (tm *Manager) Serve(ctx context.Context) error {
-	tm.ReconnectTransports(ctx)
+	//tm.ReconnectTransports(ctx)
 	tm.CreateDefaultTransports(ctx)
 
 	var wg sync.WaitGroup
@@ -298,6 +298,11 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
+	if otp, ok := tm.transports[entry.ID]; ok {
+		otp.doneChan <- struct{}{}
+	}
+
+
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
@@ -370,6 +375,9 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
+	if otp, ok := tm.transports[entry.ID]; ok {
+		otp.doneChan <- struct{}{}
+	}
 
 	tm.transports[entry.ID] = managedTr
 	select {
