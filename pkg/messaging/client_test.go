@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -24,65 +25,108 @@ func TestMain(m *testing.M) {
 }
 
 func TestClientDial(t *testing.T) {
-	pk, sk := cipher.GenerateKeyPair()
 	discovery := client.NewMock()
-	c := NewClient(&Config{pk, sk, discovery, 0, 0})
-	c.retries = 0
 
 	srv, err := newMockServer(discovery)
 	require.NoError(t, err)
 	srvPK := srv.config.Public
 
-	anotherPK, anotherSK := cipher.GenerateKeyPair()
-	anotherClient := NewClient(&Config{anotherPK, anotherSK, discovery, 0, 0})
-	require.NoError(t, anotherClient.ConnectToInitialServers(context.TODO(), 1))
+	pk1, sk1 := cipher.GenerateKeyPair()
+	c1 := NewClient(&Config{pk1, sk1, discovery, 0, 0})
 
-	var anotherTr transport.Transport
-	anotherErrCh := make(chan error)
+	pk2, sk2 := cipher.GenerateKeyPair()
+	c2 := NewClient(&Config{pk2, sk2, discovery, 0, 0})
+	require.NoError(t, c2.ConnectToInitialServers(context.TODO(), 1))
+
+	var (
+		tp2     transport.Transport
+		tp2Err  error
+		tp2Done = make(chan struct{})
+	)
 	go func() {
-		t, err := anotherClient.Accept(context.TODO())
-		anotherTr = t
-		anotherErrCh <- err
+		tp2, tp2Err = c2.Accept(context.TODO())
+		close(tp2Done)
 	}()
 
-	var tr transport.Transport
-	errCh := make(chan error)
+	var (
+		tp1     transport.Transport
+		tp1Err  error
+		tp1Done = make(chan struct{})
+	)
 	go func() {
-		t, err := c.Dial(context.TODO(), anotherPK)
-		tr = t
-		errCh <- err
+		tp1, tp1Err = c1.Dial(context.TODO(), pk2)
+		close(tp1Done)
 	}()
 
-	require.NoError(t, <-errCh)
-	require.NotNil(t, c.getLink(srvPK).chans.get(0))
+	<-tp1Done
+	require.NoError(t, tp1Err)
+	require.NotNil(t, c1.getLink(srvPK).chans.get(0))
 
-	entry, err := discovery.Entry(context.TODO(), pk)
+	entry, err := discovery.Entry(context.TODO(), pk1)
 	require.NoError(t, err)
 	require.Len(t, entry.Client.DelegatedServers, 1)
 
-	require.NoError(t, <-anotherErrCh)
-	require.NotNil(t, anotherClient.getLink(srvPK).chans.get(0))
+	<-tp2Done
+	require.NoError(t, tp2Err)
+	require.NotNil(t, c2.getLink(srvPK).chans.get(0))
 
-	go tr.Write([]byte("foo")) // nolint: errcheck
+	go tp1.Write([]byte("foo")) // nolint: errcheck
 
 	buf := make([]byte, 3)
-	n, err := anotherTr.Read(buf)
+	n, err := tp2.Read(buf)
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 	assert.Equal(t, []byte("foo"), buf)
 
-	go anotherTr.Write([]byte("bar")) // nolint: errcheck
+	go tp2.Write([]byte("bar")) // nolint: errcheck
 
 	buf = make([]byte, 3)
-	n, err = tr.Read(buf)
+	n, err = tp1.Read(buf)
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 	assert.Equal(t, []byte("bar"), buf)
 
-	require.NoError(t, tr.Close())
-	require.NoError(t, anotherTr.Close())
+	require.NoError(t, tp1.Close())
+	require.NoError(t, tp2.Close())
 
-	require.Nil(t, anotherClient.getLink(srvPK).chans.get(0))
+	// It is expected for the messaging client to delete the channel for chanList eventually.
+	require.True(t, retry(time.Second*10, time.Second, func() bool {
+		return c2.getLink(srvPK).chans.get(0) == nil
+	}))
+}
+
+// retries until successful under a given deadline.
+// 'tick' specifies the break duration before retry.
+func retry(deadline, tick time.Duration, do func() bool) bool {
+	timer := time.NewTimer(deadline)
+	defer timer.Stop()
+
+	done := make(chan struct{})
+	doneOnce := new(sync.Once)
+	defer doneOnce.Do(func() { close(done) })
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-time.Tick(tick):
+				if ok := do(); ok {
+					doneOnce.Do(func() { close(done) })
+					return
+				}
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-timer.C:
+			return false
+		case <-done:
+			return true
+		}
+	}
 }
 
 type mockServer struct {
