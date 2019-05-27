@@ -12,9 +12,6 @@ import (
 
 const bufferSize = 8
 
-// closeCh ensures that branchConn's readCh channel is closed once
-var closeCh sync.Once
-
 // branchConn will inherit the net.Conn interface.
 type branchConn struct {
 	duplex *RPCDuplex
@@ -31,7 +28,7 @@ func (bc *branchConn) Close() error {
 // Read reads in data from original conn through branchConn's chan [].
 // If read []byte is smaller than length of packet, io.ErrShortBuffer
 // is raised.
-func (bc *branchConn) Read(b []byte) (n int, err error) {
+func (bc *branchConn) Read(b []byte) (int, error) {
 
 	// Reads in data from chan []byte pushed from Original Conn
 	data, ok := <-bc.readCh
@@ -41,8 +38,7 @@ func (bc *branchConn) Read(b []byte) (n int, err error) {
 
 	// Compare length of data with b to check if a longer buffer is required
 	if len(data) > len(b) {
-		err = io.ErrShortBuffer
-		return n, err
+		return 0, io.ErrShortBuffer
 	}
 
 	return copy(b, data), nil
@@ -66,6 +62,7 @@ type RPCDuplex struct {
 	serverConn *branchConn
 	rpcS       *rpc.Server
 	rpcC       *rpc.Client
+	closeOnce  sync.Once
 }
 
 // NewRPCDuplex initiates a new RPCDuplex struct
@@ -100,7 +97,6 @@ func (d *RPCDuplex) Client() *rpc.Client { return d.rpcC }
 
 // closeDone close both branchConn's readCh
 func (d *RPCDuplex) closeDone() {
-
 	close(d.clientConn.readCh)
 	close(d.serverConn.readCh)
 }
@@ -108,11 +104,21 @@ func (d *RPCDuplex) closeDone() {
 // Close calls closeDone which close both branchConn's readCh
 func (d *RPCDuplex) Close() error {
 
-	closeCh.Do(func() {
+	var err error
+
+	// closeOnce ensures that branchConn's readCh channel is closed once
+	d.closeOnce.Do(func() {
 		d.closeDone()
 	})
 
-	return errors.New("branchConn closed")
+	// Convert panic into error
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+
+	return err
 }
 
 // forward forwards one packet from Original conn to appropriate branchConn based on the packet's prefix
@@ -156,13 +162,10 @@ func (d *RPCDuplex) Serve() error {
 	go d.rpcS.ServeConn(d.serverConn)
 
 	for {
-		err := d.forward()
-		switch err {
-		case nil:
-			continue
-		case io.EOF:
-			return nil
-		default:
+		if err := d.forward(); err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			return err
 		}
 	}

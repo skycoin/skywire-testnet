@@ -2,7 +2,6 @@ package netutil
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,8 +17,8 @@ import (
 
 func TestBranchConn_Read(t *testing.T) {
 
-	// Read reads in data from original conn through branchConn's readCh which is
-	// a type of chan [].
+	// It is expected that a 'branchConn' can Read data that is pushed in it's 'readCh' of type chan []byte successfully.
+	// In such a scenario, 'branchConn.Read()' should return 'err == nil', 'n == 3' and 'b=[]byte("foo")'.
 	t.Run("successful_branchConn_read", func(t *testing.T) {
 
 		ch := make(chan []byte, 1)
@@ -36,8 +35,8 @@ func TestBranchConn_Read(t *testing.T) {
 		assert.Equal(t, []byte("foo"), b)
 	})
 
-	// Read reads in empty data from original conn through branchConn's readCh which is
-	// a type of chan []. It should return 0 length read and b should be nil
+	// It is expected that 'branchConn' handles empty packets (read via 'readCh') correctly.
+	// In such a scenario, 'branchConn.Read()' should return 'err == nil' and 'n == 0'.
 	t.Run("empty_branchConn_read", func(t *testing.T) {
 
 		ch := make(chan []byte, 1)
@@ -249,14 +248,6 @@ var tables = []struct {
 		branchConn:  "serverConn",
 		expectedMsg: "bar%d",
 	},
-	{description: "bDuplex's_serverConn_sends_multiple_10_bytes_msg_to_aDuplex's_clientConn_(initiator)",
-		msg:         "helloworld%d",
-		initiatorA:  false,
-		initiatorB:  true,
-		whoWrites:   "bDuplex",
-		branchConn:  "serverConn",
-		expectedMsg: "helloworld%d",
-	},
 	{description: "bDuplex's_serverConn_sends_multiple_20_bytes_msg_to_aDuplex's_clientConn_(initiator)",
 		msg:         "helloworld. Skycoin is best coin!%d",
 		initiatorA:  false,
@@ -267,8 +258,13 @@ var tables = []struct {
 	},
 }
 
-// Test sending multiple messages in a single connection and receiving them
-// in the appropriate branchConn with multiple test cases
+// TestNewRPCDuplex test communication between two RPC Duplexes' branch connections. When both Duplexes are created and
+// duplex.forward() is called, it is expected that multiple packets written by one of the duplex's branchConn
+// will be read and matched in terms of length and content by another end of the second Duplex's branhConn.
+// e.g (aDuplex's clientConn --> bDuplex's serverConn or bDuplex's serverConn --> aDuplex's clientConn)
+//
+// Example: Given that aDuplex's clientConn writes 'foo' five times, it is expected that the msg 'foo' with length of 3
+// be forwarded correctly to bDuplex's serverConn all five times.
 func TestNewRPCDuplex(t *testing.T) {
 	for _, tt := range tables {
 		t.Run(tt.description, func(t *testing.T) {
@@ -307,13 +303,10 @@ func TestNewRPCDuplex(t *testing.T) {
 			errChA := make(chan error, 1)
 			go func() {
 				for {
-					err := aDuplex.forward()
-					switch err {
-					case nil:
-						continue
-					case io.EOF:
-						errChA <- err
-					default:
+					if err := aDuplex.forward(); err != nil {
+						if err == io.EOF {
+							errChA <- nil
+						}
 						errChA <- err
 					}
 				}
@@ -323,13 +316,10 @@ func TestNewRPCDuplex(t *testing.T) {
 			errChB := make(chan error, 1)
 			go func() {
 				for {
-					err := bDuplex.forward()
-					switch err {
-					case nil:
-						continue
-					case io.EOF:
-						errChB <- err
-					default:
+					if err := bDuplex.forward(); err != nil {
+						if err == io.EOF {
+							errChB <- nil
+						}
 						errChB <- err
 					}
 				}
@@ -368,8 +358,9 @@ func TestNewRPCDuplex(t *testing.T) {
 	}
 }
 
-// TestRPCDuplex_Forward forwards one packet Original conn to branchConn
-// based on the packet's prefix
+// Given a prefixed packet, it is expected that duplex.forward() will decoded the prefixed packet,read in the data,
+// and forward the packet to the correct branchConn. In such a scenario, it is expected that the msg []byte("foo")
+// is push to bDuplex's serverConn's 'readCh' successfully
 func TestRPCDuplex_Forward(t *testing.T) {
 
 	connA, connB := net.Pipe()
@@ -377,10 +368,10 @@ func TestRPCDuplex_Forward(t *testing.T) {
 
 	bDuplex := NewRPCDuplex(connB, nil, false)
 
-	msg := []byte("\x00\x00\x03foo")
+	p := append([]byte{0, 0, 3}, []byte("foo")...)
 	errCh := make(chan error, 1)
 	go func() {
-		_, err := connA.Write(msg)
+		_, err := connA.Write(p)
 		connA.Close()
 		errCh <- err
 	}()
@@ -402,7 +393,7 @@ func (RPC) Double(i int, reply *int) error {
 
 // TestRPCDuplex_Serve test communication between two RPC Duplex. When both Duplex
 // is created and served, both duplex's client should be able to successfully call
-// the rpc method 'double' from rpc.server
+// the rpc method 'double' from the remote's rpc.Server
 func TestRPCDuplex_Serve(t *testing.T) {
 	cA, cB := net.Pipe()
 
@@ -440,9 +431,9 @@ func TestRPCDuplex_Serve(t *testing.T) {
 
 func TestRPCDuplex_Close(t *testing.T) {
 
-	// Closing RPCDuplex should close both branchConn's readCh; therefore, it
-	// should panic with "write to closed channel" when data is pushed to it
-	t.Run("readCh_panic_when_write_read_to_closed_channel", func(t *testing.T) {
+	// It is expected that 'err==nil' when duplex.Close() is called and that calling duplex.forward()
+	// after duplex.Close() will result in 'panic: send on closed channel'
+	t.Run("branchConns_should_close_when_RPCDuplex_closes", func(t *testing.T) {
 
 		cA, cB := net.Pipe()
 
@@ -455,14 +446,16 @@ func TestRPCDuplex_Close(t *testing.T) {
 			errChA <- err
 		}()
 
-		err := dB.Close()
-		assert.Equal(t, err, errors.New("branchConn closed"))
-
-		assert.Panics(t, func() { dB.forward() })
+		assert.Nil(t, dB.Close())
+		assert.Panics(t, func() {
+			err := dB.forward()
+			log.Println(err)
+		})
 		assert.Nil(t, <-errChA)
+
 	})
 
-	// Closing branchConn or RPCDuplex multiple times shouldn't result in panic
+	// Closing any branchConn or RPCDuplex multiple times shouldn't result in panic
 	t.Run("closing_branchConn_multiple_times", func(t *testing.T) {
 
 		cA, cB := net.Pipe()
@@ -482,8 +475,12 @@ func TestRPCDuplex_Close(t *testing.T) {
 		go func() { errChB <- dB.Serve() }()
 
 		for i := 0; i < 3; i++ {
-			require.Equal(t, dA.clientConn.Close(), errors.New("branchConn closed"))
-			require.Equal(t, dB.serverConn.Close(), errors.New("branchConn closed"))
+			assert.Nil(t, dA.Close())
+			assert.Nil(t, dB.Close())
+			assert.Nil(t, dA.clientConn.Close())
+			assert.Nil(t, dB.clientConn.Close())
+			assert.Nil(t, dA.serverConn.Close())
+			assert.Nil(t, dB.serverConn.Close())
 		}
 
 		close(errChA)
