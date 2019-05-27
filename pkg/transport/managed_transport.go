@@ -16,6 +16,7 @@ type ManagedTransport struct {
 	LogEntry *LogEntry
 
 	doneChan chan struct{}
+	doneOnce sync.Once
 	errChan  chan error
 	mu       sync.RWMutex
 
@@ -93,7 +94,7 @@ func (tr *ManagedTransport) Close() error {
 	select {
 	case <-tr.doneChan:
 	default:
-		close(tr.doneChan)
+		tr.close()
 	}
 
 	return err
@@ -103,4 +104,11 @@ func (tr *ManagedTransport) updateTransport(newTr Transport) {
 	tr.mu.Lock()
 	tr.Transport = newTr
 	tr.mu.Unlock()
+}
+
+func (tr *ManagedTransport) close() {
+	tr.doneOnce.Do(func() {
+		tr.doneChan <- struct{}{}
+		close(tr.doneChan)
+	})
 }

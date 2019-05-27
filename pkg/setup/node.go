@@ -238,6 +238,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 		err = fmt.Errorf("transport: %s", err)
 		return
 	}
+	// TODO: only do this if exists in tm
 	defer sn.tm.DeleteTransport(tr.ID)
 
 	proto := NewSetupProtocol(tr)

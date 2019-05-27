@@ -299,9 +299,11 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
 	if otp, ok := tm.transports[entry.ID]; ok {
-		otp.doneChan <- struct{}{}
+		err := otp.Close()
+		if err != nil {
+			tm.Logger.Warnf("cannot close transport %s because error: %s", otp.ID, err)
+		}
 	}
-
 
 	tm.transports[entry.ID] = managedTr
 	select {
@@ -376,7 +378,10 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
 	tm.mu.Lock()
 	if otp, ok := tm.transports[entry.ID]; ok {
-		otp.doneChan <- struct{}{}
+		err := otp.Close()
+		if err != nil {
+			tm.Logger.Warnf("cannot close transport %s because error: %s", otp.ID, err)
+		}
 	}
 
 	tm.transports[entry.ID] = managedTr
