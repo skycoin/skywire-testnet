@@ -326,7 +326,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	if err != nil {
 		return nil, err
 	}
-	defer tr.Close()
+	defer r.tm.DeleteTransport(tr.ID)
 
 	if err := setup.CreateLoop(proto, l); err != nil {
 		return nil, fmt.Errorf("route setup: %s", err)
@@ -382,7 +382,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
 	if err != nil {
 		return err
 	}
-	defer tr.Close()
+	defer r.tm.DeleteTransport(tr.ID)
 
 	ld := &setup.LoopData{RemotePK: addr.Remote.PubKey, RemotePort: addr.Remote.Port, LocalPort: addr.Port}
 	if err := setup.CloseLoop(proto, ld); err != nil {
@@ -425,7 +425,7 @@ func (r *Router) destroyLoop(addr *app.LoopAddr) error {
 	return r.rm.RemoveLoopRule(addr)
 }
 
-func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
+func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, *transport.ManagedTransport, error) {
 	if len(r.config.SetupNodes) == 0 {
 		return nil, nil, errors.New("route setup: no nodes")
 	}
