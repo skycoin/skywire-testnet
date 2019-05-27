@@ -137,15 +137,11 @@ func (mCh *msgChannel) Write(p []byte) (n int, err error) {
 	binary.BigEndian.PutUint16(buf[:2], uint16(len(data)))
 	copy(buf[2:], data)
 
-	done := make(chan struct{}, 1)
-	defer close(done)
+	done := make(chan struct{})
 	go func() {
 		n, err = mCh.link.Send(mCh.ID(), buf)
 		n = n - (len(data) - len(p) + 2)
-		select {
-		case done <- struct{}{}:
-		default:
-		}
+		close(done)
 	}()
 
 	select {
