@@ -203,9 +203,6 @@ func (node *Node) Start() error {
 	}
 	node.logger.Info("Connected to messaging servers")
 
-	node.tm.ReconnectTransports(ctx)
-	node.tm.CreateDefaultTransports(ctx)
-
 	for _, ac := range node.appsConf {
 		if !ac.AutoStart {
 			continue
