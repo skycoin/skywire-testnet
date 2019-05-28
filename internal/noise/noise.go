@@ -3,7 +3,6 @@ package noise
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"fmt"
 
 	"github.com/flynn/noise"
 
@@ -122,7 +121,6 @@ func (ns *Noise) EncryptUnsafe(plaintext []byte) []byte {
 	ns.seq++
 	seq := make([]byte, 4)
 	binary.BigEndian.PutUint32(seq, ns.seq)
-	fmt.Println("seq is: ", seq)
 
 	return append(seq, ns.enc.Cipher().Encrypt(nil, uint64(ns.seq), nil, plaintext)...)
 }
@@ -130,11 +128,8 @@ func (ns *Noise) EncryptUnsafe(plaintext []byte) []byte {
 // DecryptUnsafe decrypts ciphertext without interlocking, should only
 // be used with external lock.
 func (ns *Noise) DecryptUnsafe(ciphertext []byte) ([]byte, error) {
-	fmt.Println("decrypt first 4 bytes: ", ciphertext[:4])
-	fmt.Println("decrypt seq: ", ciphertext)
 	seq := binary.BigEndian.Uint32(ciphertext[:4])
-	fmt.Println("decyphered seq is: ", seq)
-	return ns.dec.Cipher().Decrypt(nil, uint64(seq),nil, ciphertext[4:])
+	return ns.dec.Cipher().Decrypt(nil, uint64(seq), nil, ciphertext[4:])
 }
 
 // HandshakeFinished indicate whether handshake was completed.
