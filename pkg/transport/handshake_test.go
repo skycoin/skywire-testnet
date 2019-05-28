@@ -264,8 +264,8 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 		Public:   true,
 	}
 
-	mockEnv.m1.entries = append(mockEnv.m1.entries, entry)
-	mockEnv.m2.entries = append(mockEnv.m2.entries, entry)
+	mockEnv.m1.entries[*entry] = struct{}{}
+	mockEnv.m2.entries[*entry] = struct{}{}
 
 	t.Run("RegisterTransports", func(t *testing.T) {
 		require.NoError(t, mockEnv.client.RegisterTransports(context.TODO(), &SignedEntry{Entry: entry}))

@@ -30,7 +30,7 @@ type Manager struct {
 	config     *ManagerConfig
 	factories  map[string]Factory
 	transports map[uuid.UUID]*ManagedTransport
-	entries    []*Entry
+	entries    map[Entry]struct{}
 
 	doneChan       chan struct{}
 	AcceptedTrChan chan *ManagedTransport
@@ -43,9 +43,9 @@ type Manager struct {
 func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	entries, _ := config.DiscoveryClient.GetTransportsByEdge(context.Background(), config.PubKey) // nolint
 
-	mEntries := []*Entry{}
+	mEntries := make(map[Entry]struct{})
 	for _, entry := range entries {
-		mEntries = append(mEntries, entry.Entry)
+		mEntries[*entry.Entry] = struct{}{}
 	}
 
 	fMap := make(map[string]Factory)
@@ -99,13 +99,15 @@ func (tm *Manager) WalkTransports(walk func(tp *ManagedTransport) bool) {
 	tm.mu.RUnlock()
 }
 
-// ReconnectTransports tries to reconnect previously established transports.
-func (tm *Manager) ReconnectTransports(ctx context.Context) {
+// reconnectTransports tries to reconnect previously established transports.
+func (tm *Manager) reconnectTransports(ctx context.Context) {
 	tm.mu.RLock()
-	entries := tm.entries
+	entries := make(map[Entry]struct{})
+	for tmEntry := range tm.entries {
+		entries[tmEntry] = struct{}{}
+	}
 	tm.mu.RUnlock()
-	for _, entry := range entries {
-
+	for entry := range entries {
 		if tm.Transport(entry.ID) != nil {
 			continue
 		}
@@ -145,8 +147,8 @@ func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
 	return cipher.PubKey{}, false
 }
 
-// CreateDefaultTransports created transports to DefaultNodes if they don't exist.
-func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
+// createDefaultTransports created transports to DefaultNodes if they don't exist.
+func (tm *Manager) createDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
@@ -169,8 +171,8 @@ func (tm *Manager) CreateDefaultTransports(ctx context.Context) {
 
 // Serve runs listening loop across all registered factories.
 func (tm *Manager) Serve(ctx context.Context) error {
-	tm.ReconnectTransports(ctx)
-	tm.CreateDefaultTransports(ctx)
+	tm.reconnectTransports(ctx)
+	tm.createDefaultTransports(ctx)
 
 	var wg sync.WaitGroup
 	for _, factory := range tm.factories {
@@ -405,9 +407,9 @@ func (tm *Manager) walkEntries(walkFunc func(*Entry) bool) *Entry {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	for _, entry := range tm.entries {
-		if walkFunc(entry) {
-			return entry
+	for entry := range tm.entries {
+		if walkFunc(&entry) {
+			return &entry
 		}
 	}
 
@@ -416,7 +418,7 @@ func (tm *Manager) walkEntries(walkFunc func(*Entry) bool) *Entry {
 
 func (tm *Manager) addEntry(entry *Entry) {
 	tm.mu.Lock()
-	tm.entries = append(tm.entries, entry)
+	tm.entries[*entry] = struct{}{}
 	tm.mu.Unlock()
 }
 

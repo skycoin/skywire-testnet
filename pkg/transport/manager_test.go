@@ -118,7 +118,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"mock"}, m1.Factories())
 
-	m1.ReconnectTransports(context.TODO())
+	m1.reconnectTransports(context.TODO())
 
 	m1errCh := make(chan error, 1)
 	go func() { m1errCh <- m1.Serve(context.TODO()) }()
@@ -146,7 +146,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	m2, err = NewManager(c2, f2)
 	require.NoError(t, err)
 
-	m2.ReconnectTransports(context.TODO())
+	m2.reconnectTransports(context.TODO())
 
 	m2errCh := make(chan error, 1)
 	go func() { m2errCh <- m2.Serve(context.TODO()) }()
