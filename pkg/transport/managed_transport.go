@@ -13,6 +13,7 @@ type ManagedTransport struct {
 	Transport
 	ID       uuid.UUID
 	Public   bool
+	Accepted bool
 	LogEntry *LogEntry
 
 	doneChan chan struct{}
@@ -23,11 +24,12 @@ type ManagedTransport struct {
 	writeLogChan chan int
 }
 
-func newManagedTransport(id uuid.UUID, tr Transport, public bool) *ManagedTransport {
+func newManagedTransport(id uuid.UUID, tr Transport, public bool, accepted bool) *ManagedTransport {
 	return &ManagedTransport{
 		ID:           id,
 		Transport:    tr,
 		Public:       public,
+		Accepted:     accepted,
 		doneChan:     make(chan struct{}),
 		errChan:      make(chan error),
 		readLogChan:  make(chan int),

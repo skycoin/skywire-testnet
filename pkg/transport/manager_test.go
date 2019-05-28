@@ -41,21 +41,26 @@ func TestTransportManager(t *testing.T) {
 
 	var mu sync.Mutex
 	m1Observed := uint32(0)
-	acceptCh, _ := m1.Observe()
+
+	acceptCh := m1.TrChan
 	go func() {
-		for range acceptCh {
+		for tr := range acceptCh {
 			mu.Lock()
-			m1Observed++
+			if tr.Accepted {
+				m1Observed++
+			}
 			mu.Unlock()
 		}
 	}()
 
 	m2Observed := uint32(0)
-	_, dialCh := m2.Observe()
+	dialCh := m2.TrChan
 	go func() {
-		for range dialCh {
+		for tr := range dialCh {
 			mu.Lock()
-			m2Observed++
+			if !tr.Accepted {
+				m2Observed++
+			}
 			mu.Unlock()
 		}
 	}()

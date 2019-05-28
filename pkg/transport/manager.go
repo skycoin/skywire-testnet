@@ -32,10 +32,11 @@ type Manager struct {
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
 
-	doneChan       chan struct{}
-	AcceptedTrChan chan *ManagedTransport
-	DialedTrChan   chan *ManagedTransport
-	mu             sync.RWMutex
+	doneChan chan struct{}
+	// AcceptedTrChan chan *ManagedTransport
+	// DialedTrChan   chan *ManagedTransport
+	TrChan chan *ManagedTransport
+	mu     sync.RWMutex
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
@@ -54,22 +55,23 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	}
 
 	return &Manager{
-		Logger:         logging.MustGetLogger("trmanager"),
-		config:         config,
-		factories:      fMap,
-		transports:     make(map[uuid.UUID]*ManagedTransport),
-		entries:        mEntries,
-		AcceptedTrChan: make(chan *ManagedTransport, 10),
-		DialedTrChan:   make(chan *ManagedTransport, 10),
-		doneChan:       make(chan struct{}),
+		Logger:     logging.MustGetLogger("trmanager"),
+		config:     config,
+		factories:  fMap,
+		transports: make(map[uuid.UUID]*ManagedTransport),
+		entries:    mEntries,
+		// AcceptedTrChan: make(chan *ManagedTransport, 10),
+		// DialedTrChan:   make(chan *ManagedTransport, 10),
+		TrChan:   make(chan *ManagedTransport, 9), //IDK why it was 10 before
+		doneChan: make(chan struct{}),
 	}, nil
 }
 
-// Observe returns channel for notifications about new Transport
-// registration. Only single observer is supported.
-func (tm *Manager) Observe() (accept <-chan *ManagedTransport, dial <-chan *ManagedTransport) {
-	return tm.AcceptedTrChan, tm.DialedTrChan
-}
+// // Observe returns channel for notifications about new Transport
+// // registration. Only single observer is supported.
+// func (tm *Manager) Observe() (accept <-chan *ManagedTransport, dial <-chan *ManagedTransport) {
+// 	return tm.AcceptedTrChan, tm.DialedTrChan
+// }
 
 // Factories returns all the factory types contained within the TransportManager.
 func (tm *Manager) Factories() []string {
@@ -298,12 +300,12 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	}
 
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
+	managedTr := newManagedTransport(entry.ID, tr, entry.Public, false)
 	tm.mu.Lock()
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
-	case tm.DialedTrChan <- managedTr:
+	case tm.TrChan <- managedTr:
 	default:
 	}
 	tm.mu.Unlock()
@@ -370,13 +372,13 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public)
+	managedTr := newManagedTransport(entry.ID, tr, entry.Public, true)
 	tm.mu.Lock()
 
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
-	case tm.AcceptedTrChan <- managedTr:
+	case tm.TrChan <- managedTr:
 	default:
 	}
 	tm.mu.Unlock()

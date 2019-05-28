@@ -78,44 +78,39 @@ func New(config *Config) *Router {
 
 // Serve starts transport listening loop.
 func (r *Router) Serve(ctx context.Context) error {
-	go func() {
-		for tr := range r.tm.AcceptedTrChan {
-			go func(t transport.Transport) {
-				for {
-					var err error
-					if r.IsSetupTransport(t) {
-						err = r.rm.Serve(t)
-					} else {
-						err = r.serveTransport(t)
-					}
 
-					if err != nil {
-						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
+	go func() {
+		for tr := range r.tm.TrChan {
+			if tr.Accepted {
+				go func(t transport.Transport) {
+					for {
+						var err error
+						if r.IsSetupTransport(t) {
+							err = r.rm.Serve(t)
+						} else {
+							err = r.serveTransport(t)
 						}
-						return
-					}
-				}
-			}(tr)
-		}
-	}()
 
-	go func() {
-		for tr := range r.tm.DialedTrChan {
-			if r.IsSetupTransport(tr) {
-				continue
+						if err != nil {
+							if err != io.EOF {
+								r.Logger.Warnf("Stopped serving Transport: %s", err)
+							}
+							return
+						}
+					}
+				}(tr)
+			} else {
+				go func(t transport.Transport) {
+					for {
+						if err := r.serveTransport(t); err != nil {
+							if err != io.EOF {
+								r.Logger.Warnf("Stopped serving Transport: %s", err)
+							}
+							return
+						}
+					}
+				}(tr)
 			}
-
-			go func(t transport.Transport) {
-				for {
-					if err := r.serveTransport(t); err != nil {
-						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
-						}
-						return
-					}
-				}
-			}(tr)
 		}
 	}()
 
