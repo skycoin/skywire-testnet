@@ -254,6 +254,6 @@ func (r *mockRouter) Close() error {
 	return nil
 }
 
-func (r *mockRouter) IsSetupTransport(tr transport.Transport) bool {
+func (r *mockRouter) IsSetupTransport(tr *transport.ManagedTransport) bool {
 	return false
 }

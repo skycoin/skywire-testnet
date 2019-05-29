@@ -33,10 +33,8 @@ type Manager struct {
 	entries    map[Entry]struct{}
 
 	doneChan chan struct{}
-	// AcceptedTrChan chan *ManagedTransport
-	// DialedTrChan   chan *ManagedTransport
-	TrChan chan *ManagedTransport
-	mu     sync.RWMutex
+	TrChan   chan *ManagedTransport
+	mu       sync.RWMutex
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
@@ -66,12 +64,6 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 		doneChan: make(chan struct{}),
 	}, nil
 }
-
-// // Observe returns channel for notifications about new Transport
-// // registration. Only single observer is supported.
-// func (tm *Manager) Observe() (accept <-chan *ManagedTransport, dial <-chan *ManagedTransport) {
-// 	return tm.AcceptedTrChan, tm.DialedTrChan
-// }
 
 // Factories returns all the factory types contained within the TransportManager.
 func (tm *Manager) Factories() []string {
@@ -383,7 +375,6 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 	tm.mu.Unlock()
 
-	// go func(managedTr *ManagedTransport, tm *Manager) {
 	go func() {
 		select {
 		case <-managedTr.doneChan:

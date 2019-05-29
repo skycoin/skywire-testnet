@@ -82,7 +82,7 @@ func (r *Router) Serve(ctx context.Context) error {
 	go func() {
 		for tr := range r.tm.TrChan {
 			if tr.Accepted {
-				go func(t transport.Transport) {
+				go func(t *transport.ManagedTransport) {
 					for {
 						var err error
 						if r.IsSetupTransport(t) {
@@ -100,7 +100,7 @@ func (r *Router) Serve(ctx context.Context) error {
 					}
 				}(tr)
 			} else {
-				go func(t transport.Transport) {
+				go func(t *transport.ManagedTransport) {
 					for {
 						if err := r.serveTransport(t); err != nil {
 							if err != io.EOF {
@@ -178,7 +178,7 @@ func (r *Router) Close() error {
 	return r.tm.Close()
 }
 
-func (r *Router) serveTransport(tr transport.Transport) error {
+func (r *Router) serveTransport(tr *transport.ManagedTransport) error {
 	packet := make(routing.Packet, 6)
 	if _, err := io.ReadFull(tr, packet); err != nil {
 		return err
@@ -476,7 +476,7 @@ func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni 
 }
 
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
-func (r *Router) IsSetupTransport(tr transport.Transport) bool {
+func (r *Router) IsSetupTransport(tr *transport.ManagedTransport) bool {
 	for _, pk := range r.config.SetupNodes {
 		remote, ok := r.tm.Remote(tr.Edges())
 		if ok && (remote == pk) {

@@ -106,24 +106,6 @@ func (sn *Node) Serve(ctx context.Context) error {
 		}
 	}()
 
-	// go func() {
-	// 	for tr := range sn.tm.AcceptedTrChan {
-	// 		go func(t transport.Transport) {
-	// 			for {
-	// 				if err := sn.serveTransport(t); err != nil {
-	// 					sn.Logger.Warnf("Failed to serve Transport: %s", err)
-	// 					return
-	// 				}
-	// 			}
-	// 		}(tr)
-	// 	}
-	// }()
-
-	// go func() {
-	// 	for range sn.tm.DialedTrChan {
-	// 	}
-	// }()
-
 	sn.Logger.Info("Starting Setup Node")
 	return sn.tm.Serve(ctx)
 }
