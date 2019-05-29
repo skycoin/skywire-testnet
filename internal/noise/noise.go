@@ -4,10 +4,14 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/flynn/noise"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )
+
+var logger = logging.MustGetLogger("noise")
 
 // Config hold noise parameters.
 type Config struct {
@@ -29,7 +33,9 @@ type Noise struct {
 	enc     *noise.CipherState
 	dec     *noise.CipherState
 
-	seq uint32 // sequence number, used as nonce for both encrypting and decrypting
+	seq             uint32 // sequence number, used as nonce for both encrypting and decrypting
+	previousSeq     uint32 // sequence number last decrypted, check in order to avoid reply attacks
+	highestPrevious uint32 // highest sequence number received from the other end
 	//encN uint32 // counter to inform encrypting CipherState to re-key
 	//decN uint32 // counter to inform decrypting CipherState to re-key
 }
@@ -129,6 +135,16 @@ func (ns *Noise) EncryptUnsafe(plaintext []byte) []byte {
 // be used with external lock.
 func (ns *Noise) DecryptUnsafe(ciphertext []byte) ([]byte, error) {
 	seq := binary.BigEndian.Uint32(ciphertext[:4])
+	if seq <= ns.previousSeq {
+		logger.Warnf("current seq: %s is not higher than previous one: %s. "+
+			"Highest sequence number received so far is: %s", ns.seq, ns.previousSeq, ns.highestPrevious)
+	} else {
+		if ns.previousSeq > ns.highestPrevious {
+			ns.highestPrevious = seq
+		}
+		ns.previousSeq = seq
+	}
+
 	return ns.dec.Cipher().Decrypt(nil, uint64(seq), nil, ciphertext[4:])
 }
 
