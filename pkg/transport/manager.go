@@ -280,6 +280,22 @@ func (tm *Manager) Close() error {
 	return nil
 }
 
+func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
+
+	tr, err := factory.Dial(ctx, remote)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
+	if err != nil {
+		tr.Close()
+		return nil, nil, err
+	}
+
+	return tr, entry, nil
+}
+
 func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
 	factory := tm.factories[tpType]
 	if factory == nil {
@@ -302,47 +318,11 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	}
 	tm.mu.Unlock()
 
-	go func() {
-		select {
-		case <-managedTr.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
-			return
-		case <-tm.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
-			return
-		case err := <-managedTr.errChan:
-			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			tr, _, err := tm.dialTransport(ctx, factory, remote, public)
-			if err != nil {
-				tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
-				if err := tm.DeleteTransport(managedTr.ID); err != nil {
-					tm.Logger.Warnf("Failed to delete transport: %s", err)
-				}
-			} else {
-				managedTr.updateTransport(tr)
-			}
-		}
-	}()
+	go tm.manageTransport(ctx, managedTr, factory, remote, public, false)
 
 	go tm.manageTransportLogs(managedTr)
 
 	return managedTr, nil
-}
-
-func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
-
-	tr, err := factory.Dial(ctx, remote)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
-	if err != nil {
-		tr.Close()
-		return nil, nil, err
-	}
-
-	return tr, entry, nil
 }
 
 func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*ManagedTransport, error) {
@@ -375,21 +355,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 	tm.mu.Unlock()
 
-	go func() {
-		select {
-		case <-managedTr.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
-			return
-		case <-tm.doneChan:
-			tm.Logger.Infof("Transport %s closed", managedTr.ID)
-			return
-		case err := <-managedTr.errChan:
-			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			if err := tm.DeleteTransport(managedTr.ID); err != nil {
-				tm.Logger.Warnf("Failed to delete transport: %s", err)
-			}
-		}
-	}()
+	go tm.manageTransport(ctx, managedTr, factory, remote, true, true)
 
 	go tm.manageTransportLogs(managedTr)
 
@@ -413,6 +379,34 @@ func (tm *Manager) addEntry(entry *Entry) {
 	tm.mu.Lock()
 	tm.entries[*entry] = struct{}{}
 	tm.mu.Unlock()
+}
+
+func (tm *Manager) manageTransport(ctx context.Context, managedTr *ManagedTransport, factory Factory, remote cipher.PubKey, public bool, accepted bool) {
+	select {
+	case <-managedTr.doneChan:
+		tm.Logger.Infof("Transport %s closed", managedTr.ID)
+		return
+	case <-tm.doneChan:
+		tm.Logger.Infof("Transport %s closed", managedTr.ID)
+		return
+	case err := <-managedTr.errChan:
+		tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
+		if accepted {
+			if err := tm.DeleteTransport(managedTr.ID); err != nil {
+				tm.Logger.Warnf("Failed to delete transport: %s", err)
+			}
+		} else {
+			tr, _, err := tm.dialTransport(ctx, factory, remote, public)
+			if err != nil {
+				tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
+				if err := tm.DeleteTransport(managedTr.ID); err != nil {
+					tm.Logger.Warnf("Failed to delete transport: %s", err)
+				}
+			} else {
+				managedTr.updateTransport(tr)
+			}
+		}
+	}
 }
 
 func (tm *Manager) manageTransportLogs(tr *ManagedTransport) {
