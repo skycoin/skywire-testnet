@@ -88,7 +88,7 @@ func TestChannelWrite(t *testing.T) {
 	var (
 		readBuf  = make([]byte, 29)
 		readErr  error
-		readDone  = make(chan struct{})
+		readDone = make(chan struct{})
 	)
 	go func() {
 		_, readErr = out.Read(readBuf)
