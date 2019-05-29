@@ -76,26 +76,38 @@ func TestChannelWrite(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 
 	in, out := net.Pipe()
+
 	l, err := NewLink(in, &LinkConfig{Public: pk}, nil)
 	require.NoError(t, err)
-
 	c, err := newChannel(true, sk, remotePK, l)
 	require.NoError(t, err)
 	c.SetID(10)
 
 	rn := handshakeChannel(t, c, remotePK, remoteSK)
 
-	buf := make([]byte, 29)
-	go out.Read(buf) // nolint
+	var (
+		readBuf  = make([]byte, 29)
+		readErr  error
+		readDone  = make(chan struct{})
+	)
+	go func() {
+		_, readErr = out.Read(readBuf)
+		close(readDone)
+	}()
+
 	n, err := c.Write([]byte("foo"))
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 
-	assert.Equal(t, FrameTypeSend, FrameType(buf[2]))
-	assert.Equal(t, byte(10), buf[3])
-	//require.Equal(t, uint16(19), binary.BigEndian.Uint16(buf[4:]))
+	<-readDone
+	assert.NoError(t, readErr)
+	assert.Equal(t, FrameTypeSend, FrameType(readBuf[2]))
+	assert.Equal(t, byte(10), readBuf[3])
 
-	data, err := rn.DecryptUnsafe(buf[6:])
+	// Encoded length should be length of encrypted payload "foo".
+	require.Equal(t, uint16(23), binary.BigEndian.Uint16(readBuf[4:]))
+
+	data, err := rn.DecryptUnsafe(readBuf[6:])
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), data)
 
