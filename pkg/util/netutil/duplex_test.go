@@ -17,7 +17,7 @@ import (
 
 func TestBranchConn_Read(t *testing.T) {
 
-	// It is expected that a 'branchConn' can Read data that is pushed in it's 'readCh' of type chan []byte successfully.
+	// It is expected that a 'branchConn' can Read data that is pushed in it's 'readCh' successfully.
 	// In such a scenario, 'branchConn.Read()' should return 'err == nil', 'n == 3' and 'b=[]byte("foo")'.
 	t.Run("successful_branchConn_read", func(t *testing.T) {
 
@@ -305,7 +305,7 @@ func TestNewRPCDuplex(t *testing.T) {
 				for {
 					if err := aDuplex.forward(); err != nil {
 						if err == io.EOF {
-							errChA <- nil
+							err = nil
 						}
 						errChA <- err
 					}
@@ -318,7 +318,7 @@ func TestNewRPCDuplex(t *testing.T) {
 				for {
 					if err := bDuplex.forward(); err != nil {
 						if err == io.EOF {
-							errChB <- nil
+							err = nil
 						}
 						errChB <- err
 					}
