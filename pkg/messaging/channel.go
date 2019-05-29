@@ -6,9 +6,7 @@ import (
 	"encoding/binary"
 	"io"
 	"sync"
-	"sync/atomic"
 	"time"
-	"unsafe"
 
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -24,13 +22,12 @@ type msgChannel struct {
 	buf      *bytes.Buffer
 
 	deadline time.Time
-	closed   unsafe.Pointer // unsafe.Pointer is used alongside 'atomic' module for fast, thread-safe access.
 
-	waitChan    chan bool // waits for remote response (whether msgChannel is accepted or not).
-	readChan    chan []byte
-	closeChan   chan struct{}
-	closeChanMx sync.RWMutex // TODO(evanlinjin): This is a hack to avoid race conditions when closing msgChannel.
-	doneChan    chan struct{}
+	waitChan chan bool // waits for remote response (whether msgChannel is accepted or not).
+	readChan chan []byte
+
+	doneChan chan struct{}
+	doneOnce sync.Once
 
 	noise *noise.Noise
 	rMx   sync.Mutex // lock for decrypt cipher state
@@ -50,15 +47,13 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 	}
 
 	return &msgChannel{
-		remotePK:  remote,
-		link:      link,
-		buf:       new(bytes.Buffer),
-		closed:    unsafe.Pointer(new(bool)), //nolint:gosec
-		waitChan:  make(chan bool, 1),        // should allows receive one reply.
-		readChan:  make(chan []byte),
-		closeChan: make(chan struct{}),
-		doneChan:  make(chan struct{}),
-		noise:     noiseInstance,
+		remotePK: remote,
+		link:     link,
+		buf:      new(bytes.Buffer),
+		waitChan: make(chan bool, 1), // should allows receive one reply.
+		readChan: make(chan []byte),
+		doneChan: make(chan struct{}),
+		noise:    noiseInstance,
 	}, nil
 }
 
@@ -118,8 +113,10 @@ func (mCh *msgChannel) Read(p []byte) (n int, err error) {
 }
 
 func (mCh *msgChannel) Write(p []byte) (n int, err error) {
-	if mCh.isClosed() {
+	select {
+	case <-mCh.doneChan:
 		return 0, ErrChannelClosed
+	default:
 	}
 
 	ctx := context.Background()
@@ -153,22 +150,18 @@ func (mCh *msgChannel) Write(p []byte) (n int, err error) {
 }
 
 func (mCh *msgChannel) Close() error {
-	if mCh.isClosed() {
-		return ErrChannelClosed
-	}
-
-	if _, err := mCh.link.SendCloseChannel(mCh.ID()); err != nil {
-		return err
-	}
-
-	mCh.setClosed(true)
-
 	select {
-	case <-mCh.closeChan:
-	case <-time.After(time.Second):
+	case <-mCh.doneChan:
+		return ErrChannelClosed
+	default:
 	}
 
-	mCh.close()
+	if mCh.close() {
+		if _, err := mCh.link.SendCloseChannel(mCh.ID()); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -181,16 +174,17 @@ func (mCh *msgChannel) Type() string {
 	return "messaging"
 }
 
-func (mCh *msgChannel) close() {
-	select {
-	case <-mCh.doneChan:
-	default:
-		close(mCh.doneChan)
+func (mCh *msgChannel) OnChannelClosed() bool {
+	return mCh.close()
+}
 
-		mCh.closeChanMx.Lock()   // TODO(evanlinjin): START(avoid race condition).
-		close(mCh.closeChan)     // TODO(evanlinjin): data race.
-		mCh.closeChanMx.Unlock() // TODO(evanlinjin): END(avoid race condition).
-	}
+func (mCh *msgChannel) close() bool {
+	closed := false
+	mCh.doneOnce.Do(func() {
+		close(mCh.doneChan)
+		closed = true
+	})
+	return closed
 }
 
 func (mCh *msgChannel) readEncrypted(ctx context.Context, p []byte) (n int, err error) {
@@ -246,7 +240,3 @@ func (mCh *msgChannel) readEncrypted(ctx context.Context, p []byte) (n int, err 
 
 	return copy(p, data), nil
 }
-
-// for getting and setting the 'closed' status.
-func (mCh *msgChannel) isClosed() bool   { return *(*bool)(atomic.LoadPointer(&mCh.closed)) }
-func (mCh *msgChannel) setClosed(v bool) { atomic.StorePointer(&mCh.closed, unsafe.Pointer(&v)) } //nolint:gosec

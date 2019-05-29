@@ -331,14 +331,12 @@ func (msgFactory *MsgFactory) onData(l *Link, frameType FrameType, body []byte) 
 		}
 	case FrameTypeChannelClosed:
 		channel.SetID(body[0])
-		channel.closeChanMx.RLock() // Begin: avoid race condition.
 		select {
 		case channel.waitChan <- false:
-		case channel.closeChan <- struct{}{}: // Previous data race.
-			clientLink.chans.remove(channelID)
 		default:
 		}
-		channel.closeChanMx.RUnlock() // End: avoid race condition.
+		channel.OnChannelClosed()
+		clientLink.chans.remove(channelID)
 	case FrameTypeSend:
 		go func() {
 			select {
