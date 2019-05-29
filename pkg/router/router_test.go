@@ -487,8 +487,6 @@ func TestRouterSetupLoop(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		// acceptCh, _ := m2.Observe()
-		// tr := <-acceptCh
 		var tr *transport.ManagedTransport
 		for tr = range m2.TrChan {
 			if tr.Accepted {

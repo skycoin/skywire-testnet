@@ -81,10 +81,8 @@ func (r *Router) Serve(ctx context.Context) error {
 
 	go func() {
 		for tp := range r.tm.TrChan {
-			var (
-				isAccepted = tp.Accepted
-				isSetup    = r.IsSetupTransport(tp)
-			)
+			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
+
 			var serve func(io.ReadWriter) error
 			switch {
 			case isAccepted && isSetup:
@@ -94,6 +92,7 @@ func (r *Router) Serve(ctx context.Context) error {
 			default:
 				continue
 			}
+
 			go func(tp transport.Transport) {
 				for {
 					if err := serve(tp); err != nil {
