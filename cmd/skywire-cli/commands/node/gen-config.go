@@ -103,6 +103,8 @@ func defaultConfig() *node.Config {
 	conf.Routing.Table.Type = "boltdb"
 	conf.Routing.Table.Location = "./skywire/routing.db"
 
+	conf.Uptime.Tracker = ""
+
 	conf.ManagerNodes = []node.ManagerConfig{}
 
 	conf.AppsPath = "./apps"
