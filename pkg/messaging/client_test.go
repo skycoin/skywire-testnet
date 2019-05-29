@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 func TestClientDial(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	discovery := client.NewMock()
-	c := NewClient(&Config{pk, sk, discovery, 0, 0})
+	c := NewMsgFactory(&Config{pk, sk, discovery, 0, 0})
 	c.retries = 0
 
 	srv, err := newMockServer(discovery)
@@ -34,7 +34,7 @@ func TestClientDial(t *testing.T) {
 	srvPK := srv.config.Public
 
 	anotherPK, anotherSK := cipher.GenerateKeyPair()
-	anotherClient := NewClient(&Config{anotherPK, anotherSK, discovery, 0, 0})
+	anotherClient := NewMsgFactory(&Config{anotherPK, anotherSK, discovery, 0, 0})
 	require.NoError(t, anotherClient.ConnectToInitialServers(context.TODO(), 1))
 
 	var anotherTr transport.Transport

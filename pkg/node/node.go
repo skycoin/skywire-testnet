@@ -79,7 +79,7 @@ type PacketRouter interface {
 type Node struct {
 	config    *Config
 	router    PacketRouter
-	messenger *messaging.Client
+	messenger *messaging.MsgFactory
 	tm        *transport.Manager
 	rt        routing.Table
 	executer  appExecuter
@@ -116,7 +116,7 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = messaging.NewClient(mConfig)
+	node.messenger = messaging.NewMsgFactory(mConfig)
 	node.messenger.Logger = node.Logger.PackageLogger("messenger")
 
 	trDiscovery, err := config.TransportDiscovery()

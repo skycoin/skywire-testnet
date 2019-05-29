@@ -48,9 +48,9 @@ type Config struct {
 	RetryDelay time.Duration
 }
 
-// Client sends messages to remote client nodes via relay Server.
-// Implements Transport
-type Client struct {
+// MsgFactory sends messages to remote client nodes via relay Server
+// Implements Factory
+type MsgFactory struct {
 	Logger *logging.Logger
 
 	pubKey cipher.PubKey
@@ -70,9 +70,9 @@ type Client struct {
 	doneCh chan struct{}
 }
 
-// NewClient constructs a new Client.
-func NewClient(conf *Config) *Client {
-	c := &Client{
+// NewMsgFactory constructs a new MsgFactory
+func NewMsgFactory(conf *Config) *MsgFactory {
+	msgFactory := &MsgFactory{
 		Logger:     logging.MustGetLogger("messenger"),
 		pubKey:     conf.PubKey,
 		secKey:     conf.SecKey,
@@ -84,44 +84,44 @@ func NewClient(conf *Config) *Client {
 		doneCh:     make(chan struct{}),
 	}
 	config := &LinkConfig{
-		Public:           c.pubKey,
-		Secret:           c.secKey,
+		Public:           msgFactory.pubKey,
+		Secret:           msgFactory.secKey,
 		HandshakeTimeout: DefaultHandshakeTimeout,
 	}
-	c.pool = NewPool(config, &Callbacks{
-		Data:  c.onData,
-		Close: c.onClose,
+	msgFactory.pool = NewPool(config, &Callbacks{
+		Data:  msgFactory.onData,
+		Close: msgFactory.onClose,
 	})
 
-	return c
+	return msgFactory
 }
 
 // ConnectToInitialServers tries to connect to at most serverCount servers.
-func (c *Client) ConnectToInitialServers(ctx context.Context, serverCount int) error {
+func (msgFactory *MsgFactory) ConnectToInitialServers(ctx context.Context, serverCount int) error {
 	if serverCount == 0 {
 		return nil
 	}
 
-	entries, err := c.dc.AvailableServers(ctx)
+	entries, err := msgFactory.dc.AvailableServers(ctx)
 	if err != nil {
 		return fmt.Errorf("servers are not available: %s", err)
 	}
 
 	for _, entry := range entries {
-		if len(c.links) > serverCount {
+		if len(msgFactory.links) > serverCount {
 			break
 		}
 
-		if _, err := c.link(entry.Static, entry.Server.Address); err != nil {
-			c.Logger.Warnf("Failed to connect to the server %s: %s", entry.Static, err)
+		if _, err := msgFactory.link(entry.Static, entry.Server.Address); err != nil {
+			msgFactory.Logger.Warnf("Failed to connect to the server %s: %s", entry.Static, err)
 		}
 	}
 
-	if len(c.links) == 0 {
+	if len(msgFactory.links) == 0 {
 		return fmt.Errorf("servers are not available: all servers failed")
 	}
 
-	if err := c.setEntry(ctx); err != nil {
+	if err := msgFactory.setEntry(ctx); err != nil {
 		return fmt.Errorf("entry update failure: %s", err)
 	}
 
@@ -129,9 +129,9 @@ func (c *Client) ConnectToInitialServers(ctx context.Context, serverCount int) e
 }
 
 // Accept accepts a remotely-initiated Transport.
-func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
+func (msgFactory *MsgFactory) Accept(ctx context.Context) (transport.Transport, error) {
 	select {
-	case ch, more := <-c.newCh:
+	case ch, more := <-msgFactory.newCh:
 		if !more {
 			return nil, ErrClientClosed
 		}
@@ -142,8 +142,8 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 }
 
 // Dial initiates a Transport with a remote node.
-func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	entry, err := c.dc.Entry(ctx, remote)
+func (msgFactory *MsgFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
+	entry, err := msgFactory.dc.Entry(ctx, remote)
 	if err != nil {
 		return nil, fmt.Errorf("get entry failure: %s", err)
 	}
@@ -152,12 +152,12 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 		return nil, ErrNoSrv
 	}
 
-	clientLink, err := c.ensureLink(ctx, entry.Client.DelegatedServers)
+	clientLink, err := msgFactory.ensureLink(ctx, entry.Client.DelegatedServers)
 	if err != nil {
 		return nil, fmt.Errorf("link failure: %s", err)
 	}
 
-	channel, err := newChannel(true, c.secKey, remote, clientLink.link)
+	channel, err := newChannel(true, msgFactory.secKey, remote, clientLink.link)
 	if err != nil {
 		return nil, fmt.Errorf("noise setup: %s", err)
 	}
@@ -181,135 +181,135 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 		return nil, ctx.Err()
 	}
 
-	c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", localID, channel.ID(), remote)
+	msgFactory.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", localID, channel.ID(), remote)
 	return channel, nil
 }
 
 // Local returns the local public key.
-func (c *Client) Local() cipher.PubKey {
-	return c.pubKey
+func (msgFactory *MsgFactory) Local() cipher.PubKey {
+	return msgFactory.pubKey
 }
 
 // Type returns the Transport type.
-func (c *Client) Type() string {
+func (msgFactory *MsgFactory) Type() string {
 	return "messaging"
 }
 
 // Close closes underlying link pool.
-func (c *Client) Close() error {
-	c.Logger.Info("Closing link pool")
+func (msgFactory *MsgFactory) Close() error {
+	msgFactory.Logger.Info("Closing link pool")
 	select {
-	case <-c.doneCh:
+	case <-msgFactory.doneCh:
 	default:
-		close(c.doneCh)
-		c.newWG.Wait() // Ensure that 'c.newCh' is not being written to before closing.
-		close(c.newCh)
+		close(msgFactory.doneCh)
+		msgFactory.newWG.Wait() // Ensure that 'c.newCh' is not being written to before closing.
+		close(msgFactory.newCh)
 	}
-	return c.pool.Close()
+	return msgFactory.pool.Close()
 }
 
-func (c *Client) setEntry(ctx context.Context) error {
-	c.Logger.Info("Updating discovery entry")
+func (msgFactory *MsgFactory) setEntry(ctx context.Context) error {
+	msgFactory.Logger.Info("Updating discovery entry")
 	serverPKs := []cipher.PubKey{}
-	c.mu.RLock()
-	for pk := range c.links {
+	msgFactory.mu.RLock()
+	for pk := range msgFactory.links {
 		serverPKs = append(serverPKs, pk)
 	}
-	c.mu.RUnlock()
+	msgFactory.mu.RUnlock()
 
-	entry, err := c.dc.Entry(ctx, c.pubKey)
+	entry, err := msgFactory.dc.Entry(ctx, msgFactory.pubKey)
 	if err != nil {
-		entry = client.NewClientEntry(c.pubKey, 0, serverPKs)
-		if err := entry.Sign(c.secKey); err != nil {
+		entry = client.NewClientEntry(msgFactory.pubKey, 0, serverPKs)
+		if err := entry.Sign(msgFactory.secKey); err != nil {
 			return err
 		}
 
-		return c.dc.SetEntry(ctx, entry)
+		return msgFactory.dc.SetEntry(ctx, entry)
 	}
 
 	entry.Client.DelegatedServers = serverPKs
-	return c.dc.UpdateEntry(ctx, c.secKey, entry)
+	return msgFactory.dc.UpdateEntry(ctx, msgFactory.secKey, entry)
 }
 
-func (c *Client) link(remotePK cipher.PubKey, addr string) (*clientLink, error) {
+func (msgFactory *MsgFactory) link(remotePK cipher.PubKey, addr string) (*clientLink, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	l, err := c.pool.Initiate(conn, remotePK)
+	l, err := msgFactory.pool.Initiate(conn, remotePK)
 	if err != nil && err != ErrConnExists {
 		return nil, err
 	}
 
-	c.Logger.Infof("Opened new link with the server %s", remotePK)
+	msgFactory.Logger.Infof("Opened new link with the server %s", remotePK)
 	clientLink := &clientLink{l, addr, newChanList()}
-	c.mu.Lock()
-	c.links[remotePK] = clientLink
-	c.mu.Unlock()
+	msgFactory.mu.Lock()
+	msgFactory.links[remotePK] = clientLink
+	msgFactory.mu.Unlock()
 	return clientLink, nil
 }
 
-func (c *Client) ensureLink(ctx context.Context, serverList []cipher.PubKey) (*clientLink, error) {
+func (msgFactory *MsgFactory) ensureLink(ctx context.Context, serverList []cipher.PubKey) (*clientLink, error) {
 	for _, serverPK := range serverList {
-		if l := c.getLink(serverPK); l != nil {
+		if l := msgFactory.getLink(serverPK); l != nil {
 			return l, nil
 		}
 	}
 
 	serverPK := serverList[0]
-	serverEntry, err := c.dc.Entry(ctx, serverPK)
+	serverEntry, err := msgFactory.dc.Entry(ctx, serverPK)
 	if err != nil {
 		return nil, fmt.Errorf("get server failure: %s", err)
 	}
 
-	l, err := c.link(serverPK, serverEntry.Server.Address)
+	l, err := msgFactory.link(serverPK, serverEntry.Server.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := c.setEntry(ctx); err != nil {
+	if err := msgFactory.setEntry(ctx); err != nil {
 		return nil, fmt.Errorf("entry update failure: %s", err)
 	}
 
 	return l, nil
 }
 
-func (c *Client) getLink(remotePK cipher.PubKey) *clientLink {
-	c.mu.RLock()
-	l := c.links[remotePK]
-	c.mu.RUnlock()
+func (msgFactory *MsgFactory) getLink(remotePK cipher.PubKey) *clientLink {
+	msgFactory.mu.RLock()
+	l := msgFactory.links[remotePK]
+	msgFactory.mu.RUnlock()
 	return l
 }
 
-func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
+func (msgFactory *MsgFactory) onData(l *Link, frameType FrameType, body []byte) error {
 	remotePK := l.Remote()
 	if len(body) == 0 {
-		c.Logger.Warnf("Invalid packet from %s: empty body", remotePK)
+		msgFactory.Logger.Warnf("Invalid packet from %s: empty body", remotePK)
 		return nil
 	}
 
-	clientLink := c.getLink(l.Remote())
+	clientLink := msgFactory.getLink(l.Remote())
 	channelID := body[0]
 	var sendErr error
 
-	c.Logger.Debugf("New frame %s from %s@%d", frameType, remotePK, channelID)
+	msgFactory.Logger.Debugf("New frame %s from %s@%d", frameType, remotePK, channelID)
 	if frameType == FrameTypeOpenChannel {
-		if lID, msg, err := c.openChannel(channelID, body[1:34], body[34:], clientLink); err != nil {
-			c.Logger.Warnf("Failed to open new channel for %s: %s", remotePK, err)
+		if lID, msg, err := msgFactory.openChannel(channelID, body[1:34], body[34:], clientLink); err != nil {
+			msgFactory.Logger.Warnf("Failed to open new channel for %s: %s", remotePK, err)
 			_, sendErr = l.SendChannelClosed(channelID)
 		} else {
-			c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", lID, channelID,
+			msgFactory.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", lID, channelID,
 				hex.EncodeToString(body[1:34]))
 			_, sendErr = l.SendChannelOpened(channelID, lID, msg)
 		}
 
-		return c.warnSendError(remotePK, sendErr)
+		return msgFactory.warnSendError(remotePK, sendErr)
 	}
 
 	channel := clientLink.chans.get(channelID)
 	if channel == nil {
 		if frameType != FrameTypeChannelClosed && frameType != FrameTypeCloseChannel {
-			c.Logger.Warnf("Frame for unknown channel %d from %s", channelID, remotePK)
+			msgFactory.Logger.Warnf("Frame for unknown channel %d from %s", channelID, remotePK)
 		}
 		return nil
 	}
@@ -318,7 +318,7 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 	case FrameTypeCloseChannel:
 		clientLink.chans.remove(channelID)
 		_, sendErr = l.SendChannelClosed(channel.ID())
-		c.Logger.Debugf("Closed channel ID %d", channelID)
+		msgFactory.Logger.Debugf("Closed channel ID %d", channelID)
 	case FrameTypeChannelOpened:
 		channel.SetID(body[1])
 		if err := channel.ProcessMessage(body[2:]); err != nil {
@@ -342,59 +342,59 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 	case FrameTypeSend:
 		go func() {
 			select {
-			case <-c.doneCh:
+			case <-msgFactory.doneCh:
 			case <-channel.doneChan:
 			case channel.readChan <- body[1:]:
 			}
 		}()
 	}
 
-	return c.warnSendError(remotePK, sendErr)
+	return msgFactory.warnSendError(remotePK, sendErr)
 }
 
-func (c *Client) onClose(l *Link, remote bool) {
+func (msgFactory *MsgFactory) onClose(l *Link, remote bool) {
 	remotePK := l.Remote()
 
-	c.mu.RLock()
-	chanLink := c.links[remotePK]
-	c.mu.RUnlock()
+	msgFactory.mu.RLock()
+	chanLink := msgFactory.links[remotePK]
+	msgFactory.mu.RUnlock()
 
 	for _, channel := range chanLink.chans.dropAll() {
 		channel.close()
 	}
 
 	select {
-	case <-c.doneCh:
+	case <-msgFactory.doneCh:
 	default:
-		c.Logger.Infof("Disconnected from the server %s. Trying to re-connect...", remotePK)
-		for attemp := 0; attemp < c.retries; attemp++ {
-			if _, err := c.link(remotePK, chanLink.addr); err == nil {
-				c.Logger.Infof("Re-connected to the server %s", remotePK)
+		msgFactory.Logger.Infof("Disconnected from the server %s. Trying to re-connect...", remotePK)
+		for attemp := 0; attemp < msgFactory.retries; attemp++ {
+			if _, err := msgFactory.link(remotePK, chanLink.addr); err == nil {
+				msgFactory.Logger.Infof("Re-connected to the server %s", remotePK)
 				return
 			}
-			time.Sleep(c.retryDelay)
+			time.Sleep(msgFactory.retryDelay)
 		}
 	}
 
-	c.Logger.Infof("Closing link with the server %s", remotePK)
+	msgFactory.Logger.Infof("Closing link with the server %s", remotePK)
 
-	c.mu.Lock()
-	delete(c.links, remotePK)
-	c.mu.Unlock()
+	msgFactory.mu.Lock()
+	delete(msgFactory.links, remotePK)
+	msgFactory.mu.Unlock()
 
-	if err := c.setEntry(context.Background()); err != nil {
-		c.Logger.Warnf("Failed to update entry: %s", err)
+	if err := msgFactory.setEntry(context.Background()); err != nil {
+		msgFactory.Logger.Warnf("Failed to update entry: %s", err)
 	}
 }
 
-func (c *Client) openChannel(rID byte, remotePK []byte, noiseMsg []byte, chanLink *clientLink) (lID byte, noiseRes []byte, err error) {
+func (msgFactory *MsgFactory) openChannel(rID byte, remotePK []byte, noiseMsg []byte, chanLink *clientLink) (lID byte, noiseRes []byte, err error) {
 	var pubKey cipher.PubKey
 	pubKey, err = cipher.NewPubKey(remotePK)
 	if err != nil {
 		return
 	}
 
-	channel, err := newChannel(false, c.secKey, pubKey, chanLink.link)
+	channel, err := newChannel(false, msgFactory.secKey, pubKey, chanLink.link)
 	channel.SetID(rID)
 	if err != nil {
 		err = fmt.Errorf("noise setup: %s", err)
@@ -408,13 +408,13 @@ func (c *Client) openChannel(rID byte, remotePK []byte, noiseMsg []byte, chanLin
 
 	lID = chanLink.chans.add(channel)
 
-	c.newWG.Add(1) // Ensure that 'c.newCh' is not being written to before closing.
+	msgFactory.newWG.Add(1) // Ensure that 'c.newCh' is not being written to before closing.
 	go func() {
 		select {
-		case <-c.doneCh:
-		case c.newCh <- channel:
+		case <-msgFactory.doneCh:
+		case msgFactory.newCh <- channel:
 		}
-		c.newWG.Done()
+		msgFactory.newWG.Done()
 	}()
 
 	noiseRes, err = channel.HandshakeMessage()
@@ -426,9 +426,9 @@ func (c *Client) openChannel(rID byte, remotePK []byte, noiseMsg []byte, chanLin
 	return lID, noiseRes, err
 }
 
-func (c *Client) warnSendError(remote cipher.PubKey, err error) error {
+func (msgFactory *MsgFactory) warnSendError(remote cipher.PubKey, err error) error {
 	if err != nil {
-		c.Logger.Warnf("Failed to send frame to %s: %s", remote, err)
+		msgFactory.Logger.Warnf("Failed to send frame to %s: %s", remote, err)
 	}
 
 	return nil
