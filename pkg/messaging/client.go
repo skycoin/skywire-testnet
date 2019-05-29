@@ -289,60 +289,60 @@ func (c *Client) onData(l *Link, frameType FrameType, body []byte) error {
 	}
 
 	clientLink := c.getLink(l.Remote())
-	channelID := body[0]
+	localID := body[0]
 	var sendErr error
 
-	c.Logger.Debugf("New frame %s from %s@%d", frameType, remotePK, channelID)
+	c.Logger.Debugf("New frame %s from %s@%d", frameType, remotePK, localID)
 	if frameType == FrameTypeOpenChannel {
-		if lID, msg, err := c.openChannel(channelID, body[1:34], body[34:], clientLink); err != nil {
+		if lID, msg, err := c.openChannel(localID, body[1:34], body[34:], clientLink); err != nil {
 			c.Logger.Warnf("Failed to open new channel for %s: %s", remotePK, err)
-			_, sendErr = l.SendChannelClosed(channelID)
+			_, sendErr = l.SendChannelClosed(localID)
 		} else {
-			c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", lID, channelID,
+			c.Logger.Infof("Opened new channel local ID %d, remote ID %d with %s", lID, localID,
 				hex.EncodeToString(body[1:34]))
-			_, sendErr = l.SendChannelOpened(channelID, lID, msg)
+			_, sendErr = l.SendChannelOpened(localID, lID, msg)
 		}
 
 		return c.warnSendError(remotePK, sendErr)
 	}
 
-	channel := clientLink.chans.get(channelID)
-	if channel == nil {
+	remote := clientLink.chans.get(localID)
+	if remote == nil {
 		if frameType != FrameTypeChannelClosed && frameType != FrameTypeCloseChannel {
-			c.Logger.Warnf("Frame for unknown channel %d from %s", channelID, remotePK)
+			c.Logger.Warnf("Frame for unknown channel %d from %s", localID, remotePK)
 		}
 		return nil
 	}
 
 	switch frameType {
 	case FrameTypeCloseChannel:
-		clientLink.chans.remove(channelID)
-		_, sendErr = l.SendChannelClosed(channel.ID())
-		c.Logger.Debugf("Closed channel ID %d", channelID)
+		clientLink.chans.remove(localID)
+		_, sendErr = l.SendChannelClosed(localID)
+		c.Logger.Debugf("Closed channel ID %d", localID)
 	case FrameTypeChannelOpened:
-		channel.SetID(body[1])
-		if err := channel.ProcessMessage(body[2:]); err != nil {
+		remote.SetID(body[1])
+		if err := remote.ProcessMessage(body[2:]); err != nil {
 			sendErr = fmt.Errorf("noise handshake: %s", err)
 		}
 
 		select {
-		case channel.waitChan <- true:
+		case remote.waitChan <- true:
 		default:
 		}
 	case FrameTypeChannelClosed:
-		channel.SetID(body[0])
+		remote.SetID(body[0])
 		select {
-		case channel.waitChan <- false:
+		case remote.waitChan <- false:
 		default:
 		}
-		channel.OnChannelClosed()
-		clientLink.chans.remove(channelID)
+		remote.OnChannelClosed()
+		clientLink.chans.remove(localID)
 	case FrameTypeSend:
 		go func() {
 			select {
 			case <-c.doneCh:
-			case <-channel.doneChan:
-			case channel.readChan <- body[1:]:
+			case <-remote.doneChan:
+			case remote.readChan <- body[1:]:
 			}
 		}()
 	}
