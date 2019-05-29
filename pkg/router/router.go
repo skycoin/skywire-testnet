@@ -80,37 +80,29 @@ func New(config *Config) *Router {
 func (r *Router) Serve(ctx context.Context) error {
 
 	go func() {
-		for tr := range r.tm.TrChan {
-			if tr.Accepted {
-				go func(t *transport.ManagedTransport) {
-					for {
-						var err error
-						if r.IsSetupTransport(t) {
-							err = r.rm.Serve(t)
-						} else {
-							err = r.serveTransport(t)
-						}
+		for tp := range r.tm.TrChan {
+			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
 
-						if err != nil {
-							if err != io.EOF {
-								r.Logger.Warnf("Stopped serving Transport: %s", err)
-							}
-							return
-						}
-					}
-				}(tr)
-			} else {
-				go func(t *transport.ManagedTransport) {
-					for {
-						if err := r.serveTransport(t); err != nil {
-							if err != io.EOF {
-								r.Logger.Warnf("Stopped serving Transport: %s", err)
-							}
-							return
-						}
-					}
-				}(tr)
+			var serve func(io.ReadWriter) error
+			switch {
+			case isAccepted && isSetup:
+				serve = r.rm.Serve
+			case !isSetup:
+				serve = r.serveTransport
+			default:
+				continue
 			}
+
+			go func(tp transport.Transport) {
+				for {
+					if err := serve(tp); err != nil {
+						if err != io.EOF {
+							r.Logger.Warnf("Stopped serving Transport: %s", err)
+						}
+						return
+					}
+				}
+			}(tp)
 		}
 	}()
 
@@ -178,14 +170,14 @@ func (r *Router) Close() error {
 	return r.tm.Close()
 }
 
-func (r *Router) serveTransport(tr *transport.ManagedTransport) error {
+func (r *Router) serveTransport(rw io.ReadWriter) error {
 	packet := make(routing.Packet, 6)
-	if _, err := io.ReadFull(tr, packet); err != nil {
+	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
 	}
 
 	payload := make([]byte, packet.Size())
-	if _, err := io.ReadFull(tr, payload); err != nil {
+	if _, err := io.ReadFull(rw, payload); err != nil {
 		return err
 	}
 

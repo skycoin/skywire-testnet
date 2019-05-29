@@ -41,7 +41,7 @@ func newManagedTransport(id uuid.UUID, tr Transport, public bool, accepted bool)
 // Read reads using underlying
 func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	tr.mu.RLock()
-	n, err = tr.Transport.Read(p)
+	n, err = tr.Transport.Read(p) // TODO: data race.
 	tr.mu.RUnlock()
 	if err == nil {
 		select {

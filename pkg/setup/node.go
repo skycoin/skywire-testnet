@@ -92,7 +92,6 @@ func (sn *Node) Serve(ctx context.Context) error {
 
 	go func() {
 		for tr := range sn.tm.TrChan {
-
 			if tr.Accepted {
 				go func(t transport.Transport) {
 					for {
