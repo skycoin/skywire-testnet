@@ -67,10 +67,10 @@ func TestNodeStartClose(t *testing.T) {
 	r := new(mockRouter)
 	executer := &MockExecuter{}
 	conf := []AppConfig{
-		{App: "chat", Version: "1.0", AutoStart: true, Port: 1},
+		{App: "skychat", Version: "1.0", AutoStart: true, Port: 1},
 		{App: "foo", Version: "1.0", AutoStart: false},
 	}
-	defer os.RemoveAll("chat")
+	defer os.RemoveAll("skychat")
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 	mConf := &messaging.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: client.NewMock()}
@@ -92,51 +92,51 @@ func TestNodeStartClose(t *testing.T) {
 	require.NoError(t, <-errCh)
 
 	require.Len(t, executer.cmds, 1)
-	assert.Equal(t, "chat.v1.0", executer.cmds[0].Path)
-	assert.Equal(t, "chat/v1.0", executer.cmds[0].Dir)
+	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Path)
+	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
 }
 
 func TestNodeSpawnApp(t *testing.T) {
 	r := new(mockRouter)
 	executer := &MockExecuter{}
-	defer os.RemoveAll("chat")
-	apps := []AppConfig{{App: "chat", Version: "1.0", AutoStart: false, Port: 10, Args: []string{"foo"}}}
+	defer os.RemoveAll("skychat")
+	apps := []AppConfig{{App: "skychat", Version: "1.0", AutoStart: false, Port: 10, Args: []string{"foo"}}}
 	node := &Node{router: r, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 
-	require.NoError(t, node.StartApp("chat"))
+	require.NoError(t, node.StartApp("skychat"))
 	time.Sleep(100 * time.Millisecond)
 
-	require.NotNil(t, node.startedApps["chat"])
+	require.NotNil(t, node.startedApps["skychat"])
 
 	executer.Lock()
 	require.Len(t, executer.cmds, 1)
-	assert.Equal(t, "chat.v1.0", executer.cmds[0].Path)
-	assert.Equal(t, "chat/v1.0", executer.cmds[0].Dir)
-	assert.Equal(t, []string{"chat.v1.0", "foo"}, executer.cmds[0].Args)
+	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Path)
+	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
+	assert.Equal(t, []string{"skychat.v1.0", "foo"}, executer.cmds[0].Args)
 	executer.Unlock()
 
 	ports := r.Ports()
 	require.Len(t, ports, 1)
 	assert.Equal(t, uint16(10), ports[0])
 
-	require.NoError(t, node.StopApp("chat"))
+	require.NoError(t, node.StopApp("skychat"))
 }
 
 func TestNodeSpawnAppValidations(t *testing.T) {
 	conn, _ := net.Pipe()
 	r := new(mockRouter)
 	executer := &MockExecuter{err: errors.New("foo")}
-	defer os.RemoveAll("chat")
+	defer os.RemoveAll("skychat")
 	node := &Node{router: r, executer: executer,
-		startedApps: map[string]*appBind{"chat": {conn, 10}},
+		startedApps: map[string]*appBind{"skychat": {conn, 10}},
 		logger:      logging.MustGetLogger("test")}
 
 	cases := []struct {
 		conf *AppConfig
 		err  string
 	}{
-		{&AppConfig{App: "chat", Version: "1.0", Port: 2}, "can't bind to reserved port 2"},
-		{&AppConfig{App: "chat", Version: "1.0", Port: 10}, "app chat is already started"},
+		{&AppConfig{App: "skychat", Version: "1.0", Port: 2}, "can't bind to reserved port 2"},
+		{&AppConfig{App: "skychat", Version: "1.0", Port: 10}, "app skychat is already started"},
 		{&AppConfig{App: "foo", Version: "1.0", Port: 11}, "failed to run app executable: foo"},
 	}
 

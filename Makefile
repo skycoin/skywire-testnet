@@ -28,10 +28,10 @@ config: ## Generate skywire.json
 
 clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
-	-rm -f ./skywire-node ./skywire-cli ./setup-node ./manager-node ./thereallssh-cli
+	-rm -f ./skywire-node ./skywire-cli ./setup-node ./manager-node ./SSH-cli
 
-install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`	
-	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/manager-node ./cmd/therealssh-cli	
+install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `SSH-cli`	
+	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/manager-node ./cmd/therealssh-cli
 
 rerun: stop
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
@@ -93,33 +93,33 @@ dep: ## Sorts dependencies
 
 # Apps 
 host-apps: ## Build app 
-	${OPTS} go build -race -o ./apps/chat.v1.0 ./cmd/apps/chat	
+	${OPTS} go build -race -o ./apps/skychat.v1.0 ./cmd/apps/skychat	
 	${OPTS} go build -race -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-	${OPTS} go build -race -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-	${OPTS} go build -race -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	${OPTS} go build -race -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-	${OPTS} go build -race -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	${OPTS} go build -race -o ./apps/socksproxy.v1.0 ./cmd/apps/therealproxy
+	${OPTS} go build -race -o ./apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	${OPTS} go build -race -o ./apps/SSH.v1.0  ./cmd/apps/therealssh
+	${OPTS} go build -race -o ./apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
 
 # Bin 
-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`
+bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `SSH-cli`
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -race -o ./skywire-cli  ./cmd/skywire-cli 
 	${OPTS} go build -race -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -race -o ./manager-node ./cmd/manager-node 
-	${OPTS} go build -race -o ./therealssh-cli ./cmd/therealssh-cli
+	${OPTS} go build -race -o ./SSH-cli ./cmd/therealssh-cli
 
-release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and apps without -race flag
+release: ## Build skywire-node`, skywire-cli, manager-node, SSH-cli and apps without -race flag
 	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
 	${OPTS} go build -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -o ./manager-node ./cmd/manager-node 
-	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
-	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
+	${OPTS} go build -o ./SSH-cli ./cmd/therealssh-cli
+	${OPTS} go build -o ./apps/skychat.v1.0 ./cmd/apps/skychat	
 	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-	${OPTS} go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-	${OPTS} go build -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	${OPTS} go build -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-	${OPTS} go build -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	${OPTS} go build -o ./apps/socksproxy.v1.0 ./cmd/apps/therealproxy
+	${OPTS} go build -o ./apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	${OPTS} go build -o ./apps/SSH.v1.0  ./cmd/apps/therealssh
+	${OPTS} go build -o ./apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
 
 
 
@@ -135,12 +135,12 @@ docker-network: ## Create docker network ${DOCKER_NETWORK}
 	-docker network create ${DOCKER_NETWORK}
 
 docker-apps: ## Build apps binaries for dockerized skywire-node. `go build` with  ${DOCKER_OPTS}
-	-${DOCKER_OPTS} go build -race -o ./node/apps/chat.v1.0 ./cmd/apps/chat
+	-${DOCKER_OPTS} go build -race -o ./node/apps/skychat.v1.0 ./cmd/apps/skychat
 	-${DOCKER_OPTS} go build -race -o ./node/apps/helloworld.v1.0 ./cmd/apps/helloworld
-	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	-${DOCKER_OPTS} go build -race -o ./node/apps/therealssh.v1.0  ./cmd/apps/therealssh
-	-${DOCKER_OPTS} go build -race -o ./node/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	-${DOCKER_OPTS} go build -race -o ./node/apps/socksproxy.v1.0 ./cmd/apps/therealproxy
+	-${DOCKER_OPTS} go build -race -o ./node/apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	-${DOCKER_OPTS} go build -race -o ./node/apps/SSH.v1.0  ./cmd/apps/therealssh
+	-${DOCKER_OPTS} go build -race -o ./node/apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
 
 docker-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`. `go build` with  ${DOCKER_OPTS}
 	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
