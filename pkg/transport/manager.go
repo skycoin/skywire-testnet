@@ -32,9 +32,10 @@ type Manager struct {
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
 
-	doneChan chan struct{}
-	TrChan   chan *ManagedTransport
-	mu       sync.RWMutex
+	isClosing bool
+	doneChan  chan struct{}
+	TrChan    chan *ManagedTransport
+	mu        sync.RWMutex
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
@@ -259,9 +260,10 @@ func (tm *Manager) Close() error {
 		f.Close()
 	}
 
+	close(tm.doneChan)
+
 	tm.Logger.Info("Closing transport manager")
 	tm.mu.Lock()
-	close(tm.doneChan)
 	statuses := make([]*Status, 0)
 	for _, tr := range tm.transports {
 		if !tr.Public {
@@ -387,26 +389,31 @@ func (tm *Manager) manageTransport(ctx context.Context, managedTr *ManagedTransp
 	case <-managedTr.doneChan:
 		tm.Logger.Infof("Transport %s closed", managedTr.ID)
 		return
-	case <-tm.doneChan:
-		tm.Logger.Infof("Transport %s closed", managedTr.ID)
-		return
 	case err := <-managedTr.errChan:
-		tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-		if accepted {
-			if err := tm.DeleteTransport(managedTr.ID); err != nil {
-				tm.Logger.Warnf("Failed to delete accepted transport: %s", err)
-			}
-		} else {
-			tr, _, err := tm.dialTransport(ctx, factory, remote, public)
-			if err != nil {
-				tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
+		managedTr.mu.Lock()
+		isClosing := managedTr.isClosing
+		managedTr.mu.Unlock()
+		if !isClosing {
+			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
+			if accepted {
 				if err := tm.DeleteTransport(managedTr.ID); err != nil {
-					tm.Logger.Warnf("Failed to delete re-dialled transport: %s", err)
+					tm.Logger.Warnf("Failed to delete accepted transport: %s", err)
 				}
 			} else {
-				managedTr.updateTransport(tr)
+				tr, _, err := tm.dialTransport(ctx, factory, remote, public)
+				if err != nil {
+					tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
+					if err := tm.DeleteTransport(managedTr.ID); err != nil {
+						tm.Logger.Warnf("Failed to delete re-dialled transport: %s", err)
+					}
+				} else {
+					managedTr.updateTransport(tr)
+				}
 			}
+		} else {
+			tm.Logger.Infof("Transport %s is already closing. Skipped error: %s", managedTr.ID, err)
 		}
+
 	}
 }
 

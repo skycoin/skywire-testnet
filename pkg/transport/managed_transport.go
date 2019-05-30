@@ -16,9 +16,10 @@ type ManagedTransport struct {
 	Accepted bool
 	LogEntry *LogEntry
 
-	doneChan chan struct{}
-	errChan  chan error
-	mu       sync.RWMutex
+	doneChan  chan struct{}
+	errChan   chan error
+	isClosing bool
+	mu        sync.RWMutex
 
 	readLogChan  chan int
 	writeLogChan chan int
@@ -90,11 +91,13 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 func (tr *ManagedTransport) Close() error {
 	tr.mu.RLock()
 	err := tr.Transport.Close()
+	tr.isClosing = true
 	tr.mu.RUnlock()
 
 	select {
 	case <-tr.doneChan:
 	default:
+
 		close(tr.doneChan)
 	}
 
