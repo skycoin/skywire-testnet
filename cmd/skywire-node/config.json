@@ -17,13 +17,13 @@
     },
     "apps": [
         {
-            "app": "chat",
+            "app": "skychat",
             "version": "1.0",
             "auto_start": true,
             "ports": [1]
         },
         {
-            "app": "therealssh-server",
+            "app": "SSH-server",
             "auto_start": true,
             "ports": [2]
         }

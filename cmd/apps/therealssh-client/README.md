@@ -1,8 +1,8 @@
 # Skywire SSH client app
 
-`therealssh-client` app implements client for the SSH app. 
+`SSH-client` app implements client for the SSH app. 
 
-It starts RCP interface for `therealssh-cli` and handles incoming requests to
+It starts RCP interface for `SSH-cli` and handles incoming requests to
 the remote node via `skywire` connection.
 
-Please check docs for `therealssh` app for further instructions.
+Please check docs for `SSH` app for further instructions.

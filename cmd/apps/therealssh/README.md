@@ -1,11 +1,11 @@
 # Skywire SSH app
 
-`therealssh` app implements SSH functionality over skywirenet.
+`SSH` app implements SSH functionality over skywirenet.
 
-`therealssh-cli` is used to initiate communication via client RPC
-exposed by `therealssh` app. 
+`SSH-cli` is used to initiate communication via client RPC
+exposed by `SSH` app. 
 
-`therealssh` app implements common SSH operations:
+`SSH` app implements common SSH operations:
 
 - starting remote shell
 - and executing commands remotely
@@ -22,7 +22,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": "therealssh",
+      "app": "SSH",
       "version": "1.0",
       "auto_start": true,
       "port": 2
@@ -35,7 +35,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": "therealssh-client",
+      "app": "SSH-client",
       "version": "1.0",
       "auto_start": true,
       "port": 22
@@ -46,9 +46,9 @@ Create 2 node config files:
 Compile binaries and start 2 nodes:
 
 ```bash
-$ go build -o apps/therealssh.v1.0 ./cmd/apps/therealssh
-$ go build -o apps/therealssh-client.v1.0 ./cmd/apps/therealssh-client
-$ go build ./cmd/therealssh-cli
+$ go build -o apps/SSH.v1.0 ./cmd/apps/therealssh
+$ go build -o apps/SSH-client.v1.0 ./cmd/apps/therealssh-client
+$ go build ./cmd/SSH-cli
 $ ./skywire-node skywire1.json
 $ ./skywire-node skywire2.json
 ```
@@ -57,13 +57,13 @@ Add public key of the second node to the auth file:
 
 ```bash
 $ mkdir `/.therealssh
-$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > `/.therealssh/authorized_keys
+$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > `/.SSH/authorized_keys
 ```
 
 Connect to the first node using CLI:
 
 ```bash
-$ ./therealssh-cli 024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7
+$ ./SSH-cli 024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7
 ```
 
 This should get you to the $HOME folder of the user(you in this case), which
