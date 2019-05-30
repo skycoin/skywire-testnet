@@ -54,7 +54,7 @@ $ make
 $ OPTS="GSO111MODULE=on GOOS=linux GOARCH=arm" make
 ```
 
-**Install skywire-node, skywire-cli, manager-node and therealssh-cli**
+**Install skywire-node, skywire-cli, manager-node and skywire-messenger-ssh-cli**
 
 ```bash
 $ make install  # compiles and installs all binaries
@@ -114,7 +114,7 @@ After `skywire-node` is up and running with default environment, default apps ar
 - [Chat](/cmd/apps/chat)
 - [Hello World](/cmd/apps/helloworld)
 - [The Real Proxy](/cmd/apps/therealproxy) ([Client](/cmd/apps/therealproxy-client))
-- [The Real SSH](/cmd/apps/therealssh) ([Client](/cmd/apps/therealssh-client))
+- [Skywire Messenger SSH Server](/skywire-messenger-ssh/cmd/server) ([Client](/skywire-messenger-ssh/cmd/client))
 
 ### Transports
 
@@ -186,12 +186,12 @@ This will:
 │   ├── helloworld.v1.0             #
 │   ├── therealproxy-client.v1.0    #
 │   ├── therealproxy.v1.0           #
-│   ├── therealssh-client.v1.0      #
-│   └── therealssh.v1.0             #
+│   ├── skywire-messenger-ssh-client.v1.0      #
+│   └── skywire-messenger-ssh-server.v1.0             #
 ├── local                           # **Created inside docker**
 │   ├── chat                        #  according to "local_path" in skywire-config.json
 │   ├── therealproxy                #
-│   └── therealssh                  #
+│   └── skywire-messenger-ssh-server                  #
 ├── PK                              # contains public key of node
 ├── skywire                         # db & logs. **Created inside docker**
 │   ├── routing.db                  #
@@ -292,8 +292,8 @@ $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/skywire-node ./cmd/skywire-
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/chat.v1.0 ./cmd/apps/chat
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/helloworld.v1.0 ./cmd/apps/helloworld
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh.v1.0  ./cmd/apps/therealssh
-$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/skywire-messenger-ssh-server.v1.0  ./skywire-messenger-ssh/cmd/server
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/skywire-messenger-ssh-client.v1.0  ./skywire-messenger-ssh/cmd/client
 # 4. Create skywire-config.json for node
 $ skywire-cli node gen-config -o /tmp/SKYNODE/skywire-config.json
 # 2019/03/15 16:43:49 Done!
@@ -303,8 +303,8 @@ $ tree /tmp/SKYNODE
 # │   ├── chat.v1.0
 # │   ├── helloworld.v1.0
 # │   ├── therealproxy.v1.0
-# │   ├── therealssh-client.v1.0
-# │   └── therealssh.v1.0
+# │   ├── skywire-messenger-ssh-client.v1.0
+# │   └── skywire-messenger-ssh-server.v1.0
 # ├── skywire-config.json
 # └── skywire-node
 # So far so good. We prepared docker volume. Now we can:
@@ -315,15 +315,15 @@ $ docker run -it -v /tmp/SKYNODE:/sky --network=SKYNET --name=SKYNODE skywire-ru
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting chat.v1.0
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting RPC interface on 127.0.0.1:3435
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealproxy.v1.0
-# [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealssh.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting skywire-messenger-ssh-server.v1.0
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting packet router
 # [2019-03-15T13:55:10Z] INFO [router]: Starting router
 # [2019-03-15T13:55:10Z] INFO [trmanager]: Starting transport manager
 # [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"chat",# "app-version":"1.0","protocol-version":"0.0.1"}
 # [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app chat.v1.0
 # [2019-03-15T13:55:10Z] INFO [chat.v1.0]: 2019/03/15 13:55:10 Serving HTTP on :8000
-# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealssh",# "app-version":"1.0","protocol-version":"0.0.1"}
-# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealssh.v1.0
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"skywire-messenger-ssh-server",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app skywire-messenger-ssh-server.v1.0
 # [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealproxy",# "app-version":"1.0","protocol-version":"0.0.1"}
 # [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealproxy.v1.0
 ```

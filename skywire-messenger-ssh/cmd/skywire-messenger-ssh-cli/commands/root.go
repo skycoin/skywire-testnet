@@ -19,7 +19,7 @@ import (
 
 	"github.com/skycoin/skywire/pkg/cipher"
 
-	ssh "github.com/skycoin/skywire/internal/therealssh"
+	ssh "github.com/skycoin/skywire/skywire-messenger-ssh/internal/therealssh"
 )
 
 var (
@@ -27,8 +27,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "therealssh-cli [user@]remotePK [command] [args...]",
-	Short: "Client for the therealssh-client app",
+	Use:   "skywire-messenger-ssh-cli [user@]remotePK [command] [args...]",
+	Short: "Client for the server-client app",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		client, err := rpc.DialHTTP("tcp", rpcAddr)

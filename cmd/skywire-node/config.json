@@ -23,7 +23,7 @@
             "ports": [1]
         },
         {
-            "app": "therealssh-server",
+            "app": "skywire-messenger-ssh-server",
             "auto_start": true,
             "ports": [2]
         }

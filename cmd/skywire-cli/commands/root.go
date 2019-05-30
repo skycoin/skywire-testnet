@@ -10,7 +10,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "skywire-cli",
+	Use:   "skywire-skywire-messenger-ssh-cli",
 	Short: "Command Line Interface for skywire",
 }
 

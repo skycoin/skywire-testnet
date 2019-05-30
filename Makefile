@@ -28,10 +28,10 @@ config: ## Generate skywire.json
 
 clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
-	-rm -f ./skywire-node ./skywire-cli ./setup-node ./manager-node ./thereallssh-cli
+	-rm -f ./skywire-node ./skywire-cli ./setup-node ./manager-node ./skywire-messenger-ssh-cli
 
-install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`	
-	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/manager-node ./cmd/therealssh-cli	
+install: ## Install `skywire-node`, `skywire-skywire-messenger-ssh-cli`, `manager-node`, `skywire-messenger-skywire-messenger-ssh-cli`
+	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/manager-node ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-cli	
 
 rerun: stop
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
@@ -46,6 +46,7 @@ lint: ## Run linters. Use make install-linters first
 	${OPTS} go vet -all ./...
 
 vendorcheck:  ## Run vendorcheck
+	GO111MODULE=off vendorcheck ./skywire-messenger-ssh/... 
 	GO111MODULE=off vendorcheck ./internal/... 
 	GO111MODULE=off vendorcheck ./pkg/... 
 	GO111MODULE=off vendorcheck ./cmd/apps/... 
@@ -53,13 +54,14 @@ vendorcheck:  ## Run vendorcheck
 	GO111MODULE=off vendorcheck ./cmd/setup-node/... 
 	GO111MODULE=off vendorcheck ./cmd/skywire-cli/... 
 	GO111MODULE=off vendorcheck ./cmd/skywire-node/... 
-	# vendorcheck fails on ./cmd/therealssh-cli
+	# vendorcheck fails on ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-cli/-skywire-messenger-ssh-cli
 	# the problem is indirect dependency to github.com/sirupsen/logrus
-	#GO111MODULE=off vendorcheck ./cmd/therealssh-cli/... 	
+	#GO111MODULE=off vendorcheck ./cmd/-skywire-messenger-ssh-cli/...
 
 test: ## Run tests
 	-go clean -testcache &>/dev/null
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/...
+	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./skywire-messenger-ssh/...
 	#${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/app/...
 	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/cipher/...
@@ -87,6 +89,7 @@ format: ## Formats the code. Must have goimports installed (use make install-lin
 	${OPTS} goimports -w -local github.com/skycoin/skywire ./pkg
 	${OPTS} goimports -w -local github.com/skycoin/skywire ./cmd
 	${OPTS} goimports -w -local github.com/skycoin/skywire ./internal
+	${OPTS} goimports -w -local github.com/skycoin/skywire ./skywire-messenger-ssh
 
 dep: ## Sorts dependencies
 	${OPTS} go mod vendor -v
@@ -97,29 +100,29 @@ host-apps: ## Build app
 	${OPTS} go build -race -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
 	${OPTS} go build -race -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 	${OPTS} go build -race -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	${OPTS} go build -race -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-	${OPTS} go build -race -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	${OPTS} go build -race -o ./apps/skywire-messenger-ssh-server.v1.0  ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-server
+	${OPTS} go build -race -o ./apps/skywire-messenger-ssh-client.v1.0  ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-client
 
 # Bin 
-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`
+bin: ## Build `skywire-node`, `skywire-cli`, `setup-node`,`manager-node`, `skywire-messenger-ssh-cli`
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -race -o ./skywire-cli  ./cmd/skywire-cli 
 	${OPTS} go build -race -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -race -o ./manager-node ./cmd/manager-node 
-	${OPTS} go build -race -o ./therealssh-cli ./cmd/therealssh-cli
+	${OPTS} go build -race -o ./skywire-messenger-ssh-cli ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-cli
 
-release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and apps without -race flag
+release: ## Build skywire-node`, skywire-cli, manager-node, skywire-messenger-ssh-cli and apps without -race flag
 	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
 	${OPTS} go build -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -o ./manager-node ./cmd/manager-node 
-	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
+	${OPTS} go build -o ./skywire-messenger-ssh-cli ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-cli
 	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
 	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
 	${OPTS} go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 	${OPTS} go build -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	${OPTS} go build -o ./apps/therealssh.v1.0  ./cmd/apps/therealssh
-	${OPTS} go build -o ./apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	${OPTS} go build -o ./apps/skywire-messenger-ssh-server.v1.0  ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-server
+	${OPTS} go build -o ./apps/skywire-messenger-ssh-client.v1.0  ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-client
 
 
 
@@ -139,10 +142,10 @@ docker-apps: ## Build apps binaries for dockerized skywire-node. `go build` with
 	-${DOCKER_OPTS} go build -race -o ./node/apps/helloworld.v1.0 ./cmd/apps/helloworld
 	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	-${DOCKER_OPTS} go build -race -o ./node/apps/therealssh.v1.0  ./cmd/apps/therealssh
-	-${DOCKER_OPTS} go build -race -o ./node/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+	-${DOCKER_OPTS} go build -race -o ./node/apps/skywire-messenger-ssh-server.v1.0  ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-server
+	-${DOCKER_OPTS} go build -race -o ./node/apps/skywire-messenger-ssh-client.v1.0  ./skywire-messenger-ssh/cmd/skywire-messenger-ssh-client
 
-docker-bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`. `go build` with  ${DOCKER_OPTS}
+docker-bin: ## Build `skywire-node`. `go build` with  ${DOCKER_OPTS}
 	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
 
 docker-volume: dep docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-node	

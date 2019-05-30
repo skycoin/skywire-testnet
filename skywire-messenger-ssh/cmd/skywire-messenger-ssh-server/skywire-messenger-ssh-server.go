@@ -9,17 +9,17 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 
-	ssh "github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
+	ssh "github.com/skycoin/skywire/skywire-messenger-ssh/internal/therealssh"
 )
 
 func main() {
-	var authFile = flag.String("auth", "~/.therealssh/authorized_keys", "Auth file location. Should contain one PubKey per line.")
+	var authFile = flag.String("auth", "~/.server/authorized_keys", "Auth file location. Should contain one PubKey per line.")
 	var debug = flag.Bool("debug", false, "enable debug messages")
 
 	flag.Parse()
 
-	config := &app.Config{AppName: "therealssh", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
+	config := &app.Config{AppName: "skywire-messenger-ssh-server", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
 	sshApp, err := app.Setup(config)
 	if err != nil {
 		log.Fatal("Setup failure: ", err)

@@ -9,9 +9,9 @@ import (
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
-var log = logging.MustGetLogger("skywire-cli")
+var log = logging.MustGetLogger("skywire-skywire-messenger-ssh-cli")
 
-// Catch handles errors for skywire-cli commands packages
+// Catch handles errors for skywire-skywire-messenger-ssh-cli commands packages
 func Catch(err error, msgs ...string) {
 	if err != nil {
 		if len(msgs) > 0 {

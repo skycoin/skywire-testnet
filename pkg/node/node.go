@@ -45,7 +45,7 @@ const Version = "0.0.1"
 
 const supportedProtocolVersion = "0.0.1"
 
-var reservedPorts = map[uint16]string{0: "router", 1: "chat", 2: "therealssh", 3: "therealproxy"}
+var reservedPorts = map[uint16]string{0: "router", 1: "chat", 2: "skywire-messenger-ssh-server", 3: "therealproxy"}
 
 // AppState defines state parameters for a registered App.
 type AppState struct {

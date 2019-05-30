@@ -9,7 +9,7 @@ import (
 	"github.com/skycoin/skywire/pkg/node"
 )
 
-var log = logging.MustGetLogger("skywire-cli")
+var log = logging.MustGetLogger("skywire-skywire-messenger-ssh-cli")
 
 var rpcAddr string
 
