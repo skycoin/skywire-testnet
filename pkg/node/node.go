@@ -71,7 +71,7 @@ type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
 	ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
-	IsSetupTransport(tr transport.Transport) bool
+	IsSetupTransport(tr *transport.ManagedTransport) bool
 }
 
 // Node provides messaging runtime for Apps by setting up all
@@ -202,9 +202,6 @@ func (node *Node) Start() error {
 		return fmt.Errorf("dms: %s", err)
 	}
 	node.logger.Info("Connected to messaging servers")
-
-	node.tm.ReconnectTransports(ctx)
-	node.tm.CreateDefaultTransports(ctx)
 
 	for _, ac := range node.appsConf {
 		if !ac.AutoStart {

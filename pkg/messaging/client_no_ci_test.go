@@ -17,7 +17,7 @@ import (
 func TestClientConnectInitialServers(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	discovery := client.NewMock()
-	c := NewClient(&Config{pk, sk, discovery, 1, 100 * time.Millisecond})
+	c := NewMsgFactory(&Config{pk, sk, discovery, 1, 100 * time.Millisecond})
 
 	srv, err := newMockServer(discovery)
 	require.NoError(t, err)

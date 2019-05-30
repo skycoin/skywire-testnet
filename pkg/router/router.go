@@ -78,44 +78,33 @@ func New(config *Config) *Router {
 
 // Serve starts transport listening loop.
 func (r *Router) Serve(ctx context.Context) error {
-	go func() {
-		for tr := range r.tm.AcceptedTrChan {
-			go func(t transport.Transport) {
-				for {
-					var err error
-					if r.IsSetupTransport(t) {
-						err = r.rm.Serve(t)
-					} else {
-						err = r.serveTransport(t)
-					}
-
-					if err != nil {
-						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
-						}
-						return
-					}
-				}
-			}(tr)
-		}
-	}()
 
 	go func() {
-		for tr := range r.tm.DialedTrChan {
-			if r.IsSetupTransport(tr) {
+		for tp := range r.tm.TrChan {
+			r.mu.Lock()
+			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
+			r.mu.Unlock()
+
+			var serve func(io.ReadWriter) error
+			switch {
+			case isAccepted && isSetup:
+				serve = r.rm.Serve
+			case !isSetup:
+				serve = r.serveTransport
+			default:
 				continue
 			}
 
-			go func(t transport.Transport) {
+			go func(tp transport.Transport) {
 				for {
-					if err := r.serveTransport(t); err != nil {
+					if err := serve(tp); err != nil {
 						if err != io.EOF {
 							r.Logger.Warnf("Stopped serving Transport: %s", err)
 						}
 						return
 					}
 				}
-			}(tr)
+			}(tp)
 		}
 	}()
 
@@ -183,14 +172,14 @@ func (r *Router) Close() error {
 	return r.tm.Close()
 }
 
-func (r *Router) serveTransport(tr transport.Transport) error {
+func (r *Router) serveTransport(rw io.ReadWriter) error {
 	packet := make(routing.Packet, 6)
-	if _, err := io.ReadFull(tr, packet); err != nil {
+	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
 	}
 
 	payload := make([]byte, packet.Size())
-	if _, err := io.ReadFull(tr, payload); err != nil {
+	if _, err := io.ReadFull(rw, payload); err != nil {
 		return err
 	}
 
@@ -482,7 +471,7 @@ func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni 
 }
 
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
-func (r *Router) IsSetupTransport(tr transport.Transport) bool {
+func (r *Router) IsSetupTransport(tr *transport.ManagedTransport) bool {
 	for _, pk := range r.config.SetupNodes {
 		remote, ok := r.tm.Remote(tr.Edges())
 		if ok && (remote == pk) {

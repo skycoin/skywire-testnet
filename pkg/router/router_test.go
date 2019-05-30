@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/skycoin/skywire/pkg/dms"
 	"net"
 	"os"
 	"testing"
@@ -465,8 +466,8 @@ func TestRouterSetupLoop(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f1.SetType("messaging")
-	f2.SetType("messaging")
+	f1.SetType(dms.TpType)
+	f2.SetType(dms.TpType)
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
@@ -487,8 +488,12 @@ func TestRouterSetupLoop(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		acceptCh, _ := m2.Observe()
-		tr := <-acceptCh
+		var tr *transport.ManagedTransport
+		for tr = range m2.TrChan {
+			if tr.Accepted {
+				break
+			}
+		}
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
@@ -568,7 +573,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	pk3, _ := cipher.GenerateKeyPair()
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f1.SetType("messaging")
+	f1.SetType(dms.TpType)
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
@@ -593,8 +598,14 @@ func TestRouterCloseLoop(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		acceptCh, _ := m2.Observe()
-		tr := <-acceptCh
+		// acceptCh, _ := m2.Observe()
+		// tr := <-acceptCh
+		var tr *transport.ManagedTransport
+		for tr = range m2.TrChan {
+			if tr.Accepted {
+				break
+			}
+		}
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
@@ -656,7 +667,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	pk3, _ := cipher.GenerateKeyPair()
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f1.SetType("messaging")
+	f1.SetType(dms.TpType)
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
@@ -681,8 +692,12 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		acceptCh, _ := m2.Observe()
-		tr := <-acceptCh
+		var tr *transport.ManagedTransport
+		for tr = range m2.TrChan {
+			if tr.Accepted {
+				break
+			}
+		}
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()

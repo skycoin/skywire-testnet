@@ -160,6 +160,7 @@ func (c *Channel) Write(p []byte) (int, error) {
 func (c *Channel) Close() error {
 	if c.close() {
 		_ = writeFrame(c.Conn, MakeFrame(CloseType, c.id, []byte{0}))
+		return nil
 	}
-	return nil
+	return io.ErrClosedPipe
 }

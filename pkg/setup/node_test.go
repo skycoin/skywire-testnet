@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/skycoin/skywire/pkg/dms"
 	"sync"
 	"testing"
 	"time"
@@ -41,16 +42,16 @@ func TestCreateLoop(t *testing.T) {
 	f4.SetType("mock2")
 
 	fs1, fs2 := transport.NewMockFactoryPair(pk1, pkS)
-	fs1.SetType("messaging")
-	fs2.SetType("messaging")
+	fs1.SetType(dms.TpType)
+	fs2.SetType(dms.TpType)
 	fs3, fs4 := transport.NewMockFactoryPair(pk2, pkS)
-	fs3.SetType("messaging")
+	fs3.SetType(dms.TpType)
 	fs5, fs6 := transport.NewMockFactoryPair(pk3, pkS)
-	fs5.SetType("messaging")
+	fs5.SetType(dms.TpType)
 	fs7, fs8 := transport.NewMockFactoryPair(pk4, pkS)
-	fs7.SetType("messaging")
+	fs7.SetType(dms.TpType)
 
-	fS := newMuxFactory(pkS, "messaging", map[cipher.PubKey]transport.Factory{pk1: fs2, pk2: fs4, pk3: fs6, pk4: fs8})
+	fS := newMuxFactory(pkS, dms.TpType, map[cipher.PubKey]transport.Factory{pk1: fs2, pk2: fs4, pk3: fs6, pk4: fs8})
 
 	m1, err := transport.NewManager(c1, f1, fs1)
 	require.NoError(t, err)
@@ -99,7 +100,7 @@ func TestCreateLoop(t *testing.T) {
 		errChan <- sn.Serve(context.TODO())
 	}()
 
-	tr, err := m4.CreateTransport(context.TODO(), pkS, "messaging", false)
+	tr, err := m4.CreateTransport(context.TODO(), pkS, dms.TpType, false)
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
@@ -159,12 +160,12 @@ func TestCloseLoop(t *testing.T) {
 	cS := &transport.ManagerConfig{PubKey: pkS, SecKey: skS, DiscoveryClient: client, LogStore: logStore}
 
 	fs1, fs2 := transport.NewMockFactoryPair(pk1, pkS)
-	fs1.SetType("messaging")
-	fs2.SetType("messaging")
+	fs1.SetType(dms.TpType)
+	fs2.SetType(dms.TpType)
 	fs5, fs6 := transport.NewMockFactoryPair(pk3, pkS)
-	fs5.SetType("messaging")
+	fs5.SetType(dms.TpType)
 
-	fS := newMuxFactory(pkS, "messaging", map[cipher.PubKey]transport.Factory{pk1: fs2, pk3: fs6})
+	fS := newMuxFactory(pkS, dms.TpType, map[cipher.PubKey]transport.Factory{pk1: fs2, pk3: fs6})
 
 	m1, err := transport.NewManager(c1, fs1)
 	require.NoError(t, err)
@@ -190,7 +191,7 @@ func TestCloseLoop(t *testing.T) {
 	rules := n3.getRules()
 	require.Len(t, rules, 1)
 
-	tr, err := m1.CreateTransport(context.TODO(), pkS, "messaging", false)
+	tr, err := m1.CreateTransport(context.TODO(), pkS, dms.TpType, false)
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
@@ -274,13 +275,7 @@ func newMockNode(tm *transport.Manager) *mockNode {
 
 func (n *mockNode) serve() error {
 	go func() {
-		for tr := range n.tm.DialedTrChan {
-			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
-		}
-	}()
-
-	go func() {
-		for tr := range n.tm.AcceptedTrChan {
+		for tr := range n.tm.TrChan {
 			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
 		}
 	}()

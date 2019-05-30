@@ -32,6 +32,7 @@ type Node struct {
 
 	tm        *transport.Manager
 	messenger *dms.Client
+
 	srvCount  int
 	metrics   metrics.Recorder
 }
@@ -46,7 +47,8 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 		logger.SetLevel(lvl)
 	}
 	messenger := dms.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
-	messenger.SetLogger(logger.PackageLogger("messenger"))
+	messenger.SetLogger(logger.PackageLogger("dms"))
+
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {
@@ -85,20 +87,17 @@ func (sn *Node) Serve(ctx context.Context) error {
 	}
 
 	go func() {
-		for tr := range sn.tm.AcceptedTrChan {
-			go func(t transport.Transport) {
-				for {
-					if err := sn.serveTransport(t); err != nil {
-						sn.Logger.Warnf("Failed to serve Transport: %s", err)
-						return
+		for tr := range sn.tm.TrChan {
+			if tr.Accepted {
+				go func(t transport.Transport) {
+					for {
+						if err := sn.serveTransport(t); err != nil {
+							sn.Logger.Warnf("Failed to serve Transport: %s", err)
+							return
+						}
 					}
-				}
-			}(tr)
-		}
-	}()
-
-	go func() {
-		for range sn.tm.DialedTrChan {
+				}(tr)
+			}
 		}
 	}()
 
