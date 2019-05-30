@@ -32,10 +32,9 @@ type Manager struct {
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
 
-	isClosing bool
-	doneChan  chan struct{}
-	TrChan    chan *ManagedTransport
-	mu        sync.RWMutex
+	doneChan chan struct{}
+	TrChan   chan *ManagedTransport
+	mu       sync.RWMutex
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
@@ -256,9 +255,6 @@ func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 
 // Close closes opened transports and registered factories.
 func (tm *Manager) Close() error {
-	for _, f := range tm.factories {
-		f.Close()
-	}
 
 	close(tm.doneChan)
 
@@ -273,11 +269,14 @@ func (tm *Manager) Close() error {
 
 		tr.Close()
 	}
-	tm.transports = make(map[uuid.UUID]*ManagedTransport)
 	tm.mu.Unlock()
 
 	if _, err := tm.config.DiscoveryClient.UpdateStatuses(context.Background(), statuses...); err != nil {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)
+	}
+
+	for _, f := range tm.factories {
+		go f.Close()
 	}
 
 	return nil
