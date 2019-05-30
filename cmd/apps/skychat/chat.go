@@ -1,7 +1,7 @@
 //go:generate esc -o static.go -prefix static static
 
 /*
-chat app for skywire node
+skychat app for skywire node
 */
 package main
 
@@ -30,7 +30,7 @@ var (
 func main() {
 	flag.Parse()
 
-	a, err := app.Setup(&app.Config{AppName: "chat", AppVersion: "1.0", ProtocolVersion: "0.0.1"})
+	a, err := app.Setup(&app.Config{AppName: "skychat", AppVersion: "1.0", ProtocolVersion: "0.0.1"})
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}

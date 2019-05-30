@@ -49,7 +49,7 @@ func TestListApps(t *testing.T) {
 func TestStartStopApp(t *testing.T) {
 	router := new(mockRouter)
 	executer := new(MockExecuter)
-	defer os.RemoveAll("chat")
+	defer os.RemoveAll("skychat")
 
 	apps := []AppConfig{{App: "foo", Version: "1.0", AutoStart: false, Port: 10}}
 	node := &Node{router: router, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
@@ -89,7 +89,7 @@ func TestStartStopApp(t *testing.T) {
 func TestRPC(t *testing.T) {
 	r := new(mockRouter)
 	executer := new(MockExecuter)
-	defer os.RemoveAll("chat")
+	defer os.RemoveAll("skychat")
 
 	pk1, _, tm1, tm2, errCh, err := transport.MockTransportManagersPair()
 	require.NoError(t, err)

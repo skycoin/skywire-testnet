@@ -93,7 +93,7 @@ dep: ## Sorts dependencies
 
 # Apps 
 host-apps: ## Build app 
-	${OPTS} go build -race -o ./apps/chat.v1.0 ./cmd/apps/chat	
+	${OPTS} go build -race -o ./apps/skychat.v1.0 ./cmd/apps/skychat	
 	${OPTS} go build -race -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
 	${OPTS} go build -race -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 	${OPTS} go build -race -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
@@ -114,7 +114,7 @@ release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and a
 	${OPTS} go build -o ./setup-node ./cmd/setup-node
 	${OPTS} go build -o ./manager-node ./cmd/manager-node 
 	${OPTS} go build -o ./therealssh-cli ./cmd/therealssh-cli
-	${OPTS} go build -o ./apps/chat.v1.0 ./cmd/apps/chat	
+	${OPTS} go build -o ./apps/skychat.v1.0 ./cmd/apps/skychat	
 	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
 	${OPTS} go build -o ./apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 	${OPTS} go build -o ./apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
@@ -135,7 +135,7 @@ docker-network: ## Create docker network ${DOCKER_NETWORK}
 	-docker network create ${DOCKER_NETWORK}
 
 docker-apps: ## Build apps binaries for dockerized skywire-node. `go build` with  ${DOCKER_OPTS}
-	-${DOCKER_OPTS} go build -race -o ./node/apps/chat.v1.0 ./cmd/apps/chat
+	-${DOCKER_OPTS} go build -race -o ./node/apps/skychat.v1.0 ./cmd/apps/skychat
 	-${DOCKER_OPTS} go build -race -o ./node/apps/helloworld.v1.0 ./cmd/apps/helloworld
 	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
 	-${DOCKER_OPTS} go build -race -o ./node/apps/therealproxy-client.v1.0  ./cmd/apps/therealproxy-client
