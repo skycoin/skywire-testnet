@@ -54,7 +54,7 @@ $ make
 $ OPTS="GSO111MODULE=on GOOS=linux GOARCH=arm" make
 ```
 
-**Install skywire-node, skywire-cli, manager-node and therealssh-cli**
+**Install skywire-node, skywire-cli, manager-node and SSH-cli**
 
 ```bash
 $ make install  # compiles and installs all binaries
@@ -111,10 +111,10 @@ $ skywire-cli -h
 
 After `skywire-node` is up and running with default environment, default apps are run with the configuration specified in `skywire-config.json`. Refer to the following for usage of the default apps:
 
-- [Chat](/cmd/apps/chat)
+- [Chat](/cmd/apps/skychat)
 - [Hello World](/cmd/apps/helloworld)
 - [The Real Proxy](/cmd/apps/therealproxy) ([Client](/cmd/apps/therealproxy-client))
-- [The Real SSH](/cmd/apps/therealssh) ([Client](/cmd/apps/therealssh-client))
+- [The Real SSH](/cmd/apps/SSH) ([Client](/cmd/apps/SSH-client))
 
 ### Transports
 
@@ -182,16 +182,16 @@ This will:
 ```
 ./node
 ├── apps                            # node `apps` compiled with DOCKER_OPTS
-│   ├── chat.v1.0                   #
+│   ├── skychat.v1.0                   #
 │   ├── helloworld.v1.0             #
-│   ├── therealproxy-client.v1.0    #
-│   ├── therealproxy.v1.0           #
-│   ├── therealssh-client.v1.0      #
-│   └── therealssh.v1.0             #
+│   ├── socksproxy-client.v1.0    #
+│   ├── socksproxy.v1.0           #
+│   ├── SSH-client.v1.0      #
+│   └── SSH.v1.0             #
 ├── local                           # **Created inside docker**
-│   ├── chat                        #  according to "local_path" in skywire-config.json
-│   ├── therealproxy                #
-│   └── therealssh                  #
+│   ├── skychat                        #  according to "local_path" in skywire-config.json
+│   ├── socksproxy                #
+│   └── SSH                  #
 ├── PK                              # contains public key of node
 ├── skywire                         # db & logs. **Created inside docker**
 │   ├── routing.db                  #
@@ -272,7 +272,7 @@ $ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' S
 # 192.168.112
 ```
 
-#### 3. Open in browser containerized `chat` application
+#### 3. Open in browser containerized `skychat` application
 
 ```bash
 $ firefox http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' SKY01):8000  
@@ -289,22 +289,22 @@ $ mkdir /tmp/SKYNODE
 # 2. compile  `skywire-node`
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/skywire-node ./cmd/skywire-node
 # 3. compile apps
-$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/chat.v1.0 ./cmd/apps/chat
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/skychat.v1.0 ./cmd/apps/skychat
 $ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/helloworld.v1.0 ./cmd/apps/helloworld
-$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh.v1.0  ./cmd/apps/therealssh
-$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/therealssh-client.v1.0  ./cmd/apps/therealssh-client
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/socksproxy.v1.0 ./cmd/apps/therealproxy
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/SSH.v1.0  ./cmd/apps/SSH
+$ GO111MODULE=on GOOS=linux go build -o /tmp/SKYNODE/apps/SSH-client.v1.0  ./cmd/apps/SSH-client
 # 4. Create skywire-config.json for node
 $ skywire-cli node gen-config -o /tmp/SKYNODE/skywire-config.json
 # 2019/03/15 16:43:49 Done!
 $ tree /tmp/SKYNODE
 # /tmp/SKYNODE
 # ├── apps
-# │   ├── chat.v1.0
+# │   ├── skychat.v1.0
 # │   ├── helloworld.v1.0
-# │   ├── therealproxy.v1.0
-# │   ├── therealssh-client.v1.0
-# │   └── therealssh.v1.0
+# │   ├── socksproxy.v1.0
+# │   ├── SSH-client.v1.0
+# │   └── SSH.v1.0
 # ├── skywire-config.json
 # └── skywire-node
 # So far so good. We prepared docker volume. Now we can:
@@ -312,20 +312,20 @@ $ docker run -it -v /tmp/SKYNODE:/sky --network=SKYNET --name=SKYNODE skywire-ru
 # [2019-03-15T13:55:08Z] INFO [messenger]: Opened new link with the server # 02a49bc0aa1b5b78f638e9189be4ed095bac5d6839c828465a8350f80ac07629c0
 # [2019-03-15T13:55:08Z] INFO [messenger]: Updating discovery entry
 # [2019-03-15T13:55:10Z] INFO [skywire]: Connected to messaging servers
-# [2019-03-15T13:55:10Z] INFO [skywire]: Starting chat.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting skychat.v1.0
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting RPC interface on 127.0.0.1:3435
-# [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealproxy.v1.0
-# [2019-03-15T13:55:10Z] INFO [skywire]: Starting therealssh.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting socksproxy.v1.0
+# [2019-03-15T13:55:10Z] INFO [skywire]: Starting SSH.v1.0
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting packet router
 # [2019-03-15T13:55:10Z] INFO [router]: Starting router
 # [2019-03-15T13:55:10Z] INFO [trmanager]: Starting transport manager
-# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"chat",# "app-version":"1.0","protocol-version":"0.0.1"}
-# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app chat.v1.0
-# [2019-03-15T13:55:10Z] INFO [chat.v1.0]: 2019/03/15 13:55:10 Serving HTTP on :8000
-# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealssh",# "app-version":"1.0","protocol-version":"0.0.1"}
-# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealssh.v1.0
-# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealproxy",# "app-version":"1.0","protocol-version":"0.0.1"}
-# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealproxy.v1.0
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"skychat",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app skychat.v1.0
+# [2019-03-15T13:55:10Z] INFO [skychat.v1.0]: 2019/03/15 13:55:10 Serving HTTP on :8000
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"SSH",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app SSH.v1.0
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"socksproxy",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app socksproxy.v1.0
 ```
 
 Note that in this example docker is running in non-detached mode - it could be useful in some scenarios.
@@ -352,7 +352,7 @@ Idea of test from Erlang classics: https://youtu.be/uKfKtXYLG78?t=120
 # Setup: run skywire-nodes on host and in docker
 $ make run
 $ make docker-run
-# Open in browser chat application
+# Open in browser skychat application
 $ firefox http://$SW_NODE_B:8000  &
 # add transport
 $ ./skywire-cli add-transport $SW_NODE_B_PK

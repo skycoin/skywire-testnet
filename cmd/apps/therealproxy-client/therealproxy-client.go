@@ -19,7 +19,7 @@ func main() {
 	var serverPK = flag.String("srv", "", "PubKey of the server to connect to")
 	flag.Parse()
 
-	config := &app.Config{AppName: "therealproxy-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
+	config := &app.Config{AppName: "socksproxy-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
 	socksApp, err := app.Setup(config)
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
