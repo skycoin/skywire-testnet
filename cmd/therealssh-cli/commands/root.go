@@ -27,8 +27,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "therealssh-cli [user@]remotePK [command] [args...]",
-	Short: "Client for the therealssh-client app",
+	Use:   "SSH-cli [user@]remotePK [command] [args...]",
+	Short: "Client for the SSH-client app",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		client, err := rpc.DialHTTP("tcp", rpcAddr)
