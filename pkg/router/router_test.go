@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -199,7 +198,6 @@ func TestRouterApp(t *testing.T) {
 	assert.Equal(t, uint16(23), packet.Size())
 	assert.Equal(t, routing.RouteID(4), packet.RouteID())
 	decrypted, err := ni2.DecryptUnsafe(packet.Payload())
-	fmt.Println(packet.Payload())
 	require.NoError(t, err)
 	assert.Equal(t, []byte("bar"), decrypted)
 
