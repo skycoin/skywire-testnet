@@ -430,7 +430,8 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "messaging", false)
+	// TODO(evanlinjin): need string constant for tp type.
+	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "skymsg", false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("transport: %s", err)
 	}

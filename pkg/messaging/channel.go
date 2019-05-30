@@ -29,11 +29,11 @@ type msgChannel struct {
 	doneChan chan struct{}
 	doneOnce sync.Once
 
-	noise *noise.Noise
+	noise     *noise.Noise
 	readFunc  func([]byte) (int, error)
 	writeFunc func([]byte) (int, error)
-	rMx   sync.Mutex // lock for decrypt cipher state
-	wMx   sync.Mutex // lock for encrypt cipher state
+	rMx       sync.Mutex // lock for decrypt cipher state
+	wMx       sync.Mutex // lock for encrypt cipher state
 }
 
 func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link *Link) (*msgChannel, error) {

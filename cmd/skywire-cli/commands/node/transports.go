@@ -77,7 +77,7 @@ var (
 )
 
 func init() {
-	addTpCmd.Flags().StringVar(&transportType, "type", "messaging", "type of transport to add")
+	addTpCmd.Flags().StringVar(&transportType, "type", "skymsg", "type of transport to add")
 	addTpCmd.Flags().BoolVar(&public, "public", true, "whether to make the transport public")
 	addTpCmd.Flags().DurationVarP(&timeout, "timeout", "t", 0, "if specified, sets an operation timeout")
 }

@@ -105,7 +105,8 @@ bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `therealssh-cli`
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -race -o ./skywire-cli  ./cmd/skywire-cli 
 	${OPTS} go build -race -o ./setup-node ./cmd/setup-node
-	${OPTS} go build -race -o ./manager-node ./cmd/manager-node 
+	${OPTS} go build -race -o ./manager-node ./cmd/manager-node
+	${OPTS} go build -race -o ./messaging-server ./cmd/messaging-server
 	${OPTS} go build -race -o ./therealssh-cli ./cmd/therealssh-cli
 
 release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and apps without -race flag

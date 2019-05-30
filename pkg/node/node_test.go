@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/skycoin/skywire/pkg/skymsg"
 	"net"
 	"os"
 	"os/exec"
@@ -74,7 +75,7 @@ func TestNodeStartClose(t *testing.T) {
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 	mConf := &messaging.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: client.NewMock()}
-	node.messenger = messaging.NewClient(mConf)
+	node.messenger = skymsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
 	var err error
 
 	tmConf := &transport.ManagerConfig{PubKey: cipher.PubKey{}, DiscoveryClient: transport.NewDiscoveryMock()}
