@@ -2,14 +2,16 @@ package noise
 
 import (
 	"crypto/rand"
+	"encoding/binary"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/flynn/noise"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
-// packetsTillRekey is the number of packages after which we want to rekey for the noise protocol
-const packetsTillRekey = 10
+var logger = logging.MustGetLogger("noise")
 
 // Config hold noise parameters.
 type Config struct {
@@ -31,8 +33,11 @@ type Noise struct {
 	enc     *noise.CipherState
 	dec     *noise.CipherState
 
-	encN uint32 // counter to inform encrypting CipherState to re-key
-	decN uint32 // counter to inform decrypting CipherState to re-key
+	seq             uint32 // sequence number, used as nonce for both encrypting and decrypting
+	previousSeq     uint32 // sequence number last decrypted, check in order to avoid reply attacks
+	highestPrevious uint32 // highest sequence number received from the other end
+	//encN uint32 // counter to inform encrypting CipherState to re-key
+	//decN uint32 // counter to inform decrypting CipherState to re-key
 }
 
 // New creates a new Noise with:
@@ -119,21 +124,28 @@ func (ns *Noise) RemoteStatic() cipher.PubKey {
 // EncryptUnsafe encrypts plaintext without interlocking, should only
 // be used with external lock.
 func (ns *Noise) EncryptUnsafe(plaintext []byte) []byte {
-	if ns.encN++; ns.encN > packetsTillRekey {
-		ns.enc.Rekey()
-		ns.encN = 0
-	}
-	return ns.enc.Encrypt(nil, nil, plaintext)
+	ns.seq++
+	seq := make([]byte, 4)
+	binary.BigEndian.PutUint32(seq, ns.seq)
+
+	return append(seq, ns.enc.Cipher().Encrypt(nil, uint64(ns.seq), nil, plaintext)...)
 }
 
 // DecryptUnsafe decrypts ciphertext without interlocking, should only
 // be used with external lock.
 func (ns *Noise) DecryptUnsafe(ciphertext []byte) ([]byte, error) {
-	if ns.decN++; ns.decN > packetsTillRekey {
-		ns.dec.Rekey()
-		ns.decN = 0
+	seq := binary.BigEndian.Uint32(ciphertext[:4])
+	if seq <= ns.previousSeq {
+		logger.Warnf("current seq: %s is not higher than previous one: %s. "+
+			"Highest sequence number received so far is: %s", ns.seq, ns.previousSeq, ns.highestPrevious)
+	} else {
+		if ns.previousSeq > ns.highestPrevious {
+			ns.highestPrevious = seq
+		}
+		ns.previousSeq = seq
 	}
-	return ns.dec.Decrypt(nil, nil, ciphertext)
+
+	return ns.dec.Cipher().Decrypt(nil, uint64(seq), nil, ciphertext[4:])
 }
 
 // HandshakeFinished indicate whether handshake was completed.
