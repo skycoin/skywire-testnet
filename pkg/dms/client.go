@@ -1,4 +1,4 @@
-package skymsg
+package dms
 
 import (
 	"context"
@@ -33,11 +33,11 @@ var (
 // Link from a client's perspective.
 type Link struct {
 	log *logging.Logger
-	net.Conn                           // conn to skymsg server
+	net.Conn                           // conn to dms server
 	local     cipher.PubKey            // local client's pk
-	remoteSrv cipher.PubKey            // skymsg server's public key
+	remoteSrv cipher.PubKey            // dms server's public key
 	nextID    uint16                   // next unused channel ID
-	chans     [math.MaxUint16]*Channel // channels to skymsg clients
+	chans     [math.MaxUint16]*Channel // channels to dms clients
 	mx        sync.RWMutex
 	wg        sync.WaitGroup
 }

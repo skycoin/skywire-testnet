@@ -1,4 +1,4 @@
-package skymsg
+package dms
 
 import (
 	"context"

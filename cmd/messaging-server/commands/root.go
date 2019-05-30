@@ -3,7 +3,7 @@ package commands
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/skycoin/skywire/pkg/skymsg"
+	"github.com/skycoin/skywire/pkg/dms"
 	"io"
 	"log"
 	"log/syslog"
@@ -71,7 +71,7 @@ var rootCmd = &cobra.Command{
 		}()
 
 		// Start
-		srv := skymsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, client.NewHTTP(conf.Discovery))
+		srv := dms.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, client.NewHTTP(conf.Discovery))
 		log.Fatal(srv.ListenAndServe(conf.LocalAddress))
 	},
 }

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/skymsg"
+	"github.com/skycoin/skywire/pkg/dms"
 	"log"
 	"time"
 
@@ -31,7 +31,7 @@ type Node struct {
 	Logger *logging.Logger
 
 	tm        *transport.Manager
-	messenger *skymsg.Client
+	messenger *dms.Client
 	srvCount  int
 	metrics   metrics.Recorder
 }
@@ -45,7 +45,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := skymsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
+	messenger := dms.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
 	messenger.SetLogger(logger.PackageLogger("messenger"))
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
@@ -227,7 +227,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 }
 
 func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, skymsg.TpType, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.TpType, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return
@@ -245,7 +245,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, skymsg.TpType, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.TpType, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
@@ -261,7 +261,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 }
 
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, skymsg.TpType, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dms.TpType, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return

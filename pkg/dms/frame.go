@@ -1,4 +1,4 @@
-package skymsg
+package dms
 
 import (
 	"encoding/binary"
@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	TpType = "skymsg"
+	TpType = "dms"
 
 	hsTimeout  = time.Second * 10
 	readBufLen = 10

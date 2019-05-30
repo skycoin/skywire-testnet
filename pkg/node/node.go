@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/skymsg"
+	"github.com/skycoin/skywire/pkg/dms"
 	"io"
 	"net"
 	"net/rpc"
@@ -79,7 +79,7 @@ type PacketRouter interface {
 type Node struct {
 	config    *Config
 	router    PacketRouter
-	messenger *skymsg.Client
+	messenger *dms.Client
 	tm        *transport.Manager
 	rt        routing.Table
 	executer  appExecuter
@@ -116,7 +116,7 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = skymsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery)
+	node.messenger = dms.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery)
 	node.messenger.SetLogger(node.Logger.PackageLogger("dms"))
 
 	trDiscovery, err := config.TransportDiscovery()
@@ -199,7 +199,7 @@ func (node *Node) Start() error {
 	ctx := context.Background()
 	err := node.messenger.InitiateLinks(ctx, node.config.Messaging.ServerCount)
 	if err != nil {
-		return fmt.Errorf("skymsg: %s", err)
+		return fmt.Errorf("dms: %s", err)
 	}
 	node.logger.Info("Connected to messaging servers")
 

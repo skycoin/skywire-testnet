@@ -1,4 +1,4 @@
-package skymsg
+package dms
 
 import (
 	"bytes"
@@ -124,10 +124,6 @@ func (c *Channel) Read(p []byte) (n int, err error) {
 		switch f.Type() {
 		case FwdType:
 			return c.bufRead(f.Pay(), p)
-			//if len(p) >= f.PayLen() {
-			//	return copy(p, f.Pay()), nil
-			//}
-			//return 0, io.ErrShortBuffer
 		case CloseType:
 			c.close()
 			return 0, io.ErrClosedPipe
@@ -164,7 +160,6 @@ func (c *Channel) Write(p []byte) (int, error) {
 func (c *Channel) Close() error {
 	if c.close() {
 		_ = writeFrame(c.Conn, MakeFrame(CloseType, c.id, []byte{0}))
-		return nil
 	}
-	return io.ErrClosedPipe
+	return nil
 }
