@@ -17,7 +17,7 @@ func main() {
 	var debug = flag.Bool("debug", false, "enable debug messages")
 	flag.Parse()
 
-	config := &app.Config{AppName: "therealssh-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
+	config := &app.Config{AppName: "SSH-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
 	sshApp, err := app.Setup(config)
 	if err != nil {
 		log.Fatal("Setup failure: ", err)

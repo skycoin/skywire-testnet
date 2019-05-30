@@ -19,7 +19,7 @@ func main() {
 
 	flag.Parse()
 
-	config := &app.Config{AppName: "therealssh", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
+	config := &app.Config{AppName: "SSH", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
 	sshApp, err := app.Setup(config)
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
