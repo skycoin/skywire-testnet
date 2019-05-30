@@ -192,10 +192,10 @@ func TestRouterApp(t *testing.T) {
 	tr2 := m2.Transport(tr.ID)
 	go proto.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 6, Remote: *raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
 
-	packet := make(routing.Packet, 25)
+	packet := make(routing.Packet, 29)
 	_, err = tr2.Read(packet)
 	require.NoError(t, err)
-	assert.Equal(t, uint16(19), packet.Size())
+	assert.Equal(t, uint16(23), packet.Size())
 	assert.Equal(t, routing.RouteID(4), packet.RouteID())
 	decrypted, err := ni2.DecryptUnsafe(packet.Payload())
 	require.NoError(t, err)

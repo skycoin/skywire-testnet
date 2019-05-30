@@ -68,6 +68,8 @@ func TestTransportManager(t *testing.T) {
 	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
 	require.NoError(t, err)
 
+	time.Sleep(time.Second)
+
 	tr1 := m1.Transport(tr2.ID)
 	require.NotNil(t, tr1)
 
