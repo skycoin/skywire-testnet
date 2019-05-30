@@ -81,7 +81,9 @@ func (r *Router) Serve(ctx context.Context) error {
 
 	go func() {
 		for tp := range r.tm.TrChan {
+			r.mu.Lock()
 			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
+			r.mu.Unlock()
 
 			var serve func(io.ReadWriter) error
 			switch {

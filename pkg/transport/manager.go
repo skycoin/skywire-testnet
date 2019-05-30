@@ -245,7 +245,7 @@ func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)
 	}
 
-	tm.Logger.Infof("De-registered transport %s", id)
+	tm.Logger.Infof("Unregistered transport %s", id)
 	if tr != nil {
 		return tr.Close()
 	}
@@ -268,6 +268,7 @@ func (tm *Manager) Close() error {
 			continue
 		}
 		statuses = append(statuses, &Status{ID: tr.ID, IsUp: false})
+
 		tr.Close()
 	}
 	tm.transports = make(map[uuid.UUID]*ManagedTransport)
@@ -393,14 +394,14 @@ func (tm *Manager) manageTransport(ctx context.Context, managedTr *ManagedTransp
 		tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
 		if accepted {
 			if err := tm.DeleteTransport(managedTr.ID); err != nil {
-				tm.Logger.Warnf("Failed to delete transport: %s", err)
+				tm.Logger.Warnf("Failed to delete accepted transport: %s", err)
 			}
 		} else {
 			tr, _, err := tm.dialTransport(ctx, factory, remote, public)
 			if err != nil {
 				tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
 				if err := tm.DeleteTransport(managedTr.ID); err != nil {
-					tm.Logger.Warnf("Failed to delete transport: %s", err)
+					tm.Logger.Warnf("Failed to delete re-dialled transport: %s", err)
 				}
 			} else {
 				managedTr.updateTransport(tr)
