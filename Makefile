@@ -28,10 +28,10 @@ config: ## Generate skywire.json
 
 clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
-	-rm -f ./skywire-node ./skywire-cli ./setup-node ./manager-node ./thereallssh-cli
+	-rm -f ./skywire-node ./skywire-cli ./setup-node ./manager-node ./SSH-cli
 
 install: ## Install `skywire-node`, `skywire-cli`, `manager-node`, `SSH-cli`	
-	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/manager-node ./cmd/therealssh-cli	
+	${OPTS} go install ./cmd/skywire-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/manager-node ./cmd/therealssh-cli
 
 rerun: stop
 	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
@@ -108,7 +108,7 @@ bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `SSH-cli`
 	${OPTS} go build -race -o ./manager-node ./cmd/manager-node 
 	${OPTS} go build -race -o ./SSH-cli ./cmd/therealssh-cli
 
-release: ## Build skywire-node`, skywire-cli, manager-node, therealssh-cli and apps without -race flag
+release: ## Build skywire-node`, skywire-cli, manager-node, SSH-cli and apps without -race flag
 	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 
 	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
 	${OPTS} go build -o ./setup-node ./cmd/setup-node
