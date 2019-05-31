@@ -19,9 +19,6 @@ func TestNewServer(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
 	sAddr := ":8080"
 
-	//aPK, aSK := cipher.GenerateKeyPair()
-	//bPK, bSK := cipher.GenerateKeyPair()
-
 	dc := client.NewMock()
 
 	s := NewServer(sPK, sSK, sAddr, dc)
@@ -32,6 +29,9 @@ func TestNewServer(t *testing.T) {
 	assert.NoError(t, s.Close())
 }
 
+// Given two client instances (a & b) and a server instance (s),
+// Client b should be able to dial a transport with client b
+// Data should be sent and delivered successfully via the transport.
 func TestNewClient(t *testing.T) {
 	aPK, aSK := cipher.GenerateKeyPair()
 	bPK, bSK := cipher.GenerateKeyPair()
@@ -44,7 +44,7 @@ func TestNewClient(t *testing.T) {
 	go s.ListenAndServe(sAddr)
 
 	a := NewClient(aPK, aSK, dc)
-	require.NoError(t, a.InitiateLinks(context.Background(), 1))
+	require.NoError(t, a.InitiateServers(context.Background(), 1))
 	aDone := make(chan struct{})
 	var aErr error
 	var aTp transport.Transport
@@ -54,7 +54,7 @@ func TestNewClient(t *testing.T) {
 	}()
 
 	b := NewClient(bPK, bSK, dc)
-	require.NoError(t, a.InitiateLinks(context.TODO(), 1))
+	require.NoError(t, a.InitiateServers(context.TODO(), 1))
 	bTp, err := b.Dial(context.TODO(), aPK)
 	require.NoError(t, err)
 

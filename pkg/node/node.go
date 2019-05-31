@@ -198,7 +198,7 @@ func NewNode(config *Config) (*Node, error) {
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
 	ctx := context.Background()
-	err := node.messenger.InitiateLinks(ctx, node.config.Messaging.ServerCount)
+	err := node.messenger.InitiateServers(ctx, node.config.Messaging.ServerCount)
 	if err != nil {
 		return fmt.Errorf("dms: %s", err)
 	}

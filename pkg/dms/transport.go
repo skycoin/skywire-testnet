@@ -14,8 +14,9 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
-// Channel is a channel from a client's perspective.
-type Channel struct {
+// Transport represents a connection from dms.Client to remote dms.Client (via dms.Server intermediary).
+// It implements transport.Transport
+type Transport struct {
 	net.Conn     // link with server.
 	id           uint16
 	local        cipher.PubKey
@@ -27,8 +28,8 @@ type Channel struct {
 	doneOnce     sync.Once
 }
 
-func NewChannel(conn net.Conn, local, remote cipher.PubKey, id uint16) *Channel {
-	return &Channel{
+func NewTransport(conn net.Conn, local, remote cipher.PubKey, id uint16) *Transport {
+	return &Transport{
 		Conn:         conn,
 		id:           id,
 		local:        local,
@@ -38,7 +39,7 @@ func NewChannel(conn net.Conn, local, remote cipher.PubKey, id uint16) *Channel 
 	}
 }
 
-func (c *Channel) awaitResponse(ctx context.Context) error {
+func (c *Transport) awaitResponse(ctx context.Context) error {
 	select {
 	case f := <-c.readCh:
 		switch f.Type() {
@@ -56,7 +57,7 @@ func (c *Channel) awaitResponse(ctx context.Context) error {
 	}
 }
 
-func (c *Channel) close() bool {
+func (c *Transport) close() bool {
 	closed := false
 	c.doneOnce.Do(func() {
 		close(c.doneCh)
@@ -65,7 +66,7 @@ func (c *Channel) close() bool {
 	return closed
 }
 
-func (c *Channel) Handshake(ctx context.Context) error {
+func (c *Transport) Handshake(ctx context.Context) error {
 	// if channel ID is even, client is initiator.
 	if init := isEven(c.id); init {
 
@@ -89,7 +90,7 @@ func (c *Channel) Handshake(ctx context.Context) error {
 	return nil
 }
 
-func (c *Channel) IsDone() bool {
+func (c *Transport) IsDone() bool {
 	select {
 	case <-c.doneCh:
 		return true
@@ -98,7 +99,7 @@ func (c *Channel) IsDone() bool {
 	}
 }
 
-func (c *Channel) AwaitRead(f Frame) bool {
+func (c *Transport) AwaitRead(f Frame) bool {
 	select {
 	case c.readCh <- f:
 		return true
@@ -107,15 +108,15 @@ func (c *Channel) AwaitRead(f Frame) bool {
 	}
 }
 
-func (c *Channel) Edges() [2]cipher.PubKey {
+func (c *Transport) Edges() [2]cipher.PubKey {
 	return transport.SortPubKeys(c.local, c.remoteClient)
 }
 
-func (c *Channel) Type() string {
-	return TpType
+func (c *Transport) Type() string {
+	return Type
 }
 
-func (c *Channel) Read(p []byte) (n int, err error) {
+func (c *Transport) Read(p []byte) (n int, err error) {
 	c.readMx.Lock()
 	defer c.readMx.Unlock()
 
@@ -139,7 +140,7 @@ func (c *Channel) Read(p []byte) (n int, err error) {
 	}
 }
 
-func (c *Channel) Write(p []byte) (int, error) {
+func (c *Transport) Write(p []byte) (int, error) {
 	select {
 	case <-c.doneCh:
 		return 0, io.ErrClosedPipe
@@ -153,7 +154,7 @@ func (c *Channel) Write(p []byte) (int, error) {
 	}
 }
 
-func (c *Channel) Close() error {
+func (c *Transport) Close() error {
 	if c.close() {
 		_ = writeFrame(c.Conn, MakeFrame(CloseType, c.id, []byte{0}))
 		return nil

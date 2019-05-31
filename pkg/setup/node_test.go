@@ -43,16 +43,16 @@ func TestCreateLoop(t *testing.T) {
 	f4.SetType("mock2")
 
 	fs1, fs2 := transport.NewMockFactoryPair(pk1, pkS)
-	fs1.SetType(dms.TpType)
-	fs2.SetType(dms.TpType)
+	fs1.SetType(dms.Type)
+	fs2.SetType(dms.Type)
 	fs3, fs4 := transport.NewMockFactoryPair(pk2, pkS)
-	fs3.SetType(dms.TpType)
+	fs3.SetType(dms.Type)
 	fs5, fs6 := transport.NewMockFactoryPair(pk3, pkS)
-	fs5.SetType(dms.TpType)
+	fs5.SetType(dms.Type)
 	fs7, fs8 := transport.NewMockFactoryPair(pk4, pkS)
-	fs7.SetType(dms.TpType)
+	fs7.SetType(dms.Type)
 
-	fS := newMuxFactory(pkS, dms.TpType, map[cipher.PubKey]transport.Factory{pk1: fs2, pk2: fs4, pk3: fs6, pk4: fs8})
+	fS := newMuxFactory(pkS, dms.Type, map[cipher.PubKey]transport.Factory{pk1: fs2, pk2: fs4, pk3: fs6, pk4: fs8})
 
 	m1, err := transport.NewManager(c1, f1, fs1)
 	require.NoError(t, err)
@@ -101,7 +101,7 @@ func TestCreateLoop(t *testing.T) {
 		errChan <- sn.Serve(context.TODO())
 	}()
 
-	tr, err := m4.CreateTransport(context.TODO(), pkS, dms.TpType, false)
+	tr, err := m4.CreateTransport(context.TODO(), pkS, dms.Type, false)
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
@@ -161,12 +161,12 @@ func TestCloseLoop(t *testing.T) {
 	cS := &transport.ManagerConfig{PubKey: pkS, SecKey: skS, DiscoveryClient: client, LogStore: logStore}
 
 	fs1, fs2 := transport.NewMockFactoryPair(pk1, pkS)
-	fs1.SetType(dms.TpType)
-	fs2.SetType(dms.TpType)
+	fs1.SetType(dms.Type)
+	fs2.SetType(dms.Type)
 	fs5, fs6 := transport.NewMockFactoryPair(pk3, pkS)
-	fs5.SetType(dms.TpType)
+	fs5.SetType(dms.Type)
 
-	fS := newMuxFactory(pkS, dms.TpType, map[cipher.PubKey]transport.Factory{pk1: fs2, pk3: fs6})
+	fS := newMuxFactory(pkS, dms.Type, map[cipher.PubKey]transport.Factory{pk1: fs2, pk3: fs6})
 
 	m1, err := transport.NewManager(c1, fs1)
 	require.NoError(t, err)
@@ -192,7 +192,7 @@ func TestCloseLoop(t *testing.T) {
 	rules := n3.getRules()
 	require.Len(t, rules, 1)
 
-	tr, err := m1.CreateTransport(context.TODO(), pkS, dms.TpType, false)
+	tr, err := m1.CreateTransport(context.TODO(), pkS, dms.Type, false)
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)

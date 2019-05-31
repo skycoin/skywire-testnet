@@ -31,43 +31,43 @@ var (
 	ErrClientClosed = errors.New("client closed")
 )
 
-// Link from a client's perspective.
-type Link struct {
+// Conn represents a connection between a dms.Client and dms.Server from a client's perspective.
+type Conn struct {
 	log       *logging.Logger
-	net.Conn                           // conn to dms server
-	local     cipher.PubKey            // local client's pk
-	remoteSrv cipher.PubKey            // dms server's public key
-	nextID    uint16                   // next unused channel ID
-	chans     [math.MaxUint16]*Channel // channels to dms clients
+	net.Conn                             // conn to dms server
+	local     cipher.PubKey              // local client's pk
+	remoteSrv cipher.PubKey              // dms server's public key
+	nextID    uint16                     // next unused channel ID
+	tps       [math.MaxUint16]*Transport // channels to dms clients
 	mx        sync.RWMutex
 	wg        sync.WaitGroup
 }
 
-func NewLink(log *logging.Logger, conn net.Conn, local, remote cipher.PubKey) *Link {
-	return &Link{log: log, Conn: conn, local: local, remoteSrv: remote, nextID: 0}
+func NewConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubKey) *Conn {
+	return &Conn{log: log, Conn: conn, local: local, remoteSrv: remote, nextID: 0}
 }
 
-func (l *Link) delChan(id uint16) {
-	l.mx.Lock()
-	l.chans[id] = nil
-	l.mx.Unlock()
+func (c *Conn) delTp(id uint16) {
+	c.mx.Lock()
+	c.tps[id] = nil
+	c.mx.Unlock()
 }
 
-func (l *Link) setChan(ch *Channel) {
-	l.mx.Lock()
-	l.chans[ch.id] = ch
-	l.mx.Unlock()
+func (c *Conn) setTp(ch *Transport) {
+	c.mx.Lock()
+	c.tps[ch.id] = ch
+	c.mx.Unlock()
 }
 
-func (l *Link) addChan(ctx context.Context, clientPK cipher.PubKey) (*Channel, error) {
-	l.mx.Lock()
-	defer l.mx.Unlock()
+func (c *Conn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 
 	for {
-		if ch := l.chans[l.nextID]; ch == nil || ch.IsDone() {
+		if ch := c.tps[c.nextID]; ch == nil || ch.IsDone() {
 			break
 		}
-		l.nextID += 2
+		c.nextID += 2
 
 		select {
 		case <-ctx.Done():
@@ -76,19 +76,19 @@ func (l *Link) addChan(ctx context.Context, clientPK cipher.PubKey) (*Channel, e
 		}
 	}
 
-	id := l.nextID
-	l.nextID = id + 2
-	ch := NewChannel(l.Conn, l.local, clientPK, id)
-	l.chans[id] = ch
+	id := c.nextID
+	c.nextID = id + 2
+	ch := NewTransport(c.Conn, c.local, clientPK, id)
+	c.tps[id] = ch
 	return ch, nil
 }
 
-func (l *Link) getChan(id uint16) (*Channel, bool) {
-	l.mx.RLock()
-	ch := l.chans[id]
-	l.mx.RUnlock()
-	ok := ch != nil && !ch.IsDone()
-	return ch, ok
+func (c *Conn) getTp(id uint16) (*Transport, bool) {
+	c.mx.RLock()
+	tp := c.tps[id]
+	c.mx.RUnlock()
+	ok := tp != nil && !tp.IsDone()
+	return tp, ok
 }
 
 // local:  local client pk  (also responding client).
@@ -108,70 +108,70 @@ func checkRequest(local cipher.PubKey, id uint16, p []byte) (remote cipher.PubKe
 	return initPK, true
 }
 
-func (l *Link) Serve(ctx context.Context, accept chan<- *Channel) error {
-	l.wg.Add(1)
-	defer l.wg.Done()
+func (c *Conn) Serve(ctx context.Context, accept chan<- *Transport) error {
+	c.wg.Add(1)
+	defer c.wg.Done()
 
-	log := l.log.WithField("remoteSrv", l.remoteSrv)
+	log := c.log.WithField("remoteSrv", c.remoteSrv)
 
 	for {
-		f, err := readFrame(l.Conn)
+		f, err := readFrame(c.Conn)
 		if err != nil {
 			return err
 		}
 		ft, id, p := f.Disassemble()
-		ch, ok := l.getChan(id)
+		tp, ok := c.getTp(id)
 		log.Infof("readFrame: frameType(%v) channelID(%v) payloadLen(%v)", ft, id, f.PayLen())
 
 		if !ok {
-			l.delChan(id)
+			c.delTp(id)
 			switch ft {
 			case RequestType:
-				remote, ok := checkRequest(l.local, id, p)
+				remote, ok := checkRequest(c.local, id, p)
 				if !ok {
-					_ = writeFrame(l.Conn, MakeFrame(CloseType, id, []byte{0}))
+					_ = writeFrame(c.Conn, MakeFrame(CloseType, id, []byte{0}))
 				} else {
-					ch = NewChannel(l.Conn, l.local, remote, id)
-					l.setChan(ch)
-					if err := ch.Handshake(ctx); err != nil {
+					tp = NewTransport(c.Conn, c.local, remote, id)
+					c.setTp(tp)
+					if err := tp.Handshake(ctx); err != nil {
 						return err
 					}
 					select {
-					case accept <- ch:
-						log.Infof("channelAccepted: remoteClient(%v) channelID(%v)", ch.remoteClient, ch.id)
+					case accept <- tp:
+						log.Infof("channelAccepted: remoteClient(%v) channelID(%v)", tp.remoteClient, tp.id)
 					case <-ctx.Done():
 						return ctx.Err()
 					}
 				}
 			case CloseType:
 			default:
-				_ = writeFrame(l.Conn, MakeFrame(CloseType, id, []byte{0}))
+				_ = writeFrame(c.Conn, MakeFrame(CloseType, id, []byte{0}))
 			}
-		} else if !ch.AwaitRead(f) {
-			l.delChan(id)
+		} else if !tp.AwaitRead(f) {
+			c.delTp(id)
 		}
 	}
 }
 
-func (l *Link) Dial(ctx context.Context, clientPK cipher.PubKey) (*Channel, error) {
-	ch, err := l.addChan(ctx, clientPK)
+func (c *Conn) DialTransport(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
+	tp, err := c.addTp(ctx, clientPK)
 	if err != nil {
 		return nil, err
 	}
-	return ch, ch.Handshake(ctx)
+	return tp, tp.Handshake(ctx)
 }
 
-func (l *Link) Close() error {
-	l.log.Infof("closingLink: remoteSrv(%v)", l.remoteSrv)
-	l.mx.Lock()
-	for _, ch := range l.chans {
+func (c *Conn) Close() error {
+	c.log.Infof("closingLink: remoteSrv(%v)", c.remoteSrv)
+	c.mx.Lock()
+	for _, ch := range c.tps {
 		if ch != nil {
 			_ = ch.Close()
 		}
 	}
-	err := l.Conn.Close()
-	l.mx.Unlock()
-	l.wg.Wait()
+	err := c.Conn.Close()
+	c.mx.Unlock()
+	c.wg.Wait()
 	return err
 }
 
@@ -182,10 +182,10 @@ type Client struct {
 	sk cipher.SecKey
 	dc client.APIClient
 
-	links map[cipher.PubKey]*Link // links with messaging servers. Key: pk of server
+	conns map[cipher.PubKey]*Conn // conns with messaging servers. Key: pk of server
 	mx    sync.RWMutex
 
-	accept chan *Channel
+	accept chan *Transport
 	once   sync.Once
 }
 
@@ -195,8 +195,8 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client 
 		pk:     pk,
 		sk:     sk,
 		dc:     dc,
-		links:  make(map[cipher.PubKey]*Link),
-		accept: make(chan *Channel),
+		conns:  make(map[cipher.PubKey]*Conn),
+		accept: make(chan *Transport),
 	}
 }
 
@@ -204,26 +204,26 @@ func (c *Client) SetLogger(log *logging.Logger) {
 	c.log = log
 }
 
-func (c *Client) setLink(l *Link) {
+func (c *Client) setConn(l *Conn) {
 	c.mx.Lock()
-	c.links[l.remoteSrv] = l
+	c.conns[l.remoteSrv] = l
 	c.mx.Unlock()
 }
 
-func (c *Client) delLink(pk cipher.PubKey) {
+func (c *Client) delConn(pk cipher.PubKey) {
 	c.mx.Lock()
-	delete(c.links, pk)
+	delete(c.conns, pk)
 	c.mx.Unlock()
 }
 
-func (c *Client) getLink(pk cipher.PubKey) (*Link, bool) {
+func (c *Client) getConn(pk cipher.PubKey) (*Conn, bool) {
 	c.mx.RLock()
-	l, ok := c.links[pk]
+	l, ok := c.conns[pk]
 	c.mx.RUnlock()
 	return l, ok
 }
 
-func (c *Client) newLink(ctx context.Context, srvPK cipher.PubKey, addr string) (*Link, error) {
+func (c *Client) newConn(ctx context.Context, srvPK cipher.PubKey, addr string) (*Conn, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -241,17 +241,17 @@ func (c *Client) newLink(ctx context.Context, srvPK cipher.PubKey, addr string) 
 	if err != nil {
 		return nil, err
 	}
-	l := NewLink(c.log, nc, c.pk, srvPK)
+	l := NewConn(c.log, nc, c.pk, srvPK)
 	go func() {
 		if err := l.Serve(ctx, c.accept); err != nil {
 			l.log.WithError(err).WithField("srv_pk", l.remoteSrv).Warn("link with server closed")
-			c.delLink(l.remoteSrv)
+			c.delConn(l.remoteSrv)
 		}
 	}()
 	return l, nil
 }
 
-func (c *Client) InitiateLinks(ctx context.Context, n int) error {
+func (c *Client) InitiateServers(ctx context.Context, n int) error {
 	if n == 0 {
 		return nil
 	}
@@ -269,17 +269,17 @@ func (c *Client) InitiateLinks(ctx context.Context, n int) error {
 		break
 	}
 	for _, entry := range entries {
-		if len(c.links) > n {
+		if len(c.conns) > n {
 			break
 		}
-		link, err := c.newLink(ctx, entry.Static, entry.Server.Address)
+		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
 		if err != nil {
 			log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
 			continue
 		}
-		c.links[link.remoteSrv] = link
+		c.conns[conn.remoteSrv] = conn
 	}
-	if len(c.links) == 0 {
+	if len(c.conns) == 0 {
 		return fmt.Errorf("servers are not available: all servers failed")
 	}
 	if err := c.updateDiscEntry(ctx); err != nil {
@@ -288,26 +288,26 @@ func (c *Client) InitiateLinks(ctx context.Context, n int) error {
 	return nil
 }
 
-func (c *Client) findLink(ctx context.Context, srvPKs []cipher.PubKey) (*Link, error) {
+func (c *Client) findConn(ctx context.Context, srvPKs []cipher.PubKey) (*Conn, error) {
 	for _, srvPK := range srvPKs {
-		l, ok := c.links[srvPK]
+		conn, ok := c.conns[srvPK]
 		if !ok {
 			continue
 		}
-		return l, nil
+		return conn, nil
 	}
 	for _, srvPK := range srvPKs {
 		entry, err := c.dc.Entry(ctx, srvPK)
 		if err != nil {
 			return nil, fmt.Errorf("get server failure: %s", err)
 		}
-		link, err := c.newLink(ctx, entry.Static, entry.Server.Address)
+		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
 		if err != nil {
 			log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
 			continue
 		}
-		c.links[link.remoteSrv] = link
-		return link, nil
+		c.conns[conn.remoteSrv] = conn
+		return conn, nil
 	}
 	return nil, ErrNoSrv
 }
@@ -316,7 +316,7 @@ func (c *Client) updateDiscEntry(ctx context.Context) error {
 	log.Info("updatingEntry")
 	var srvPKs []cipher.PubKey
 	c.mx.RLock()
-	for pk := range c.links {
+	for pk := range c.conns {
 		srvPKs = append(srvPKs, pk)
 	}
 	c.mx.RUnlock()
@@ -334,32 +334,32 @@ func (c *Client) updateDiscEntry(ctx context.Context) error {
 
 func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 	select {
-	case ch, ok := <-c.accept:
+	case tp, ok := <-c.accept:
 		if !ok {
 			return nil, ErrClientClosed
 		}
-		return ch, nil
+		return tp, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
 }
 
-func (c *Client) Dial(ctx context.Context, remoteClient cipher.PubKey) (transport.Transport, error) {
+func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 
-	entry, err := c.dc.Entry(ctx, remoteClient)
+	entry, err := c.dc.Entry(ctx, remote)
 	if err != nil {
 		return nil, fmt.Errorf("get entry failure: %s", err)
 	}
 	if len(entry.Client.DelegatedServers) == 0 {
 		return nil, ErrNoSrv
 	}
-	link, err := c.findLink(ctx, entry.Client.DelegatedServers)
+	conn, err := c.findConn(ctx, entry.Client.DelegatedServers)
 	if err != nil {
 		return nil, err
 	}
-	return link.Dial(ctx, remoteClient)
+	return conn.DialTransport(ctx, remote)
 }
 
 func (c *Client) Local() cipher.PubKey {
@@ -367,7 +367,7 @@ func (c *Client) Local() cipher.PubKey {
 }
 
 func (c *Client) Type() string {
-	return TpType
+	return Type
 }
 
 // TODO(evaninjin): proper error handling.
@@ -375,10 +375,10 @@ func (c *Client) Close() error {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 
-	for _, link := range c.links {
+	for _, link := range c.conns {
 		_ = link.Close()
 	}
-	c.links = make(map[cipher.PubKey]*Link)
+	c.conns = make(map[cipher.PubKey]*Conn)
 	c.once.Do(func() {
 		close(c.accept)
 	})

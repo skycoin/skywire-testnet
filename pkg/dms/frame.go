@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	TpType = "dms"
+	Type = "dms"
 
 	hsTimeout  = time.Second * 10
 	readBufLen = 10

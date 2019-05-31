@@ -80,7 +80,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
 	if sn.srvCount > 0 {
-		if err := sn.messenger.InitiateLinks(ctx, sn.srvCount); err != nil {
+		if err := sn.messenger.InitiateServers(ctx, sn.srvCount); err != nil {
 			return fmt.Errorf("messaging: %s", err)
 		}
 		sn.Logger.Info("Connected to messaging servers")
@@ -226,7 +226,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 }
 
 func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.TpType, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.Type, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return
@@ -244,7 +244,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.TpType, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.Type, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
@@ -260,7 +260,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 }
 
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dms.TpType, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dms.Type, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return

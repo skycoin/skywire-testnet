@@ -16,18 +16,13 @@ import (
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
-type Dispatch struct {
-	Frame
-	Src *ServerLink
-}
-
-// NextLink provides information on the next link.
-type NextLink struct {
-	l  *ServerLink
+// NextConn provides information on the next connection.
+type NextConn struct {
+	l  *ServerConn
 	id uint16
 }
 
-func (r *NextLink) writeFrame(ft FrameType, p []byte) error {
+func (r *NextConn) writeFrame(ft FrameType, p []byte) error {
 	if err := writeFrame(r.l.Conn, MakeFrame(ft, r.id, p)); err != nil {
 		go r.l.Close()
 		return err
@@ -35,50 +30,50 @@ func (r *NextLink) writeFrame(ft FrameType, p []byte) error {
 	return nil
 }
 
-// ServerLink from a server's perspective.
-type ServerLink struct {
+// ServerConn is a connection between a dms.Server and a dms.Client from a server's perspective.
+type ServerConn struct {
 	log *logging.Logger
 
 	net.Conn
 	remoteClient cipher.PubKey
 
 	nextID    uint16
-	nextLinks [math.MaxUint16]*NextLink
+	nextLinks [math.MaxUint16]*NextConn
 	mx        sync.RWMutex
 }
 
-func NewServerLink(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKey) *ServerLink {
-	return &ServerLink{log: log, Conn: conn, remoteClient: remoteClient, nextID: 1}
+func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKey) *ServerConn {
+	return &ServerConn{log: log, Conn: conn, remoteClient: remoteClient, nextID: 1}
 }
 
-func (l *ServerLink) delNext(id uint16) {
-	l.mx.Lock()
-	l.nextLinks[id] = nil
-	l.mx.Unlock()
+func (c *ServerConn) delNext(id uint16) {
+	c.mx.Lock()
+	c.nextLinks[id] = nil
+	c.mx.Unlock()
 }
 
-func (l *ServerLink) setNext(id uint16, r *NextLink) {
-	l.mx.Lock()
-	l.nextLinks[id] = r
-	l.mx.Unlock()
+func (c *ServerConn) setNext(id uint16, r *NextConn) {
+	c.mx.Lock()
+	c.nextLinks[id] = r
+	c.mx.Unlock()
 }
 
-func (l *ServerLink) getNext(id uint16) (*NextLink, bool) {
-	l.mx.RLock()
-	r := l.nextLinks[id]
-	l.mx.RUnlock()
+func (c *ServerConn) getNext(id uint16) (*NextConn, bool) {
+	c.mx.RLock()
+	r := c.nextLinks[id]
+	c.mx.RUnlock()
 	return r, r != nil
 }
 
-func (l *ServerLink) addNext(ctx context.Context, r *NextLink) (uint16, error) {
-	l.mx.Lock()
-	defer l.mx.Unlock()
+func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 
 	for {
-		if r := l.nextLinks[l.nextID]; r == nil {
+		if r := c.nextLinks[c.nextID]; r == nil {
 			break
 		}
-		l.nextID += 2
+		c.nextID += 2
 
 		select {
 		case <-ctx.Done():
@@ -87,29 +82,30 @@ func (l *ServerLink) addNext(ctx context.Context, r *NextLink) (uint16, error) {
 		}
 	}
 
-	id := l.nextID
-	l.nextID = id + 2
-	l.nextLinks[id] = r
+	id := c.nextID
+	c.nextID = id + 2
+	c.nextLinks[id] = r
 	return id, nil
 }
 
-func (l *ServerLink) PK() cipher.PubKey {
-	return l.remoteClient
+func (c *ServerConn) PK() cipher.PubKey {
+	return c.remoteClient
 }
 
-type getLinkFunc func(pk cipher.PubKey) (*ServerLink, bool)
+type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 
-func (l *ServerLink) Serve(ctx context.Context, getLink getLinkFunc) error {
+func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
+	log := c.log.WithField("client", c.remoteClient)
+
 	go func() {
 		select {
 		case <-ctx.Done():
-			l.Conn.Close()
+			c.Conn.Close()
 		}
 	}()
 
-	log := l.log.WithField("client", l.remoteClient)
 	for {
-		f, err := readFrame(l.Conn)
+		f, err := readFrame(c.Conn)
 		if err != nil {
 			return fmt.Errorf("failed to read frame: %s", err)
 		}
@@ -123,19 +119,19 @@ func (l *ServerLink) Serve(ctx context.Context, getLink getLinkFunc) error {
 				ctx, cancel := context.WithTimeout(ctx, hsTimeout)
 				defer cancel()
 
-				_, why, ok := l.handleRequest(ctx, getLink, id, p)
+				_, why, ok := c.handleRequest(ctx, getConn, id, p)
 				if !ok {
-					if err := l.delChan(id, why); err != nil {
-						l.Conn.Close()
+					if err := c.delChan(id, why); err != nil {
+						c.Conn.Close()
 					}
 				}
 			}()
 
 		case AcceptType, SendType, CloseType:
-			next, why, ok := l.forwardFrame(ft, id, p)
+			next, why, ok := c.forwardFrame(ft, id, p)
 			if !ok {
 				// Delete channel (and associations) on failure.
-				if err := l.delChan(id, why); err != nil {
+				if err := c.delChan(id, why); err != nil {
 					return err
 				}
 				continue
@@ -143,29 +139,29 @@ func (l *ServerLink) Serve(ctx context.Context, getLink getLinkFunc) error {
 
 			// On success, if Close frame, delete the associations.
 			if ft == CloseType {
-				l.delNext(id)
+				c.delNext(id)
 				next.l.delNext(next.id)
 			}
 
 		default:
 			// Unknown frame type.
-			if err := l.delChan(id, 0); err != nil {
+			if err := c.delChan(id, 0); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-func (l *ServerLink) delChan(id uint16, why byte) error {
-	l.delNext(id)
-	if err := writeFrame(l.Conn, MakeFrame(CloseType, id, []byte{why})); err != nil {
+func (c *ServerConn) delChan(id uint16, why byte) error {
+	c.delNext(id)
+	if err := writeFrame(c.Conn, MakeFrame(CloseType, id, []byte{why})); err != nil {
 		return fmt.Errorf("failed to write frame: %s", err)
 	}
 	return nil
 }
 
-func (l *ServerLink) forwardFrame(ft FrameType, id uint16, p []byte) (*NextLink, byte, bool) {
-	next, ok := l.getNext(id)
+func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn, byte, bool) {
+	next, ok := c.getNext(id)
 	if !ok {
 		return next, 0, false
 	}
@@ -175,9 +171,9 @@ func (l *ServerLink) forwardFrame(ft FrameType, id uint16, p []byte) (*NextLink,
 	return next, 0, true
 }
 
-func (l *ServerLink) handleRequest(ctx context.Context, getLink getLinkFunc, id uint16, p []byte) (*NextLink, byte, bool) {
+func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id uint16, p []byte) (*NextConn, byte, bool) {
 	initPK, respPK, ok := splitPKs(p)
-	if !ok || initPK != l.PK() {
+	if !ok || initPK != c.PK() {
 		return nil, 0, false
 	}
 	respL, ok := getLink(respPK)
@@ -186,12 +182,12 @@ func (l *ServerLink) handleRequest(ctx context.Context, getLink getLinkFunc, id 
 	}
 
 	// set next relations.
-	respID, err := respL.addNext(ctx, &NextLink{l: l, id: id})
+	respID, err := respL.addNext(ctx, &NextConn{l: c, id: id})
 	if err != nil {
 		return nil, 0, false
 	}
-	next := &NextLink{l: respL, id: respID}
-	l.setNext(id, next)
+	next := &NextConn{l: respL, id: respID}
+	c.setNext(id, next)
 
 	// forward to responding client.
 	if err := next.writeFrame(RequestType, p); err != nil {
@@ -209,7 +205,7 @@ type Server struct {
 	dc   client.APIClient
 
 	lis   net.Listener
-	links map[cipher.PubKey]*ServerLink
+	conns map[cipher.PubKey]*ServerConn
 	mx    sync.RWMutex
 
 	wg sync.WaitGroup
@@ -222,7 +218,7 @@ func NewServer(pk cipher.PubKey, sk cipher.SecKey, addr string, dc client.APICli
 		sk:    sk,
 		addr:  addr,
 		dc:    dc,
-		links: make(map[cipher.PubKey]*ServerLink),
+		conns: make(map[cipher.PubKey]*ServerConn),
 	}
 }
 
@@ -230,21 +226,21 @@ func (s *Server) SetLogger(log *logging.Logger) {
 	s.log = log
 }
 
-func (s *Server) setLink(l *ServerLink) {
+func (s *Server) setConn(l *ServerConn) {
 	s.mx.Lock()
-	s.links[l.remoteClient] = l
+	s.conns[l.remoteClient] = l
 	s.mx.Unlock()
 }
 
-func (s *Server) delLink(pk cipher.PubKey) {
+func (s *Server) delConn(pk cipher.PubKey) {
 	s.mx.Lock()
-	delete(s.links, pk)
+	delete(s.conns, pk)
 	s.mx.Unlock()
 }
 
-func (s *Server) getLink(pk cipher.PubKey) (*ServerLink, bool) {
+func (s *Server) getConn(pk cipher.PubKey) (*ServerConn, bool) {
 	s.mx.RLock()
-	l, ok := s.links[pk]
+	l, ok := s.conns[pk]
 	s.mx.RUnlock()
 	return l, ok
 }
@@ -260,7 +256,7 @@ func (s *Server) Close() (err error) {
 	}
 
 	s.mx.Lock()
-	s.links = make(map[cipher.PubKey]*ServerLink)
+	s.conns = make(map[cipher.PubKey]*ServerConn)
 	s.mx.Unlock()
 
 	s.wg.Wait()
@@ -283,22 +279,22 @@ func (s *Server) ListenAndServe(addr string) error {
 	lis = noise.WrapListener(lis, s.pk, s.sk, false, noise.HandshakeXK)
 	s.lis = lis
 	for {
-		conn, err := lis.Accept()
+		rawConn, err := lis.Accept()
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				continue
 			}
 			return err
 		}
-		s.log.Infof("newLink: %v", conn.RemoteAddr())
-		link := NewServerLink(s.log, conn, conn.RemoteAddr().(*noise.Addr).PK)
-		s.setLink(link)
+		s.log.Infof("newConn: %v", rawConn.RemoteAddr())
+		conn := NewServerConn(s.log, rawConn, rawConn.RemoteAddr().(*noise.Addr).PK)
+		s.setConn(conn)
 
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			_ = link.Serve(ctx, s.getLink) // TODO: log error.
-			s.delLink(link.PK())
+			_ = conn.Serve(ctx, s.getConn) // TODO: log error.
+			s.delConn(conn.PK())
 		}()
 	}
 }
