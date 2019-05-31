@@ -11,7 +11,7 @@ exposed by `SSH` app.
 - and executing commands remotely
 
 PubKey whitelisting is performed by adding public key to the
-authentication file (`$HOME/.skywire-messenger-ssh/authorized_keys` by default).
+authentication file (`$HOME/.SSH/authorized_keys` by default).
 
 ** Local setup
 
@@ -46,8 +46,8 @@ Create 2 node config files:
 Compile binaries and start 2 nodes:
 
 ```bash
-$ go build -o apps/SSH-server.v1.0 ./skywire-messenger-ssh/cmd/server
-$ go build -o apps/SSH-client.v1.0 ./skywire-messenger-ssh/cmd/client
+$ go build -o apps/SSH-server.v1.0 ./SSH/cmd/server
+$ go build -o apps/SSH-client.v1.0 ./SSH/cmd/client
 $ go build ./sjywire-messenger-ssh/cmd/cli
 $ ./skywire-node skywire1.json
 $ ./skywire-node skywire2.json
@@ -57,7 +57,7 @@ Add public key of the second node to the auth file:
 
 ```bash
 $ mkdir ~/.SSH
-$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > ~/.skywire-messenger-ssh/authorized_keys
+$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > ~/.SSH/authorized_keys
 ```
 
 Connect to the first node using CLI:
