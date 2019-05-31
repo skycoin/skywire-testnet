@@ -17,8 +17,8 @@ type ManagedTransport struct {
 	LogEntry *LogEntry
 
 	doneChan  chan struct{}
+	doneOnce  sync.Once
 	errChan   chan error
-	isClosing bool
 	mu        sync.RWMutex
 
 	readLogChan  chan int
@@ -87,20 +87,21 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	return
 }
 
-// Close closes underlying
-func (tr *ManagedTransport) Close() error {
-	tr.mu.RLock()
-	err := tr.Transport.Close()
-	tr.isClosing = true
-	tr.mu.RUnlock()
-
+func (tr *ManagedTransport) IsClosing() bool {
 	select {
 	case <-tr.doneChan:
+		return true
 	default:
-
-		close(tr.doneChan)
+		return false
 	}
+}
 
+// Close closes underlying
+func (tr *ManagedTransport) Close() (err error) {
+	tr.mu.RLock()
+	err = tr.Transport.Close()
+	tr.mu.RUnlock()
+	tr.doneOnce.Do(func() {close(tr.doneChan)})
 	return err
 }
 

@@ -155,7 +155,6 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 	if err == io.EOF {
 		return nil
 	}
-
 	return err
 }
 
