@@ -10,7 +10,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 
 	"github.com/skycoin/skywire/pkg/app"
-	ssh "github.com/skycoin/skywire/skywire-messenger-ssh/internal/therealssh"
+	ssh "github.com/skycoin/skywire/SSH/internal/therealssh"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 
 	flag.Parse()
 
-	config := &app.Config{AppName: "skywire-messenger-ssh-server", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
+	config := &app.Config{AppName: "SSH-server", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
 	sshApp, err := app.Setup(config)
 	if err != nil {
 		log.Fatal("Setup failure: ", err)

@@ -15,7 +15,7 @@ func main() {
 	var passcode = flag.String("passcode", "", "Authorise user against this passcode")
 	flag.Parse()
 
-	config := &app.Config{AppName: "therealproxy", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
+	config := &app.Config{AppName: "socksproxy", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
 	socksApp, err := app.Setup(config)
 	if err != nil {
 		log.Fatal("Setup failure: ", err)

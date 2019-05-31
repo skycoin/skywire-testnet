@@ -1,6 +1,6 @@
 # Skywire SOCKS5 proxy app
 
-`therealproxy` app implements SOCKS5 functionality over skywire
+`socksproxy` app implements SOCKS5 functionality over skywire
 net.
 Any conventional SOCKS5 client should be able to connect to the
 proxy client.
@@ -17,7 +17,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": "therealproxy",
+      "app": "socksproxy",
       "version": "1.0",
       "auto_start": true,
       "port": 3,
@@ -31,7 +31,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": "therealproxy-client",
+      "app": "socksproxy-client",
       "version": "1.0",
       "auto_start": true,
       "port": 33,
@@ -43,8 +43,8 @@ Create 2 node config files:
 Compile binaries and start 2 nodes:
 
 ```sh
-$ go build -o apps/therealproxy.v1.0 ./cmd/apps/therealproxy
-$ go build -o apps/therealproxy-client.v1.0 ./cmd/apps/therealproxy-client
+$ go build -o apps/socksproxy.v1.0 ./cmd/apps/therealproxy
+$ go build -o apps/socksproxy-client.v1.0 ./cmd/apps/therealproxy-client
 $ ./skywire-node skywire1.json
 $ ./skywire-node skywire2.json
 ```

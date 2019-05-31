@@ -15,7 +15,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": "chat",
+      "app": "skychat",
       "version": "1.0",
       "auto_start": true,
       "port": 1
@@ -28,7 +28,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": "chat",
+      "app": "skychat",
       "version": "1.0",
       "auto_start": true,
       "port": 1,
@@ -40,7 +40,7 @@ Create 2 node config files:
 Compile binaries and start 2 nodes:
 
 ```bash
-$ go build -o apps/chat.v1.0 ./cmd/apps/chat
+$ go build -o apps/skychat.v1.0 ./cmd/apps/skychat
 $ ./skywire-node skywire1.json
 $ ./skywire-node skywire2.json
 ```

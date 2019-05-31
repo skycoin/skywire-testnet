@@ -19,7 +19,7 @@ import (
 	"github.com/skycoin/skywire/pkg/app"
 )
 
-// Port reserved for server app
+// Port reserved for SSH app
 const Port = 2
 
 // Debug enables debug messages.
