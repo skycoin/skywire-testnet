@@ -2,6 +2,7 @@ package dms
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"time"
 
@@ -20,11 +21,24 @@ func isEven(chID uint16) bool { return chID%2 == 0 }
 
 type FrameType byte
 
+func (ft FrameType) String() string {
+	var names = []string{
+		RequestType: "REQUEST",
+		AcceptType:  "ACCEPT",
+		CloseType:   "CLOSE",
+		SendType:    "SEND",
+	}
+	if int(ft) >= len(names) {
+		return fmt.Sprintf("UNKNOWN:%d", ft)
+	}
+	return names[ft]
+}
+
 const (
 	RequestType = FrameType(1)
 	AcceptType  = FrameType(2)
 	CloseType   = FrameType(3)
-	FwdType     = FrameType(10)
+	SendType    = FrameType(10)
 )
 
 type Frame []byte

@@ -128,7 +128,7 @@ func (c *Channel) Read(p []byte) (n int, err error) {
 		return 0, io.ErrClosedPipe
 	case f := <-c.readCh:
 		switch f.Type() {
-		case FwdType:
+		case SendType:
 			return ioutil.BufRead(&c.readBuf, f.Pay(), p)
 		case CloseType:
 			c.close()
@@ -144,7 +144,7 @@ func (c *Channel) Write(p []byte) (int, error) {
 	case <-c.doneCh:
 		return 0, io.ErrClosedPipe
 	default:
-		f := MakeFrame(FwdType, c.id, p)
+		f := MakeFrame(SendType, c.id, p)
 		if err := writeFrame(c.Conn, f); err != nil {
 			c.close()
 			return 0, err
