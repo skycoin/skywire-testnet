@@ -25,17 +25,17 @@ func TestMain(m *testing.M) {
 }
 
 func TestClientDial(t *testing.T) {
+	pk, sk := cipher.GenerateKeyPair()
 	discovery := client.NewMock()
+	c1 := NewMsgFactory(&Config{pk, sk, discovery, 0, 0})
+	c1.retries = 0
 
 	srv, err := newMockServer(discovery)
 	require.NoError(t, err)
 	srvPK := srv.config.Public
 
-	pk1, sk1 := cipher.GenerateKeyPair()
-	c1 := NewClient(&Config{pk1, sk1, discovery, 0, 0})
-
-	pk2, sk2 := cipher.GenerateKeyPair()
-	c2 := NewClient(&Config{pk2, sk2, discovery, 0, 0})
+	anotherPK, anotherSK := cipher.GenerateKeyPair()
+	c2 := NewMsgFactory(&Config{anotherPK, anotherSK, discovery, 0, 0})
 	require.NoError(t, c2.ConnectToInitialServers(context.TODO(), 1))
 
 	var (
@@ -54,7 +54,7 @@ func TestClientDial(t *testing.T) {
 		tp1Done = make(chan struct{})
 	)
 	go func() {
-		tp1, tp1Err = c1.Dial(context.TODO(), pk2)
+		tp1, tp1Err = c1.Dial(context.TODO(), anotherPK)
 		close(tp1Done)
 	}()
 
@@ -62,7 +62,7 @@ func TestClientDial(t *testing.T) {
 	require.NoError(t, tp1Err)
 	require.NotNil(t, c1.getLink(srvPK).chans.get(0))
 
-	entry, err := discovery.Entry(context.TODO(), pk1)
+	entry, err := discovery.Entry(context.TODO(), pk)
 	require.NoError(t, err)
 	require.Len(t, entry.Client.DelegatedServers, 1)
 

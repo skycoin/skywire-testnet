@@ -231,7 +231,7 @@ func (mCh *msgChannel) readEncrypted(ctx context.Context, p []byte) (n int, err 
 	}
 
 	if len(data) > len(p) {
-		if _, err := mCh.buf.Write(data[len(p):]); err != nil {
+		if _, err := mCh.buf.Write(data[len(p):]); err != nil { // TODO: data race.
 			return 0, io.ErrShortBuffer
 		}
 

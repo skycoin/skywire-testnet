@@ -3,6 +3,7 @@ package transport
 import (
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -13,21 +14,24 @@ type ManagedTransport struct {
 	Transport
 	ID       uuid.UUID
 	Public   bool
+	Accepted bool
 	LogEntry *LogEntry
 
-	doneChan chan struct{}
-	errChan  chan error
-	mu       sync.RWMutex
+	doneChan  chan struct{}
+	errChan   chan error
+	isClosing int32
+	mu        sync.RWMutex
 
 	readLogChan  chan int
 	writeLogChan chan int
 }
 
-func newManagedTransport(id uuid.UUID, tr Transport, public bool) *ManagedTransport {
+func newManagedTransport(id uuid.UUID, tr Transport, public bool, accepted bool) *ManagedTransport {
 	return &ManagedTransport{
 		ID:           id,
 		Transport:    tr,
 		Public:       public,
+		Accepted:     accepted,
 		doneChan:     make(chan struct{}),
 		errChan:      make(chan error),
 		readLogChan:  make(chan int),
@@ -39,7 +43,7 @@ func newManagedTransport(id uuid.UUID, tr Transport, public bool) *ManagedTransp
 // Read reads using underlying
 func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	tr.mu.RLock()
-	n, err = tr.Transport.Read(p)
+	n, err = tr.Transport.Read(p) // TODO: data race.
 	tr.mu.RUnlock()
 	if err == nil {
 		select {
@@ -86,6 +90,9 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 
 // Close closes underlying
 func (tr *ManagedTransport) Close() error {
+
+	atomic.StoreInt32(&tr.isClosing, 1)
+
 	tr.mu.RLock()
 	err := tr.Transport.Close()
 	tr.mu.RUnlock()
@@ -93,6 +100,7 @@ func (tr *ManagedTransport) Close() error {
 	select {
 	case <-tr.doneChan:
 	default:
+
 		close(tr.doneChan)
 	}
 

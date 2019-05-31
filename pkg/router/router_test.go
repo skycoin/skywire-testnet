@@ -487,8 +487,12 @@ func TestRouterSetupLoop(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		acceptCh, _ := m2.Observe()
-		tr := <-acceptCh
+		var tr *transport.ManagedTransport
+		for tr = range m2.TrChan {
+			if tr.Accepted {
+				break
+			}
+		}
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
@@ -593,8 +597,14 @@ func TestRouterCloseLoop(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		acceptCh, _ := m2.Observe()
-		tr := <-acceptCh
+		// acceptCh, _ := m2.Observe()
+		// tr := <-acceptCh
+		var tr *transport.ManagedTransport
+		for tr = range m2.TrChan {
+			if tr.Accepted {
+				break
+			}
+		}
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
@@ -681,8 +691,12 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		acceptCh, _ := m2.Observe()
-		tr := <-acceptCh
+		var tr *transport.ManagedTransport
+		for tr = range m2.TrChan {
+			if tr.Accepted {
+				break
+			}
+		}
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()

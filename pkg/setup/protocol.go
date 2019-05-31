@@ -76,7 +76,7 @@ func NewSetupProtocol(rw io.ReadWriter) *Protocol {
 // ReadPacket reads a single setup packet.
 func (p *Protocol) ReadPacket() (PacketType, []byte, error) {
 	rawLen := make([]byte, 2)
-	if _, err := io.ReadFull(p.rw, rawLen); err != nil {
+	if _, err := io.ReadFull(p.rw, rawLen); err != nil { // TODO: data race.
 		return 0, nil, err
 	}
 	rawBody := make([]byte, binary.BigEndian.Uint16(rawLen))
@@ -146,7 +146,7 @@ func CreateLoop(p *Protocol, l *routing.Loop) error {
 	if err := p.WritePacket(PacketCreateLoop, l); err != nil {
 		return err
 	}
-	if err := readAndDecodePacket(p, nil); err != nil {
+	if err := readAndDecodePacket(p, nil); err != nil { // TODO: data race.
 		return err
 	}
 	return nil
@@ -187,7 +187,7 @@ func LoopClosed(p *Protocol, l *LoopData) error {
 }
 
 func readAndDecodePacket(p *Protocol, v interface{}) error {
-	t, raw, err := p.ReadPacket()
+	t, raw, err := p.ReadPacket() // TODO: data race.
 	if err != nil {
 		return err
 	}
