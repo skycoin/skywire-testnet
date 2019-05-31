@@ -2,6 +2,7 @@ package dms
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/prometheus/common/log"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -92,11 +93,13 @@ func (l *ServerLink) PK() cipher.PubKey {
 func (l *ServerLink) Serve(ctx context.Context, in chan<- Dispatch) error {
 	log := l.log.WithField("remoteClient", l.remoteClient)
 	for {
+		log.Infof("SERVER: READING FRAME >>>")
 		f, err := readFrame(l.Conn)
 		if err != nil {
 			log.WithError(err).Errorf("readFrame failed")
 			return err
 		}
+		log.Infof("SERVER: FRAME READ <<<")
 		select {
 		case in <- Dispatch{Frame: f, Src: l}:
 		case <-ctx.Done():
@@ -160,8 +163,13 @@ func (s *Server) getLink(pk cipher.PubKey) (*ServerLink, bool) {
 	return l, ok
 }
 
-func (s *Server) Close() error {
-	if err := s.lis.Close(); err != nil {
+func (s *Server) Close() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("listener has not started")
+		}
+	}()
+	if err = s.lis.Close(); err != nil {
 		return err
 	}
 

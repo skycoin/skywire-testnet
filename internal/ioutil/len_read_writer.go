@@ -20,14 +20,13 @@ func NewLenReadWriter(rw io.ReadWriter) *LenReadWriter {
 }
 
 // ReadPacket returns single received len prepended packet.
-func (rw *LenReadWriter) ReadPacket() (data []byte, err error) {
-	var size uint16
-	if err = binary.Read(rw.ReadWriter, binary.BigEndian, &size); err != nil {
-		return
+func (rw *LenReadWriter) ReadPacket() ([]byte, error) {
+	h := make([]byte, 2)
+	if _, err := io.ReadFull(rw.ReadWriter, h); err != nil {
+		return nil, err
 	}
-
-	data = make([]byte, size)
-	_, err = io.ReadFull(rw.ReadWriter, data)
+	data := make([]byte, binary.BigEndian.Uint16(h))
+	_, err := io.ReadFull(rw.ReadWriter, data)
 	return data, err
 }
 
@@ -46,8 +45,6 @@ func (rw *LenReadWriter) Read(p []byte) (n int, err error) {
 		if _, err := rw.buf.Write(data[len(p):]); err != nil {
 			return 0, io.ErrShortBuffer
 		}
-
-		return copy(p, data[:len(p)]), nil
 	}
 
 	return copy(p, data), nil

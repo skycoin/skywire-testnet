@@ -1,6 +1,8 @@
 package noise
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"io"
 	"sync"
@@ -12,18 +14,18 @@ import (
 
 // ReadWriter implements noise encrypted read writer.
 type ReadWriter struct {
-	lrw *ioutil.LenReadWriter
-	ns  *Noise
-
-	rMx sync.Mutex
-	wMx sync.Mutex
+	origin io.ReadWriter
+	ns     *Noise
+	rBuf   bytes.Buffer
+	rMx    sync.Mutex
+	wMx    sync.Mutex
 }
 
 // NewReadWriter constructs a new ReadWriter.
 func NewReadWriter(rw io.ReadWriter, ns *Noise) *ReadWriter {
 	return &ReadWriter{
-		lrw: ioutil.NewLenReadWriter(rw),
-		ns:  ns,
+		origin: rw,
+		ns:     ns,
 	}
 }
 
@@ -31,7 +33,11 @@ func (rw *ReadWriter) Read(p []byte) (int, error) {
 	rw.rMx.Lock()
 	defer rw.rMx.Unlock()
 
-	ciphertext, err := rw.lrw.ReadPacket()
+	if rw.rBuf.Len() > 0 {
+		return rw.rBuf.Read(p)
+	}
+
+	ciphertext, err := rw.readPacket()
 	if err != nil {
 		return 0, err
 	}
@@ -39,23 +45,36 @@ func (rw *ReadWriter) Read(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if len(plaintext) > len(p) {
-		return 0, io.ErrShortBuffer
-	}
-	return copy(p, plaintext), nil
+	return ioutil.BufRead(rw.rBuf, plaintext, p)
 }
 
-func (rw *ReadWriter) Write(p []byte) (n int, err error) {
+func (rw *ReadWriter) readPacket() ([]byte, error) {
+	h := make([]byte, 2)
+	if _, err := io.ReadFull(rw.origin, h); err != nil {
+		return nil, err
+	}
+	data := make([]byte, binary.BigEndian.Uint16(h))
+	_, err := io.ReadFull(rw.origin, data)
+	return data, err
+}
+
+func (rw *ReadWriter) Write(p []byte) (int, error) {
 	rw.wMx.Lock()
 	defer rw.wMx.Unlock()
 
 	ciphertext := rw.ns.EncryptUnsafe(p)
-	n, err = rw.lrw.Write(ciphertext)
-	if n != len(ciphertext) {
-		err = io.ErrShortWrite
-		return
+
+	if err := rw.writePacket(ciphertext); err != nil {
+		return 0, err
 	}
-	return len(p), err
+	return len(p), nil
+}
+
+func (rw *ReadWriter) writePacket(p []byte) error {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, uint16(len(p)))
+	_, err := rw.origin.Write(append(buf, p...))
+	return err
 }
 
 // Handshake performs a Noise handshake using the provided io.ReadWriter.
@@ -94,7 +113,7 @@ func (rw *ReadWriter) initiatorHandshake() error {
 			return err
 		}
 
-		if _, err := rw.lrw.Write(msg); err != nil {
+		if err := rw.writePacket(msg); err != nil {
 			return err
 		}
 
@@ -102,7 +121,7 @@ func (rw *ReadWriter) initiatorHandshake() error {
 			break
 		}
 
-		res, err := rw.lrw.ReadPacket()
+		res, err := rw.readPacket()
 		if err != nil {
 			return err
 		}
@@ -121,7 +140,7 @@ func (rw *ReadWriter) initiatorHandshake() error {
 
 func (rw *ReadWriter) responderHandshake() error {
 	for {
-		msg, err := rw.lrw.ReadPacket()
+		msg, err := rw.readPacket()
 		if err != nil {
 			return err
 		}
@@ -139,7 +158,7 @@ func (rw *ReadWriter) responderHandshake() error {
 			return err
 		}
 
-		if _, err := rw.lrw.Write(res); err != nil {
+		if err := rw.writePacket(res); err != nil {
 			return err
 		}
 

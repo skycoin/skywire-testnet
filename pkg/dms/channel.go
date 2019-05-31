@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"github.com/skycoin/skywire/internal/ioutil"
 	"io"
 	"net"
 	"sync"
@@ -114,6 +116,7 @@ func (c *Channel) Type() string {
 
 func (c *Channel) Read(p []byte) (n int, err error) {
 	if c.readBuf.Len() != 0 {
+		fmt.Println("Channel.Read(): from buf...")
 		return c.readBuf.Read(p)
 	}
 
@@ -123,7 +126,9 @@ func (c *Channel) Read(p []byte) (n int, err error) {
 	case f := <-c.readCh:
 		switch f.Type() {
 		case FwdType:
-			return c.bufRead(f.Pay(), p)
+			fmt.Println("c.bufRead...")
+			return ioutil.BufRead(c.readBuf, f.Pay(), p)
+			//return c.bufRead(f.Pay(), p)
 		case CloseType:
 			c.close()
 			return 0, io.ErrClosedPipe
@@ -133,15 +138,15 @@ func (c *Channel) Read(p []byte) (n int, err error) {
 	}
 }
 
-func (c *Channel) bufRead(data, p []byte) (int, error) {
-	if len(data) > len(p) {
-		if _, err := c.readBuf.Write(data[len(p):]); err != nil {
-			return 0, io.ErrShortBuffer
-		}
-		copy(p, data[:len(p)])
-	}
-	return copy(p, data), nil
-}
+//func (c *Channel) bufRead(data, p []byte) (int, error) {
+//	if len(data) > len(p) {
+//		if _, err := c.readBuf.Write(data[len(p):]); err != nil {
+//			return 0, io.ErrShortBuffer
+//		}
+//		copy(p, data[:len(p)])
+//	}
+//	return copy(p, data), nil
+//}
 
 func (c *Channel) Write(p []byte) (int, error) {
 	select {
