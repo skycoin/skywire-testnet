@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -387,10 +388,7 @@ func (tm *Manager) manageTransport(ctx context.Context, managedTr *ManagedTransp
 		tm.Logger.Infof("Transport %s closed", managedTr.ID)
 		return
 	case err := <-managedTr.errChan:
-		managedTr.mu.RLock()
-		isClosing := managedTr.isClosing
-		managedTr.mu.RUnlock()
-		if !isClosing {
+		if atomic.LoadInt32(&managedTr.isClosing) == 0 {
 			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
 			if accepted {
 				if err := tm.DeleteTransport(managedTr.ID); err != nil {

@@ -3,6 +3,7 @@ package transport
 import (
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -18,7 +19,7 @@ type ManagedTransport struct {
 
 	doneChan  chan struct{}
 	errChan   chan error
-	isClosing bool
+	isClosing int32
 	mu        sync.RWMutex
 
 	readLogChan  chan int
@@ -89,10 +90,12 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 
 // Close closes underlying
 func (tr *ManagedTransport) Close() error {
-	tr.mu.Lock()
+
+	atomic.StoreInt32(&tr.isClosing, 1)
+
+	tr.mu.RLock()
 	err := tr.Transport.Close()
-	tr.isClosing = true
-	tr.mu.Unlock()
+	tr.mu.RUnlock()
 
 	select {
 	case <-tr.doneChan:
