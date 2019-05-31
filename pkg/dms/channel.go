@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/skycoin/skywire/internal/ioutil"
 	"io"
 	"net"
 	"sync"
+
+	"github.com/skycoin/skywire/internal/ioutil"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/transport"

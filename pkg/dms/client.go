@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/prometheus/common/log"
-	"github.com/skycoin/skycoin/src/util/logging"
 	"math"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/prometheus/common/log"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -32,7 +33,7 @@ var (
 
 // Link from a client's perspective.
 type Link struct {
-	log *logging.Logger
+	log       *logging.Logger
 	net.Conn                           // conn to dms server
 	local     cipher.PubKey            // local client's pk
 	remoteSrv cipher.PubKey            // dms server's public key

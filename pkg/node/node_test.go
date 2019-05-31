@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/skycoin/skywire/pkg/dms"
 	"net"
 	"os"
 	"os/exec"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/dms"
 
 	"net/http"
 	"net/http/httptest"

@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/dms"
 	"log"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/dms"
 
 	"github.com/skycoin/skywire/pkg/metrics"
 
@@ -33,8 +34,8 @@ type Node struct {
 	tm        *transport.Manager
 	messenger *dms.Client
 
-	srvCount  int
-	metrics   metrics.Recorder
+	srvCount int
+	metrics  metrics.Recorder
 }
 
 // NewNode constructs a new SetupNode.
@@ -48,7 +49,6 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	}
 	messenger := dms.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
 	messenger.SetLogger(logger.PackageLogger("dms"))
-
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {

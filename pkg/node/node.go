@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/dms"
 	"io"
 	"net"
 	"net/rpc"
@@ -15,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/dms"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 

@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/skycoin/skywire/pkg/dms"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/dms"
 
 	"github.com/skycoin/skywire/pkg/metrics"
 
