@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/skycoin/skywire/internal/ioutil"
 	"io"
 	"net"
 	"sync"
@@ -19,6 +20,7 @@ type Channel struct {
 	local        cipher.PubKey
 	remoteClient cipher.PubKey // remote PK
 	readBuf      bytes.Buffer
+	readMx       sync.Mutex
 	readCh       chan Frame    // TODO(evanlinjin): find proper way of closing readCh.
 	doneCh       chan struct{} // stop writing
 	doneOnce     sync.Once
@@ -113,6 +115,9 @@ func (c *Channel) Type() string {
 }
 
 func (c *Channel) Read(p []byte) (n int, err error) {
+	c.readMx.Lock()
+	defer c.readMx.Unlock()
+
 	if c.readBuf.Len() != 0 {
 		return c.readBuf.Read(p)
 	}
@@ -123,7 +128,7 @@ func (c *Channel) Read(p []byte) (n int, err error) {
 	case f := <-c.readCh:
 		switch f.Type() {
 		case FwdType:
-			return c.bufRead(f.Pay(), p)
+			return ioutil.BufRead(&c.readBuf, f.Pay(), p)
 		case CloseType:
 			c.close()
 			return 0, io.ErrClosedPipe
@@ -131,16 +136,6 @@ func (c *Channel) Read(p []byte) (n int, err error) {
 			return 0, errors.New("unexpected frame")
 		}
 	}
-}
-
-func (c *Channel) bufRead(data, p []byte) (int, error) {
-	if len(data) > len(p) {
-		if _, err := c.readBuf.Write(data[len(p):]); err != nil {
-			return 0, io.ErrShortBuffer
-		}
-		copy(p, data[:len(p)])
-	}
-	return copy(p, data), nil
 }
 
 func (c *Channel) Write(p []byte) (int, error) {

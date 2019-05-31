@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"sync"
 )
 
 // LenReadWriter writes len prepended packets and always reads whole
@@ -11,27 +12,30 @@ import (
 // buffer unread part and will return it first in subsequent reads.
 type LenReadWriter struct {
 	io.ReadWriter
-	buf *bytes.Buffer
+	buf bytes.Buffer
+	mx  sync.Mutex
 }
 
 // NewLenReadWriter constructs a new LenReadWriter.
 func NewLenReadWriter(rw io.ReadWriter) *LenReadWriter {
-	return &LenReadWriter{rw, new(bytes.Buffer)}
+	return &LenReadWriter{ReadWriter: rw}
 }
 
 // ReadPacket returns single received len prepended packet.
-func (rw *LenReadWriter) ReadPacket() (data []byte, err error) {
-	var size uint16
-	if err = binary.Read(rw.ReadWriter, binary.BigEndian, &size); err != nil {
-		return
+func (rw *LenReadWriter) ReadPacket() ([]byte, error) {
+	h := make([]byte, 2)
+	if _, err := io.ReadFull(rw.ReadWriter, h); err != nil {
+		return nil, err
 	}
-
-	data = make([]byte, size)
-	_, err = io.ReadFull(rw.ReadWriter, data)
+	data := make([]byte, binary.BigEndian.Uint16(h))
+	_, err := io.ReadFull(rw.ReadWriter, data)
 	return data, err
 }
 
 func (rw *LenReadWriter) Read(p []byte) (n int, err error) {
+	rw.mx.Lock()
+	defer rw.mx.Unlock()
+
 	if rw.buf.Len() != 0 {
 		return rw.buf.Read(p)
 	}
@@ -42,15 +46,7 @@ func (rw *LenReadWriter) Read(p []byte) (n int, err error) {
 		return
 	}
 
-	if len(data) > len(p) {
-		if _, err := rw.buf.Write(data[len(p):]); err != nil {
-			return 0, io.ErrShortBuffer
-		}
-
-		return copy(p, data[:len(p)]), nil
-	}
-
-	return copy(p, data), nil
+	return BufRead(&rw.buf, data, p)
 }
 
 func (rw *LenReadWriter) Write(p []byte) (n int, err error) {

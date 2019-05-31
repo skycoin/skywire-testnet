@@ -49,19 +49,16 @@ func (f Frame) Disassemble() (ft FrameType, id uint16, p []byte) {
 
 func readFrame(r io.Reader) (Frame, error) {
 	f := make(Frame, headerLen)
-	if _, err := r.Read(f); err != nil {
+	if _, err := io.ReadFull(r, f); err != nil {
 		return nil, err
 	}
 	f = append(f, make([]byte, f.PayLen())...)
-	_, err := r.Read(f[headerLen:])
+	_, err := io.ReadFull(r, f[headerLen:])
 	return f, err
 }
 
 func writeFrame(w io.Writer, f Frame) error {
-	if _, err := w.Write(f[:headerLen]); err != nil {
-		return err
-	}
-	_, err := w.Write(f[headerLen:])
+	_, err := w.Write(f)
 	return err
 }
 
