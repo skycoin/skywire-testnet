@@ -205,23 +205,25 @@ func WrapListener(lis net.Listener, pk cipher.PubKey, sk cipher.SecKey, init boo
 // Accept calls Accept from the underlying net.Listener and encrypts the
 // obtained net.Conn with noise.
 func (ml *Listener) Accept() (net.Conn, error) {
-	conn, err := ml.Listener.Accept()
-	if err != nil {
-		return nil, err
+	for {
+		conn, err := ml.Listener.Accept()
+		if err != nil {
+			return nil, err
+		}
+		ns, err := New(ml.pattern, Config{
+			LocalPK:   ml.pk,
+			LocalSK:   ml.sk,
+			Initiator: ml.init,
+		})
+		if err != nil {
+			continue
+		}
+		rw := NewReadWriter(conn, ns)
+		if err := rw.Handshake(time.Second * 10); err != nil {
+			continue
+		}
+		return &Conn{Conn: conn, ns: rw}, nil
 	}
-	ns, err := New(ml.pattern, Config{
-		LocalPK:   ml.pk,
-		LocalSK:   ml.sk,
-		Initiator: ml.init,
-	})
-	if err != nil {
-		return nil, err
-	}
-	rw := NewReadWriter(conn, ns)
-	if err := rw.Handshake(time.Second * 10); err != nil {
-		return nil, err
-	}
-	return &Conn{Conn: conn, ns: rw}, nil
 }
 
 // Addr returns the local address of the noise-encrypted Listener.

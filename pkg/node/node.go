@@ -322,7 +322,7 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 
 	bind := &appBind{conn, -1}
 	if app, ok := reservedPorts[config.Port]; ok && app != config.App {
-		return fmt.Errorf("can't bind to reserved port %d", config.Port)
+		return fmt.Errorf("can't bind to reserved port %d (which is reserved for %s)", config.Port, app)
 	}
 
 	node.startedMu.Lock()
