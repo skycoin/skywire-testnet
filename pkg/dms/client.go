@@ -115,6 +115,7 @@ func (c *Conn) handleRequestFrame(ctx context.Context, id uint16, p []byte) (*Tr
 		return nil, err
 	}
 	c.setTp(tp)
+
 	return tp, nil
 }
 
@@ -168,9 +169,12 @@ func (c *Conn) Serve(ctx context.Context, accept chan<- *Transport) error {
 
 		// If tp of tp_id exists, attempt to forward frame to tp.
 		// delete tp on any failure.
+
 		if !tp.AwaitRead(f) {
+			log.Infof("failed to injest to local_tp: id(%d) dstClient(%s)", id, tp.remoteClient)
 			c.delTp(id)
 		}
+		log.Infof("successfully injested to local_tp: id(%d) dstClient(%s)", id, tp.remoteClient)
 	}
 }
 
@@ -221,7 +225,7 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client 
 		sk:     sk,
 		dc:     dc,
 		conns:  make(map[cipher.PubKey]*Conn),
-		accept: make(chan *Transport),
+		accept: make(chan *Transport, readBufLen),
 	}
 }
 
@@ -305,11 +309,15 @@ func (c *Client) InitiateServers(ctx context.Context, n int) error {
 		if len(c.conns) > n {
 			break
 		}
-		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
-		if err != nil {
-			log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
+		if _, ok := c.conns[entry.Static]; ok {
 			continue
 		}
+		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
+		if err != nil {
+			c.log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
+			continue
+		}
+		c.log.Infof("Connected to server %s", entry.Static)
 		c.conns[conn.remoteSrv] = conn
 	}
 	if len(c.conns) == 0 {

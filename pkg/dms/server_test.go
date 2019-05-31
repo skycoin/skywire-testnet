@@ -3,6 +3,8 @@ package dms
 import (
 	"context"
 	"fmt"
+	"github.com/skycoin/skycoin/src/util/logging"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,11 +34,15 @@ func TestNewServer(t *testing.T) {
 // Given two client instances (a & b) and a server instance (s),
 // Client b should be able to dial a transport with client b
 // Data should be sent and delivered successfully via the transport.
+// TODO: fix this.
 func TestNewClient(t *testing.T) {
-	aPK, aSK := cipher.GenerateKeyPair()
-	bPK, bSK := cipher.GenerateKeyPair()
-	sPK, sSK := cipher.GenerateKeyPair()
+	aPK, aSK, _ := cipher.GenerateDeterministicKeyPair([]byte("a"))
+	bPK, bSK, _ := cipher.GenerateDeterministicKeyPair([]byte("b"))
+	sPK, sSK, _ := cipher.GenerateDeterministicKeyPair([]byte("c"))
 	sAddr := ":8080"
+
+	const tpCount = 10
+	const msgCount = 100
 
 	dc := client.NewMock()
 
@@ -44,41 +50,92 @@ func TestNewClient(t *testing.T) {
 	go s.ListenAndServe(sAddr) //nolint:errcheck
 
 	a := NewClient(aPK, aSK, dc)
+	a.SetLogger(logging.MustGetLogger("A"))
 	require.NoError(t, a.InitiateServers(context.Background(), 1))
-	aDone := make(chan struct{})
-	var aErr error
-	var aTp transport.Transport
-	go func() {
-		aTp, aErr = a.Accept(context.Background())
-		close(aDone)
-	}()
 
 	b := NewClient(bPK, bSK, dc)
-	require.NoError(t, a.InitiateServers(context.TODO(), 1))
-	bTp, err := b.Dial(context.TODO(), aPK)
-	require.NoError(t, err)
+	b.SetLogger(logging.MustGetLogger("B"))
+	require.NoError(t, b.InitiateServers(context.Background(), 1))
 
-	<-aDone
-	require.NoError(t, aErr)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < tpCount; i++ {
+			aDone := make(chan struct{})
+			var aTp transport.Transport
+			go func() {
+				var err error
+				aTp, err = a.Accept(context.Background())
+				catch(err)
+				close(aDone)
+			}()
 
-	for i := 0; i < 10; i++ {
-		pay := []byte(fmt.Sprintf("This is message %d!", i))
+			bTp, err := b.Dial(context.Background(), aPK)
+			catch(err)
 
-		n, err := aTp.Write(pay)
-		require.Equal(t, len(pay), n)
+			<-aDone
+			catch(err)
+
+			for j := 0; j < msgCount; j++ {
+				pay := []byte(fmt.Sprintf("This is message %d!", j))
+				_, err := aTp.Write(pay)
+				catch(err)
+				_, err = bTp.Read(pay)
+				catch(err)
+			}
+
+			// Close TPs
+			catch(aTp.Close())
+			catch(bTp.Close())
+		}
+	}()
+
+	for i := 0; i < tpCount; i++ {
+		bDone := make(chan struct{})
+		var bErr error
+		var bTp transport.Transport
+		go func() {
+			bTp, bErr = b.Accept(context.Background())
+			close(bDone)
+		}()
+
+		aTp, err := a.Dial(context.Background(), bPK)
 		require.NoError(t, err)
 
-		got := make([]byte, len(pay))
-		n, err = bTp.Read(got)
-		require.Equal(t, len(pay), n)
-		require.NoError(t, err)
-		require.Equal(t, pay, got)
+		<-bDone
+		require.NoError(t, bErr)
+
+		for j := 0; j < msgCount; j++ {
+			pay := []byte(fmt.Sprintf("This is message %d!", j))
+
+			n, err := aTp.Write(pay)
+			require.Equal(t, len(pay), n)
+			require.NoError(t, err)
+
+			got := make([]byte, len(pay))
+			n, err = bTp.Read(got)
+			require.Equal(t, len(pay), n)
+			require.NoError(t, err)
+			require.Equal(t, pay, got)
+		}
+
+		// Close TPs
+		require.NoError(t, aTp.Close())
+		require.NoError(t, bTp.Close())
 	}
-
-	// Close TPs
-	require.NoError(t, aTp.Close())
-	require.NoError(t, bTp.Close())
+	wg.Wait()
 
 	// Close server.
 	assert.NoError(t, s.Close())
+}
+
+func catch(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func TestNewConn(t *testing.T) {
+
 }
