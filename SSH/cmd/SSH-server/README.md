@@ -46,9 +46,9 @@ Create 2 node config files:
 Compile binaries and start 2 nodes:
 
 ```bash
-$ go build -o apps/SSH-server.v1.0 ./SSH/cmd/server
-$ go build -o apps/SSH-client.v1.0 ./SSH/cmd/client
-$ go build ./sjywire-messenger-ssh/cmd/cli
+$ go build -o apps/SSH-server.v1.0 ./SSH/cmd/SSH-server
+$ go build -o apps/SSH-client.v1.0 ./SSH/cmd/SSH-client
+$ go build ./SSH/cmd/SSH-cli
 $ ./skywire-node skywire1.json
 $ ./skywire-node skywire2.json
 ```

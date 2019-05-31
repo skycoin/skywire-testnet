@@ -184,13 +184,13 @@ This will:
 ├── apps                            # node `apps` compiled with DOCKER_OPTS
 │   ├── skychat.v1.0                   #
 │   ├── helloworld.v1.0             #
-│   ├── therealproxy-client.v1.0    #
-│   ├── therealproxy.v1.0           #
+│   ├── socksproxy-client.v1.0    #
+│   ├── socksproxy.v1.0           #
 │   ├── SSH-client.v1.0      #
 │   └── SSH-server.v1.0             #
 ├── local                           # **Created inside docker**
-│   ├── chat                        #  according to "local_path" in skywire-config.json
-│   ├── therealproxy                #
+│   ├── skychat                        #  according to "local_path" in skywire-config.json
+│   ├── socksproxy                  #
 │   └── SSH-server                  #
 ├── PK                              # contains public key of node
 ├── skywire                         # db & logs. **Created inside docker**
@@ -302,7 +302,7 @@ $ tree /tmp/SKYNODE
 # ├── apps
 # │   ├── skychat.v1.0
 # │   ├── helloworld.v1.0
-# │   ├── therealproxy.v1.0
+# │   ├── socksproxy.v1.0
 # │   ├── SSH-client.v1.0
 # │   └── SSH-server.v1.0
 # ├── skywire-config.json
@@ -319,13 +319,13 @@ $ docker run -it -v /tmp/SKYNODE:/sky --network=SKYNET --name=SKYNODE skywire-ru
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting packet router
 # [2019-03-15T13:55:10Z] INFO [router]: Starting router
 # [2019-03-15T13:55:10Z] INFO [trmanager]: Starting transport manager
-# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"chat",# "app-version":"1.0","protocol-version":"0.0.1"}
-# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app chat.v1.0
-# [2019-03-15T13:55:10Z] INFO [chat.v1.0]: 2019/03/15 13:55:10 Serving HTTP on :8000
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"skychat",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app skychat.v1.0
+# [2019-03-15T13:55:10Z] INFO [skychat.v1.0]: 2019/03/15 13:55:10 Serving HTTP on :8000
 # [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"SSH-server",# "app-version":"1.0","protocol-version":"0.0.1"}
 # [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app SSH-server.v1.0
-# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"therealproxy",# "app-version":"1.0","protocol-version":"0.0.1"}
-# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app therealproxy.v1.0
+# [2019-03-15T13:55:10Z] INFO [router]: Got new App request with type Init: {"app-name":"socksproxy",# "app-version":"1.0","protocol-version":"0.0.1"}
+# [2019-03-15T13:55:10Z] INFO [router]: Handshaked new connection with the app socksproxy.v1.0
 ```
 
 Note that in this example docker is running in non-detached mode - it could be useful in some scenarios.
