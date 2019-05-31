@@ -58,10 +58,8 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 		factories:  fMap,
 		transports: make(map[uuid.UUID]*ManagedTransport),
 		entries:    mEntries,
-		// AcceptedTrChan: make(chan *ManagedTransport, 10),
-		// DialedTrChan:   make(chan *ManagedTransport, 10),
-		TrChan:   make(chan *ManagedTransport, 9), //IDK why it was 10 before
-		doneChan: make(chan struct{}),
+		TrChan:     make(chan *ManagedTransport, 9), // TODO: eliminate or justify buffering here
+		doneChan:   make(chan struct{}),
 	}, nil
 }
 
