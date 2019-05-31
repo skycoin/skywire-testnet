@@ -9,8 +9,8 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 
-	"github.com/skycoin/skywire/pkg/app"
 	ssh "github.com/skycoin/skywire/SSH/internal/therealssh"
+	"github.com/skycoin/skywire/pkg/app"
 )
 
 func main() {
