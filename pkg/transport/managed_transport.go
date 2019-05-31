@@ -89,10 +89,10 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 
 // Close closes underlying
 func (tr *ManagedTransport) Close() error {
-	tr.mu.RLock()
+	tr.mu.Lock()
 	err := tr.Transport.Close()
 	tr.isClosing = true
-	tr.mu.RUnlock()
+	tr.mu.Unlock()
 
 	select {
 	case <-tr.doneChan:
