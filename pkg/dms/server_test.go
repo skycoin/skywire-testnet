@@ -22,7 +22,7 @@ func TestNewServer(t *testing.T) {
 	dc := client.NewMock()
 
 	s := NewServer(sPK, sSK, sAddr, dc)
-	go s.ListenAndServe(sAddr)
+	go s.ListenAndServe(sAddr) //nolint:errcheck
 
 	time.Sleep(time.Second)
 
@@ -41,7 +41,7 @@ func TestNewClient(t *testing.T) {
 	dc := client.NewMock()
 
 	s := NewServer(sPK, sSK, sAddr, dc)
-	go s.ListenAndServe(sAddr)
+	go s.ListenAndServe(sAddr) //nolint:errcheck
 
 	a := NewClient(aPK, aSK, dc)
 	require.NoError(t, a.InitiateServers(context.Background(), 1))

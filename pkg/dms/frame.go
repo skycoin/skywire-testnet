@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	// Type returns the transport type string.
 	Type = "dms"
 
 	hsTimeout  = time.Second * 10
@@ -19,6 +20,7 @@ const (
 
 func isEven(chID uint16) bool { return chID%2 == 0 }
 
+// FrameType represents the frame type.
 type FrameType byte
 
 func (ft FrameType) String() string {
@@ -34,6 +36,7 @@ func (ft FrameType) String() string {
 	return names[ft]
 }
 
+// Frame types.
 const (
 	RequestType = FrameType(1)
 	AcceptType  = FrameType(2)
@@ -41,8 +44,10 @@ const (
 	SendType    = FrameType(10)
 )
 
+// Frame is the dms data unit.
 type Frame []byte
 
+// MakeFrame creates a new Frame.
 func MakeFrame(ft FrameType, chID uint16, pay []byte) Frame {
 	f := make(Frame, headerLen+len(pay))
 	f[0] = byte(ft)
@@ -52,13 +57,21 @@ func MakeFrame(ft FrameType, chID uint16, pay []byte) Frame {
 	return f
 }
 
+// Type returns the frame's type.
 func (f Frame) Type() FrameType { return FrameType(f[0]) }
-func (f Frame) ChID() uint16    { return binary.BigEndian.Uint16(f[1:3]) }
-func (f Frame) PayLen() int     { return int(binary.BigEndian.Uint16(f[3:5])) }
-func (f Frame) Pay() []byte     { return f[headerLen:] }
 
+// TpID returns the frame's tp_id.
+func (f Frame) TpID() uint16 { return binary.BigEndian.Uint16(f[1:3]) }
+
+// PayLen returns the expected payload len.
+func (f Frame) PayLen() int { return int(binary.BigEndian.Uint16(f[3:5])) }
+
+// Pay returns the payload.
+func (f Frame) Pay() []byte { return f[headerLen:] }
+
+// Disassemble splits the frame into fields.
 func (f Frame) Disassemble() (ft FrameType, id uint16, p []byte) {
-	return f.Type(), f.ChID(), f.Pay()
+	return f.Type(), f.TpID(), f.Pay()
 }
 
 func readFrame(r io.Reader) (Frame, error) {
@@ -74,6 +87,10 @@ func readFrame(r io.Reader) (Frame, error) {
 func writeFrame(w io.Writer, f Frame) error {
 	_, err := w.Write(f)
 	return err
+}
+
+func writeCloseFrame(w io.Writer, id uint16, reason byte) error {
+	return writeFrame(w, MakeFrame(CloseType, id, []byte{reason}))
 }
 
 func combinePKs(initPK, respPK cipher.PubKey) []byte {

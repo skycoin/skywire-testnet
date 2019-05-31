@@ -14,6 +14,12 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
+// Errors related to REQUESTs.
+var (
+	ErrRequestRejected    = errors.New("request rejected")
+	ErrRequestCheckFailed = errors.New("request check failed")
+)
+
 // Transport represents a connection from dms.Client to remote dms.Client (via dms.Server intermediary).
 // It implements transport.Transport
 type Transport struct {
@@ -28,6 +34,7 @@ type Transport struct {
 	doneOnce     sync.Once
 }
 
+// NewTransport creates a new dms_tp.
 func NewTransport(conn net.Conn, local, remote cipher.PubKey, id uint16) *Transport {
 	return &Transport{
 		Conn:         conn,
@@ -46,7 +53,7 @@ func (c *Transport) awaitResponse(ctx context.Context) error {
 		case AcceptType:
 			return nil
 		case CloseType:
-			return errors.New("rejected")
+			return ErrRequestRejected
 		default:
 			return errors.New("invalid remote response")
 		}
@@ -57,8 +64,7 @@ func (c *Transport) awaitResponse(ctx context.Context) error {
 	}
 }
 
-func (c *Transport) close() bool {
-	closed := false
+func (c *Transport) close() (closed bool) {
 	c.doneOnce.Do(func() {
 		close(c.doneCh)
 		closed = true
@@ -66,6 +72,7 @@ func (c *Transport) close() bool {
 	return closed
 }
 
+// Handshake performs a tp handshake (before tp is considered valid).
 func (c *Transport) Handshake(ctx context.Context) error {
 	// if channel ID is even, client is initiator.
 	if init := isEven(c.id); init {
@@ -90,6 +97,7 @@ func (c *Transport) Handshake(ctx context.Context) error {
 	return nil
 }
 
+// IsDone returns whether dms_tp is closed.
 func (c *Transport) IsDone() bool {
 	select {
 	case <-c.doneCh:
@@ -99,6 +107,8 @@ func (c *Transport) IsDone() bool {
 	}
 }
 
+// AwaitRead blocks until frame is read.
+// Returns false when read fails (when tp is closed).
 func (c *Transport) AwaitRead(f Frame) bool {
 	select {
 	case c.readCh <- f:
@@ -108,14 +118,17 @@ func (c *Transport) AwaitRead(f Frame) bool {
 	}
 }
 
+// Edges returns the local/remote edges of the transport (dms_client to dms_client).
 func (c *Transport) Edges() [2]cipher.PubKey {
 	return transport.SortPubKeys(c.local, c.remoteClient)
 }
 
+// Type returns the transport type.
 func (c *Transport) Type() string {
 	return Type
 }
 
+// Read implements io.Reader
 func (c *Transport) Read(p []byte) (n int, err error) {
 	c.readMx.Lock()
 	defer c.readMx.Unlock()
@@ -140,6 +153,7 @@ func (c *Transport) Read(p []byte) (n int, err error) {
 	}
 }
 
+// Write implements io.Writer
 func (c *Transport) Write(p []byte) (int, error) {
 	select {
 	case <-c.doneCh:
@@ -154,9 +168,10 @@ func (c *Transport) Write(p []byte) (int, error) {
 	}
 }
 
+// Close closes the dms_tp.
 func (c *Transport) Close() error {
 	if c.close() {
-		_ = writeFrame(c.Conn, MakeFrame(CloseType, c.id, []byte{0}))
+		_ = writeFrame(c.Conn, MakeFrame(CloseType, c.id, []byte{0})) //nolint:errcheck
 		return nil
 	}
 	return io.ErrClosedPipe

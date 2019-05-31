@@ -42,6 +42,7 @@ type ServerConn struct {
 	mx        sync.RWMutex
 }
 
+// NewServerConn creates a new connection from the perspective of a dms_server.
 func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKey) *ServerConn {
 	return &ServerConn{log: log, Conn: conn, remoteClient: remoteClient, nextID: 1}
 }
@@ -88,20 +89,20 @@ func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
 	return id, nil
 }
 
+// PK returns the remote dms_client's public key.
 func (c *ServerConn) PK() cipher.PubKey {
 	return c.remoteClient
 }
 
 type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 
+// Serve handles (and forwards when necessary) incoming frames.
 func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
 	log := c.log.WithField("client", c.remoteClient)
 
 	go func() {
-		select {
-		case <-ctx.Done():
-			c.Conn.Close()
-		}
+		<-ctx.Done()
+		c.Conn.Close()
 	}()
 
 	for {
@@ -160,7 +161,7 @@ func (c *ServerConn) delChan(id uint16, why byte) error {
 	return nil
 }
 
-func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn, byte, bool) {
+func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn, byte, bool) { //nolint:unparam
 	next, ok := c.getNext(id)
 	if !ok {
 		return next, 0, false
@@ -171,7 +172,7 @@ func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn,
 	return next, 0, true
 }
 
-func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id uint16, p []byte) (*NextConn, byte, bool) {
+func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id uint16, p []byte) (*NextConn, byte, bool) { //nolint:unparam
 	initPK, respPK, ok := splitPKs(p)
 	if !ok || initPK != c.PK() {
 		return nil, 0, false
@@ -196,6 +197,7 @@ func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id 
 	return next, 0, true
 }
 
+// Server represents a dms_server.
 type Server struct {
 	log *logging.Logger
 
@@ -211,6 +213,7 @@ type Server struct {
 	wg sync.WaitGroup
 }
 
+// NewServer creates a new dms_server.
 func NewServer(pk cipher.PubKey, sk cipher.SecKey, addr string, dc client.APIClient) *Server {
 	return &Server{
 		log:   logging.MustGetLogger("dms_server"),
@@ -222,6 +225,7 @@ func NewServer(pk cipher.PubKey, sk cipher.SecKey, addr string, dc client.APICli
 	}
 }
 
+// SetLogger set's the logger.
 func (s *Server) SetLogger(log *logging.Logger) {
 	s.log = log
 }
@@ -245,6 +249,7 @@ func (s *Server) getConn(pk cipher.PubKey) (*ServerConn, bool) {
 	return l, ok
 }
 
+// Close closes the dms_server.
 func (s *Server) Close() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -263,6 +268,7 @@ func (s *Server) Close() (err error) {
 	return nil
 }
 
+// ListenAndServe serves the dms_server.
 func (s *Server) ListenAndServe(addr string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -293,7 +299,8 @@ func (s *Server) ListenAndServe(addr string) error {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			_ = conn.Serve(ctx, s.getConn) // TODO: log error.
+			err := conn.Serve(ctx, s.getConn)
+			s.log.Infof("connection with client %s closed: error(%v)", conn.PK(), err)
 			s.delConn(conn.PK())
 		}()
 	}
