@@ -95,9 +95,14 @@ func TestFrameType_String(t *testing.T) {
 			want: "CLOSE",
 		},
 		{
-			name: "Send type",
-			ft:   SendType,
-			want: "SEND",
+			name: "Fwd type",
+			ft:   FwdType,
+			want: "FWD",
+		},
+		{
+			name: "Ack type",
+			ft:   AckType,
+			want: "ACK",
 		},
 		{
 			name: "Empty type",
@@ -190,9 +195,14 @@ func TestFrame_Type(t *testing.T) {
 			want: CloseType,
 		},
 		{
-			name: "Send type",
+			name: "Fwd type",
 			f:    []byte{10},
-			want: SendType,
+			want: FwdType,
+		},
+		{
+			name: "Ack type",
+			f:    []byte{11},
+			want: AckType,
 		},
 		{
 			name: "Unknown type",
@@ -431,6 +441,44 @@ func Test_writeCloseFrame(t *testing.T) {
 	}
 }
 
+func Test_writeFwdFrame(t *testing.T) {
+	type args struct {
+		id  uint16
+		seq AckSeq
+		p   []byte
+	}
+
+	cases := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr error
+	}{
+		{
+			name: "Example 1",
+			args: args{
+				id:  0xABCD,
+				seq: 0xEF01,
+				p:   []byte{0x23, 0x45, 0x67},
+			},
+			want:    []byte{0x0A, 0xAB, 0xCD, 0x00, 0x05, 0xEF, 0x01, 0x23, 0x45, 0x67},
+			wantErr: nil,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &bytes.Buffer{}
+
+			err := writeFwdFrame(w, tc.args.id, tc.args.seq, tc.args.p)
+			assert.Equal(t, tc.wantErr, err)
+
+			got := w.Bytes()
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func Test_combinePKs(t *testing.T) {
 	type args struct {
 		initPK string
@@ -472,6 +520,7 @@ func Test_splitPKs(t *testing.T) {
 	type args struct {
 		s string
 	}
+
 	cases := []struct {
 		name       string
 		args       args
@@ -481,19 +530,20 @@ func Test_splitPKs(t *testing.T) {
 	}{
 		{
 			name:       "OK",
-			args:       args{s: ("024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7")},
+			args:       args{s: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7"},
 			wantInitPK: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
 			wantRespPK: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
 			wantOk:     true,
 		},
 		{
 			name:       "Not OK",
-			args:       args{s: ("024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7")},
+			args:       args{s: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7"},
 			wantInitPK: "000000000000000000000000000000000000000000000000000000000000000000",
 			wantRespPK: "000000000000000000000000000000000000000000000000000000000000000000",
 			wantOk:     false,
 		},
 	}
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			pks, err := hex.DecodeString(tc.args.s)
