@@ -11,9 +11,8 @@ import (
 	"sync"
 
 	"github.com/skycoin/skywire/internal/ioutil"
-	"github.com/skycoin/skywire/pkg/transport"
-
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 // Errors related to REQUESTs.

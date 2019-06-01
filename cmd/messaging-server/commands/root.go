@@ -9,14 +9,13 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/skycoin/skywire/pkg/dms"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/dms"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 

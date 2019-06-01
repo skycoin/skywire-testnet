@@ -8,14 +8,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dms"
-
-	"github.com/skycoin/skywire/pkg/metrics"
-
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/dms"
 	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
+	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"

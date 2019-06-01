@@ -3,7 +3,6 @@ package transport
 import (
 	"math/big"
 	"sync"
-	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -51,16 +50,13 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 			return
 		case tr.readLogChan <- n:
 		}
-
 		return
 	}
-
 	select {
 	case <-tr.doneChan:
 		return
 	case tr.errChan <- err:
 	}
-
 	return
 }
 
@@ -75,16 +71,13 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 			return
 		case tr.writeLogChan <- n:
 		}
-
 		return
 	}
-
 	select {
 	case <-tr.doneChan:
 		return
 	case tr.errChan <- err:
 	}
-
 	return
 }
 
