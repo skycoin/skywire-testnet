@@ -3,15 +3,17 @@ package dms
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"io"
+	"math"
 	"net"
 	"sync"
 
 	"github.com/skycoin/skywire/internal/ioutil"
+	"github.com/skycoin/skywire/pkg/transport"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/transport"
 )
 
 // Errors related to REQUESTs.
@@ -23,44 +25,29 @@ var (
 // Transport represents a connection from dms.Client to remote dms.Client (via dms.Server intermediary).
 // It implements transport.Transport
 type Transport struct {
-	net.Conn     // link with server.
-	id           uint16
-	local        cipher.PubKey
-	remoteClient cipher.PubKey // remote PK
-	readBuf      bytes.Buffer
-	readMx       sync.Mutex
-	readCh       chan Frame    // TODO(evanlinjin): find proper way of closing readCh.
-	doneCh       chan struct{} // stop writing
-	doneOnce     sync.Once
+	net.Conn // link with server.
+
+	id     uint16
+	local  cipher.PubKey
+	remote cipher.PubKey // remote PK
+
+	ackWaiter ackWaiter
+	readBuf   bytes.Buffer
+	readMx    sync.Mutex    // This is for protecting 'readBuf'.
+	readCh    chan Frame    // TODO(evanlinjin): find proper way of closing readCh.
+	doneCh    chan struct{} // stop writing
+	doneOnce  sync.Once
 }
 
 // NewTransport creates a new dms_tp.
 func NewTransport(conn net.Conn, local, remote cipher.PubKey, id uint16) *Transport {
 	return &Transport{
-		Conn:         conn,
-		id:           id,
-		local:        local,
-		remoteClient: remote,
-		readCh:       make(chan Frame, readBufLen),
-		doneCh:       make(chan struct{}),
-	}
-}
-
-func (c *Transport) awaitResponse(ctx context.Context) error {
-	select {
-	case f := <-c.readCh:
-		switch f.Type() {
-		case AcceptType:
-			return nil
-		case CloseType:
-			return ErrRequestRejected
-		default:
-			return errors.New("invalid remote response")
-		}
-	case <-c.doneCh:
-		return errors.New("closed")
-	case <-ctx.Done():
-		return ctx.Err()
+		Conn:   conn,
+		id:     id,
+		local:  local,
+		remote: remote,
+		readCh: make(chan Frame, readChSize),
+		doneCh: make(chan struct{}),
 	}
 }
 
@@ -72,12 +59,26 @@ func (c *Transport) close() (closed bool) {
 	return closed
 }
 
+func (c *Transport) awaitResponse(ctx context.Context) error {
+	select {
+	case f := <-c.readCh:
+		if f.Type() == AcceptType {
+			return nil
+		}
+		return errors.New("invalid remote response")
+	case <-c.doneCh:
+		return ErrRequestRejected
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 // Handshake performs a tp handshake (before tp is considered valid).
 func (c *Transport) Handshake(ctx context.Context) error {
 	// if channel ID is even, client is initiator.
 	if isInitiatorID(c.id) {
 
-		pks := combinePKs(c.local, c.remoteClient)
+		pks := combinePKs(c.local, c.remote)
 		f := MakeFrame(RequestType, c.id, pks)
 		if err := writeFrame(c.Conn, f); err != nil {
 			c.close()
@@ -88,7 +89,7 @@ func (c *Transport) Handshake(ctx context.Context) error {
 			return err
 		}
 	} else {
-		f := MakeFrame(AcceptType, c.id, combinePKs(c.remoteClient, c.local))
+		f := MakeFrame(AcceptType, c.id, combinePKs(c.remote, c.local))
 		if err := writeFrame(c.Conn, f); err != nil {
 			c.close()
 			return err
@@ -107,25 +108,59 @@ func (c *Transport) IsDone() bool {
 	}
 }
 
-// AwaitRead blocks until frame is read.
-// Returns false when read fails (when tp is closed).
-func (c *Transport) AwaitRead(f Frame) bool {
-	select {
-	case c.readCh <- f:
-		return true
-	case <-c.doneCh:
-		return false
+// InjectRead blocks until frame is read.
+// Returns false when read fails (e.g. when tp is closed).
+func (c *Transport) InjectRead(f Frame) bool {
+	ok := c.injectRead(f)
+	if !ok {
+		c.close()
+		close(c.readCh)
 	}
+	return ok
 }
 
-// Edges returns the local/remote edges of the transport (dms_client to dms_client).
-func (c *Transport) Edges() [2]cipher.PubKey {
-	return transport.SortPubKeys(c.local, c.remoteClient)
-}
+func (c *Transport) injectRead(f Frame) bool {
+	push := func() bool {
+		select {
+		case <-c.doneCh:
+			return false
+		case c.readCh <- f:
+			return true
+		default:
+			return false
+		}
+	}
 
-// Type returns the transport type.
-func (c *Transport) Type() string {
-	return Type
+	switch f.Type() {
+	case CloseType:
+		return false
+
+	case AckType:
+		p := f.Pay()
+		if len(p) != 2 {
+			return false
+		}
+		c.ackWaiter.done(AckSeq(binary.BigEndian.Uint16(p)))
+		return true
+
+	case FwdType:
+		p := f.Pay()
+		if len(p) < 2 {
+			return false
+		}
+		if ok := push(); !ok {
+			return false
+		}
+		go func() {
+			if err := writeFrame(c.Conn, MakeFrame(AckType, c.id, p[:2])); err != nil {
+				c.close()
+			}
+		}()
+		return true
+
+	default:
+		return push()
+	}
 }
 
 // Read implements io.Reader
@@ -141,15 +176,10 @@ func (c *Transport) Read(p []byte) (n int, err error) {
 	case <-c.doneCh:
 		return 0, io.ErrClosedPipe
 	case f := <-c.readCh:
-		switch f.Type() {
-		case SendType:
-			return ioutil.BufRead(&c.readBuf, f.Pay(), p)
-		case CloseType:
-			c.close()
-			return 0, io.ErrClosedPipe
-		default:
-			return 0, errors.New("unexpected frame")
+		if f.Type() == FwdType {
+			return ioutil.BufRead(&c.readBuf, f.Pay()[2:], p)
 		}
+		return 0, errors.New("unexpected frame")
 	}
 }
 
@@ -159,12 +189,20 @@ func (c *Transport) Write(p []byte) (int, error) {
 	case <-c.doneCh:
 		return 0, io.ErrClosedPipe
 	default:
-		f := MakeFrame(SendType, c.id, p)
-		if err := writeFrame(c.Conn, f); err != nil {
-			c.close()
+		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
+		defer cancel()
+
+		err := c.ackWaiter.wait(ctx, c.doneCh, func(seq AckSeq) error {
+			if err := writeFwdFrame(c.Conn, c.id, seq, p); err != nil {
+				c.close()
+				return err
+			}
+			return nil
+		})
+		if err != nil {
 			return 0, err
 		}
-		return f.PayLen(), nil
+		return len(p), nil
 	}
 }
 
@@ -175,4 +213,65 @@ func (c *Transport) Close() error {
 		return nil
 	}
 	return io.ErrClosedPipe
+}
+
+// Edges returns the local/remote edges of the transport (dms_client to dms_client).
+func (c *Transport) Edges() [2]cipher.PubKey {
+	return transport.SortPubKeys(c.local, c.remote)
+}
+
+// Type returns the transport type.
+func (c *Transport) Type() string {
+	return Type
+}
+
+//AckSeq is part of the acknowledgement-waiting logic.
+type AckSeq uint16
+
+// Encode encodes the AckSeq to a 2-byte slice.
+func (s AckSeq) Encode() []byte {
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, uint16(s))
+	return b
+}
+
+type ackWaiter struct {
+	nextSeq AckSeq
+	waiters [math.MaxUint16]chan struct{}
+	mx      sync.RWMutex
+}
+
+func (w *ackWaiter) wait(ctx context.Context, done <-chan struct{}, action func(seq AckSeq) error) error {
+	ackCh := make(chan struct{})
+	defer close(ackCh)
+
+	w.mx.Lock()
+	seq := w.nextSeq
+	w.nextSeq++
+	w.waiters[seq] = ackCh
+	w.mx.Unlock()
+
+	if err := action(seq); err != nil {
+		return err
+	}
+
+	select {
+	case <-ackCh:
+		return nil
+	case <-done:
+		return io.ErrClosedPipe
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (w *ackWaiter) done(seq AckSeq) {
+	w.mx.RLock()
+	ackCh := w.waiters[seq]
+	w.mx.RUnlock()
+
+	select {
+	case ackCh <- struct{}{}:
+	default:
+	}
 }

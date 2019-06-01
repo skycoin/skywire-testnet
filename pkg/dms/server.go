@@ -128,7 +128,7 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
 				}
 			}()
 
-		case AcceptType, SendType, CloseType:
+		case AcceptType, FwdType, AckType, CloseType:
 			next, why, ok := c.forwardFrame(ft, id, p)
 			if !ok {
 				// Delete channel (and associations) on failure.

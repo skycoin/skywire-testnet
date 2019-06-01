@@ -3,10 +3,11 @@ package dms
 import (
 	"context"
 	"fmt"
-	"github.com/skycoin/skycoin/src/util/logging"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,9 +37,9 @@ func TestNewServer(t *testing.T) {
 // Data should be sent and delivered successfully via the transport.
 // TODO: fix this.
 func TestNewClient(t *testing.T) {
-	aPK, aSK, _ := cipher.GenerateDeterministicKeyPair([]byte("a"))
-	bPK, bSK, _ := cipher.GenerateDeterministicKeyPair([]byte("b"))
-	sPK, sSK, _ := cipher.GenerateDeterministicKeyPair([]byte("c"))
+	aPK, aSK := cipher.GenerateKeyPair()
+	bPK, bSK := cipher.GenerateKeyPair()
+	sPK, sSK := cipher.GenerateKeyPair()
 	sAddr := ":8080"
 
 	const tpCount = 10
