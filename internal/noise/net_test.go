@@ -3,7 +3,6 @@ package noise
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/rpc"
 	"sync"
