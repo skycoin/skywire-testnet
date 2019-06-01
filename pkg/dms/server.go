@@ -37,14 +37,14 @@ type ServerConn struct {
 	net.Conn
 	remoteClient cipher.PubKey
 
-	nextID    uint16
-	nextLinks [math.MaxUint16]*NextConn
-	mx        sync.RWMutex
+	nextRespID uint16
+	nextLinks  [math.MaxUint16]*NextConn
+	mx         sync.RWMutex
 }
 
 // NewServerConn creates a new connection from the perspective of a dms_server.
 func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKey) *ServerConn {
-	return &ServerConn{log: log, Conn: conn, remoteClient: remoteClient, nextID: 1}
+	return &ServerConn{log: log, Conn: conn, remoteClient: remoteClient, nextRespID: randID(false)}
 }
 
 func (c *ServerConn) delNext(id uint16) {
@@ -71,10 +71,10 @@ func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
 	defer c.mx.Unlock()
 
 	for {
-		if r := c.nextLinks[c.nextID]; r == nil {
+		if r := c.nextLinks[c.nextRespID]; r == nil {
 			break
 		}
-		c.nextID += 2
+		c.nextRespID += 2
 
 		select {
 		case <-ctx.Done():
@@ -83,8 +83,8 @@ func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
 		}
 	}
 
-	id := c.nextID
-	c.nextID = id + 2
+	id := c.nextRespID
+	c.nextRespID = id + 2
 	c.nextLinks[id] = r
 	return id, nil
 }

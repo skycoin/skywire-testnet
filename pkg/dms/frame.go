@@ -18,7 +18,17 @@ const (
 	headerLen  = 5 // fType(1 byte), chID(2 byte), payLen(2 byte)
 )
 
-func isEven(chID uint16) bool { return chID%2 == 0 }
+func isInitiatorID(tpID uint16) bool { return tpID%2 == 0 }
+
+func randID(initiator bool) uint16 {
+	var id uint16
+	for {
+		id = binary.BigEndian.Uint16(cipher.RandByte(2))
+		if initiator && id%2 == 0 || !initiator && id%2 != 0 {
+			return id
+		}
+	}
+}
 
 // FrameType represents the frame type.
 type FrameType byte
