@@ -20,12 +20,10 @@ import (
 // Ensure Server starts and quits with no error.
 func TestNewServer(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
-	sAddr := ":8080"
-
 	dc := client.NewMock()
 
-	s := NewServer(sPK, sSK, sAddr, dc)
-	go s.ListenAndServe(sAddr) //nolint:errcheck
+	s := NewServer(sPK, sSK, "", dc)
+	go s.ListenAndServe("") //nolint:errcheck
 
 	time.Sleep(time.Second)
 
@@ -40,7 +38,7 @@ func TestNewClient(t *testing.T) {
 	aPK, aSK := cipher.GenerateKeyPair()
 	bPK, bSK := cipher.GenerateKeyPair()
 	sPK, sSK := cipher.GenerateKeyPair()
-	sAddr := ":8080"
+	sAddr := ":8081"
 
 	const tpCount = 10
 	const msgCount = 100
@@ -52,11 +50,11 @@ func TestNewClient(t *testing.T) {
 
 	a := NewClient(aPK, aSK, dc)
 	a.SetLogger(logging.MustGetLogger("A"))
-	require.NoError(t, a.InitiateServers(context.Background(), 1))
+	require.NoError(t, a.InitiateServerConnections(context.Background(), 1))
 
 	b := NewClient(bPK, bSK, dc)
 	b.SetLogger(logging.MustGetLogger("B"))
-	require.NoError(t, b.InitiateServers(context.Background(), 1))
+	require.NoError(t, b.InitiateServerConnections(context.Background(), 1))
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)

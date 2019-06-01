@@ -120,7 +120,7 @@ func (c *Transport) InjectRead(f Frame) bool {
 }
 
 func (c *Transport) injectRead(f Frame) bool {
-	push := func() bool {
+	push := func(f Frame) bool {
 		select {
 		case <-c.doneCh:
 			return false
@@ -148,7 +148,7 @@ func (c *Transport) injectRead(f Frame) bool {
 		if len(p) < 2 {
 			return false
 		}
-		if ok := push(); !ok {
+		if ok := push(f); !ok {
 			return false
 		}
 		go func() {
@@ -159,7 +159,7 @@ func (c *Transport) injectRead(f Frame) bool {
 		return true
 
 	default:
-		return push()
+		return push(f)
 	}
 }
 
@@ -175,7 +175,10 @@ func (c *Transport) Read(p []byte) (n int, err error) {
 	select {
 	case <-c.doneCh:
 		return 0, io.ErrClosedPipe
-	case f := <-c.readCh:
+	case f, ok := <-c.readCh:
+		if !ok {
+			return 0, io.ErrClosedPipe
+		}
 		if f.Type() == FwdType {
 			return ioutil.BufRead(&c.readBuf, f.Pay()[2:], p)
 		}

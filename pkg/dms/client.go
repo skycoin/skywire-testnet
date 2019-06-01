@@ -219,6 +219,7 @@ type Client struct {
 	mx    sync.RWMutex
 
 	accept chan *Transport
+	done   chan struct{}
 	once   sync.Once
 }
 
@@ -231,6 +232,7 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client 
 		dc:     dc,
 		conns:  make(map[cipher.PubKey]*ClientConn),
 		accept: make(chan *Transport, acceptChSize),
+		done:   make(chan struct{}),
 	}
 }
 
@@ -239,29 +241,108 @@ func (c *Client) SetLogger(log *logging.Logger) {
 	c.log = log
 }
 
-// TODO: re-connect logic.
-//func (c *Client) setConn(l *ClientConn) {
-//	c.mx.Lock()
-//	c.conns[l.remoteSrv] = l
-//	c.mx.Unlock()
-//}
+func (c *Client) setConn(ctx context.Context, l *ClientConn) {
+	c.mx.Lock()
+	c.conns[l.remoteSrv] = l
+	c.mx.Unlock()
+	if err := c.updateDiscEntry(ctx); err != nil {
+		c.log.WithError(err).Warn("failed to update dms_client entry")
+	}
+}
 
-func (c *Client) delConn(pk cipher.PubKey) {
+func (c *Client) delConn(ctx context.Context, pk cipher.PubKey) {
 	c.mx.Lock()
 	delete(c.conns, pk)
 	c.mx.Unlock()
+	if err := c.updateDiscEntry(ctx); err != nil {
+		c.log.WithError(err).Warn("failed to update dms_client entry")
+	}
 }
 
-// TODO: re-connect logic.
-//func (c *Client) getConn(pk cipher.PubKey) (*ClientConn, bool) {
-//	c.mx.RLock()
-//	l, ok := c.conns[pk]
-//	c.mx.RUnlock()
-//	return l, ok
-//}
+func (c *Client) getConn(pk cipher.PubKey) (*ClientConn, bool) {
+	c.mx.RLock()
+	l, ok := c.conns[pk]
+	c.mx.RUnlock()
+	return l, ok
+}
 
-func (c *Client) newConn(ctx context.Context, srvPK cipher.PubKey, addr string) (*ClientConn, error) {
-	tcpConn, err := net.Dial("tcp", addr)
+func (c *Client) connCount() int {
+	c.mx.RLock()
+	n := len(c.conns)
+	c.mx.RUnlock()
+	return n
+}
+
+// InitiateServerConnections initiates connections with dms_servers.
+func (c *Client) InitiateServerConnections(ctx context.Context, n int) error {
+	if n == 0 {
+		return nil
+	}
+	entries, err := c.findServerEntries(ctx)
+	if err != nil {
+		return err
+	}
+	c.log.Info("found dms_server entries:", entries)
+	if err := c.connectToServers(ctx, entries, n); err != nil {
+		return err
+	}
+	if err := c.updateDiscEntry(ctx); err != nil {
+		return fmt.Errorf("updating dms_client entry failed: %s", err)
+	}
+	return nil
+}
+
+func (c *Client) findServerEntries(ctx context.Context) ([]*client.Entry, error) {
+	for {
+		entries, err := c.dc.AvailableServers(ctx)
+		if err != nil || len(entries) == 0 {
+			select {
+			case <-ctx.Done():
+				return nil, fmt.Errorf("dms_servers are not available: %s", err)
+			default:
+				time.Sleep(time.Second)
+				continue
+			}
+		}
+		return entries, nil
+	}
+}
+
+func (c *Client) connectToServers(ctx context.Context, entries []*client.Entry, min int) error {
+	//c.mx.Lock()
+	//defer c.mx.Unlock()
+
+	for _, entry := range entries {
+		if _, ok := c.getConn(entry.Static); ok {
+			continue
+		}
+		_, err := c.findOrConnectToServer(ctx, entry.Static)
+		if err != nil {
+			c.log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
+			continue
+		}
+		c.log.Infof("Connected to server %s", entry.Static)
+		if c.connCount() >= min {
+			return nil
+		}
+	}
+	return fmt.Errorf("servers are not available: all servers failed")
+}
+
+func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey) (*ClientConn, error) {
+	if conn, ok := c.getConn(srvPK); ok {
+		return conn, nil
+	}
+
+	entry, err := c.dc.Entry(ctx, srvPK)
+	if err != nil {
+		return nil, err
+	}
+	if entry.Server == nil {
+		return nil, errors.New("entry is of client instead of server")
+	}
+
+	tcpConn, err := net.Dial("tcp", entry.Server.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -278,84 +359,27 @@ func (c *Client) newConn(ctx context.Context, srvPK cipher.PubKey, addr string) 
 	if err != nil {
 		return nil, err
 	}
+
 	conn := NewClientConn(c.log, nc, c.pk, srvPK)
+	c.setConn(ctx, conn)
 	go func() {
 		if err := conn.Serve(ctx, c.accept); err != nil {
-			conn.log.WithError(err).WithField("srv_pk", conn.remoteSrv).Warn("link with server closed")
-			if err := c.updateDiscEntry(ctx); err != nil {
-				c.log.WithError(err).Error("failed to update entry after server close.")
+			conn.log.WithError(err).WithField("dms_server", srvPK).Warn("connected with dms_server closed")
+			c.delConn(ctx, srvPK)
+
+			// reconnect logic.
+			t := time.NewTimer(time.Second * 3)
+			select {
+			case <-c.done:
+			case <-ctx.Done():
+			case <-t.C:
+				conn.log.WithField("dms_server", srvPK).Warn("reconnecting to dms_server")
+				_, _ = c.findOrConnectToServer(ctx, srvPK) //nolint:errcheck
 			}
-			c.delConn(conn.remoteSrv)
+			return
 		}
 	}()
 	return conn, nil
-}
-
-// InitiateServers initiates connections with dms_servers.
-func (c *Client) InitiateServers(ctx context.Context, n int) error {
-	if n == 0 {
-		return nil
-	}
-	var entries []*client.Entry
-	var err error
-	for {
-		if entries, err = c.dc.AvailableServers(ctx); err != nil || len(entries) == 0 {
-			select {
-			case <-ctx.Done():
-				return fmt.Errorf("messaging servers are not available: %s", err)
-			default:
-				time.Sleep(time.Second)
-				continue
-			}
-		}
-		break
-	}
-	for _, entry := range entries {
-		if len(c.conns) > n {
-			break
-		}
-		if _, ok := c.conns[entry.Static]; ok {
-			continue
-		}
-		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
-		if err != nil {
-			c.log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
-			continue
-		}
-		c.log.Infof("Connected to server %s", entry.Static)
-		c.conns[conn.remoteSrv] = conn
-	}
-	if len(c.conns) == 0 {
-		return fmt.Errorf("servers are not available: all servers failed")
-	}
-	if err := c.updateDiscEntry(ctx); err != nil {
-		return fmt.Errorf("updating client's discovery entry failed with: %s", err)
-	}
-	return nil
-}
-
-func (c *Client) findConn(ctx context.Context, srvPKs []cipher.PubKey) (*ClientConn, error) {
-	for _, srvPK := range srvPKs {
-		conn, ok := c.conns[srvPK]
-		if !ok {
-			continue
-		}
-		return conn, nil
-	}
-	for _, srvPK := range srvPKs {
-		entry, err := c.dc.Entry(ctx, srvPK)
-		if err != nil {
-			return nil, fmt.Errorf("get server failure: %s", err)
-		}
-		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
-		if err != nil {
-			log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
-			continue
-		}
-		c.conns[conn.remoteSrv] = conn
-		return conn, nil
-	}
-	return nil, ErrNoSrv
 }
 
 func (c *Client) updateDiscEntry(ctx context.Context) error {
@@ -386,6 +410,8 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 			return nil, ErrClientClosed
 		}
 		return tp, nil
+	case <-c.done:
+		return nil, ErrClientClosed
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -393,21 +419,25 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 
 // Dial dials a transport to remote dms_client.
 func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	c.mx.Lock()
-	defer c.mx.Unlock()
-
 	entry, err := c.dc.Entry(ctx, remote)
 	if err != nil {
 		return nil, fmt.Errorf("get entry failure: %s", err)
 	}
+	if entry.Client == nil {
+		return nil, errors.New("entry is of server instead of client")
+	}
 	if len(entry.Client.DelegatedServers) == 0 {
 		return nil, ErrNoSrv
 	}
-	conn, err := c.findConn(ctx, entry.Client.DelegatedServers)
-	if err != nil {
-		return nil, err
+	for _, srvPK := range entry.Client.DelegatedServers {
+		conn, err := c.findOrConnectToServer(ctx, srvPK)
+		if err != nil {
+			c.log.WithError(err).Warn("failed to connect to server")
+			continue
+		}
+		return conn.DialTransport(ctx, remote)
 	}
-	return conn.DialTransport(ctx, remote)
+	return nil, errors.New("failed to find dms_servers for given client pk")
 }
 
 // Local returns the local dms_client's public key.
@@ -431,6 +461,7 @@ func (c *Client) Close() error {
 	}
 	c.conns = make(map[cipher.PubKey]*ClientConn)
 	c.once.Do(func() {
+		close(c.done)
 		close(c.accept)
 	})
 	return nil

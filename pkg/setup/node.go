@@ -80,7 +80,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
 	if sn.srvCount > 0 {
-		if err := sn.messenger.InitiateServers(ctx, sn.srvCount); err != nil {
+		if err := sn.messenger.InitiateServerConnections(ctx, sn.srvCount); err != nil {
 			return fmt.Errorf("messaging: %s", err)
 		}
 		sn.Logger.Info("Connected to messaging servers")
