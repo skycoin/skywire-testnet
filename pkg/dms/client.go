@@ -148,11 +148,11 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) error 
 		if ok {
 			// If tp of tp_id exists, attempt to forward frame to tp.
 			// delete tp on any failure.
-			if !tp.AwaitRead(f) {
-				log.Infof("failed to injest to local_tp: id(%d) dstClient(%s)", id, tp.remoteClient)
+			if !tp.InjectRead(f) {
+				log.Infof("failed to inject to local_tp: id(%d) dstClient(%s)", id, tp.remote)
 				c.delTp(id)
 			}
-			log.Infof("successfully injested to local_tp: id(%d) dstClient(%s)", id, tp.remoteClient)
+			log.Infof("successfully injected to local_tp: id(%d) dstClient(%s)", id, tp.remote)
 			continue
 		}
 
@@ -230,7 +230,7 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client 
 		sk:     sk,
 		dc:     dc,
 		conns:  make(map[cipher.PubKey]*ClientConn),
-		accept: make(chan *Transport, readBufLen),
+		accept: make(chan *Transport, acceptChSize),
 	}
 }
 
@@ -261,7 +261,7 @@ func (c *Client) delConn(pk cipher.PubKey) {
 //}
 
 func (c *Client) newConn(ctx context.Context, srvPK cipher.PubKey, addr string) (*ClientConn, error) {
-	conn, err := net.Dial("tcp", addr)
+	tcpConn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -274,21 +274,21 @@ func (c *Client) newConn(ctx context.Context, srvPK cipher.PubKey, addr string) 
 	if err != nil {
 		return nil, err
 	}
-	nc, err := noise.WrapConn(conn, ns, hsTimeout)
+	nc, err := noise.WrapConn(tcpConn, ns, hsTimeout)
 	if err != nil {
 		return nil, err
 	}
-	l := NewClientConn(c.log, nc, c.pk, srvPK)
+	conn := NewClientConn(c.log, nc, c.pk, srvPK)
 	go func() {
-		if err := l.Serve(ctx, c.accept); err != nil {
-			l.log.WithError(err).WithField("srv_pk", l.remoteSrv).Warn("link with server closed")
+		if err := conn.Serve(ctx, c.accept); err != nil {
+			conn.log.WithError(err).WithField("srv_pk", conn.remoteSrv).Warn("link with server closed")
 			if err := c.updateDiscEntry(ctx); err != nil {
 				c.log.WithError(err).Error("failed to update entry after server close.")
 			}
-			c.delConn(l.remoteSrv)
+			c.delConn(conn.remoteSrv)
 		}
 	}()
-	return l, nil
+	return conn, nil
 }
 
 // InitiateServers initiates connections with dms_servers.

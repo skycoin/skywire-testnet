@@ -13,9 +13,11 @@ const (
 	// Type returns the transport type string.
 	Type = "dms"
 
-	hsTimeout  = time.Second * 10
-	readBufLen = 10
-	headerLen  = 5 // fType(1 byte), chID(2 byte), payLen(2 byte)
+	hsTimeout    = time.Second * 10
+	readTimeout  = time.Second * 10
+	acceptChSize = 1
+	readChSize   = 20
+	headerLen    = 5 // fType(1 byte), chID(2 byte), payLen(2 byte)
 )
 
 func isInitiatorID(tpID uint16) bool { return tpID%2 == 0 }
@@ -38,7 +40,8 @@ func (ft FrameType) String() string {
 		RequestType: "REQUEST",
 		AcceptType:  "ACCEPT",
 		CloseType:   "CLOSE",
-		SendType:    "SEND",
+		FwdType:     "FWD",
+		AckType:     "ACK",
 	}
 	if int(ft) >= len(names) {
 		return fmt.Sprintf("UNKNOWN:%d", ft)
@@ -51,7 +54,8 @@ const (
 	RequestType = FrameType(1)
 	AcceptType  = FrameType(2)
 	CloseType   = FrameType(3)
-	SendType    = FrameType(10)
+	FwdType     = FrameType(10)
+	AckType     = FrameType(11)
 )
 
 // Frame is the dms data unit.
@@ -97,6 +101,10 @@ func readFrame(r io.Reader) (Frame, error) {
 func writeFrame(w io.Writer, f Frame) error {
 	_, err := w.Write(f)
 	return err
+}
+
+func writeFwdFrame(w io.Writer, id uint16, seq AckSeq, p []byte) error {
+	return writeFrame(w, MakeFrame(FwdType, id, append(seq.Encode(), p...)))
 }
 
 func writeCloseFrame(w io.Writer, id uint16, reason byte) error {
