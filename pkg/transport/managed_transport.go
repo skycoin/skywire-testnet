@@ -3,6 +3,7 @@ package transport
 import (
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 )
