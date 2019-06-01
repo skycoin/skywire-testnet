@@ -75,7 +75,7 @@ func (c *Transport) close() (closed bool) {
 // Handshake performs a tp handshake (before tp is considered valid).
 func (c *Transport) Handshake(ctx context.Context) error {
 	// if channel ID is even, client is initiator.
-	if init := isInitiatorID(c.id); init {
+	if isInitiatorID(c.id) {
 
 		pks := combinePKs(c.local, c.remoteClient)
 		f := MakeFrame(RequestType, c.id, pks)
