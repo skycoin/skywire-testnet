@@ -60,7 +60,10 @@ func (c *Transport) close() (closed bool) {
 
 func (c *Transport) awaitResponse(ctx context.Context) error {
 	select {
-	case f := <-c.readCh:
+	case f, ok := <-c.readCh:
+		if !ok {
+			return io.ErrClosedPipe
+		}
 		if f.Type() == AcceptType {
 			return nil
 		}
