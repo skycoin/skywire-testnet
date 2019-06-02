@@ -56,8 +56,19 @@ func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKe
 
 func (c *Transport) close() (closed bool) {
 	c.doneOnce.Do(func() {
-		close(c.doneCh)
 		closed = true
+		close(c.doneCh)
+
+		// Kill all goroutines pushing to `c.readCh` before closing it.
+		// No more goroutines pushing to `c.readCh` should be created once `c.doneCh` is closed.
+		for {
+			select {
+			case <-c.readCh:
+			default:
+				close(c.readCh)
+				return
+			}
+		}
 	})
 	return closed
 }
@@ -122,7 +133,7 @@ func (c *Transport) InjectRead(f Frame) bool {
 	ok := c.injectRead(f)
 	if !ok {
 		c.close()
-		close(c.readCh)
+		//close(c.readCh)
 	}
 	return ok
 }
