@@ -269,23 +269,24 @@ func (s *Server) Close() (err error) {
 }
 
 // ListenAndServe serves the dms_server.
-func (s *Server) ListenAndServe(addr string) error {
+//func (s *Server) ListenAndServe(addr string) error {
+func (s *Server) Serve(l net.Listener) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	lis, err := net.Listen("tcp", addr)
+	/*lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
-	}
+	}*/
 	if err := s.updateDiscEntry(ctx); err != nil {
 		return fmt.Errorf("updating server's discovery entry failed with: %s", err)
 	}
 
-	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, lis.Addr())
-	lis = noise.WrapListener(lis, s.pk, s.sk, false, noise.HandshakeXK)
-	s.lis = lis
+	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, l.Addr())
+	l = noise.WrapListener(l, s.pk, s.sk, false, noise.HandshakeXK)
+	s.lis = l
 	for {
-		rawConn, err := lis.Accept()
+		rawConn, err := l.Accept()
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				continue

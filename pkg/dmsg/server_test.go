@@ -3,6 +3,7 @@ package dmsg
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -22,8 +23,11 @@ func TestNewServer(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
 	dc := client.NewMock()
 
+	l, err := net.Listen("tcp", "")
+	require.NoError(t, err)
+
 	s := NewServer(sPK, sSK, "", dc)
-	go s.ListenAndServe("") //nolint:errcheck
+	go s.Serve(l) //nolint:errcheck
 
 	time.Sleep(time.Second)
 
@@ -34,8 +38,11 @@ func TestServer_ListenAndServe(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
 	dc := client.NewMock()
 
+	l, err := net.Listen("tcp", "")
+	require.NoError(t, err)
+
 	s := NewServer(sPK, sSK, "", dc)
-	go s.ListenAndServe("")
+	go s.Serve(l)
 
 }
 
@@ -54,8 +61,11 @@ func TestNewClient(t *testing.T) {
 
 	dc := client.NewMock()
 
+	l, err := net.Listen("tcp", "")
+	require.NoError(t, err)
+
 	s := NewServer(sPK, sSK, sAddr, dc)
-	go s.ListenAndServe(sAddr) //nolint:errcheck
+	go s.Serve(l) //nolint:errcheck
 
 	a := NewClient(aPK, aSK, dc)
 	a.SetLogger(logging.MustGetLogger("A"))

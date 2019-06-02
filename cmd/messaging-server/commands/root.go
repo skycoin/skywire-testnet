@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"log/syslog"
+	"net"
 	"net/http"
 	"os"
 
@@ -71,9 +72,14 @@ var rootCmd = &cobra.Command{
 			}
 		}()
 
+		l, err := net.Listen("tcp", conf.LocalAddress)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		// Start
 		srv := dmsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, client.NewHTTP(conf.Discovery))
-		log.Fatal(srv.ListenAndServe(conf.LocalAddress))
+		log.Fatal(srv.Serve(l))
 	},
 }
 
