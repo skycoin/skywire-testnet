@@ -6,6 +6,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/skycoin/skywire/internal/ioutil"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
@@ -103,7 +105,7 @@ func writeFrame(w io.Writer, f Frame) error {
 	return err
 }
 
-func writeFwdFrame(w io.Writer, id uint16, seq AckSeq, p []byte) error {
+func writeFwdFrame(w io.Writer, id uint16, seq ioutil.Uint16Seq, p []byte) error {
 	return writeFrame(w, MakeFrame(FwdType, id, append(seq.Encode(), p...)))
 }
 

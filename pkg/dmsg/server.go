@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"sync"
+	"sync/atomic"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -38,7 +39,7 @@ type ServerConn struct {
 	remoteClient cipher.PubKey
 
 	nextRespID uint16
-	nextConns  [math.MaxUint16]*NextConn
+	nextConns  [math.MaxUint16 + 1]*NextConn
 	mx         sync.RWMutex
 }
 
@@ -96,12 +97,23 @@ func (c *ServerConn) PK() cipher.PubKey {
 
 type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 
-// Serve handles (and forwards when necessary) incoming frames.
-func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
-	log := c.log.WithField("client", c.remoteClient)
+var serveCount int64
 
+// Serve handles (and forwards when necessary) incoming frames.
+func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error) {
 	go func() {
 		<-ctx.Done()
+		c.Conn.Close()
+	}()
+
+	log := c.log.WithField("client", c.remoteClient)
+
+	sc := atomic.AddInt64(&serveCount, 1)
+	log.WithField("connCount", sc).Infoln("servingConn")
+
+	defer func() {
+		sc := atomic.AddInt64(&serveCount, -1)
+		log.WithError(err).WithField("connCount", sc).Infoln("closingConn")
 		c.Conn.Close()
 	}()
 
@@ -116,17 +128,14 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
 
 		switch ft {
 		case RequestType:
-			go func() {
-				ctx, cancel := context.WithTimeout(ctx, hsTimeout)
-				defer cancel()
-
-				_, why, ok := c.handleRequest(ctx, getConn, id, p)
-				if !ok {
-					if err := c.delChan(id, why); err != nil {
-						c.Conn.Close()
-					}
+			ctx, cancel := context.WithTimeout(ctx, hsTimeout)
+			_, why, ok := c.handleRequest(ctx, getConn, id, p)
+			cancel()
+			if !ok {
+				if err := c.delChan(id, why); err != nil {
+					return err
 				}
-			}()
+			}
 
 		case AcceptType, FwdType, AckType, CloseType:
 			next, why, ok := c.forwardFrame(ft, id, p)
@@ -307,7 +316,6 @@ func (s *Server) ListenAndServe(addr string) error {
 }
 
 func (s *Server) updateDiscEntry(ctx context.Context) error {
-	s.log.Info("updating server discovery entry...")
 	entry, err := s.dc.Entry(ctx, s.pk)
 	if err != nil {
 		entry = client.NewServerEntry(s.pk, 0, s.addr, 10)
@@ -317,5 +325,6 @@ func (s *Server) updateDiscEntry(ctx context.Context) error {
 		return s.dc.SetEntry(ctx, entry)
 	}
 	entry.Server.Address = s.addr
+	s.log.Infoln("updatingEntry:", entry)
 	return s.dc.UpdateEntry(ctx, s.sk, entry)
 }

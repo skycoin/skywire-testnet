@@ -3,10 +3,8 @@ package dmsg
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"errors"
 	"io"
-	"math"
 	"net"
 	"sync"
 
@@ -33,17 +31,17 @@ type Transport struct {
 	local  cipher.PubKey
 	remote cipher.PubKey // remote PK
 
-	ackWaiter ackWaiter
+	ackWaiter ioutil.Uint16AckWaiter
 	readBuf   bytes.Buffer
 	readMx    sync.Mutex    // This is for protecting 'readBuf'.
-	readCh    chan Frame    // TODO(evanlinjin): find proper way of closing readCh.
+	readCh    chan Frame
 	doneCh    chan struct{} // stop writing
 	doneOnce  sync.Once
 }
 
 // NewTransport creates a new dms_tp.
 func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKey, id uint16) *Transport {
-	return &Transport{
+	tp := &Transport{
 		Conn:   conn,
 		log:    log,
 		id:     id,
@@ -52,6 +50,10 @@ func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKe
 		readCh: make(chan Frame, readChSize),
 		doneCh: make(chan struct{}),
 	}
+	if err := tp.ackWaiter.RandSeq(); err != nil {
+		log.Fatalln("failed to set ack_water seq:", err)
+	}
+	return tp
 }
 
 func (c *Transport) close() (closed bool) {
@@ -75,6 +77,10 @@ func (c *Transport) close() (closed bool) {
 
 func (c *Transport) awaitResponse(ctx context.Context) error {
 	select {
+	case <-c.doneCh:
+		return ErrRequestRejected
+	case <-ctx.Done():
+		return ctx.Err()
 	case f, ok := <-c.readCh:
 		if !ok {
 			return io.ErrClosedPipe
@@ -83,10 +89,6 @@ func (c *Transport) awaitResponse(ctx context.Context) error {
 			return nil
 		}
 		return errors.New("invalid remote response")
-	case <-c.doneCh:
-		return ErrRequestRejected
-	case <-ctx.Done():
-		return ctx.Err()
 	}
 }
 
@@ -133,7 +135,6 @@ func (c *Transport) InjectRead(f Frame) bool {
 	ok := c.injectRead(f)
 	if !ok {
 		c.close()
-		//close(c.readCh)
 	}
 	return ok
 }
@@ -159,7 +160,7 @@ func (c *Transport) injectRead(f Frame) bool {
 		if len(p) != 2 {
 			return false
 		}
-		c.ackWaiter.done(AckSeq(binary.BigEndian.Uint16(p)))
+		c.ackWaiter.Done(ioutil.DecodeUint16Seq(p))
 		return true
 
 	case FwdType:
@@ -214,7 +215,7 @@ func (c *Transport) Write(p []byte) (int, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
 		defer cancel()
 
-		err := c.ackWaiter.wait(ctx, c.doneCh, func(seq AckSeq) error {
+		err := c.ackWaiter.Wait(ctx, c.doneCh, func(seq ioutil.Uint16Seq) error {
 			if err := writeFwdFrame(c.Conn, c.id, seq, p); err != nil {
 				c.close()
 				return err
@@ -245,55 +246,4 @@ func (c *Transport) Edges() [2]cipher.PubKey {
 // Type returns the transport type.
 func (c *Transport) Type() string {
 	return Type
-}
-
-//AckSeq is part of the acknowledgement-waiting logic.
-type AckSeq uint16
-
-// Encode encodes the AckSeq to a 2-byte slice.
-func (s AckSeq) Encode() []byte {
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, uint16(s))
-	return b
-}
-
-type ackWaiter struct {
-	nextSeq AckSeq
-	waiters [math.MaxUint16]chan struct{}
-	mx      sync.RWMutex
-}
-
-func (w *ackWaiter) wait(ctx context.Context, done <-chan struct{}, action func(seq AckSeq) error) error {
-	ackCh := make(chan struct{})
-	defer close(ackCh)
-
-	w.mx.Lock()
-	seq := w.nextSeq
-	w.nextSeq++
-	w.waiters[seq] = ackCh
-	w.mx.Unlock()
-
-	if err := action(seq); err != nil {
-		return err
-	}
-
-	select {
-	case <-ackCh:
-		return nil
-	case <-done:
-		return io.ErrClosedPipe
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-func (w *ackWaiter) done(seq AckSeq) {
-	w.mx.RLock()
-	ackCh := w.waiters[seq]
-	w.mx.RUnlock()
-
-	select {
-	case ackCh <- struct{}{}:
-	default:
-	}
 }
