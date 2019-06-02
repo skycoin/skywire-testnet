@@ -1,8 +1,9 @@
-package dms
+package dmsg
 
 import (
 	"context"
 	"fmt"
+	"golang.org/x/net/nettest"
 	"sync"
 	"testing"
 	"time"
@@ -51,6 +52,7 @@ func TestNewClient(t *testing.T) {
 	a := NewClient(aPK, aSK, dc)
 	a.SetLogger(logging.MustGetLogger("A"))
 	require.NoError(t, a.InitiateServerConnections(context.Background(), 1))
+	nettest.NewLocalListener()
 
 	b := NewClient(bPK, bSK, dc)
 	b.SetLogger(logging.MustGetLogger("B"))

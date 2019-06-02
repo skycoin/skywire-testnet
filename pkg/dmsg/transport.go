@@ -1,4 +1,4 @@
-package dms
+package dmsg
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"math"
 	"net"
 	"sync"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/ioutil"
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -21,10 +23,11 @@ var (
 	ErrRequestCheckFailed = errors.New("request check failed")
 )
 
-// Transport represents a connection from dms.Client to remote dms.Client (via dms.Server intermediary).
+// Transport represents a connection from dmsg.Client to remote dmsg.Client (via dmsg.Server intermediary).
 // It implements transport.Transport
 type Transport struct {
 	net.Conn // link with server.
+	log      *logging.Logger
 
 	id     uint16
 	local  cipher.PubKey
@@ -39,9 +42,10 @@ type Transport struct {
 }
 
 // NewTransport creates a new dms_tp.
-func NewTransport(conn net.Conn, local, remote cipher.PubKey, id uint16) *Transport {
+func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKey, id uint16) *Transport {
 	return &Transport{
 		Conn:   conn,
+		log:    log,
 		id:     id,
 		local:  local,
 		remote: remote,
@@ -79,7 +83,6 @@ func (c *Transport) awaitResponse(ctx context.Context) error {
 func (c *Transport) Handshake(ctx context.Context) error {
 	// if channel ID is even, client is initiator.
 	if isInitiatorID(c.id) {
-
 		pks := combinePKs(c.local, c.remote)
 		f := MakeFrame(RequestType, c.id, pks)
 		if err := writeFrame(c.Conn, f); err != nil {
@@ -91,11 +94,14 @@ func (c *Transport) Handshake(ctx context.Context) error {
 			return err
 		}
 	} else {
+		c.log.Infof("tp_hs responding...")
 		f := MakeFrame(AcceptType, c.id, combinePKs(c.remote, c.local))
 		if err := writeFrame(c.Conn, f); err != nil {
+			c.log.WithError(err).Error("tp_hs responded with error.")
 			c.close()
 			return err
 		}
+		c.log.Infoln("tp_hs responded:", f)
 	}
 	return nil
 }

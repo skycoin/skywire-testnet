@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/skycoin/skywire/pkg/util/pathutil"
-
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/pkg/manager"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
 var (

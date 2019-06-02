@@ -1,4 +1,4 @@
-package dms
+package dmsg
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func (r *NextConn) writeFrame(ft FrameType, p []byte) error {
 	return nil
 }
 
-// ServerConn is a connection between a dms.Server and a dms.Client from a server's perspective.
+// ServerConn is a connection between a dmsg.Server and a dmsg.Client from a server's perspective.
 type ServerConn struct {
 	log *logging.Logger
 
@@ -38,7 +38,7 @@ type ServerConn struct {
 	remoteClient cipher.PubKey
 
 	nextRespID uint16
-	nextLinks  [math.MaxUint16]*NextConn
+	nextConns  [math.MaxUint16]*NextConn
 	mx         sync.RWMutex
 }
 
@@ -49,19 +49,19 @@ func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKe
 
 func (c *ServerConn) delNext(id uint16) {
 	c.mx.Lock()
-	c.nextLinks[id] = nil
+	c.nextConns[id] = nil
 	c.mx.Unlock()
 }
 
 func (c *ServerConn) setNext(id uint16, r *NextConn) {
 	c.mx.Lock()
-	c.nextLinks[id] = r
+	c.nextConns[id] = r
 	c.mx.Unlock()
 }
 
 func (c *ServerConn) getNext(id uint16) (*NextConn, bool) {
 	c.mx.RLock()
-	r := c.nextLinks[id]
+	r := c.nextConns[id]
 	c.mx.RUnlock()
 	return r, r != nil
 }
@@ -71,7 +71,7 @@ func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
 	defer c.mx.Unlock()
 
 	for {
-		if r := c.nextLinks[c.nextRespID]; r == nil {
+		if r := c.nextConns[c.nextRespID]; r == nil {
 			break
 		}
 		c.nextRespID += 2
@@ -85,7 +85,7 @@ func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
 
 	id := c.nextRespID
 	c.nextRespID = id + 2
-	c.nextLinks[id] = r
+	c.nextConns[id] = r
 	return id, nil
 }
 

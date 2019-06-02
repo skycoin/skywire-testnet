@@ -19,7 +19,6 @@ require (
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/prometheus/client_golang v0.9.2
-	github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
 	github.com/sirupsen/logrus v1.4.1
 	github.com/skycoin/skycoin v0.25.1
 	github.com/spf13/cobra v0.0.3

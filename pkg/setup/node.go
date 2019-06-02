@@ -11,7 +11,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/dms"
+	"github.com/skycoin/skywire/pkg/dmsg"
 	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -30,7 +30,7 @@ type Node struct {
 	Logger *logging.Logger
 
 	tm        *transport.Manager
-	messenger *dms.Client
+	messenger *dmsg.Client
 
 	srvCount int
 	metrics  metrics.Recorder
@@ -45,8 +45,8 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := dms.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
-	messenger.SetLogger(logger.PackageLogger("dms"))
+	messenger := dmsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
+	messenger.SetLogger(logger.PackageLogger(dmsg.Type))
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {
@@ -224,7 +224,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 }
 
 func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.Type, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return
@@ -242,7 +242,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, dms.Type, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
@@ -258,7 +258,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 }
 
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dms.Type, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dmsg.Type, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return
