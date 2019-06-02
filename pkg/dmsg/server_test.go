@@ -26,8 +26,10 @@ func TestNewServer(t *testing.T) {
 	l, err := net.Listen("tcp", "")
 	require.NoError(t, err)
 
-	s := NewServer(sPK, sSK, "", dc)
-	go s.Serve(l) //nolint:errcheck
+	s, err := NewServer(sPK, sSK, l, dc)
+	require.NoError(t, err)
+
+	go s.Serve() //nolint:errcheck
 
 	time.Sleep(time.Second)
 
@@ -41,9 +43,10 @@ func TestServer_ListenAndServe(t *testing.T) {
 	l, err := net.Listen("tcp", "")
 	require.NoError(t, err)
 
-	s := NewServer(sPK, sSK, "", dc)
-	go s.Serve(l)
+	s, err := NewServer(sPK, sSK, l, dc)
+	require.NoError(t, err)
 
+	go s.Serve()
 }
 
 // Given two client instances (a & b) and a server instance (s),
@@ -61,11 +64,13 @@ func TestNewClient(t *testing.T) {
 
 	dc := client.NewMock()
 
-	l, err := net.Listen("tcp", "")
+	l, err := net.Listen("tcp", sAddr)
 	require.NoError(t, err)
 
-	s := NewServer(sPK, sSK, sAddr, dc)
-	go s.Serve(l) //nolint:errcheck
+	s, err := NewServer(sPK, sSK, l, dc)
+	require.NoError(t, err)
+
+	go s.Serve() //nolint:errcheck
 
 	a := NewClient(aPK, aSK, dc)
 	a.SetLogger(logging.MustGetLogger("A"))

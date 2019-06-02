@@ -16,6 +16,8 @@ import (
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
+var ErrListenerAlreadyWrappedToNoise = errors.New("listener is already wrapped to *noise.Listener")
+
 // NextConn provides information on the next connection.
 type NextConn struct {
 	l  *ServerConn
@@ -201,10 +203,9 @@ func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id 
 type Server struct {
 	log *logging.Logger
 
-	pk   cipher.PubKey
-	sk   cipher.SecKey
-	addr string
-	dc   client.APIClient
+	pk cipher.PubKey
+	sk cipher.SecKey
+	dc client.APIClient
 
 	lis   net.Listener
 	conns map[cipher.PubKey]*ServerConn
@@ -214,15 +215,19 @@ type Server struct {
 }
 
 // NewServer creates a new dms_server.
-func NewServer(pk cipher.PubKey, sk cipher.SecKey, addr string, dc client.APIClient) *Server {
+func NewServer(pk cipher.PubKey, sk cipher.SecKey, l net.Listener, dc client.APIClient) (*Server, error) {
+	if _, ok := l.(*noise.Listener); ok {
+		return nil, ErrListenerAlreadyWrappedToNoise
+	}
+
 	return &Server{
 		log:   logging.MustGetLogger("dms_server"),
 		pk:    pk,
 		sk:    sk,
-		addr:  addr,
+		lis:   noise.WrapListener(l, pk, sk, false, noise.HandshakeXK),
 		dc:    dc,
 		conns: make(map[cipher.PubKey]*ServerConn),
-	}
+	}, nil
 }
 
 // SetLogger set's the logger.
@@ -269,24 +274,18 @@ func (s *Server) Close() (err error) {
 }
 
 // ListenAndServe serves the dms_server.
-//func (s *Server) ListenAndServe(addr string) error {
-func (s *Server) Serve(l net.Listener) error {
+func (s *Server) Serve() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	/*lis, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}*/
 	if err := s.updateDiscEntry(ctx); err != nil {
 		return fmt.Errorf("updating server's discovery entry failed with: %s", err)
 	}
 
-	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, l.Addr())
-	l = noise.WrapListener(l, s.pk, s.sk, false, noise.HandshakeXK)
-	s.lis = l
+	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, s.lis.Addr())
+
 	for {
-		rawConn, err := l.Accept()
+		rawConn, err := s.lis.Accept()
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				continue
@@ -311,12 +310,12 @@ func (s *Server) updateDiscEntry(ctx context.Context) error {
 	s.log.Info("updating server discovery entry...")
 	entry, err := s.dc.Entry(ctx, s.pk)
 	if err != nil {
-		entry = client.NewServerEntry(s.pk, 0, s.addr, 10)
+		entry = client.NewServerEntry(s.pk, 0, s.lis.Addr().String(), 10)
 		if err := entry.Sign(s.sk); err != nil {
 			return err
 		}
 		return s.dc.SetEntry(ctx, entry)
 	}
-	entry.Server.Address = s.addr
+	entry.Server.Address = s.lis.Addr().String()
 	return s.dc.UpdateEntry(ctx, s.sk, entry)
 }
