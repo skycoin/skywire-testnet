@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dms"
+	"github.com/skycoin/skywire/pkg/dmsg"
 
 	"net/http"
 	"net/http/httptest"
@@ -76,7 +76,7 @@ func TestNodeStartClose(t *testing.T) {
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 	mConf := &messaging.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: client.NewMock()}
-	node.messenger = dms.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
+	node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
 
 	var err error
 

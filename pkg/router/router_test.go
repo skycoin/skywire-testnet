@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dms"
+	"github.com/skycoin/skywire/pkg/dmsg"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -467,8 +467,8 @@ func TestRouterSetupLoop(t *testing.T) {
 	pk2, sk2 := cipher.GenerateKeyPair()
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f1.SetType(dms.Type)
-	f2.SetType(dms.Type)
+	f1.SetType(dmsg.Type)
+	f2.SetType(dmsg.Type)
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
@@ -574,7 +574,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	pk3, _ := cipher.GenerateKeyPair()
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f1.SetType(dms.Type)
+	f1.SetType(dmsg.Type)
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
@@ -668,7 +668,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	pk3, _ := cipher.GenerateKeyPair()
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f1.SetType(dms.Type)
+	f1.SetType(dmsg.Type)
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)

@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/dms"
+	"github.com/skycoin/skywire/pkg/dmsg"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
@@ -72,7 +72,7 @@ var rootCmd = &cobra.Command{
 		}()
 
 		// Start
-		srv := dms.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, client.NewHTTP(conf.Discovery))
+		srv := dmsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, client.NewHTTP(conf.Discovery))
 		log.Fatal(srv.ListenAndServe(conf.LocalAddress))
 	},
 }

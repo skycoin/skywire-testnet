@@ -1,4 +1,4 @@
-package dms
+package dmsg
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/common/log"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/noise"
@@ -25,13 +24,13 @@ var (
 	ErrClientClosed = errors.New("client closed")
 )
 
-// ClientConn represents a connection between a dms.Client and dms.Server from a client's perspective.
+// ClientConn represents a connection between a dmsg.Client and dmsg.Server from a client's perspective.
 type ClientConn struct {
 	log *logging.Logger
 
-	net.Conn                // conn to dms server
+	net.Conn                // conn to dmsg server
 	local     cipher.PubKey // local client's pk
-	remoteSrv cipher.PubKey // dms server's public key
+	remoteSrv cipher.PubKey // dmsg server's public key
 
 	// nextInitID keeps track of unused tp_ids to assign a future locally-initiated tp.
 	// locally-initiated tps use an even tp_id between local and intermediary dms_server.
@@ -83,7 +82,7 @@ func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transp
 
 	id := c.nextInitID
 	c.nextInitID = id + 2
-	ch := NewTransport(c.Conn, c.local, clientPK, id)
+	ch := NewTransport(c.Conn, c.log, c.local, clientPK, id)
 	c.tps[id] = ch
 	return ch, nil
 }
@@ -110,7 +109,7 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Tran
 		return initPK, ErrRequestCheckFailed
 	}
 
-	tp := NewTransport(c.Conn, c.local, initPK, id)
+	tp := NewTransport(c.Conn, c.log, c.local, initPK, id)
 	if err := tp.Handshake(ctx); err != nil {
 		// return err here as response handshake is send via ClientConn and that shouldn't fail.
 		c.Close()
@@ -274,8 +273,8 @@ func (c *Client) connCount() int {
 }
 
 // InitiateServerConnections initiates connections with dms_servers.
-func (c *Client) InitiateServerConnections(ctx context.Context, n int) error {
-	if n == 0 {
+func (c *Client) InitiateServerConnections(ctx context.Context, min int) error {
+	if min == 0 {
 		return nil
 	}
 	entries, err := c.findServerEntries(ctx)
@@ -283,7 +282,7 @@ func (c *Client) InitiateServerConnections(ctx context.Context, n int) error {
 		return err
 	}
 	c.log.Info("found dms_server entries:", entries)
-	if err := c.connectToServers(ctx, entries, n); err != nil {
+	if err := c.findOrConnectToServers(ctx, entries, min); err != nil {
 		return err
 	}
 	if err := c.updateDiscEntry(ctx); err != nil {
@@ -300,6 +299,7 @@ func (c *Client) findServerEntries(ctx context.Context) ([]*client.Entry, error)
 			case <-ctx.Done():
 				return nil, fmt.Errorf("dms_servers are not available: %s", err)
 			default:
+				c.log.WithError(err).Warnf("no dms_servers found: trying again is 1 second...")
 				time.Sleep(time.Second)
 				continue
 			}
@@ -308,25 +308,19 @@ func (c *Client) findServerEntries(ctx context.Context) ([]*client.Entry, error)
 	}
 }
 
-func (c *Client) connectToServers(ctx context.Context, entries []*client.Entry, min int) error {
-	//c.mx.Lock()
-	//defer c.mx.Unlock()
-
+func (c *Client) findOrConnectToServers(ctx context.Context, entries []*client.Entry, min int) error {
 	for _, entry := range entries {
-		if _, ok := c.getConn(entry.Static); ok {
-			continue
-		}
 		_, err := c.findOrConnectToServer(ctx, entry.Static)
 		if err != nil {
-			c.log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
+			c.log.Warnf("findOrConnectToServers: failed to find/connect to server %s: %s", entry.Static, err)
 			continue
 		}
-		c.log.Infof("Connected to server %s", entry.Static)
+		c.log.Infof("findOrConnectToServers: found/connected to server %s", entry.Static)
 		if c.connCount() >= min {
 			return nil
 		}
 	}
-	return fmt.Errorf("servers are not available: all servers failed")
+	return fmt.Errorf("findOrConnectToServers: all servers failed")
 }
 
 func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey) (*ClientConn, error) {
@@ -383,7 +377,7 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 }
 
 func (c *Client) updateDiscEntry(ctx context.Context) error {
-	log.Info("updatingEntry")
+	c.log.Info("updatingEntry")
 	var srvPKs []cipher.PubKey
 	c.mx.RLock()
 	for pk := range c.conns {

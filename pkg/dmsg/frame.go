@@ -1,4 +1,4 @@
-package dms
+package dmsg
 
 import (
 	"encoding/binary"
@@ -11,7 +11,7 @@ import (
 
 const (
 	// Type returns the transport type string.
-	Type = "dms"
+	Type = "dmsg"
 
 	hsTimeout    = time.Second * 10
 	readTimeout  = time.Second * 10
@@ -58,7 +58,7 @@ const (
 	AckType     = FrameType(11)
 )
 
-// Frame is the dms data unit.
+// Frame is the dmsg data unit.
 type Frame []byte
 
 // MakeFrame creates a new Frame.
