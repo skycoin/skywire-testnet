@@ -8,7 +8,6 @@ import (
 	"math"
 	"net"
 	"sync"
-	"sync/atomic"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -97,8 +96,6 @@ func (c *ServerConn) PK() cipher.PubKey {
 
 type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 
-var serveCount int64
-
 // Serve handles (and forwards when necessary) incoming frames.
 func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error) {
 	go func() {
@@ -106,25 +103,21 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 		c.Conn.Close()
 	}()
 
-	log := c.log.WithField("client", c.remoteClient)
-
-	sc := atomic.AddInt64(&serveCount, 1)
-	log.WithField("connCount", sc).Infoln("servingConn")
-
+	log := c.log.WithField("srcClient", c.remoteClient)
 	defer func() {
-		sc := atomic.AddInt64(&serveCount, -1)
-		log.WithError(err).WithField("connCount", sc).Infoln("closingConn")
+		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
 		c.Conn.Close()
 	}()
+	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 
 	for {
 		f, err := readFrame(c.Conn)
 		if err != nil {
-			return fmt.Errorf("failed to read frame: %s", err)
+			return fmt.Errorf("read failed: %s", err)
 		}
+		log = log.WithField("frame", f)
 
 		ft, id, p := f.Disassemble()
-		log.Infof("readFrame: frameType(%v) srcID(%v) pLen(%v)", ft, id, len(p))
 
 		switch ft {
 		case RequestType:
@@ -132,20 +125,24 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 			_, why, ok := c.handleRequest(ctx, getConn, id, p)
 			cancel()
 			if !ok {
+				log.Infoln("FrameRejected: Erroneous request or unresponsive dstClient.")
 				if err := c.delChan(id, why); err != nil {
 					return err
 				}
 			}
+			log.Infoln("FrameForwarded")
 
 		case AcceptType, FwdType, AckType, CloseType:
 			next, why, ok := c.forwardFrame(ft, id, p)
 			if !ok {
+				log.Infoln("FrameRejected: Failed to forward to dstClient.")
 				// Delete channel (and associations) on failure.
 				if err := c.delChan(id, why); err != nil {
 					return err
 				}
 				continue
 			}
+			log.Infoln("FrameForwarded")
 
 			// On success, if Close frame, delete the associations.
 			if ft == CloseType {
@@ -154,10 +151,9 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 			}
 
 		default:
+			log.Infoln("FrameRejected: Unknown frame type.")
 			// Unknown frame type.
-			if err := c.delChan(id, 0); err != nil {
-				return err
-			}
+			return errors.New("unknown frame of type received")
 		}
 	}
 }

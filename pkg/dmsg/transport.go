@@ -33,7 +33,7 @@ type Transport struct {
 
 	ackWaiter ioutil.Uint16AckWaiter
 	readBuf   bytes.Buffer
-	readMx    sync.Mutex    // This is for protecting 'readBuf'.
+	readMx    sync.Mutex // This is for protecting 'readBuf'.
 	readCh    chan Frame
 	doneCh    chan struct{} // stop writing
 	doneOnce  sync.Once

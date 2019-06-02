@@ -126,27 +126,30 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, done <-chan struct{
 
 // Serve handles incoming frames.
 // Remote-initiated tps that are successfully created are pushing into 'accept' and exposed via 'Client.Accept()'.
-func (c *ClientConn) Serve(ctx context.Context, done <-chan struct{}, accept chan<- *Transport) error {
-	log := c.log.WithField("srv", c.remoteSrv)
-	defer log.Warnf("serveLoopClosed")
+func (c *ClientConn) Serve(ctx context.Context, done <-chan struct{}, accept chan<- *Transport) (err error) {
+	log := c.log.WithField("remoteServer", c.remoteSrv)
+	defer func() {
+		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
+	}()
+	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 
 	for {
 		f, err := readFrame(c.Conn)
 		if err != nil {
-			return err
+			return fmt.Errorf("read failed: %s", err)
 		}
-		ft, id, p := f.Disassemble()
-		tp, ok := c.getTp(id)
-		log.Infof("readFrame: frameType(%v) channelID(%v) payloadLen(%v)", ft, id, f.PayLen())
+		log = log.WithField("frame", f)
 
-		if ok {
+		ft, id, p := f.Disassemble()
+
+		if tp, ok := c.getTp(id); ok {
 			// If tp of tp_id exists, attempt to forward frame to tp.
 			// delete tp on any failure.
 			if !tp.InjectRead(f) {
-				log.Infof("failed to inject to local_tp: id(%d) dstClient(%s)", id, tp.remote)
+				log.WithField("remoteClient", tp.remote).Infoln("FrameTrashed")
 				c.delTp(id)
 			}
-			log.Infof("successfully injected to local_tp: id(%d) dstClient(%s)", id, tp.remote)
+			log.WithField("remoteClient", tp.remote).Infoln("FrameInjected")
 			continue
 		}
 
@@ -159,17 +162,17 @@ func (c *ClientConn) Serve(ctx context.Context, done <-chan struct{}, accept cha
 			// Currently this causes issues (probably because we need ACK frames).
 			initPK, err := c.handleRequestFrame(ctx, done, accept, id, p)
 			if err != nil {
-				log.WithError(err).Infof("transportRejected: channelID(%v) client(%s)", id, initPK)
+				log.WithField("remoteClient", initPK).WithError(err).Infoln("FrameRejected")
 				if err == ErrRequestCheckFailed {
 					continue
 				}
 				return err
 			}
-			log.Infof("transportAccepted: channelID(%v) client(%s)", id, initPK)
+			log.WithField("remoteClient", initPK).Infoln("FrameAccepted")
 		case CloseType:
-			log.Infof("closeFrameIgnored: transport untracked locally.")
+			log.Infoln("FrameIgnored")
 		default:
-			log.Infof("unexpectedFrameReceived: transport untracked locally.")
+			log.Infoln("FrameUnexpected")
 			if err := writeCloseFrame(c.Conn, id, 0); err != nil {
 				return err
 			}

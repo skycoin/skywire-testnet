@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"time"
 
 	"github.com/skycoin/skywire/internal/ioutil"
@@ -33,6 +34,11 @@ func randID(initiator bool) uint16 {
 		}
 	}
 }
+
+var serveCount int64
+
+func incrementServeCount() int64 { return atomic.AddInt64(&serveCount, 1) }
+func decrementServeCount() int64 { return atomic.AddInt64(&serveCount, -1) }
 
 // FrameType represents the frame type.
 type FrameType byte
@@ -88,6 +94,16 @@ func (f Frame) Pay() []byte { return f[headerLen:] }
 // Disassemble splits the frame into fields.
 func (f Frame) Disassemble() (ft FrameType, id uint16, p []byte) {
 	return f.Type(), f.TpID(), f.Pay()
+}
+
+// String implements io.Stringer
+func (f Frame) String() string {
+	var p string
+	switch f.Type() {
+	case FwdType, AckType:
+		p = fmt.Sprintf("<seq:%d>", ioutil.DecodeUint16Seq(f.Pay()))
+	}
+	return fmt.Sprintf("<type:%s><id:%d><size:%d>%s", f.Type(), f.TpID(), f.PayLen(), p)
 }
 
 func readFrame(r io.Reader) (Frame, error) {
