@@ -30,6 +30,15 @@ func TestNewServer(t *testing.T) {
 	assert.NoError(t, s.Close())
 }
 
+func TestServer_ListenAndServe(t *testing.T) {
+	sPK, sSK := cipher.GenerateKeyPair()
+	dc := client.NewMock()
+
+	s := NewServer(sPK, sSK, "", dc)
+	go s.ListenAndServe("")
+
+}
+
 // Given two client instances (a & b) and a server instance (s),
 // Client b should be able to dial a transport with client b
 // Data should be sent and delivered successfully via the transport.
