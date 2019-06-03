@@ -1,4 +1,4 @@
-package dms
+package dmsg
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/common/log"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/noise"
@@ -25,29 +24,30 @@ var (
 	ErrClientClosed = errors.New("client closed")
 )
 
-// ClientConn represents a connection between a dms.Client and dms.Server from a client's perspective.
+// ClientConn represents a connection between a dmsg.Client and dmsg.Server from a client's perspective.
 type ClientConn struct {
 	log *logging.Logger
 
-	net.Conn                // conn to dms server
+	net.Conn                // conn to dmsg server
 	local     cipher.PubKey // local client's pk
-	remoteSrv cipher.PubKey // dms server's public key
+	remoteSrv cipher.PubKey // dmsg server's public key
 
 	// nextInitID keeps track of unused tp_ids to assign a future locally-initiated tp.
 	// locally-initiated tps use an even tp_id between local and intermediary dms_server.
 	nextInitID uint16
 
 	// map of transports to remote dms_clients (key: tp_id, val: transport).
-	tps [math.MaxUint16]*Transport
+	tps [math.MaxUint16 + 1]*Transport
 	mx  sync.RWMutex // to protect tps.
 
-	// awaits .Serve() to end before considering properly closed.
 	wg sync.WaitGroup
 }
 
 // NewClientConn creates a new ClientConn.
 func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubKey) *ClientConn {
-	return &ClientConn{log: log, Conn: conn, local: local, remoteSrv: remote, nextInitID: randID(true)}
+	cc := &ClientConn{log: log, Conn: conn, local: local, remoteSrv: remote, nextInitID: randID(true)}
+	cc.wg.Add(1)
+	return cc
 }
 
 func (c *ClientConn) delTp(id uint16) {
@@ -83,7 +83,7 @@ func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transp
 
 	id := c.nextInitID
 	c.nextInitID = id + 2
-	ch := NewTransport(c.Conn, c.local, clientPK, id)
+	ch := NewTransport(c.Conn, c.log, c.local, clientPK, id)
 	c.tps[id] = ch
 	return ch, nil
 }
@@ -110,7 +110,7 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Tran
 		return initPK, ErrRequestCheckFailed
 	}
 
-	tp := NewTransport(c.Conn, c.local, initPK, id)
+	tp := NewTransport(c.Conn, c.log, c.local, initPK, id)
 	if err := tp.Handshake(ctx); err != nil {
 		// return err here as response handshake is send via ClientConn and that shouldn't fail.
 		c.Close()
@@ -119,40 +119,42 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Tran
 	c.setTp(tp)
 
 	select {
-	case accept <- tp:
 	case <-ctx.Done():
 		return initPK, ctx.Err()
+	case accept <- tp:
 	}
 	return initPK, nil
 }
 
 // Serve handles incoming frames.
 // Remote-initiated tps that are successfully created are pushing into 'accept' and exposed via 'Client.Accept()'.
-func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) error {
-
-	c.wg.Add(1)
+func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err error) {
 	defer c.wg.Done()
 
-	log := c.log.WithField("srv", c.remoteSrv)
-	defer log.Warnf("serveLoopClosed")
+	log := c.log.WithField("remoteServer", c.remoteSrv)
+
+	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
+	defer func() {
+		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
+	}()
 
 	for {
 		f, err := readFrame(c.Conn)
 		if err != nil {
-			return err
+			return fmt.Errorf("read failed: %s", err)
 		}
-		ft, id, p := f.Disassemble()
-		tp, ok := c.getTp(id)
-		log.Infof("readFrame: frameType(%v) channelID(%v) payloadLen(%v)", ft, id, f.PayLen())
+		log = log.WithField("received", f)
 
-		if ok {
+		ft, id, p := f.Disassemble()
+
+		if tp, ok := c.getTp(id); ok {
 			// If tp of tp_id exists, attempt to forward frame to tp.
 			// delete tp on any failure.
 			if !tp.InjectRead(f) {
-				log.Infof("failed to inject to local_tp: id(%d) dstClient(%s)", id, tp.remote)
+				log.WithField("remoteClient", tp.remote).Infoln("FrameTrashed")
 				c.delTp(id)
 			}
-			log.Infof("successfully injected to local_tp: id(%d) dstClient(%s)", id, tp.remote)
+			log.WithField("remoteClient", tp.remote).Infoln("FrameInjected")
 			continue
 		}
 
@@ -165,17 +167,17 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) error 
 			// Currently this causes issues (probably because we need ACK frames).
 			initPK, err := c.handleRequestFrame(ctx, accept, id, p)
 			if err != nil {
-				log.WithError(err).Infof("transportRejected: channelID(%v) client(%s)", id, initPK)
+				log.WithField("remoteClient", initPK).WithError(err).Infoln("FrameRejected")
 				if err == ErrRequestCheckFailed {
 					continue
 				}
 				return err
 			}
-			log.Infof("transportAccepted: channelID(%v) client(%s)", id, initPK)
+			log.WithField("remoteClient", initPK).Infoln("FrameAccepted")
 		case CloseType:
-			log.Infof("closeFrameIgnored: transport untracked locally.")
+			log.Infoln("FrameIgnored")
 		default:
-			log.Infof("unexpectedFrameReceived: transport untracked locally.")
+			log.Infoln("FrameUnexpected")
 			if err := writeCloseFrame(c.Conn, id, 0); err != nil {
 				return err
 			}
@@ -219,18 +221,20 @@ type Client struct {
 	mx    sync.RWMutex
 
 	accept chan *Transport
+	done   chan struct{}
 	once   sync.Once
 }
 
 // NewClient creates a new Client.
 func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client {
 	return &Client{
-		log:    logging.MustGetLogger("dms_client"),
+		log:    logging.MustGetLogger("dmsg_client"),
 		pk:     pk,
 		sk:     sk,
 		dc:     dc,
 		conns:  make(map[cipher.PubKey]*ClientConn),
 		accept: make(chan *Transport, acceptChSize),
+		done:   make(chan struct{}),
 	}
 }
 
@@ -239,29 +243,119 @@ func (c *Client) SetLogger(log *logging.Logger) {
 	c.log = log
 }
 
-// TODO: re-connect logic.
-//func (c *Client) setConn(l *ClientConn) {
-//	c.mx.Lock()
-//	c.conns[l.remoteSrv] = l
-//	c.mx.Unlock()
-//}
+func (c *Client) updateDiscEntry(ctx context.Context) error {
+	var srvPKs []cipher.PubKey
+	for pk := range c.conns {
+		srvPKs = append(srvPKs, pk)
+	}
+	entry, err := c.dc.Entry(ctx, c.pk)
+	if err != nil {
+		entry = client.NewClientEntry(c.pk, 0, srvPKs)
+		if err := entry.Sign(c.sk); err != nil {
+			return err
+		}
+		return c.dc.SetEntry(ctx, entry)
+	}
+	entry.Client.DelegatedServers = srvPKs
+	c.log.Infoln("updatingEntry:", entry)
+	return c.dc.UpdateEntry(ctx, c.sk, entry)
+}
 
-func (c *Client) delConn(pk cipher.PubKey) {
+func (c *Client) setConn(ctx context.Context, l *ClientConn) {
 	c.mx.Lock()
-	delete(c.conns, pk)
+	c.conns[l.remoteSrv] = l
+	if err := c.updateDiscEntry(ctx); err != nil {
+		c.log.WithError(err).Warn("updateEntry: failed")
+	}
 	c.mx.Unlock()
 }
 
-// TODO: re-connect logic.
-//func (c *Client) getConn(pk cipher.PubKey) (*ClientConn, bool) {
-//	c.mx.RLock()
-//	l, ok := c.conns[pk]
-//	c.mx.RUnlock()
-//	return l, ok
-//}
+func (c *Client) delConn(ctx context.Context, pk cipher.PubKey) {
+	c.mx.Lock()
+	delete(c.conns, pk)
+	if err := c.updateDiscEntry(ctx); err != nil {
+		c.log.WithError(err).Warn("updateEntry: failed")
+	}
+	c.mx.Unlock()
+}
 
-func (c *Client) newConn(ctx context.Context, srvPK cipher.PubKey, addr string) (*ClientConn, error) {
-	tcpConn, err := net.Dial("tcp", addr)
+func (c *Client) getConn(pk cipher.PubKey) (*ClientConn, bool) {
+	c.mx.RLock()
+	l, ok := c.conns[pk]
+	c.mx.RUnlock()
+	return l, ok
+}
+
+func (c *Client) connCount() int {
+	c.mx.RLock()
+	n := len(c.conns)
+	c.mx.RUnlock()
+	return n
+}
+
+// InitiateServerConnections initiates connections with dms_servers.
+func (c *Client) InitiateServerConnections(ctx context.Context, min int) error {
+	if min == 0 {
+		return nil
+	}
+	entries, err := c.findServerEntries(ctx)
+	if err != nil {
+		return err
+	}
+	c.log.Info("found dms_server entries:", entries)
+	if err := c.findOrConnectToServers(ctx, entries, min); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) findServerEntries(ctx context.Context) ([]*client.Entry, error) {
+	for {
+		entries, err := c.dc.AvailableServers(ctx)
+		if err != nil || len(entries) == 0 {
+			select {
+			case <-ctx.Done():
+				return nil, fmt.Errorf("dms_servers are not available: %s", err)
+			default:
+				retry := time.Second
+				c.log.WithError(err).Warnf("no dms_servers found: trying again in %d second...", retry)
+				time.Sleep(retry)
+				continue
+			}
+		}
+		return entries, nil
+	}
+}
+
+func (c *Client) findOrConnectToServers(ctx context.Context, entries []*client.Entry, min int) error {
+	for _, entry := range entries {
+		_, err := c.findOrConnectToServer(ctx, entry.Static)
+		if err != nil {
+			c.log.Warnf("findOrConnectToServers: failed to find/connect to server %s: %s", entry.Static, err)
+			continue
+		}
+		c.log.Infof("findOrConnectToServers: found/connected to server %s", entry.Static)
+		if c.connCount() >= min {
+			return nil
+		}
+	}
+	return fmt.Errorf("findOrConnectToServers: all servers failed")
+}
+
+func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey) (*ClientConn, error) {
+	if conn, ok := c.getConn(srvPK); ok {
+		return conn, nil
+	}
+
+	entry, err := c.dc.Entry(ctx, srvPK)
+	if err != nil {
+		return nil, err
+	}
+	if entry.Server == nil {
+		return nil, errors.New("entry is of client instead of server")
+	}
+
+	tcpConn, err := net.Dial("tcp", entry.Server.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -278,104 +372,27 @@ func (c *Client) newConn(ctx context.Context, srvPK cipher.PubKey, addr string) 
 	if err != nil {
 		return nil, err
 	}
+
 	conn := NewClientConn(c.log, nc, c.pk, srvPK)
+	c.setConn(ctx, conn)
 	go func() {
 		if err := conn.Serve(ctx, c.accept); err != nil {
-			conn.log.WithError(err).WithField("srv_pk", conn.remoteSrv).Warn("link with server closed")
-			if err := c.updateDiscEntry(ctx); err != nil {
-				c.log.WithError(err).Error("failed to update entry after server close.")
+			conn.log.WithError(err).WithField("dms_server", srvPK).Warn("connected with dms_server closed")
+			c.delConn(ctx, srvPK)
+
+			// reconnect logic.
+			t := time.NewTimer(time.Second * 2)
+			select {
+			case <-c.done:
+			case <-ctx.Done():
+			case <-t.C:
+				conn.log.WithField("remoteServer", srvPK).Warn("Reconnecting")
+				_, _ = c.findOrConnectToServer(ctx, srvPK) //nolint:errcheck
 			}
-			c.delConn(conn.remoteSrv)
+			return
 		}
 	}()
 	return conn, nil
-}
-
-// InitiateServers initiates connections with dms_servers.
-func (c *Client) InitiateServers(ctx context.Context, n int) error {
-	if n == 0 {
-		return nil
-	}
-	var entries []*client.Entry
-	var err error
-	for {
-		if entries, err = c.dc.AvailableServers(ctx); err != nil || len(entries) == 0 {
-			select {
-			case <-ctx.Done():
-				return fmt.Errorf("messaging servers are not available: %s", err)
-			default:
-				time.Sleep(time.Second)
-				continue
-			}
-		}
-		break
-	}
-	for _, entry := range entries {
-		if len(c.conns) > n {
-			break
-		}
-		if _, ok := c.conns[entry.Static]; ok {
-			continue
-		}
-		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
-		if err != nil {
-			c.log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
-			continue
-		}
-		c.log.Infof("Connected to server %s", entry.Static)
-		c.conns[conn.remoteSrv] = conn
-	}
-	if len(c.conns) == 0 {
-		return fmt.Errorf("servers are not available: all servers failed")
-	}
-	if err := c.updateDiscEntry(ctx); err != nil {
-		return fmt.Errorf("updating client's discovery entry failed with: %s", err)
-	}
-	return nil
-}
-
-func (c *Client) findConn(ctx context.Context, srvPKs []cipher.PubKey) (*ClientConn, error) {
-	for _, srvPK := range srvPKs {
-		conn, ok := c.conns[srvPK]
-		if !ok {
-			continue
-		}
-		return conn, nil
-	}
-	for _, srvPK := range srvPKs {
-		entry, err := c.dc.Entry(ctx, srvPK)
-		if err != nil {
-			return nil, fmt.Errorf("get server failure: %s", err)
-		}
-		conn, err := c.newConn(ctx, entry.Static, entry.Server.Address)
-		if err != nil {
-			log.Warnf("Failed to connect to server %s: %s", entry.Static, err)
-			continue
-		}
-		c.conns[conn.remoteSrv] = conn
-		return conn, nil
-	}
-	return nil, ErrNoSrv
-}
-
-func (c *Client) updateDiscEntry(ctx context.Context) error {
-	log.Info("updatingEntry")
-	var srvPKs []cipher.PubKey
-	c.mx.RLock()
-	for pk := range c.conns {
-		srvPKs = append(srvPKs, pk)
-	}
-	c.mx.RUnlock()
-	entry, err := c.dc.Entry(ctx, c.pk)
-	if err != nil {
-		entry = client.NewClientEntry(c.pk, 0, srvPKs)
-		if err := entry.Sign(c.sk); err != nil {
-			return err
-		}
-		return c.dc.SetEntry(ctx, entry)
-	}
-	entry.Client.DelegatedServers = srvPKs
-	return c.dc.UpdateEntry(ctx, c.sk, entry)
 }
 
 // Accept accepts remotely-initiated tps.
@@ -386,6 +403,8 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 			return nil, ErrClientClosed
 		}
 		return tp, nil
+	case <-c.done:
+		return nil, ErrClientClosed
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -393,21 +412,25 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 
 // Dial dials a transport to remote dms_client.
 func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	c.mx.Lock()
-	defer c.mx.Unlock()
-
 	entry, err := c.dc.Entry(ctx, remote)
 	if err != nil {
 		return nil, fmt.Errorf("get entry failure: %s", err)
 	}
+	if entry.Client == nil {
+		return nil, errors.New("entry is of server instead of client")
+	}
 	if len(entry.Client.DelegatedServers) == 0 {
 		return nil, ErrNoSrv
 	}
-	conn, err := c.findConn(ctx, entry.Client.DelegatedServers)
-	if err != nil {
-		return nil, err
+	for _, srvPK := range entry.Client.DelegatedServers {
+		conn, err := c.findOrConnectToServer(ctx, srvPK)
+		if err != nil {
+			c.log.WithError(err).Warn("failed to connect to server")
+			continue
+		}
+		return conn.DialTransport(ctx, remote)
 	}
-	return conn.DialTransport(ctx, remote)
+	return nil, errors.New("failed to find dms_servers for given client pk")
 }
 
 // Local returns the local dms_client's public key.
@@ -423,15 +446,23 @@ func (c *Client) Type() string {
 // Close closes the dms_client and associated connections.
 // TODO(evaninjin): proper error handling.
 func (c *Client) Close() error {
-	c.mx.Lock()
-	defer c.mx.Unlock()
+	c.once.Do(func() {
+		close(c.done)
+		for {
+			select {
+			case <-c.accept:
+			default:
+				close(c.accept)
+				return
+			}
+		}
+	})
 
-	for _, link := range c.conns {
-		_ = link.Close()
+	c.mx.Lock()
+	for _, conn := range c.conns {
+		_ = conn.Close()
 	}
 	c.conns = make(map[cipher.PubKey]*ClientConn)
-	c.once.Do(func() {
-		close(c.accept)
-	})
+	c.mx.Unlock()
 	return nil
 }

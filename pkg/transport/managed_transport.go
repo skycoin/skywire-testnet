@@ -3,6 +3,9 @@ package transport
 import (
 	"math/big"
 	"sync"
+	"time"
+
+	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/google/uuid"
 )
@@ -50,16 +53,13 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 			return
 		case tr.readLogChan <- n:
 		}
-
 		return
 	}
-
 	select {
 	case <-tr.doneChan:
 		return
 	case tr.errChan <- err:
 	}
-
 	return
 }
 
@@ -74,17 +74,30 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 			return
 		case tr.writeLogChan <- n:
 		}
-
 		return
 	}
-
 	select {
 	case <-tr.doneChan:
 		return
 	case tr.errChan <- err:
 	}
-
 	return
+}
+
+// Edges returns the edges of underlying transport.
+func (tr *ManagedTransport) Edges() [2]cipher.PubKey {
+	tr.mu.RLock()
+	edges := tr.Transport.Edges()
+	tr.mu.RUnlock()
+	return edges
+}
+
+// SetDeadline sets the deadline of the underlying transport.
+func (tr *ManagedTransport) SetDeadline(t time.Time) error {
+	tr.mu.RLock()
+	err := tr.Transport.SetDeadline(t)
+	tr.mu.RUnlock()
+	return err
 }
 
 // IsClosing determines whether is closing.
@@ -108,6 +121,6 @@ func (tr *ManagedTransport) Close() (err error) {
 
 func (tr *ManagedTransport) updateTransport(newTr Transport) {
 	tr.mu.Lock()
-	tr.Transport = newTr
+	tr.Transport = newTr // TODO: data race.
 	tr.mu.Unlock()
 }

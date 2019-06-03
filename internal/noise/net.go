@@ -216,12 +216,14 @@ func (ml *Listener) Accept() (net.Conn, error) {
 			Initiator: ml.init,
 		})
 		if err != nil {
-			continue
+			return nil, err
 		}
 		rw := NewReadWriter(conn, ns)
 		if err := rw.Handshake(time.Second * 10); err != nil {
+			log.WithError(err).Warn("accept: noise handshake failed.")
 			continue
 		}
+		log.Infoln("accepted:", rw.RemoteStatic())
 		return &Conn{Conn: conn, ns: rw}, nil
 	}
 }

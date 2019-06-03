@@ -1,4 +1,4 @@
-package dms
+package dmsg
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -30,7 +31,7 @@ func (r *NextConn) writeFrame(ft FrameType, p []byte) error {
 	return nil
 }
 
-// ServerConn is a connection between a dms.Server and a dms.Client from a server's perspective.
+// ServerConn is a connection between a dmsg.Server and a dmsg.Client from a server's perspective.
 type ServerConn struct {
 	log *logging.Logger
 
@@ -38,7 +39,7 @@ type ServerConn struct {
 	remoteClient cipher.PubKey
 
 	nextRespID uint16
-	nextLinks  [math.MaxUint16]*NextConn
+	nextConns  [math.MaxUint16 + 1]*NextConn
 	mx         sync.RWMutex
 }
 
@@ -49,19 +50,19 @@ func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKe
 
 func (c *ServerConn) delNext(id uint16) {
 	c.mx.Lock()
-	c.nextLinks[id] = nil
+	c.nextConns[id] = nil
 	c.mx.Unlock()
 }
 
 func (c *ServerConn) setNext(id uint16, r *NextConn) {
 	c.mx.Lock()
-	c.nextLinks[id] = r
+	c.nextConns[id] = r
 	c.mx.Unlock()
 }
 
 func (c *ServerConn) getNext(id uint16) (*NextConn, bool) {
 	c.mx.RLock()
-	r := c.nextLinks[id]
+	r := c.nextConns[id]
 	c.mx.RUnlock()
 	return r, r != nil
 }
@@ -71,7 +72,7 @@ func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
 	defer c.mx.Unlock()
 
 	for {
-		if r := c.nextLinks[c.nextRespID]; r == nil {
+		if r := c.nextConns[c.nextRespID]; r == nil {
 			break
 		}
 		c.nextRespID += 2
@@ -85,7 +86,7 @@ func (c *ServerConn) addNext(ctx context.Context, r *NextConn) (uint16, error) {
 
 	id := c.nextRespID
 	c.nextRespID = id + 2
-	c.nextLinks[id] = r
+	c.nextConns[id] = r
 	return id, nil
 }
 
@@ -97,46 +98,52 @@ func (c *ServerConn) PK() cipher.PubKey {
 type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 
 // Serve handles (and forwards when necessary) incoming frames.
-func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
-	log := c.log.WithField("client", c.remoteClient)
-
+func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error) {
 	go func() {
 		<-ctx.Done()
 		c.Conn.Close()
 	}()
 
+	log := c.log.WithField("srcClient", c.remoteClient)
+	defer func() {
+		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
+		c.Conn.Close()
+	}()
+	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
+
 	for {
 		f, err := readFrame(c.Conn)
 		if err != nil {
-			return fmt.Errorf("failed to read frame: %s", err)
+			return fmt.Errorf("read failed: %s", err)
 		}
+		log = log.WithField("received", f)
 
 		ft, id, p := f.Disassemble()
-		log.Infof("readFrame: frameType(%v) srcID(%v) pLen(%v)", ft, id, len(p))
 
 		switch ft {
 		case RequestType:
-			go func() {
-				ctx, cancel := context.WithTimeout(ctx, hsTimeout)
-				defer cancel()
-
-				_, why, ok := c.handleRequest(ctx, getConn, id, p)
-				if !ok {
-					if err := c.delChan(id, why); err != nil {
-						c.Conn.Close()
-					}
+			ctx, cancel := context.WithTimeout(ctx, hsTimeout)
+			_, why, ok := c.handleRequest(ctx, getConn, id, p)
+			cancel()
+			if !ok {
+				log.Infoln("FrameRejected: Erroneous request or unresponsive dstClient.")
+				if err := c.delChan(id, why); err != nil {
+					return err
 				}
-			}()
+			}
+			log.Infoln("FrameForwarded")
 
 		case AcceptType, FwdType, AckType, CloseType:
 			next, why, ok := c.forwardFrame(ft, id, p)
 			if !ok {
+				log.Infoln("FrameRejected: Failed to forward to dstClient.")
 				// Delete channel (and associations) on failure.
 				if err := c.delChan(id, why); err != nil {
 					return err
 				}
 				continue
 			}
+			log.Infoln("FrameForwarded")
 
 			// On success, if Close frame, delete the associations.
 			if ft == CloseType {
@@ -145,10 +152,9 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
 			}
 
 		default:
+			log.Infoln("FrameRejected: Unknown frame type.")
 			// Unknown frame type.
-			if err := c.delChan(id, 0); err != nil {
-				return err
-			}
+			return errors.New("unknown frame of type received")
 		}
 	}
 }
@@ -277,7 +283,7 @@ func (s *Server) ListenAndServe(addr string) error {
 	if err != nil {
 		return err
 	}
-	if err := s.updateDiscEntry(ctx); err != nil {
+	if err := s.retryUpdateEntry(ctx, hsTimeout); err != nil {
 		return fmt.Errorf("updating server's discovery entry failed with: %s", err)
 	}
 
@@ -307,7 +313,6 @@ func (s *Server) ListenAndServe(addr string) error {
 }
 
 func (s *Server) updateDiscEntry(ctx context.Context) error {
-	s.log.Info("updating server discovery entry...")
 	entry, err := s.dc.Entry(ctx, s.pk)
 	if err != nil {
 		entry = client.NewServerEntry(s.pk, 0, s.addr, 10)
@@ -317,5 +322,26 @@ func (s *Server) updateDiscEntry(ctx context.Context) error {
 		return s.dc.SetEntry(ctx, entry)
 	}
 	entry.Server.Address = s.addr
+	s.log.Infoln("updatingEntry:", entry)
 	return s.dc.UpdateEntry(ctx, s.sk, entry)
+}
+
+func (s *Server) retryUpdateEntry(ctx context.Context, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	for {
+		if err := s.updateDiscEntry(ctx); err != nil {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				retry := time.Second
+				s.log.WithError(err).Warnf("updateEntry failed: trying again in %d second...", retry)
+				time.Sleep(retry)
+				continue
+			}
+		}
+		return nil
+	}
 }

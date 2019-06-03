@@ -39,7 +39,7 @@ type clientLink struct {
 	chans *chanList
 }
 
-// Config configures Client.
+// Config configures MsgFactory
 type Config struct {
 	PubKey     cipher.PubKey
 	SecKey     cipher.SecKey
