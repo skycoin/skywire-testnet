@@ -240,6 +240,11 @@ func (s *Server) SetLogger(log *logging.Logger) {
 	s.log = log
 }
 
+// Addr returns the server's listening address.
+func (s *Server) Addr() string {
+	return s.lis.Addr().String()
+}
+
 func (s *Server) setConn(l *ServerConn) {
 	s.mx.Lock()
 	s.conns[l.remoteClient] = l
