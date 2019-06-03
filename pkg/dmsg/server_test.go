@@ -3,10 +3,13 @@ package dmsg
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"sync"
 	"testing"
 	"time"
+
+	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -40,13 +43,56 @@ func TestServer_ListenAndServe(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
 	dc := client.NewMock()
 
-	l, err := net.Listen("tcp", "")
+	l, err := nettest.NewLocalListener("tcp")
+	//l, err := net.Listen("tcp", ":8089")
 	require.NoError(t, err)
 
 	s, err := NewServer(sPK, sSK, l, dc)
 	require.NoError(t, err)
 
 	go s.Serve()
+
+	// connect two clients, establish transport, check if there are
+	// two ServerConn's and that both conn's `nextLink` is filled correctly
+	t.Run("test transport establishment", func(t *testing.T) {
+		aPK, aSK := cipher.GenerateKeyPair()
+		bPK, bSK := cipher.GenerateKeyPair()
+
+		a := NewClient(aPK, aSK, dc)
+		a.SetLogger(logging.MustGetLogger("A"))
+		err := a.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		b := NewClient(bPK, bSK, dc)
+		b.SetLogger(logging.MustGetLogger("B"))
+		err = b.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		aDone := make(chan struct{})
+		var aTransport transport.Transport
+		go func() {
+			// avoid ambiguity between this and the outer one
+			var err error
+
+			aTransport, err = a.Accept(context.Background())
+			// check if really fails test
+			require.NoError(t, err)
+			close(aDone)
+		}()
+
+		<-aDone
+
+		bTransport, err := b.Dial(context.Background(), aPK)
+		require.NoError(t, err)
+
+		log.Printf("%v\n", s.conns)
+
+		err = aTransport.Close()
+		require.NoError(t, err)
+
+		err = bTransport.Close()
+		require.NoError(t, err)
+	})
 }
 
 // Given two client instances (a & b) and a server instance (s),

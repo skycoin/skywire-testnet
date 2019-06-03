@@ -84,6 +84,7 @@ golang.org/x/crypto/poly1305
 # golang.org/x/net v0.0.0-20190419010253-1f3472d942ba
 golang.org/x/net/context
 golang.org/x/net/proxy
+golang.org/x/net/nettest
 golang.org/x/net/internal/socks
 # golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
 golang.org/x/sys/unix
