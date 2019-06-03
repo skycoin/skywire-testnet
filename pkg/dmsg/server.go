@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -115,7 +116,7 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 		if err != nil {
 			return fmt.Errorf("read failed: %s", err)
 		}
-		log = log.WithField("frame", f)
+		log = log.WithField("received", f)
 
 		ft, id, p := f.Disassemble()
 
@@ -282,7 +283,7 @@ func (s *Server) ListenAndServe(addr string) error {
 	if err != nil {
 		return err
 	}
-	if err := s.updateDiscEntry(ctx); err != nil {
+	if err := s.retryUpdateEntry(ctx, hsTimeout); err != nil {
 		return fmt.Errorf("updating server's discovery entry failed with: %s", err)
 	}
 
@@ -323,4 +324,24 @@ func (s *Server) updateDiscEntry(ctx context.Context) error {
 	entry.Server.Address = s.addr
 	s.log.Infoln("updatingEntry:", entry)
 	return s.dc.UpdateEntry(ctx, s.sk, entry)
+}
+
+func (s *Server) retryUpdateEntry(ctx context.Context, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	for {
+		if err := s.updateDiscEntry(ctx); err != nil {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				retry := time.Second
+				s.log.WithError(err).Warnf("updateEntry failed: trying again in %d second...", retry)
+				time.Sleep(retry)
+				continue
+			}
+		}
+		return nil
+	}
 }

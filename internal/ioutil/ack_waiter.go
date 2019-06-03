@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
-	"io"
 	"math"
 	"sync"
 )
@@ -45,9 +44,8 @@ func (w *Uint16AckWaiter) RandSeq() error {
 }
 
 // Wait performs the given action, and waits for given seq to be Done.
-func (w *Uint16AckWaiter) Wait(ctx context.Context, done <-chan struct{}, action func(seq Uint16Seq) error) error {
+func (w *Uint16AckWaiter) Wait(ctx context.Context, action func(seq Uint16Seq) error) (err error) {
 	ackCh := make(chan struct{})
-	defer close(ackCh)
 
 	w.mx.Lock()
 	seq := w.nextSeq
@@ -55,28 +53,30 @@ func (w *Uint16AckWaiter) Wait(ctx context.Context, done <-chan struct{}, action
 	w.waiters[seq] = ackCh
 	w.mx.Unlock()
 
-	if err := action(seq); err != nil {
+	if err = action(seq); err != nil {
 		return err
 	}
 
 	select {
 	case <-ackCh:
-		return nil
-	case <-done:
-		return io.ErrClosedPipe
 	case <-ctx.Done():
-		return ctx.Err()
+		err = ctx.Err()
 	}
+
+	w.mx.Lock()
+	close(ackCh)
+	w.waiters[seq] = nil
+	w.mx.Unlock()
+
+	return err
 }
 
 // Done finishes given sequence.
 func (w *Uint16AckWaiter) Done(seq Uint16Seq) {
 	w.mx.RLock()
-	ackCh := w.waiters[seq]
-	w.mx.RUnlock()
-
 	select {
-	case ackCh <- struct{}{}:
+	case w.waiters[seq] <- struct{}{}:
 	default:
 	}
+	w.mx.RUnlock()
 }
