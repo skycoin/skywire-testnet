@@ -143,7 +143,7 @@ func TestMakeFrame(t *testing.T) {
 				chID: 2,
 				pay:  []byte{0x03, 0x04, 0x05},
 			},
-			want: []byte{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
+			want: Frame{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
 		},
 		{
 			name: "Example 2",
@@ -152,7 +152,7 @@ func TestMakeFrame(t *testing.T) {
 				chID: 0xABCD,
 				pay:  []byte{0x10, 0x20, 0x30},
 			},
-			want: []byte{0xFF, 0xAB, 0xCD, 0x00, 0x03, 0x10, 0x20, 0x30},
+			want: Frame{0xFF, 0xAB, 0xCD, 0x00, 0x03, 0x10, 0x20, 0x30},
 		},
 		{
 			name: "Payload length > 65535 is not supported",
@@ -181,32 +181,32 @@ func TestFrame_Type(t *testing.T) {
 	}{
 		{
 			name: "Request type",
-			f:    []byte{1},
+			f:    Frame{1},
 			want: RequestType,
 		},
 		{
 			name: "Accept type",
-			f:    []byte{2},
+			f:    Frame{2},
 			want: AcceptType,
 		},
 		{
 			name: "Close type",
-			f:    []byte{3},
+			f:    Frame{3},
 			want: CloseType,
 		},
 		{
 			name: "Fwd type",
-			f:    []byte{10},
+			f:    Frame{10},
 			want: FwdType,
 		},
 		{
 			name: "Ack type",
-			f:    []byte{11},
+			f:    Frame{11},
 			want: AckType,
 		},
 		{
 			name: "Unknown type",
-			f:    []byte{255},
+			f:    Frame{255},
 			want: FrameType(255),
 		},
 	}
@@ -227,12 +227,12 @@ func TestFrame_TpID(t *testing.T) {
 	}{
 		{
 			name: "Example 1",
-			f:    []byte{0, 0x00, 0x01},
+			f:    Frame{0, 0x00, 0x01},
 			want: 0x01,
 		},
 		{
 			name: "Example 2",
-			f:    []byte{0, 0xAB, 0xCD},
+			f:    Frame{0, 0xAB, 0xCD},
 			want: 0xABCD,
 		},
 	}
@@ -253,12 +253,12 @@ func TestFrame_PayLen(t *testing.T) {
 	}{
 		{
 			name: "Example 1",
-			f:    []byte{0, 0x00, 0x00, 0x00, 0x01},
+			f:    Frame{0, 0x00, 0x00, 0x00, 0x01},
 			want: 0x01,
 		},
 		{
 			name: "Example 2",
-			f:    []byte{0, 0x00, 0x00, 0xAB, 0xCD},
+			f:    Frame{0, 0x00, 0x00, 0xAB, 0xCD},
 			want: 0xABCD,
 		},
 	}
@@ -279,12 +279,12 @@ func TestFrame_Pay(t *testing.T) {
 	}{
 		{
 			name: "Empty payload",
-			f:    []byte{0, 0x00, 0x00, 0x00, 0x00},
+			f:    Frame{0, 0x00, 0x00, 0x00, 0x00},
 			want: []byte{},
 		},
 		{
 			name: "Two-byte payload",
-			f:    []byte{0, 0x00, 0x00, 0x00, 0x01, 0xAB, 0xCD},
+			f:    Frame{0, 0x00, 0x00, 0x00, 0x01, 0xAB, 0xCD},
 			want: []byte{0xAB, 0xCD},
 		},
 	}
@@ -307,14 +307,14 @@ func TestFrame_Disassemble(t *testing.T) {
 	}{
 		{
 			name:   "Example 1",
-			f:      []byte{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
+			f:      Frame{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
 			wantFT: RequestType,
 			wantID: 2,
 			wantP:  []byte{0x03, 0x04, 0x05},
 		},
 		{
 			name:   "Example 2",
-			f:      []byte{0xFF, 0xAB, 0xCD, 0x00, 0x03, 0x10, 0x20, 0x30},
+			f:      Frame{0xFF, 0xAB, 0xCD, 0x00, 0x03, 0x10, 0x20, 0x30},
 			wantFT: 0xFF,
 			wantID: 0xABCD,
 			wantP:  []byte{0x10, 0x20, 0x30},
@@ -346,19 +346,19 @@ func Test_readFrame(t *testing.T) {
 		{
 			name:    "Payload length equals to required",
 			args:    args{r: bytes.NewReader([]byte{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05})},
-			want:    []byte{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
+			want:    Frame{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
 			wantErr: nil,
 		},
 		{
 			name:    "Payload longer than required",
 			args:    args{r: bytes.NewReader(append([]byte{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05}, make([]byte, 10)...))},
-			want:    []byte{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
+			want:    Frame{0x01, 0x00, 0x02, 0x00, 0x03, 0x03, 0x04, 0x05},
 			wantErr: nil,
 		},
 		{
 			name:    "Payload shorter than required",
 			args:    args{r: bytes.NewReader(append([]byte{0x01, 0x00, 0x02, 0x00, 0x03}))},
-			want:    []byte{0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00, 0x00},
+			want:    Frame{0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00, 0x00},
 			wantErr: io.EOF,
 		},
 	}
@@ -386,7 +386,7 @@ func Test_writeFrame(t *testing.T) {
 	}{
 		{
 			name:    "Example 1",
-			args:    args{f: []byte{0xFF, 0xAB, 0xCD, 0x00, 0x03, 0x10, 0x20, 0x30}},
+			args:    args{f: Frame{0xFF, 0xAB, 0xCD, 0x00, 0x03, 0x10, 0x20, 0x30}},
 			want:    []byte{0xFF, 0xAB, 0xCD, 0x00, 0x03, 0x10, 0x20, 0x30},
 			wantErr: nil,
 		},
@@ -494,9 +494,9 @@ func Test_combinePKs(t *testing.T) {
 			name: "Example 1",
 			args: args{
 				initPK: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
-				respPK: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
+				respPK: "031b80cd5773143a39d940dc0710b93dcccc262a85108018a7a95ab9af734f8055",
 			},
-			want: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
+			want: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7031b80cd5773143a39d940dc0710b93dcccc262a85108018a7a95ab9af734f8055",
 		},
 	}
 
@@ -530,9 +530,9 @@ func Test_splitPKs(t *testing.T) {
 	}{
 		{
 			name:       "OK",
-			args:       args{s: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7"},
+			args:       args{s: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7031b80cd5773143a39d940dc0710b93dcccc262a85108018a7a95ab9af734f8055"},
 			wantInitPK: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
-			wantRespPK: "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
+			wantRespPK: "031b80cd5773143a39d940dc0710b93dcccc262a85108018a7a95ab9af734f8055",
 			wantOk:     true,
 		},
 		{
