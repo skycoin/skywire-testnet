@@ -40,7 +40,7 @@ type ServerConn struct {
 	remoteClient cipher.PubKey
 
 	nextRespID uint16
-	nextConns  [math.MaxUint16]*NextConn
+	nextConns  [math.MaxUint16 + 1]*NextConn
 	mx         sync.RWMutex
 }
 
@@ -99,46 +99,52 @@ func (c *ServerConn) PK() cipher.PubKey {
 type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 
 // Serve handles (and forwards when necessary) incoming frames.
-func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
-	log := c.log.WithField("client", c.remoteClient)
-
+func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error) {
 	go func() {
 		<-ctx.Done()
 		c.Conn.Close()
 	}()
 
+	log := c.log.WithField("srcClient", c.remoteClient)
+	defer func() {
+		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
+		c.Conn.Close()
+	}()
+	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
+
 	for {
 		f, err := readFrame(c.Conn)
 		if err != nil {
-			return fmt.Errorf("failed to read frame: %s", err)
+			return fmt.Errorf("read failed: %s", err)
 		}
+		log = log.WithField("frame", f)
 
 		ft, id, p := f.Disassemble()
-		log.Infof("readFrame: frameType(%v) srcID(%v) pLen(%v)", ft, id, len(p))
 
 		switch ft {
 		case RequestType:
-			go func() {
-				ctx, cancel := context.WithTimeout(ctx, hsTimeout)
-				defer cancel()
-
-				_, why, ok := c.handleRequest(ctx, getConn, id, p)
-				if !ok {
-					if err := c.delChan(id, why); err != nil {
-						c.Conn.Close()
-					}
+			ctx, cancel := context.WithTimeout(ctx, hsTimeout)
+			_, why, ok := c.handleRequest(ctx, getConn, id, p)
+			cancel()
+			if !ok {
+				log.Infoln("FrameRejected: Erroneous request or unresponsive dstClient.")
+				if err := c.delChan(id, why); err != nil {
+					return err
 				}
-			}()
+			}
+			log.Infoln("FrameForwarded")
 
 		case AcceptType, FwdType, AckType, CloseType:
 			next, why, ok := c.forwardFrame(ft, id, p)
 			if !ok {
+				log.Infoln("FrameRejected: Failed to forward to dstClient.")
 				// Delete channel (and associations) on failure.
 				if err := c.delChan(id, why); err != nil {
 					return err
 				}
 				continue
 			}
+			log.Infoln("FrameForwarded")
 
 			// On success, if Close frame, delete the associations.
 			if ft == CloseType {
@@ -147,10 +153,9 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) error {
 			}
 
 		default:
+			log.Infoln("FrameRejected: Unknown frame type.")
 			// Unknown frame type.
-			if err := c.delChan(id, 0); err != nil {
-				return err
-			}
+			return errors.New("unknown frame of type received")
 		}
 	}
 }
@@ -307,7 +312,6 @@ func (s *Server) Serve() error {
 }
 
 func (s *Server) updateDiscEntry(ctx context.Context) error {
-	s.log.Info("updating server discovery entry...")
 	entry, err := s.dc.Entry(ctx, s.pk)
 	if err != nil {
 		entry = client.NewServerEntry(s.pk, 0, s.lis.Addr().String(), 10)
@@ -316,6 +320,9 @@ func (s *Server) updateDiscEntry(ctx context.Context) error {
 		}
 		return s.dc.SetEntry(ctx, entry)
 	}
+
 	entry.Server.Address = s.lis.Addr().String()
+	s.log.Infoln("updatingEntry:", entry)
+
 	return s.dc.UpdateEntry(ctx, s.sk, entry)
 }

@@ -4,7 +4,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"time"
+
+	"github.com/skycoin/skywire/internal/ioutil"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )
@@ -31,6 +34,11 @@ func randID(initiator bool) uint16 {
 		}
 	}
 }
+
+var serveCount int64
+
+func incrementServeCount() int64 { return atomic.AddInt64(&serveCount, 1) }
+func decrementServeCount() int64 { return atomic.AddInt64(&serveCount, -1) }
 
 // FrameType represents the frame type.
 type FrameType byte
@@ -88,6 +96,16 @@ func (f Frame) Disassemble() (ft FrameType, id uint16, p []byte) {
 	return f.Type(), f.TpID(), f.Pay()
 }
 
+// String implements io.Stringer
+func (f Frame) String() string {
+	var p string
+	switch f.Type() {
+	case FwdType, AckType:
+		p = fmt.Sprintf("<seq:%d>", ioutil.DecodeUint16Seq(f.Pay()))
+	}
+	return fmt.Sprintf("<type:%s><id:%d><size:%d>%s", f.Type(), f.TpID(), f.PayLen(), p)
+}
+
 func readFrame(r io.Reader) (Frame, error) {
 	f := make(Frame, headerLen)
 	if _, err := io.ReadFull(r, f); err != nil {
@@ -103,7 +121,7 @@ func writeFrame(w io.Writer, f Frame) error {
 	return err
 }
 
-func writeFwdFrame(w io.Writer, id uint16, seq AckSeq, p []byte) error {
+func writeFwdFrame(w io.Writer, id uint16, seq ioutil.Uint16Seq, p []byte) error {
 	return writeFrame(w, MakeFrame(FwdType, id, append(seq.Encode(), p...)))
 }
 
