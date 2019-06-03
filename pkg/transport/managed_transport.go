@@ -84,6 +84,7 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	return
 }
 
+// Edges returns the edges of underlying transport.
 func (tr *ManagedTransport) Edges() [2]cipher.PubKey {
 	tr.mu.RLock()
 	edges := tr.Transport.Edges()
@@ -91,6 +92,7 @@ func (tr *ManagedTransport) Edges() [2]cipher.PubKey {
 	return edges
 }
 
+// SetDeadline sets the deadline of the underlying transport.
 func (tr *ManagedTransport) SetDeadline(t time.Time) error {
 	tr.mu.RLock()
 	err := tr.Transport.SetDeadline(t)
