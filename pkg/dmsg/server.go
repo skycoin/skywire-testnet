@@ -212,6 +212,7 @@ type Server struct {
 	sk cipher.SecKey
 	dc client.APIClient
 
+	addr  string
 	lis   net.Listener
 	conns map[cipher.PubKey]*ServerConn
 	mx    sync.RWMutex
@@ -221,6 +222,8 @@ type Server struct {
 
 // NewServer creates a new dms_server.
 func NewServer(pk cipher.PubKey, sk cipher.SecKey, l net.Listener, dc client.APIClient) (*Server, error) {
+	addr := l.Addr().String()
+
 	if _, ok := l.(*noise.Listener); ok {
 		return nil, ErrListenerAlreadyWrappedToNoise
 	}
@@ -229,6 +232,7 @@ func NewServer(pk cipher.PubKey, sk cipher.SecKey, l net.Listener, dc client.API
 		log:   logging.MustGetLogger("dms_server"),
 		pk:    pk,
 		sk:    sk,
+		addr:  addr,
 		lis:   noise.WrapListener(l, pk, sk, false, noise.HandshakeXK),
 		dc:    dc,
 		conns: make(map[cipher.PubKey]*ServerConn),
@@ -242,7 +246,7 @@ func (s *Server) SetLogger(log *logging.Logger) {
 
 // Addr returns the server's listening address.
 func (s *Server) Addr() string {
-	return s.lis.Addr().String()
+	return s.addr
 }
 
 func (s *Server) setConn(l *ServerConn) {
@@ -319,14 +323,14 @@ func (s *Server) Serve() error {
 func (s *Server) updateDiscEntry(ctx context.Context) error {
 	entry, err := s.dc.Entry(ctx, s.pk)
 	if err != nil {
-		entry = client.NewServerEntry(s.pk, 0, s.lis.Addr().String(), 10)
+		entry = client.NewServerEntry(s.pk, 0, s.Addr(), 10)
 		if err := entry.Sign(s.sk); err != nil {
 			return err
 		}
 		return s.dc.SetEntry(ctx, entry)
 	}
 
-	entry.Server.Address = s.lis.Addr().String()
+	entry.Server.Address = s.Addr()
 	s.log.Infoln("updatingEntry:", entry)
 
 	return s.dc.UpdateEntry(ctx, s.sk, entry)

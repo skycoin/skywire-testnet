@@ -80,10 +80,23 @@ func TestServer_ListenAndServe(t *testing.T) {
 			close(aDone)
 		}()
 
-		<-aDone
-
 		bTransport, err := b.Dial(context.Background(), aPK)
 		require.NoError(t, err)
+
+		<-aDone
+
+		// must be 2 ServerConn's
+		require.Equal(t, 2, len(s.conns))
+
+		// must have ServerConn for A
+		aServerConn, ok := s.conns[aPK]
+		require.Equal(t, true, ok)
+		require.Equal(t, aPK, aServerConn.remoteClient)
+
+		// must have ServerConn for B
+		bServerConn, ok := s.conns[bPK]
+		require.Equal(t, true, ok)
+		require.Equal(t, bPK, bServerConn.remoteClient)
 
 		log.Printf("%v\n", s.conns)
 
@@ -112,6 +125,8 @@ func TestNewClient(t *testing.T) {
 
 	l, err := net.Listen("tcp", sAddr)
 	require.NoError(t, err)
+
+	log.Println(l.Addr().String())
 
 	s, err := NewServer(sPK, sSK, l, dc)
 	require.NoError(t, err)
