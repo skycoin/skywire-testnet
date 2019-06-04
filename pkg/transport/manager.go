@@ -33,9 +33,10 @@ type Manager struct {
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
 
-	doneChan chan struct{}
-	TrChan   chan *ManagedTransport
-	mu       sync.RWMutex
+	doneChan  chan struct{}
+	isClosing int32
+	TrChan    chan *ManagedTransport
+	mu        sync.RWMutex
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
@@ -175,8 +176,10 @@ func (tm *Manager) Serve(ctx context.Context) error {
 			for {
 				select {
 				case <-ctx.Done():
+					tm.Logger.Info("Received ctx.Done()")
 					return
 				case <-tm.doneChan:
+					tm.Logger.Info("Received tm.doneCh")
 					return
 				default:
 					if _, err := tm.acceptTransport(ctx, f); err != nil {
@@ -187,6 +190,7 @@ func (tm *Manager) Serve(ctx context.Context) error {
 						tm.Logger.Warnf("Failed to accept connection: %s", err)
 					}
 				}
+
 			}
 		}(factory)
 	}
@@ -255,6 +259,7 @@ func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 // Close closes opened transports and registered factories.
 func (tm *Manager) Close() error {
 
+	atomic.StoreInt32(&tm.isClosing, 1)
 	close(tm.doneChan)
 
 	tm.Logger.Info("Closing transport manager")
@@ -310,14 +315,12 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
 	mTr := newManagedTransport(entry.ID, tr, entry.Public, false)
+
 	tm.mu.Lock()
 	tm.transports[entry.ID] = mTr
-	select {
-	case <-tm.doneChan:
-	case tm.TrChan <- mTr:
-	default:
-	}
 	tm.mu.Unlock()
+
+	tm.TrChan <- mTr
 
 	go tm.manageTransport(ctx, mTr, factory, remote, public, false)
 
@@ -328,6 +331,10 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	tr, err := factory.Accept(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if atomic.LoadInt32(&tm.isClosing) != 0 {
+		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
 	var handshake settlementHandshake = settlementResponderHandshake
@@ -344,15 +351,12 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
 	mTr := newManagedTransport(entry.ID, tr, entry.Public, true)
-	tm.mu.Lock()
 
+	tm.mu.Lock()
 	tm.transports[entry.ID] = mTr
-	select {
-	case <-tm.doneChan:
-	case tm.TrChan <- mTr:
-	default:
-	}
 	tm.mu.Unlock()
+
+	tm.TrChan <- mTr
 
 	go tm.manageTransport(ctx, mTr, factory, remote, true, true)
 
