@@ -28,14 +28,17 @@ type ManagerConfig struct {
 type Manager struct {
 	Logger *logging.Logger
 
-	config     *ManagerConfig
-	factories  map[string]Factory
+	config *ManagerConfig
+
+	factories map[string]Factory
+	fMx       sync.RWMutex
+
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
+	tpMx       sync.RWMutex
 
 	doneChan chan struct{}
 	TrChan   chan *ManagedTransport
-	mu       sync.RWMutex
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
@@ -66,40 +69,43 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 
 // Factories returns all the factory types contained within the TransportManager.
 func (tm *Manager) Factories() []string {
+	tm.fMx.RLock()
 	fTypes, i := make([]string, len(tm.factories)), 0
 	for _, f := range tm.factories {
 		fTypes[i], i = f.Type(), i+1
 	}
+	tm.fMx.RUnlock()
 	return fTypes
 }
 
 // Transport obtains a Transport via a given Transport ID.
 func (tm *Manager) Transport(id uuid.UUID) *ManagedTransport {
-	tm.mu.RLock()
+	tm.tpMx.RLock()
 	tr := tm.transports[id]
-	tm.mu.RUnlock()
+	tm.tpMx.RUnlock()
 	return tr
 }
 
 // WalkTransports ranges through all transports.
 func (tm *Manager) WalkTransports(walk func(tp *ManagedTransport) bool) {
-	tm.mu.RLock()
+	tm.tpMx.RLock()
 	for _, tp := range tm.transports {
 		if ok := walk(tp); !ok {
 			break
 		}
 	}
-	tm.mu.RUnlock()
+	tm.tpMx.RUnlock()
 }
 
 // reconnectTransports tries to reconnect previously established transports.
 func (tm *Manager) reconnectTransports(ctx context.Context) {
-	tm.mu.RLock()
+	tm.tpMx.RLock()
 	entries := make(map[Entry]struct{})
 	for tmEntry := range tm.entries {
 		entries[tmEntry] = struct{}{}
 	}
-	tm.mu.RUnlock()
+	tm.tpMx.RUnlock()
+
 	for entry := range entries {
 		if tm.Transport(entry.ID) != nil {
 			continue
@@ -168,6 +174,7 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	tm.createDefaultTransports(ctx)
 
 	var wg sync.WaitGroup
+	tm.fMx.RLock()
 	for _, factory := range tm.factories {
 		wg.Add(1)
 		go func(f Factory) {
@@ -190,42 +197,11 @@ func (tm *Manager) Serve(ctx context.Context) error {
 			}
 		}(factory)
 	}
+	tm.fMx.RUnlock()
 
 	tm.Logger.Info("Starting transport manager")
 	wg.Wait()
 	return nil
-}
-
-// MakeTransportID generates uuid.UUID from pair of keys + type + public
-// Generated uuid is:
-// - always the same for a given pair
-// - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
-func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
-	keys := SortPubKeys(keyA, keyB)
-	if public {
-		return uuid.NewSHA1(uuid.UUID{},
-			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
-	}
-	return uuid.NewSHA1(uuid.UUID{},
-		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
-}
-
-// SortPubKeys sorts keys so that least-significant comes first
-func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
-	for i := 0; i < 33; i++ {
-		if keyA[i] != keyB[i] {
-			if keyA[i] < keyB[i] {
-				return [2]cipher.PubKey{keyA, keyB}
-			}
-			return [2]cipher.PubKey{keyB, keyA}
-		}
-	}
-	return [2]cipher.PubKey{keyA, keyB}
-}
-
-// SortEdges sorts edges so that list-significant comes firs
-func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
-	return SortPubKeys(edges[0], edges[1])
 }
 
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
@@ -235,18 +211,18 @@ func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tp
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
 func (tm *Manager) DeleteTransport(id uuid.UUID) error {
-	tm.mu.Lock()
-	tr := tm.transports[id]
+	tm.tpMx.Lock()
+	tp := tm.transports[id]
 	delete(tm.transports, id)
-	tm.mu.Unlock()
+	tm.tpMx.Unlock()
 
 	if _, err := tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: id, IsUp: false}); err != nil {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)
 	}
 
 	tm.Logger.Infof("Unregistered transport %s", id)
-	if tr != nil {
-		return tr.Close()
+	if tp != nil {
+		return tp.Close()
 	}
 
 	return nil
@@ -258,7 +234,7 @@ func (tm *Manager) Close() error {
 	close(tm.doneChan)
 
 	tm.Logger.Info("Closing transport manager")
-	tm.mu.Lock()
+	tm.tpMx.Lock()
 	statuses := make([]*Status, 0)
 	for _, tr := range tm.transports {
 		if !tr.Public {
@@ -268,7 +244,7 @@ func (tm *Manager) Close() error {
 
 		tr.Close()
 	}
-	tm.mu.Unlock()
+	tm.tpMx.Unlock()
 
 	if _, err := tm.config.DiscoveryClient.UpdateStatuses(context.Background(), statuses...); err != nil {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)
@@ -298,8 +274,10 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 }
 
 func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	factory := tm.factories[tpType]
-	if factory == nil {
+	tm.fMx.RLock()
+	factory, ok := tm.factories[tpType]
+	tm.fMx.RUnlock()
+	if !ok {
 		return nil, errors.New("unknown transport type")
 	}
 
@@ -310,14 +288,14 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public, false)
-	tm.mu.Lock()
+	tm.tpMx.Lock()
 	tm.transports[entry.ID] = managedTr
 	select {
 	case <-tm.doneChan:
 	case tm.TrChan <- managedTr:
 	default:
 	}
-	tm.mu.Unlock()
+	tm.tpMx.Unlock()
 
 	go tm.manageTransport(ctx, managedTr, factory, remote, public, false)
 
@@ -332,8 +310,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, err
 	}
 
-	var handshake settlementHandshake = settlementResponderHandshake
-	entry, err := handshake.Do(tm, tr, 30*time.Second)
+	entry, err := settlementResponderHandshake().Do(tm, tr, 30*time.Second)
 	if err != nil {
 		tr.Close()
 		return nil, err
@@ -346,7 +323,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
 	managedTr := newManagedTransport(entry.ID, tr, entry.Public, true)
-	tm.mu.Lock()
+	tm.tpMx.Lock()
 
 	tm.transports[entry.ID] = managedTr
 	select {
@@ -354,7 +331,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	case tm.TrChan <- managedTr:
 	default:
 	}
-	tm.mu.Unlock()
+	tm.tpMx.Unlock()
 
 	go tm.manageTransport(ctx, managedTr, factory, remote, true, true)
 
@@ -364,8 +341,8 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 }
 
 func (tm *Manager) walkEntries(walkFunc func(*Entry) bool) *Entry {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
+	tm.tpMx.Lock()
+	defer tm.tpMx.Unlock()
 
 	for entry := range tm.entries {
 		if walkFunc(&entry) {
@@ -377,9 +354,19 @@ func (tm *Manager) walkEntries(walkFunc func(*Entry) bool) *Entry {
 }
 
 func (tm *Manager) addEntry(entry *Entry) {
-	tm.mu.Lock()
+	tm.tpMx.Lock()
 	tm.entries[*entry] = struct{}{}
-	tm.mu.Unlock()
+	tm.tpMx.Unlock()
+}
+
+func (tm *Manager) addIfNotExist(entry *Entry) (isNew bool) {
+	tm.tpMx.Lock()
+	if _, ok := tm.entries[*entry]; !ok {
+		tm.entries[*entry] = struct{}{}
+		isNew = true
+	}
+	tm.tpMx.Unlock()
+	return isNew
 }
 
 func (tm *Manager) manageTransport(ctx context.Context, managedTr *ManagedTransport, factory Factory, remote cipher.PubKey, public bool, accepted bool) {

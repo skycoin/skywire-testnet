@@ -1,7 +1,9 @@
 package transport
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"testing"
@@ -88,87 +90,106 @@ func Example_newHsMock() {
 	// err2 is nil: true
 }
 
-func Example_validateEntry() {
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, _ := cipher.GenerateKeyPair()
-	pk3, _ := cipher.GenerateKeyPair()
-	tr := NewMockTransport(nil, pk1, pk2)
+//func Example_validateEntry() {
+//	pk1, sk1 := cipher.GenerateKeyPair()
+//	pk2, _ := cipher.GenerateKeyPair()
+//	pk3, _ := cipher.GenerateKeyPair()
+//	tr := NewMockTransport(nil, pk1, pk2)
+//
+//	entryInvalidEdges := &SignedEntry{
+//		Entry: &Entry{Type: "mock",
+//			EdgeKeys: SortPubKeys(pk2, pk3),
+//		}}
+//	if err := validateSignedEntry(entryInvalidEdges, tr, pk1); err != nil {
+//		fmt.Println(err.Error())
+//	}
+//
+//	entry := NewEntry(pk1, pk2, "mock", true)
+//	sEntry, ok := NewSignedEntry(entry, pk1, sk1)
+//	if !ok {
+//		fmt.Println("error creating signed entry")
+//	}
+//	if err := validateSignedEntry(sEntry, tr, pk1); err != nil {
+//		fmt.Println(err.Error())
+//	}
+//
+//	// Output: invalid entry edges
+//}
 
-	entryInvalidEdges := &SignedEntry{
-		Entry: &Entry{Type: "mock",
-			EdgeKeys: SortPubKeys(pk2, pk3),
-		}}
-	if err := validateSignedEntry(entryInvalidEdges, tr, pk1); err != nil {
-		fmt.Println(err.Error())
+func Test_receiveAndVerifyEntry(t *testing.T) {
+	const tpType = "test"
+	var (
+		aPK, aSK = cipher.GenerateKeyPair()
+		bPK, bSK = cipher.GenerateKeyPair()
+		edges    = SortEdges([2]cipher.PubKey{aPK, bPK})
+	)
+	newEntry := func(pub bool) *Entry {
+		return &Entry{
+			ID:       MakeTransportID(aPK, bPK, tpType, pub),
+			EdgeKeys: edges,
+			Type:     tpType,
+			Public:   pub,
+		}
 	}
-
-	entry := NewEntry(pk1, pk2, "mock", true)
-	sEntry, ok := NewSignedEntry(entry, pk1, sk1)
-	if !ok {
-		fmt.Println("error creating signed entry")
+	type Case struct {
+		Expected, Received *Entry
+		CheckPub           bool
+		ShouldPass         bool
 	}
-	if err := validateSignedEntry(sEntry, tr, pk1); err != nil {
-		fmt.Println(err.Error())
+	cases := []Case{
+		// With CheckPub set...
+		{newEntry(true), newEntry(true), true, true},
+		{newEntry(false), newEntry(false), true, true},
+		{newEntry(true), newEntry(false), true, false},
+		{newEntry(false), newEntry(true), true, false},
+
+		// With CheckPub unset...
+		{newEntry(true), newEntry(true), false, true},
+		{newEntry(false), newEntry(false), false, true},
+		{newEntry(true), newEntry(false), false, true},
+		{newEntry(false), newEntry(true), false, true},
 	}
+	t.Run("compareEntries", func(t *testing.T) {
+		for _, c := range cases {
+			err := compareEntries(c.Expected, c.Received, c.CheckPub)
+			if c.ShouldPass {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		}
+	})
+	t.Run("receiveAndVerifyEntry", func(t *testing.T) {
+		for _, c := range cases {
 
-	// Output: invalid entry edges
-}
+			se, ok := NewSignedEntry(c.Received, aPK, aSK)
+			require.True(t, ok)
+			b, err := json.Marshal(se)
+			require.NoError(t, err)
 
-func TestValidateEntry(t *testing.T) {
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
-	pk3, _ := cipher.GenerateKeyPair()
-	tr := NewMockTransport(nil, pk1, pk2)
+			_, err = receiveAndVerifyEntry(bytes.NewReader(b), c.Expected, aPK, c.CheckPub)
+			if c.ShouldPass {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
 
-	entry := &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk2, pk1)}
-	tcs := []struct {
-		sEntry *SignedEntry
-		err    string
-	}{
-		{
-			&SignedEntry{Entry: &Entry{Type: "foo"}},
-			"invalid entry type",
-		},
-		{
-			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk1, pk3)}},
-			"invalid entry edges",
-		},
-		{
-			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk2, pk1)}},
-			"invalid entry signature",
-		},
-		{
-			&SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}},
-			"invalid entry signature",
-		},
-		{
-			func() *SignedEntry {
-				sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
-				_ = sEntry.Sign(pk1, sk2) // nolint
-				_ = sEntry.Sign(pk2, sk1) // nolint
-				return sEntry
-			}(),
-			"Recovered pubkey does not match pubkey",
-		},
-	}
+			se, ok = NewSignedEntry(c.Received, bPK, bSK)
+			require.True(t, ok)
+			b, err = json.Marshal(se)
+			require.NoError(t, err)
 
-	for _, tc := range tcs {
-		t.Run(tc.err, func(t *testing.T) {
-			err := validateSignedEntry(tc.sEntry, tr, pk2)
-			require.Error(t, err)
-			assert.Equal(t, tc.err, err.Error())
-		})
-	}
-
-	sEntry := &SignedEntry{Entry: entry, Signatures: [2]cipher.Sig{}}
-	require.True(t, sEntry.Sign(pk1, sk1))
-	require.True(t, sEntry.Sign(pk2, sk2))
-
-	require.NoError(t, validateSignedEntry(sEntry, tr, pk1))
+			_, err = receiveAndVerifyEntry(bytes.NewReader(b), c.Expected, bPK, c.CheckPub)
+			if c.ShouldPass {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		}
+	})
 }
 
 func TestSettlementHandshake(t *testing.T) {
-
 	mockEnv := newHsMockEnv()
 	t.Run("Create Mock Env", func(t *testing.T) {
 		require.NoError(t, mockEnv.err1)
@@ -178,7 +199,7 @@ func TestSettlementHandshake(t *testing.T) {
 	errCh := make(chan error)
 	var resEntry *Entry
 	go func() {
-		e, err := settlementResponderHandshake(mockEnv.m2, mockEnv.tr2)
+		e, err := settlementResponderHandshake()(mockEnv.m2, mockEnv.tr2)
 		resEntry = e
 		errCh <- err
 	}()
@@ -199,29 +220,26 @@ func TestSettlementHandshake(t *testing.T) {
 
 }
 
-/*
-func TestSettlementHandshakeInvalidSig(t *testing.T) {
-	mockEnv := newHsMockEnv()
-
-	require.NoError(t, mockEnv.err1)
-	require.NoError(t, mockEnv.err2)
-
-	go settlementInitiatorHandshake(true)(mockEnv.m2, mockEnv.tr1) // nolint: errcheck
-	_, err := settlementResponderHandshake(mockEnv.m2, mockEnv.tr2)
-	require.Error(t, err)
-	assert.Equal(t, "Recovered pubkey does not match pubkey", err.Error())
-
-	in, out := net.Pipe()
-	tr1 := NewMockTransport(in, mockEnv.pk1, mockEnv.pk2)
-	tr2 := NewMockTransport(out, mockEnv.pk2, mockEnv.pk1)
-
-	go settlementResponderHandshake(mockEnv.m1, tr2) // nolint: errcheck
-	_, err = settlementInitiatorHandshake(true)(mockEnv.m1, tr1)
-	require.Error(t, err)
-	assert.Equal(t, "Recovered pubkey does not match pubkey", err.Error())
-
-}
-*/
+//func TestSettlementHandshakeInvalidSig(t *testing.T) {
+//	mockEnv := newHsMockEnv()
+//
+//	require.NoError(t, mockEnv.err1)
+//	require.NoError(t, mockEnv.err2)
+//
+//	go settlementInitiatorHandshake(true)(mockEnv.m1, mockEnv.tr1) // nolint: errcheck
+//	_, err := settlementResponderHandshake()(mockEnv.m2, mockEnv.tr2)
+//	require.Error(t, err)
+//	//assert.Equal(t, "Recovered pubkey does not match pubkey", err.Error())
+//
+//	in, out := net.Pipe()
+//	tr1 := NewMockTransport(in, mockEnv.pk1, mockEnv.pk2)
+//	tr2 := NewMockTransport(out, mockEnv.pk2, mockEnv.pk1)
+//
+//	go settlementResponderHandshake()(mockEnv.m1, tr2) // nolint: errcheck
+//	_, err = settlementInitiatorHandshake(true)(mockEnv.m1, tr1)
+//	require.Error(t, err)
+//	//assert.Equal(t, "Recovered pubkey does not match pubkey", err.Error())
+//}
 
 func TestSettlementHandshakePrivate(t *testing.T) {
 	mockEnv := newHsMockEnv()
@@ -232,7 +250,7 @@ func TestSettlementHandshakePrivate(t *testing.T) {
 	errCh := make(chan error)
 	var resEntry *Entry
 	go func() {
-		e, err := settlementResponderHandshake(mockEnv.m2, mockEnv.tr2)
+		e, err := settlementResponderHandshake()(mockEnv.m2, mockEnv.tr2)
 		resEntry = e
 		errCh <- err
 	}()
@@ -246,7 +264,7 @@ func TestSettlementHandshakePrivate(t *testing.T) {
 
 	assert.Equal(t, entry.ID, resEntry.ID)
 	_, err = mockEnv.client.GetTransportByID(context.TODO(), entry.ID)
-	require.Error(t, err)
+	require.NoError(t, err)
 
 }
 
@@ -279,7 +297,7 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 	errCh := make(chan error)
 	var resEntry *Entry
 	go func() {
-		e, err := settlementResponderHandshake(mockEnv.m2, mockEnv.tr2)
+		e, err := settlementResponderHandshake()(mockEnv.m2, mockEnv.tr2)
 		resEntry = e
 		errCh <- err
 	}()
@@ -299,22 +317,22 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 }
 
-func Example_validateSignedEntry() {
-	mockEnv := newHsMockEnv()
-
-	tm, tr := mockEnv.m1, mockEnv.tr1
-	entry := NewEntry(mockEnv.pk1, mockEnv.pk2, "mock", true)
-	sEntry, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
-	if !ok {
-		fmt.Println("error creating signed entry")
-	}
-	if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
-		fmt.Printf("NewSignedEntry: %v", err.Error())
-	}
-
-	fmt.Printf("System is working")
-	// Output: System is working
-}
+//func Example_validateSignedEntry() {
+//	mockEnv := newHsMockEnv()
+//
+//	tm, tr := mockEnv.m1, mockEnv.tr1
+//	entry := NewEntry(mockEnv.pk1, mockEnv.pk2, "mock", true)
+//	sEntry, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
+//	if !ok {
+//		fmt.Println("error creating signed entry")
+//	}
+//	if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
+//		fmt.Printf("NewSignedEntry: %v", err.Error())
+//	}
+//
+//	fmt.Printf("System is working")
+//	// Output: System is working
+//}
 
 func Example_settlementInitiatorHandshake() {
 	mockEnv := newHsMockEnv()
@@ -333,7 +351,7 @@ func Example_settlementInitiatorHandshake() {
 	}()
 
 	go func() {
-		if _, err := respondHandshake(mockEnv.m2, mockEnv.tr2); err != nil {
+		if _, err := respondHandshake()(mockEnv.m2, mockEnv.tr2); err != nil {
 			fmt.Printf("respondHandshake error: %v\n", err.Error())
 			errCh <- err
 		}
