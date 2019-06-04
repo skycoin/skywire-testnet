@@ -98,6 +98,26 @@ func TestServer_ListenAndServe(t *testing.T) {
 		require.Equal(t, true, ok)
 		require.Equal(t, bPK, bServerConn.remoteClient)
 
+		// must have a ClientConn
+		aClientConn, ok := a.conns[sPK]
+		require.Equal(t, true, ok)
+		require.Equal(t, sPK, aClientConn.remoteSrv)
+
+		// must have a ClientConn
+		bClientConn, ok := b.conns[sPK]
+		require.Equal(t, true, ok)
+		require.Equal(t, sPK, bClientConn.remoteSrv)
+
+		// check whether nextConn's contents are as must be
+		bNextConn := bServerConn.nextConns[bClientConn.nextInitID-2]
+		require.NotNil(t, bNextConn)
+		require.Equal(t, bNextConn.id, aServerConn.nextRespID-2)
+
+		// check whether nextConn's contents are as must be
+		aNextConn := aServerConn.nextConns[aServerConn.nextRespID-2]
+		require.NotNil(t, aNextConn)
+		require.Equal(t, aNextConn.id, bClientConn.nextInitID-2)
+
 		log.Printf("%v\n", s.conns)
 
 		err = aTransport.Close()
@@ -105,6 +125,18 @@ func TestServer_ListenAndServe(t *testing.T) {
 
 		err = bTransport.Close()
 		require.NoError(t, err)
+
+		err = a.Close()
+		require.NoError(t, err)
+
+		err = b.Close()
+		require.NoError(t, err)
+
+		time.Sleep(3 * time.Second)
+
+		require.Equal(t, 0, len(s.conns))
+		require.Equal(t, 0, len(a.conns))
+		require.Equal(t, 0, len(b.conns))
 	})
 }
 
