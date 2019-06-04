@@ -51,7 +51,7 @@ func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKe
 		doneCh: make(chan struct{}),
 	}
 	if err := tp.ackWaiter.RandSeq(); err != nil {
-		log.Fatalln("failed to set ack_water seq:", err)
+		log.Fatalln("failed to set ack_waiter seq:", err)
 	}
 	return tp
 }
@@ -107,14 +107,13 @@ func (c *Transport) Handshake(ctx context.Context) error {
 			return err
 		}
 	} else {
-		c.log.Infof("tp_hs responding...")
 		f := MakeFrame(AcceptType, c.id, combinePKs(c.remote, c.local))
 		if err := writeFrame(c.Conn, f); err != nil {
-			c.log.WithError(err).Error("tp_hs responded with error.")
+			c.log.WithError(err).Error("HandshakeFailed")
 			c.close()
 			return err
 		}
-		c.log.Infoln("tp_hs responded:", f)
+		c.log.WithField("sent", f).Infoln("HandshakeCompleted")
 	}
 	return nil
 }
@@ -213,9 +212,14 @@ func (c *Transport) Write(p []byte) (int, error) {
 		return 0, io.ErrClosedPipe
 	default:
 		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
-		defer cancel()
-
-		err := c.ackWaiter.Wait(ctx, c.doneCh, func(seq ioutil.Uint16Seq) error {
+		go func() {
+			select {
+			case <-ctx.Done():
+			case <-c.doneCh:
+				cancel()
+			}
+		}()
+		err := c.ackWaiter.Wait(ctx, func(seq ioutil.Uint16Seq) error {
 			if err := writeFwdFrame(c.Conn, c.id, seq, p); err != nil {
 				c.close()
 				return err
@@ -223,6 +227,7 @@ func (c *Transport) Write(p []byte) (int, error) {
 			return nil
 		})
 		if err != nil {
+			cancel()
 			return 0, err
 		}
 		return len(p), nil
