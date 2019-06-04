@@ -309,21 +309,19 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	}
 
 	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public, false)
+	mTr := newManagedTransport(entry.ID, tr, entry.Public, false)
 	tm.mu.Lock()
-	tm.transports[entry.ID] = managedTr
+	tm.transports[entry.ID] = mTr
 	select {
 	case <-tm.doneChan:
-	case tm.TrChan <- managedTr:
+	case tm.TrChan <- mTr:
 	default:
 	}
 	tm.mu.Unlock()
 
-	go tm.manageTransport(ctx, managedTr, factory, remote, public, false)
+	go tm.manageTransport(ctx, mTr, factory, remote, public, false)
 
-	go tm.manageTransportLogs(managedTr)
-
-	return managedTr, nil
+	return mTr, nil
 }
 
 func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*ManagedTransport, error) {
@@ -345,22 +343,20 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	}
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
-	managedTr := newManagedTransport(entry.ID, tr, entry.Public, true)
+	mTr := newManagedTransport(entry.ID, tr, entry.Public, true)
 	tm.mu.Lock()
 
-	tm.transports[entry.ID] = managedTr
+	tm.transports[entry.ID] = mTr
 	select {
 	case <-tm.doneChan:
-	case tm.TrChan <- managedTr:
+	case tm.TrChan <- mTr:
 	default:
 	}
 	tm.mu.Unlock()
 
-	go tm.manageTransport(ctx, managedTr, factory, remote, true, true)
+	go tm.manageTransport(ctx, mTr, factory, remote, true, true)
 
-	go tm.manageTransportLogs(managedTr)
-
-	return managedTr, nil
+	return mTr, nil
 }
 
 func (tm *Manager) walkEntries(walkFunc func(*Entry) bool) *Entry {
@@ -382,49 +378,44 @@ func (tm *Manager) addEntry(entry *Entry) {
 	tm.mu.Unlock()
 }
 
-func (tm *Manager) manageTransport(ctx context.Context, managedTr *ManagedTransport, factory Factory, remote cipher.PubKey, public bool, accepted bool) {
-	select {
-	case <-managedTr.doneChan:
-		tm.Logger.Infof("Transport %s closed", managedTr.ID)
-		return
-	case err := <-managedTr.errChan:
-		if atomic.LoadInt32(&managedTr.isClosing) == 0 {
-			tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", managedTr.ID, err)
-			if accepted {
-				if err := tm.DeleteTransport(managedTr.ID); err != nil {
-					tm.Logger.Warnf("Failed to delete accepted transport: %s", err)
-				}
-			} else {
-				tr, _, err := tm.dialTransport(ctx, factory, remote, public)
-				if err != nil {
-					tm.Logger.Infof("Failed to re-dial Transport %s: %s", managedTr.ID, err)
-					if err := tm.DeleteTransport(managedTr.ID); err != nil {
-						tm.Logger.Warnf("Failed to delete re-dialled transport: %s", err)
-					}
-				} else {
-					managedTr.updateTransport(tr)
-				}
-			}
-		} else {
-			tm.Logger.Infof("Transport %s is already closing. Skipped error: %s", managedTr.ID, err)
-		}
-
-	}
-}
-
-func (tm *Manager) manageTransportLogs(tr *ManagedTransport) {
+func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, factory Factory, remote cipher.PubKey, public bool, accepted bool) {
 	for {
 		select {
-		case <-tr.doneChan:
+		case <-mTr.doneChan:
+			tm.Logger.Infof("Transport %s closed", mTr.ID)
 			return
-		case n := <-tr.readLogChan:
-			tr.LogEntry.ReceivedBytes.Add(tr.LogEntry.ReceivedBytes, big.NewInt(int64(n)))
-		case n := <-tr.writeLogChan:
-			tr.LogEntry.SentBytes.Add(tr.LogEntry.SentBytes, big.NewInt(int64(n)))
-		}
-
-		if err := tm.config.LogStore.Record(tr.ID, tr.LogEntry); err != nil {
-			tm.Logger.Warnf("Failed to record log entry: %s", err)
+		case err := <-mTr.errChan:
+			if atomic.LoadInt32(&mTr.isClosing) == 0 {
+				tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", mTr.ID, err)
+				if accepted {
+					if err := tm.DeleteTransport(mTr.ID); err != nil {
+						tm.Logger.Warnf("Failed to delete accepted transport: %s", err)
+					}
+				} else {
+					tr, _, err := tm.dialTransport(ctx, factory, remote, public)
+					if err != nil {
+						tm.Logger.Infof("Failed to re-dial Transport %s: %s", mTr.ID, err)
+						if err := tm.DeleteTransport(mTr.ID); err != nil {
+							tm.Logger.Warnf("Failed to delete re-dialled transport: %s", err)
+						}
+					} else {
+						tm.Logger.Infof("Updating transport %s", mTr.ID)
+						mTr.updateTransport(tr)
+					}
+				}
+			} else {
+				tm.Logger.Infof("Transport %s is already closing. Skipped error: %s", mTr.ID, err)
+			}
+		case n := <-mTr.readLogChan:
+			mTr.LogEntry.ReceivedBytes.Add(mTr.LogEntry.ReceivedBytes, big.NewInt(int64(n)))
+			if err := tm.config.LogStore.Record(mTr.ID, mTr.LogEntry); err != nil {
+				tm.Logger.Warnf("Failed to record log entry: %s", err)
+			}
+		case n := <-mTr.writeLogChan:
+			mTr.LogEntry.SentBytes.Add(mTr.LogEntry.SentBytes, big.NewInt(int64(n)))
+			if err := tm.config.LogStore.Record(mTr.ID, mTr.LogEntry); err != nil {
+				tm.Logger.Warnf("Failed to record log entry: %s", err)
+			}
 		}
 	}
 }
