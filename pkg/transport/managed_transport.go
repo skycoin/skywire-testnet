@@ -45,22 +45,12 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Read(p) // TODO: data race.
 	tr.mu.RUnlock()
-	if err == nil {
-		select {
-		case <-tr.doneChan:
-			return
-		case tr.readLogChan <- n:
-		}
 
-		return
+	if err != nil {
+		tr.errChan <- err
 	}
 
-	select {
-	case <-tr.doneChan:
-		return
-	case tr.errChan <- err:
-	}
-
+	tr.readLogChan <- n
 	return
 }
 
@@ -69,23 +59,23 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Write(p)
 	tr.mu.RUnlock()
-	if err == nil {
-		select {
-		case <-tr.doneChan:
-			return
-		case tr.writeLogChan <- n:
-		}
 
+	if err != nil {
+		tr.errChan <- err
 		return
 	}
+	tr.writeLogChan <- n
 
+	return
+}
+
+func (tr *ManagedTransport) killWorker() {
 	select {
 	case <-tr.doneChan:
 		return
-	case tr.errChan <- err:
+	default:
+		close(tr.doneChan)
 	}
-
-	return
 }
 
 // Close closes underlying
@@ -97,12 +87,7 @@ func (tr *ManagedTransport) Close() error {
 	err := tr.Transport.Close()
 	tr.mu.RUnlock()
 
-	select {
-	case <-tr.doneChan:
-	default:
-
-		close(tr.doneChan)
-	}
+	tr.killWorker()
 
 	return err
 }
