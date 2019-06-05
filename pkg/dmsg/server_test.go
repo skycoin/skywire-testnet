@@ -143,7 +143,7 @@ func TestServer_Serve(t *testing.T) {
 
 	t.Run("test transport establishment concurrently", func(t *testing.T) {
 		initiatorsCount := 4
-		remotesCount := 4
+		remotesCount := 1
 
 		initiators := make([]*Client, 0, initiatorsCount)
 		remotes := make([]*Client, 0, remotesCount)
@@ -186,7 +186,7 @@ func TestServer_Serve(t *testing.T) {
 		remotesWG.Add(len(usedRemotes))
 		for i, r := range remotes {
 			if _, ok := usedRemotes[i]; ok {
-				go func() {
+				go func(remoteInd int) {
 					var (
 						transport transport.Transport
 						err       error
@@ -197,10 +197,10 @@ func TestServer_Serve(t *testing.T) {
 						acceptErrs <- err
 					}
 
-					remotesTps[i] = transport
+					remotesTps[remoteInd] = transport
 
 					remotesWG.Done()
-				}()
+				}(i)
 			}
 		}
 
@@ -209,31 +209,43 @@ func TestServer_Serve(t *testing.T) {
 		initiatorsTps := make([]transport.Transport, initiatorsCount)
 		initiatorsWG.Add(initiatorsCount)
 		for i := range initiators {
-			go func() {
-				var (
-					transport transport.Transport
-					err       error
-				)
+			//go func(initiatorInd int) {
+			var (
+				transport transport.Transport
+				err       error
+			)
 
-				transport, err = initiators[i].Dial(context.Background(), remotes[pickedRemotes[i]].pk)
-				if err != nil {
-					dialErrs <- err
-				}
+			if i == 3 {
+				log.Println()
+			}
 
-				initiatorsTps = append(initiatorsTps, transport)
+			transport, err = initiators[i].Dial(context.Background(),
+				remotes[pickedRemotes[i]].pk)
+			if err != nil {
+				dialErrs <- err
+			}
 
-				initiatorsWG.Done()
-			}()
+			initiatorsTps = append(initiatorsTps, transport)
+
+			log.Printf("Initiator %v done", i)
+
+			initiatorsWG.Done()
+			//}(i)
 		}
+
+		log.Printf("%v", pickedRemotes)
+		log.Printf("%v", usedRemotes)
+
+		//time.Sleep(5 * time.Second)
+
+		remotesWG.Wait()
+		close(acceptErrs)
+		err = <-acceptErrs
+		require.NoError(t, err)
 
 		initiatorsWG.Wait()
 		close(dialErrs)
 		err = <-dialErrs
-		require.NoError(t, err)
-
-		remotesWG.Done()
-		close(acceptErrs)
-		err = <-acceptErrs
 		require.NoError(t, err)
 
 		require.Equal(t, len(usedRemotes)+initiatorsCount, len(s.conns))
