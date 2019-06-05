@@ -205,7 +205,7 @@ func (tm *Manager) Serve(ctx context.Context) error {
 // MakeTransportID generates uuid.UUID from pair of keys + type + public
 // Generated uuid is:
 // - always the same for a given pair
-// - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
+// - MakeTransportUUID(keyA,keyB) == MakeTransportUUID(keyB, keyA)
 func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
 	keys := SortPubKeys(keyA, keyB)
 	if public {

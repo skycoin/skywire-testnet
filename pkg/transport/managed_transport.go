@@ -69,6 +69,8 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	return
 }
 
+// killWorker sends signal to Manager.manageTransport goroutine to exit
+// it's safe to call it multiple times
 func (tr *ManagedTransport) killWorker() {
 	select {
 	case <-tr.doneChan:
