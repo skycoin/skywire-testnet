@@ -21,6 +21,7 @@ type ManagedTransport struct {
 	errChan   chan error
 	isClosing int32
 	mu        sync.RWMutex
+	once      sync.Once
 
 	readLogChan  chan int
 	writeLogChan chan int
@@ -34,8 +35,8 @@ func newManagedTransport(id uuid.UUID, tr Transport, public bool, accepted bool)
 		Accepted:     accepted,
 		doneChan:     make(chan struct{}),
 		errChan:      make(chan error),
-		readLogChan:  make(chan int),
-		writeLogChan: make(chan int),
+		readLogChan:  make(chan int, 16),
+		writeLogChan: make(chan int, 16),
 		LogEntry:     &LogEntry{new(big.Int), new(big.Int)},
 	}
 }
@@ -72,12 +73,9 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 // killWorker sends signal to Manager.manageTransport goroutine to exit
 // it's safe to call it multiple times
 func (tr *ManagedTransport) killWorker() {
-	select {
-	case <-tr.doneChan:
-		return
-	default:
+	tr.once.Do(func() {
 		close(tr.doneChan)
-	}
+	})
 }
 
 // Close closes underlying

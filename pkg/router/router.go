@@ -85,6 +85,8 @@ func (r *Router) Serve(ctx context.Context) error {
 			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
 			r.mu.Unlock()
 
+			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", isAccepted, isSetup)
+
 			var serve func(io.ReadWriter) error
 			switch {
 			case isAccepted && isSetup:

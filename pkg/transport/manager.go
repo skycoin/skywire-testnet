@@ -245,8 +245,6 @@ func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 	tr := tm.transports[id]
 	delete(tm.transports, id)
 	tm.mu.Unlock()
-	mgrQty := atomic.AddInt32(&tm.mgrQty, -1)
-	tm.Logger.Infof("Manager.DeleteTransport id: %v, mgrQty = %v", id, mgrQty)
 
 	tr.Close()
 
