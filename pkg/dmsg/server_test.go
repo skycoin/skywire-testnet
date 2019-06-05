@@ -204,6 +204,8 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}
 
+		time.Sleep(5 * time.Second)
+
 		dialErrs := make(chan error, initiatorsCount)
 		var initiatorsWG sync.WaitGroup
 		initiatorsTps := make([]transport.Transport, initiatorsCount)
