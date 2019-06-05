@@ -3,7 +3,6 @@ package transport
 import (
 	"math/big"
 	"sync"
-	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -17,11 +16,10 @@ type ManagedTransport struct {
 	Accepted bool
 	LogEntry *LogEntry
 
-	doneChan  chan struct{}
-	errChan   chan error
-	isClosing int32
-	mu        sync.RWMutex
-	once      sync.Once
+	doneChan chan struct{}
+	errChan  chan error
+	mu       sync.RWMutex
+	once     sync.Once
 
 	readLogChan  chan int
 	writeLogChan chan int
@@ -80,16 +78,21 @@ func (tr *ManagedTransport) killWorker() {
 
 // Close closes underlying
 func (tr *ManagedTransport) Close() error {
-
-	atomic.StoreInt32(&tr.isClosing, 1)
-
 	tr.mu.RLock()
 	err := tr.Transport.Close()
 	tr.mu.RUnlock()
 
 	tr.killWorker()
-
 	return err
+}
+
+func (tr *ManagedTransport) isClosing() bool {
+	select {
+	case <-tr.doneChan:
+		return true
+	default:
+		return false
+	}
 }
 
 func (tr *ManagedTransport) updateTransport(newTr Transport) {

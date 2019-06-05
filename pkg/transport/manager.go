@@ -33,10 +33,9 @@ type Manager struct {
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
 
-	doneChan  chan struct{}
-	isClosing int32
-	TrChan    chan *ManagedTransport
-	mu        sync.RWMutex
+	doneChan chan struct{}
+	TrChan   chan *ManagedTransport
+	mu       sync.RWMutex
 
 	mgrQty int32 // Count of spawned manageTransport goroutines
 }
@@ -262,8 +261,6 @@ func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 
 // Close closes opened transports and registered factories.
 func (tm *Manager) Close() error {
-
-	atomic.StoreInt32(&tm.isClosing, 1)
 	close(tm.doneChan)
 
 	tm.Logger.Info("Closing transport manager")
@@ -342,7 +339,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, err
 	}
 
-	if atomic.LoadInt32(&tm.isClosing) != 0 {
+	if tm.isClosing() {
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
@@ -396,6 +393,15 @@ func (tm *Manager) addEntry(entry *Entry) {
 	tm.mu.Unlock()
 }
 
+func (tm *Manager) isClosing() bool {
+	select {
+	case <-tm.doneChan:
+		return true
+	default:
+		return false
+	}
+}
+
 func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, factory Factory, remote cipher.PubKey, public bool, accepted bool) {
 	mgrQty := atomic.AddInt32(&tm.mgrQty, 1)
 	tm.Logger.Infof("Spawned manageTransport for mTr.ID: %v. mgrQty: %v", mTr.ID, mgrQty)
@@ -406,7 +412,7 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 			tm.Logger.Infof("manageTransport exit for %v. mgrQty: %v", mTr.ID, mgrQty)
 			return
 		case err := <-mTr.errChan:
-			if atomic.LoadInt32(&mTr.isClosing) == 0 {
+			if !mTr.isClosing() {
 				tm.Logger.Infof("Transport %s failed with error: %s. Re-dialing...", mTr.ID, err)
 				if accepted {
 					if err := tm.DeleteTransport(mTr.ID); err != nil {
