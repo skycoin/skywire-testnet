@@ -56,18 +56,18 @@ func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKe
 	return tp
 }
 
-func (c *Transport) close() (closed bool) {
-	c.doneOnce.Do(func() {
+func (tp *Transport) close() (closed bool) {
+	tp.doneOnce.Do(func() {
 		closed = true
-		close(c.doneCh)
+		close(tp.doneCh)
 
-		// Kill all goroutines pushing to `c.readCh` before closing it.
-		// No more goroutines pushing to `c.readCh` should be created once `c.doneCh` is closed.
+		// Kill all goroutines pushing to `tp.readCh` before closing it.
+		// No more goroutines pushing to `tp.readCh` should be created once `tp.doneCh` is closed.
 		for {
 			select {
-			case <-c.readCh:
+			case <-tp.readCh:
 			default:
-				close(c.readCh)
+				close(tp.readCh)
 				return
 			}
 		}
@@ -75,13 +75,13 @@ func (c *Transport) close() (closed bool) {
 	return closed
 }
 
-func (c *Transport) awaitResponse(ctx context.Context) error {
+func (tp *Transport) awaitResponse(ctx context.Context) error {
 	select {
-	case <-c.doneCh:
+	case <-tp.doneCh:
 		return ErrRequestRejected
 	case <-ctx.Done():
 		return ctx.Err()
-	case f, ok := <-c.readCh:
+	case f, ok := <-tp.readCh:
 		if !ok {
 			return io.ErrClosedPipe
 		}
@@ -93,35 +93,35 @@ func (c *Transport) awaitResponse(ctx context.Context) error {
 }
 
 // Handshake performs a tp handshake (before tp is considered valid).
-func (c *Transport) Handshake(ctx context.Context) error {
+func (tp *Transport) Handshake(ctx context.Context) error {
 	// if channel ID is even, client is initiator.
-	if isInitiatorID(c.id) {
-		pks := combinePKs(c.local, c.remote)
-		f := MakeFrame(RequestType, c.id, pks)
-		if err := writeFrame(c.Conn, f); err != nil {
-			c.close()
+	if isInitiatorID(tp.id) {
+		pks := combinePKs(tp.local, tp.remote)
+		f := MakeFrame(RequestType, tp.id, pks)
+		if err := writeFrame(tp.Conn, f); err != nil {
+			tp.close()
 			return err
 		}
-		if err := c.awaitResponse(ctx); err != nil {
-			c.close()
+		if err := tp.awaitResponse(ctx); err != nil {
+			tp.close()
 			return err
 		}
 	} else {
-		f := MakeFrame(AcceptType, c.id, combinePKs(c.remote, c.local))
-		if err := writeFrame(c.Conn, f); err != nil {
-			c.log.WithError(err).Error("HandshakeFailed")
-			c.close()
+		f := MakeFrame(AcceptType, tp.id, combinePKs(tp.remote, tp.local))
+		if err := writeFrame(tp.Conn, f); err != nil {
+			tp.log.WithError(err).Error("HandshakeFailed")
+			tp.close()
 			return err
 		}
-		c.log.WithField("sent", f).Infoln("HandshakeCompleted")
+		tp.log.WithField("sent", f).Infoln("HandshakeCompleted")
 	}
 	return nil
 }
 
 // IsDone returns whether dms_tp is closed.
-func (c *Transport) IsDone() bool {
+func (tp *Transport) IsDone() bool {
 	select {
-	case <-c.doneCh:
+	case <-tp.doneCh:
 		return true
 	default:
 		return false
@@ -130,20 +130,20 @@ func (c *Transport) IsDone() bool {
 
 // InjectRead blocks until frame is read.
 // Returns false when read fails (e.g. when tp is closed).
-func (c *Transport) InjectRead(f Frame) bool {
-	ok := c.injectRead(f)
+func (tp *Transport) InjectRead(f Frame) bool {
+	ok := tp.injectRead(f)
 	if !ok {
-		c.close()
+		tp.close()
 	}
 	return ok
 }
 
-func (c *Transport) injectRead(f Frame) bool {
+func (tp *Transport) injectRead(f Frame) bool {
 	push := func(f Frame) bool {
 		select {
-		case <-c.doneCh:
+		case <-tp.doneCh:
 			return false
-		case c.readCh <- f:
+		case tp.readCh <- f:
 			return true
 		default:
 			return false
@@ -159,7 +159,7 @@ func (c *Transport) injectRead(f Frame) bool {
 		if len(p) != 2 {
 			return false
 		}
-		c.ackWaiter.Done(ioutil.DecodeUint16Seq(p))
+		tp.ackWaiter.Done(ioutil.DecodeUint16Seq(p))
 		return true
 
 	case FwdType:
@@ -171,8 +171,8 @@ func (c *Transport) injectRead(f Frame) bool {
 			return false
 		}
 		go func() {
-			if err := writeFrame(c.Conn, MakeFrame(AckType, c.id, p[:2])); err != nil {
-				c.close()
+			if err := writeFrame(tp.Conn, MakeFrame(AckType, tp.id, p[:2])); err != nil {
+				tp.close()
 			}
 		}()
 		return true
@@ -183,45 +183,45 @@ func (c *Transport) injectRead(f Frame) bool {
 }
 
 // Read implements io.Reader
-func (c *Transport) Read(p []byte) (n int, err error) {
-	c.readMx.Lock()
-	defer c.readMx.Unlock()
+func (tp *Transport) Read(p []byte) (n int, err error) {
+	tp.readMx.Lock()
+	defer tp.readMx.Unlock()
 
-	if c.readBuf.Len() != 0 {
-		return c.readBuf.Read(p)
+	if tp.readBuf.Len() != 0 {
+		return tp.readBuf.Read(p)
 	}
 
 	select {
-	case <-c.doneCh:
+	case <-tp.doneCh:
 		return 0, io.ErrClosedPipe
-	case f, ok := <-c.readCh:
+	case f, ok := <-tp.readCh:
 		if !ok {
 			return 0, io.ErrClosedPipe
 		}
 		if f.Type() == FwdType {
-			return ioutil.BufRead(&c.readBuf, f.Pay()[2:], p)
+			return ioutil.BufRead(&tp.readBuf, f.Pay()[2:], p)
 		}
 		return 0, errors.New("unexpected frame")
 	}
 }
 
 // Write implements io.Writer
-func (c *Transport) Write(p []byte) (int, error) {
+func (tp *Transport) Write(p []byte) (int, error) {
 	select {
-	case <-c.doneCh:
+	case <-tp.doneCh:
 		return 0, io.ErrClosedPipe
 	default:
 		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
 		go func() {
 			select {
 			case <-ctx.Done():
-			case <-c.doneCh:
+			case <-tp.doneCh:
 				cancel()
 			}
 		}()
-		err := c.ackWaiter.Wait(ctx, func(seq ioutil.Uint16Seq) error {
-			if err := writeFwdFrame(c.Conn, c.id, seq, p); err != nil {
-				c.close()
+		err := tp.ackWaiter.Wait(ctx, func(seq ioutil.Uint16Seq) error {
+			if err := writeFwdFrame(tp.Conn, tp.id, seq, p); err != nil {
+				tp.close()
 				return err
 			}
 			return nil
@@ -235,20 +235,20 @@ func (c *Transport) Write(p []byte) (int, error) {
 }
 
 // Close closes the dms_tp.
-func (c *Transport) Close() error {
-	if c.close() {
-		_ = writeFrame(c.Conn, MakeFrame(CloseType, c.id, []byte{0})) //nolint:errcheck
+func (tp *Transport) Close() error {
+	if tp.close() {
+		_ = writeFrame(tp.Conn, MakeFrame(CloseType, tp.id, []byte{0})) //nolint:errcheck
 		return nil
 	}
 	return io.ErrClosedPipe
 }
 
 // Edges returns the local/remote edges of the transport (dms_client to dms_client).
-func (c *Transport) Edges() [2]cipher.PubKey {
-	return transport.SortPubKeys(c.local, c.remote)
+func (tp *Transport) Edges() [2]cipher.PubKey {
+	return transport.SortPubKeys(tp.local, tp.remote)
 }
 
 // Type returns the transport type.
-func (c *Transport) Type() string {
+func (tp *Transport) Type() string {
 	return Type
 }
