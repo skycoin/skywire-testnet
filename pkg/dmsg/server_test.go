@@ -143,7 +143,7 @@ func TestServer_Serve(t *testing.T) {
 
 	t.Run("test transport establishment concurrently", func(t *testing.T) {
 		initiatorsCount := 4
-		remotesCount := 1
+		remotesCount := 4
 
 		initiators := make([]*Client, 0, initiatorsCount)
 		remotes := make([]*Client, 0, remotesCount)
@@ -172,141 +172,95 @@ func TestServer_Serve(t *testing.T) {
 
 		rand := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-		usedRemotes := make(map[int]struct{})
+		// store the number of transports each remote should handle
+		usedRemotes := make(map[int]int)
+		// mapping initiators to remotes
 		pickedRemotes := make([]int, 0, initiatorsCount)
 		for range initiators {
 			remote := rand.Intn(remotesCount)
-			usedRemotes[remote] = struct{}{}
+			if _, ok := usedRemotes[remote]; !ok {
+				usedRemotes[remote] = 0
+			}
+
+			usedRemotes[remote] = usedRemotes[remote] + 1
 			pickedRemotes = append(pickedRemotes, remote)
 		}
 
-		acceptErrs := make(chan error, remotesCount)
+		totalRemoteTpsCount := 0
+		for _, connectionsCount := range usedRemotes {
+			totalRemoteTpsCount += connectionsCount
+		}
+		acceptErrs := make(chan error, totalRemoteTpsCount)
+		remotesTps := make(map[int][]transport.Transport, len(usedRemotes))
 		var remotesWG sync.WaitGroup
-		remotesTps := make(map[int]transport.Transport, len(usedRemotes))
-		remotesWG.Add(len(usedRemotes))
+		remotesWG.Add(totalRemoteTpsCount)
 		for i, r := range remotes {
 			if _, ok := usedRemotes[i]; ok {
-				go func(remoteInd int) {
-					var (
-						transport transport.Transport
-						err       error
-					)
+				for connect := 0; connect < usedRemotes[i]; connect++ {
+					// run remotes
+					go func(remoteInd, conn int) {
+						var (
+							transport transport.Transport
+							err       error
+						)
 
-					transport, err = r.Accept(context.Background())
-					if err != nil {
-						acceptErrs <- err
-					}
+						transport, err = r.Accept(context.Background())
+						if err != nil {
+							acceptErrs <- err
+						}
 
-					remotesTps[remoteInd] = transport
+						remotesTps[remoteInd] = append(remotesTps[remoteInd], transport)
 
-					remotesWG.Done()
-				}(i)
+						log.Printf("Remote %v with conn %v done", remoteInd, conn)
+
+						remotesWG.Done()
+					}(i, connect)
+				}
 			}
-		}
-
-		time.Sleep(5 * time.Second)
-
-		dialErrs := make(chan error, initiatorsCount)
-		var initiatorsWG sync.WaitGroup
-		initiatorsTps := make([]transport.Transport, initiatorsCount)
-		initiatorsWG.Add(initiatorsCount)
-		for i := range initiators {
-			//go func(initiatorInd int) {
-			var (
-				transport transport.Transport
-				err       error
-			)
-
-			if i == 3 {
-				log.Println()
-			}
-
-			transport, err = initiators[i].Dial(context.Background(),
-				remotes[pickedRemotes[i]].pk)
-			if err != nil {
-				dialErrs <- err
-			}
-
-			initiatorsTps = append(initiatorsTps, transport)
-
-			log.Printf("Initiator %v done", i)
-
-			initiatorsWG.Done()
-			//}(i)
 		}
 
 		log.Printf("%v", pickedRemotes)
 		log.Printf("%v", usedRemotes)
 
-		//time.Sleep(5 * time.Second)
+		dialErrs := make(chan error, initiatorsCount)
+		initiatorsTps := make([]transport.Transport, initiatorsCount)
+		var initiatorsWG sync.WaitGroup
+		initiatorsWG.Add(initiatorsCount)
+		for i := range initiators {
+			// run initiators
+			go func(initiatorInd int) {
+				var (
+					transport transport.Transport
+					err       error
+				)
 
-		remotesWG.Wait()
-		close(acceptErrs)
-		err = <-acceptErrs
-		require.NoError(t, err)
+				transport, err = initiators[initiatorInd].Dial(context.Background(),
+					remotes[pickedRemotes[initiatorInd]].pk)
+				if err != nil {
+					dialErrs <- err
+				}
 
+				initiatorsTps = append(initiatorsTps, transport)
+
+				initiatorsWG.Done()
+			}(i)
+		}
+
+		// wait for initiators
 		initiatorsWG.Wait()
 		close(dialErrs)
 		err = <-dialErrs
+		// single error should fail test
 		require.NoError(t, err)
 
-		require.Equal(t, len(usedRemotes)+initiatorsCount, len(s.conns))
-
-		/*err = <-aDone
+		// wait for remotes
+		remotesWG.Wait()
+		close(acceptErrs)
+		err = <-acceptErrs
+		// single error should fail test
 		require.NoError(t, err)
 
-		// must be 2 ServerConn's
-		require.Equal(t, 2, len(s.conns))
-
-		// must have ServerConn for A
-		aServerConn, ok := s.conns[aPK]
-		require.Equal(t, true, ok)
-		require.Equal(t, aPK, aServerConn.remoteClient)
-
-		// must have ServerConn for B
-		bServerConn, ok := s.conns[bPK]
-		require.Equal(t, true, ok)
-		require.Equal(t, bPK, bServerConn.remoteClient)
-
-		// must have a ClientConn
-		aClientConn, ok := a.conns[sPK]
-		require.Equal(t, true, ok)
-		require.Equal(t, sPK, aClientConn.remoteSrv)
-
-		// must have a ClientConn
-		bClientConn, ok := b.conns[sPK]
-		require.Equal(t, true, ok)
-		require.Equal(t, sPK, bClientConn.remoteSrv)
-
-		// check whether nextConn's contents are as must be
-		bNextConn := bServerConn.nextConns[bClientConn.nextInitID-2]
-		require.NotNil(t, bNextConn)
-		require.Equal(t, bNextConn.id, aServerConn.nextRespID-2)
-
-		// check whether nextConn's contents are as must be
-		aNextConn := aServerConn.nextConns[aServerConn.nextRespID-2]
-		require.NotNil(t, aNextConn)
-		require.Equal(t, aNextConn.id, bClientConn.nextInitID-2)
-
-		log.Printf("%v\n", s.conns)
-
-		err = aTransport.Close()
-		require.NoError(t, err)
-
-		err = bTransport.Close()
-		require.NoError(t, err)
-
-		err = a.Close()
-		require.NoError(t, err)
-
-		err = b.Close()
-		require.NoError(t, err)
-
-		time.Sleep(5 * time.Second)
-
-		require.Equal(t, 0, len(s.conns))
-		require.Equal(t, 0, len(a.conns))
-		require.Equal(t, 0, len(b.conns))*/
+		require.Equal(t, totalRemoteTpsCount+initiatorsCount, len(s.conns))
 	})
 }
 
