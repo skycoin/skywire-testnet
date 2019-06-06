@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY : check lint install-linters dep test 
-.PHONY : build  clean install  format  
+.PHONY : build  clean install  format  bin
 .PHONY : host-apps bin 
 .PHONY : run stop config
 .PHONY : docker-image  docker-clean docker-network  
