@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/noise"
@@ -40,12 +42,14 @@ type ClientConn struct {
 	tps [math.MaxUint16 + 1]*Transport
 	mx  sync.RWMutex // to protect tps.
 
-	wg sync.WaitGroup
+	done chan struct{}
+	once sync.Once
+	wg   sync.WaitGroup
 }
 
 // NewClientConn creates a new ClientConn.
 func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubKey) *ClientConn {
-	cc := &ClientConn{log: log, Conn: conn, local: local, remoteSrv: remote, nextInitID: randID(true)}
+	cc := &ClientConn{log: log, Conn: conn, local: local, remoteSrv: remote, nextInitID: randID(true), done: make(chan struct{})}
 	cc.wg.Add(1)
 	return cc
 }
@@ -75,6 +79,8 @@ func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transp
 		c.nextInitID += 2
 
 		select {
+		case <-c.done:
+			return nil, ErrClientClosed
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
@@ -104,7 +110,6 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Tran
 	initPK, respPK, ok := splitPKs(p)
 	if !ok || respPK != c.local || isInitiatorID(id) {
 		if err := writeCloseFrame(c.Conn, id, 0); err != nil {
-			c.Close()
 			return initPK, err
 		}
 		return initPK, ErrRequestCheckFailed
@@ -112,14 +117,20 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Tran
 
 	tp := NewTransport(c.Conn, c.log, c.local, initPK, id)
 	if err := tp.Handshake(ctx); err != nil {
-		// return err here as response handshake is send via ClientConn and that shouldn't fail.
-		c.Close()
 		return initPK, err
 	}
 	c.setTp(tp)
 
 	select {
+	case <-c.done:
+		if err := writeCloseFrame(c.Conn, id, 0); err != nil {
+			return initPK, err
+		}
+		return initPK, ErrClientClosed
 	case <-ctx.Done():
+		if err := writeCloseFrame(c.Conn, id, 0); err != nil {
+			return initPK, err
+		}
 		return initPK, ctx.Err()
 	case accept <- tp:
 	}
@@ -153,6 +164,7 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 			if !tp.InjectRead(f) {
 				log.WithField("remoteClient", tp.remote).Infoln("FrameTrashed")
 				c.delTp(id)
+				continue
 			}
 			log.WithField("remoteClient", tp.remote).Infoln("FrameInjected")
 			continue
@@ -163,21 +175,25 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 		c.delTp(id) // rm tp in case closed tp is not fully removed.
 		switch ft {
 		case RequestType:
-			// TODO(evanlinjin): Allow for REQUEST frame handling to be done in goroutine.
-			// Currently this causes issues (probably because we need ACK frames).
-			initPK, err := c.handleRequestFrame(ctx, accept, id, p)
-			if err != nil {
-				log.WithField("remoteClient", initPK).WithError(err).Infoln("FrameRejected")
-				if err == ErrRequestCheckFailed {
-					continue
+			c.wg.Add(1)
+			go func(log *logrus.Entry) {
+				defer c.wg.Done()
+				ctx, cancel := context.WithTimeout(ctx, acceptTimeout)
+				defer cancel()
+				initPK, err := c.handleRequestFrame(ctx, accept, id, p)
+				if err != nil {
+					log.WithField("remoteClient", initPK).WithError(err).Infoln("TransportRejected")
+					if isWriteError(err) || err == ErrClientClosed {
+						log.WithError(c.Close()).Warn("ClosingConnection")
+					}
+					return
 				}
-				return err
-			}
-			log.WithField("remoteClient", initPK).Infoln("FrameAccepted")
+				log.WithField("remoteClient", initPK).Infoln("TransportAccepted")
+			}(log)
 		case CloseType:
-			log.Infoln("FrameIgnored")
+			log.Infoln("CloseTransportIgnored")
 		default:
-			log.Infoln("FrameUnexpected")
+			log.Infoln("Unexpected")
 			if err := writeCloseFrame(c.Conn, id, 0); err != nil {
 				return err
 			}
@@ -187,16 +203,24 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 
 // DialTransport dials a transport to remote dms_client.
 func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
-	tp, err := c.addTp(ctx, clientPK)
-	if err != nil {
-		return nil, err
+	select {
+	case <-c.done:
+		return nil, ErrClientClosed
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		tp, err := c.addTp(ctx, clientPK)
+		if err != nil {
+			return nil, err
+		}
+		return tp, tp.Handshake(ctx)
 	}
-	return tp, tp.Handshake(ctx)
 }
 
 // Close closes the connection to dms_server.
 func (c *ClientConn) Close() error {
-	c.log.Infof("closingLink: remoteSrv(%v)", c.remoteSrv)
+	c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
+	c.once.Do(func() { close(c.done) })
 	c.mx.Lock()
 	for _, tp := range c.tps {
 		if tp != nil {
@@ -233,7 +257,7 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client 
 		sk:     sk,
 		dc:     dc,
 		conns:  make(map[cipher.PubKey]*ClientConn),
-		accept: make(chan *Transport, acceptChSize),
+		accept: make(chan *Transport),
 		done:   make(chan struct{}),
 	}
 }
@@ -377,7 +401,7 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 	c.setConn(ctx, conn)
 	go func() {
 		if err := conn.Serve(ctx, c.accept); err != nil {
-			conn.log.WithError(err).WithField("dms_server", srvPK).Warn("connected with dms_server closed")
+			conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
 			c.delConn(ctx, srvPK)
 
 			// reconnect logic.
