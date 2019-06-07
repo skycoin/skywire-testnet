@@ -120,8 +120,6 @@ func TestServer_Serve(t *testing.T) {
 		require.NotNil(t, aNextConn)
 		require.Equal(t, aNextConn.id, bClientConn.nextInitID-2)
 
-		log.Printf("%v\n", s.conns)
-
 		err = aTransport.Close()
 		require.NoError(t, err)
 
@@ -142,8 +140,8 @@ func TestServer_Serve(t *testing.T) {
 	})
 
 	t.Run("test transport establishment concurrently", func(t *testing.T) {
-		initiatorsCount := 4
-		remotesCount := 4
+		initiatorsCount := 2
+		remotesCount := 1
 
 		initiators := make([]*Client, 0, initiatorsCount)
 		remotes := make([]*Client, 0, remotesCount)
@@ -219,9 +217,6 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}
 
-		log.Printf("%v", pickedRemotes)
-		log.Printf("%v", usedRemotes)
-
 		dialErrs := make(chan error, initiatorsCount)
 		initiatorsTps := make([]transport.Transport, initiatorsCount)
 		var initiatorsWG sync.WaitGroup
@@ -260,7 +255,95 @@ func TestServer_Serve(t *testing.T) {
 		// single error should fail test
 		require.NoError(t, err)
 
-		require.Equal(t, totalRemoteTpsCount+initiatorsCount, len(s.conns))
+		require.Equal(t, len(usedRemotes)+initiatorsCount, len(s.conns))
+
+		for i, remote := range remotes {
+			serverConn, connExists := s.conns[remote.pk]
+			if _, remoteUsed := usedRemotes[i]; remoteUsed {
+				require.Equal(t, true, connExists)
+				require.Equal(t, remote.pk, serverConn.remoteClient)
+
+				clientConn, ok := remote.conns[sPK]
+				require.Equal(t, true, ok)
+				require.Equal(t, sPK, clientConn.remoteSrv)
+			} else {
+				require.Equal(t, false, connExists)
+			}
+		}
+
+		for i, initiator := range initiators {
+			initiatorServConn, ok := s.conns[initiator.pk]
+			require.Equal(t, true, ok)
+			require.Equal(t, initiator.pk, initiatorServConn.remoteClient)
+
+			initiatorClientConn, ok := initiator.conns[sPK]
+			require.Equal(t, true, ok)
+			require.Equal(t, sPK, initiatorClientConn.remoteSrv)
+
+			remote := remotes[pickedRemotes[i]]
+
+			remoteServConn, ok := s.conns[remote.pk]
+			require.Equal(t, true, ok)
+			require.Equal(t, remote.pk, remoteServConn.remoteClient)
+
+			remoteClientConn, ok := remote.conns[sPK]
+			require.Equal(t, true, ok)
+			require.Equal(t, sPK, remoteClientConn.remoteSrv)
+
+			initiatorNextConn := initiatorServConn.nextConns[initiatorClientConn.nextInitID-2]
+			require.NotNil(t, initiatorNextConn)
+			correspondingNextConnFound := false
+			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID-- {
+				if initiatorNextConn.id == nextConnID {
+					correspondingNextConnFound = true
+					break
+				}
+			}
+			require.Equal(t, true, correspondingNextConnFound)
+
+			correspondingNextConnFound = false
+			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID-- {
+				if remoteServConn.nextConns[nextConnID].id == initiatorClientConn.nextInitID-2 {
+					correspondingNextConnFound = true
+					break
+				}
+			}
+			require.Equal(t, true, correspondingNextConnFound)
+		}
+
+		for _, tps := range remotesTps {
+			for _, tp := range tps {
+				err := tp.Close()
+				require.NoError(t, err)
+			}
+		}
+
+		for _, tp := range initiatorsTps {
+			err := tp.Close()
+			require.NoError(t, err)
+		}
+
+		for _, remote := range remotes {
+			err := remote.Close()
+			require.NoError(t, err)
+		}
+
+		for _, initiator := range initiators {
+			err := initiator.Close()
+			require.NoError(t, err)
+		}
+
+		time.Sleep(10 * time.Second)
+
+		require.Equal(t, 0, len(s.conns))
+
+		for _, remote := range remotes {
+			require.Equal(t, 0, len(remote.conns))
+		}
+
+		for _, initiator := range initiators {
+			require.Equal(t, 0, len(initiator.conns))
+		}
 	})
 }
 
