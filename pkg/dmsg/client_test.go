@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -44,12 +43,8 @@ func TestClient(t *testing.T) {
 		_ = conn2.Serve(ctx, ch2)
 	}()
 
-	time.Sleep(100 * time.Millisecond)
-
 	tr, err := conn1.DialTransport(ctx, pk2)
 	assert.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	err = tr.Close()
 	assert.NoError(t, err)
@@ -61,8 +56,6 @@ type invertedIDConn struct {
 
 func (c invertedIDConn) Write(b []byte) (n int, err error) {
 	frame := Frame(b)
-
-	newID := randID(!isInitiatorID(frame.TpID()))
-	newFrame := MakeFrame(frame.Type(), newID, frame.Pay())
+	newFrame := MakeFrame(frame.Type(), frame.TpID()^1, frame.Pay())
 	return c.Conn.Write(newFrame)
 }
