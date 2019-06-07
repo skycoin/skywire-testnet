@@ -21,6 +21,7 @@ import (
 )
 
 const configEnv = "SW_CONFIG"
+const defaultShutdownTimeout = node.Duration(10 * time.Second)
 
 var (
 	syslogAddr   string
@@ -73,12 +74,15 @@ var rootCmd = &cobra.Command{
 			}
 		}()
 
+		if conf.ShutdownTimeout == 0 {
+			conf.ShutdownTimeout = defaultShutdownTimeout
+		}
 		ch := make(chan os.Signal, 2)
 		signal.Notify(ch, []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT}...)
 		<-ch
 		go func() {
 			select {
-			case <-time.After(10 * time.Second):
+			case <-time.After(time.Duration(conf.ShutdownTimeout)):
 				logger.Fatal("Timeout reached: terminating")
 			case s := <-ch:
 				logger.Fatalf("Received signal %s: terminating", s)

@@ -15,7 +15,7 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-const contextTimeout = 10 * time.Second
+const defaultContextTimeout = 10 * time.Second
 
 // GetRoutesRequest parses json body for /routes endpoint request
 type GetRoutesRequest struct {
@@ -50,15 +50,21 @@ type Client interface {
 
 // APIClient implements Client interface
 type apiClient struct {
-	addr   string
-	client http.Client
+	addr       string
+	client     http.Client
+	apiTimeout time.Duration
 }
 
 // NewHTTP constructs new Client that communicates over http.
-func NewHTTP(addr string) Client {
+func NewHTTP(addr string, apiTimeout time.Duration) Client {
+	if apiTimeout == 0 {
+		apiTimeout = defaultContextTimeout
+	}
+
 	return &apiClient{
-		addr:   sanitizedAddr(addr),
-		client: http.Client{},
+		addr:       sanitizedAddr(addr),
+		client:     http.Client{},
+		apiTimeout: apiTimeout,
 	}
 }
 
@@ -81,7 +87,7 @@ func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops
 		return nil, nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.apiTimeout)
 	defer cancel()
 	req = req.WithContext(ctx)
 
