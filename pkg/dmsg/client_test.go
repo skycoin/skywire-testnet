@@ -13,6 +13,8 @@ import (
 )
 
 func TestClient(t *testing.T) {
+	const acceptChSize = 128
+
 	logger := logging.MustGetLogger("dms_client")
 
 	p1, p2 := net.Pipe()
