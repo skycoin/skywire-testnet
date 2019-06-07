@@ -18,6 +18,7 @@ func TestClient(t *testing.T) {
 	logger := logging.MustGetLogger("dms_client")
 
 	p1, p2 := net.Pipe()
+	p1, p2 = invertedIDConn{p1}, invertedIDConn{p2}
 
 	var pk1, pk2 cipher.PubKey
 	err := pk1.Set("024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7")
@@ -52,4 +53,16 @@ func TestClient(t *testing.T) {
 
 	err = tr.Close()
 	assert.NoError(t, err)
+}
+
+type invertedIDConn struct {
+	net.Conn
+}
+
+func (c invertedIDConn) Write(b []byte) (n int, err error) {
+	frame := Frame(b)
+
+	newID := randID(!isInitiatorID(frame.TpID()))
+	newFrame := MakeFrame(frame.Type(), newID, frame.Pay())
+	return c.Conn.Write(newFrame)
 }
