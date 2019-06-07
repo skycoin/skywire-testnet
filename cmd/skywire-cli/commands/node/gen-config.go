@@ -103,6 +103,7 @@ func defaultConfig() *node.Config {
 	conf.Routing.SetupNodes = []cipher.PubKey{sPK}
 	conf.Routing.Table.Type = "boltdb"
 	conf.Routing.Table.Location = "./skywire/routing.db"
+	conf.Routing.RouteFinderTimeout = node.Duration(10 * time.Second)
 
 	conf.ManagerNodes = []node.ManagerConfig{}
 

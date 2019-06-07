@@ -40,9 +40,10 @@ type Config struct {
 	} `json:"transport"`
 
 	Routing struct {
-		SetupNodes  []cipher.PubKey `json:"setup_nodes"`
-		RouteFinder string          `json:"route_finder"`
-		Table       struct {
+		SetupNodes         []cipher.PubKey `json:"setup_nodes"`
+		RouteFinder        string          `json:"route_finder"`
+		RouteFinderTimeout Duration        `json:"route_finder_timeout"`
+		Table              struct {
 			Type     string `json:"type"`
 			Location string `json:"location"`
 		} `json:"table"`
