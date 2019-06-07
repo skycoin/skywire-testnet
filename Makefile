@@ -171,6 +171,24 @@ docker-rerun: docker-stop
 	docker container start -i ${DOCKER_NODE}
 
 
+integration-startup: ## Starts up the required transports between 'skywire-node's of interactive testing environment
+	./integration/startup.sh
+
+integration-teardown: ## Tears down all saved configs and states of integration executables
+	./integration/tear-down.sh
+
+integration-run-generic: ## Runs the generic interactive testing environment
+	./integration/run-generic-env.sh
+
+integration-run-messaging: ## Runs the messaging interactive testing environment
+	./integration/run-messaging-env.sh
+
+integration-run-proxy: ## Runs the proxy interactive testing environment
+	./integration/run-proxy-env.sh
+
+integration-run-ssh: ## Runs the ssh interactive testing environment
+	./integration/run-ssh-env.sh
+
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	
