@@ -289,6 +289,10 @@ func (tm *Manager) Close() error {
 
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
 
+	if tm.isClosing() {
+		return nil, nil, errors.New("transport.Manager is closing. Skipping dialling transport")
+	}
+
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
 		return nil, nil, err
