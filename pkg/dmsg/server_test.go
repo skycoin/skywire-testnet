@@ -109,8 +109,8 @@ func TestNewClient(t *testing.T) {
 			pay := []byte(fmt.Sprintf("This is message %d!", j))
 
 			n, err := aTp.Write(pay)
-			require.Equal(t, len(pay), n)
 			require.NoError(t, err)
+			require.Equal(t, len(pay), n)
 
 			got := make([]byte, len(pay))
 			n, err = bTp.Read(got)
@@ -123,7 +123,7 @@ func TestNewClient(t *testing.T) {
 		require.NoError(t, aTp.Close())
 		require.NoError(t, bTp.Close())
 	}
-	wg.Wait()
+	//wg.Wait()
 
 	// Close server.
 	assert.NoError(t, s.Close())
