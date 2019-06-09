@@ -3,9 +3,6 @@ package transport
 import (
 	"math/big"
 	"sync"
-	"time"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/google/uuid"
 )
@@ -20,9 +17,9 @@ type ManagedTransport struct {
 	LogEntry *LogEntry
 
 	doneChan chan struct{}
-	doneOnce sync.Once
 	errChan  chan error
 	mu       sync.RWMutex
+	once     sync.Once
 
 	readLogChan  chan int
 	writeLogChan chan int
@@ -36,8 +33,8 @@ func newManagedTransport(id uuid.UUID, tr Transport, public bool, accepted bool)
 		Accepted:     accepted,
 		doneChan:     make(chan struct{}),
 		errChan:      make(chan error),
-		readLogChan:  make(chan int),
-		writeLogChan: make(chan int),
+		readLogChan:  make(chan int, 16),
+		writeLogChan: make(chan int, 16),
 		LogEntry:     &LogEntry{new(big.Int), new(big.Int)},
 	}
 }
@@ -47,19 +44,12 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Read(p) // TODO: data race.
 	tr.mu.RUnlock()
-	if err == nil {
-		select {
-		case <-tr.doneChan:
-			return
-		case tr.readLogChan <- n:
-		}
-		return
+
+	if err != nil {
+		tr.errChan <- err
 	}
-	select {
-	case <-tr.doneChan:
-		return
-	case tr.errChan <- err:
-	}
+
+	tr.readLogChan <- n
 	return
 }
 
@@ -68,40 +58,35 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Write(p)
 	tr.mu.RUnlock()
-	if err == nil {
-		select {
-		case <-tr.doneChan:
-			return
-		case tr.writeLogChan <- n:
-		}
+
+	if err != nil {
+		tr.errChan <- err
 		return
 	}
-	select {
-	case <-tr.doneChan:
-		return
-	case tr.errChan <- err:
-	}
+	tr.writeLogChan <- n
+
 	return
 }
 
-// Edges returns the edges of underlying transport.
-func (tr *ManagedTransport) Edges() [2]cipher.PubKey {
-	tr.mu.RLock()
-	edges := tr.Transport.Edges()
-	tr.mu.RUnlock()
-	return edges
+// killWorker sends signal to Manager.manageTransport goroutine to exit
+// it's safe to call it multiple times
+func (tr *ManagedTransport) killWorker() {
+	tr.once.Do(func() {
+		close(tr.doneChan)
+	})
 }
 
-// SetDeadline sets the deadline of the underlying transport.
-func (tr *ManagedTransport) SetDeadline(t time.Time) error {
+// Close closes underlying
+func (tr *ManagedTransport) Close() error {
 	tr.mu.RLock()
-	err := tr.Transport.SetDeadline(t)
+	err := tr.Transport.Close()
 	tr.mu.RUnlock()
+
+	tr.killWorker()
 	return err
 }
 
-// IsClosing determines whether is closing.
-func (tr *ManagedTransport) IsClosing() bool {
+func (tr *ManagedTransport) isClosing() bool {
 	select {
 	case <-tr.doneChan:
 		return true
@@ -110,17 +95,8 @@ func (tr *ManagedTransport) IsClosing() bool {
 	}
 }
 
-// Close closes underlying
-func (tr *ManagedTransport) Close() (err error) {
-	tr.mu.RLock()
-	err = tr.Transport.Close()
-	tr.mu.RUnlock()
-	tr.doneOnce.Do(func() { close(tr.doneChan) })
-	return err
-}
-
 func (tr *ManagedTransport) updateTransport(newTr Transport) {
 	tr.mu.Lock()
-	tr.Transport = newTr // TODO: data race.
+	tr.Transport = newTr
 	tr.mu.Unlock()
 }

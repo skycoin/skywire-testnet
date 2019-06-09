@@ -115,6 +115,9 @@ func settlementResponderHandshake() settlementHandshake {
 		} else {
 			err = tm.config.DiscoveryClient.RegisterTransports(context.Background(), recvSignedEntry)
 		}
+		if err != nil {
+			return nil, err
+		}
 		if err := json.NewEncoder(tr).Encode(recvSignedEntry); err != nil {
 			return nil, fmt.Errorf("failed to write entry: %s", err)
 		}

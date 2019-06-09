@@ -198,27 +198,6 @@ func TestSettlementHandshake(t *testing.T) {
 
 }
 
-//func TestSettlementHandshakeInvalidSig(t *testing.T) {
-//	mockEnv := newHsMockEnv()
-//
-//	require.NoError(t, mockEnv.err1)
-//	require.NoError(t, mockEnv.err2)
-//
-//	go settlementInitiatorHandshake(true)(mockEnv.m1, mockEnv.tr1) // nolint: errcheck
-//	_, err := settlementResponderHandshake()(mockEnv.m2, mockEnv.tr2)
-//	require.Error(t, err)
-//	//assert.Equal(t, "Recovered pubkey does not match pubkey", err.Error())
-//
-//	in, out := net.Pipe()
-//	tr1 := NewMockTransport(in, mockEnv.pk1, mockEnv.pk2)
-//	tr2 := NewMockTransport(out, mockEnv.pk2, mockEnv.pk1)
-//
-//	go settlementResponderHandshake()(mockEnv.m1, tr2) // nolint: errcheck
-//	_, err = settlementInitiatorHandshake(true)(mockEnv.m1, tr1)
-//	require.Error(t, err)
-//	//assert.Equal(t, "Recovered pubkey does not match pubkey", err.Error())
-//}
-
 func TestSettlementHandshakePrivate(t *testing.T) {
 	mockEnv := newHsMockEnv()
 
