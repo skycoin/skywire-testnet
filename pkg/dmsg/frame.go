@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"sync/atomic"
 	"time"
 
@@ -16,11 +17,11 @@ const (
 	// Type returns the transport type string.
 	Type = "dmsg"
 
-	hsTimeout     = time.Second * 10
-	readTimeout   = time.Second * 10
-	acceptTimeout = time.Second * 5
-	readChSize    = 20
-	headerLen     = 5 // fType(1 byte), chID(2 byte), payLen(2 byte)
+	hsTimeout    = time.Second * 10
+	tpBufCap     = math.MaxUint16
+	tpAckCap     = math.MaxUint8
+	acceptChSize = 20
+	headerLen    = 5 // fType(1 byte), chID(2 byte), payLen(2 byte)
 )
 
 func isInitiatorID(tpID uint16) bool { return tpID%2 == 0 }
