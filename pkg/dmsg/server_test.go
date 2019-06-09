@@ -146,6 +146,7 @@ func TestServer_Serve(t *testing.T) {
 		initiators := make([]*Client, 0, initiatorsCount)
 		remotes := make([]*Client, 0, remotesCount)
 
+		// create initiators
 		for i := 0; i < initiatorsCount; i++ {
 			pk, sk := cipher.GenerateKeyPair()
 
@@ -157,6 +158,7 @@ func TestServer_Serve(t *testing.T) {
 			initiators = append(initiators, c)
 		}
 
+		// create remotes
 		for i := 0; i < remotesCount; i++ {
 			pk, sk := cipher.GenerateKeyPair()
 
@@ -188,6 +190,7 @@ func TestServer_Serve(t *testing.T) {
 		for _, connectionsCount := range usedRemotes {
 			totalRemoteTpsCount += connectionsCount
 		}
+
 		acceptErrs := make(chan error, totalRemoteTpsCount)
 		remotesTps := make(map[int][]transport.Transport, len(usedRemotes))
 		var remotesWG sync.WaitGroup
@@ -196,7 +199,7 @@ func TestServer_Serve(t *testing.T) {
 			if _, ok := usedRemotes[i]; ok {
 				for connect := 0; connect < usedRemotes[i]; connect++ {
 					// run remotes
-					go func(remoteInd, conn int) {
+					go func(remoteInd int) {
 						var (
 							transport transport.Transport
 							err       error
@@ -209,16 +212,14 @@ func TestServer_Serve(t *testing.T) {
 
 						remotesTps[remoteInd] = append(remotesTps[remoteInd], transport)
 
-						log.Printf("Remote %v with conn %v done", remoteInd, conn)
-
 						remotesWG.Done()
-					}(i, connect)
+					}(i)
 				}
 			}
 		}
 
 		dialErrs := make(chan error, initiatorsCount)
-		initiatorsTps := make([]transport.Transport, initiatorsCount)
+		initiatorsTps := make([]transport.Transport, 0, initiatorsCount)
 		var initiatorsWG sync.WaitGroup
 		initiatorsWG.Add(initiatorsCount)
 		for i := range initiators {
@@ -255,45 +256,38 @@ func TestServer_Serve(t *testing.T) {
 		// single error should fail test
 		require.NoError(t, err)
 
+		// check ServerConn's count
 		require.Equal(t, len(usedRemotes)+initiatorsCount, len(s.conns))
 
-		for i, remote := range remotes {
-			serverConn, connExists := s.conns[remote.pk]
-			if _, remoteUsed := usedRemotes[i]; remoteUsed {
-				require.Equal(t, true, connExists)
-				require.Equal(t, remote.pk, serverConn.remoteClient)
-
-				clientConn, ok := remote.conns[sPK]
-				require.Equal(t, true, ok)
-				require.Equal(t, sPK, clientConn.remoteSrv)
-			} else {
-				require.Equal(t, false, connExists)
-			}
-		}
-
 		for i, initiator := range initiators {
+			// get and check initiator's ServerConn
 			initiatorServConn, ok := s.conns[initiator.pk]
 			require.Equal(t, true, ok)
 			require.Equal(t, initiator.pk, initiatorServConn.remoteClient)
 
+			// get and check initiator's ClientConn
 			initiatorClientConn, ok := initiator.conns[sPK]
 			require.Equal(t, true, ok)
 			require.Equal(t, sPK, initiatorClientConn.remoteSrv)
 
 			remote := remotes[pickedRemotes[i]]
 
+			// get and check remote's ServerConn
 			remoteServConn, ok := s.conns[remote.pk]
 			require.Equal(t, true, ok)
 			require.Equal(t, remote.pk, remoteServConn.remoteClient)
 
+			// get and check remote's ClientConn
 			remoteClientConn, ok := remote.conns[sPK]
 			require.Equal(t, true, ok)
 			require.Equal(t, sPK, remoteClientConn.remoteSrv)
 
+			// get initiator's nextConn
 			initiatorNextConn := initiatorServConn.nextConns[initiatorClientConn.nextInitID-2]
 			require.NotNil(t, initiatorNextConn)
+
 			correspondingNextConnFound := false
-			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID-- {
+			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID -= 2 {
 				if initiatorNextConn.id == nextConnID {
 					correspondingNextConnFound = true
 					break
@@ -302,10 +296,12 @@ func TestServer_Serve(t *testing.T) {
 			require.Equal(t, true, correspondingNextConnFound)
 
 			correspondingNextConnFound = false
-			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID-- {
-				if remoteServConn.nextConns[nextConnID].id == initiatorClientConn.nextInitID-2 {
-					correspondingNextConnFound = true
-					break
+			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID -= 2 {
+				if remoteServConn.nextConns[nextConnID] != nil {
+					if remoteServConn.nextConns[nextConnID].id == initiatorClientConn.nextInitID-2 {
+						correspondingNextConnFound = true
+						break
+					}
 				}
 			}
 			require.Equal(t, true, correspondingNextConnFound)
