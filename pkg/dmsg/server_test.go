@@ -45,16 +45,15 @@ func TestServer_Serve(t *testing.T) {
 	dc := client.NewMock()
 
 	l, err := nettest.NewLocalListener("tcp")
-	//l, err := net.Listen("tcp", ":8089")
 	require.NoError(t, err)
 
 	s, err := NewServer(sPK, sSK, l, dc)
 	require.NoError(t, err)
 
-	go s.Serve()
+	go s.Serve() //nolint:errcheck
 
 	// connect two clients, establish transport, check if there are
-	// two ServerConn's and that both conn's `nextLink` is filled correctly
+	// two ServerConn's and that both conn's `nextConn` is filled correctly
 	t.Run("test transport establishment", func(t *testing.T) {
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
