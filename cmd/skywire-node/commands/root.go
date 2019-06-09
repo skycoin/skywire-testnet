@@ -3,6 +3,7 @@ package commands
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"log/syslog"
@@ -16,6 +17,10 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
+	"net/http"
+	_ "net/http/pprof" //no_lint
+
+	"github.com/pkg/profile"
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
@@ -27,12 +32,34 @@ var (
 	syslogAddr   string
 	tag          string
 	cfgFromStdin bool
+	profileMode  string
+	pport        string
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "skywire-node [config-path]",
 	Short: "App Node for skywire",
 	Run: func(_ *cobra.Command, args []string) {
+
+		profilePath := profile.ProfilePath("./logs/" + tag)
+		switch profileMode {
+		case "cpu":
+			defer profile.Start(profilePath, profile.CPUProfile).Stop()
+		case "mem":
+			defer profile.Start(profilePath, profile.MemProfile).Stop()
+		case "mutex":
+			defer profile.Start(profilePath, profile.MutexProfile).Stop()
+		case "block":
+			defer profile.Start(profilePath, profile.BlockProfile).Stop()
+		case "trace":
+			defer profile.Start(profilePath, profile.TraceProfile).Stop()
+		case "http":
+			go func() {
+				log.Println(http.ListenAndServe(fmt.Sprintf("localhost:%v", pport), nil))
+			}()
+		default:
+			// do nothing
+		}
 
 		logger := logging.MustGetLogger(tag)
 
@@ -102,6 +129,8 @@ func init() {
 	rootCmd.Flags().StringVarP(&syslogAddr, "syslog", "", "none", "syslog server address. E.g. localhost:514")
 	rootCmd.Flags().StringVarP(&tag, "tag", "", "skywire", "logging tag")
 	rootCmd.Flags().BoolVarP(&cfgFromStdin, "stdin", "i", false, "read config from STDIN")
+	rootCmd.Flags().StringVarP(&profileMode, "pprof", "p", "none", "enable profiling with pprof. Mode:  none or one of: [cpu, mem, mutex, block, trace, http]")
+	rootCmd.Flags().StringVarP(&pport, "pport", "", "6060", "port for http-mode of pprof")
 }
 
 // Execute executes root CLI command.
