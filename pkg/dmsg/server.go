@@ -297,7 +297,7 @@ func (s *Server) Serve() error {
 		return fmt.Errorf("updating server's discovery entry failed with: %s", err)
 	}
 
-	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, s.Addr())
+	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, s.addr)
 
 	for {
 		rawConn, err := s.lis.Accept()
@@ -324,7 +324,7 @@ func (s *Server) Serve() error {
 func (s *Server) updateDiscEntry(ctx context.Context) error {
 	entry, err := s.dc.Entry(ctx, s.pk)
 	if err != nil {
-		entry = client.NewServerEntry(s.pk, 0, s.Addr(), 10)
+		entry = client.NewServerEntry(s.pk, 0, s.addr, 10)
 		if err := entry.Sign(s.sk); err != nil {
 			return err
 		}
