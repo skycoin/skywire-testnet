@@ -36,42 +36,51 @@ var (
 	pport        string
 )
 
+func startProfiler(tag, profileMode, pport string) interface{ Stop() } {
+	profilePath := profile.ProfilePath("./logs/" + tag)
+	switch profileMode {
+	case "cpu":
+		return profile.Start(profilePath, profile.CPUProfile)
+	case "mem":
+		return profile.Start(profilePath, profile.MemProfile)
+	case "mutex":
+		return profile.Start(profilePath, profile.MutexProfile)
+	case "block":
+		return profile.Start(profilePath, profile.BlockProfile)
+	case "trace":
+		return profile.Start(profilePath, profile.TraceProfile)
+	case "http":
+		go func() {
+			log.Println(http.ListenAndServe(fmt.Sprintf("localhost:%v", pport), nil))
+		}()
+	default:
+	}
+	return profile.Start()
+}
+
+func startLogger(tag, syslogAddr string) *logging.Logger {
+	logger := logging.MustGetLogger(tag)
+
+	if syslogAddr != "none" {
+		hook, err := logrus_syslog.NewSyslogHook("udp", syslogAddr, syslog.LOG_INFO, tag)
+		if err != nil {
+			logger.Error("Unable to connect to syslog daemon")
+		} else {
+			logging.AddHook(hook)
+		}
+	}
+	return logger
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "skywire-node [config-path]",
 	Short: "App Node for skywire",
 	Run: func(_ *cobra.Command, args []string) {
 
-		profilePath := profile.ProfilePath("./logs/" + tag)
-		switch profileMode {
-		case "cpu":
-			defer profile.Start(profilePath, profile.CPUProfile).Stop()
-		case "mem":
-			defer profile.Start(profilePath, profile.MemProfile).Stop()
-		case "mutex":
-			defer profile.Start(profilePath, profile.MutexProfile).Stop()
-		case "block":
-			defer profile.Start(profilePath, profile.BlockProfile).Stop()
-		case "trace":
-			defer profile.Start(profilePath, profile.TraceProfile).Stop()
-		case "http":
-			go func() {
-				log.Println(http.ListenAndServe(fmt.Sprintf("localhost:%v", pport), nil))
-			}()
-		default:
-			// do nothing
-		}
+		defer startProfiler(tag, profileMode, pport).Stop()
+		logger := startLogger(tag, syslogAddr)
 
-		logger := logging.MustGetLogger(tag)
-
-		if syslogAddr != "none" {
-			hook, err := logrus_syslog.NewSyslogHook("udp", syslogAddr, syslog.LOG_INFO, tag)
-			if err != nil {
-				logger.Error("Unable to connect to syslog daemon")
-			} else {
-				logging.AddHook(hook)
-			}
-		}
-
+		// config
 		var rdr io.Reader
 		var err error
 		if !cfgFromStdin {
@@ -95,6 +104,7 @@ var rootCmd = &cobra.Command{
 			logger.Fatal("Failed to initialise node: ", err)
 		}
 
+		// Start
 		go func() {
 			if err := node.Start(); err != nil {
 				logger.Fatal("Failed to start node: ", err)
