@@ -3,7 +3,6 @@ package transport
 import (
 	"math/big"
 	"sync"
-	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -17,10 +16,10 @@ type ManagedTransport struct {
 	Accepted bool
 	LogEntry *LogEntry
 
-	doneChan  chan struct{}
-	errChan   chan error
-	isClosing int32
-	mu        sync.RWMutex
+	doneChan chan struct{}
+	errChan  chan error
+	mu       sync.RWMutex
+	once     sync.Once
 
 	readLogChan  chan int
 	writeLogChan chan int
@@ -34,8 +33,8 @@ func newManagedTransport(id uuid.UUID, tr Transport, public bool, accepted bool)
 		Accepted:     accepted,
 		doneChan:     make(chan struct{}),
 		errChan:      make(chan error),
-		readLogChan:  make(chan int),
-		writeLogChan: make(chan int),
+		readLogChan:  make(chan int, 16),
+		writeLogChan: make(chan int, 16),
 		LogEntry:     &LogEntry{new(big.Int), new(big.Int)},
 	}
 }
@@ -45,22 +44,12 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Read(p) // TODO: data race.
 	tr.mu.RUnlock()
-	if err == nil {
-		select {
-		case <-tr.doneChan:
-			return
-		case tr.readLogChan <- n:
-		}
 
-		return
+	if err != nil {
+		tr.errChan <- err
 	}
 
-	select {
-	case <-tr.doneChan:
-		return
-	case tr.errChan <- err:
-	}
-
+	tr.readLogChan <- n
 	return
 }
 
@@ -69,42 +58,41 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Write(p)
 	tr.mu.RUnlock()
-	if err == nil {
-		select {
-		case <-tr.doneChan:
-			return
-		case tr.writeLogChan <- n:
-		}
 
+	if err != nil {
+		tr.errChan <- err
 		return
 	}
-
-	select {
-	case <-tr.doneChan:
-		return
-	case tr.errChan <- err:
-	}
+	tr.writeLogChan <- n
 
 	return
 }
 
+// killWorker sends signal to Manager.manageTransport goroutine to exit
+// it's safe to call it multiple times
+func (tr *ManagedTransport) killWorker() {
+	tr.once.Do(func() {
+		close(tr.doneChan)
+	})
+}
+
 // Close closes underlying
 func (tr *ManagedTransport) Close() error {
-
-	atomic.StoreInt32(&tr.isClosing, 1)
-
 	tr.mu.RLock()
 	err := tr.Transport.Close()
 	tr.mu.RUnlock()
 
+	tr.killWorker()
+	return err
+}
+
+func (tr *ManagedTransport) isClosing() bool {
 	select {
 	case <-tr.doneChan:
+		return true
 	default:
-
-		close(tr.doneChan)
+		return false
 	}
-
-	return err
 }
 
 func (tr *ManagedTransport) updateTransport(newTr Transport) {
