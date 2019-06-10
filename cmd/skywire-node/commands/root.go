@@ -45,7 +45,6 @@ type runCfg struct {
 var cfg *runCfg
 
 func (cfg *runCfg) startProfiler() *runCfg {
-	log.Println("profile mode == ", cfg.profileMode)
 	var option func(*profile.Profile)
 	switch cfg.profileMode {
 	case "none":
