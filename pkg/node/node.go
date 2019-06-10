@@ -2,15 +2,19 @@
 package node
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"io"
 	"net"
 	"net/rpc"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -151,6 +155,7 @@ func NewNode(config *Config) (*Node, error) {
 		RoutingTable:     node.rt,
 		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
 		SetupNodes:       config.Routing.SetupNodes,
+
 	}
 	r := router.New(rConfig)
 	node.router = r
@@ -203,6 +208,8 @@ func (node *Node) Start() error {
 	}
 	node.logger.Info("Connected to messaging servers")
 
+	pathutil.EnsureDir(node.dir())
+	node.closePreviousApps()
 	for _, ac := range node.appsConf {
 		if !ac.AutoStart {
 			continue
@@ -237,6 +244,58 @@ func (node *Node) Start() error {
 	}
 
 	return nil
+}
+
+func (node *Node) dir() string {
+	return pathutil.NodeDir(node.config.Node.StaticPubKey)
+}
+
+func (node *Node) pidFile() *os.File {
+	f, err := os.OpenFile(filepath.Join(node.dir(),"apps.pid"), os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	return f
+}
+
+func (node *Node) closePreviousApps() {
+	pids := node.pidFile()
+	defer pids.Close() // nocheck: err
+
+	scanner := bufio.NewScanner(pids)
+	for scanner.Scan() {
+		appInfo := strings.Split(scanner.Text(), " ")
+		if len(appInfo) != 2 {
+			node.logger.Fatal("error parsing %s. Err: %s", pids.Name(), errors.New("line should be: [app name] [pid]"))
+		}
+
+		pid, err := strconv.Atoi(appInfo[1])
+		if err != nil {
+			node.logger.Fatal("error parsing %s. Err: %s", pids.Name(), err)
+		}
+
+		node.stopUnhandledApp(appInfo[0], pid)
+	}
+
+	// empty file
+	pathutil.AtomicWriteFile(pids.Name(), []byte{})
+}
+
+func (node *Node) stopUnhandledApp(name string, pid int) {
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		node.logger.Infof("Previous app %s ran by this node with pid: %d not found", name, pid)
+		return
+	}
+
+	err = p.Signal(syscall.SIGKILL)
+	if err != nil {
+		node.logger.Warnf("Found hanged app %s with pid %d previously ran by this node, but unable to kill it: %s", name, pid, err)
+		return
+	}
+
+	node.logger.Infof("Found and killed hanged app %s with pid %d previously ran by this node", name, pid)
 }
 
 // Close safely stops spawned Apps and messaging Node.
@@ -357,6 +416,8 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 		bind.pid = pid
 		node.startedMu.Unlock()
 		appCh <- node.executer.Wait(cmd)
+
+		node.persistPID(config.App, pid)
 	}()
 
 	srvCh := make(chan error)
@@ -387,6 +448,11 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 	node.startedMu.Unlock()
 
 	return appErr
+}
+
+func (node *Node) persistPID(name string, pid int) {
+	pidF := node.pidFile()
+	pathutil.AtomicAppendToFile(pidF.Name(), []byte(fmt.Sprintf("%s %d\n", name, pid)))
 }
 
 // StopApp stops running App.
@@ -445,6 +511,7 @@ func (exc *osExecuter) Start(cmd *exec.Cmd) (int, error) {
 	exc.mu.Lock()
 	exc.processes = append(exc.processes, cmd.Process)
 	exc.mu.Unlock()
+
 	return cmd.Process.Pid, nil
 }
 
@@ -457,7 +524,7 @@ func (exc *osExecuter) Stop(pid int) (err error) {
 			continue
 		}
 
-		if sigErr := process.Signal(syscall.SIGTERM); sigErr != nil && err == nil {
+		if sigErr := process.Signal(syscall.SIGKILL); sigErr != nil && err == nil {
 			err = sigErr
 		}
 	}

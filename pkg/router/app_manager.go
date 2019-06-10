@@ -3,9 +3,7 @@ package router
 import (
 	"encoding/json"
 	"errors"
-
 	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/skycoin/skywire/pkg/app"
 )
 
@@ -97,3 +95,4 @@ func (am *appManager) forwardAppPacket(payload []byte) error {
 
 	return am.callbacks.Forward(am.proto, packet)
 }
+
