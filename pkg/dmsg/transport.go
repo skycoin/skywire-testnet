@@ -57,6 +57,7 @@ func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKe
 		remote:   remote,
 		inCh:     make(chan Frame),
 		ackBuf:   make([]byte, 0, tpAckCap),
+		buf:      make(net.Buffers, 0, tpBufFrameCap),
 		bufCh:    make(chan struct{}, 1),
 		done:     make(chan struct{}),
 		doneFunc: doneFunc,
