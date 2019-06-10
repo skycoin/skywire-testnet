@@ -12,7 +12,7 @@ func TestUint16AckWaiter_Wait(t *testing.T) {
 	seqChan := make(chan Uint16Seq)
 	defer close(seqChan)
 	for i := 0; i < 64; i++ {
-		go w.Wait(context.TODO(), func(seq Uint16Seq) error { //nolint:errcheck
+		go w.Wait(context.TODO(), func(seq Uint16Seq) error { //nolint:errcheck,unparam
 			seqChan <- seq
 			return nil
 		})

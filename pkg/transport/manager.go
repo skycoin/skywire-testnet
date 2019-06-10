@@ -345,19 +345,6 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	return mTr, nil
 }
 
-func (tm *Manager) walkEntries(walkFunc func(*Entry) bool) *Entry {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
-	for entry := range tm.entries {
-		if walkFunc(&entry) {
-			return &entry
-		}
-	}
-
-	return nil
-}
-
 func (tm *Manager) addEntry(entry *Entry) {
 	tm.mu.Lock()
 	tm.entries[*entry] = struct{}{}
