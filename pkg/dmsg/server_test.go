@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skywire/internal/noise"
+
 	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -145,7 +147,12 @@ func TestNewServer(t *testing.T) {
 	l, err := net.Listen("tcp", "")
 	require.NoError(t, err)
 
-	s, err := NewServer(sPK, sSK, l, dc)
+	// must fail on already wrapped listener
+	wrappedL := noise.WrapListener(l, sPK, sSK, false, noise.HandshakeXK)
+	s, err := NewServer(sPK, sSK, wrappedL, dc)
+	require.Equal(t, ErrListenerAlreadyWrappedToNoise, err)
+
+	s, err = NewServer(sPK, sSK, l, dc)
 	require.NoError(t, err)
 
 	go s.Serve() //nolint:errcheck
