@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"net"
 	"sync"
@@ -22,6 +23,119 @@ import (
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport"
 )
+
+func TestServerConn_AddNext(t *testing.T) {
+	type want struct {
+		id      uint16
+		wantErr bool
+	}
+
+	pk, _ := cipher.GenerateKeyPair()
+
+	var fullNextConns [math.MaxUint16 + 1]*NextConn
+	fullNextConns[1] = &NextConn{}
+	for i := uint16(3); i != 1; i += 2 {
+		fullNextConns[i] = &NextConn{}
+	}
+
+	timeoutCtx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
+
+	cases := []struct {
+		name       string
+		conn       *ServerConn
+		ctx        context.Context
+		nextConnID uint16
+		want       want
+	}{
+		{
+			name: "ok",
+			conn: &ServerConn{
+				remoteClient: pk,
+				log:          logging.MustGetLogger("ServerConn"),
+				nextRespID:   1,
+			},
+			ctx: context.Background(),
+			want: want{
+				id: 1,
+			},
+		},
+		{
+			name: "ok, skip 1",
+			conn: &ServerConn{
+				remoteClient: pk,
+				log:          logging.MustGetLogger("ServerConn"),
+				nextRespID:   1,
+				nextConns: [math.MaxUint16 + 1]*NextConn{
+					1: {},
+				},
+			},
+			ctx: context.Background(),
+			want: want{
+				id: 3,
+			},
+		},
+		{
+			name: "fail - timed out",
+			conn: &ServerConn{
+				remoteClient: pk,
+				log:          logging.MustGetLogger("ServerConn"),
+				nextRespID:   1,
+				nextConns:    fullNextConns,
+			},
+			ctx: timeoutCtx,
+			want: want{
+				wantErr: true,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			id, err := tc.conn.addNext(tc.ctx, &NextConn{})
+
+			if tc.want.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			if err != nil {
+				return
+			}
+
+			require.Equal(t, tc.want.id, id)
+		})
+	}
+
+	// concurrent
+	connsCount := 50
+
+	serverConn := &ServerConn{
+		log:          logging.MustGetLogger("ServerConn"),
+		remoteClient: pk,
+		nextRespID:   1,
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(connsCount)
+	for i := 0; i < connsCount; i++ {
+		go func() {
+			_, err := serverConn.addNext(context.Background(), &NextConn{})
+			require.NoError(t, err)
+
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	for i := uint16(1); i < uint16(connsCount*2); i += 2 {
+		require.NotNil(t, serverConn.nextConns[i])
+	}
+
+	for i := uint16(connsCount*2 + 1); i != 1; i += 2 {
+		require.Nil(t, serverConn.nextConns[i])
+	}
+}
 
 // Ensure Server starts and quits with no error.
 func TestNewServer(t *testing.T) {
