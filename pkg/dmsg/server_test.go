@@ -288,8 +288,8 @@ func TestServer_Serve(t *testing.T) {
 	})
 
 	t.Run("test transport establishment concurrently", func(t *testing.T) {
-		initiatorsCount := 2
-		remotesCount := 1
+		initiatorsCount := 4
+		remotesCount := 4
 
 		initiators := make([]*Client, 0, initiatorsCount)
 		remotes := make([]*Client, 0, remotesCount)
@@ -347,7 +347,7 @@ func TestServer_Serve(t *testing.T) {
 			if _, ok := usedRemotes[i]; ok {
 				for connect := 0; connect < usedRemotes[i]; connect++ {
 					// run remotes
-					go func(remoteInd int) {
+					go func(remoteInd, conn int) {
 						var (
 							transport transport.Transport
 							err       error
@@ -360,8 +360,10 @@ func TestServer_Serve(t *testing.T) {
 
 						remotesTps[remoteInd] = append(remotesTps[remoteInd], transport)
 
+						log.Printf("Remote %v with conn %v done", remoteInd, conn)
+
 						remotesWG.Done()
-					}(i)
+					}(i, connect)
 				}
 			}
 		}
@@ -386,6 +388,8 @@ func TestServer_Serve(t *testing.T) {
 
 				initiatorsTps = append(initiatorsTps, transport)
 
+				log.Printf("Initiator %v done", initiatorInd)
+
 				initiatorsWG.Done()
 			}(i)
 		}
@@ -396,6 +400,8 @@ func TestServer_Serve(t *testing.T) {
 		err = <-dialErrs
 		// single error should fail test
 		require.NoError(t, err)
+
+		log.Printf("Initiators all done")
 
 		// wait for remotes
 		remotesWG.Wait()
