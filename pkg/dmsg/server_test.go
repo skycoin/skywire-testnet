@@ -2,6 +2,7 @@ package dmsg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -68,23 +69,20 @@ func TestServer_Serve(t *testing.T) {
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
-		aDone := make(chan error)
+		aDone := make(chan struct{})
 		var aTransport transport.Transport
+		var aErr error
 		go func() {
-			// avoid ambiguity between this and the outer one
-			var err error
+			aTransport, aErr = a.Accept(context.Background())
 
-			aTransport, err = a.Accept(context.Background())
-
-			aDone <- err
 			close(aDone)
 		}()
 
 		bTransport, err := b.Dial(context.Background(), aPK)
 		require.NoError(t, err)
 
-		err = <-aDone
-		require.NoError(t, err)
+		<-aDone
+		require.NoError(t, aErr)
 
 		// must be 2 ServerConn's
 		require.Equal(t, 2, len(s.conns))
@@ -131,11 +129,41 @@ func TestServer_Serve(t *testing.T) {
 		err = b.Close()
 		require.NoError(t, err)
 
-		time.Sleep(5 * time.Second)
+		require.NoError(t, testWithTimeout(t, 5*time.Second, func() error {
+			s.mx.Lock()
+			l := len(s.conns)
+			s.mx.Unlock()
 
-		require.Equal(t, 0, len(s.conns))
-		require.Equal(t, 0, len(a.conns))
-		require.Equal(t, 0, len(b.conns))
+			if l != 0 {
+				return errors.New("s.conns is not empty")
+			}
+
+			return nil
+		}))
+
+		require.NoError(t, testWithTimeout(t, 5*time.Second, func() error {
+			a.mx.Lock()
+			l := len(a.conns)
+			a.mx.Unlock()
+
+			if l != 0 {
+				return errors.New("a.conns is not empty")
+			}
+
+			return nil
+		}))
+
+		require.NoError(t, testWithTimeout(t, 5*time.Second, func() error {
+			b.mx.Lock()
+			l := len(b.conns)
+			b.mx.Unlock()
+
+			if l != 0 {
+				return errors.New("b.conns is not empty")
+			}
+
+			return nil
+		}))
 	})
 
 	t.Run("test transport establishment concurrently", func(t *testing.T) {
@@ -328,16 +356,44 @@ func TestServer_Serve(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		time.Sleep(10 * time.Second)
+		require.NoError(t, testWithTimeout(t, 10*time.Second, func() error {
+			s.mx.Lock()
+			l := len(s.conns)
+			s.mx.Unlock()
 
-		require.Equal(t, 0, len(s.conns))
+			if l != 0 {
+				return errors.New("s.conns is not empty")
+			}
 
-		for _, remote := range remotes {
-			require.Equal(t, 0, len(remote.conns))
+			return nil
+		}))
+
+		for i, remote := range remotes {
+			require.NoError(t, testWithTimeout(t, 10*time.Second, func() error {
+				remote.mx.Lock()
+				l := len(remote.conns)
+				remote.mx.Unlock()
+
+				if l != 0 {
+					return errors.New(fmt.Sprintf("remotes[%v].conns is not empty", i))
+				}
+
+				return nil
+			}))
 		}
 
-		for _, initiator := range initiators {
-			require.Equal(t, 0, len(initiator.conns))
+		for i, initiator := range initiators {
+			require.NoError(t, testWithTimeout(t, 10*time.Second, func() error {
+				initiator.mx.Lock()
+				l := len(initiator.conns)
+				initiator.mx.Unlock()
+
+				if l != 0 {
+					return errors.New(fmt.Sprintf("initiators[%v].conns is not empty", i))
+				}
+
+				return nil
+			}))
 		}
 	})
 }
@@ -456,4 +512,22 @@ func catch(err error) {
 
 func TestNewConn(t *testing.T) {
 
+}
+
+func testWithTimeout(t *testing.T, timeout time.Duration, run func() error) error {
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	for {
+		if err := run(); err != nil {
+			select {
+			case <-timer.C:
+				return err
+			default:
+				continue
+			}
+		}
+
+		return nil
+	}
 }
