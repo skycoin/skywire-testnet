@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/noise"
@@ -36,18 +38,73 @@ type ClientConn struct {
 	// locally-initiated tps use an even tp_id between local and intermediary dms_server.
 	nextInitID uint16
 
-	// map of transports to remote dms_clients (key: tp_id, val: transport).
+	// Transports: map of transports to remote dms_clients (key: tp_id, val: transport).
 	tps [math.MaxUint16 + 1]*Transport
-	mx  sync.RWMutex // to protect tps.
+	mx  sync.RWMutex // to protect tps
 
-	wg sync.WaitGroup
+	done chan struct{}
+	once sync.Once
+	wg   sync.WaitGroup
 }
 
 // NewClientConn creates a new ClientConn.
 func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubKey) *ClientConn {
-	cc := &ClientConn{log: log, Conn: conn, local: local, remoteSrv: remote, nextInitID: randID(true)}
+	cc := &ClientConn{
+		log:        log,
+		Conn:       conn,
+		local:      local,
+		remoteSrv:  remote,
+		nextInitID: randID(true),
+		done:       make(chan struct{}),
+	}
 	cc.wg.Add(1)
 	return cc
+}
+
+func (c *ClientConn) getNextInitID(ctx context.Context) (uint16, error) {
+	for {
+		select {
+		case <-c.done:
+			return 0, ErrClientClosed
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		default:
+			if ch := c.tps[c.nextInitID]; ch != nil && !ch.IsClosed() {
+				c.nextInitID += 2
+				continue
+			}
+			c.tps[c.nextInitID] = nil
+			id := c.nextInitID
+			c.nextInitID = id + 2
+			return id, nil
+		}
+	}
+}
+
+func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+
+	id, err := c.getNextInitID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tp := NewTransport(c.Conn, c.log, c.local, clientPK, id, c.delTp)
+	c.tps[id] = tp
+	return tp, nil
+}
+
+func (c *ClientConn) acceptTp(clientPK cipher.PubKey, id uint16) (*Transport, error) {
+	tp := NewTransport(c.Conn, c.log, c.local, clientPK, id, c.delTp)
+
+	c.mx.Lock()
+	c.tps[tp.id] = tp
+	c.mx.Unlock()
+
+	if err := tp.WriteAccept(); err != nil {
+		return nil, err
+	}
+	return tp, nil
 }
 
 func (c *ClientConn) delTp(id uint16) {
@@ -56,74 +113,44 @@ func (c *ClientConn) delTp(id uint16) {
 	c.mx.Unlock()
 }
 
-func (c *ClientConn) setTp(tp *Transport) {
-	c.mx.Lock()
-	c.tps[tp.id] = tp
-	c.mx.Unlock()
-}
-
-// keeps record of a locally-initiated tp to 'clientPK'.
-// assigns an even tp_id and keeps track of it in tps map.
-func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
-	c.mx.Lock()
-	defer c.mx.Unlock()
-
-	for {
-		if ch := c.tps[c.nextInitID]; ch == nil || ch.IsDone() {
-			break
-		}
-		c.nextInitID += 2
-
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-	}
-
-	id := c.nextInitID
-	c.nextInitID = id + 2
-	ch := NewTransport(c.Conn, c.log, c.local, clientPK, id)
-	c.tps[id] = ch
-	return ch, nil
-}
-
 func (c *ClientConn) getTp(id uint16) (*Transport, bool) {
 	c.mx.RLock()
 	tp := c.tps[id]
 	c.mx.RUnlock()
-	ok := tp != nil && !tp.IsDone()
+	ok := tp != nil && !tp.IsClosed()
 	return tp, ok
 }
 
 func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
-	// remote-initiated tps should:
+	// remotely-initiated tps should:
 	// - have a payload structured as 'init_pk:resp_pk'.
 	// - resp_pk should be of local client.
-	// - use an odd tp_id with the intermediary dms_server.
+	// - use an odd tp_id with the intermediary dmsg_server.
 	initPK, respPK, ok := splitPKs(p)
 	if !ok || respPK != c.local || isInitiatorID(id) {
 		if err := writeCloseFrame(c.Conn, id, 0); err != nil {
-			c.Close()
 			return initPK, err
 		}
 		return initPK, ErrRequestCheckFailed
 	}
-
-	tp := NewTransport(c.Conn, c.log, c.local, initPK, id)
-	if err := tp.Handshake(ctx); err != nil {
-		// return err here as response handshake is send via ClientConn and that shouldn't fail.
-		c.Close()
+	tp, err := c.acceptTp(initPK, id)
+	if err != nil {
 		return initPK, err
 	}
-	c.setTp(tp)
+	go tp.Serve()
 
 	select {
+	case <-c.done:
+		_ = tp.Close() //nolint:errcheck
+		return initPK, ErrClientClosed
+
 	case <-ctx.Done():
+		_ = tp.Close() //nolint:errcheck
 		return initPK, ctx.Err()
+
 	case accept <- tp:
+		return initPK, nil
 	}
-	return initPK, nil
 }
 
 // Serve handles incoming frames.
@@ -133,10 +160,17 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 
 	log := c.log.WithField("remoteServer", c.remoteSrv)
 
-	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
+	log.WithField("connCount", incrementServeCount()).
+		Infoln("ServingConn")
 	defer func() {
-		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
+		log.WithError(err).
+			WithField("connCount", decrementServeCount()).
+			Infoln("ClosingConn")
 	}()
+
+	closeConn := func(log *logrus.Entry) {
+		log.WithError(c.Close()).Warn("ClosingConnection")
+	}
 
 	for {
 		f, err := readFrame(c.Conn)
@@ -147,39 +181,49 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 
 		ft, id, p := f.Disassemble()
 
+		// If tp of tp_id exists, attempt to forward frame to tp.
+		// delete tp on any failure.
+
 		if tp, ok := c.getTp(id); ok {
-			// If tp of tp_id exists, attempt to forward frame to tp.
-			// delete tp on any failure.
-			if !tp.InjectRead(f) {
-				log.WithField("remoteClient", tp.remote).Infoln("FrameTrashed")
-				c.delTp(id)
+			if err := tp.Inject(f); err != nil {
+				log.WithError(err).Warnf("Rejected [%s]: Transport closed.", ft)
 			}
-			log.WithField("remoteClient", tp.remote).Infoln("FrameInjected")
 			continue
 		}
 
 		// if tp does not exist, frame should be 'REQUEST'.
 		// otherwise, handle any unexpected frames accordingly.
+
 		c.delTp(id) // rm tp in case closed tp is not fully removed.
+
 		switch ft {
 		case RequestType:
-			// TODO(evanlinjin): Allow for REQUEST frame handling to be done in goroutine.
-			// Currently this causes issues (probably because we need ACK frames).
-			initPK, err := c.handleRequestFrame(ctx, accept, id, p)
-			if err != nil {
-				log.WithField("remoteClient", initPK).WithError(err).Infoln("FrameRejected")
-				if err == ErrRequestCheckFailed {
-					continue
+			c.wg.Add(1)
+			go func(log *logrus.Entry) {
+				defer c.wg.Done()
+
+				initPK, err := c.handleRequestFrame(ctx, accept, id, p)
+				if err != nil {
+					log.
+						WithField("remoteClient", initPK).
+						WithError(err).
+						Infoln("Rejected [REQUEST]")
+					if isWriteError(err) || err == ErrClientClosed {
+						closeConn(log)
+					}
+					return
 				}
-				return err
-			}
-			log.WithField("remoteClient", initPK).Infoln("FrameAccepted")
-		case CloseType:
-			log.Infoln("FrameIgnored")
+				log.
+					WithField("remoteClient", initPK).
+					Infoln("Accepted [REQUEST]")
+			}(log)
+
 		default:
-			log.Infoln("FrameUnexpected")
-			if err := writeCloseFrame(c.Conn, id, 0); err != nil {
-				return err
+			log.Infof("Ignored [%s]: No transport of given ID.", ft)
+			if ft != CloseType {
+				if err := writeCloseFrame(c.Conn, id, 0); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -187,16 +231,26 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 
 // DialTransport dials a transport to remote dms_client.
 func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
+	c.log.Warn("DialTransport...")
 	tp, err := c.addTp(ctx, clientPK)
 	if err != nil {
 		return nil, err
 	}
-	return tp, tp.Handshake(ctx)
+	if err := tp.WriteRequest(); err != nil {
+		return nil, err
+	}
+	if err := tp.ReadAccept(ctx); err != nil {
+		return nil, err
+	}
+	c.log.Warn("DialTransport: Accepted.")
+	go tp.Serve()
+	return tp, nil
 }
 
 // Close closes the connection to dms_server.
 func (c *ClientConn) Close() error {
-	c.log.Infof("closingLink: remoteSrv(%v)", c.remoteSrv)
+	c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
+	c.once.Do(func() { close(c.done) })
 	c.mx.Lock()
 	for _, tp := range c.tps {
 		if tp != nil {
@@ -377,7 +431,7 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 	c.setConn(ctx, conn)
 	go func() {
 		if err := conn.Serve(ctx, c.accept); err != nil {
-			conn.log.WithError(err).WithField("dms_server", srvPK).Warn("connected with dms_server closed")
+			conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
 			c.delConn(ctx, srvPK)
 
 			// reconnect logic.

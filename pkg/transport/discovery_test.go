@@ -1,19 +1,20 @@
-package transport
+package transport_test
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 func ExampleNewDiscoveryMock() {
-	dc := NewDiscoveryMock()
+	dc := transport.NewDiscoveryMock()
 	pk1, _ := cipher.GenerateKeyPair()
 	pk2, _ := cipher.GenerateKeyPair()
-	entry := &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk1, pk2)}
+	entry := &transport.Entry{Type: "mock", EdgeKeys: transport.SortPubKeys(pk1, pk2)}
 
-	sEntry := &SignedEntry{Entry: entry}
+	sEntry := &transport.SignedEntry{Entry: entry}
 
 	if err := dc.RegisterTransports(context.TODO(), sEntry); err == nil {
 		fmt.Println("RegisterTransport success")
@@ -33,7 +34,7 @@ func ExampleNewDiscoveryMock() {
 		fmt.Printf("entriesWS[0].Entry.Edges()[0] == entry.Edges()[0] is %v\n", entriesWS[0].Entry.Edges()[0] == entry.Edges()[0])
 	}
 
-	if _, err := dc.UpdateStatuses(context.TODO(), &Status{}); err == nil {
+	if _, err := dc.UpdateStatuses(context.TODO(), &transport.Status{}); err == nil {
 		fmt.Println("UpdateStatuses success")
 	} else {
 		fmt.Println(err.Error())

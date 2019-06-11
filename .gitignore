@@ -5,6 +5,7 @@
 *.dylib
 *.test
 *.out
+.DS_Store
 
 .idea/
 

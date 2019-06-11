@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
+	"io"
 	"math"
 	"sync"
 )
@@ -43,6 +44,22 @@ func (w *Uint16AckWaiter) RandSeq() error {
 	return nil
 }
 
+func (w *Uint16AckWaiter) stopWaiter(seq Uint16Seq) {
+	if waiter := w.waiters[seq]; waiter != nil {
+		close(waiter)
+		w.waiters[seq] = nil
+	}
+}
+
+// StopAll stops all active waiters.
+func (w *Uint16AckWaiter) StopAll() {
+	w.mx.Lock()
+	for seq := range w.waiters {
+		w.stopWaiter(Uint16Seq(seq))
+	}
+	w.mx.Unlock()
+}
+
 // Wait performs the given action, and waits for given seq to be Done.
 func (w *Uint16AckWaiter) Wait(ctx context.Context, action func(seq Uint16Seq) error) (err error) {
 	ackCh := make(chan struct{})
@@ -58,16 +75,18 @@ func (w *Uint16AckWaiter) Wait(ctx context.Context, action func(seq Uint16Seq) e
 	}
 
 	select {
-	case <-ackCh:
+	case _, ok := <-ackCh:
+		if !ok {
+			// waiter stopped manually.
+			return io.ErrClosedPipe
+		}
 	case <-ctx.Done():
 		err = ctx.Err()
 	}
 
 	w.mx.Lock()
-	close(ackCh)
-	w.waiters[seq] = nil
+	w.stopWaiter(seq)
 	w.mx.Unlock()
-
 	return err
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"sync/atomic"
 	"time"
 
@@ -17,9 +18,9 @@ const (
 	Type = "dmsg"
 
 	hsTimeout    = time.Second * 10
-	readTimeout  = time.Second * 10
-	acceptChSize = 1
-	readChSize   = 20
+	tpBufCap     = math.MaxUint16
+	tpAckCap     = math.MaxUint8
+	acceptChSize = 20
 	headerLen    = 5 // fType(1 byte), chID(2 byte), payLen(2 byte)
 )
 
@@ -116,9 +117,21 @@ func readFrame(r io.Reader) (Frame, error) {
 	return f, err
 }
 
+type writeError struct{ error }
+
+func (e *writeError) Error() string { return "write error: " + e.error.Error() }
+
+func isWriteError(err error) bool {
+	_, ok := err.(*writeError)
+	return ok
+}
+
 func writeFrame(w io.Writer, f Frame) error {
 	_, err := w.Write(f)
-	return err
+	if err != nil {
+		return &writeError{err}
+	}
+	return nil
 }
 
 func writeFwdFrame(w io.Writer, id uint16, seq ioutil.Uint16Seq, p []byte) error {
