@@ -11,6 +11,10 @@ alias CLI_A='./skywire-cli --rpc $RPC_A'
 alias CLI_B='./skywire-cli --rpc $RPC_B'
 alias CLI_C='./skywire-cli --rpc $RPC_C'
 
+alias RUN_A='go run ./cmd/skywire-node ./integration/messaging/nodeA.json --tag NodeA'
+alias RUN_B='go run ./cmd/skywire-node ./integration/intermediary-nodeB.json --tag NodeB'
+alias RUN_C='go run ./cmd/skywire-node ./integration/messaging/nodeC.json --tag NodeC'
+
 echo PK_A: $PK_A
 echo PK_B: $PK_B
 echo PK_C: $PK_C

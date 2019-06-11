@@ -20,6 +20,7 @@
 			"0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557"
 		],
 		"route_finder": "https://routefinder.skywire.skycoin.net/",
+		"route_finder_timeout": "60s",
 		"table": {
 			"type": "boltdb",
 			"location": "./local/nodeC/routing.db"
@@ -37,6 +38,7 @@
 		"trusted_nodes": [],
 		"manager_nodes": [],
 		"apps_path": "./apps",
+		"shutdown_timeout": "30s",
 		"local_path": "./local/nodeC",
 		"log_level": "info",
 		"interfaces": {
