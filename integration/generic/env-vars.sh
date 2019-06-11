@@ -10,9 +10,9 @@ export RPC_C=$(jq -r ".interfaces.rpc" ./integration/generic/nodeC.json)
 export CHAT_A=http://localhost:8000/message
 export CHAT_C=http://localhost$(jq -r '.apps [] |select(.app=="skychat")| .args[1] ' ./integration/generic/nodeC.json)/message
 
-alias CLI_A='./bin/skywire-cli --rpc $RPC_A'
-alias CLI_B='./bin/skywire-cli --rpc $RPC_B'
-alias CLI_C='./bin/skywire-cli --rpc $RPC_C'
+alias CLI_A='./skywire-cli --rpc $RPC_A'
+alias CLI_B='./skywire-cli --rpc $RPC_B'
+alias CLI_C='./skywire-cli --rpc $RPC_C'
 
 echo PK_A: $PK_A
 echo PK_B: $PK_B

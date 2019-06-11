@@ -7,9 +7,9 @@ export RPC_B=$(jq -r ".interfaces.rpc" ./integration/intermediary-nodeB.json)
 export PK_C=$(jq -r ".node.static_public_key" ./integration/proxy/nodeC.json)
 export RPC_C=$(jq -r ".interfaces.rpc" ./integration/proxy/nodeC.json)
 
-alias CLI_A='./bin/skywire-cli --rpc $RPC_A'
-alias CLI_B='./bin/skywire-cli --rpc $RPC_B'
-alias CLI_C='./bin/skywire-cli --rpc $RPC_C'
+alias CLI_A='./skywire-cli --rpc $RPC_A'
+alias CLI_B='./skywire-cli --rpc $RPC_B'
+alias CLI_C='./skywire-cli --rpc $RPC_C'
 
 echo PK_A: $PK_A
 echo PK_B: $PK_B
