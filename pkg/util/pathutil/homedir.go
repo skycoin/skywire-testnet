@@ -1,13 +1,13 @@
 package pathutil
 
 import (
-	"fmt"
-	"github.com/skycoin/skywire/pkg/cipher"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
+
+	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 // HomeDir obtains the path to the user's home directory via ENVs.
@@ -25,13 +25,13 @@ func HomeDir() string {
 
 // NodeDir returns a path to a directory used to store specific node configuration. Such dir is ~/.skywire/{PK}
 func NodeDir(pk cipher.PubKey) string {
-	return filepath.Join(HomeDir(),".skycoin","skywire",pk.String())
+	return filepath.Join(HomeDir(), ".skycoin", "skywire", pk.String())
 }
 
 // EnsureDir attempts to create given directory, panics if it fails to do so
 func EnsureDir(path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err := os.MkdirAll(path, 0644)
+		err := os.MkdirAll(path, 0755)
 		if err != nil {
 			panic(err)
 		}
@@ -41,7 +41,6 @@ func EnsureDir(path string) {
 // AtomicWriteFile creates a temp file in which to write data, then calls syscall.Rename to swap it and write it on
 // filename for an atomic write. On failure temp file is removed and panics.
 func AtomicWriteFile(filename string, data []byte) {
-	fmt.Println("got filename: ", filename)
 	dir, name := path.Split(filename)
 	f, err := ioutil.TempFile(dir, name)
 	if err != nil {
@@ -63,14 +62,13 @@ func AtomicWriteFile(filename string, data []byte) {
 	}
 
 	if err != nil {
-		os.Remove(f.Name())
+		os.Remove(f.Name()) // nolint: errcheck
+		panic(err)
 	}
-	panic(err)
 }
 
 // AtomicAppendToFile calls AtomicWriteFile but appends new data to destiny file
 func AtomicAppendToFile(filename string, data []byte) {
-	fmt.Println("got filename: ", filename)
 	oldFile, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
@@ -78,4 +76,3 @@ func AtomicAppendToFile(filename string, data []byte) {
 
 	AtomicWriteFile(filename, append(oldFile, data...))
 }
-

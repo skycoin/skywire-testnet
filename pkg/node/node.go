@@ -6,18 +6,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"io"
 	"net"
 	"net/rpc"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -98,6 +100,8 @@ type Node struct {
 	startedMu   sync.RWMutex
 	startedApps map[string]*appBind
 
+	pidMu sync.Mutex
+
 	rpcListener net.Listener
 	rpcDialers  []*noise.RPCClientDialer
 }
@@ -155,7 +159,6 @@ func NewNode(config *Config) (*Node, error) {
 		RoutingTable:     node.rt,
 		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
 		SetupNodes:       config.Routing.SetupNodes,
-
 	}
 	r := router.New(rConfig)
 	node.router = r
@@ -251,7 +254,7 @@ func (node *Node) dir() string {
 }
 
 func (node *Node) pidFile() *os.File {
-	f, err := os.OpenFile(filepath.Join(node.dir(),"apps.pid"), os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.OpenFile(filepath.Join(node.dir(), "apps.pid"), os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		panic(err)
 	}
@@ -260,6 +263,8 @@ func (node *Node) pidFile() *os.File {
 }
 
 func (node *Node) closePreviousApps() {
+	node.logger.Info("killing previously ran apps if any...")
+
 	pids := node.pidFile()
 	defer pids.Close() // nocheck: err
 
@@ -285,13 +290,14 @@ func (node *Node) closePreviousApps() {
 func (node *Node) stopUnhandledApp(name string, pid int) {
 	p, err := os.FindProcess(pid)
 	if err != nil {
-		node.logger.Infof("Previous app %s ran by this node with pid: %d not found", name, pid)
+		if runtime.GOOS != "windows" {
+			node.logger.Infof("Previous app %s ran by this node with pid: %d not found", name, pid)
+		}
 		return
 	}
 
 	err = p.Signal(syscall.SIGKILL)
 	if err != nil {
-		node.logger.Warnf("Found hanged app %s with pid %d previously ran by this node, but unable to kill it: %s", name, pid, err)
 		return
 	}
 
@@ -415,9 +421,12 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 		node.startedMu.Lock()
 		bind.pid = pid
 		node.startedMu.Unlock()
-		appCh <- node.executer.Wait(cmd)
 
+		node.pidMu.Lock()
+		node.logger.Infof("storing app %s pid %d", config.App, pid)
 		node.persistPID(config.App, pid)
+		node.pidMu.Unlock()
+		appCh <- node.executer.Wait(cmd)
 	}()
 
 	srvCh := make(chan error)
@@ -452,7 +461,10 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 
 func (node *Node) persistPID(name string, pid int) {
 	pidF := node.pidFile()
-	pathutil.AtomicAppendToFile(pidF.Name(), []byte(fmt.Sprintf("%s %d\n", name, pid)))
+	pidFName := pidF.Name()
+	pidF.Close()
+
+	pathutil.AtomicAppendToFile(pidFName, []byte(fmt.Sprintf("%s %d\n", name, pid)))
 }
 
 // StopApp stops running App.
