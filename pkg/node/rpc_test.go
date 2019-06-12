@@ -131,6 +131,7 @@ func TestRPC(t *testing.T) {
 	require.NoError(t, node.StartApp("foo"))
 	require.NoError(t, node.StartApp("bar"))
 
+	time.Sleep(time.Second)
 	gateway := &RPC{node: node}
 
 	sConn, cConn := net.Pipe()
