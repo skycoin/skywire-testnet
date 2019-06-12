@@ -3,13 +3,14 @@ package node
 import (
 	"context"
 	"encoding/json"
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"net"
 	"net/rpc"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/skycoin/src/util/logging"

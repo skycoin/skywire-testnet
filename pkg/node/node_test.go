@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"net"
 	"os"
 	"os/exec"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"net/http"
 	"net/http/httptest"

@@ -31,7 +31,7 @@ func NodeDir(pk cipher.PubKey) string {
 // EnsureDir attempts to create given directory, panics if it fails to do so
 func EnsureDir(path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err := os.MkdirAll(path, 0755)
+		err := os.MkdirAll(path, 0750)
 		if err != nil {
 			panic(err)
 		}
@@ -54,7 +54,7 @@ func AtomicWriteFile(filename string, data []byte) {
 	if closeErr := f.Close(); err == nil {
 		err = closeErr
 	}
-	if permErr := os.Chmod(f.Name(), 0644); err == nil {
+	if permErr := os.Chmod(f.Name(), 0600); err == nil {
 		err = permErr
 	}
 	if err == nil {

@@ -254,7 +254,7 @@ func (node *Node) dir() string {
 }
 
 func (node *Node) pidFile() *os.File {
-	f, err := os.OpenFile(filepath.Join(node.dir(), "apps.pid"), os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.OpenFile(filepath.Join(node.dir(), "apps.pid"), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		panic(err)
 	}
