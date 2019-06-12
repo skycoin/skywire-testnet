@@ -22,7 +22,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": skyssh,
+      "app": "skyssh-server",
       "version": "1.0",
       "auto_start": true,
       "port": 2
@@ -35,7 +35,7 @@ Create 2 node config files:
 ```json
   "apps": [
     {
-      "app": skyssh-client,
+      "app": "skyssh-client",
       "version": "1.0",
       "auto_start": true,
       "port": 22
