@@ -26,6 +26,7 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
+// TestServerConn_AddNext ensures that `nextConns` for the remote client is being filled correctly.
 func TestServerConn_AddNext(t *testing.T) {
 	type want struct {
 		id      uint16
@@ -139,7 +140,7 @@ func TestServerConn_AddNext(t *testing.T) {
 	}
 }
 
-// Ensure Server starts and quits with no error.
+// TestNewServer ensures Server starts and quits with no error.
 func TestNewServer(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
 	dc := client.NewMock()
@@ -162,6 +163,8 @@ func TestNewServer(t *testing.T) {
 	assert.NoError(t, s.Close())
 }
 
+// TestServer_Serve ensures that Server processes request frames and
+// instantiates transports properly.
 func TestServer_Serve(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
 	dc := client.NewMock()
@@ -195,7 +198,6 @@ func TestServer_Serve(t *testing.T) {
 		var aErr error
 		go func() {
 			aTransport, aErr = a.Accept(context.Background())
-
 			close(aDone)
 		}()
 
@@ -250,7 +252,7 @@ func TestServer_Serve(t *testing.T) {
 		err = b.Close()
 		require.NoError(t, err)
 
-		require.NoError(t, testWithTimeout(t, 5*time.Second, func() error {
+		require.NoError(t, testWithTimeout(5*time.Second, func() error {
 			s.mx.Lock()
 			l := len(s.conns)
 			s.mx.Unlock()
@@ -262,7 +264,7 @@ func TestServer_Serve(t *testing.T) {
 			return nil
 		}))
 
-		require.NoError(t, testWithTimeout(t, 5*time.Second, func() error {
+		require.NoError(t, testWithTimeout(5*time.Second, func() error {
 			a.mx.Lock()
 			l := len(a.conns)
 			a.mx.Unlock()
@@ -274,7 +276,7 @@ func TestServer_Serve(t *testing.T) {
 			return nil
 		}))
 
-		require.NoError(t, testWithTimeout(t, 5*time.Second, func() error {
+		require.NoError(t, testWithTimeout(5*time.Second, func() error {
 			b.mx.Lock()
 			l := len(b.conns)
 			b.mx.Unlock()
@@ -478,7 +480,7 @@ func TestServer_Serve(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		require.NoError(t, testWithTimeout(t, 10*time.Second, func() error {
+		require.NoError(t, testWithTimeout(10*time.Second, func() error {
 			s.mx.Lock()
 			l := len(s.conns)
 			s.mx.Unlock()
@@ -491,7 +493,7 @@ func TestServer_Serve(t *testing.T) {
 		}))
 
 		for i, remote := range remotes {
-			require.NoError(t, testWithTimeout(t, 10*time.Second, func() error {
+			require.NoError(t, testWithTimeout(10*time.Second, func() error {
 				remote.mx.Lock()
 				l := len(remote.conns)
 				remote.mx.Unlock()
@@ -505,7 +507,7 @@ func TestServer_Serve(t *testing.T) {
 		}
 
 		for i, initiator := range initiators {
-			require.NoError(t, testWithTimeout(t, 10*time.Second, func() error {
+			require.NoError(t, testWithTimeout(10*time.Second, func() error {
 				initiator.mx.Lock()
 				l := len(initiator.conns)
 				initiator.mx.Unlock()
@@ -632,11 +634,7 @@ func catch(err error) {
 	}
 }
 
-func TestNewConn(t *testing.T) {
-
-}
-
-func testWithTimeout(t *testing.T, timeout time.Duration, run func() error) error {
+func testWithTimeout(timeout time.Duration, run func() error) error {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
