@@ -10,13 +10,17 @@ export RPC_C=$(jq -r ".interfaces.rpc" ./integration/messaging/nodeC.json)
 export CHAT_A=http://localhost:8000/message
 export CHAT_C=http://localhost$(jq -r '.apps [] |select(.app=="skychat")| .args[1] ' ./integration/messaging/nodeC.json)/message
 
+export MSGD=https://messaging.discovery.skywire.skycoin.net
+export TRD=https://transport.discovery.skywire.skycoin.net
+export RF=https://routefinder.skywire.skycoin.net
+
 alias CLI_A='./skywire-cli --rpc $RPC_A'
 alias CLI_B='./skywire-cli --rpc $RPC_B'
 alias CLI_C='./skywire-cli --rpc $RPC_C'
 
-alias RUN_A='go run ./cmd/skywire-node ./integration/messaging/nodeA.json --tag NodeA'
-alias RUN_B='go run ./cmd/skywire-node ./integration/intermediary-nodeB.json --tag NodeB'
-alias RUN_C='go run ./cmd/skywire-node ./integration/messaging/nodeC.json --tag NodeC'
+alias RUN_A='./skywire-node ./integration/messaging/nodeA.json --tag NodeA'
+alias RUN_B='./skywire-node ./integration/messaging/intermediary-nodeB.json --tag NodeB'
+alias RUN_C='./skywire-node ./integration/messaging/nodeC.json --tag NodeC'
 
 echo PK_A: $PK_A
 echo PK_B: $PK_B
