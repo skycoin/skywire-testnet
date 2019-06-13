@@ -10,8 +10,6 @@ The individual entities of `dmsg` (`dmsg.Client` and `dmsg.Server`), should be c
 
 Note that even though `messaging-discovery` is also considered to be an entity of `dmsg`, however it's mechanics are simple and will not be tested here.
 
-#### Ensure that `Client.Serve()` does not hang
-
 **`failed_accepts_should_not_result_in_hang`**
 
 - Given:
@@ -33,8 +31,6 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 - Then:
   - It should work as expected still.
 
-#### Handling `msg.Server` Failures
-
 **`reconnect_to_server_should_succeed`**
 
 - Given:
@@ -47,10 +43,10 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 
 **`server_disconnect_should_close_transports`**
 
-- Given:
-  - 
+- TODO
 
 ### Fuzz testing
 
 We should test the robustness of the system under different conditions and random order of events. These tests should be written consisiting of x-number of servers, clients and a single discovery.
 
+TODO
