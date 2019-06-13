@@ -45,6 +45,11 @@ Note that even though `messaging-discovery` is also considered to be an entity o
   - Both clients will automatically reconnect to the server.
   - Transports can be established between clientA and clientB.
 
+**`server_disconnect_should_close_transports`**
+
+- Given:
+  - 
+
 ### Fuzz testing
 
 We should test the robustness of the system under different conditions and random order of events. These tests should be written consisiting of x-number of servers, clients and a single discovery.
