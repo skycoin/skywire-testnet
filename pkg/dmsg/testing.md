@@ -33,6 +33,8 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 - Then:
   - It should work as expected still.
 
+#### Handling `msg.Server` Failures
+
 **`reconnect_to_server_should_succeed`**
 
 - Given:
@@ -47,4 +49,3 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 
 We should test the robustness of the system under different conditions and random order of events. These tests should be written consisiting of x-number of servers, clients and a single discovery.
 
-TODO.
