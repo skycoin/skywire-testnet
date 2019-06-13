@@ -33,9 +33,15 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 - Then:
   - It should work as expected still.
 
-`reconnect_to_server_should_succeed`
+**`reconnect_to_server_should_succeed`**
 
-- TODO.
+- Given:
+  - clientA and clientB is connected to a server.
+- When:
+  - The server restarts.
+- Then:
+  - Both clients will automatically reconnect to the server.
+  - Transports can be established between clientA and clientB.
 
 ### Fuzz testing
 
