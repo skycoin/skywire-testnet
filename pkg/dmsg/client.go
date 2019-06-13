@@ -231,7 +231,6 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 
 // DialTransport dials a transport to remote dms_client.
 func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
-	c.log.Warn("DialTransport...")
 	tp, err := c.addTp(ctx, clientPK)
 	if err != nil {
 		return nil, err
@@ -242,7 +241,6 @@ func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) 
 	if err := tp.ReadAccept(ctx); err != nil {
 		return nil, err
 	}
-	c.log.Warn("DialTransport: Accepted.")
 	go tp.Serve()
 	return tp, nil
 }

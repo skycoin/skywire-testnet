@@ -282,15 +282,16 @@ func (tp *Transport) Read(p []byte) (n int, err error) {
 startRead:
 	tp.bufMx.Lock()
 	n, err = tp.buf.Read(p)
-	go func() {
-		if tp.bufSize -= n; tp.bufSize < tpBufCap {
-			if err := writeFrame(tp.Conn, tp.ackBuf); err != nil {
+	if tp.bufSize -= n; tp.bufSize < tpBufCap {
+		acks := tp.ackBuf
+		tp.ackBuf = make([]byte, 0, tpAckCap)
+		go func() {
+			if err := writeFrame(tp.Conn, acks); err != nil {
 				tp.close()
 			}
-			tp.ackBuf = make([]byte, 0, tpAckCap)
-		}
-		tp.bufMx.Unlock()
-	}()
+		}()
+	}
+	tp.bufMx.Unlock()
 
 	if tp.IsClosed() {
 		return n, err

@@ -123,7 +123,7 @@ func TestNewClient(t *testing.T) {
 		require.NoError(t, aTp.Close())
 		require.NoError(t, bTp.Close())
 	}
-	//wg.Wait()
+	wg.Wait()
 
 	// Close server.
 	assert.NoError(t, s.Close())
