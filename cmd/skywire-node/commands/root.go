@@ -21,6 +21,7 @@ import (
 	_ "net/http/pprof" //no_lint
 
 	"github.com/pkg/profile"
+
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
