@@ -25,7 +25,9 @@ type transportWithError struct {
 func TestClient(t *testing.T) {
 	logger := logging.MustGetLogger("dms_client")
 
-	t.Run("Two clients", func(t *testing.T) {
+	// Runs two ClientConn's and dials a transport from one to another.
+	// Checks if states change properly and if closing of transport and connections works.
+	t.Run("Two connections", func(t *testing.T) {
 		p1, p2 := net.Pipe()
 		p1, p2 = invertedIDConn{p1}, invertedIDConn{p2}
 
@@ -76,7 +78,9 @@ func TestClient(t *testing.T) {
 		assert.False(t, isReadChannelOpen(tr1.readCh))
 	})
 
-	t.Run("Three clients", func(t *testing.T) {
+	// Runs four ClientConn's and dials two transports between them.
+	// Checks if states change properly and if closing of transports and connections works.
+	t.Run("Four connections", func(t *testing.T) {
 		p1, p2 := net.Pipe()
 		p1, p2 = invertedIDConn{p1}, invertedIDConn{p2}
 
