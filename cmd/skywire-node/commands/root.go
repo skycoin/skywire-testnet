@@ -111,7 +111,7 @@ func (cfg *runCfg) readConfig() *runCfg {
 func (cfg *runCfg) runNode() *runCfg {
 	node, err := node.NewNode(&cfg.conf)
 	if err != nil {
-		cfg.logger.Fatal("Failed to initialise node: ", err)
+		cfg.logger.Fatal("Failed to initialize node: ", err)
 	}
 
 	go func() {

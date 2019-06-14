@@ -317,7 +317,7 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 		config.Args,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to initialise App server: %s", err)
+		return fmt.Errorf("failed to initialize App server: %s", err)
 	}
 
 	bind := &appBind{conn, -1}

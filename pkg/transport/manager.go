@@ -290,7 +290,7 @@ func (tm *Manager) Close() error {
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
 
 	if tm.isClosing() {
-		return nil, nil, errors.New("transport.Manager is closing. Skipping dialling transport")
+		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")
 	}
 
 	tr, err := factory.Dial(ctx, remote)
@@ -425,9 +425,9 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 				} else {
 					tr, _, err := tm.dialTransport(ctx, factory, remote, public)
 					if err != nil {
-						tm.Logger.Infof("Failed to re-dial Transport %s: %s", mTr.ID, err)
+						tm.Logger.Infof("Failed to redial Transport %s: %s", mTr.ID, err)
 						if err := tm.DeleteTransport(mTr.ID); err != nil {
-							tm.Logger.Warnf("Failed to delete re-dialled transport: %s", err)
+							tm.Logger.Warnf("Failed to delete redialed transport: %s", err)
 						}
 					} else {
 						tm.Logger.Infof("Updating transport %s", mTr.ID)
