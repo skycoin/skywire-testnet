@@ -156,16 +156,19 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Tran
 // Serve handles incoming frames.
 // Remote-initiated tps that are successfully created are pushing into 'accept' and exposed via 'Client.Accept()'.
 func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err error) {
-	defer c.wg.Done()
-
 	log := c.log.WithField("remoteServer", c.remoteSrv)
-
-	log.WithField("connCount", incrementServeCount()).
-		Infoln("ServingConn")
+	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 	defer func() {
-		log.WithError(err).
-			WithField("connCount", decrementServeCount()).
-			Infoln("ClosingConn")
+		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
+		c.mx.Lock()
+		for _, tp := range c.tps {
+			if tp != nil {
+				go tp.Close() //nolint:errcheck
+			}
+		}
+		_ = c.Conn.Close() //nolint:errcheck
+		c.mx.Unlock()
+		c.wg.Done()
 	}()
 
 	closeConn := func(log *logrus.Entry) {
@@ -231,7 +234,6 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 
 // DialTransport dials a transport to remote dms_client.
 func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
-	c.log.Warn("DialTransport...")
 	tp, err := c.addTp(ctx, clientPK)
 	if err != nil {
 		return nil, err
@@ -242,25 +244,23 @@ func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) 
 	if err := tp.ReadAccept(ctx); err != nil {
 		return nil, err
 	}
-	c.log.Warn("DialTransport: Accepted.")
 	go tp.Serve()
 	return tp, nil
 }
 
 // Close closes the connection to dms_server.
 func (c *ClientConn) Close() error {
-	c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
-	c.once.Do(func() { close(c.done) })
-	c.mx.Lock()
-	for _, tp := range c.tps {
-		if tp != nil {
-			_ = tp.Close()
-		}
-	}
-	err := c.Conn.Close()
-	c.mx.Unlock()
+	closed := false
+	c.once.Do(func() {
+		closed = true
+		c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
+		close(c.done)
+	})
 	c.wg.Wait()
-	return err
+	if !closed {
+		return ErrClientClosed
+	}
+	return nil
 }
 
 // Client implements transport.Factory
@@ -430,20 +430,22 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 	conn := NewClientConn(c.log, nc, c.pk, srvPK)
 	c.setConn(ctx, conn)
 	go func() {
-		if err := conn.Serve(ctx, c.accept); err != nil {
-			conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
-			c.delConn(ctx, srvPK)
+		err := conn.Serve(ctx, c.accept)
+		conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
+		c.delConn(ctx, srvPK)
 
-			// reconnect logic.
-			t := time.NewTimer(time.Second * 2)
-			select {
-			case <-c.done:
-			case <-ctx.Done():
-			case <-t.C:
-				conn.log.WithField("remoteServer", srvPK).Warn("Reconnecting")
-				_, _ = c.findOrConnectToServer(ctx, srvPK) //nolint:errcheck
+		// reconnect logic.
+	retryServerConnect:
+		select {
+		case <-c.done:
+		case <-ctx.Done():
+		case <-time.After(time.Second * 3):
+			conn.log.WithField("remoteServer", srvPK).Warn("Reconnecting")
+			if _, err := c.findOrConnectToServer(ctx, srvPK); err != nil {
+				conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("ReconnectionFailed")
+				goto retryServerConnect
 			}
-			return
+			conn.log.WithField("remoteServer", srvPK).Warn("ReconnectionSucceeded")
 		}
 	}()
 	return conn, nil
