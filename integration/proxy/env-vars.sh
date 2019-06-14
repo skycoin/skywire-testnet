@@ -7,9 +7,17 @@ export RPC_B=$(jq -r ".interfaces.rpc" ./integration/intermediary-nodeB.json)
 export PK_C=$(jq -r ".node.static_public_key" ./integration/proxy/nodeC.json)
 export RPC_C=$(jq -r ".interfaces.rpc" ./integration/proxy/nodeC.json)
 
-alias CLI_A='./bin/skywire-cli --rpc $RPC_A'
-alias CLI_B='./bin/skywire-cli --rpc $RPC_B'
-alias CLI_C='./bin/skywire-cli --rpc $RPC_C'
+alias CLI_A='./skywire-cli --rpc $RPC_A'
+alias CLI_B='./skywire-cli --rpc $RPC_B'
+alias CLI_C='./skywire-cli --rpc $RPC_C'
+
+export MSGD=https://messaging.discovery.skywire.skycoin.net
+export TRD=https://transport.discovery.skywire.skycoin.net
+export RF=https://routefinder.skywire.skycoin.net
+
+alias RUN_A='go run ./cmd/skywire-node ./integration/messaging/nodeA.json --tag NodeA'
+alias RUN_B='go run ./cmd/skywire-node ./integration/intermediary-nodeB.json --tag NodeB'
+alias RUN_C='go run ./cmd/skywire-node ./integration/messaging/nodeC.json --tag NodeC'
 
 echo PK_A: $PK_A
 echo PK_B: $PK_B

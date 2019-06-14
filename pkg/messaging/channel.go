@@ -54,6 +54,7 @@ func newChannel(initiator bool, secKey cipher.SecKey, remote cipher.PubKey, link
 		readChan: make(chan []byte),
 		doneChan: make(chan struct{}),
 		noise:    noiseInstance,
+		deadline: time.Time{},
 	}, nil
 }
 
