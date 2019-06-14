@@ -14,6 +14,10 @@ alias CLI_A='./skywire-cli --rpc $RPC_A'
 alias CLI_B='./skywire-cli --rpc $RPC_B'
 alias CLI_C='./skywire-cli --rpc $RPC_C'
 
+export MSGD=https://messaging.discovery.skywire.skycoin.net
+export TRD=https://transport.discovery.skywire.skycoin.net
+export RF=https://routefinder.skywire.skycoin.net
+
 echo PK_A: $PK_A
 echo PK_B: $PK_B
 echo PK_C: $PK_C
