@@ -40,7 +40,7 @@ func TestClient(t *testing.T) {
 		conn1 := NewClientConn(logger, p1, pk1, pk2)
 		conn2 := NewClientConn(logger, p2, pk2, pk1)
 
-		conn2.nextInitID = randID(false)
+		conn2.setNextInitID(randID(false))
 
 		ch1 := make(chan *Transport, acceptChSize)
 		ch2 := make(chan *Transport, acceptChSize)
@@ -55,13 +55,16 @@ func TestClient(t *testing.T) {
 			_ = conn2.Serve(ctx, ch2) // nolint:errcheck
 		}()
 
-		initID := conn1.nextInitID
-		assert.Nil(t, conn1.tps[initID])
+		initID := conn1.getNextInitID()
+		_, ok := conn1.getTp(initID)
+		assert.False(t, ok)
 
 		tr1, err := conn1.DialTransport(ctx, pk2)
 		assert.NoError(t, err)
-		assert.NotNil(t, conn1.tps[initID])
-		assert.Equal(t, initID+2, conn1.nextInitID)
+
+		_, ok = conn1.getTp(initID)
+		assert.True(t, ok)
+		assert.Equal(t, initID+2, conn1.getNextInitID())
 
 		err = tr1.Close()
 		assert.NoError(t, err)
@@ -100,8 +103,8 @@ func TestClient(t *testing.T) {
 		conn3 := NewClientConn(logger, p3, pk2, pk3)
 		conn4 := NewClientConn(logger, p4, pk3, pk2)
 
-		conn2.nextInitID = randID(false)
-		conn4.nextInitID = randID(false)
+		conn2.setNextInitID(randID(false))
+		conn4.setNextInitID(randID(false))
 
 		ch1 := make(chan *Transport, acceptChSize)
 		ch2 := make(chan *Transport, acceptChSize)
@@ -126,17 +129,25 @@ func TestClient(t *testing.T) {
 			_ = conn4.Serve(ctx, ch4) // nolint:errcheck
 		}()
 
-		initID1 := conn1.nextInitID
-		assert.Nil(t, conn1.tps[initID1])
+		initID1 := conn1.getNextInitID()
 
-		initID2 := conn2.nextInitID
-		assert.Nil(t, conn2.tps[initID2])
+		_, ok := conn1.getTp(initID1)
+		assert.False(t, ok)
 
-		initID3 := conn3.nextInitID
-		assert.Nil(t, conn3.tps[initID3])
+		initID2 := conn2.getNextInitID()
 
-		initID4 := conn4.nextInitID
-		assert.Nil(t, conn4.tps[initID4])
+		_, ok = conn2.getTp(initID2)
+		assert.False(t, ok)
+
+		initID3 := conn3.getNextInitID()
+
+		_, ok = conn3.getTp(initID3)
+		assert.False(t, ok)
+
+		initID4 := conn4.getNextInitID()
+
+		_, ok = conn4.getTp(initID4)
+		assert.False(t, ok)
 
 		trCh1 := make(chan transportWithError)
 		trCh2 := make(chan transportWithError)
@@ -161,15 +172,18 @@ func TestClient(t *testing.T) {
 		twe2 := <-trCh2
 
 		tr1, err := twe1.tr, twe1.err
-
 		assert.NoError(t, err)
-		assert.NotNil(t, conn1.tps[initID1])
-		assert.Equal(t, initID1+2, conn1.nextInitID)
+
+		_, ok = conn1.getTp(initID1)
+		assert.True(t, ok)
+		assert.Equal(t, initID1+2, conn1.getNextInitID())
 
 		tr2, err := twe2.tr, twe2.err
 		assert.NoError(t, err)
-		assert.NotNil(t, conn3.tps[initID3])
-		assert.Equal(t, initID3+2, conn3.nextInitID)
+
+		_, ok = conn3.getTp(initID3)
+		assert.True(t, ok)
+		assert.Equal(t, initID3+2, conn3.getNextInitID())
 
 		errCh1 := make(chan error)
 		errCh2 := make(chan error)

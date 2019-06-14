@@ -102,6 +102,19 @@ func (c *ClientConn) getTp(id uint16) (*Transport, bool) {
 	return tp, ok
 }
 
+func (c *ClientConn) setNextInitID(nextInitID uint16) {
+	c.mx.Lock()
+	c.nextInitID = nextInitID
+	c.mx.Unlock()
+}
+
+func (c *ClientConn) getNextInitID() uint16 {
+	c.mx.RLock()
+	id := c.nextInitID
+	c.mx.RUnlock()
+	return id
+}
+
 func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
 	// remote-initiated tps should:
 	// - have a payload structured as 'init_pk:resp_pk'.
