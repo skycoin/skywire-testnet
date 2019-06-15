@@ -269,11 +269,11 @@ func (s *Server) getConn(pk cipher.PubKey) (*ServerConn, bool) {
 	return l, ok
 }
 
-func (s *Server) connsCount() int {
+func (s *Server) connCount() int {
 	s.mx.RLock()
-	count := len(s.conns)
+	n := len(s.conns)
 	s.mx.RUnlock()
-	return count
+	return n
 }
 
 // Close closes the dms_server.

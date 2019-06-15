@@ -319,13 +319,6 @@ func (c *Client) updateDiscEntry(ctx context.Context) error {
 	return c.dc.UpdateEntry(ctx, c.sk, entry)
 }
 
-func (c *Client) connsCount() int {
-	c.mx.RLock()
-	count := len(c.conns)
-	c.mx.RUnlock()
-	return count
-}
-
 func (c *Client) setConn(ctx context.Context, l *ClientConn) {
 	c.mx.Lock()
 	c.conns[l.remoteSrv] = l

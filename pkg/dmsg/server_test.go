@@ -208,7 +208,7 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, aErr)
 
 		// must be 2 ServerConn's
-		require.Equal(t, 2, s.connsCount())
+		require.Equal(t, 2, s.connCount())
 
 		// must have ServerConn for A
 		aServerConn, ok := s.getConn(aPK)
@@ -253,7 +253,7 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, err)
 
 		require.NoError(t, testWithTimeout(5*time.Second, func() error {
-			if s.connsCount() != 0 {
+			if s.connCount() != 0 {
 				return errors.New("s.conns is not empty")
 			}
 
@@ -404,7 +404,7 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, err)
 
 		// check ServerConn's count
-		require.Equal(t, len(usedRemotes)+initiatorsCount, s.connsCount())
+		require.Equal(t, len(usedRemotes)+initiatorsCount, s.connCount())
 
 		for i, initiator := range initiators {
 			// get and check initiator's ServerConn
@@ -478,7 +478,7 @@ func TestServer_Serve(t *testing.T) {
 		}
 
 		require.NoError(t, testWithTimeout(10*time.Second, func() error {
-			if s.connsCount() != 0 {
+			if s.connCount() != 0 {
 				return errors.New("s.conns is not empty")
 			}
 
