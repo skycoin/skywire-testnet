@@ -159,15 +159,7 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 	log := c.log.WithField("remoteServer", c.remoteSrv)
 	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 	defer func() {
-		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
-		c.mx.Lock()
-		for _, tp := range c.tps {
-			if tp != nil {
-				go tp.Close() //nolint:errcheck
-			}
-		}
-		_ = c.Conn.Close() //nolint:errcheck
-		c.mx.Unlock()
+		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ConnectionClosed")
 		c.wg.Done()
 	}()
 
@@ -255,8 +247,17 @@ func (c *ClientConn) Close() error {
 		closed = true
 		c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
 		close(c.done)
+		c.mx.Lock()
+		for _, tp := range c.tps {
+			if tp != nil {
+				go tp.Close() //nolint:errcheck
+			}
+		}
+		_ = c.Conn.Close() //nolint:errcheck
+		c.mx.Unlock()
+		c.wg.Wait()
 	})
-	c.wg.Wait()
+
 	if !closed {
 		return ErrClientClosed
 	}
