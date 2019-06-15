@@ -231,13 +231,13 @@ func TestServer_Serve(t *testing.T) {
 		require.Equal(t, sPK, bClientConn.PK())
 
 		// check whether nextConn's contents are as must be
-		bNextConn := bServerConn.nextConns[bClientConn.nextInitID-2]
-		require.NotNil(t, bNextConn)
+		bNextConn, ok := bServerConn.getNext(bClientConn.nextInitID - 2)
+		require.Equal(t, true, ok)
 		require.Equal(t, bNextConn.id, aServerConn.nextRespID-2)
 
 		// check whether nextConn's contents are as must be
-		aNextConn := aServerConn.nextConns[aServerConn.nextRespID-2]
-		require.NotNil(t, aNextConn)
+		aNextConn, ok := aServerConn.getNext(aServerConn.nextRespID - 2)
+		require.Equal(t, true, ok)
 		require.Equal(t, aNextConn.id, bClientConn.nextInitID-2)
 
 		err = aTransport.Close()
@@ -430,7 +430,8 @@ func TestServer_Serve(t *testing.T) {
 			require.Equal(t, sPK, remoteClientConn.PK())
 
 			// get initiator's nextConn
-			initiatorNextConn := initiatorServConn.nextConns[initiatorClientConn.nextInitID-2]
+			initiatorNextConn, ok := initiatorServConn.getNext(initiatorClientConn.nextInitID - 2)
+			require.Equal(t, true, ok)
 			require.NotNil(t, initiatorNextConn)
 
 			correspondingNextConnFound := false
@@ -444,7 +445,7 @@ func TestServer_Serve(t *testing.T) {
 
 			correspondingNextConnFound = false
 			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID -= 2 {
-				if remoteServConn.nextConns[nextConnID] != nil {
+				if _, ok := remoteServConn.getNext(nextConnID); ok {
 					if remoteServConn.nextConns[nextConnID].id == initiatorClientConn.nextInitID-2 {
 						correspondingNextConnFound = true
 						break
