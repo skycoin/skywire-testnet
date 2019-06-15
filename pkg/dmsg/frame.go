@@ -148,7 +148,8 @@ func combinePKs(initPK, respPK cipher.PubKey) []byte {
 }
 
 func splitPKs(b []byte) (initPK, respPK cipher.PubKey, ok bool) {
-	pkLen := 33
+	const pkLen = 33
+
 	if len(b) != pkLen*2 {
 		ok = false
 		return
