@@ -9,14 +9,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/skycoin/skywire/internal/netutil"
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
 	"log"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skywire/internal/netutil"
+	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")

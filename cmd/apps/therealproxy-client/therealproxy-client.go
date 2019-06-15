@@ -5,10 +5,11 @@ package main
 
 import (
 	"flag"
-	"github.com/skycoin/skywire/internal/netutil"
 	"log"
 	"net"
 	"time"
+
+	"github.com/skycoin/skywire/internal/netutil"
 
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/pkg/app"
@@ -16,6 +17,7 @@ import (
 )
 
 const socksPort = 3
+
 var r = netutil.NewRetrier(50*time.Millisecond, 10*time.Second, 2)
 
 func main() {

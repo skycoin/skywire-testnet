@@ -2,16 +2,17 @@ package therealproxy
 
 import (
 	"fmt"
-	"github.com/skycoin/skywire/internal/netutil"
 	"log"
 	"net"
 	"time"
+
+	"github.com/skycoin/skywire/internal/netutil"
 
 	socks5 "github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
 )
 
-var r = netutil.NewRetrier(50*time.Millisecond,500*time.Millisecond,2)
+var r = netutil.NewRetrier(50*time.Millisecond, 500*time.Millisecond, 2)
 
 // Server implements multiplexing proxy server using yamux.
 type Server struct {

@@ -2,13 +2,14 @@ package netutil
 
 import (
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRetrier_Do(t *testing.T) {
-	r := NewRetrier(time.Millisecond*100,time.Millisecond*500,2)
+	r := NewRetrier(time.Millisecond*100, time.Millisecond*500, 2)
 	c := 0
 	threshold := 2
 	f := func() error {
@@ -27,7 +28,7 @@ func TestRetrier_Do(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("if retry reaches threshold should error", func(t *testing.T){
+	t.Run("if retry reaches threshold should error", func(t *testing.T) {
 		c = 0
 		threshold = 4
 		defer func() {
@@ -41,15 +42,15 @@ func TestRetrier_Do(t *testing.T) {
 	t.Run("if function times out should error", func(t *testing.T) {
 		c = 0
 		slowF := func() error {
-			time.Sleep(time.Second)
-			return nil
+			time.Sleep(100*time.Millisecond)
+			return errors.New("foo")
 		}
 
 		err := r.Do(slowF)
 		require.Error(t, err)
 	})
 
-	t.Run("should return whitelisted errors if any instead of retry", func(t *testing.T){
+	t.Run("should return whitelisted errors if any instead of retry", func(t *testing.T) {
 		bar := errors.New("bar")
 		wR := NewRetrier(50*time.Millisecond, time.Second, 2).WithErrWhitelist(bar)
 		barF := func() error {

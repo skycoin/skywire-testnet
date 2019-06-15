@@ -4,13 +4,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skywire/internal/netutil"
 	"io"
 	"log"
 	"net"
 	"net/rpc"
 	"strings"
 	"time"
+
+	"github.com/skycoin/skywire/internal/netutil"
 
 	"github.com/kr/pty"
 

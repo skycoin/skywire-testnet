@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 func testTransportLogStore(t *testing.T, logStore transport.LogStore) {

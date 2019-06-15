@@ -2,8 +2,9 @@ package netutil
 
 import (
 	"errors"
-	"github.com/prometheus/common/log"
 	"time"
+
+	"github.com/prometheus/common/log"
 )
 
 var ErrThresholdReached = errors.New("threshold timeout has been reached")
@@ -12,17 +13,17 @@ type RetryFunc func() error
 
 type Retrier struct {
 	exponentialBackoff time.Duration
-	exponentialFactor uint32
-	threshold time.Duration
-	errWhitelist map[error]struct{}
+	exponentialFactor  uint32
+	threshold          time.Duration
+	errWhitelist       map[error]struct{}
 }
 
 func NewRetrier(exponentialBackoff, threshold time.Duration, factor uint32) *Retrier {
 	return &Retrier{
 		exponentialBackoff: exponentialBackoff,
-		threshold: threshold,
-		exponentialFactor: factor,
-		errWhitelist:make(map[error]struct{}),
+		threshold:          threshold,
+		exponentialFactor:  factor,
+		errWhitelist:       make(map[error]struct{}),
 	}
 }
 
@@ -37,26 +38,22 @@ func (r *Retrier) WithErrWhitelist(errors ...error) *Retrier {
 }
 
 func (r Retrier) Do(f RetryFunc) error {
-	counter := time.Duration(0)
-	currentBackoff := r.exponentialBackoff
 	var err error
+	var backoff <-chan time.Time
+	var doneCh <-chan time.Time
 
-	t := time.NewTicker(r.exponentialBackoff)
-	doneCh := time.After(r.threshold)
+	currentBackoff := r.exponentialBackoff
+
 	errCh := make(chan error)
 	go func() {
 		errCh <- f()
 	}()
+
 	for {
 		select {
-		case <- doneCh:
+		case <-doneCh:
 			return ErrThresholdReached
-		case <- t.C:
-			counter += currentBackoff
-			currentBackoff = currentBackoff * time.Duration(r.exponentialFactor)
-			t.Stop()
-			t = time.NewTicker(currentBackoff)
-
+		case <-backoff:
 			go func() {
 				errCh <- f()
 			}()
@@ -69,10 +66,15 @@ func (r Retrier) Do(f RetryFunc) error {
 				return nil
 			}
 			log.Warn(err)
+
+			backoff = time.After(currentBackoff)
+			currentBackoff = currentBackoff * time.Duration(r.exponentialFactor)
+			if doneCh == nil {
+				doneCh = time.After(r.threshold)
+			}
 		}
 	}
 }
-
 
 func (r Retrier) isWhitelisted(err error) bool {
 	_, ok := r.errWhitelist[err]
