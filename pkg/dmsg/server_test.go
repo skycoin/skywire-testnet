@@ -233,14 +233,26 @@ func TestServer_Serve(t *testing.T) {
 		require.Equal(t, sPK, bClientConn.PK())
 
 		// check whether nextConn's contents are as must be
-		bNextConn, ok := bServerConn.getNext(bClientConn.nextInitID - 2)
+		bClientConn.mx.RLock()
+		nextInitID := bClientConn.nextInitID
+		bClientConn.mx.RUnlock()
+		bNextConn, ok := bServerConn.getNext(nextInitID - 2)
 		require.Equal(t, true, ok)
-		require.Equal(t, bNextConn.id, aServerConn.nextRespID-2)
+		aServerConn.mx.RLock()
+		nextRespID := aServerConn.nextRespID
+		aServerConn.mx.RUnlock()
+		require.Equal(t, bNextConn.id, nextRespID-2)
 
 		// check whether nextConn's contents are as must be
-		aNextConn, ok := aServerConn.getNext(aServerConn.nextRespID - 2)
+		aServerConn.mx.RLock()
+		nextRespID = aServerConn.nextRespID
+		aServerConn.mx.RUnlock()
+		aNextConn, ok := aServerConn.getNext(nextRespID - 2)
 		require.Equal(t, true, ok)
-		require.Equal(t, aNextConn.id, bClientConn.nextInitID-2)
+		bClientConn.mx.RLock()
+		nextInitID = bClientConn.nextInitID
+		bClientConn.mx.RUnlock()
+		require.Equal(t, aNextConn.id, nextInitID-2)
 
 		err = aTransport.Close()
 		require.NoError(t, err)
@@ -424,13 +436,19 @@ func TestServer_Serve(t *testing.T) {
 			require.Equal(t, sPK, remoteClientConn.PK())
 
 			// get initiator's nextConn
-			initiatorNextConn, ok := initiatorServConn.getNext(initiatorClientConn.nextInitID - 2)
+			initiatorClientConn.mx.RLock()
+			nextInitID := initiatorClientConn.nextInitID
+			initiatorClientConn.mx.RUnlock()
+			initiatorNextConn, ok := initiatorServConn.getNext(nextInitID - 2)
 			require.Equal(t, true, ok)
 			require.NotNil(t, initiatorNextConn)
 
 			correspondingNextConnFound := false
-			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID -= 2 {
-				if initiatorNextConn.id == nextConnID {
+			remoteServConn.mx.RLock()
+			nextConnID := remoteServConn.nextRespID
+			remoteServConn.mx.RUnlock()
+			for i := nextConnID - 2; i != nextConnID; i -= 2 {
+				if initiatorNextConn.id == i {
 					correspondingNextConnFound = true
 					break
 				}
@@ -438,9 +456,15 @@ func TestServer_Serve(t *testing.T) {
 			require.Equal(t, true, correspondingNextConnFound)
 
 			correspondingNextConnFound = false
-			for nextConnID := remoteServConn.nextRespID - 2; nextConnID != remoteServConn.nextRespID; nextConnID -= 2 {
-				if _, ok := remoteServConn.getNext(nextConnID); ok {
-					if remoteServConn.nextConns[nextConnID].id == initiatorClientConn.nextInitID-2 {
+			remoteServConn.mx.RLock()
+			nextConnID = remoteServConn.nextRespID
+			remoteServConn.mx.RUnlock()
+			for i := nextConnID - 2; i != nextConnID; i -= 2 {
+				if _, ok := remoteServConn.getNext(i); ok {
+					initiatorClientConn.mx.RLock()
+					clientNextInitID := initiatorClientConn.nextInitID
+					initiatorClientConn.mx.RUnlock()
+					if next, ok := remoteServConn.getNext(i); ok && next.id == clientNextInitID {
 						correspondingNextConnFound = true
 						break
 					}
