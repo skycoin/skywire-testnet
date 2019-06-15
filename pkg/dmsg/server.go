@@ -17,6 +17,8 @@ import (
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
+var ErrListenerAlreadyWrappedToNoise = errors.New("listener is already wrapped to *noise.Listener")
+
 // NextConn provides information on the next connection.
 type NextConn struct {
 	l  *ServerConn
@@ -207,11 +209,11 @@ func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id 
 type Server struct {
 	log *logging.Logger
 
-	pk   cipher.PubKey
-	sk   cipher.SecKey
-	addr string
-	dc   client.APIClient
+	pk cipher.PubKey
+	sk cipher.SecKey
+	dc client.APIClient
 
+	addr  string
 	lis   net.Listener
 	conns map[cipher.PubKey]*ServerConn
 	mx    sync.RWMutex
@@ -220,20 +222,32 @@ type Server struct {
 }
 
 // NewServer creates a new dms_server.
-func NewServer(pk cipher.PubKey, sk cipher.SecKey, addr string, dc client.APIClient) *Server {
+func NewServer(pk cipher.PubKey, sk cipher.SecKey, l net.Listener, dc client.APIClient) (*Server, error) {
+	addr := l.Addr().String()
+
+	if _, ok := l.(*noise.Listener); ok {
+		return nil, ErrListenerAlreadyWrappedToNoise
+	}
+
 	return &Server{
 		log:   logging.MustGetLogger("dms_server"),
 		pk:    pk,
 		sk:    sk,
 		addr:  addr,
+		lis:   noise.WrapListener(l, pk, sk, false, noise.HandshakeXK),
 		dc:    dc,
 		conns: make(map[cipher.PubKey]*ServerConn),
-	}
+	}, nil
 }
 
 // SetLogger set's the logger.
 func (s *Server) SetLogger(log *logging.Logger) {
 	s.log = log
+}
+
+// Addr returns the server's listening address.
+func (s *Server) Addr() string {
+	return s.addr
 }
 
 func (s *Server) setConn(l *ServerConn) {
@@ -253,6 +267,13 @@ func (s *Server) getConn(pk cipher.PubKey) (*ServerConn, bool) {
 	l, ok := s.conns[pk]
 	s.mx.RUnlock()
 	return l, ok
+}
+
+func (s *Server) connCount() int {
+	s.mx.RLock()
+	n := len(s.conns)
+	s.mx.RUnlock()
+	return n
 }
 
 // Close closes the dms_server.
@@ -275,23 +296,18 @@ func (s *Server) Close() (err error) {
 }
 
 // ListenAndServe serves the dms_server.
-func (s *Server) ListenAndServe(addr string) error {
+func (s *Server) Serve() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	lis, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
 	if err := s.retryUpdateEntry(ctx, hsTimeout); err != nil {
 		return fmt.Errorf("updating server's discovery entry failed with: %s", err)
 	}
 
-	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, lis.Addr())
-	lis = noise.WrapListener(lis, s.pk, s.sk, false, noise.HandshakeXK)
-	s.lis = lis
+	s.log.Infof("serving: pk(%s) addr(%s)", s.pk, s.addr)
+
 	for {
-		rawConn, err := lis.Accept()
+		rawConn, err := s.lis.Accept()
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				continue
@@ -321,8 +337,10 @@ func (s *Server) updateDiscEntry(ctx context.Context) error {
 		}
 		return s.dc.SetEntry(ctx, entry)
 	}
-	entry.Server.Address = s.addr
+
+	entry.Server.Address = s.Addr()
 	s.log.Infoln("updatingEntry:", entry)
+
 	return s.dc.UpdateEntry(ctx, s.sk, entry)
 }
 
