@@ -4,11 +4,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/skycoin/skywire/internal/netutil"
 	"io"
 	"log"
 	"net"
 	"net/rpc"
 	"strings"
+	"time"
 
 	"github.com/kr/pty"
 
@@ -16,6 +18,8 @@ import (
 
 	"github.com/skycoin/skywire/pkg/app"
 )
+
+var r = netutil.NewRetrier(50*time.Millisecond, time.Second, 2)
 
 // Dialer dials to a remote node.
 type Dialer interface {
@@ -47,7 +51,13 @@ func NewClient(rpcAddr string, d Dialer) (net.Listener, *Client, error) {
 
 // OpenChannel requests new Channel on the remote Server.
 func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, sshCh *SSHChannel, cErr error) {
-	conn, err := c.dialer.Dial(&app.Addr{PubKey: remotePK, Port: Port})
+	var conn net.Conn
+	var err error
+
+	err = r.Do(func() error {
+		conn, err = c.dialer.Dial(&app.Addr{PubKey: remotePK, Port: Port})
+		return err
+	})
 	if err != nil {
 		cErr = fmt.Errorf("dial failed: %s", err)
 		return

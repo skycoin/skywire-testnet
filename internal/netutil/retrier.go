@@ -3,13 +3,12 @@ package netutil
 import (
 	"errors"
 	"github.com/prometheus/common/log"
-	"net"
 	"time"
 )
 
 var ErrThresholdReached = errors.New("threshold timeout has been reached")
 
-type ConnFunc func(conn *net.Conn) error
+type RetryFunc func() error
 
 type Retrier struct {
 	exponentialBackoff time.Duration
@@ -37,26 +36,43 @@ func (r *Retrier) WithErrWhitelist(errors ...error) *Retrier {
 	return r
 }
 
-func (r Retrier) Do(conn *net.Conn, f ConnFunc) error {
+func (r Retrier) Do(f RetryFunc) error {
 	counter := time.Duration(0)
+	currentBackoff := r.exponentialBackoff
 	var err error
 
-	for counter < r.threshold {
-		err = f(conn)
-		if err == nil {
-			return nil
-		}
+	t := time.NewTicker(r.exponentialBackoff)
+	doneCh := time.After(r.threshold)
+	errCh := make(chan error)
+	go func() {
+		errCh <- f()
+	}()
+	for {
+		select {
+		case <- doneCh:
+			return ErrThresholdReached
+		case <- t.C:
+			counter += currentBackoff
+			currentBackoff = currentBackoff * time.Duration(r.exponentialFactor)
+			t.Stop()
+			t = time.NewTicker(currentBackoff)
 
-		if r.isWhitelisted(err) {
-			return err
+			go func() {
+				errCh <- f()
+			}()
+		case err = <-errCh:
+			if err != nil {
+				if r.isWhitelisted(err) {
+					return err
+				}
+			} else {
+				return nil
+			}
+			log.Warn(err)
 		}
-
-		log.Warn(err)
-		counter += time.Duration(r.exponentialFactor) * r.exponentialBackoff
 	}
-
-	return ErrThresholdReached
 }
+
 
 func (r Retrier) isWhitelisted(err error) bool {
 	_, ok := r.errWhitelist[err]

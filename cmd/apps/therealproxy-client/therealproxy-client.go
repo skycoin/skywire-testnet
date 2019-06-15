@@ -5,7 +5,10 @@ package main
 
 import (
 	"flag"
+	"github.com/skycoin/skywire/internal/netutil"
 	"log"
+	"net"
+	"time"
 
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/pkg/app"
@@ -13,6 +16,7 @@ import (
 )
 
 const socksPort = 3
+var r = netutil.NewRetrier(50*time.Millisecond, 10*time.Second, 2)
 
 func main() {
 	var addr = flag.String("addr", ":1080", "Client address to listen on")
@@ -35,7 +39,11 @@ func main() {
 		log.Fatal("Invalid server PubKey: ", err)
 	}
 
-	conn, err := socksApp.Dial(&app.Addr{PubKey: pk, Port: uint16(socksPort)})
+	var conn net.Conn
+	err = r.Do(func() error {
+		conn, err = socksApp.Dial(&app.Addr{PubKey: pk, Port: uint16(socksPort)})
+		return err
+	})
 	if err != nil {
 		log.Fatal("Failed to dial to a server: ", err)
 	}

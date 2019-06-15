@@ -9,16 +9,18 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/skycoin/skywire/internal/netutil"
+	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/cipher"
 	"log"
 	"net"
 	"net/http"
 	"sync"
-
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
+	"time"
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")
+var r = netutil.NewRetrier(50*time.Millisecond, time.Second, 2)
 
 var (
 	chatApp   *app.App
@@ -121,7 +123,11 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 		go handleConn(conn)
 	}
 
-	if _, err := conn.Write([]byte(data["message"])); err != nil {
+	err := r.Do(func() error {
+		_, err := conn.Write([]byte(data["message"]))
+		return err
+	})
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

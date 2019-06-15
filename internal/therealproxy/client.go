@@ -28,6 +28,9 @@ func NewClient(conn net.Conn) (*Client, error) {
 // ListenAndServe start tcp listener on addr and proxies incoming
 // connection to a remote proxy server.
 func (c *Client) ListenAndServe(addr string) error {
+	var stream net.Conn
+	var err error
+
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("listen: %s", err)
@@ -40,7 +43,10 @@ func (c *Client) ListenAndServe(addr string) error {
 			return fmt.Errorf("accept: %s", err)
 		}
 
-		stream, err := c.session.Open()
+		err = r.Do(func() error {
+			stream, err = c.session.Open()
+			return err
+		})
 		if err != nil {
 			return fmt.Errorf("yamux: %s", err)
 		}
