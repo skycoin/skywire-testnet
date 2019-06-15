@@ -535,6 +535,61 @@ func TestServer_Serve(t *testing.T) {
 			}))
 		}
 	})
+
+	t.Run("test failed accept not hanging already established transport", func(t *testing.T) {
+		aPK, aSK := cipher.GenerateKeyPair()
+		bPK, bSK := cipher.GenerateKeyPair()
+
+		a := NewClient(aPK, aSK, dc)
+		a.SetLogger(logging.MustGetLogger("A"))
+		err := a.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		b := NewClient(bPK, bSK, dc)
+		b.SetLogger(logging.MustGetLogger("B"))
+		err = b.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		aDone := make(chan struct{})
+		var aTransport transport.Transport
+		var aErr error
+		go func() {
+			aTransport, aErr = a.Accept(context.Background())
+			close(aDone)
+		}()
+
+		bTransport, err := b.Dial(context.Background(), aPK)
+		require.NoError(t, err)
+
+		<-aDone
+		require.NoError(t, aErr)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			for {
+				var msg []byte
+				if _, err := aTransport.Read(msg); err != nil {
+					// TODO: throw out the error
+					panic(err)
+				}
+				log.Println("GOT MESSAGE %s", string(msg))
+
+				wg.Done()
+			}
+		}()
+
+		for {
+			msg := []byte("Hello there!")
+			if _, err := bTransport.Write(msg); err != nil {
+				panic(err)
+			}
+
+			wg.Done()
+		}
+
+		wg.Wait()
+	})
 }
 
 // Given two client instances (a & b) and a server instance (s),
