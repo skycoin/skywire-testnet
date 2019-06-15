@@ -211,22 +211,22 @@ func TestServer_Serve(t *testing.T) {
 		require.Equal(t, 2, s.connsCount())
 
 		// must have ServerConn for A
-		aServerConn, ok := s.conns[aPK]
+		aServerConn, ok := s.getConn(aPK)
 		require.Equal(t, true, ok)
 		require.Equal(t, aPK, aServerConn.remoteClient)
 
 		// must have ServerConn for B
-		bServerConn, ok := s.conns[bPK]
+		bServerConn, ok := s.getConn(bPK)
 		require.Equal(t, true, ok)
 		require.Equal(t, bPK, bServerConn.remoteClient)
 
 		// must have a ClientConn
-		aClientConn, ok := a.conns[sPK]
+		aClientConn, ok := a.getConn(sPK)
 		require.Equal(t, true, ok)
 		require.Equal(t, sPK, aClientConn.remoteSrv)
 
 		// must have a ClientConn
-		bClientConn, ok := b.conns[sPK]
+		bClientConn, ok := b.getConn(sPK)
 		require.Equal(t, true, ok)
 		require.Equal(t, sPK, bClientConn.remoteSrv)
 
@@ -408,24 +408,24 @@ func TestServer_Serve(t *testing.T) {
 
 		for i, initiator := range initiators {
 			// get and check initiator's ServerConn
-			initiatorServConn, ok := s.conns[initiator.pk]
+			initiatorServConn, ok := s.getConn(initiator.pk)
 			require.Equal(t, true, ok)
 			require.Equal(t, initiator.pk, initiatorServConn.remoteClient)
 
 			// get and check initiator's ClientConn
-			initiatorClientConn, ok := initiator.conns[sPK]
+			initiatorClientConn, ok := initiator.getConn(sPK)
 			require.Equal(t, true, ok)
 			require.Equal(t, sPK, initiatorClientConn.remoteSrv)
 
 			remote := remotes[pickedRemotes[i]]
 
 			// get and check remote's ServerConn
-			remoteServConn, ok := s.conns[remote.pk]
+			remoteServConn, ok := s.getConn(remote.pk)
 			require.Equal(t, true, ok)
 			require.Equal(t, remote.pk, remoteServConn.remoteClient)
 
 			// get and check remote's ClientConn
-			remoteClientConn, ok := remote.conns[sPK]
+			remoteClientConn, ok := remote.getConn(sPK)
 			require.Equal(t, true, ok)
 			require.Equal(t, sPK, remoteClientConn.remoteSrv)
 
