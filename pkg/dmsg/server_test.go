@@ -564,31 +564,48 @@ func TestServer_Serve(t *testing.T) {
 		<-aDone
 		require.NoError(t, aErr)
 
-		var wg sync.WaitGroup
-		wg.Add(2)
+		aTpDone := make(chan struct{})
+		bTpDone := make(chan struct{})
+
+		var tpReadWriteWG sync.WaitGroup
+		tpReadWriteWG.Add(2)
 		go func() {
 			for {
-				var msg []byte
-				if _, err := aTransport.Read(msg); err != nil {
-					// TODO: throw out the error
-					panic(err)
+				select {
+				case <-aTpDone:
+					tpReadWriteWG.Done()
+					return
+				default:
+					var msg []byte
+					if _, err := aTransport.Read(msg); err != nil {
+						// TODO: throw out the error
+						panic(err)
+					}
+					log.Println("GOT MESSAGE %s", string(msg))
 				}
-				log.Println("GOT MESSAGE %s", string(msg))
-
-				wg.Done()
 			}
 		}()
 
-		for {
-			msg := []byte("Hello there!")
-			if _, err := bTransport.Write(msg); err != nil {
-				panic(err)
+		go func() {
+			for {
+				select {
+				case <-bTpDone:
+					tpReadWriteWG.Done()
+					return
+				default:
+					msg := []byte("Hello there!")
+					if _, err := bTransport.Write(msg); err != nil {
+						panic(err)
+					}
+				}
 			}
+		}()
 
-			wg.Done()
-		}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
 
-		wg.Wait()
+		_, err = a.Dial(ctx, bPK)
+		require.Error(t, err)
 	})
 }
 
