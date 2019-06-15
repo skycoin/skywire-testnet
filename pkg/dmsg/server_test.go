@@ -132,11 +132,13 @@ func TestServerConn_AddNext(t *testing.T) {
 	wg.Wait()
 
 	for i := uint16(1); i < uint16(connsCount*2); i += 2 {
-		require.NotNil(t, serverConn.nextConns[i])
+		_, ok := serverConn.getNext(i)
+		require.Equal(t, true, ok)
 	}
 
 	for i := uint16(connsCount*2 + 1); i != 1; i += 2 {
-		require.Nil(t, serverConn.nextConns[i])
+		_, ok := serverConn.getNext(i)
+		require.Equal(t, false, ok)
 	}
 }
 
@@ -261,11 +263,7 @@ func TestServer_Serve(t *testing.T) {
 		}))
 
 		require.NoError(t, testWithTimeout(5*time.Second, func() error {
-			a.mx.Lock()
-			l := len(a.conns)
-			a.mx.Unlock()
-
-			if l != 0 {
+			if a.connCount() != 0 {
 				return errors.New("a.conns is not empty")
 			}
 
@@ -273,11 +271,7 @@ func TestServer_Serve(t *testing.T) {
 		}))
 
 		require.NoError(t, testWithTimeout(5*time.Second, func() error {
-			b.mx.Lock()
-			l := len(b.conns)
-			b.mx.Unlock()
-
-			if l != 0 {
+			if b.connCount() != 0 {
 				return errors.New("b.conns is not empty")
 			}
 
@@ -487,11 +481,7 @@ func TestServer_Serve(t *testing.T) {
 
 		for i, remote := range remotes {
 			require.NoError(t, testWithTimeout(10*time.Second, func() error {
-				remote.mx.Lock()
-				l := len(remote.conns)
-				remote.mx.Unlock()
-
-				if l != 0 {
+				if remote.connCount() != 0 {
 					return errors.New(fmt.Sprintf("remotes[%v].conns is not empty", i))
 				}
 
@@ -501,11 +491,7 @@ func TestServer_Serve(t *testing.T) {
 
 		for i, initiator := range initiators {
 			require.NoError(t, testWithTimeout(10*time.Second, func() error {
-				initiator.mx.Lock()
-				l := len(initiator.conns)
-				initiator.mx.Unlock()
-
-				if l != 0 {
+				if initiator.connCount() != 0 {
 					return errors.New(fmt.Sprintf("initiators[%v].conns is not empty", i))
 				}
 
