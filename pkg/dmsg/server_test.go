@@ -213,22 +213,22 @@ func TestServer_Serve(t *testing.T) {
 		// must have ServerConn for A
 		aServerConn, ok := s.getConn(aPK)
 		require.Equal(t, true, ok)
-		require.Equal(t, aPK, aServerConn.remoteClient)
+		require.Equal(t, aPK, aServerConn.PK())
 
 		// must have ServerConn for B
 		bServerConn, ok := s.getConn(bPK)
 		require.Equal(t, true, ok)
-		require.Equal(t, bPK, bServerConn.remoteClient)
+		require.Equal(t, bPK, bServerConn.PK())
 
 		// must have a ClientConn
 		aClientConn, ok := a.getConn(sPK)
 		require.Equal(t, true, ok)
-		require.Equal(t, sPK, aClientConn.remoteSrv)
+		require.Equal(t, sPK, aClientConn.PK())
 
 		// must have a ClientConn
 		bClientConn, ok := b.getConn(sPK)
 		require.Equal(t, true, ok)
-		require.Equal(t, sPK, bClientConn.remoteSrv)
+		require.Equal(t, sPK, bClientConn.PK())
 
 		// check whether nextConn's contents are as must be
 		bNextConn := bServerConn.nextConns[bClientConn.nextInitID-2]
@@ -410,24 +410,24 @@ func TestServer_Serve(t *testing.T) {
 			// get and check initiator's ServerConn
 			initiatorServConn, ok := s.getConn(initiator.pk)
 			require.Equal(t, true, ok)
-			require.Equal(t, initiator.pk, initiatorServConn.remoteClient)
+			require.Equal(t, initiator.pk, initiatorServConn.PK())
 
 			// get and check initiator's ClientConn
 			initiatorClientConn, ok := initiator.getConn(sPK)
 			require.Equal(t, true, ok)
-			require.Equal(t, sPK, initiatorClientConn.remoteSrv)
+			require.Equal(t, sPK, initiatorClientConn.PK())
 
 			remote := remotes[pickedRemotes[i]]
 
 			// get and check remote's ServerConn
 			remoteServConn, ok := s.getConn(remote.pk)
 			require.Equal(t, true, ok)
-			require.Equal(t, remote.pk, remoteServConn.remoteClient)
+			require.Equal(t, remote.pk, remoteServConn.PK())
 
 			// get and check remote's ClientConn
 			remoteClientConn, ok := remote.getConn(sPK)
 			require.Equal(t, true, ok)
-			require.Equal(t, sPK, remoteClientConn.remoteSrv)
+			require.Equal(t, sPK, remoteClientConn.PK())
 
 			// get initiator's nextConn
 			initiatorNextConn := initiatorServConn.nextConns[initiatorClientConn.nextInitID-2]
