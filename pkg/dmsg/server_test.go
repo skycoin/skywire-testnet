@@ -289,6 +289,7 @@ func TestServer_Serve(t *testing.T) {
 	})
 
 	t.Run("test transport establishment concurrently", func(t *testing.T) {
+		// this way we can control the tests' difficulty
 		initiatorsCount := 50
 		remotesCount := 50
 
@@ -296,7 +297,8 @@ func TestServer_Serve(t *testing.T) {
 
 		// store the number of transports each remote should handle
 		usedRemotes := make(map[int]int)
-		// mapping initiators to remotes
+		// mapping initiators to remotes. one initiator performs a single connection,
+		// while remotes may handle from 0 to `initiatorsCount` connections
 		pickedRemotes := make([]int, 0, initiatorsCount)
 		for i := 0; i < initiatorsCount; i++ {
 			remote := rand.Intn(remotesCount)
@@ -337,14 +339,17 @@ func TestServer_Serve(t *testing.T) {
 			totalRemoteTpsCount += connectionsCount
 		}
 
+		// channel to listen for `Accept` errors. Any single error must
+		// fail the test
 		acceptErrs := make(chan error, totalRemoteTpsCount)
 		remotesTps := make(map[int][]transport.Transport, len(usedRemotes))
 		var remotesWG sync.WaitGroup
 		remotesWG.Add(totalRemoteTpsCount)
 		for i := range remotes {
+			// only run `Accept` in case the remote was picked before
 			if _, ok := usedRemotes[i]; ok {
 				for connect := 0; connect < usedRemotes[i]; connect++ {
-					// run remotes
+					// run remote
 					go func(remoteInd int) {
 						var (
 							transport transport.Transport
@@ -356,6 +361,7 @@ func TestServer_Serve(t *testing.T) {
 							acceptErrs <- err
 						}
 
+						// store transport
 						remotesTps[remoteInd] = append(remotesTps[remoteInd], transport)
 
 						remotesWG.Done()
@@ -364,12 +370,14 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}
 
+		// channel to listen for `Dial` errors. Any single error must
+		// fail the test
 		dialErrs := make(chan error, initiatorsCount)
 		initiatorsTps := make([]transport.Transport, 0, initiatorsCount)
 		var initiatorsWG sync.WaitGroup
 		initiatorsWG.Add(initiatorsCount)
 		for i := range initiators {
-			// run initiators
+			// run initiator
 			go func(initiatorInd int) {
 				var (
 					transport transport.Transport
@@ -382,6 +390,7 @@ func TestServer_Serve(t *testing.T) {
 					dialErrs <- err
 				}
 
+				// store transport
 				initiatorsTps = append(initiatorsTps, transport)
 
 				initiatorsWG.Done()
@@ -436,6 +445,9 @@ func TestServer_Serve(t *testing.T) {
 			require.Equal(t, true, ok)
 			require.NotNil(t, initiatorNextConn)
 
+			// since, the test is concurrent, we can not check the exact values, so
+			// we just loop through the previous values of `nextRespID` and check
+			// whether one of these is equal to the corresponding value of `initiatorNextConn.id`
 			correspondingNextConnFound := false
 			remoteServConn.mx.RLock()
 			nextConnID := remoteServConn.nextRespID
@@ -448,6 +460,9 @@ func TestServer_Serve(t *testing.T) {
 			}
 			require.Equal(t, true, correspondingNextConnFound)
 
+			// same as above. Looping through the previous values of `nextRespID`,
+			// fetching all of the corresponding `nextConn`. One of these must have `id`
+			// equal to `initiatorClientConn.nextInitID - 2`
 			correspondingNextConnFound = false
 			remoteServConn.mx.RLock()
 			nextConnID = remoteServConn.nextRespID
@@ -455,9 +470,9 @@ func TestServer_Serve(t *testing.T) {
 			for i := nextConnID - 2; i != nextConnID; i -= 2 {
 				if _, ok := remoteServConn.getNext(i); ok {
 					initiatorClientConn.mx.RLock()
-					clientNextInitID := initiatorClientConn.nextInitID - 2
+					initiatorNextInitID := initiatorClientConn.nextInitID - 2
 					initiatorClientConn.mx.RUnlock()
-					if next, ok := remoteServConn.getNext(i); ok && next.id == clientNextInitID {
+					if next, ok := remoteServConn.getNext(i); ok && next.id == initiatorNextInitID {
 						correspondingNextConnFound = true
 						break
 					}
@@ -466,6 +481,7 @@ func TestServer_Serve(t *testing.T) {
 			require.Equal(t, true, correspondingNextConnFound)
 		}
 
+		// close transports for remotes
 		for _, tps := range remotesTps {
 			for _, tp := range tps {
 				err := tp.Close()
@@ -473,16 +489,19 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}
 
+		// close transports for initiators
 		for _, tp := range initiatorsTps {
 			err := tp.Close()
 			require.NoError(t, err)
 		}
 
+		// close remotes
 		for _, remote := range remotes {
 			err := remote.Close()
 			require.NoError(t, err)
 		}
 
+		// close initiators
 		for _, initiator := range initiators {
 			err := initiator.Close()
 			require.NoError(t, err)
@@ -630,6 +649,8 @@ func catch(err error) {
 	}
 }
 
+// intended to test some func of `func() error` signature with a given timeout.
+// Exeeding timeout results in error.
 func testWithTimeout(timeout time.Duration, run func() error) error {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
