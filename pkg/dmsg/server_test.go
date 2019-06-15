@@ -303,10 +303,6 @@ func TestServer_Serve(t *testing.T) {
 		pickedRemotes := make([]int, 0, initiatorsCount)
 		for i := 0; i < initiatorsCount; i++ {
 			remote := rand.Intn(remotesCount)
-			if _, ok := usedRemotes[remote]; !ok {
-				usedRemotes[remote] = 0
-			}
-
 			usedRemotes[remote] = usedRemotes[remote] + 1
 			pickedRemotes = append(pickedRemotes, remote)
 		}
