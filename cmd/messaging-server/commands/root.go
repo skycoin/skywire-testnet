@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"log/syslog"
+	"net"
 	"net/http"
 	"os"
 
@@ -71,9 +72,18 @@ var rootCmd = &cobra.Command{
 			}
 		}()
 
+		l, err := net.Listen("tcp", conf.LocalAddress)
+		if err != nil {
+			logger.Fatalf("Error listening on %s: %v", conf.LocalAddress, err)
+		}
+
 		// Start
-		srv := dmsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, client.NewHTTP(conf.Discovery))
-		log.Fatal(srv.ListenAndServe(conf.LocalAddress))
+		srv, err := dmsg.NewServer(conf.PubKey, conf.SecKey, l, client.NewHTTP(conf.Discovery))
+		if err != nil {
+			logger.Fatalf("Error creating DMSG server instance: %v", err)
+		}
+
+		log.Fatal(srv.Serve())
 	},
 }
 
