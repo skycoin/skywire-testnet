@@ -12,15 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/internal/noise"
-
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
+	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -458,7 +455,7 @@ func TestServer_Serve(t *testing.T) {
 			for i := nextConnID - 2; i != nextConnID; i -= 2 {
 				if _, ok := remoteServConn.getNext(i); ok {
 					initiatorClientConn.mx.RLock()
-					clientNextInitID := initiatorClientConn.nextInitID
+					clientNextInitID := initiatorClientConn.nextInitID - 2
 					initiatorClientConn.mx.RUnlock()
 					if next, ok := remoteServConn.getNext(i); ok && next.id == clientNextInitID {
 						correspondingNextConnFound = true
