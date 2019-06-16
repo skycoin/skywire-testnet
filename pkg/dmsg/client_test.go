@@ -82,7 +82,7 @@ func TestClient(t *testing.T) {
 		assert.False(t, isDoneChannelOpen(conn1.done))
 		assert.False(t, isDoneChannelOpen(conn2.done))
 		assert.False(t, isDoneChannelOpen(tr1.done))
-		//assert.False(t, isReadChannelOpen(tr1.readCh))
+		assert.False(t, isReadChannelOpen(tr1.inCh))
 	})
 
 	// Runs four ClientConn's and dials two transports between them.
@@ -253,9 +253,9 @@ func TestClient(t *testing.T) {
 		assert.False(t, isDoneChannelOpen(conn1.done))
 		assert.False(t, isDoneChannelOpen(conn3.done))
 		assert.False(t, isDoneChannelOpen(tr1.done))
-		//assert.False(t, isReadChannelOpen(tr1.readCh))
+		assert.False(t, isReadChannelOpen(tr1.inCh))
 		assert.False(t, isDoneChannelOpen(tr2.done))
-		//assert.False(t, isReadChannelOpen(tr2.readCh))
+		assert.False(t, isReadChannelOpen(tr2.inCh))
 	})
 }
 
