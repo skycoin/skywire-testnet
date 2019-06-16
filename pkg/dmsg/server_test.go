@@ -581,10 +581,11 @@ func TestServer_Serve(t *testing.T) {
 			for {
 				select {
 				case <-aTpDone:
+					log.Println("ATransport DONE")
 					tpReadWriteWG.Done()
 					return
 				default:
-					var msg []byte = make([]byte, 12)
+					msg := make([]byte, 13)
 					if _, aErr = aTransport.Read(msg); aErr != nil {
 						tpReadWriteWG.Done()
 						return
@@ -599,6 +600,7 @@ func TestServer_Serve(t *testing.T) {
 			for {
 				select {
 				case <-bTpDone:
+					log.Println("BTransport DONE")
 					tpReadWriteWG.Done()
 					return
 				default:
@@ -611,7 +613,7 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 
 		// try to create another transport
