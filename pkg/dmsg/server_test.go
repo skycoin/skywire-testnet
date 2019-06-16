@@ -540,14 +540,17 @@ func TestServer_Serve(t *testing.T) {
 	})
 
 	t.Run("test failed accept not hanging already established transport", func(t *testing.T) {
+		// generate keys for both clients
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
 
+		// create remote
 		a := NewClient(aPK, aSK, dc)
 		a.SetLogger(logging.MustGetLogger("A"))
 		err := a.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
+		// create initiator
 		b := NewClient(bPK, bSK, dc)
 		b.SetLogger(logging.MustGetLogger("B"))
 		err = b.InitiateServerConnections(context.Background(), 1)
@@ -573,6 +576,7 @@ func TestServer_Serve(t *testing.T) {
 		var bErr error
 		var tpReadWriteWG sync.WaitGroup
 		tpReadWriteWG.Add(2)
+		// run infinite reading from tp loop in goroutine
 		go func() {
 			for {
 				select {
@@ -580,24 +584,8 @@ func TestServer_Serve(t *testing.T) {
 					tpReadWriteWG.Done()
 					return
 				default:
-					msg := []byte("Hello there!")
-					if _, aErr = aTransport.Write(msg); aErr != nil {
-						tpReadWriteWG.Done()
-						return
-					}
-				}
-			}
-		}()
-
-		go func() {
-			for {
-				select {
-				case <-bTpDone:
-					tpReadWriteWG.Done()
-					return
-				default:
-					var msg []byte
-					if _, bErr = bTransport.Read(msg); bErr != nil {
+					var msg []byte = make([]byte, 12)
+					if _, aErr = aTransport.Read(msg); aErr != nil {
 						tpReadWriteWG.Done()
 						return
 					}
@@ -606,18 +594,41 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}()
 
+		// run infinite writing to tp loop in goroutine
+		go func() {
+			for {
+				select {
+				case <-bTpDone:
+					tpReadWriteWG.Done()
+					return
+				default:
+					msg := []byte("Hello there!")
+					if _, bErr = bTransport.Write(msg); bErr != nil {
+						tpReadWriteWG.Done()
+						return
+					}
+				}
+			}
+		}()
+
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
 
+		// try to create another transport
 		_, err = a.Dial(ctx, bPK)
+		// must fail with timeout
 		require.Error(t, err)
 
+		// wait more time to ensure that the initially created transport works
 		time.Sleep(2 * time.Second)
 
+		// stop reading/writing goroutines
 		close(aTpDone)
 		close(bTpDone)
 
+		// wait for goroutines to stop
 		tpReadWriteWG.Wait()
+		// check that the initial transport had been working properly all the time
 		require.NoError(t, aErr)
 		require.NoError(t, bErr)
 
