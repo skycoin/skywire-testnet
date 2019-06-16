@@ -301,8 +301,11 @@ func TestServer_Serve(t *testing.T) {
 		// while remotes may handle from 0 to `initiatorsCount` connections
 		pickedRemotes := make([]int, 0, initiatorsCount)
 		for i := 0; i < initiatorsCount; i++ {
+			// pick random remote, which the initiator will connect to
 			remote := rand.Intn(remotesCount)
+			// increment the number of connections picked remote will handle
 			usedRemotes[remote] = usedRemotes[remote] + 1
+			// map initiator to picked remote
 			pickedRemotes = append(pickedRemotes, remote)
 		}
 
