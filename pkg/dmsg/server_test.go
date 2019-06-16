@@ -603,12 +603,32 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
 
 		_, err = a.Dial(ctx, bPK)
+		require.Error(t, err)
+
+		time.Sleep(2 * time.Second)
+
+		close(aTpDone)
+		close(bTpDone)
+
 		tpReadWriteWG.Wait()
-		//require.Error(t, err)
+		require.NoError(t, aErr)
+		require.NoError(t, bErr)
+
+		err = aTransport.Close()
+		require.NoError(t, err)
+
+		err = bTransport.Close()
+		require.NoError(t, err)
+
+		err = a.Close()
+		require.NoError(t, err)
+
+		err = b.Close()
+		require.NoError(t, err)
 	})
 }
 
