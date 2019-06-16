@@ -131,12 +131,12 @@ func (c *ClientConn) setNextInitID(nextInitID uint16) {
 	c.mx.Unlock()
 }
 
-func (c *ClientConn) getNextInitID() uint16 {
+/*func (c *ClientConn) getNextInitID() uint16 {
 	c.mx.RLock()
 	id := c.nextInitID
 	c.mx.RUnlock()
 	return id
-}
+}*/
 
 func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
 	// remotely-initiated tps should:

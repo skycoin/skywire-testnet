@@ -1,6 +1,6 @@
 package dmsg
 
-import (
+/*import (
 	"context"
 	"net"
 	"testing"
@@ -268,3 +268,4 @@ func (c invertedIDConn) Write(b []byte) (n int, err error) {
 	newFrame := MakeFrame(frame.Type(), frame.TpID()^1, frame.Pay())
 	return c.Conn.Write(newFrame)
 }
+*/
