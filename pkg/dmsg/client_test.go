@@ -1,6 +1,6 @@
 package dmsg
 
-/*import (
+import (
 	"context"
 	"net"
 	"testing"
@@ -13,7 +13,6 @@ package dmsg
 )
 
 const (
-	acceptChSize      = 128
 	chanReadThreshold = time.Second * 5
 )
 
@@ -55,7 +54,9 @@ func TestClient(t *testing.T) {
 			_ = conn2.Serve(ctx, ch2) // nolint:errcheck
 		}()
 
-		initID := conn1.getNextInitID()
+		conn1.mx.RLock()
+		initID := conn1.nextInitID
+		conn1.mx.RUnlock()
 		_, ok := conn1.getTp(initID)
 		assert.False(t, ok)
 
@@ -64,7 +65,10 @@ func TestClient(t *testing.T) {
 
 		_, ok = conn1.getTp(initID)
 		assert.True(t, ok)
-		assert.Equal(t, initID+2, conn1.getNextInitID())
+		conn1.mx.RLock()
+		newInitID := conn1.nextInitID
+		conn1.mx.RUnlock()
+		assert.Equal(t, initID+2, newInitID)
 
 		err = tr1.Close()
 		assert.NoError(t, err)
@@ -77,8 +81,8 @@ func TestClient(t *testing.T) {
 
 		assert.False(t, isDoneChannelOpen(conn1.done))
 		assert.False(t, isDoneChannelOpen(conn2.done))
-		assert.False(t, isDoneChannelOpen(tr1.doneCh))
-		assert.False(t, isReadChannelOpen(tr1.readCh))
+		assert.False(t, isDoneChannelOpen(tr1.done))
+		//assert.False(t, isReadChannelOpen(tr1.readCh))
 	})
 
 	// Runs four ClientConn's and dials two transports between them.
@@ -129,22 +133,30 @@ func TestClient(t *testing.T) {
 			_ = conn4.Serve(ctx, ch4) // nolint:errcheck
 		}()
 
-		initID1 := conn1.getNextInitID()
+		conn1.mx.RLock()
+		initID1 := conn1.nextInitID
+		conn1.mx.RUnlock()
 
 		_, ok := conn1.getTp(initID1)
 		assert.False(t, ok)
 
-		initID2 := conn2.getNextInitID()
+		conn2.mx.RLock()
+		initID2 := conn2.nextInitID
+		conn2.mx.RUnlock()
 
 		_, ok = conn2.getTp(initID2)
 		assert.False(t, ok)
 
-		initID3 := conn3.getNextInitID()
+		conn3.mx.RLock()
+		initID3 := conn3.nextInitID
+		conn3.mx.RUnlock()
 
 		_, ok = conn3.getTp(initID3)
 		assert.False(t, ok)
 
-		initID4 := conn4.getNextInitID()
+		conn4.mx.RLock()
+		initID4 := conn4.nextInitID
+		conn4.mx.RUnlock()
 
 		_, ok = conn4.getTp(initID4)
 		assert.False(t, ok)
@@ -176,14 +188,20 @@ func TestClient(t *testing.T) {
 
 		_, ok = conn1.getTp(initID1)
 		assert.True(t, ok)
-		assert.Equal(t, initID1+2, conn1.getNextInitID())
+		conn1.mx.RLock()
+		newInitID1 := conn1.nextInitID
+		conn1.mx.RUnlock()
+		assert.Equal(t, initID1+2, newInitID1)
 
 		tr2, err := twe2.tr, twe2.err
 		assert.NoError(t, err)
 
 		_, ok = conn3.getTp(initID3)
 		assert.True(t, ok)
-		assert.Equal(t, initID3+2, conn3.getNextInitID())
+		conn3.mx.RLock()
+		newInitID3 := conn3.nextInitID
+		conn3.mx.RUnlock()
+		assert.Equal(t, initID3+2, newInitID3)
 
 		errCh1 := make(chan error)
 		errCh2 := make(chan error)
@@ -234,10 +252,10 @@ func TestClient(t *testing.T) {
 
 		assert.False(t, isDoneChannelOpen(conn1.done))
 		assert.False(t, isDoneChannelOpen(conn3.done))
-		assert.False(t, isDoneChannelOpen(tr1.doneCh))
-		assert.False(t, isReadChannelOpen(tr1.readCh))
-		assert.False(t, isDoneChannelOpen(tr2.doneCh))
-		assert.False(t, isReadChannelOpen(tr2.readCh))
+		assert.False(t, isDoneChannelOpen(tr1.done))
+		//assert.False(t, isReadChannelOpen(tr1.readCh))
+		assert.False(t, isDoneChannelOpen(tr2.done))
+		//assert.False(t, isReadChannelOpen(tr2.readCh))
 	})
 }
 
@@ -268,4 +286,3 @@ func (c invertedIDConn) Write(b []byte) (n int, err error) {
 	newFrame := MakeFrame(frame.Type(), frame.TpID()^1, frame.Pay())
 	return c.Conn.Write(newFrame)
 }
-*/
