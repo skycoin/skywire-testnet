@@ -98,17 +98,10 @@ func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transp
 	return tp, nil
 }
 
-func (c *ClientConn) acceptTp(clientPK cipher.PubKey, id uint16) (*Transport, error) {
-	tp := NewTransport(c.Conn, c.log, c.local, clientPK, id, c.delTp)
-
+func (c *ClientConn) setTp(tp *Transport) {
 	c.mx.Lock()
 	c.tps[tp.id] = tp
 	c.mx.Unlock()
-
-	if err := tp.WriteAccept(); err != nil {
-		return nil, err
-	}
-	return tp, nil
 }
 
 func (c *ClientConn) delTp(id uint16) {
@@ -131,7 +124,7 @@ func (c *ClientConn) setNextInitID(nextInitID uint16) {
 	c.mx.Unlock()
 }
 
-func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
+func (c *ClientConn) handleRequestFrame(accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
 	// remotely-initiated tps should:
 	// - have a payload structured as 'init_pk:resp_pk'.
 	// - resp_pk should be of local client.
@@ -143,22 +136,20 @@ func (c *ClientConn) handleRequestFrame(ctx context.Context, accept chan<- *Tran
 		}
 		return initPK, ErrRequestCheckFailed
 	}
-	tp, err := c.acceptTp(initPK, id)
-	if err != nil {
-		return initPK, err
-	}
-	go tp.Serve()
+
+	tp := NewTransport(c.Conn, c.log, c.local, initPK, id, c.delTp)
+	c.setTp(tp)
 
 	select {
 	case <-c.done:
 		_ = tp.Close() //nolint:errcheck
 		return initPK, ErrClientClosed
 
-	case <-ctx.Done():
-		_ = tp.Close() //nolint:errcheck
-		return initPK, ctx.Err()
-
 	case accept <- tp:
+		if err := tp.WriteAccept(); err != nil {
+			return initPK, err
+		}
+		go tp.Serve()
 		return initPK, nil
 	}
 }
@@ -206,21 +197,15 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 			c.wg.Add(1)
 			go func(log *logrus.Entry) {
 				defer c.wg.Done()
-
-				initPK, err := c.handleRequestFrame(ctx, accept, id, p)
+				initPK, err := c.handleRequestFrame(accept, id, p)
 				if err != nil {
-					log.
-						WithField("remoteClient", initPK).
-						WithError(err).
-						Infoln("Rejected [REQUEST]")
+					log.WithField("remoteClient", initPK).WithError(err).Infoln("Rejected [REQUEST]")
 					if isWriteError(err) || err == ErrClientClosed {
 						closeConn(log)
 					}
 					return
 				}
-				log.
-					WithField("remoteClient", initPK).
-					Infoln("Accepted [REQUEST]")
+				log.WithField("remoteClient", initPK).Infoln("Accepted [REQUEST]")
 			}(log)
 
 		default:

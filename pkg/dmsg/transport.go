@@ -42,9 +42,11 @@ type Transport struct {
 	bufSize   int
 	bufMx     sync.Mutex // protects 'buf' and 'bufCh'
 
-	once     sync.Once
-	done     chan struct{}
-	doneFunc func(id uint16)
+	servingOnce sync.Once
+	serving     chan struct{}
+	doneOnce    sync.Once
+	done        chan struct{}
+	doneFunc    func(id uint16) // contains a method to remove the transport from dmsg.Client
 }
 
 // NewTransport creates a new dms_tp.
@@ -59,6 +61,7 @@ func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKe
 		ackBuf:   make([]byte, 0, tpAckCap),
 		buf:      make(net.Buffers, 0, tpBufFrameCap),
 		bufCh:    make(chan struct{}, 1),
+		serving:  make(chan struct{}),
 		done:     make(chan struct{}),
 		doneFunc: doneFunc,
 	}
@@ -68,8 +71,16 @@ func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKe
 	return tp
 }
 
+func (tp *Transport) serve() (started bool) {
+	tp.servingOnce.Do(func() {
+		started = true
+		close(tp.serving)
+	})
+	return started
+}
+
 func (tp *Transport) close() (closed bool) {
-	tp.once.Do(func() {
+	tp.doneOnce.Do(func() {
 		closed = true
 
 		close(tp.done)
@@ -85,6 +96,7 @@ func (tp *Transport) close() (closed bool) {
 
 	})
 
+	tp.serve() // just in case.
 	tp.ackWaiter.StopAll()
 	return closed
 }
@@ -147,14 +159,20 @@ func (tp *Transport) WriteRequest() error {
 }
 
 // WriteAccept writes an ACCEPT frame to dmsg_server to be forwarded to associated client.
-func (tp *Transport) WriteAccept() error {
+func (tp *Transport) WriteAccept() (err error) {
+	defer func() {
+		if err != nil {
+			tp.log.WithError(err).WithField("remote", tp.remote).Warnln("(HANDSHAKE) Rejected locally.")
+		} else {
+			tp.log.WithField("remote", tp.remote).Infoln("(HANDSHAKE) Accepted locally.")
+		}
+	}()
+
 	f := MakeFrame(AcceptType, tp.id, combinePKs(tp.remote, tp.local))
-	if err := writeFrame(tp.Conn, f); err != nil {
-		tp.log.WithError(err).Error("HandshakeFailed")
+	if err = writeFrame(tp.Conn, f); err != nil {
 		tp.close()
 		return err
 	}
-	tp.log.WithField("sent", f).Infoln("HandshakeCompleted")
 	return nil
 }
 
@@ -162,7 +180,11 @@ func (tp *Transport) WriteAccept() error {
 // TODO(evanlinjin): Cleanup errors.
 func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 	defer func() {
-		tp.log.WithError(err).WithField("success", err == nil).Infoln("HandshakeDone")
+		if err != nil {
+			tp.log.WithError(err).WithField("remote", tp.remote).Warnln("(HANDSHAKE) Rejected by remote.")
+		} else {
+			tp.log.WithField("remote", tp.remote).Infoln("(HANDSHAKE) Accepted by remote.")
+		}
 	}()
 
 	select {
@@ -206,6 +228,10 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 
 // Serve handles received frames.
 func (tp *Transport) Serve() {
+	if !tp.serve() {
+		return
+	}
+
 	defer func() {
 		if tp.close() {
 			_ = writeCloseFrame(tp.Conn, tp.id, 0) //nolint:errcheck
@@ -221,9 +247,7 @@ func (tp *Transport) Serve() {
 			if !ok {
 				return
 			}
-			log := tp.log.
-				WithField("remoteClient", tp.remote).
-				WithField("received", f)
+			log := tp.log.WithField("remoteClient", tp.remote).WithField("received", f)
 
 			switch p := f.Pay(); f.Type() {
 			case FwdType:
@@ -279,6 +303,8 @@ func (tp *Transport) Serve() {
 // Read implements io.Reader
 // TODO(evanlinjin): read deadline.
 func (tp *Transport) Read(p []byte) (n int, err error) {
+	<-tp.serving
+
 startRead:
 	tp.bufMx.Lock()
 	n, err = tp.buf.Read(p)
@@ -293,12 +319,16 @@ startRead:
 	}
 	tp.bufMx.Unlock()
 
-	if tp.IsClosed() {
-		return n, err
+	if err != nil {
+		if tp.IsClosed() {
+			return n, err
+		}
+		err = nil
 	}
-	if n > 0 {
+	if n > 0 || len(p) == 0 {
 		return n, nil
 	}
+
 	<-tp.bufCh
 	goto startRead
 }
@@ -306,9 +336,12 @@ startRead:
 // Write implements io.Writer
 // TODO(evanlinjin): write deadline.
 func (tp *Transport) Write(p []byte) (int, error) {
+	<-tp.serving
+
 	if tp.IsClosed() {
 		return 0, io.ErrClosedPipe
 	}
+
 	err := tp.ackWaiter.Wait(context.Background(), func(seq ioutil.Uint16Seq) error {
 		if err := writeFwdFrame(tp.Conn, tp.id, seq, p); err != nil {
 			tp.close()

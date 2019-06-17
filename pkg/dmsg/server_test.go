@@ -17,6 +17,7 @@ import (
 	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
