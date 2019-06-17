@@ -586,7 +586,7 @@ func TestServer_Serve(t *testing.T) {
 					tpReadWriteWG.Done()
 					return
 				default:
-					msg := make([]byte, 13)
+					var msg []byte
 					if _, aErr = aTransport.Read(msg); aErr != nil {
 						tpReadWriteWG.Done()
 						return
@@ -614,12 +614,17 @@ func TestServer_Serve(t *testing.T) {
 			}
 		}()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
+		// continue creating transports untill the error occurs
+		for {
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 
-		// try to create another transport
-		_, err = a.Dial(ctx, bPK)
-		// must fail with timeout
+			_, err = a.Dial(ctx, bPK)
+			cancel()
+			if err != nil {
+				break
+			}
+		}
+		// must be error
 		require.Error(t, err)
 
 		// wait more time to ensure that the initially created transport works
