@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -102,6 +103,7 @@ func defaultConfig() *node.Config {
 	conf.Routing.SetupNodes = []cipher.PubKey{sPK}
 	conf.Routing.Table.Type = "boltdb"
 	conf.Routing.Table.Location = "./skywire/routing.db"
+	conf.Routing.RouteFinderTimeout = node.Duration(10 * time.Second)
 
 	conf.ManagerNodes = []node.ManagerConfig{}
 
@@ -109,6 +111,8 @@ func defaultConfig() *node.Config {
 	conf.LocalPath = "./local"
 
 	conf.LogLevel = "info"
+
+	conf.ShutdownTimeout = node.Duration(10 * time.Second)
 
 	conf.Interfaces.RPCAddress = "localhost:3435"
 

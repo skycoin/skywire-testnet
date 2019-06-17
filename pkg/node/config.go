@@ -1,6 +1,7 @@
 package node
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -39,9 +40,10 @@ type Config struct {
 	} `json:"transport"`
 
 	Routing struct {
-		SetupNodes  []cipher.PubKey `json:"setup_nodes"`
-		RouteFinder string          `json:"route_finder"`
-		Table       struct {
+		SetupNodes         []cipher.PubKey `json:"setup_nodes"`
+		RouteFinder        string          `json:"route_finder"`
+		RouteFinderTimeout Duration        `json:"route_finder_timeout"`
+		Table              struct {
 			Type     string `json:"type"`
 			Location string `json:"location"`
 		} `json:"table"`
@@ -55,7 +57,8 @@ type Config struct {
 	AppsPath  string `json:"apps_path"`
 	LocalPath string `json:"local_path"`
 
-	LogLevel string `json:"log_level"`
+	LogLevel        string   `json:"log_level"`
+	ShutdownTimeout Duration `json:"shutdown_timeout"` // time value, examples: 10s, 1m, etc
 
 	Interfaces InterfaceConfig `json:"interfaces"`
 }
@@ -173,4 +176,34 @@ type AppConfig struct {
 // InterfaceConfig defines listening interfaces for skywire Node.
 type InterfaceConfig struct {
 	RPCAddress string `json:"rpc"` // RPC address and port for command-line interface (leave blank to disable RPC interface).
+}
+
+// Duration wraps around time.Duration to allow parsing from and to JSON
+type Duration time.Duration
+
+// MarshalJSON implements json marshaling
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
+// UnmarshalJSON implements unmarshal from json
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		*d = Duration(time.Duration(value))
+		return nil
+	case string:
+		tmp, err := time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = Duration(tmp)
+		return nil
+	default:
+		return errors.New("invalid duration")
+	}
 }

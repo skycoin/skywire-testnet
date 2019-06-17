@@ -23,7 +23,8 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 	case <-done:
 		return entry, err
 	case <-time.After(timeout):
-		return nil, errors.New("deadline exceeded")
+		tm.Logger.Infof("handshake.Do timeout exceeded for value: %v", timeout)
+		return nil, errors.New("deadline exceeded on handshake")
 	}
 }
 
