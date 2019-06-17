@@ -8,6 +8,9 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"os"
+	"runtime"
+	"runtime/pprof"
 	"sync"
 	"testing"
 	"time"
@@ -541,6 +544,30 @@ func TestServer_Serve(t *testing.T) {
 	})
 
 	t.Run("test failed accept not hanging already established transport", func(t *testing.T) {
+		f, err := os.Create("./cpu.prof")
+		if err != nil {
+			log.Fatalf("Error creating cpu profile: %v\n", err)
+		}
+
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatalf("Error starting cpu profiling: %v\n", err)
+		}
+
+		defer pprof.StopCPUProfile()
+
+		blockF, err := os.Create("./block.prof")
+		if err != nil {
+			log.Fatalf("Error creating block profile: %v\n", err)
+		}
+
+		runtime.SetBlockProfileRate(1)
+		p := pprof.Lookup("block")
+		defer func() {
+			if err := p.WriteTo(blockF, 0); err != nil {
+				log.Fatalf("Error saving block profile: %v\n", err)
+			}
+		}()
+
 		// generate keys for both clients
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
@@ -548,7 +575,7 @@ func TestServer_Serve(t *testing.T) {
 		// create remote
 		a := NewClient(aPK, aSK, dc)
 		a.SetLogger(logging.MustGetLogger("A"))
-		err := a.InitiateServerConnections(context.Background(), 1)
+		err = a.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
 		// create initiator
@@ -586,12 +613,13 @@ func TestServer_Serve(t *testing.T) {
 					tpReadWriteWG.Done()
 					return
 				default:
-					var msg []byte
+					//var msg []byte
+					msg := make([]byte, 13)
 					if _, aErr = aTransport.Read(msg); aErr != nil {
 						tpReadWriteWG.Done()
 						return
 					}
-					log.Printf("GOT MESSAGE %s", string(msg))
+					//log.Printf("GOT MESSAGE %s", string(msg))
 				}
 			}
 		}()
@@ -606,10 +634,13 @@ func TestServer_Serve(t *testing.T) {
 					return
 				default:
 					msg := []byte("Hello there!")
+					log.Println("BEFORE TRANSPORT WRITE")
 					if _, bErr = bTransport.Write(msg); bErr != nil {
+						log.Println("ERROR IN TRANSPORT WRITE")
 						tpReadWriteWG.Done()
 						return
 					}
+					log.Println("AFTER TRANSPORT WRITE")
 				}
 			}
 		}()
