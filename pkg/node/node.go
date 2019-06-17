@@ -150,7 +150,7 @@ func NewNode(config *Config) (*Node, error) {
 		SecKey:           sk,
 		TransportManager: node.tm,
 		RoutingTable:     node.rt,
-		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder),
+		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
 		SetupNodes:       config.Routing.SetupNodes,
 	}
 	r := router.New(rConfig)

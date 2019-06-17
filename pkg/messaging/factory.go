@@ -26,9 +26,9 @@ var (
 	// ErrRejected indicates that ChannelOpen frame was rejected by remote server.
 	ErrRejected = errors.New("rejected")
 	// ErrChannelClosed indicates that underlying channel is being closed and writes are prohibited.
-	ErrChannelClosed = errors.New("channel closed")
+	ErrChannelClosed = errors.New("messaging channel closed")
 	// ErrDeadlineExceeded indicates that read/write operation failed due to timeout.
-	ErrDeadlineExceeded = errors.New("deadline exceeded")
+	ErrDeadlineExceeded = errors.New("deadline exceeded in messaging")
 	// ErrClientClosed indicates that client is closed and not accepting new connections.
 	ErrClientClosed = errors.New("client closed")
 )
