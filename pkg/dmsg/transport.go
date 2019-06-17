@@ -319,14 +319,14 @@ startRead:
 	}
 	tp.bufMx.Unlock()
 
-	if err != nil {
-		if tp.IsClosed() {
-			return n, err
-		}
+	if tp.IsClosed() {
+		return n, err
+	}
+	if err == io.EOF {
 		err = nil
 	}
 	if n > 0 || len(p) == 0 {
-		return n, nil
+		return n, err
 	}
 
 	<-tp.bufCh
