@@ -567,6 +567,7 @@ func TestServer_Serve(t *testing.T) {
 
 		var readErr, writeErr error
 		go func() {
+			// read/write to/from transport until the stop signal arrives
 			for {
 				select {
 				case <-readWriteStop:
@@ -646,6 +647,7 @@ func TestServer_Serve(t *testing.T) {
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
+		// create transports
 		bTransport, err := b.Dial(context.Background(), aPK)
 		require.NoError(t, err)
 
@@ -656,30 +658,35 @@ func TestServer_Serve(t *testing.T) {
 		for i := 0; i < msgCount; i++ {
 			msg := "Hello there!"
 
+			// write message of 12 bytes
 			_, err := bTransport.Write([]byte(msg))
 			require.NoError(t, err)
 
-			recMsg := make([]byte, 5)
-			n, err := aTransport.Read(recMsg)
+			// create a receiving buffer of 5 bytes
+			recBuff := make([]byte, 5)
+
+			// read 5 bytes, 7 left
+			n, err := aTransport.Read(recBuff)
 			require.NoError(t, err)
+			require.Equal(t, n, len(recBuff))
 
-			received := string(recMsg[:n])
+			received := string(recBuff[:n])
 
-			log.Printf("Received: %v , bytes: %v", received, n)
-
-			n, err = aTransport.Read(recMsg)
+			// read 5 more, 2 left
+			n, err = aTransport.Read(recBuff)
 			require.NoError(t, err)
+			require.Equal(t, n, len(recBuff))
 
-			received += string(recMsg[:n])
+			received += string(recBuff[:n])
 
-			log.Printf("Received: %v , bytes: %v", received, n)
-
-			n, err = aTransport.Read(recMsg)
+			// read 2 bytes left
+			n, err = aTransport.Read(recBuff)
 			require.NoError(t, err)
+			require.Equal(t, n, len(msg)-len(recBuff)*2)
 
-			received += string(recMsg[:n])
-			log.Printf("Last bytes count: %v", n)
+			received += string(recBuff[:n])
 
+			// received string must be equal to the sent one
 			require.Equal(t, received, msg)
 		}
 
