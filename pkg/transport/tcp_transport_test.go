@@ -1,4 +1,4 @@
-package transport
+package transport_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 func TestTCPFactory(t *testing.T) {
@@ -28,10 +29,10 @@ func TestTCPFactory(t *testing.T) {
 	l2, err := net.ListenTCP("tcp", addr2)
 	require.NoError(t, err)
 
-	pkt1 := InMemoryPubKeyTable(map[cipher.PubKey]*net.TCPAddr{pk2: addr2})
-	pkt2 := InMemoryPubKeyTable(map[cipher.PubKey]*net.TCPAddr{pk1: addr1})
+	pkt1 := transport.InMemoryPubKeyTable(map[cipher.PubKey]*net.TCPAddr{pk2: addr2})
+	pkt2 := transport.InMemoryPubKeyTable(map[cipher.PubKey]*net.TCPAddr{pk1: addr1})
 
-	f1 := NewTCPFactory(pk1, pkt1, l1)
+	f1 := transport.NewTCPFactory(pk1, pkt1, l1)
 	errCh := make(chan error)
 	go func() {
 		tr, err := f1.Accept(context.TODO())
@@ -48,7 +49,7 @@ func TestTCPFactory(t *testing.T) {
 		errCh <- nil
 	}()
 
-	f2 := NewTCPFactory(pk2, pkt2, l2)
+	f2 := transport.NewTCPFactory(pk2, pkt2, l2)
 	assert.Equal(t, "tcp", f2.Type())
 	assert.Equal(t, pk2, f2.Local())
 
@@ -79,7 +80,7 @@ func TestFilePKTable(t *testing.T) {
 	_, err = tmpfile.Write([]byte(fmt.Sprintf("%s\t%s\n", pk, addr)))
 	require.NoError(t, err)
 
-	pkt, err := FilePubKeyTable(tmpfile.Name())
+	pkt, err := transport.FilePubKeyTable(tmpfile.Name())
 	require.NoError(t, err)
 
 	raddr := pkt.RemoteAddr(pk)

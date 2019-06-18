@@ -1,4 +1,4 @@
-package transport
+package transport_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/transport"
 )
 
 // ExampleNewEntry shows that with different order of edges:
@@ -15,8 +16,8 @@ func ExampleNewEntry() {
 	pkA, _ := cipher.GenerateKeyPair()
 	pkB, _ := cipher.GenerateKeyPair()
 
-	entryAB := NewEntry(pkA, pkB, "", true)
-	entryBA := NewEntry(pkB, pkA, "", true)
+	entryAB := transport.NewEntry(pkA, pkB, "", true)
+	entryBA := transport.NewEntry(pkB, pkA, "", true)
 
 	if entryAB.ID == entryBA.ID {
 		fmt.Println("entryAB.ID == entryBA.ID")
@@ -32,14 +33,14 @@ func ExampleEntry_Edges() {
 	pkA, _ := cipher.GenerateKeyPair()
 	pkB, _ := cipher.GenerateKeyPair()
 
-	entryAB := Entry{
+	entryAB := transport.Entry{
 		ID:       uuid.UUID{},
 		EdgeKeys: [2]cipher.PubKey{pkA, pkB},
 		Type:     "",
 		Public:   true,
 	}
 
-	entryBA := Entry{
+	entryBA := transport.Entry{
 		ID:       uuid.UUID{},
 		EdgeKeys: [2]cipher.PubKey{pkB, pkA},
 		Type:     "",
@@ -62,7 +63,7 @@ func ExampleEntry_SetEdges() {
 	pkA, _ := cipher.GenerateKeyPair()
 	pkB, _ := cipher.GenerateKeyPair()
 
-	entryAB, entryBA := Entry{}, Entry{}
+	entryAB, entryBA := transport.Entry{}, transport.Entry{}
 
 	entryAB.SetEdges([2]cipher.PubKey{pkA, pkB})
 	entryBA.SetEdges([2]cipher.PubKey{pkA, pkB})
@@ -85,8 +86,8 @@ func ExampleSignedEntry_Sign() {
 	pkA, skA := cipher.GenerateKeyPair()
 	pkB, skB := cipher.GenerateKeyPair()
 
-	entry := NewEntry(pkA, pkB, "mock", true)
-	sEntry := &SignedEntry{Entry: entry}
+	entry := transport.NewEntry(pkA, pkB, "mock", true)
+	sEntry := &transport.SignedEntry{Entry: entry}
 
 	if sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null() {
 		fmt.Println("No signatures set")
@@ -119,8 +120,8 @@ func ExampleSignedEntry_Signature() {
 	pkA, skA := cipher.GenerateKeyPair()
 	pkB, skB := cipher.GenerateKeyPair()
 
-	entry := NewEntry(pkA, pkB, "mock", true)
-	sEntry := &SignedEntry{Entry: entry}
+	entry := transport.NewEntry(pkA, pkB, "mock", true)
+	sEntry := &transport.SignedEntry{Entry: entry}
 	if ok := sEntry.Sign(pkA, skA); !ok {
 		fmt.Println("Error signing sEntry with (pkA,skA)")
 	}

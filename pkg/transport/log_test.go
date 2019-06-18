@@ -1,4 +1,4 @@
-package transport
+package transport_test
 
 import (
 	"io/ioutil"
@@ -7,17 +7,18 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func testTransportLogStore(t *testing.T, logStore LogStore) {
+func testTransportLogStore(t *testing.T, logStore transport.LogStore) {
 	t.Helper()
 
 	id1 := uuid.New()
-	entry1 := &LogEntry{big.NewInt(100), big.NewInt(200)}
+	entry1 := &transport.LogEntry{big.NewInt(100), big.NewInt(200)}
 	id2 := uuid.New()
-	entry2 := &LogEntry{big.NewInt(300), big.NewInt(400)}
+	entry2 := &transport.LogEntry{big.NewInt(300), big.NewInt(400)}
 
 	require.NoError(t, logStore.Record(id1, entry1))
 	require.NoError(t, logStore.Record(id2, entry2))
@@ -29,7 +30,7 @@ func testTransportLogStore(t *testing.T, logStore LogStore) {
 }
 
 func TestInMemoryTransportLogStore(t *testing.T) {
-	testTransportLogStore(t, InMemoryTransportLogStore())
+	testTransportLogStore(t, transport.InMemoryTransportLogStore())
 }
 
 func TestFileTransportLogStore(t *testing.T) {
@@ -37,7 +38,7 @@ func TestFileTransportLogStore(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	ls, err := FileTransportLogStore(dir)
+	ls, err := transport.FileTransportLogStore(dir)
 	require.NoError(t, err)
 	testTransportLogStore(t, ls)
 }
