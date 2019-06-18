@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"math/rand"
@@ -541,30 +542,6 @@ func TestServer_Serve(t *testing.T) {
 	})
 
 	t.Run("test failed accept not hanging already established transport", func(t *testing.T) {
-		/*f, err := os.Create("./cpu.prof")
-		if err != nil {
-			log.Fatalf("Error creating cpu profile: %v\n", err)
-		}
-
-		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatalf("Error starting cpu profiling: %v\n", err)
-		}
-
-		defer pprof.StopCPUProfile()
-
-		blockF, err := os.Create("./block.prof")
-		if err != nil {
-			log.Fatalf("Error creating block profile: %v\n", err)
-		}
-
-		runtime.SetBlockProfileRate(1)
-		p := pprof.Lookup("block")
-		defer func() {
-			if err := p.WriteTo(blockF, 0); err != nil {
-				log.Fatalf("Error saving block profile: %v\n", err)
-			}
-		}()*/
-
 		// generate keys for both clients
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
@@ -658,6 +635,12 @@ func TestServer_Serve(t *testing.T) {
 		// wait more time to ensure that the initially created transport works
 		time.Sleep(2 * time.Second)
 
+		err = aTransport.Close()
+		require.NoError(t, err)
+
+		err = bTransport.Close()
+		require.NoError(t, err)
+
 		// stop reading/writing goroutines
 		close(aTpDone)
 		close(bTpDone)
@@ -665,19 +648,21 @@ func TestServer_Serve(t *testing.T) {
 		// wait for goroutines to stop
 		tpReadWriteWG.Wait()
 		// check that the initial transport had been working properly all the time
-		require.NoError(t, aErr)
-		require.NoError(t, bErr)
-
-		err = aTransport.Close()
-		require.NoError(t, err)
-
-		err = bTransport.Close()
-		require.NoError(t, err)
+		// if any error, it must be `io.EOF` for reader
+		if aErr != io.EOF {
+			require.NoError(t, aErr)
+		}
+		// if any error, it must be `io.ErrClosedPipe` for writer
+		if bErr != io.ErrClosedPipe {
+			require.NoError(t, bErr)
+		}
 
 		err = a.Close()
 		require.NoError(t, err)
 
+		b.log.Println("BEFORE CLOSING")
 		err = b.Close()
+		b.log.Println("AFTER CLOSING")
 		require.NoError(t, err)
 	})
 
