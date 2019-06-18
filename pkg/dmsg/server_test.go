@@ -556,68 +556,37 @@ func TestServer_Serve(t *testing.T) {
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
-		aDone := make(chan struct{})
-		var aTransport transport.Transport
-		var aErr error
-		go func() {
-			aTransport, aErr = a.Accept(context.Background())
-			close(aDone)
-		}()
-
 		bTransport, err := b.Dial(context.Background(), aPK)
 		require.NoError(t, err)
 
-		<-aDone
-		require.NoError(t, aErr)
+		aTransport, err := a.Accept(context.Background())
+		require.NoError(t, err)
 
-		aTpDone := make(chan struct{})
-		bTpDone := make(chan struct{})
+		readWriteStop := make(chan struct{})
+		readWriteDone := make(chan struct{})
 
-		var bErr error
-		var tpReadWriteWG sync.WaitGroup
-		tpReadWriteWG.Add(2)
-		// run infinite reading from tp loop in goroutine
+		var readErr, writeErr error
 		go func() {
 			for {
 				select {
-				case <-aTpDone:
-					log.Println("ATransport DONE")
-					tpReadWriteWG.Done()
-					return
-				default:
-					//var msg []byte
-					msg := make([]byte, 13)
-					if _, aErr = aTransport.Read(msg); aErr != nil {
-						tpReadWriteWG.Done()
-						return
-					}
-					//log.Printf("GOT MESSAGE %s", string(msg))
-				}
-			}
-		}()
-
-		// run infinite writing to tp loop in goroutine
-		go func() {
-			for {
-				select {
-				case <-bTpDone:
-					log.Println("BTransport DONE")
-					tpReadWriteWG.Done()
+				case <-readWriteStop:
+					close(readWriteDone)
 					return
 				default:
 					msg := []byte("Hello there!")
-					log.Println("BEFORE TRANSPORT WRITE")
-					if _, bErr = bTransport.Write(msg); bErr != nil {
-						log.Println("ERROR IN TRANSPORT WRITE")
-						tpReadWriteWG.Done()
+					if _, writeErr = bTransport.Write(msg); writeErr != nil {
+						close(readWriteDone)
 						return
 					}
-					log.Println("AFTER TRANSPORT WRITE")
+					if _, readErr = aTransport.Read(msg); readErr != nil {
+						close(readWriteDone)
+						return
+					}
 				}
 			}
 		}()
 
-		// continue creating transports untill the error occurs
+		// continue creating transports until the error occurs
 		for {
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 
@@ -640,19 +609,17 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, err)
 
 		// stop reading/writing goroutines
-		close(aTpDone)
-		close(bTpDone)
+		close(readWriteStop)
+		<-readWriteDone
 
-		// wait for goroutines to stop
-		tpReadWriteWG.Wait()
 		// check that the initial transport had been working properly all the time
 		// if any error, it must be `io.EOF` for reader
-		if aErr != io.EOF {
-			require.NoError(t, aErr)
+		if readErr != io.EOF {
+			require.NoError(t, readErr)
 		}
 		// if any error, it must be `io.ErrClosedPipe` for writer
-		if bErr != io.ErrClosedPipe {
-			require.NoError(t, bErr)
+		if writeErr != io.ErrClosedPipe {
+			require.NoError(t, writeErr)
 		}
 
 		err = a.Close()
@@ -661,146 +628,6 @@ func TestServer_Serve(t *testing.T) {
 		b.log.Println("BEFORE CLOSING")
 		err = b.Close()
 		b.log.Println("AFTER CLOSING")
-		require.NoError(t, err)
-	})
-
-	t.Run("test failed accept not hanging already established transport 2", func(t *testing.T) {
-		/*f, err := os.Create("./cpu.prof")
-		if err != nil {
-			log.Fatalf("Error creating cpu profile: %v\n", err)
-		}
-
-		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatalf("Error starting cpu profiling: %v\n", err)
-		}
-
-		defer pprof.StopCPUProfile()
-
-		blockF, err := os.Create("./block.prof")
-		if err != nil {
-			log.Fatalf("Error creating block profile: %v\n", err)
-		}
-
-		runtime.SetBlockProfileRate(1)
-		p := pprof.Lookup("block")
-		defer func() {
-			if err := p.WriteTo(blockF, 0); err != nil {
-				log.Fatalf("Error saving block profile: %v\n", err)
-			}
-		}()*/
-
-		// generate keys for both clients
-		aPK, aSK := cipher.GenerateKeyPair()
-		bPK, bSK := cipher.GenerateKeyPair()
-
-		// create remote
-		a := NewClient(aPK, aSK, dc)
-		a.SetLogger(logging.MustGetLogger("A"))
-		err = a.InitiateServerConnections(context.Background(), 1)
-		require.NoError(t, err)
-
-		// create initiator
-		b := NewClient(bPK, bSK, dc)
-		b.SetLogger(logging.MustGetLogger("B"))
-		err = b.InitiateServerConnections(context.Background(), 1)
-		require.NoError(t, err)
-
-		aDone := make(chan struct{})
-		var aTransport transport.Transport
-		var aErr error
-		go func() {
-			aTransport, aErr = a.Accept(context.Background())
-			close(aDone)
-		}()
-
-		bTransport, err := b.Dial(context.Background(), aPK)
-		require.NoError(t, err)
-
-		<-aDone
-		require.NoError(t, aErr)
-
-		aTpDone := make(chan struct{})
-		bTpDone := make(chan struct{})
-
-		var bErr error
-		var tpReadWriteWG sync.WaitGroup
-		tpReadWriteWG.Add(2)
-		// run infinite reading from tp loop in goroutine
-		go func() {
-			for {
-				select {
-				case <-aTpDone:
-					log.Println("ATransport DONE")
-					tpReadWriteWG.Done()
-					return
-				default:
-					var msg []byte
-					if _, aErr = aTransport.Read(msg); aErr != nil {
-						tpReadWriteWG.Done()
-						return
-					}
-					log.Printf("GOT MESSAGE %s", string(msg))
-				}
-			}
-		}()
-
-		// run infinite writing to tp loop in goroutine
-		go func() {
-			for {
-				select {
-				case <-bTpDone:
-					log.Println("BTransport DONE")
-					tpReadWriteWG.Done()
-					return
-				default:
-					msg := []byte("Hello there!")
-					log.Println("BEFORE TRANSPORT WRITE")
-					if _, bErr = bTransport.Write(msg); bErr != nil {
-						log.Println("ERROR IN TRANSPORT WRITE")
-						tpReadWriteWG.Done()
-						return
-					}
-					log.Println("AFTER TRANSPORT WRITE")
-				}
-			}
-		}()
-
-		// continue creating transports untill the error occurs
-		for {
-			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-
-			_, err = a.Dial(ctx, bPK)
-			cancel()
-			if err != nil {
-				break
-			}
-		}
-		// must be error
-		require.Error(t, err)
-
-		// wait more time to ensure that the initially created transport works
-		time.Sleep(2 * time.Second)
-
-		// stop reading/writing goroutines
-		close(aTpDone)
-		close(bTpDone)
-
-		// wait for goroutines to stop
-		tpReadWriteWG.Wait()
-		// check that the initial transport had been working properly all the time
-		require.NoError(t, aErr)
-		require.NoError(t, bErr)
-
-		err = aTransport.Close()
-		require.NoError(t, err)
-
-		err = bTransport.Close()
-		require.NoError(t, err)
-
-		err = a.Close()
-		require.NoError(t, err)
-
-		err = b.Close()
 		require.NoError(t, err)
 	})
 }
