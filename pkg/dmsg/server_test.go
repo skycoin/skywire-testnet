@@ -539,7 +539,7 @@ func TestServer_Serve(t *testing.T) {
 		}
 	})
 
-	t.Run("test failed accept not hanging already established transport", func(t *testing.T) {
+	t.Run("test failed_accept_should_not_hang_established_transport", func(t *testing.T) {
 		// generate keys for both clients
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
@@ -588,11 +588,9 @@ func TestServer_Serve(t *testing.T) {
 
 		// continue creating transports until the error occurs
 		for {
-			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-
-			_, err = a.Dial(ctx, bPK)
-			cancel()
-			if err != nil {
+			ctx := context.Background()
+			//ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			if _, err = a.Dial(ctx, bPK); err != nil {
 				break
 			}
 		}
