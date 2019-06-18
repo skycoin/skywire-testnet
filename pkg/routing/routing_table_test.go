@@ -1,13 +1,31 @@
 package routing
 
 import (
+	"log"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logging.SetLevel(lvl)
+	} else {
+		logging.Disable()
+	}
+
+	os.Exit(m.Run())
+}
 
 func RoutingTableSuite(t *testing.T, tbl Table) {
 	t.Helper()
