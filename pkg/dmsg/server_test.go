@@ -339,6 +339,7 @@ func TestServer_Serve(t *testing.T) {
 		// channel to listen for `Accept` errors. Any single error must
 		// fail the test
 		acceptErrs := make(chan error, totalRemoteTpsCount)
+		var remotesTpsMX sync.Mutex
 		remotesTps := make(map[int][]transport.Transport, len(usedRemotes))
 		var remotesWG sync.WaitGroup
 		remotesWG.Add(totalRemoteTpsCount)
@@ -359,7 +360,9 @@ func TestServer_Serve(t *testing.T) {
 						}
 
 						// store transport
+						remotesTpsMX.Lock()
 						remotesTps[remoteInd] = append(remotesTps[remoteInd], transport)
+						remotesTpsMX.Unlock()
 
 						remotesWG.Done()
 					}(i)
@@ -370,6 +373,7 @@ func TestServer_Serve(t *testing.T) {
 		// channel to listen for `Dial` errors. Any single error must
 		// fail the test
 		dialErrs := make(chan error, initiatorsCount)
+		var initiatorsTpsMx sync.Mutex
 		initiatorsTps := make([]transport.Transport, 0, initiatorsCount)
 		var initiatorsWG sync.WaitGroup
 		initiatorsWG.Add(initiatorsCount)
@@ -388,7 +392,9 @@ func TestServer_Serve(t *testing.T) {
 				}
 
 				// store transport
+				initiatorsTpsMx.Lock()
 				initiatorsTps = append(initiatorsTps, transport)
+				initiatorsTpsMx.Unlock()
 
 				initiatorsWG.Done()
 			}(i)
