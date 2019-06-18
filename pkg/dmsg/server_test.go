@@ -194,19 +194,11 @@ func TestServer_Serve(t *testing.T) {
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
-		aDone := make(chan struct{})
-		var aTransport transport.Transport
-		var aErr error
-		go func() {
-			aTransport, aErr = a.Accept(context.Background())
-			close(aDone)
-		}()
-
 		bTransport, err := b.Dial(context.Background(), aPK)
 		require.NoError(t, err)
 
-		<-aDone
-		require.NoError(t, aErr)
+		aTransport, err := a.Accept(context.Background())
+		require.NoError(t, err)
 
 		// must be 2 ServerConn's
 		require.Equal(t, 2, s.connCount())
