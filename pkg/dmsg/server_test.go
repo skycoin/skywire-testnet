@@ -589,9 +589,20 @@ func TestServer_Serve(t *testing.T) {
 
 		// continue creating transports until the error occurs
 		for {
-			ctx := context.Background()
-			//ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
-			if _, err := a.Dial(ctx, bPK); err != nil {
+			//ctx := context.Background()
+			ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			if _, err = a.Dial(ctx, bPK); err != nil {
+				break
+			}
+		}
+		// must be error
+		require.Error(t, err)
+
+		// the same as above, transport is created by another client
+		for {
+			//ctx := context.Background()
+			ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			if _, err = b.Dial(ctx, aPK); err != nil {
 				break
 			}
 		}
@@ -701,6 +712,10 @@ func TestServer_Serve(t *testing.T) {
 
 		err = b.Close()
 		require.NoError(t, err)
+	})
+
+	t.Run("test capped_transport_buffer_should_not_result_in_hang", func(t *testing.T) {
+
 	})
 }
 
