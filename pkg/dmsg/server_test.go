@@ -539,7 +539,7 @@ func TestServer_Serve(t *testing.T) {
 		}
 	})
 
-	t.Run("test failed_accept_should_not_hang_established_transport", func(t *testing.T) {
+	t.Run("test failed accept not hanging already established transport", func(t *testing.T) {
 		// generate keys for both clients
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
@@ -590,7 +590,7 @@ func TestServer_Serve(t *testing.T) {
 		for {
 			ctx := context.Background()
 			//ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
-			if _, err = a.Dial(ctx, bPK); err != nil {
+			if _, err := a.Dial(ctx, bPK); err != nil {
 				break
 			}
 		}
@@ -626,6 +626,73 @@ func TestServer_Serve(t *testing.T) {
 		b.log.Println("BEFORE CLOSING")
 		err = b.Close()
 		b.log.Println("AFTER CLOSING")
+		require.NoError(t, err)
+	})
+
+	t.Run("test sent/received message consistency", func(t *testing.T) {
+		// generate keys for both clients
+		aPK, aSK := cipher.GenerateKeyPair()
+		bPK, bSK := cipher.GenerateKeyPair()
+
+		// create remote
+		a := NewClient(aPK, aSK, dc)
+		a.SetLogger(logging.MustGetLogger("A"))
+		err = a.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		// create initiator
+		b := NewClient(bPK, bSK, dc)
+		b.SetLogger(logging.MustGetLogger("B"))
+		err = b.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		bTransport, err := b.Dial(context.Background(), aPK)
+		require.NoError(t, err)
+
+		aTransport, err := a.Accept(context.Background())
+		require.NoError(t, err)
+
+		msgCount := 100
+		for i := 0; i < msgCount; i++ {
+			msg := "Hello there!"
+
+			_, err := bTransport.Write([]byte(msg))
+			require.NoError(t, err)
+
+			recMsg := make([]byte, 5)
+			n, err := aTransport.Read(recMsg)
+			require.NoError(t, err)
+
+			received := string(recMsg[:n])
+
+			log.Printf("Received: %v , bytes: %v", received, n)
+
+			n, err = aTransport.Read(recMsg)
+			require.NoError(t, err)
+
+			received += string(recMsg[:n])
+
+			log.Printf("Received: %v , bytes: %v", received, n)
+
+			n, err = aTransport.Read(recMsg)
+			require.NoError(t, err)
+
+			received += string(recMsg[:n])
+			log.Printf("Last bytes count: %v", n)
+
+			require.Equal(t, received, msg)
+		}
+
+		err = bTransport.Close()
+		require.NoError(t, err)
+
+		err = aTransport.Close()
+		require.NoError(t, err)
+
+		err = a.Close()
+		require.NoError(t, err)
+
+		err = b.Close()
 		require.NoError(t, err)
 	})
 }
