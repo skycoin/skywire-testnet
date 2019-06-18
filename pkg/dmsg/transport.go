@@ -93,7 +93,6 @@ func (tp *Transport) close() (closed bool) {
 		tp.inMx.Lock()
 		close(tp.inCh)
 		tp.inMx.Unlock()
-
 	})
 
 	tp.serve() // just in case.
@@ -322,11 +321,8 @@ startRead:
 	if tp.IsClosed() {
 		return n, err
 	}
-	if err == io.EOF {
-		err = nil
-	}
 	if n > 0 || len(p) == 0 {
-		return n, err
+		return n, nil
 	}
 
 	<-tp.bufCh
