@@ -24,6 +24,8 @@ var (
 	ErrNoSrv = errors.New("remote has no DelegatedServers")
 	// ErrClientClosed indicates that client is closed and not accepting new connections.
 	ErrClientClosed = errors.New("client closed")
+	// ErrClientAcceptMaxed indicates that the client cannot take in more accepts.
+	ErrClientAcceptMaxed = errors.New("client accepts buffer maxed")
 )
 
 // ClientConn represents a connection between a dmsg.Client and dmsg.Server from a client's perspective.
@@ -61,9 +63,8 @@ func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubK
 	return cc
 }
 
-func (c *ClientConn) PK() cipher.PubKey {
-	return c.remoteSrv
-}
+// RemotePK returns the remote Server's PK that the ClientConn is connected to.
+func (c *ClientConn) RemotePK() cipher.PubKey { return c.remoteSrv }
 
 func (c *ClientConn) getNextInitID(ctx context.Context) (uint16, error) {
 	for {
@@ -138,7 +139,6 @@ func (c *ClientConn) handleRequestFrame(accept chan<- *Transport, id uint16, p [
 	}
 
 	tp := NewTransport(c.Conn, c.log, c.local, initPK, id, c.delTp)
-	c.setTp(tp)
 
 	select {
 	case <-c.done:
@@ -146,11 +146,16 @@ func (c *ClientConn) handleRequestFrame(accept chan<- *Transport, id uint16, p [
 		return initPK, ErrClientClosed
 
 	case accept <- tp:
+		c.setTp(tp)
 		if err := tp.WriteAccept(); err != nil {
 			return initPK, err
 		}
 		go tp.Serve()
 		return initPK, nil
+
+	default:
+		_ = tp.Close() //nolint:errcheck
+		return initPK, ErrClientAcceptMaxed
 	}
 }
 

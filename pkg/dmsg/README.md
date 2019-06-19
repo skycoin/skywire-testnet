@@ -4,6 +4,7 @@
 >
 >- `ACK` frames should include the first 4 bytes of the rolling hash of incoming payloads, enforcing reliability of data. Transports should therefore keep track of incoming/outgoing rolling hashes.
 >- Transports should also be noise-encrypted. `REQUEST` and `ACCEPT` frames should include noise handshake messages (`KK` handshake pattern), and the `FWD` and `ACK` payloads are to be encrypted.
+> - Transports should implement read/write deadlines and local/remote addresses (like `net.Conn`).
 > - `dmsg.Server` should check incoming frames to disallow excessive sending of `CLOSE`, `ACCEPT` and `REQUEST` frames.
 
 ## Terminology
@@ -77,12 +78,12 @@ The following is a summary of the frame types:
 Transports are represented by transport IDs and facilitate duplex communication between two `dmsg.Client`s which are connected to a common `dmsg.Server`.
 
 Transport IDs are assigned in such a manner:
-- A `dmsg.Client` manages the assignment of positive transport IDs between itself and each connected `dmsg.Server`. The set of transport IDs will be unique between itself and each `dmsg.Server`.
-- A `dmsg.Server` manages the assignment of negative transport IDs between itself and each connected `dmsg.Client`. The set of transport IDs will be unique between itself and each `dmsg.Client`.
+- A `dmsg.Client` manages the assignment of even transport IDs between itself and each connected `dmsg.Server`. The set of transport IDs will be unique between itself and each `dmsg.Server`.
+- A `dmsg.Server` manages the assignment of odd transport IDs between itself and each connected `dmsg.Client`. The set of transport IDs will be unique between itself and each `dmsg.Client`.
 
 For a given transport:
-- Between the initiating client and the common server - the transport ID is always a positive value.
-- Between the responding client and the common server - the transport ID is always a negative value.
+- Between the initiating client and the common server - the transport ID is always a even value.
+- Between the responding client and the common server - the transport ID is always a odd value.
 
 Hence, a transport in it's entirety, is represented by 2 transport IDs.
 

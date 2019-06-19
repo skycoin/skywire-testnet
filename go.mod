@@ -25,8 +25,11 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.3.0
 	go.etcd.io/bbolt v1.3.2
-	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
-	golang.org/x/net v0.0.0-20190419010253-1f3472d942ba
+	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
+	golang.org/x/net v0.0.0-20190619014844-b5b0513f8c1b
+	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f // indirect
+	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/tools v0.0.0-20190618233249-04b924abaa25 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

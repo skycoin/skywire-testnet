@@ -13,13 +13,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skywire/internal/noise"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -40,14 +41,14 @@ func TestServerConn_AddNext(t *testing.T) {
 		fullNextConns[i] = &NextConn{}
 	}
 
-	timeoutCtx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
 
 	cases := []struct {
-		name       string
-		conn       *ServerConn
-		ctx        context.Context
-		nextConnID uint16
-		want       want
+		name string
+		conn *ServerConn
+		ctx  context.Context
+		want want
 	}{
 		{
 			name: "ok",
@@ -149,12 +150,16 @@ func TestNewServer(t *testing.T) {
 	l, err := net.Listen("tcp", "")
 	require.NoError(t, err)
 
-	// must fail on already wrapped listener
-	wrappedL := noise.WrapListener(l, sPK, sSK, false, noise.HandshakeXK)
-	s, err := NewServer(sPK, sSK, wrappedL, dc)
-	require.Equal(t, ErrListenerAlreadyWrappedToNoise, err)
+	// When calling 'NewServer', if the provided net.Listener is already a noise.Listener,
+	// An error should be returned.
+	t.Run("fail_on_wrapped_listener", func(t *testing.T) {
+		wrappedL := noise.WrapListener(l, sPK, sSK, false, noise.HandshakeXK)
+		s, err := NewServer(sPK, sSK, "", wrappedL, dc)
+		assert.Equal(t, ErrListenerAlreadyWrappedToNoise, err)
+		assert.Nil(t, s)
+	})
 
-	s, err = NewServer(sPK, sSK, l, dc)
+	s, err := NewServer(sPK, sSK, "", l, dc)
 	require.NoError(t, err)
 
 	go s.Serve() //nolint:errcheck
@@ -173,7 +178,7 @@ func TestServer_Serve(t *testing.T) {
 	l, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
-	s, err := NewServer(sPK, sSK, l, dc)
+	s, err := NewServer(sPK, sSK, "", l, dc)
 	require.NoError(t, err)
 
 	go s.Serve() //nolint:errcheck
@@ -216,12 +221,12 @@ func TestServer_Serve(t *testing.T) {
 		// must have a ClientConn
 		aClientConn, ok := a.getConn(sPK)
 		require.Equal(t, true, ok)
-		require.Equal(t, sPK, aClientConn.PK())
+		require.Equal(t, sPK, aClientConn.RemotePK())
 
 		// must have a ClientConn
 		bClientConn, ok := b.getConn(sPK)
 		require.Equal(t, true, ok)
-		require.Equal(t, sPK, bClientConn.PK())
+		require.Equal(t, sPK, bClientConn.RemotePK())
 
 		// check whether nextConn's contents are as must be
 		bClientConn.mx.RLock()
@@ -426,7 +431,7 @@ func TestServer_Serve(t *testing.T) {
 			// get and check initiator's ClientConn
 			initiatorClientConn, ok := initiator.getConn(sPK)
 			require.Equal(t, true, ok)
-			require.Equal(t, sPK, initiatorClientConn.PK())
+			require.Equal(t, sPK, initiatorClientConn.RemotePK())
 
 			remote := remotes[pickedRemotes[i]]
 
@@ -438,7 +443,7 @@ func TestServer_Serve(t *testing.T) {
 			// get and check remote's ClientConn
 			remoteClientConn, ok := remote.getConn(sPK)
 			require.Equal(t, true, ok)
-			require.Equal(t, sPK, remoteClientConn.PK())
+			require.Equal(t, sPK, remoteClientConn.RemotePK())
 
 			// get initiator's nextConn
 			initiatorClientConn.mx.RLock()
@@ -521,7 +526,7 @@ func TestServer_Serve(t *testing.T) {
 		for i, remote := range remotes {
 			require.NoError(t, testWithTimeout(10*time.Second, func() error {
 				if remote.connCount() != 0 {
-					return errors.New(fmt.Sprintf("remotes[%v].conns is not empty", i))
+					return fmt.Errorf("remotes[%v].conns is not empty", i)
 				}
 
 				return nil
@@ -531,7 +536,7 @@ func TestServer_Serve(t *testing.T) {
 		for i, initiator := range initiators {
 			require.NoError(t, testWithTimeout(10*time.Second, func() error {
 				if initiator.connCount() != 0 {
-					return errors.New(fmt.Sprintf("initiators[%v].conns is not empty", i))
+					return fmt.Errorf("initiators[%v].conns is not empty", i)
 				}
 
 				return nil
@@ -739,7 +744,7 @@ func TestNewClient(t *testing.T) {
 
 	log.Println(l.Addr().String())
 
-	s, err := NewServer(sPK, sSK, l, dc)
+	s, err := NewServer(sPK, sSK, "", l, dc)
 	require.NoError(t, err)
 
 	go s.Serve() //nolint:errcheck

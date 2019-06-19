@@ -78,7 +78,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Start
-		srv, err := dmsg.NewServer(conf.PubKey, conf.SecKey, l, client.NewHTTP(conf.Discovery))
+		srv, err := dmsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, l, client.NewHTTP(conf.Discovery))
 		if err != nil {
 			logger.Fatalf("Error creating DMSG server instance: %v", err)
 		}
