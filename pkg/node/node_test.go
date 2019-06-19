@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/util/pathutil"
+
 	"net/http"
 	"net/http/httptest"
 
@@ -107,11 +109,16 @@ func TestNodeStartClose(t *testing.T) {
 }
 
 func TestNodeSpawnApp(t *testing.T) {
+	pk, _ := cipher.GenerateKeyPair()
 	r := new(mockRouter)
 	executer := &MockExecuter{}
 	defer os.RemoveAll("skychat")
 	apps := []AppConfig{{App: "skychat", Version: "1.0", AutoStart: false, Port: 10, Args: []string{"foo"}}}
-	node := &Node{router: r, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
+	node := &Node{router: r, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"),
+		config: &Config{}}
+	node.config.Node.StaticPubKey = pk
+	pathutil.EnsureDir(node.dir())
+	defer os.RemoveAll(node.dir())
 
 	require.NoError(t, node.StartApp("skychat"))
 	time.Sleep(100 * time.Millisecond)

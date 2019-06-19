@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
+
 	"github.com/google/uuid"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -47,12 +50,16 @@ func TestListApps(t *testing.T) {
 }
 
 func TestStartStopApp(t *testing.T) {
+	pk, _ := cipher.GenerateKeyPair()
 	router := new(mockRouter)
 	executer := new(MockExecuter)
 	defer os.RemoveAll("skychat")
 
 	apps := []AppConfig{{App: "foo", Version: "1.0", AutoStart: false, Port: 10}}
-	node := &Node{router: router, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
+	node := &Node{router: router, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"), config: &Config{}}
+	node.config.Node.StaticPubKey = pk
+	pathutil.EnsureDir(node.dir())
+	defer os.RemoveAll(node.dir())
 
 	rpc := &RPC{node: node}
 	unknownApp := "bar"
@@ -119,10 +126,13 @@ func TestRPC(t *testing.T) {
 		startedApps: map[string]*appBind{},
 		logger:      logging.MustGetLogger("test"),
 	}
+	pathutil.EnsureDir(node.dir())
+	defer os.RemoveAll(node.dir())
 
 	require.NoError(t, node.StartApp("foo"))
 	require.NoError(t, node.StartApp("bar"))
 
+	time.Sleep(time.Second)
 	gateway := &RPC{node: node}
 
 	sConn, cConn := net.Pipe()
