@@ -17,6 +17,7 @@ import (
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
+// ErrListenerAlreadyWrappedToNoise occurs when the provided net.Listener is already wrapped with noise.Listener
 var ErrListenerAlreadyWrappedToNoise = errors.New("listener is already wrapped to *noise.Listener")
 
 // NextConn provides information on the next connection.
@@ -222,8 +223,10 @@ type Server struct {
 }
 
 // NewServer creates a new dms_server.
-func NewServer(pk cipher.PubKey, sk cipher.SecKey, l net.Listener, dc client.APIClient) (*Server, error) {
-	addr := l.Addr().String()
+func NewServer(pk cipher.PubKey, sk cipher.SecKey, addr string, l net.Listener, dc client.APIClient) (*Server, error) {
+	if addr == "" {
+		addr = l.Addr().String()
+	}
 
 	if _, ok := l.(*noise.Listener); ok {
 		return nil, ErrListenerAlreadyWrappedToNoise
@@ -295,7 +298,7 @@ func (s *Server) Close() (err error) {
 	return nil
 }
 
-// ListenAndServe serves the dms_server.
+// Serve serves the dmsg_server.
 func (s *Server) Serve() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

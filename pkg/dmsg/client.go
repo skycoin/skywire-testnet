@@ -61,9 +61,8 @@ func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubK
 	return cc
 }
 
-func (c *ClientConn) PK() cipher.PubKey {
-	return c.remoteSrv
-}
+// RemotePK returns the remote Server's PK that the ClientConn is connected to.
+func (c *ClientConn) RemotePK() cipher.PubKey { return c.remoteSrv }
 
 func (c *ClientConn) getNextInitID(ctx context.Context) (uint16, error) {
 	for {
