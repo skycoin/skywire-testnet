@@ -62,7 +62,7 @@ func (w *Uint16AckWaiter) StopAll() {
 
 // Wait performs the given action, and waits for given seq to be Done.
 func (w *Uint16AckWaiter) Wait(ctx context.Context, action func(seq Uint16Seq) error) (err error) {
-	ackCh := make(chan struct{})
+	ackCh := make(chan struct{}, 1)
 
 	w.mx.Lock()
 	seq := w.nextSeq
@@ -78,7 +78,7 @@ func (w *Uint16AckWaiter) Wait(ctx context.Context, action func(seq Uint16Seq) e
 	case _, ok := <-ackCh:
 		if !ok {
 			// waiter stopped manually.
-			return io.ErrClosedPipe
+			err = io.ErrClosedPipe
 		}
 	case <-ctx.Done():
 		err = ctx.Err()

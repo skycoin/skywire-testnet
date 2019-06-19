@@ -26,7 +26,6 @@ var (
 	ErrClientClosed = errors.New("client closed")
 	// ErrClientAcceptMaxed indicates that the client cannot take in more accepts.
 	ErrClientAcceptMaxed = errors.New("client accepts buffer maxed")
-
 )
 
 // ClientConn represents a connection between a dmsg.Client and dmsg.Server from a client's perspective.
