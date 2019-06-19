@@ -307,7 +307,7 @@ func (tp *Transport) Read(p []byte) (n int, err error) {
 startRead:
 	tp.bufMx.Lock()
 	n, err = tp.buf.Read(p)
-	if tp.bufSize -= n; tp.bufSize < tpBufCap {
+	if tp.bufSize -= n; tp.bufSize < tpBufCap && len(tp.ackBuf) > 0 {
 		acks := tp.ackBuf
 		tp.ackBuf = make([]byte, 0, tpAckCap)
 		go func() {
