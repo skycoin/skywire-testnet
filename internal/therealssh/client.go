@@ -20,7 +20,7 @@ import (
 	"github.com/skycoin/skywire/pkg/app"
 )
 
-var r = netutil.NewRetrier(50*time.Millisecond, time.Second, 2)
+var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)
 
 // Dialer dials to a remote node.
 type Dialer interface {

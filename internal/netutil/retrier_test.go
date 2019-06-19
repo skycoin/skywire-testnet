@@ -9,7 +9,7 @@ import (
 )
 
 func TestRetrier_Do(t *testing.T) {
-	r := NewRetrier(time.Millisecond*100, time.Millisecond*500, 2)
+	r := NewRetrier(time.Millisecond*100, 3, 2)
 	c := 0
 	threshold := 2
 	f := func() error {
@@ -28,7 +28,7 @@ func TestRetrier_Do(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("if retry reaches threshold should error", func(t *testing.T) {
+	t.Run("if retry reaches max number of times should error", func(t *testing.T) {
 		c = 0
 		threshold = 4
 		defer func() {
@@ -39,25 +39,23 @@ func TestRetrier_Do(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("if function times out should error", func(t *testing.T) {
-		c = 0
-		slowF := func() error {
-			time.Sleep(100*time.Millisecond)
-			return errors.New("foo")
-		}
-
-		err := r.Do(slowF)
-		require.Error(t, err)
-	})
-
 	t.Run("should return whitelisted errors if any instead of retry", func(t *testing.T) {
 		bar := errors.New("bar")
-		wR := NewRetrier(50*time.Millisecond, time.Second, 2).WithErrWhitelist(bar)
+		wR := NewRetrier(50*time.Millisecond, 1, 2).WithErrWhitelist(bar)
 		barF := func() error {
 			return bar
 		}
 
 		err := wR.Do(barF)
 		require.EqualError(t, err, bar.Error())
+	})
+
+	t.Run("if times is 0, should retry until success", func(t *testing.T) {
+		c = 0
+		loopR := NewRetrier(50*time.Millisecond, 0, 1)
+		err := loopR.Do(f)
+		require.NoError(t, err)
+
+		require.Equal(t,threshold,c)
 	})
 }

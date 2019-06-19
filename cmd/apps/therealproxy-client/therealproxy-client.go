@@ -18,7 +18,7 @@ import (
 
 const socksPort = 3
 
-var r = netutil.NewRetrier(50*time.Millisecond, 10*time.Second, 2)
+var r = netutil.NewRetrier(time.Second, 0, 1)
 
 func main() {
 	var addr = flag.String("addr", ":1080", "Client address to listen on")

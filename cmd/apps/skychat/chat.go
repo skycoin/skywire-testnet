@@ -21,7 +21,7 @@ import (
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")
-var r = netutil.NewRetrier(50*time.Millisecond, time.Second, 2)
+var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)
 
 var (
 	chatApp   *app.App

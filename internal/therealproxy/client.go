@@ -2,12 +2,16 @@ package therealproxy
 
 import (
 	"fmt"
+	"github.com/skycoin/skywire/internal/netutil"
 	"io"
 	"log"
 	"net"
+	"time"
 
 	"github.com/hashicorp/yamux"
 )
+
+var r = netutil.NewRetrier(50*time.Millisecond, 3, 2)
 
 // Client implement multiplexing proxy client using yamux.
 type Client struct {

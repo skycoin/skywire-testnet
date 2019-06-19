@@ -7,21 +7,21 @@ import (
 	"github.com/prometheus/common/log"
 )
 
-var ErrThresholdReached = errors.New("threshold timeout has been reached")
+var ErrMaximumRetriesReached = errors.New("maximum retries attempted without success")
 
 type RetryFunc func() error
 
 type Retrier struct {
 	exponentialBackoff time.Duration
-	exponentialFactor  uint32
-	threshold          time.Duration
+	exponentialFactor  uint32 // multiplier for the backoff duration that is applied on every retry. If 0 the backoff is not increased during retries
+	times uint32 // number of times that the given function is going to be retried until success, if 0 it will be retried forever until success
 	errWhitelist       map[error]struct{}
 }
 
-func NewRetrier(exponentialBackoff, threshold time.Duration, factor uint32) *Retrier {
+func NewRetrier(exponentialBackoff time.Duration, times, factor uint32) *Retrier {
 	return &Retrier{
 		exponentialBackoff: exponentialBackoff,
-		threshold:          threshold,
+		times: 				times,
 		exponentialFactor:  factor,
 		errWhitelist:       make(map[error]struct{}),
 	}
@@ -38,41 +38,52 @@ func (r *Retrier) WithErrWhitelist(errors ...error) *Retrier {
 }
 
 func (r Retrier) Do(f RetryFunc) error {
-	var err error
-	var backoff <-chan time.Time
-	var doneCh <-chan time.Time
+	if r.times == 0 {
+		return r.retryUntilSuccess(f)
+	}
 
+	return r.retryNTimes(f)
+}
+
+func (r Retrier) retryNTimes(f RetryFunc) error {
 	currentBackoff := r.exponentialBackoff
 
-	errCh := make(chan error)
-	go func() {
-		errCh <- f()
-	}()
+	for i:= uint32(0); i < r.times; i++ {
+		err := f()
+		if err != nil {
+			if r.isWhitelisted(err) {
+				return err
+			}
+
+			log.Warn(err)
+			currentBackoff = currentBackoff * time.Duration(r.exponentialFactor)
+			time.Sleep(currentBackoff)
+			continue
+		}
+
+		return nil
+	}
+
+	return ErrMaximumRetriesReached
+}
+
+func (r Retrier) retryUntilSuccess(f RetryFunc) error {
+	currentBackoff := r.exponentialBackoff
 
 	for {
-		select {
-		case <-doneCh:
-			return ErrThresholdReached
-		case <-backoff:
-			go func() {
-				errCh <- f()
-			}()
-		case err = <-errCh:
-			if err != nil {
-				if r.isWhitelisted(err) {
-					return err
-				}
-			} else {
-				return nil
+		err := f()
+		if err != nil {
+			if r.isWhitelisted(err) {
+				return err
 			}
-			log.Warn(err)
 
-			backoff = time.After(currentBackoff)
+			log.Warn(err)
 			currentBackoff = currentBackoff * time.Duration(r.exponentialFactor)
-			if doneCh == nil {
-				doneCh = time.After(r.threshold)
-			}
+			time.Sleep(currentBackoff)
+			continue
 		}
+
+		return nil
 	}
 }
 
