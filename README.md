@@ -2,6 +2,42 @@
 
 # Skywire Mainnet - Public Test Phase
 
+- [Skywire Mainnet - Public Test Phase](#Skywire-Mainnet---Public-Test-Phase)
+  - [Notes on this release](#Notes-on-this-release)
+  - [Architecture](#Architecture)
+  - [Build and run](#Build-and-run)
+    - [Requirements](#Requirements)
+    - [Build](#Build)
+    - [Run `skywire-node`](#Run-skywire-node)
+    - [Run `skywire-node` in docker container](#Run-skywire-node-in-docker-container)
+    - [Run `skywire-cli`](#Run-skywire-cli)
+    - [Apps](#Apps)
+    - [Transports](#Transports)
+  - [App programming API](#App-programming-API)
+  - [Testing](#Testing)
+    - [Testing with default settings](#Testing-with-default-settings)
+    - [Customization with environment variables](#Customization-with-environment-variables)
+      - [$TEST_OPTS](#TESTOPTS)
+      - [$TEST_LOGGING_LEVEL](#TESTLOGGINGLEVEL)
+      - [$SYSLOG_OPTS](#SYSLOGOPTS)
+  - [Updater](#Updater)
+  - [Running skywire in docker containers](#Running-skywire-in-docker-containers)
+    - [Run dockerized `skywire-node`](#Run-dockerized-skywire-node)
+      - [Structure of `./node`](#Structure-of-node)
+    - [Refresh and restart `SKY01`](#Refresh-and-restart-SKY01)
+    - [Customization of dockers](#Customization-of-dockers)
+      - [1. DOCKER_IMAGE](#1-DOCKERIMAGE)
+      - [2.DOCKER_NETWORK](#2DOCKERNETWORK)
+      - [3. DOCKER_NODE](#3-DOCKERNODE)
+      - [4. DOCKER_OPTS](#4-DOCKEROPTS)
+    - [Dockerized `skywire-node` recipes](#Dockerized-skywire-node-recipes)
+      - [1. Get Public Key of docker-node](#1-Get-Public-Key-of-docker-node)
+      - [2. Get an IP of node](#2-Get-an-IP-of-node)
+      - [3. Open in browser containerized `skychat` application](#3-Open-in-browser-containerized-skychat-application)
+      - [4. Create new dockerized `skywire-nodes`](#4-Create-new-dockerized-skywire-nodes)
+      - [5. Env-vars for develoment-/testing- purposes](#5-Env-vars-for-develoment-testing--purposes)
+      - [6. "Hello-Mike-Hello-Joe" test](#6-%22Hello-Mike-Hello-Joe%22-test)
+
 ## Notes on this release
 
 This is a public testing version of the Skywire mainnet and is intended for developers use to find bugs only. It is not yet intended to replace the testnet and miners should not install this software on their miners or they may lose their reward eligibility. 
@@ -154,6 +190,59 @@ func (app *App) Dial(raddr *Addr) (net.Conn, error) {}
 
 // Close implements io.Closer for App.
 func (app *App) Close() error {}
+```
+
+## Testing
+
+### Testing with default settings
+
+```bash
+$ make test
+```
+
+### Customization with environment variables
+
+#### $TEST_OPTS
+
+Options for `go test` could be customized with $TEST_OPTS variable
+
+E.g.
+```bash
+$ export TEST_OPTS="-race -tags no_ci -timeout 90s -v"
+$ make test
+```
+
+#### $TEST_LOGGING_LEVEL
+
+By default all log messages during tests are disabled.
+In case of need to turn on log messages it could be achieved by setting $TEST_LOGGING_LEVEL variable
+
+Possible values:
+- "debug"
+- "info", "notice"
+- "warn", "warning"
+- "error"
+- "fatal", "critical"
+- "panic"
+
+E.g.
+```bash 
+$ export TEST_LOGGING_LEVEL="info"
+$ go clean -testcache || go test ./pkg/transport -v -run ExampleManager_CreateTransport
+$ unset TEST_LOGGING_LEVEL
+$ go clean -testcache || go test ./pkg/transport -v
+```
+
+#### $SYSLOG_OPTS
+
+In case of need to collect logs in syslog during integration tests $SYSLOG_OPTS variable can be used.
+
+E.g.
+```bash
+$ make run_syslog ## run syslog-ng in docker container with logs mounted to /tmp/syslog
+$ export SYSLOG_OPTS='--syslog localhost:514'
+$ make integration-run-messaging ## or other integration-run-* goal
+$ sudo cat /tmp/syslog/messages ## collected logs from NodeA, NodeB, NodeC instances
 ```
 
 ## Updater

@@ -170,6 +170,12 @@ docker-rerun: docker-stop
 	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
 	docker container start -i ${DOCKER_NODE}
 
+run-syslog: ## Run syslog-ng in docker. Logs are mounted under /tmp/syslog
+	-rm -rf /tmp/syslog
+	-mkdir -p /tmp/syslog
+	-docker container rm syslog-ng -f
+	docker run -d -p 514:514/udp  -v /tmp/syslog:/var/log  --name syslog-ng balabit/syslog-ng:latest 
+
 
 integration-startup: ## Starts up the required transports between 'skywire-node's of interactive testing environment
 	./integration/startup.sh

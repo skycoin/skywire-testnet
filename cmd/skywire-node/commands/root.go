@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"log/syslog"
 	"os"
@@ -37,13 +38,46 @@ type runCfg struct {
 	port         string
 	args         []string
 
-	profileStop func()
-	logger      *logging.Logger
-	conf        node.Config
-	node        *node.Node
+	profileStop  func()
+	logger       *logging.Logger
+	masterLogger *logging.MasterLogger
+	conf         node.Config
+	node         *node.Node
 }
 
 var cfg *runCfg
+
+var rootCmd = &cobra.Command{
+	Use:   "skywire-node [config-path]",
+	Short: "App Node for skywire",
+	Run: func(_ *cobra.Command, args []string) {
+		cfg.args = args
+
+		cfg.startProfiler().
+			startLogger().
+			readConfig().
+			runNode().
+			waitOsSignals().
+			stopNode()
+	},
+	Version: node.Version,
+}
+
+func init() {
+	cfg = &runCfg{}
+	rootCmd.Flags().StringVarP(&cfg.syslogAddr, "syslog", "", "none", "syslog server address. E.g. localhost:514")
+	rootCmd.Flags().StringVarP(&cfg.tag, "tag", "", "skywire", "logging tag")
+	rootCmd.Flags().BoolVarP(&cfg.cfgFromStdin, "stdin", "i", false, "read config from STDIN")
+	rootCmd.Flags().StringVarP(&cfg.profileMode, "profile", "p", "none", "enable profiling with pprof. Mode:  none or one of: [cpu, mem, mutex, block, trace, http]")
+	rootCmd.Flags().StringVarP(&cfg.port, "port", "", "6060", "port for http-mode of pprof")
+}
+
+// Execute executes root CLI command.
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
+	}
+}
 
 func (cfg *runCfg) startProfiler() *runCfg {
 	var option func(*profile.Profile)
@@ -74,14 +108,16 @@ func (cfg *runCfg) startProfiler() *runCfg {
 }
 
 func (cfg *runCfg) startLogger() *runCfg {
-	cfg.logger = logging.MustGetLogger(cfg.tag)
+	cfg.masterLogger = logging.NewMasterLogger()
+	cfg.logger = cfg.masterLogger.PackageLogger(cfg.tag)
 
 	if cfg.syslogAddr != "none" {
 		hook, err := logrus_syslog.NewSyslogHook("udp", cfg.syslogAddr, syslog.LOG_INFO, cfg.tag)
 		if err != nil {
 			cfg.logger.Error("Unable to connect to syslog daemon")
 		} else {
-			logging.AddHook(hook)
+			cfg.masterLogger.AddHook(hook)
+			cfg.masterLogger.Out = ioutil.Discard
 		}
 	}
 	return cfg
@@ -109,7 +145,7 @@ func (cfg *runCfg) readConfig() *runCfg {
 }
 
 func (cfg *runCfg) runNode() *runCfg {
-	node, err := node.NewNode(&cfg.conf)
+	node, err := node.NewNode(&cfg.conf, cfg.masterLogger)
 	if err != nil {
 		cfg.logger.Fatal("Failed to initialize node: ", err)
 	}
@@ -151,36 +187,4 @@ func (cfg *runCfg) waitOsSignals() *runCfg {
 		}
 	}()
 	return cfg
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "skywire-node [config-path]",
-	Short: "App Node for skywire",
-	Run: func(_ *cobra.Command, args []string) {
-		cfg.args = args
-
-		cfg.startProfiler().
-			startLogger().
-			readConfig().
-			runNode().
-			waitOsSignals().
-			stopNode()
-	},
-	Version: node.Version,
-}
-
-func init() {
-	cfg = &runCfg{}
-	rootCmd.Flags().StringVarP(&cfg.syslogAddr, "syslog", "", "none", "syslog server address. E.g. localhost:514")
-	rootCmd.Flags().StringVarP(&cfg.tag, "tag", "", "skywire", "logging tag")
-	rootCmd.Flags().BoolVarP(&cfg.cfgFromStdin, "stdin", "i", false, "read config from STDIN")
-	rootCmd.Flags().StringVarP(&cfg.profileMode, "profile", "p", "none", "enable profiling with pprof. Mode:  none or one of: [cpu, mem, mutex, block, trace, http]")
-	rootCmd.Flags().StringVarP(&cfg.port, "port", "", "6060", "port for http-mode of pprof")
-}
-
-// Execute executes root CLI command.
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
-	}
 }

@@ -107,14 +107,14 @@ type Node struct {
 }
 
 // NewNode constructs new Node.
-func NewNode(config *Config) (*Node, error) {
+func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) {
 	node := &Node{
 		config:      config,
 		executer:    newOSExecuter(),
 		startedApps: make(map[string]*appBind),
 	}
 
-	node.Logger = logging.NewMasterLogger()
+	node.Logger = masterLogger
 	node.logger = node.Logger.PackageLogger("skywire")
 
 	pk := config.Node.StaticPubKey
