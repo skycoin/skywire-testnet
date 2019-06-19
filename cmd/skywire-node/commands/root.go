@@ -113,7 +113,7 @@ func (cfg *runCfg) startLogger() *runCfg {
 	if cfg.syslogAddr != "none" {
 		hook, err := logrus_syslog.NewSyslogHook("udp", cfg.syslogAddr, syslog.LOG_INFO, cfg.tag)
 		if err != nil {
-			cfg.logger.Error("Unable to connect to syslog daemon")
+			cfg.logger.Error("Unable to connect to syslog daemon:", err)
 		} else {
 			cfg.masterLogger.AddHook(hook)
 			cfg.masterLogger.Out = ioutil.Discard
@@ -172,7 +172,6 @@ func (cfg *runCfg) stopNode() *runCfg {
 	return cfg
 }
 
-// waitOsSignalsAndDelay
 func (cfg *runCfg) waitOsSignals() *runCfg {
 	ch := make(chan os.Signal, 2)
 	signal.Notify(ch, []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT}...)
