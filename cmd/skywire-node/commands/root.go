@@ -101,7 +101,6 @@ func (cfg *runCfg) startProfiler() *runCfg {
 		option = profile.BlockProfile
 	case "trace":
 		option = profile.TraceProfile
-	default:
 	}
 	cfg.profileStop = profile.Start(profile.ProfilePath("./logs/"+cfg.tag), option).Stop
 	return cfg
