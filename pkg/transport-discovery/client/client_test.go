@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/skycoin/skywire/internal/httpauth"
