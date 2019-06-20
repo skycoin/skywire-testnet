@@ -12,14 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/internal/noise"
-
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
-	"github.com/skycoin/skycoin/src/util/logging"
-
+	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -180,7 +178,7 @@ func TestServer_Serve(t *testing.T) {
 	s, err := NewServer(sPK, sSK, "", l, dc)
 	require.NoError(t, err)
 
-	go s.Serve() //nolint:errcheck
+	go s.Serve() // nolint:errcheck
 
 	// connect two clients, establish transport, check if there are
 	// two ServerConn's and that both conn's `nextConn` is filled correctly
@@ -651,6 +649,51 @@ func TestServer_Serve(t *testing.T) {
 
 		err = b.Close()
 		require.NoError(t, err)
+	})
+
+	t.Run("Reconnect to server should succeed", func(t *testing.T) {
+		// generate keys for both clients
+		aPK, aSK := cipher.GenerateKeyPair()
+		bPK, bSK := cipher.GenerateKeyPair()
+
+		assert.Equal(t, 0, s.connCount())
+
+		// create remote
+		a := NewClient(aPK, aSK, dc)
+		a.SetLogger(logging.MustGetLogger("A"))
+		err = a.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, s.connCount())
+
+		// create initiator
+		b := NewClient(bPK, bSK, dc)
+		b.SetLogger(logging.MustGetLogger("B"))
+		err = b.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		time.Sleep(5 * time.Second)
+		assert.Equal(t, 2, s.connCount())
+
+		err := s.Close()
+		assert.NoError(t, err)
+
+		time.Sleep(5 * time.Second)
+
+		assert.Equal(t, 0, s.connCount())
+
+		// s, err = NewServer(sPK, sSK, s.addr, l, dc)
+		// require.NoError(t, err)
+
+		go func() {
+			if err := s.Serve(); err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+		time.Sleep(5 * time.Second)
+
+		assert.Equal(t, 2, s.connCount())
 	})
 }
 
