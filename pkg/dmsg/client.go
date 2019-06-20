@@ -49,6 +49,8 @@ type ClientConn struct {
 	wg   sync.WaitGroup
 }
 
+// var _ transport.Factory = &ClientConn{}
+
 // NewClientConn creates a new ClientConn.
 func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubKey) *ClientConn {
 	cc := &ClientConn{

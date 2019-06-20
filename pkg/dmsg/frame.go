@@ -71,6 +71,12 @@ const (
 // Frame is the dmsg data unit.
 type Frame []byte
 
+// type RequestFrame Frame
+// type AcceptFrame Frame
+// type CloseFrame Frame
+// type FwdFrame Frame
+// type AccFrame Frame
+
 // MakeFrame creates a new Frame.
 func MakeFrame(ft FrameType, chID uint16, pay []byte) Frame {
 	f := make(Frame, headerLen+len(pay))

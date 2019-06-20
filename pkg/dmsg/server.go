@@ -20,6 +20,8 @@ import (
 // ErrListenerAlreadyWrappedToNoise occurs when the provided net.Listener is already wrapped with noise.Listener
 var ErrListenerAlreadyWrappedToNoise = errors.New("listener is already wrapped to *noise.Listener")
 
+// var _ transport.Factory = &Server{}
+
 // NextConn provides information on the next connection.
 type NextConn struct {
 	l  *ServerConn
@@ -46,6 +48,11 @@ type ServerConn struct {
 	mx         sync.RWMutex
 }
 
+// type SrvConnTree struct {
+// 	net.Conn
+// 	nextSrvConnTree *SrvConnTree
+// }
+s
 // NewServerConn creates a new connection from the perspective of a dms_server.
 func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKey) *ServerConn {
 	return &ServerConn{log: log, Conn: conn, remoteClient: remoteClient, nextRespID: randID(false)}
