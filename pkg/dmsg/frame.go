@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"math/rand"
+
 	"github.com/skycoin/skywire/internal/ioutil"
 
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -28,13 +30,11 @@ const (
 func isInitiatorID(tpID uint16) bool { return tpID%2 == 0 }
 
 func randID(initiator bool) uint16 {
-	var id uint16
-	for {
-		id = binary.BigEndian.Uint16(cipher.RandByte(2))
-		if initiator && id%2 == 0 || !initiator && id%2 != 0 {
-			return id
-		}
+	id := rand.Intn(tpBufCap)
+	if id%2 == 0 && initiator {
+		return uint16(id)
 	}
+	return uint16(id + 1)
 }
 
 var serveCount int64
