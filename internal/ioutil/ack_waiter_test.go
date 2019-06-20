@@ -2,9 +2,10 @@ package ioutil_test
 
 import (
 	"context"
-	"github.com/skycoin/skywire/internal/ioutil"
 	"sync"
 	"testing"
+
+	"github.com/skycoin/skywire/internal/ioutil"
 )
 
 func TestUint16AckWaiter_Wait(t *testing.T) {

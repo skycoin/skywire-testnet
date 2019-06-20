@@ -27,6 +27,9 @@ var (
 
 	// HandshakeKK is the KK handshake pattern.
 	HandshakeKK = noise.HandshakeKK
+
+	// AcceptHandshakeTimeout determines how long a noise hs should take.
+	AcceptHandshakeTimeout = time.Second * 10
 )
 
 // RPCClientDialer attempts to redial to a remotely served RPCClient.
@@ -219,7 +222,7 @@ func (ml *Listener) Accept() (net.Conn, error) {
 			return nil, err
 		}
 		rw := NewReadWriter(conn, ns)
-		if err := rw.Handshake(time.Second * 10); err != nil {
+		if err := rw.Handshake(AcceptHandshakeTimeout); err != nil {
 			log.WithError(err).Warn("accept: noise handshake failed.")
 			continue
 		}
