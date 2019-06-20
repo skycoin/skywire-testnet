@@ -742,7 +742,7 @@ func TestServer_Serve(t *testing.T) {
 		// block on `Write`
 		go func() {
 			_, err = aWrTransport.Write(msg)
-			require.NoError(t, err)
+			require.Error(t, err)
 		}()
 
 		// wait till it's definitely blocked
@@ -766,7 +766,23 @@ func TestServer_Serve(t *testing.T) {
 
 			require.Equal(t, recBuff, msg)
 		}
+
+		err = aWrTransport.Close()
+		require.NoError(t, err)
+
+		err = bWrTransport.Close()
+		require.NoError(t, err)
+
+		err = aRdTransport.Close()
+		require.NoError(t, err)
+
+		err = a.Close()
+		require.NoError(t, err)
+
+		err = b.Close()
+		require.NoError(t, err)
 	})
+
 }
 
 // Given two client instances (a & b) and a server instance (s),
