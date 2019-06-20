@@ -125,7 +125,7 @@ func (c *ClientConn) setNextInitID(nextInitID uint16) {
 	c.mx.Unlock()
 }
 
-func (c *ClientConn) waitOKFrame() error {
+func (c *ClientConn) readOK() error {
 	fr, err := readFrame(c.Conn)
 	if err != nil {
 		return errors.New("failed to get OK from server")
