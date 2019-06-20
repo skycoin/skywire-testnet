@@ -256,9 +256,7 @@ func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) 
 
 // Close closes the connection to dms_server.
 func (c *ClientConn) Close() error {
-	closed := false
 	c.once.Do(func() {
-		closed = true
 		c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
 		close(c.done)
 		c.mx.Lock()
@@ -271,10 +269,6 @@ func (c *ClientConn) Close() error {
 		c.mx.Unlock()
 		c.wg.Wait()
 	})
-
-	if !closed {
-		return ErrClientClosed
-	}
 	return nil
 }
 
@@ -302,7 +296,7 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client 
 		sk:     sk,
 		dc:     dc,
 		conns:  make(map[cipher.PubKey]*ClientConn),
-		accept: make(chan *Transport, acceptChSize),
+		accept: make(chan *Transport, AcceptBufferSize),
 		done:   make(chan struct{}),
 	}
 }
@@ -330,9 +324,9 @@ func (c *Client) updateDiscEntry(ctx context.Context) error {
 	return c.dc.UpdateEntry(ctx, c.sk, entry)
 }
 
-func (c *Client) setConn(ctx context.Context, l *ClientConn) {
+func (c *Client) setConn(ctx context.Context, conn *ClientConn) {
 	c.mx.Lock()
-	c.conns[l.remoteSrv] = l
+	c.conns[conn.remoteSrv] = conn
 	if err := c.updateDiscEntry(ctx); err != nil {
 		c.log.WithError(err).Warn("updateEntry: failed")
 	}
@@ -437,13 +431,13 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 	if err != nil {
 		return nil, err
 	}
-	nc, err := noise.WrapConn(tcpConn, ns, hsTimeout)
+	nc, err := noise.WrapConn(tcpConn, ns, TransportHandshakeTimeout)
 	if err != nil {
 		return nil, err
 	}
 
 	conn := NewClientConn(c.log, nc, c.pk, srvPK)
-	if err := conn.waitOKFrame(); err != nil {
+	if err := conn.readOK(); err != nil {
 		return nil, err
 	}
 

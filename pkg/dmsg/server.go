@@ -22,13 +22,13 @@ var ErrListenerAlreadyWrappedToNoise = errors.New("listener is already wrapped t
 
 // NextConn provides information on the next connection.
 type NextConn struct {
-	l  *ServerConn
-	id uint16
+	conn *ServerConn
+	id   uint16
 }
 
 func (r *NextConn) writeFrame(ft FrameType, p []byte) error {
-	if err := writeFrame(r.l.Conn, MakeFrame(ft, r.id, p)); err != nil {
-		go r.l.Close()
+	if err := writeFrame(r.conn.Conn, MakeFrame(ft, r.id, p)); err != nil {
+		go r.conn.Close()
 		return err
 	}
 	return nil
@@ -114,7 +114,7 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 	}()
 	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 
-	err = c.sendOK()
+	err = c.writeOK()
 	if err != nil {
 		return fmt.Errorf("sending OK failed: %s", err)
 	}
@@ -130,7 +130,7 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 
 		switch ft {
 		case RequestType:
-			ctx, cancel := context.WithTimeout(ctx, hsTimeout)
+			ctx, cancel := context.WithTimeout(ctx, TransportHandshakeTimeout)
 			_, why, ok := c.handleRequest(ctx, getConn, id, p)
 			cancel()
 			if !ok {
@@ -156,7 +156,7 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 			// On success, if Close frame, delete the associations.
 			if ft == CloseType {
 				c.delNext(id)
-				next.l.delNext(next.id)
+				next.conn.delNext(next.id)
 			}
 
 		default:
@@ -204,11 +204,11 @@ func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id 
 	}
 
 	// set next relations.
-	respID, err := respL.addNext(ctx, &NextConn{l: c, id: id})
+	respID, err := respL.addNext(ctx, &NextConn{conn: c, id: id})
 	if err != nil {
 		return nil, 0, false
 	}
-	next := &NextConn{l: respL, id: respID}
+	next := &NextConn{conn: respL, id: respID}
 	c.setNext(id, next)
 
 	// forward to responding client.
@@ -293,11 +293,6 @@ func (s *Server) connCount() int {
 
 // Close closes the dms_server.
 func (s *Server) Close() (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.New("listener has not started")
-		}
-	}()
 	if err = s.lis.Close(); err != nil {
 		return err
 	}
@@ -315,7 +310,7 @@ func (s *Server) Serve() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := s.retryUpdateEntry(ctx, hsTimeout); err != nil {
+	if err := s.retryUpdateEntry(ctx, TransportHandshakeTimeout); err != nil {
 		return fmt.Errorf("updating server's discovery entry failed with: %s", err)
 	}
 
