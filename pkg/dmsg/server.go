@@ -114,6 +114,11 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 	}()
 	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 
+	err = c.sendOK()
+	if err != nil {
+		return fmt.Errorf("sending OK failed: %s", err)
+	}
+
 	for {
 		f, err := readFrame(c.Conn)
 		if err != nil {
@@ -166,6 +171,13 @@ func (c *ServerConn) delChan(id uint16, why byte) error {
 	c.delNext(id)
 	if err := writeFrame(c.Conn, MakeFrame(CloseType, id, []byte{why})); err != nil {
 		return fmt.Errorf("failed to write frame: %s", err)
+	}
+	return nil
+}
+
+func (c *ServerConn) writeOK() error {
+	if err := writeFrame(c.Conn, MakeFrame(OkType, 0, nil)); err != nil {
+		return err
 	}
 	return nil
 }
