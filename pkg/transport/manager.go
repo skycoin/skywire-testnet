@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"io"
 	"math/big"
 	"strings"
 	"sync"
@@ -209,21 +210,17 @@ func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tp
 // DeleteTransport disconnects and removes the Transport of Transport ID.
 func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 	tm.mu.Lock()
-	tr := tm.transports[id]
-	delete(tm.transports, id)
+	if tr, ok := tm.transports[id]; ok {
+		delete(tm.transports, id)
+		_ = tr.Close() //nolint:errcheck
+	}
 	tm.mu.Unlock()
-
-	tr.Close()
 
 	if _, err := tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: id, IsUp: false}); err != nil {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)
 	}
 
 	tm.Logger.Infof("Unregistered transport %s", id)
-	if tr != nil {
-		return tr.Close()
-	}
-
 	return nil
 }
 
@@ -298,11 +295,13 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
-	tm.TrChan <- mTr
-
-	go tm.manageTransport(ctx, mTr, factory, remote, public, false)
-
-	return mTr, nil
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.TrChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, remote, public, false)
+		return mTr, nil
+	}
 }
 
 func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*ManagedTransport, error) {
@@ -338,11 +337,13 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
-	tm.TrChan <- mTr
-
-	go tm.manageTransport(ctx, mTr, factory, remote, true, true)
-
-	return mTr, nil
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.TrChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, remote, true, true)
+		return mTr, nil
+	}
 }
 
 func (tm *Manager) addEntry(entry *Entry) {
