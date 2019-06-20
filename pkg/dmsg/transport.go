@@ -128,9 +128,8 @@ func (tp *Transport) Type() string {
 	return Type
 }
 
-// Inject injects a frame from 'ClientConn' to transport.
-// Frame is then handled by 'tp.Serve'.
-func (tp *Transport) Inject(f Frame) error {
+// HandleFrame allows 'tp.Serve' to handle the frame (typically from 'ClientConn').
+func (tp *Transport) HandleFrame(f Frame) error {
 	if tp.IsClosed() {
 		return io.ErrClosedPipe
 	}

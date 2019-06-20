@@ -200,7 +200,7 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 		// delete tp on any failure.
 
 		if tp, ok := c.getTp(id); ok {
-			if err := tp.Inject(f); err != nil {
+			if err := tp.HandleFrame(f); err != nil {
 				log.WithError(err).Warnf("Rejected [%s]: Transport closed.", ft)
 			}
 			continue
