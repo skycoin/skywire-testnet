@@ -125,6 +125,20 @@ func (c *ClientConn) setNextInitID(nextInitID uint16) {
 	c.mx.Unlock()
 }
 
+func (c *ClientConn) readOK() error {
+	fr, err := readFrame(c.Conn)
+	if err != nil {
+		return errors.New("failed to get OK from server")
+	}
+
+	ft, _, _ := fr.Disassemble()
+	if ft != OkType {
+		return fmt.Errorf("wrong frame from server: %v", ft)
+	}
+
+	return nil
+}
+
 func (c *ClientConn) handleRequestFrame(accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
 	// remotely-initiated tps should:
 	// - have a payload structured as 'init_pk:resp_pk'.
@@ -429,7 +443,12 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 	}
 
 	conn := NewClientConn(c.log, nc, c.pk, srvPK)
+	if err := conn.waitOKFrame(); err != nil {
+		return nil, err
+	}
+
 	c.setConn(ctx, conn)
+
 	go func() {
 		err := conn.Serve(ctx, c.accept)
 		conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
