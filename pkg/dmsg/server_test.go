@@ -713,14 +713,12 @@ func TestServer_Serve(t *testing.T) {
 		bPK, bSK := cipher.GenerateKeyPair()
 
 		// create remote
-		a := NewClient(aPK, aSK, dc)
-		a.SetLogger(logging.MustGetLogger("A"))
+		a := NewClient(aPK, aSK, dc, SetLogger(logging.MustGetLogger("A")))
 		err = a.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
 		// create initiator
-		b := NewClient(bPK, bSK, dc)
-		b.SetLogger(logging.MustGetLogger("B"))
+		b := NewClient(bPK, bSK, dc, SetLogger(logging.MustGetLogger("B")))
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
