@@ -111,7 +111,10 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 
 	if conn == nil {
 		var err error
-		conn, err = chatApp.Dial(addr)
+		err = r.Do(func() error {
+			conn, err = chatApp.Dial(addr)
+			return err
+		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
