@@ -282,6 +282,8 @@ type Client struct {
 	once   sync.Once
 }
 
+// var _ transport.Factory = &Client{}
+
 // NewClient creates a new Client.
 func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client {
 	return &Client{

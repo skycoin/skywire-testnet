@@ -53,6 +53,7 @@ func TestNewNode(t *testing.T) {
 		{App: "foo", Version: "1.1", Port: 1},
 		{App: "bar", AutoStart: true, Port: 2},
 	}
+	conf.MessagingType = "messaging"
 
 	defer os.RemoveAll("local")
 

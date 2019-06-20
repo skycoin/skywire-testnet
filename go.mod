@@ -18,6 +18,7 @@ require (
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223 // indirect
 	github.com/prometheus/client_golang v0.9.2
 	github.com/sirupsen/logrus v1.4.1
 	github.com/skycoin/skycoin v0.25.1
@@ -32,4 +33,5 @@ require (
 	golang.org/x/tools v0.0.0-20190618233249-04b924abaa25 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

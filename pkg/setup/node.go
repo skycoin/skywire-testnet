@@ -12,6 +12,7 @@ import (
 
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/dmsg"
+	"github.com/skycoin/skywire/pkg/messaging"
 	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -29,8 +30,9 @@ type Hop struct {
 type Node struct {
 	Logger *logging.Logger
 
-	tm        *transport.Manager
-	messenger *dmsg.Client
+	tm *transport.Manager
+	// messenger *dmsg.Client
+	messenger transport.Factory
 
 	srvCount int
 	metrics  metrics.Recorder
@@ -45,8 +47,26 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := dmsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
-	messenger.SetLogger(logger.PackageLogger(dmsg.Type))
+
+	var messenger transport.Factory
+	switch conf.MessagingType {
+	case "messaging":
+		msgFactory := messaging.NewMsgFactory(&messaging.Config{
+			PubKey:     pk,
+			SecKey:     sk,
+			Discovery:  mClient.NewHTTP(conf.Messaging.Discovery),
+			Retries:    10,
+			RetryDelay: time.Second,
+		})
+		msgFactory.Logger = logger.PackageLogger("messenger")
+		messenger = msgFactory
+	case "dmsg":
+		dmsgClient := dmsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
+		dmsgClient.SetLogger(logger.PackageLogger("dmsg"))
+		messenger = dmsgClient
+	default:
+		log.Fatalf("Unrecognized messaging type %v", conf.MessagingType)
+	}
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {
@@ -78,10 +98,15 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
 	if sn.srvCount > 0 {
-		if err := sn.messenger.InitiateServerConnections(ctx, sn.srvCount); err != nil {
-			return fmt.Errorf("messaging: %s", err)
+		switch msgr := sn.messenger.(type) {
+		case *dmsg.Client:
+			if err := msgr.InitiateServerConnections(ctx, sn.srvCount); err != nil {
+				return fmt.Errorf("messaging: %s", err)
+			}
+			sn.Logger.Info("Connected to dmsg servers")
+		case *messaging.MsgFactory:
+			sn.Logger.Info("Connected to messaging servers")
 		}
-		sn.Logger.Info("Connected to messaging servers")
 	}
 
 	go func() {

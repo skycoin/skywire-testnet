@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/skycoin/skywire/pkg/dmsg"
+	"github.com/skycoin/skywire/pkg/messaging"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -85,10 +86,11 @@ type PacketRouter interface {
 type Node struct {
 	config    *Config
 	router    PacketRouter
-	messenger *dmsg.Client
-	tm        *transport.Manager
-	rt        routing.Table
-	executer  appExecuter
+	messenger transport.Factory
+	// messenger *dmsg.Client
+	tm       *transport.Manager
+	rt       routing.Table
+	executer appExecuter
 
 	Logger *logging.MasterLogger
 	logger *logging.Logger
@@ -124,8 +126,14 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery)
-	node.messenger.SetLogger(node.Logger.PackageLogger(dmsg.Type))
+	switch node.config.MessagingType {
+	case "dmsg":
+		messenger := dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery)
+		messenger.SetLogger(node.Logger.PackageLogger(dmsg.Type))
+		node.messenger = messenger
+	case "messaging":
+		node.messenger = messaging.NewMsgFactory(mConfig)
+	}
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
@@ -205,11 +213,16 @@ func NewNode(config *Config) (*Node, error) {
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
 	ctx := context.Background()
-	err := node.messenger.InitiateServerConnections(ctx, node.config.Messaging.ServerCount)
-	if err != nil {
-		return fmt.Errorf("%s: %s", dmsg.Type, err)
+	switch msgr := node.messenger.(type) {
+	case *dmsg.Client:
+		err := msgr.InitiateServerConnections(ctx, node.config.Messaging.ServerCount)
+		if err != nil {
+			return fmt.Errorf("%s: %s", dmsg.Type, err)
+		}
+		node.logger.Info("Connected to dmsg servers")
+	case *messaging.MsgFactory:
+		node.logger.Info("Connected to messaging servers")
 	}
-	node.logger.Info("Connected to messaging servers")
 
 	pathutil.EnsureDir(node.dir())
 	node.closePreviousApps()

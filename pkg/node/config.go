@@ -60,7 +60,8 @@ type Config struct {
 	LogLevel        string   `json:"log_level"`
 	ShutdownTimeout Duration `json:"shutdown_timeout"` // time value, examples: 10s, 1m, etc
 
-	Interfaces InterfaceConfig `json:"interfaces"`
+	Interfaces    InterfaceConfig `json:"interfaces"`
+	MessagingType string          `json:"messaging_type"`
 }
 
 // MessagingConfig returns config for messaging client.

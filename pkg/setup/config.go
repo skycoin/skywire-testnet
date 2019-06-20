@@ -17,4 +17,6 @@ type Config struct {
 	TransportDiscovery string `json:"transport_discovery"`
 
 	LogLevel string `json:"log_level"`
+
+	MessagingType string `json:"messaging_type"`
 }

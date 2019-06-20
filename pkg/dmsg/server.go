@@ -52,7 +52,7 @@ type ServerConn struct {
 // 	net.Conn
 // 	nextSrvConnTree *SrvConnTree
 // }
-s
+
 // NewServerConn creates a new connection from the perspective of a dms_server.
 func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKey) *ServerConn {
 	return &ServerConn{log: log, Conn: conn, remoteClient: remoteClient, nextRespID: randID(false)}
@@ -303,6 +303,11 @@ func (s *Server) Close() (err error) {
 
 	s.wg.Wait()
 	return nil
+}
+
+// ListenAndServe exp
+func (s *Server) ListenAndServe(_ string) error {
+	return s.Serve()
 }
 
 // Serve serves the dmsg_server.
