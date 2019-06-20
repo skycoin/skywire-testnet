@@ -52,6 +52,7 @@ func (ft FrameType) String() string {
 		CloseType:   "CLOSE",
 		FwdType:     "FWD",
 		AckType:     "ACK",
+		OkType:      "OK",
 	}
 	if int(ft) >= len(names) {
 		return fmt.Sprintf("UNKNOWN:%d", ft)
@@ -66,6 +67,7 @@ const (
 	CloseType   = FrameType(0x3)
 	FwdType     = FrameType(0xa)
 	AckType     = FrameType(0xb)
+	OkType      = FrameType(0xc)
 )
 
 // Frame is the dmsg data unit.
