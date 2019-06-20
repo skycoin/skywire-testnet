@@ -130,10 +130,13 @@ func (c *ClientConn) waitOKFrame() error {
 	if err != nil {
 		return errors.New("failed to get OK from server")
 	}
+
 	ft, _, _ := fr.Disassemble()
 	if ft != OkType {
 		return fmt.Errorf("wrong frame from server: %v", ft)
 	}
+
+	return nil
 }
 
 func (c *ClientConn) handleRequestFrame(accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
