@@ -783,6 +783,52 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("test client's self-dialing", func(t *testing.T) {
+		// generate keys for the client
+		aPK, aSK := cipher.GenerateKeyPair()
+
+		// create client
+		a := NewClient(aPK, aSK, dc, SetLogger(logging.MustGetLogger("A")))
+		err = a.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		// self-dial
+		selfWrTp, err := a.Dial(context.Background(), aPK)
+		require.NoError(t, err)
+
+		// self-accept
+		selfRdTp, err := a.Accept(context.Background())
+		require.NoError(t, err)
+
+		// try to write/read message to/from self
+		msgCount := 100
+		for i := 0; i < msgCount; i++ {
+			msg := []byte("Hello there!")
+
+			_, err := selfWrTp.Write(msg)
+			require.NoError(t, err)
+
+			recBuf := make([]byte, 5)
+
+			_, err = selfRdTp.Read(recBuf)
+			require.NoError(t, err)
+
+			_, err = selfRdTp.Read(recBuf)
+			require.NoError(t, err)
+
+			_, err = selfRdTp.Read(recBuf)
+			require.NoError(t, err)
+		}
+
+		err = selfRdTp.Close()
+		require.NoError(t, err)
+
+		err = selfWrTp.Close()
+		require.NoError(t, err)
+
+		err = a.Close()
+		require.NoError(t, err)
+	})
 }
 
 // Given two client instances (a & b) and a server instance (s),
