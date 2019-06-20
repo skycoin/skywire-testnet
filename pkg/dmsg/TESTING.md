@@ -24,7 +24,7 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 **`capped_transport_buffer_should_not_result_in_hang`**
 
 - Given:
-  - A transport is establised between clientA and clientB.
+  - A transport is established between clientA and clientB.
   - clientA writes to clientB until clientB's buffer is capped (or in other words, clientA's write blocks).
 - When:
   - clientB dials to clientA and begins reading/writing to/from the newly established transport.
@@ -45,8 +45,28 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 
 - TODO
 
+**`self_dial_should_work`**
+
+- TODO
+
 ### Fuzz testing
 
-We should test the robustness of the system under different conditions and random order of events. These tests should be written consisiting of x-number of servers, clients and a single discovery.
+We should test the robustness of the system under different conditions and random order of events. These tests should be written consisting of x-number of servers, clients and a single discovery.
 
-TODO
+The tests can be event based, with a probability value for each event.
+
+Possible events:
+1. Start random server.
+2. Stop random server.
+3. Start random client.
+   1. With or without `Accept()` handling.
+   2. With or without `transport.Read()` handling.
+4. Stop random client.
+5. Random client dials to another random client.
+6. Random write (in len/count) from random established transport.
+
+Notes:
+1. We have a set number of possible servers and we are to start all these servers prior to running the test. This way the discovery has entries of the servers which the clients can access when starting.
+2. We may need to log the "events" that happen to calculate the expected state of the system
+and run the check every x "events".
+

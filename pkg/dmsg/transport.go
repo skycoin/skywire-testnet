@@ -278,7 +278,6 @@ func (tp *Transport) Serve() {
 
 				// notify of new data via 'bufCh'
 				select {
-				case <-tp.done:
 				case tp.bufCh <- struct{}{}:
 				default:
 				}

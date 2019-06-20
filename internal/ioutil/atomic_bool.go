@@ -14,7 +14,7 @@ func (b *AtomicBool) Set(v bool) bool {
 	if v {
 		newF = 1
 	}
-	return newF != atomic.SwapInt32(&b.flag, newF)
+	return atomic.CompareAndSwapInt32(&b.flag, b.flag, newF)
 }
 
 // Get obtains the current boolean value.
