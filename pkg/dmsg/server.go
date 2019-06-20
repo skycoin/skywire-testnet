@@ -114,6 +114,11 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 	}()
 	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 
+	err = writeFrame(c.Conn, MakeFrame(OkType, 0, nil))
+	if err != nil {
+		return fmt.Errorf("sending OK failed: %s", err)
+	}
+
 	for {
 		f, err := readFrame(c.Conn)
 		if err != nil {

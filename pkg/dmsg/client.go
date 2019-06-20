@@ -424,6 +424,14 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 
 	conn := NewClientConn(c.log, nc, c.pk, srvPK)
 	c.setConn(ctx, conn)
+	fr, err := readFrame(conn.Conn)
+	if err != nil {
+		return nil, errors.New("failed to get OK from server")
+	}
+	ft, _, _ := fr.Disassemble()
+	if ft != OkType {
+		return nil, fmt.Errorf("wrong frame from server: %v", ft)
+	}
 	go func() {
 		err := conn.Serve(ctx, c.accept)
 		conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
