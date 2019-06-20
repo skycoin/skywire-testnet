@@ -1,7 +1,8 @@
-package ioutil
+package ioutil_test
 
 import (
 	"context"
+	"github.com/skycoin/skywire/internal/ioutil"
 	"sync"
 	"testing"
 )
@@ -12,10 +13,10 @@ func TestUint16AckWaiter_Wait(t *testing.T) {
 	// each concurrent call to 'Uint16AckWaiter.Wait()' is met with
 	// multiple concurrent calls to 'Uint16AckWaiter.Done()' with the same seq.
 	t.Run("ensure_no_race_conditions", func(*testing.T) {
-		w := new(Uint16AckWaiter)
+		w := new(ioutil.Uint16AckWaiter)
 		defer w.StopAll()
 
-		seqChan := make(chan Uint16Seq)
+		seqChan := make(chan ioutil.Uint16Seq)
 		defer close(seqChan)
 
 		wg := new(sync.WaitGroup)
@@ -24,7 +25,7 @@ func TestUint16AckWaiter_Wait(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_ = w.Wait(context.TODO(), func(seq Uint16Seq) error { //nolint:errcheck,unparam
+				_ = w.Wait(context.TODO(), func(seq ioutil.Uint16Seq) error { //nolint:errcheck,unparam
 					seqChan <- seq
 					return nil
 				})
