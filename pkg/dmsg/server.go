@@ -175,7 +175,7 @@ func (c *ServerConn) delChan(id uint16, why byte) error {
 	return nil
 }
 
-func (c *ServerConn) sendOK() error {
+func (c *ServerConn) writeOK() error {
 	if err := writeFrame(c.Conn, MakeFrame(OkType, 0, nil)); err != nil {
 		return err
 	}
