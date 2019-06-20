@@ -540,7 +540,7 @@ func TestServer_Serve(t *testing.T) {
 		}
 	})
 
-	t.Run("test failed accept not hanging already established transport", func(t *testing.T) {
+	t.Run("failed_accepts_should_not_result_in_hang", func(t *testing.T) {
 		// generate keys for both clients
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
@@ -707,7 +707,7 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("test capped_transport_buffer_should_not_result_in_hang", func(t *testing.T) {
+	t.Run("capped_transport_buffer_should_not_result_in_hang", func(t *testing.T) {
 		// generate keys for both clients
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
