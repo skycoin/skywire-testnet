@@ -293,7 +293,7 @@ func TestServer_Serve(t *testing.T) {
 		rand := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 		// store the number of transports each remote should handle
-		usedRemotes := make(map[int]int)
+		remotesTpCount := make(map[int]int)
 		// mapping initiators to remotes. one initiator performs a single connection,
 		// while remotes may handle from 0 to `initiatorsCount` connections
 		pickedRemotes := make([]int, 0, initiatorsCount)
@@ -301,7 +301,7 @@ func TestServer_Serve(t *testing.T) {
 			// pick random remote, which the initiator will connect to
 			remote := rand.Intn(remotesCount)
 			// increment the number of connections picked remote will handle
-			usedRemotes[remote] = usedRemotes[remote] + 1
+			remotesTpCount[remote] = remotesTpCount[remote] + 1
 			// map initiator to picked remote
 			pickedRemotes = append(pickedRemotes, remote)
 		}
@@ -325,7 +325,7 @@ func TestServer_Serve(t *testing.T) {
 			pk, sk := cipher.GenerateKeyPair()
 
 			c := NewClient(pk, sk, dc, SetLogger(logging.MustGetLogger(fmt.Sprintf("remote_%d", i))))
-			if _, ok := usedRemotes[i]; ok {
+			if _, ok := remotesTpCount[i]; ok {
 				err := c.InitiateServerConnections(context.Background(), 1)
 				require.NoError(t, err)
 			}
@@ -333,7 +333,7 @@ func TestServer_Serve(t *testing.T) {
 		}
 
 		totalRemoteTpsCount := 0
-		for _, connectionsCount := range usedRemotes {
+		for _, connectionsCount := range remotesTpCount {
 			totalRemoteTpsCount += connectionsCount
 		}
 
@@ -341,13 +341,13 @@ func TestServer_Serve(t *testing.T) {
 		// fail the test
 		acceptErrs := make(chan error, totalRemoteTpsCount)
 		var remotesTpsMX sync.Mutex
-		remotesTps := make(map[int][]transport.Transport, len(usedRemotes))
+		remotesTps := make(map[int][]transport.Transport, len(remotesTpCount))
 		var remotesWG sync.WaitGroup
 		remotesWG.Add(totalRemoteTpsCount)
 		for i := range remotes {
 			// only run `Accept` in case the remote was picked before
-			if _, ok := usedRemotes[i]; ok {
-				for connect := 0; connect < usedRemotes[i]; connect++ {
+			if _, ok := remotesTpCount[i]; ok {
+				for connect := 0; connect < remotesTpCount[i]; connect++ {
 					// run remote
 					go func(remoteInd int) {
 						var (
@@ -416,7 +416,7 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, err)
 
 		// check ServerConn's count
-		require.Equal(t, len(usedRemotes)+initiatorsCount, s.connCount())
+		require.Equal(t, len(remotesTpCount)+initiatorsCount, s.connCount())
 
 		for i, initiator := range initiators {
 			// get and check initiator's ServerConn
@@ -472,11 +472,11 @@ func TestServer_Serve(t *testing.T) {
 			nextConnID = remoteServConn.nextRespID
 			remoteServConn.mx.RUnlock()
 			for i := nextConnID - 2; i != nextConnID; i -= 2 {
-				if _, ok := remoteServConn.getNext(i); ok {
+				if next, ok := remoteServConn.getNext(i); ok {
 					initiatorClientConn.mx.RLock()
 					initiatorNextInitID := initiatorClientConn.nextInitID - 2
 					initiatorClientConn.mx.RUnlock()
-					if next, ok := remoteServConn.getNext(i); ok && next.id == initiatorNextInitID {
+					if next.id == initiatorNextInitID {
 						correspondingNextConnFound = true
 						break
 					}
