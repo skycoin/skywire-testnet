@@ -2,7 +2,10 @@ package dmsg
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -203,60 +206,49 @@ func TestClient(t *testing.T) {
 		conn3.mx.RUnlock()
 		assert.Equal(t, initID3+2, newInitID3)
 
-		errCh1 := make(chan error)
-		errCh2 := make(chan error)
-		errCh3 := make(chan error)
-		errCh4 := make(chan error)
+		errCh := closeClosers(
+			tr1, tr2, conn1, conn2, conn3, conn4,
+		)
 
-		go func() {
-			errCh1 <- tr1.Close()
-		}()
+		assertNoError(t, errCh)
 
-		go func() {
-			errCh2 <- tr2.Close()
-		}()
-
-		err = <-errCh1
-		assert.NoError(t, err)
-
-		err = <-errCh2
-		assert.NoError(t, err)
-
-		go func() {
-			errCh1 <- conn1.Close()
-		}()
-
-		go func() {
-			errCh2 <- conn2.Close()
-		}()
-
-		go func() {
-			errCh3 <- conn3.Close()
-		}()
-
-		go func() {
-			errCh4 <- conn4.Close()
-		}()
-
-		err = <-errCh1
-		assert.NoError(t, err)
-
-		err = <-errCh2
-		assert.NoError(t, err)
-
-		err = <-errCh3
-		assert.NoError(t, err)
-
-		err = <-errCh4
-		assert.NoError(t, err)
-
-		assert.False(t, isDoneChannelOpen(conn1.done))
-		assert.False(t, isDoneChannelOpen(conn3.done))
-		assert.False(t, isDoneChannelOpen(tr1.done))
-		assert.False(t, isReadChannelOpen(tr1.inCh))
-		assert.False(t, isDoneChannelOpen(tr2.done))
-		assert.False(t, isReadChannelOpen(tr2.inCh))
+		assertFalse(t,
+			isDoneChannelOpen(conn1.done),
+			isDoneChannelOpen(conn3.done),
+			isDoneChannelOpen(tr1.done),
+			isReadChannelOpen(tr1.inCh),
+			isDoneChannelOpen(tr2.done),
+			isReadChannelOpen(tr2.inCh),
+		)
 	})
+}
+
+func closeClosers(closers ...io.Closer) chan error {
+	var wg sync.WaitGroup
+	wg.Add(len(closers))
+	errCh := make(chan error, len(closers))
+	for _, closer := range closers {
+		go func(closer io.Closer) {
+			errCh <- closer.Close()
+			defer wg.Done()
+		}(closer)
+	}
+	wg.Wait()
+	close(errCh)
+	return errCh
+}
+
+func assertNoError(t *testing.T, errCh chan error) {
+	fmt.Printf("len(errCh): %v", len(errCh))
+	for err := range errCh {
+		assert.NoError(t, err)
+	}
+}
+
+func assertFalse(t *testing.T, preds ...bool) {
+	for _, pred := range preds {
+		assert.False(t, pred)
+	}
 }
 
 func isDoneChannelOpen(ch chan struct{}) bool {

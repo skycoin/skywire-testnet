@@ -245,7 +245,6 @@ func (tp *Transport) Serve() {
 		select {
 		case <-tp.done:
 			return
-
 		case f, ok := <-tp.inCh:
 			if !ok {
 				return

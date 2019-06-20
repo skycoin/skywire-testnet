@@ -48,6 +48,15 @@ type ServerConn struct {
 	mx         sync.RWMutex
 }
 
+// ServerConnTree ssss
+type ServerConnTree struct {
+	log *logging.Logger
+	net.Conn
+	remoteClient cipher.PubKey
+
+	nextConns [65536]*ServerConnTree
+}
+
 // type SrvConnTree struct {
 // 	net.Conn
 // 	nextSrvConnTree *SrvConnTree

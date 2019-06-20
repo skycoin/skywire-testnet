@@ -41,9 +41,9 @@ type ClientConn struct {
 	nextInitID uint16
 
 	// Transports: map of transports to remote dms_clients (key: tp_id, val: transport).
-	tps [math.MaxUint16 + 1]*Transport
-	mx  sync.RWMutex // to protect tps
-
+	tps  [math.MaxUint16 + 1]*Transport
+	mx   sync.RWMutex // to protect tps
+	
 	done chan struct{}
 	once sync.Once
 	wg   sync.WaitGroup
@@ -434,26 +434,29 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 
 	conn := NewClientConn(c.log, nc, c.pk, srvPK)
 	c.setConn(ctx, conn)
-	go func() {
-		err := conn.Serve(ctx, c.accept)
-		conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
-		c.delConn(ctx, srvPK)
 
-		// reconnect logic.
-	retryServerConnect:
-		select {
-		case <-c.done:
-		case <-ctx.Done():
-		case <-time.After(time.Second * 3):
-			conn.log.WithField("remoteServer", srvPK).Warn("Reconnecting")
-			if _, err := c.findOrConnectToServer(ctx, srvPK); err != nil {
-				conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("ReconnectionFailed")
-				goto retryServerConnect
-			}
-			conn.log.WithField("remoteServer", srvPK).Warn("ReconnectionSucceeded")
-		}
-	}()
+	go c.serve(ctx, conn, srvPK)
 	return conn, nil
+}
+
+func (c *Client) serve(ctx context.Context, conn *ClientConn, srvPK cipher.PubKey) {
+	err := conn.Serve(ctx, c.accept)
+	conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
+	c.delConn(ctx, srvPK)
+
+	// reconnect logic.
+retryServerConnect:
+	select {
+	case <-c.done:
+	case <-ctx.Done():
+	case <-time.After(time.Second * 3):
+		conn.log.WithField("remoteServer", srvPK).Warn("Reconnecting")
+		if _, err := c.findOrConnectToServer(ctx, srvPK); err != nil {
+			conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("ReconnectionFailed")
+			goto retryServerConnect
+		}
+		conn.log.WithField("remoteServer", srvPK).Warn("ReconnectionSucceeded")
+	}
 }
 
 // Accept accepts remotely-initiated tps.

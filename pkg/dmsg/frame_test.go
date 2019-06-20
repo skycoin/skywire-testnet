@@ -3,6 +3,7 @@ package dmsg
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"testing"
 
@@ -72,6 +73,23 @@ func Test_randID(t *testing.T) {
 			assert.Equal(t, tc.isEven, isEven)
 		})
 	}
+}
+
+func ExampleFrameType_String() {
+	fmt.Printf("%v\n", RequestType)
+	fmt.Printf("%v\n", AcceptType)
+	fmt.Printf("%v\n", CloseType)
+	fmt.Printf("%v\n", FwdType)
+	fmt.Printf("%v\n", AckType)
+	fmt.Printf("%v\n", FrameType(0x0))
+	fmt.Printf("%v\n", FrameType(0xFF))
+	// Output: REQUEST
+	// ACCEPT
+	// CLOSE
+	// FWD
+	// ACK
+	//
+	// UNKNOWN:255
 }
 
 func TestFrameType_String(t *testing.T) {

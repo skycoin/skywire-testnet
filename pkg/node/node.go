@@ -221,6 +221,10 @@ func (node *Node) Start() error {
 		}
 		node.logger.Info("Connected to dmsg servers")
 	case *messaging.MsgFactory:
+		err := msgr.ConnectToInitialServers(ctx, node.config.Messaging.ServerCount)
+		if err != nil {
+			return fmt.Errorf("ConnectToInitialServers: %s", err)
+		}
 		node.logger.Info("Connected to messaging servers")
 	}
 
