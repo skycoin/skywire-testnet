@@ -19,6 +19,10 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
+const (
+	clientReconnectInterval = 3 * time.Second
+)
+
 var (
 	// ErrNoSrv indicate that remote client does not have DelegatedServers in entry.
 	ErrNoSrv = errors.New("remote has no DelegatedServers")
@@ -440,7 +444,7 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 		select {
 		case <-c.done:
 		case <-ctx.Done():
-		case <-time.After(time.Second * 3):
+		case <-time.After(clientReconnectInterval):
 			conn.log.WithField("remoteServer", srvPK).Warn("Reconnecting")
 			if _, err := c.findOrConnectToServer(ctx, srvPK); err != nil {
 				conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("ReconnectionFailed")

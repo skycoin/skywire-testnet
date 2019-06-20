@@ -652,49 +652,78 @@ func TestServer_Serve(t *testing.T) {
 	})
 
 	t.Run("Reconnect to server should succeed", func(t *testing.T) {
-		// generate keys for both clients
-		aPK, aSK := cipher.GenerateKeyPair()
-		bPK, bSK := cipher.GenerateKeyPair()
+		t.Run("Same address", func(t *testing.T) {
+			t.Parallel()
+			testReconnect(t, false)
+		})
 
-		assert.Equal(t, 0, s.connCount())
-
-		// create remote
-		a := NewClient(aPK, aSK, dc)
-		a.SetLogger(logging.MustGetLogger("A"))
-		err = a.InitiateServerConnections(context.Background(), 1)
-		require.NoError(t, err)
-
-		assert.Equal(t, 1, s.connCount())
-
-		// create initiator
-		b := NewClient(bPK, bSK, dc)
-		b.SetLogger(logging.MustGetLogger("B"))
-		err = b.InitiateServerConnections(context.Background(), 1)
-		require.NoError(t, err)
-
-		time.Sleep(5 * time.Second)
-		assert.Equal(t, 2, s.connCount())
-
-		err := s.Close()
-		assert.NoError(t, err)
-
-		time.Sleep(5 * time.Second)
-
-		assert.Equal(t, 0, s.connCount())
-
-		// s, err = NewServer(sPK, sSK, s.addr, l, dc)
-		// require.NoError(t, err)
-
-		go func() {
-			if err := s.Serve(); err != nil {
-				log.Fatal(err)
-			}
-		}()
-
-		time.Sleep(5 * time.Second)
-
-		assert.Equal(t, 2, s.connCount())
+		t.Run("Random address", func(t *testing.T) {
+			t.Parallel()
+			testReconnect(t, true)
+		})
 	})
+}
+
+func testReconnect(t *testing.T, randomAddr bool) {
+	const smallDelay = 100 * time.Millisecond
+
+	sPK, sSK := cipher.GenerateKeyPair()
+	dc := client.NewMock()
+
+	l, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	s, err := NewServer(sPK, sSK, "", l, dc)
+	require.NoError(t, err)
+
+	serverAddr := s.Addr()
+
+	go s.Serve() // nolint:errcheck
+
+	aPK, aSK := cipher.GenerateKeyPair()
+	bPK, bSK := cipher.GenerateKeyPair()
+
+	assert.Equal(t, 0, s.connCount())
+
+	remote := NewClient(aPK, aSK, dc)
+	remote.SetLogger(logging.MustGetLogger("remote"))
+	err = remote.InitiateServerConnections(context.Background(), 1)
+	require.NoError(t, err)
+
+	time.Sleep(smallDelay)
+	assert.Equal(t, 1, s.connCount())
+
+	initiator := NewClient(bPK, bSK, dc)
+	initiator.SetLogger(logging.MustGetLogger("initiator"))
+	err = initiator.InitiateServerConnections(context.Background(), 1)
+	require.NoError(t, err)
+
+	time.Sleep(smallDelay)
+	assert.Equal(t, 2, s.connCount())
+
+	err = s.Close()
+	assert.NoError(t, err)
+
+	assert.Equal(t, 0, s.connCount())
+
+	addr := ""
+	if !randomAddr {
+		addr = serverAddr
+	}
+
+	l, err = net.Listen("tcp", serverAddr)
+	require.NoError(t, err)
+
+	s, err = NewServer(sPK, sSK, addr, l, dc)
+	require.NoError(t, err)
+
+	go s.Serve() // nolint:errcheck
+
+	time.Sleep(clientReconnectInterval + smallDelay)
+	assert.Equal(t, 2, s.connCount())
+
+	err = s.Close()
+	assert.NoError(t, err)
 }
 
 // Given two client instances (a & b) and a server instance (s),
