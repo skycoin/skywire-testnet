@@ -189,13 +189,11 @@ func TestServer_Serve(t *testing.T) {
 		aPK, aSK := cipher.GenerateKeyPair()
 		bPK, bSK := cipher.GenerateKeyPair()
 
-		a := NewClient(aPK, aSK, dc)
-		a.SetLogger(logging.MustGetLogger("A"))
+		a := NewClient(aPK, aSK, dc, SetLogger(logging.MustGetLogger("A")))
 		err := a.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
-		b := NewClient(bPK, bSK, dc)
-		b.SetLogger(logging.MustGetLogger("B"))
+		b := NewClient(bPK, bSK, dc, SetLogger(logging.MustGetLogger("B")))
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
@@ -315,8 +313,7 @@ func TestServer_Serve(t *testing.T) {
 		for i := 0; i < initiatorsCount; i++ {
 			pk, sk := cipher.GenerateKeyPair()
 
-			c := NewClient(pk, sk, dc)
-			c.SetLogger(logging.MustGetLogger(fmt.Sprintf("Initiator %d", i)))
+			c := NewClient(pk, sk, dc, SetLogger(logging.MustGetLogger(fmt.Sprintf("initiator_%d", i))))
 			err := c.InitiateServerConnections(context.Background(), 1)
 			require.NoError(t, err)
 
@@ -327,8 +324,7 @@ func TestServer_Serve(t *testing.T) {
 		for i := 0; i < remotesCount; i++ {
 			pk, sk := cipher.GenerateKeyPair()
 
-			c := NewClient(pk, sk, dc)
-			c.SetLogger(logging.MustGetLogger(fmt.Sprintf("Remote %d", i)))
+			c := NewClient(pk, sk, dc, SetLogger(logging.MustGetLogger(fmt.Sprintf("remote_%d", i))))
 			if _, ok := usedRemotes[i]; ok {
 				err := c.InitiateServerConnections(context.Background(), 1)
 				require.NoError(t, err)
@@ -550,14 +546,12 @@ func TestServer_Serve(t *testing.T) {
 		bPK, bSK := cipher.GenerateKeyPair()
 
 		// create remote
-		a := NewClient(aPK, aSK, dc)
-		a.SetLogger(logging.MustGetLogger("A"))
+		a := NewClient(aPK, aSK, dc, SetLogger(logging.MustGetLogger("A")))
 		err = a.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
 		// create initiator
-		b := NewClient(bPK, bSK, dc)
-		b.SetLogger(logging.MustGetLogger("B"))
+		b := NewClient(bPK, bSK, dc, SetLogger(logging.MustGetLogger("B")))
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
@@ -648,14 +642,12 @@ func TestServer_Serve(t *testing.T) {
 		bPK, bSK := cipher.GenerateKeyPair()
 
 		// create remote
-		a := NewClient(aPK, aSK, dc)
-		a.SetLogger(logging.MustGetLogger("A"))
+		a := NewClient(aPK, aSK, dc, SetLogger(logging.MustGetLogger("A")))
 		err = a.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
 		// create initiator
-		b := NewClient(bPK, bSK, dc)
-		b.SetLogger(logging.MustGetLogger("B"))
+		b := NewClient(bPK, bSK, dc, SetLogger(logging.MustGetLogger("B")))
 		err = b.InitiateServerConnections(context.Background(), 1)
 		require.NoError(t, err)
 
@@ -804,12 +796,10 @@ func TestNewClient(t *testing.T) {
 
 	go s.Serve() //nolint:errcheck
 
-	a := NewClient(aPK, aSK, dc)
-	a.SetLogger(logging.MustGetLogger("A"))
+	a := NewClient(aPK, aSK, dc, SetLogger(logging.MustGetLogger("A")))
 	require.NoError(t, a.InitiateServerConnections(context.Background(), 1))
 
-	b := NewClient(bPK, bSK, dc)
-	b.SetLogger(logging.MustGetLogger("B"))
+	b := NewClient(bPK, bSK, dc, SetLogger(logging.MustGetLogger("B")))
 	require.NoError(t, b.InitiateServerConnections(context.Background(), 1))
 
 	wg := new(sync.WaitGroup)

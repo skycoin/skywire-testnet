@@ -45,8 +45,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := dmsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery))
-	messenger.SetLogger(logger.PackageLogger(dmsg.Type))
+	messenger := dmsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery), dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {

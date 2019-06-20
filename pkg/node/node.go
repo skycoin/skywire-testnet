@@ -124,8 +124,7 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery)
-	node.messenger.SetLogger(node.Logger.PackageLogger(dmsg.Type))
+	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {

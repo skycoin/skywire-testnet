@@ -200,7 +200,7 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 		// delete tp on any failure.
 
 		if tp, ok := c.getTp(id); ok {
-			if err := tp.Inject(f); err != nil {
+			if err := tp.HandleFrame(f); err != nil {
 				log.WithError(err).Warnf("Rejected [%s]: Transport closed.", ft)
 			}
 			continue
@@ -272,6 +272,20 @@ func (c *ClientConn) Close() error {
 	return nil
 }
 
+// ClientOption represents an optional argument for Client.
+type ClientOption func(c *Client) error
+
+// SetLogger sets the internal logger for Client.
+func SetLogger(log *logging.Logger) ClientOption {
+	return func(c *Client) error {
+		if log == nil {
+			return errors.New("nil logger set")
+		}
+		c.log = log
+		return nil
+	}
+}
+
 // Client implements transport.Factory
 type Client struct {
 	log *logging.Logger
@@ -289,8 +303,8 @@ type Client struct {
 }
 
 // NewClient creates a new Client.
-func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client {
-	return &Client{
+func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient, opts ...ClientOption) *Client {
+	c := &Client{
 		log:    logging.MustGetLogger("dmsg_client"),
 		pk:     pk,
 		sk:     sk,
@@ -299,11 +313,12 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc client.APIClient) *Client 
 		accept: make(chan *Transport, AcceptBufferSize),
 		done:   make(chan struct{}),
 	}
-}
-
-// SetLogger sets the dms_client's logger.
-func (c *Client) SetLogger(log *logging.Logger) {
-	c.log = log
+	for _, opt := range opts {
+		if err := opt(c); err != nil {
+			panic(err)
+		}
+	}
+	return c
 }
 
 func (c *Client) updateDiscEntry(ctx context.Context) error {
