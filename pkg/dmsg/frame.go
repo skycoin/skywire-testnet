@@ -62,12 +62,12 @@ func (ft FrameType) String() string {
 
 // Frame types.
 const (
+	OkType      = FrameType(0x0)
 	RequestType = FrameType(0x1)
 	AcceptType  = FrameType(0x2)
 	CloseType   = FrameType(0x3)
 	FwdType     = FrameType(0xa)
 	AckType     = FrameType(0xb)
-	OkType      = FrameType(0xc)
 )
 
 // Frame is the dmsg data unit.
