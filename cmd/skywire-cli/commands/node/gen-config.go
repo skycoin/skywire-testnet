@@ -88,7 +88,7 @@ func defaultConfig() *node.Config {
 	passcode := base64.StdEncoding.EncodeToString(cipher.RandByte(8))
 	conf.Apps = []node.AppConfig{
 		{App: "skychat", Version: "1.0", Port: 1, AutoStart: true, Args: []string{}},
-		{App: "SSH", Version: "1.0", Port: 2, AutoStart: true, Args: []string{}},
+		{App: "skyssh-server", Version: "1.0", Port: 2, AutoStart: true, Args: []string{}},
 		{App: "socksproxy", Version: "1.0", Port: 3, AutoStart: true, Args: []string{"-passcode", passcode}},
 	}
 	conf.TrustedNodes = []cipher.PubKey{}

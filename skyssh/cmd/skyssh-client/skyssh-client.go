@@ -8,8 +8,8 @@ import (
 	"log"
 	"net/http"
 
-	ssh "github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
+	ssh "github.com/skycoin/skywire/skyssh/internal/therealssh"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	var debug = flag.Bool("debug", false, "enable debug messages")
 	flag.Parse()
 
-	config := &app.Config{AppName: "SSH-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
+	config := &app.Config{AppName: "skyssh-client", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
 	sshApp, err := app.Setup(config)
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
