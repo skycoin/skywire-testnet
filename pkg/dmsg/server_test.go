@@ -690,16 +690,24 @@ func testReconnect(t *testing.T, randomAddr bool) {
 	err = remote.InitiateServerConnections(context.Background(), 1)
 	require.NoError(t, err)
 
-	time.Sleep(smallDelay)
-	assert.Equal(t, 1, s.connCount())
+	require.NoError(t, testWithTimeout(smallDelay, func() error {
+		if s.connCount() != 1 {
+			return errors.New("s.conns is not equal to 1")
+		}
+		return nil
+	}))
 
 	initiator := NewClient(bPK, bSK, dc)
 	initiator.SetLogger(logging.MustGetLogger("initiator"))
 	err = initiator.InitiateServerConnections(context.Background(), 1)
 	require.NoError(t, err)
 
-	time.Sleep(smallDelay)
-	assert.Equal(t, 2, s.connCount())
+	require.NoError(t, testWithTimeout(smallDelay, func() error {
+		if s.connCount() != 2 {
+			return errors.New("s.conns is not equal to 2")
+		}
+		return nil
+	}))
 
 	err = s.Close()
 	assert.NoError(t, err)
@@ -719,8 +727,12 @@ func testReconnect(t *testing.T, randomAddr bool) {
 
 	go s.Serve() // nolint:errcheck
 
-	time.Sleep(clientReconnectInterval + smallDelay)
-	assert.Equal(t, 2, s.connCount())
+	require.NoError(t, testWithTimeout(clientReconnectInterval+smallDelay, func() error {
+		if s.connCount() != 2 {
+			return errors.New("s.conns is not equal to 2")
+		}
+		return nil
+	}))
 
 	err = s.Close()
 	assert.NoError(t, err)
