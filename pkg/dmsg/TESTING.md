@@ -34,7 +34,7 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 **`reconnect_to_server_should_succeed`**
 
 - Given:
-  - clientA and clientB is connected to a server.
+  - clientA and clientB are connected to a server.
 - When:
   - The server restarts.
 - Then:
@@ -43,7 +43,26 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 
 **`server_disconnect_should_close_transports`**
 
-- TODO
+- Given:
+  - clientA and clientB are connected to a server
+  - clientB dials clientA
+  - clientA accepts connection
+  - Transports are being created
+  - Some read/write operations are performed on transports
+  - Server disconnects
+- Then:
+  - Transports should be closed
+  
+**`server_disconnect_should_close_transports_while_communication_is_going_on`**
+- Given:
+  - clientA and clientB are connected to a server
+  - clientB dials clientA
+  - clientA accepts connection
+  - Transports are being created
+  - Read/write operations are being performed
+  - Server disconnects
+- Then:
+  - Transports should be closed
 
 **`self_dial_should_work`**
 
