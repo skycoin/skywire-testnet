@@ -47,7 +47,12 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 
 **`self_dial_should_work`**
 
-- TODO
+- Given:
+  - clientA is connected to a server
+  - clientA dials himself
+- Then:
+  - clientA accept connections, transports are being created successfully
+  - clientA is able to write/read to/from transports without errors
 
 ### Fuzz testing
 

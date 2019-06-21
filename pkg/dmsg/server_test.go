@@ -748,7 +748,7 @@ func TestServer_Serve(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("test client's self-dialing", func(t *testing.T) {
+	t.Run("self_dial_should_work", func(t *testing.T) {
 		// generate keys for the client
 		aPK, aSK := cipher.GenerateKeyPair()
 
