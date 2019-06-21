@@ -54,6 +54,7 @@ Note that even though `messaging-discovery` is also considered to be an entity o
   - Transports should be closed
   
 **`server_disconnect_should_close_transports_while_communication_is_going_on`**
+
 - Given:
   - clientA and clientB are connected to a server
   - clientB dials clientA

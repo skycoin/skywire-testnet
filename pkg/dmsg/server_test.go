@@ -794,6 +794,87 @@ func TestServer_Serve(t *testing.T) {
 		err = a.Close()
 		require.NoError(t, err)
 	})
+
+	t.Run("server_disconnect_should_close_transports", func(t *testing.T) {
+		// generate keys for server
+		sPK, sSK := cipher.GenerateKeyPair()
+
+		dc := client.NewMock()
+
+		l, err := nettest.NewLocalListener("tcp")
+		require.NoError(t, err)
+
+		// create a server separately from other tests, since this one should be closed
+		s, err := NewServer(sPK, sSK, "", l, dc)
+		require.NoError(t, err)
+
+		var sStartErr error
+		sDone := make(chan struct{})
+		go func() {
+			if err := s.Serve(); err != nil {
+				sStartErr = err
+			}
+
+			sDone <- struct{}{}
+		}()
+
+		// generate keys for both clients
+		aPK, aSK := cipher.GenerateKeyPair()
+		bPK, bSK := cipher.GenerateKeyPair()
+
+		// create remote
+		a := NewClient(aPK, aSK, dc, SetLogger(logging.MustGetLogger("A")))
+		err = a.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		// create initiator
+		b := NewClient(bPK, bSK, dc, SetLogger(logging.MustGetLogger("B")))
+		err = b.InitiateServerConnections(context.Background(), 1)
+		require.NoError(t, err)
+
+		bTransport, err := b.Dial(context.Background(), aPK)
+		require.NoError(t, err)
+
+		aTransport, err := a.Accept(context.Background())
+		require.NoError(t, err)
+
+		msgCount := 100
+		for i := 0; i < msgCount; i++ {
+			msg := []byte("Hello there!")
+
+			_, err := bTransport.Write(msg)
+			require.NoError(t, err)
+
+			recBuff := make([]byte, 5)
+
+			_, err = aTransport.Read(recBuff)
+			require.NoError(t, err)
+
+			_, err = aTransport.Read(recBuff)
+			require.NoError(t, err)
+
+			_, err = aTransport.Read(msg)
+			require.NoError(t, err)
+		}
+
+		err = s.Close()
+		require.NoError(t, err)
+
+		<-sDone
+		// TODO: remove log, uncomment when bug is fixed
+		log.Printf("SERVE ERR: %v", sStartErr)
+		//require.NoError(t, sStartErr)
+
+		/*time.Sleep(10 * time.Second)
+
+		tp, ok := bTransport.(*Transport)
+		require.Equal(t, true, ok)
+		require.Equal(t, true, tp.IsClosed())
+
+		tp, ok = aTransport.(*Transport)
+		require.Equal(t, true, ok)
+		require.Equal(t, true, tp.IsClosed())*/
+	})
 }
 
 // Given two client instances (a & b) and a server instance (s),
