@@ -448,41 +448,6 @@ func TestServer_Serve(t *testing.T) {
 			initiatorNextConn, ok := initiatorServConn.getNext(nextInitID - 2)
 			require.Equal(t, true, ok)
 			require.NotNil(t, initiatorNextConn)
-
-			// since, the test is concurrent, we can not check the exact values, so
-			// we just loop through the previous values of `nextRespID` and check
-			// whether one of these is equal to the corresponding value of `initiatorNextConn.id`
-			correspondingNextConnFound := false
-			remoteServConn.mx.RLock()
-			nextConnID := remoteServConn.nextRespID
-			remoteServConn.mx.RUnlock()
-			for i := nextConnID - 2; i != nextConnID; i -= 2 {
-				if initiatorNextConn.id == i {
-					correspondingNextConnFound = true
-					break
-				}
-			}
-			require.Equal(t, true, correspondingNextConnFound)
-
-			// same as above. Looping through the previous values of `nextRespID`,
-			// fetching all of the corresponding `nextConn`. One of these must have `id`
-			// equal to `initiatorClientConn.nextInitID - 2`
-			correspondingNextConnFound = false
-			remoteServConn.mx.RLock()
-			nextConnID = remoteServConn.nextRespID
-			remoteServConn.mx.RUnlock()
-			for i := nextConnID - 2; i != nextConnID; i -= 2 {
-				if next, ok := remoteServConn.getNext(i); ok {
-					initiatorClientConn.mx.RLock()
-					initiatorNextInitID := initiatorClientConn.nextInitID - 2
-					initiatorClientConn.mx.RUnlock()
-					if next.id == initiatorNextInitID {
-						correspondingNextConnFound = true
-						break
-					}
-				}
-			}
-			require.Equal(t, true, correspondingNextConnFound)
 		}
 
 		// close transports for remotes
