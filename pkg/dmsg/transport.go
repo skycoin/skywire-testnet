@@ -130,18 +130,18 @@ func (tp *Transport) Type() string {
 
 // HandleFrame allows 'tp.Serve' to handle the frame (typically from 'ClientConn').
 func (tp *Transport) HandleFrame(f Frame) error {
-	if tp.IsClosed() {
-		return io.ErrClosedPipe
-	}
-
 	tp.inMx.RLock()
 	defer tp.inMx.RUnlock()
 
+handleFrame:
 	select {
-	case <-tp.done:
-		return io.ErrClosedPipe
 	case tp.inCh <- f:
 		return nil
+	default:
+		if tp.IsClosed() {
+			return io.ErrClosedPipe
+		}
+		goto handleFrame
 	}
 }
 
