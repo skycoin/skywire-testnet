@@ -133,8 +133,12 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		connsMu.Lock()
+		delete(chatConns, pk)
+		connsMu.Unlock()
 		return
 	}
+
 }
 
 func sseHandler(w http.ResponseWriter, req *http.Request) {
