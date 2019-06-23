@@ -56,6 +56,6 @@ func TestRetrier_Do(t *testing.T) {
 		err := loopR.Do(f)
 		require.NoError(t, err)
 
-		require.Equal(t,threshold,c)
+		require.Equal(t, threshold, c)
 	})
 }

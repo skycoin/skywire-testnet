@@ -2,12 +2,12 @@ package therealproxy
 
 import (
 	"fmt"
-	"github.com/armon/go-socks5"
-	"github.com/hashicorp/yamux"
 	"log"
 	"net"
-)
 
+	"github.com/armon/go-socks5"
+	"github.com/hashicorp/yamux"
+)
 
 // Server implements multiplexing proxy server using yamux.
 type Server struct {

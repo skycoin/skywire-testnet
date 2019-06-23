@@ -2,11 +2,12 @@ package therealproxy
 
 import (
 	"fmt"
-	"github.com/skycoin/skywire/internal/netutil"
 	"io"
 	"log"
 	"net"
 	"time"
+
+	"github.com/skycoin/skywire/internal/netutil"
 
 	"github.com/hashicorp/yamux"
 )
