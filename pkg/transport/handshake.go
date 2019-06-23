@@ -22,12 +22,14 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 	case <-done:
 		return entry, err
 	case <-time.After(timeout):
-		return nil, errors.New("deadline exceeded")
+		tm.Logger.Infof("handshake.Do timeout exceeded for value: %v", timeout)
+		return nil, errors.New("deadline exceeded on handshake")
 	}
 }
 
 func settlementInitiatorHandshake(public bool) settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
+		tm.Logger.Info("Entering settlementInitiatorHandshake")
 		entry := &Entry{
 			ID:       MakeTransportID(tr.Edges()[0], tr.Edges()[1], tr.Type(), public),
 			EdgeKeys: tr.Edges(),
@@ -35,42 +37,49 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 			Public:   public,
 		}
 
+		remote, ok := tm.Remote(tr.Edges())
+		if !ok {
+			return nil, errors.New("configured PubKey not found in edges")
+		}
+
+		tm.Logger.Infof("settlementInitiatorHandshake: NewSignedEntry with %v", remote)
 		sEntry, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
 		if !ok {
 			return nil, errors.New("error creating signed entry")
 		}
+		tm.Logger.Info("settlementInitiatorHandshake: validateSignedEntry")
 		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
 			return nil, fmt.Errorf("settlementInitiatorHandshake NewSignedEntry: %s\n sEntry: %v", err, sEntry)
 		}
-
+		tm.Logger.Info("settlementInitiatorHandshake: json.NewEncoder.Encode")
 		if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
 			return nil, fmt.Errorf("write: %s", err)
 		}
 
+		tm.Logger.Info("settlementInitiatorHandshake: json.NewDecoder")
 		respSEntry := &SignedEntry{}
 		if err := json.NewDecoder(tr).Decode(respSEntry); err != nil {
 			return nil, fmt.Errorf("read: %s", err)
 		}
 
 		//  Verifying remote signature
-		remote, ok := tm.Remote(tr.Edges())
-		if !ok {
-			return nil, errors.New("configured PubKey not found in edges")
-		}
+
+		tm.Logger.Info("settlementInitiatorHandshake: verifySig")
 		if err := verifySig(respSEntry, remote); err != nil {
 			return nil, err
 		}
-
+		tm.Logger.Info("settlementInitiatorHandshake: tm.walkEntries")
 		newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *respSEntry.Entry }) == nil
 		if newEntry {
 			tm.addEntry(entry)
 		}
-
+		tm.Logger.Info("Exiting settlementInitiatorHandshake")
 		return respSEntry.Entry, nil
 	}
 }
 
 func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
+	tm.Logger.Info("Entering settlementResponderHandshake")
 	sEntry := &SignedEntry{}
 	if err := json.NewDecoder(tr).Decode(sEntry); err != nil {
 		return nil, fmt.Errorf("read: %s", err)
@@ -91,6 +100,7 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 
 	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
 
+	tm.Logger.Info("Entering settlementResponderHandshake: DiscoveryClient.UpdateStatuses/RegisterTransports")
 	var err error
 	if sEntry.Entry.Public {
 		if !newEntry {
@@ -104,6 +114,7 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 		return nil, fmt.Errorf("entry set: %s", err)
 	}
 
+	tm.Logger.Info("Entering settlementResponderHandshake: json.NewEncoder(tr).Encode")
 	if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
 		return nil, fmt.Errorf("write: %s", err)
 	}
@@ -111,7 +122,7 @@ func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
 	if newEntry {
 		tm.addEntry(sEntry.Entry)
 	}
-
+	tm.Logger.Info("Exiting settlementResponderHandshake")
 	return sEntry.Entry, nil
 }
 
