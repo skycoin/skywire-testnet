@@ -51,7 +51,7 @@ const (
 	ResponseConfirm
 )
 
-var responseUnauthorised = append([]byte{ResponseFail}, []byte("unauthorised")...)
+var responseUnauthorised = append([]byte{ResponseFail}, []byte("unauthorized")...)
 
 // Server handles remote PTY data exchange.
 type Server struct {
@@ -118,7 +118,7 @@ func (s *Server) HandleData(remotePK cipher.PubKey, localID uint32, data []byte)
 	}
 
 	if s.auth.Authorize(remotePK) != nil || channel.RemoteAddr.PubKey != remotePK {
-		return errors.New("unauthorised")
+		return errors.New("unauthorized")
 	}
 
 	if channel.session == nil {

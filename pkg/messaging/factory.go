@@ -365,7 +365,7 @@ func (msgFactory *MsgFactory) onClose(l *Link, remote bool) {
 	case <-msgFactory.doneCh:
 	default:
 		msgFactory.Logger.Infof("Disconnected from the server %s. Trying to re-connect...", remotePK)
-		for attemp := 0; attemp < msgFactory.retries; attemp++ {
+		for attempt := 0; attempt < msgFactory.retries; attempt++ {
 			if _, err := msgFactory.link(remotePK, chanLink.addr); err == nil {
 				msgFactory.Logger.Infof("Re-connected to the server %s", remotePK)
 				return
