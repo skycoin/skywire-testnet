@@ -703,6 +703,9 @@ func testReconnect(t *testing.T, randomAddr bool) {
 	err = initiator.InitiateServerConnections(ctx, 1)
 	require.NoError(t, err)
 
+	initiatorTransport, err := initiator.Dial(ctx, remotePK)
+	require.NoError(t, err)
+
 	require.NoError(t, testWithTimeout(smallDelay, func() error {
 		if s.connCount() != 2 {
 			return errors.New("s.conns is not equal to 2")
@@ -712,6 +715,10 @@ func testReconnect(t *testing.T, randomAddr bool) {
 
 	err = s.Close()
 	assert.NoError(t, err)
+
+	initTr := initiatorTransport.(*Transport)
+	assert.False(t, isDoneChannelOpen(initTr.done))
+	assert.False(t, isReadChannelOpen(initTr.inCh))
 
 	assert.Equal(t, 0, s.connCount())
 
@@ -734,6 +741,21 @@ func testReconnect(t *testing.T, randomAddr bool) {
 		}
 		return nil
 	}))
+
+	remoteDone := make(chan struct{})
+	var remoteErr error
+	go func() {
+		_, remoteErr = remote.Accept(ctx)
+		close(remoteDone)
+	}()
+
+	require.NoError(t, testWithTimeout(smallDelay, func() error {
+		_, err = initiator.Dial(ctx, remotePK)
+		return err
+	}))
+
+	<-remoteDone
+	require.NoError(t, remoteErr)
 
 	err = s.Close()
 	assert.NoError(t, err)
