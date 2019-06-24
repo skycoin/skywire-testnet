@@ -19,13 +19,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/dmsg"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/messaging"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -85,7 +85,7 @@ type PacketRouter interface {
 type Node struct {
 	config    *Config
 	router    PacketRouter
-	messenger *messaging.MsgFactory
+	messenger *dmsg.Client
 	tm        *transport.Manager
 	rt        routing.Table
 	executer  appExecuter
@@ -124,8 +124,7 @@ func NewNode(config *Config) (*Node, error) {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = messaging.NewMsgFactory(mConfig)
-	node.messenger.Logger = node.Logger.PackageLogger("messenger")
+	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
@@ -205,9 +204,9 @@ func NewNode(config *Config) (*Node, error) {
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
 	ctx := context.Background()
-	err := node.messenger.ConnectToInitialServers(ctx, node.config.Messaging.ServerCount)
+	err := node.messenger.InitiateServerConnections(ctx, node.config.Messaging.ServerCount)
 	if err != nil {
-		return fmt.Errorf("messaging: %s", err)
+		return fmt.Errorf("%s: %s", dmsg.Type, err)
 	}
 	node.logger.Info("Connected to messaging servers")
 

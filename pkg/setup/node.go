@@ -8,13 +8,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/metrics"
-
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/messaging"
+	"github.com/skycoin/skywire/pkg/dmsg"
 	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
+	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
@@ -31,9 +30,10 @@ type Node struct {
 	Logger *logging.Logger
 
 	tm        *transport.Manager
-	messenger *messaging.MsgFactory
-	srvCount  int
-	metrics   metrics.Recorder
+	messenger *dmsg.Client
+
+	srvCount int
+	metrics  metrics.Recorder
 }
 
 // NewNode constructs a new SetupNode.
@@ -45,14 +45,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := messaging.NewMsgFactory(&messaging.Config{
-		PubKey:     pk,
-		SecKey:     sk,
-		Discovery:  mClient.NewHTTP(conf.Messaging.Discovery),
-		Retries:    10,
-		RetryDelay: time.Second,
-	})
-	messenger.Logger = logger.PackageLogger("messenger")
+	messenger := dmsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery), dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {
@@ -84,7 +77,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
 	if sn.srvCount > 0 {
-		if err := sn.messenger.ConnectToInitialServers(ctx, sn.srvCount); err != nil {
+		if err := sn.messenger.InitiateServerConnections(ctx, sn.srvCount); err != nil {
 			return fmt.Errorf("messaging: %s", err)
 		}
 		sn.Logger.Info("Connected to messaging servers")
@@ -230,7 +223,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 }
 
 func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, "messaging", false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return
@@ -248,7 +241,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, "messaging", false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
@@ -264,7 +257,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 }
 
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, "messaging", false)
+	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dmsg.Type, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return

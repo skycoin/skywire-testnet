@@ -109,13 +109,13 @@ func (c *Link) SendChannelOpened(channelID byte, remoteID byte, noiseMsg []byte)
 }
 
 // SendCloseChannel sends CloseChannel request.
-func (c *Link) SendCloseChannel(channelID byte) (int, error) {
-	return c.writeFrame(FrameTypeCloseChannel, []byte{channelID})
+func (c *Link) SendCloseChannel(remoteID byte) (int, error) {
+	return c.writeFrame(FrameTypeCloseChannel, []byte{remoteID})
 }
 
 // SendChannelClosed sends ChannelClosed frame.
-func (c *Link) SendChannelClosed(channelID byte) (int, error) {
-	return c.writeFrame(FrameTypeChannelClosed, []byte{channelID})
+func (c *Link) SendChannelClosed(remoteID byte) (int, error) {
+	return c.writeFrame(FrameTypeChannelClosed, []byte{remoteID})
 }
 
 // Send sends data frame.

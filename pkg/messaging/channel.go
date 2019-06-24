@@ -99,6 +99,10 @@ func (mCh *msgChannel) ProcessMessage(msg []byte) error {
 }
 
 func (mCh *msgChannel) Read(p []byte) (n int, err error) {
+	return mCh.read(p)
+}
+
+func (mCh *msgChannel) read(p []byte) (n int, err error) {
 	if mCh.buf.Len() != 0 {
 		return mCh.buf.Read(p)
 	}
@@ -114,6 +118,10 @@ func (mCh *msgChannel) Read(p []byte) (n int, err error) {
 }
 
 func (mCh *msgChannel) Write(p []byte) (n int, err error) {
+	return mCh.write(p)
+}
+
+func (mCh *msgChannel) write(p []byte) (n int, err error) {
 	select {
 	case <-mCh.doneChan:
 		return 0, ErrChannelClosed

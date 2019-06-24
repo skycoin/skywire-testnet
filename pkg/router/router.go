@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/dmsg"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -157,7 +159,6 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 	if err == io.EOF {
 		return nil
 	}
-
 	return err
 }
 
@@ -421,7 +422,8 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], "messaging", false)
+	// TODO(evanlinjin): need string constant for tp type.
+	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], dmsg.Type, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("transport: %s", err)
 	}
@@ -430,15 +432,25 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 	return sProto, tr, nil
 }
 
-func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (routing.Route, routing.Route, error) {
+func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Route, rev routing.Route, err error) {
 	r.Logger.Infof("Requesting new routes from %s to %s", source, destination)
-	forwardRoutes, reverseRoutes, err := r.config.RouteFinder.PairedRoutes(source, destination, minHops, maxHops)
+
+	timer := time.NewTimer(time.Second * 10)
+	defer timer.Stop()
+
+fetchRoutesAgain:
+	fwdRoutes, revRoutes, err := r.config.RouteFinder.PairedRoutes(source, destination, minHops, maxHops)
 	if err != nil {
-		return nil, nil, err
+		select {
+		case <-timer.C:
+			return nil, nil, err
+		default:
+			goto fetchRoutesAgain
+		}
 	}
 
-	r.Logger.Infof("Found routes Forward: %s. Reverse %s", forwardRoutes, reverseRoutes)
-	return forwardRoutes[0], reverseRoutes[0], nil
+	r.Logger.Infof("Found routes Forward: %s. Reverse %s", fwdRoutes, revRoutes)
+	return fwdRoutes[0], revRoutes[0], nil
 }
 
 func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni *noise.Noise, noiseRes []byte, err error) {
