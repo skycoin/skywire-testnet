@@ -666,28 +666,29 @@ func TestServer_Serve(t *testing.T) {
 
 func testReconnect(t *testing.T, randomAddr bool) {
 	const smallDelay = 100 * time.Millisecond
+	ctx := context.TODO()
 
-	sPK, sSK := cipher.GenerateKeyPair()
+	serverPK, serverSK := cipher.GenerateKeyPair()
 	dc := client.NewMock()
 
 	l, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
-	s, err := NewServer(sPK, sSK, "", l, dc)
+	s, err := NewServer(serverPK, serverSK, "", l, dc)
 	require.NoError(t, err)
 
 	serverAddr := s.Addr()
 
 	go s.Serve() // nolint:errcheck
 
-	aPK, aSK := cipher.GenerateKeyPair()
-	bPK, bSK := cipher.GenerateKeyPair()
+	remotePK, remoteSK := cipher.GenerateKeyPair()
+	initiatorPK, initiatorSK := cipher.GenerateKeyPair()
 
 	assert.Equal(t, 0, s.connCount())
 
-	remote := NewClient(aPK, aSK, dc)
+	remote := NewClient(remotePK, remoteSK, dc)
 	remote.SetLogger(logging.MustGetLogger("remote"))
-	err = remote.InitiateServerConnections(context.Background(), 1)
+	err = remote.InitiateServerConnections(ctx, 1)
 	require.NoError(t, err)
 
 	require.NoError(t, testWithTimeout(smallDelay, func() error {
@@ -697,9 +698,9 @@ func testReconnect(t *testing.T, randomAddr bool) {
 		return nil
 	}))
 
-	initiator := NewClient(bPK, bSK, dc)
+	initiator := NewClient(initiatorPK, initiatorSK, dc)
 	initiator.SetLogger(logging.MustGetLogger("initiator"))
-	err = initiator.InitiateServerConnections(context.Background(), 1)
+	err = initiator.InitiateServerConnections(ctx, 1)
 	require.NoError(t, err)
 
 	require.NoError(t, testWithTimeout(smallDelay, func() error {
@@ -722,7 +723,7 @@ func testReconnect(t *testing.T, randomAddr bool) {
 	l, err = net.Listen("tcp", serverAddr)
 	require.NoError(t, err)
 
-	s, err = NewServer(sPK, sSK, addr, l, dc)
+	s, err = NewServer(serverPK, serverSK, addr, l, dc)
 	require.NoError(t, err)
 
 	go s.Serve() // nolint:errcheck
