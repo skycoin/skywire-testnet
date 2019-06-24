@@ -39,10 +39,8 @@ func TestClient(t *testing.T) {
 		conn1 := NewClientConn(logger, p1, pk1, pk2)
 		conn2 := NewClientConn(logger, p2, pk2, pk1)
 
-		conn2.setNextInitID(randID(false))
-
-		ch1 := make(chan *Transport, acceptChSize)
-		ch2 := make(chan *Transport, acceptChSize)
+		ch1 := make(chan *Transport, AcceptBufferSize)
+		ch2 := make(chan *Transport, AcceptBufferSize)
 
 		ctx := context.TODO()
 
@@ -110,10 +108,10 @@ func TestClient(t *testing.T) {
 		conn2.setNextInitID(randID(false))
 		conn4.setNextInitID(randID(false))
 
-		ch1 := make(chan *Transport, acceptChSize)
-		ch2 := make(chan *Transport, acceptChSize)
-		ch3 := make(chan *Transport, acceptChSize)
-		ch4 := make(chan *Transport, acceptChSize)
+		ch1 := make(chan *Transport, AcceptBufferSize)
+		ch2 := make(chan *Transport, AcceptBufferSize)
+		ch3 := make(chan *Transport, AcceptBufferSize)
+		ch4 := make(chan *Transport, AcceptBufferSize)
 
 		ctx := context.TODO()
 
@@ -277,10 +275,12 @@ func isReadChannelOpen(ch chan Frame) bool {
 	}
 }
 
+// used so that we can get two 'ClientConn's directly communicating with one another.
 type invertedIDConn struct {
 	net.Conn
 }
 
+// Write ensures odd IDs turn even, and even IDs turn odd on write.
 func (c invertedIDConn) Write(b []byte) (n int, err error) {
 	frame := Frame(b)
 	newFrame := MakeFrame(frame.Type(), frame.TpID()^1, frame.Pay())

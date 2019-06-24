@@ -17,12 +17,18 @@ const (
 	// Type returns the transport type string.
 	Type = "dmsg"
 
-	hsTimeout     = time.Second * 10
 	tpBufCap      = math.MaxUint16
 	tpBufFrameCap = math.MaxUint8
 	tpAckCap      = math.MaxUint8
-	acceptChSize  = 20
 	headerLen     = 5 // fType(1 byte), chID(2 byte), payLen(2 byte)
+)
+
+var (
+	// TransportHandshakeTimeout defines the duration a transport handshake should take.
+	TransportHandshakeTimeout = time.Second * 10
+
+	// AcceptBufferSize defines the size of the accepts buffer.
+	AcceptBufferSize = 20
 )
 
 func isInitiatorID(tpID uint16) bool { return tpID%2 == 0 }
@@ -52,6 +58,7 @@ func (ft FrameType) String() string {
 		CloseType:   "CLOSE",
 		FwdType:     "FWD",
 		AckType:     "ACK",
+		OkType:      "OK",
 	}
 	if int(ft) >= len(names) {
 		return fmt.Sprintf("UNKNOWN:%d", ft)
@@ -61,6 +68,7 @@ func (ft FrameType) String() string {
 
 // Frame types.
 const (
+	OkType      = FrameType(0x0)
 	RequestType = FrameType(0x1)
 	AcceptType  = FrameType(0x2)
 	CloseType   = FrameType(0x3)

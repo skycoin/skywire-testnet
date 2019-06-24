@@ -128,21 +128,20 @@ func (tp *Transport) Type() string {
 	return Type
 }
 
-// Inject injects a frame from 'ClientConn' to transport.
-// Frame is then handled by 'tp.Serve'.
-func (tp *Transport) Inject(f Frame) error {
-	if tp.IsClosed() {
-		return io.ErrClosedPipe
-	}
-
+// HandleFrame allows 'tp.Serve' to handle the frame (typically from 'ClientConn').
+func (tp *Transport) HandleFrame(f Frame) error {
 	tp.inMx.RLock()
 	defer tp.inMx.RUnlock()
 
+handleFrame:
 	select {
-	case <-tp.done:
-		return io.ErrClosedPipe
 	case tp.inCh <- f:
 		return nil
+	default:
+		if tp.IsClosed() {
+			return io.ErrClosedPipe
+		}
+		goto handleFrame
 	}
 }
 
@@ -278,7 +277,6 @@ func (tp *Transport) Serve() {
 
 				// notify of new data via 'bufCh'
 				select {
-				case <-tp.done:
 				case tp.bufCh <- struct{}{}:
 				default:
 				}

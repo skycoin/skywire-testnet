@@ -106,9 +106,9 @@ func TestFrameType_String(t *testing.T) {
 			want: "ACK",
 		},
 		{
-			name: "Empty type",
-			ft:   0,
-			want: "",
+			name: "Ok type",
+			ft:   OkType,
+			want: "OK",
 		},
 		{
 			name: "Unknown type",
