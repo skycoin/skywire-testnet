@@ -801,8 +801,7 @@ func testReconnect(t *testing.T, randomAddr bool) {
 
 	assert.Equal(t, 0, s.connCount())
 
-	remote := NewClient(remotePK, remoteSK, dc)
-	remote.SetLogger(logging.MustGetLogger("remote"))
+	remote := NewClient(remotePK, remoteSK, dc, SetLogger(logging.MustGetLogger("remote")))
 	err = remote.InitiateServerConnections(ctx, 1)
 	require.NoError(t, err)
 
@@ -813,12 +812,14 @@ func testReconnect(t *testing.T, randomAddr bool) {
 		return nil
 	}))
 
-	initiator := NewClient(initiatorPK, initiatorSK, dc)
-	initiator.SetLogger(logging.MustGetLogger("initiator"))
+	initiator := NewClient(initiatorPK, initiatorSK, dc, SetLogger(logging.MustGetLogger("initiator")))
 	err = initiator.InitiateServerConnections(ctx, 1)
 	require.NoError(t, err)
 
 	initiatorTransport, err := initiator.Dial(ctx, remotePK)
+	require.NoError(t, err)
+
+	remoteTransport, err := remote.Accept(context.Background())
 	require.NoError(t, err)
 
 	require.NoError(t, testWithTimeout(smallDelay, func() error {
@@ -834,6 +835,10 @@ func testReconnect(t *testing.T, randomAddr bool) {
 	initTr := initiatorTransport.(*Transport)
 	assert.False(t, isDoneChannelOpen(initTr.done))
 	assert.False(t, isReadChannelOpen(initTr.inCh))
+
+	remoteTr := remoteTransport.(*Transport)
+	assert.False(t, isDoneChannelOpen(remoteTr.done))
+	assert.False(t, isReadChannelOpen(remoteTr.inCh))
 
 	assert.Equal(t, 0, s.connCount())
 
@@ -857,20 +862,15 @@ func testReconnect(t *testing.T, randomAddr bool) {
 		return nil
 	}))
 
-	remoteDone := make(chan struct{})
-	var remoteErr error
-	go func() {
-		_, remoteErr = remote.Accept(ctx)
-		close(remoteDone)
-	}()
-
 	require.NoError(t, testWithTimeout(smallDelay, func() error {
 		_, err = initiator.Dial(ctx, remotePK)
+		if err != nil {
+			return err
+		}
+
+		_, err = remote.Accept(context.Background())
 		return err
 	}))
-
-	<-remoteDone
-	require.NoError(t, remoteErr)
 
 	err = s.Close()
 	assert.NoError(t, err)
