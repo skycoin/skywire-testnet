@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	var passcode = flag.String("passcode", "", "Authorise user against this passcode")
+	var passcode = flag.String("passcode", "", "Authorize user against this passcode")
 	flag.Parse()
 
 	config := &app.Config{AppName: "socksproxy", AppVersion: "1.0", ProtocolVersion: "0.0.1"}
