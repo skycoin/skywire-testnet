@@ -5,6 +5,7 @@
 *.dylib
 *.test
 *.out
+.DS_Store
 
 .idea/
 
@@ -18,13 +19,11 @@ pkg/node/apps/
 pkg/node/bar/
 pkg/node/foo/
 
-/*-node
-/skywire-cli
-/therealssh-cli
 /node
 /users.db
 /*-node
 /*-cli
+/*-server
 /*.json
 /*.sh
 /*.log

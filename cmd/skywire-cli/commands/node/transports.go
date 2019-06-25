@@ -7,6 +7,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/dmsg"
+
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
@@ -77,7 +79,7 @@ var (
 )
 
 func init() {
-	addTpCmd.Flags().StringVar(&transportType, "type", "messaging", "type of transport to add")
+	addTpCmd.Flags().StringVar(&transportType, "type", dmsg.Type, "type of transport to add")
 	addTpCmd.Flags().BoolVar(&public, "public", true, "whether to make the transport public")
 	addTpCmd.Flags().DurationVarP(&timeout, "timeout", "t", 0, "if specified, sets an operation timeout")
 }
