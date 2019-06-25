@@ -6,6 +6,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
@@ -49,4 +51,36 @@ type Factory interface {
 
 	// Type returns the Transport type.
 	Type() string
+}
+
+// MakeTransportID generates uuid.UUID from pair of keys + type + public
+// Generated uuid is:
+// - always the same for a given pair
+// - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
+func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
+	keys := SortPubKeys(keyA, keyB)
+	if public {
+		return uuid.NewSHA1(uuid.UUID{},
+			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
+	}
+	return uuid.NewSHA1(uuid.UUID{},
+		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
+}
+
+// SortPubKeys sorts keys so that least-significant comes first
+func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
+	for i := 0; i < 33; i++ {
+		if keyA[i] != keyB[i] {
+			if keyA[i] < keyB[i] {
+				return [2]cipher.PubKey{keyA, keyB}
+			}
+			return [2]cipher.PubKey{keyB, keyA}
+		}
+	}
+	return [2]cipher.PubKey{keyA, keyB}
+}
+
+// SortEdges sorts edges so that list-significant comes firs
+func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
+	return SortPubKeys(edges[0], edges[1])
 }

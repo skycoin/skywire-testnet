@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"io"
 	"math/big"
 	"strings"
 	"sync"
@@ -201,38 +202,6 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
-// MakeTransportID generates uuid.UUID from pair of keys + type + public
-// Generated uuid is:
-// - always the same for a given pair
-// - MakeTransportUUID(keyA,keyB) == MakeTransportUUID(keyB, keyA)
-func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
-	keys := SortPubKeys(keyA, keyB)
-	if public {
-		return uuid.NewSHA1(uuid.UUID{},
-			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
-	}
-	return uuid.NewSHA1(uuid.UUID{},
-		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
-}
-
-// SortPubKeys sorts keys so that least-significant comes first
-func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
-	for i := 0; i < 33; i++ {
-		if keyA[i] != keyB[i] {
-			if keyA[i] < keyB[i] {
-				return [2]cipher.PubKey{keyA, keyB}
-			}
-			return [2]cipher.PubKey{keyB, keyA}
-		}
-	}
-	return [2]cipher.PubKey{keyA, keyB}
-}
-
-// SortEdges sorts edges so that list-significant comes firs
-func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
-	return SortPubKeys(edges[0], edges[1])
-}
-
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
 	return tm.createTransport(ctx, remote, tpType, public)
@@ -241,21 +210,17 @@ func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tp
 // DeleteTransport disconnects and removes the Transport of Transport ID.
 func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 	tm.mu.Lock()
-	tr := tm.transports[id]
-	delete(tm.transports, id)
+	if tr, ok := tm.transports[id]; ok {
+		delete(tm.transports, id)
+		_ = tr.Close() //nolint:errcheck
+	}
 	tm.mu.Unlock()
-
-	tr.Close()
 
 	if _, err := tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: id, IsUp: false}); err != nil {
 		tm.Logger.Warnf("Failed to change transport status: %s", err)
 	}
 
 	tm.Logger.Infof("Unregistered transport %s", id)
-	if tr != nil {
-		return tr.Close()
-	}
-
 	return nil
 }
 
@@ -330,11 +295,13 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
-	tm.TrChan <- mTr
-
-	go tm.manageTransport(ctx, mTr, factory, remote, public, false)
-
-	return mTr, nil
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.TrChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, remote, public, false)
+		return mTr, nil
+	}
 }
 
 func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*ManagedTransport, error) {
@@ -347,8 +314,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
-	var handshake settlementHandshake = settlementResponderHandshake
-	entry, err := handshake.Do(tm, tr, 30*time.Second)
+	entry, err := settlementResponderHandshake().Do(tm, tr, 30*time.Second)
 	if err != nil {
 		tr.Close()
 		return nil, err
@@ -371,30 +337,29 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
-	tm.TrChan <- mTr
-
-	go tm.manageTransport(ctx, mTr, factory, remote, true, true)
-
-	return mTr, nil
-}
-
-func (tm *Manager) walkEntries(walkFunc func(*Entry) bool) *Entry {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
-	for entry := range tm.entries {
-		if walkFunc(&entry) {
-			return &entry
-		}
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.TrChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, remote, true, true)
+		return mTr, nil
 	}
-
-	return nil
 }
 
 func (tm *Manager) addEntry(entry *Entry) {
 	tm.mu.Lock()
 	tm.entries[*entry] = struct{}{}
 	tm.mu.Unlock()
+}
+
+func (tm *Manager) addIfNotExist(entry *Entry) (isNew bool) {
+	tm.mu.Lock()
+	if _, ok := tm.entries[*entry]; !ok {
+		tm.entries[*entry] = struct{}{}
+		isNew = true
+	}
+	tm.mu.Unlock()
+	return isNew
 }
 
 func (tm *Manager) isClosing() bool {

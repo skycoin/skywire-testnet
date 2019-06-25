@@ -78,7 +78,7 @@ test: ## Run tests
 
 
 install-linters: ## Install linters
-	- VERSION=1.13.2 ./ci_scripts/install-golangci-lint.sh 
+	- VERSION=1.17.1 ./ci_scripts/install-golangci-lint.sh 
 	# GO111MODULE=off go get -u github.com/FiloSottile/vendorcheck
 	# For some reason this install method is not recommended, see https://github.com/golangci/golangci-lint#install
 	# However, they suggest `curl ... | bash` which we should not do
@@ -109,6 +109,7 @@ bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `SSH-cli`
 	${OPTS} go build ${BUILD_OPTS} -o ./setup-node ./cmd/setup-node
 	${OPTS} go build ${BUILD_OPTS} -o ./manager-node ./cmd/manager-node 
 	${OPTS} go build ${BUILD_OPTS} -o ./SSH-cli ./cmd/therealssh-cli
+
 
 release: ## Build skywire-node`, skywire-cli, manager-node, SSH-cli and apps without -race flag
 	${OPTS} go build -o ./skywire-node ./cmd/skywire-node 

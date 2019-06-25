@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/skycoin/skywire/pkg/cipher"
@@ -27,128 +28,100 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 	}
 }
 
-func settlementInitiatorHandshake(public bool) settlementHandshake {
-	return func(tm *Manager, tr Transport) (*Entry, error) {
-		tm.Logger.Info("Entering settlementInitiatorHandshake")
-		entry := &Entry{
-			ID:       MakeTransportID(tr.Edges()[0], tr.Edges()[1], tr.Type(), public),
-			EdgeKeys: tr.Edges(),
-			Type:     tr.Type(),
-			Public:   public,
-		}
-
-		remote, ok := tm.Remote(tr.Edges())
-		if !ok {
-			return nil, errors.New("configured PubKey not found in edges")
-		}
-
-		tm.Logger.Infof("settlementInitiatorHandshake: NewSignedEntry with %v", remote)
-		sEntry, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
-		if !ok {
-			return nil, errors.New("error creating signed entry")
-		}
-		tm.Logger.Info("settlementInitiatorHandshake: validateSignedEntry")
-		if err := validateSignedEntry(sEntry, tr, tm.config.PubKey); err != nil {
-			return nil, fmt.Errorf("settlementInitiatorHandshake NewSignedEntry: %s\n sEntry: %v", err, sEntry)
-		}
-		tm.Logger.Info("settlementInitiatorHandshake: json.NewEncoder.Encode")
-		if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
-			return nil, fmt.Errorf("write: %s", err)
-		}
-
-		tm.Logger.Info("settlementInitiatorHandshake: json.NewDecoder")
-		respSEntry := &SignedEntry{}
-		if err := json.NewDecoder(tr).Decode(respSEntry); err != nil {
-			return nil, fmt.Errorf("read: %s", err)
-		}
-
-		//  Verifying remote signature
-
-		tm.Logger.Info("settlementInitiatorHandshake: verifySig")
-		if err := verifySig(respSEntry, remote); err != nil {
-			return nil, err
-		}
-		tm.Logger.Info("settlementInitiatorHandshake: tm.walkEntries")
-		newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *respSEntry.Entry }) == nil
-		if newEntry {
-			tm.addEntry(entry)
-		}
-		tm.Logger.Info("Exiting settlementInitiatorHandshake")
-		return respSEntry.Entry, nil
+func makeEntry(tp Transport, public bool) *Entry {
+	return &Entry{
+		ID:       MakeTransportID(tp.Edges()[0], tp.Edges()[1], tp.Type(), public),
+		EdgeKeys: tp.Edges(),
+		Type:     tp.Type(),
+		Public:   public,
 	}
 }
 
-func settlementResponderHandshake(tm *Manager, tr Transport) (*Entry, error) {
-	tm.Logger.Info("Entering settlementResponderHandshake")
-	sEntry := &SignedEntry{}
-	if err := json.NewDecoder(tr).Decode(sEntry); err != nil {
-		return nil, fmt.Errorf("read: %s", err)
+func compareEntries(expected, received *Entry, checkPublic bool) error {
+	if !checkPublic {
+		expected.Public = received.Public
+		expected.ID = MakeTransportID(expected.EdgeKeys[0], expected.EdgeKeys[1], expected.Type, expected.Public)
 	}
-
-	remote, ok := tm.Remote(tr.Edges())
-	if !ok {
-		return nil, errors.New("configured PubKey not found in edges")
+	if expected.ID != received.ID {
+		return errors.New("received entry's 'tp_id' is not of expected")
 	}
+	if expected.EdgeKeys != received.EdgeKeys {
+		return errors.New("received entry's 'edges' is not of expected")
+	}
+	if expected.Type != received.Type {
+		return errors.New("received entry's 'type' is not of expected")
+	}
+	if expected.Public != received.Public {
+		return errors.New("received entry's 'public' is not of expected")
+	}
+	return nil
+}
 
-	if err := validateSignedEntry(sEntry, tr, remote); err != nil {
+func receiveAndVerifyEntry(r io.Reader, expected *Entry, remotePK cipher.PubKey, checkPublic bool) (*SignedEntry, error) {
+	var recvSE SignedEntry
+	if err := json.NewDecoder(r).Decode(&recvSE); err != nil {
+		return nil, fmt.Errorf("failed to read entry: %s", err)
+	}
+	if err := compareEntries(expected, recvSE.Entry, checkPublic); err != nil {
 		return nil, err
 	}
-
-	if ok := sEntry.Sign(tm.Local(), tm.config.SecKey); !ok {
-		return nil, errors.New("invalid pubkey for signing entry")
-	}
-
-	newEntry := tm.walkEntries(func(e *Entry) bool { return *e == *sEntry.Entry }) == nil
-
-	tm.Logger.Info("Entering settlementResponderHandshake: DiscoveryClient.UpdateStatuses/RegisterTransports")
-	var err error
-	if sEntry.Entry.Public {
-		if !newEntry {
-			_, err = tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: sEntry.Entry.ID, IsUp: true})
-		} else {
-			err = tm.config.DiscoveryClient.RegisterTransports(context.Background(), sEntry)
-		}
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("entry set: %s", err)
-	}
-
-	tm.Logger.Info("Entering settlementResponderHandshake: json.NewEncoder(tr).Encode")
-	if err := json.NewEncoder(tr).Encode(sEntry); err != nil {
-		return nil, fmt.Errorf("write: %s", err)
-	}
-
-	if newEntry {
-		tm.addEntry(sEntry.Entry)
-	}
-	tm.Logger.Info("Exiting settlementResponderHandshake")
-	return sEntry.Entry, nil
-}
-
-func validateSignedEntry(sEntry *SignedEntry, tr Transport, pk cipher.PubKey) error {
-	entry := sEntry.Entry
-	if entry.Type != tr.Type() {
-		return errors.New("invalid entry type")
-	}
-
-	if entry.Edges() != tr.Edges() {
-		return errors.New("invalid entry edges")
-	}
-
-	// Weak check here
-	if sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null() {
-		return errors.New("invalid entry signature")
-	}
-
-	return verifySig(sEntry, pk)
-}
-
-func verifySig(sEntry *SignedEntry, pk cipher.PubKey) error {
-	sig, ok := sEntry.Signature(pk)
+	sig, ok := recvSE.Signature(remotePK)
 	if !ok {
-		return errors.New("invalid pubkey for retrieving signature")
+		return nil, errors.New("invalid remote signature")
 	}
+	if err := cipher.VerifyPubKeySignedPayload(remotePK, sig, recvSE.Entry.ToBinary()); err != nil {
+		return nil, err
+	}
+	return &recvSE, nil
+}
 
-	return cipher.VerifyPubKeySignedPayload(pk, sig, sEntry.Entry.ToBinary())
+func settlementInitiatorHandshake(public bool) settlementHandshake {
+	return func(tm *Manager, tp Transport) (*Entry, error) {
+		entry := makeEntry(tp, public)
+		se, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
+		if !ok {
+			return nil, errors.New("failed to sign entry")
+		}
+		if err := json.NewEncoder(tp).Encode(se); err != nil {
+			return nil, fmt.Errorf("failed to write entry: %v", err)
+		}
+		remotePK, ok := tm.Remote(tp.Edges())
+		if !ok {
+			return nil, errors.New("invalid public key")
+		}
+		if _, err := receiveAndVerifyEntry(tp, entry, remotePK, true); err != nil {
+			return nil, err
+		}
+		tm.addEntry(entry)
+		return entry, nil
+	}
+}
+
+func settlementResponderHandshake() settlementHandshake {
+	return func(tm *Manager, tr Transport) (*Entry, error) {
+		expectedEntry := makeEntry(tr, false)
+		remotePK, ok := tm.Remote(tr.Edges())
+		if !ok {
+			return nil, errors.New("invalid public key")
+		}
+		recvSignedEntry, err := receiveAndVerifyEntry(tr, expectedEntry, remotePK, false)
+		if err != nil {
+			return nil, err
+		}
+		if ok := recvSignedEntry.Sign(tm.Local(), tm.config.SecKey); !ok {
+			return nil, errors.New("failed to sign received entry")
+		}
+		if isNew := tm.addIfNotExist(expectedEntry); !isNew {
+			_, err = tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: recvSignedEntry.Entry.ID, IsUp: true})
+		} else {
+			err = tm.config.DiscoveryClient.RegisterTransports(context.Background(), recvSignedEntry)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if err := json.NewEncoder(tr).Encode(recvSignedEntry); err != nil {
+			return nil, fmt.Errorf("failed to write entry: %s", err)
+		}
+		return expectedEntry, nil
+	}
 }
