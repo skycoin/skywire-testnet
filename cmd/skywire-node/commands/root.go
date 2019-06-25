@@ -65,7 +65,7 @@ var rootCmd = &cobra.Command{
 
 		node, err := node.NewNode(conf)
 		if err != nil {
-			logger.Fatal("Failed to initialise node: ", err)
+			logger.Fatal("Failed to initialize node: ", err)
 		}
 
 		go func() {

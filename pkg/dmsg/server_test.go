@@ -9,22 +9,36 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/skycoin/skywire/internal/noise"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skycoin/src/util/logging"
-
+	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport"
 )
+
+func TestMain(m *testing.M) {
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logging.SetLevel(lvl)
+	} else {
+		logging.Disable()
+	}
+
+	os.Exit(m.Run())
+}
 
 // TestServerConn_AddNext ensures that `nextConns` for the remote client is being filled correctly.
 func TestServerConn_AddNext(t *testing.T) {
@@ -885,7 +899,7 @@ func TestNewClient(t *testing.T) {
 	aPK, aSK := cipher.GenerateKeyPair()
 	bPK, bSK := cipher.GenerateKeyPair()
 	sPK, sSK := cipher.GenerateKeyPair()
-	sAddr := ":8081"
+	sAddr := "127.0.0.1:8081"
 
 	const tpCount = 10
 	const msgCount = 100
