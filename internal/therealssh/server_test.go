@@ -29,7 +29,7 @@ func TestServerOpenChannel(t *testing.T) {
 	require.NoError(t, <-errCh)
 	assert.Equal(t, byte(CmdChannelOpenResponse), buf[0])
 	assert.Equal(t, byte(ResponseFail), buf[5])
-	assert.Equal(t, []byte("unauthorised"), buf[6:])
+	assert.Equal(t, []byte("unauthorized"), buf[6:])
 
 	go func() {
 		errCh <- s.OpenChannel(&app.Addr{PubKey: pk, Port: Port}, 4, in)
@@ -67,7 +67,7 @@ func TestServerHandleRequest(t *testing.T) {
 	require.NoError(t, <-errCh)
 	assert.Equal(t, byte(CmdChannelResponse), buf[0])
 	assert.Equal(t, byte(ResponseFail), buf[5])
-	assert.Equal(t, []byte("unauthorised"), buf[6:])
+	assert.Equal(t, []byte("unauthorized"), buf[6:])
 
 	dataCh := make(chan []byte)
 	go func() {
@@ -91,7 +91,7 @@ func TestServerHandleData(t *testing.T) {
 
 	err = s.HandleData(cipher.PubKey{}, 0, []byte("foo"))
 	require.Error(t, err)
-	assert.Equal(t, "unauthorised", err.Error())
+	assert.Equal(t, "unauthorized", err.Error())
 
 	err = s.HandleData(pk, 0, []byte("foo"))
 	require.Error(t, err)
