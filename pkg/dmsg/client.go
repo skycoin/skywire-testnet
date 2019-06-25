@@ -463,6 +463,7 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 		conn.log.WithError(err).WithField("remoteServer", srvPK).Warn("connected with server closed")
 		c.delConn(ctx, srvPK)
 
+		// server disconnected, close transports
 		conn.mx.Lock()
 		for _, tp := range conn.tps {
 			if tp != nil {
