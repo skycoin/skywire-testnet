@@ -884,7 +884,7 @@ func TestNewClient(t *testing.T) {
 	aPK, aSK := cipher.GenerateKeyPair()
 	bPK, bSK := cipher.GenerateKeyPair()
 	sPK, sSK := cipher.GenerateKeyPair()
-	sAddr := ":8081"
+	sAddr := "127.0.0.1:8081"
 
 	const tpCount = 10
 	const msgCount = 100
