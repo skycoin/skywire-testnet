@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net"
 	"os"
 	"testing"
@@ -26,8 +27,17 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	lvl, _ := logging.LevelFromString("error") // nolint: errcheck
-	logging.SetLevel(lvl)
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logging.SetLevel(lvl)
+	} else {
+		logging.Disable()
+	}
+
 	os.Exit(m.Run())
 }
 

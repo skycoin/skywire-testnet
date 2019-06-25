@@ -2,7 +2,9 @@ package dmsg
 
 import (
 	"context"
+	"log"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -19,6 +21,21 @@ const (
 type transportWithError struct {
 	tr  *Transport
 	err error
+}
+
+func TestMain(m *testing.M) {
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logging.SetLevel(lvl)
+	} else {
+		logging.Disable()
+	}
+
+	os.Exit(m.Run())
 }
 
 func TestClient(t *testing.T) {

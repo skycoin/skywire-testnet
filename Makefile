@@ -12,6 +12,8 @@ DOCKER_IMAGE?=skywire-runner # docker image to use for running skywire-node.`gol
 DOCKER_NETWORK?=SKYNET 
 DOCKER_NODE?=SKY01
 DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker container
+TEST_OPTS?=-race -tags no_ci -cover -timeout=5m
+BUILD_OPTS?=-race
 
 check: lint test ## Run linters and tests
 
@@ -59,20 +61,19 @@ vendorcheck:  ## Run vendorcheck
 
 test: ## Run tests
 	-go clean -testcache &>/dev/null
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./internal/...
+	${OPTS} go test ${TEST_OPTS} ./internal/...
 	#${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/app/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/cipher/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/dmsg/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/manager/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/messaging-discovery/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/node/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/route-finder/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/router/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/routing/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/setup/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/transport/...
-	${OPTS} go test -race -tags no_ci -cover -timeout=5m ./pkg/transport-discovery/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/app/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/cipher/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/manager/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/messaging-discovery/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/node/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/route-finder/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/router/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/routing/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/setup/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/transport/...
+	${OPTS} go test ${TEST_OPTS} ./pkg/transport-discovery/...
 	${OPTS} go test  -tags no_ci -cover -timeout=5m ./pkg/messaging/...
 
 
@@ -94,21 +95,20 @@ dep: ## Sorts dependencies
 
 # Apps 
 host-apps: ## Build app 
-	${OPTS} go build -race -o ./apps/skychat.v1.0 ./cmd/apps/skychat	
-	${OPTS} go build -race -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
-	${OPTS} go build -race -o ./apps/socksproxy.v1.0 ./cmd/apps/therealproxy
-	${OPTS} go build -race -o ./apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	${OPTS} go build -race -o ./apps/SSH.v1.0  ./cmd/apps/therealssh
-	${OPTS} go build -race -o ./apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
+	${OPTS} go build ${BUILD_OPTS} -o ./apps/skychat.v1.0 ./cmd/apps/skychat	
+	${OPTS} go build ${BUILD_OPTS} -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
+	${OPTS} go build ${BUILD_OPTS} -o ./apps/socksproxy.v1.0 ./cmd/apps/therealproxy
+	${OPTS} go build ${BUILD_OPTS} -o ./apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	${OPTS} go build ${BUILD_OPTS} -o ./apps/SSH.v1.0  ./cmd/apps/therealssh
+	${OPTS} go build ${BUILD_OPTS} -o ./apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
 
 # Bin 
 bin: ## Build `skywire-node`, `skywire-cli`, `manager-node`, `SSH-cli`
-	${OPTS} go build -race -o ./skywire-node ./cmd/skywire-node 
-	${OPTS} go build -race -o ./skywire-cli  ./cmd/skywire-cli 
-	${OPTS} go build -race -o ./setup-node ./cmd/setup-node
-	${OPTS} go build -race -o ./messaging-server ./cmd/messaging-server
-	${OPTS} go build -race -o ./manager-node ./cmd/manager-node 
-	${OPTS} go build -race -o ./SSH-cli ./cmd/therealssh-cli
+	${OPTS} go build ${BUILD_OPTS} -o ./skywire-node ./cmd/skywire-node 
+	${OPTS} go build ${BUILD_OPTS} -o ./skywire-cli  ./cmd/skywire-cli 
+	${OPTS} go build ${BUILD_OPTS} -o ./setup-node ./cmd/setup-node
+	${OPTS} go build ${BUILD_OPTS} -o ./manager-node ./cmd/manager-node 
+	${OPTS} go build ${BUILD_OPTS} -o ./SSH-cli ./cmd/therealssh-cli
 
 
 release: ## Build skywire-node`, skywire-cli, manager-node, SSH-cli and apps without -race flag
@@ -123,8 +123,6 @@ release: ## Build skywire-node`, skywire-cli, manager-node, SSH-cli and apps wit
 	${OPTS} go build -o ./apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
 	${OPTS} go build -o ./apps/SSH.v1.0  ./cmd/apps/therealssh
 	${OPTS} go build -o ./apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
-
-
 
 # Dockerized skywire-node
 docker-image: ## Build docker image `skywire-runner`
@@ -172,6 +170,12 @@ docker-rerun: docker-stop
 	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
 	${DOCKER_OPTS} go build -race -o ./node/skywire-node ./cmd/skywire-node 
 	docker container start -i ${DOCKER_NODE}
+
+run-syslog: ## Run syslog-ng in docker. Logs are mounted under /tmp/syslog
+	-rm -rf /tmp/syslog
+	-mkdir -p /tmp/syslog
+	-docker container rm syslog-ng -f
+	docker run -d -p 514:514/udp  -v /tmp/syslog:/var/log  --name syslog-ng balabit/syslog-ng:latest 
 
 
 integration-startup: ## Starts up the required transports between 'skywire-node's of interactive testing environment

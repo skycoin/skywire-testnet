@@ -5,19 +5,38 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/skycoin/skywire/internal/httpauth"
 	"github.com/skycoin/skywire/pkg/transport"
 )
+
+func TestMain(m *testing.M) {
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logging.SetLevel(lvl)
+	} else {
+		logging.Disable()
+	}
+
+	os.Exit(m.Run())
+}
 
 var testPubKey, testSecKey = cipher.GenerateKeyPair()
 
