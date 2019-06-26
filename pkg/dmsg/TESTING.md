@@ -34,7 +34,7 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 **`reconnect_to_server_should_succeed`**
 
 - Given:
-  - clientA and clientB is connected to a server.
+  - clientA and clientB are connected to a server.
 - When:
   - The server restarts.
 - Then:
@@ -43,11 +43,36 @@ Note that even though `messaging-discovery` is also considered to be an entity o
 
 **`server_disconnect_should_close_transports`**
 
-- TODO
+- Given:
+  - clientA and clientB are connected to a server
+  - clientB dials clientA
+  - clientA accepts connection
+  - Transports are being created
+  - Some read/write operations are performed on transports
+  - Server disconnects
+- Then:
+  - Transports should be closed
+  
+**`server_disconnect_should_close_transports_while_communication_is_going_on`**
+
+- Given:
+  - clientA and clientB are connected to a server
+  - clientB dials clientA
+  - clientA accepts connection
+  - Transports are being created
+  - Read/write operations are being performed
+  - Server disconnects
+- Then:
+  - Transports should be closed
 
 **`self_dial_should_work`**
 
-- TODO
+- Given:
+  - clientA is connected to a server
+  - clientA dials himself
+- Then:
+  - clientA accept connections, transports are being created successfully
+  - clientA is able to write/read to/from transports without errors
 
 ### Fuzz testing
 
@@ -70,3 +95,21 @@ Notes:
 2. We may need to log the "events" that happen to calculate the expected state of the system
 and run the check every x "events".
 
+
+For this test we must have a set up system consisting of X number of servers, Y number of clients, Z number of transports and a single discovery.
+Also we need some kind of control panel from which we will run events. Events maybe picked as following:
+  - each event has it's own probability
+  - first, we pick a random number of events to be executed
+  - second, we pick a corresponding number of events, each of them picked randomly
+  - third, based on the probability of each event we calculate whether it will be executed or not
+  - finally, we execute all the winner-events in goroutines
+  
+Before running each of the picked events we may need to take a snapshot of the whole system to check consistency
+
+Event type may be an struct containing function with some signature. Also this struct should have probability of the event, maybe the type of the event. 
+
+Running event should result in a snapshot of system's previous state. Snapshot should allow to simulate the event and return a new state. So this way we:
+  - run a series of N events, get a series of N snapshots
+  - for snapshots 0...N we pick (I)th snapshot and simulate an event on it which results in a new state. This new state may then be compared to the (I+1)th snapshot for consistency.
+  
+Snapshot should be able to dump the state in some form comfortable to examine in case something is wrong
