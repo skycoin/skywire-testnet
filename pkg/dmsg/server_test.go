@@ -720,7 +720,7 @@ func TestServer_Serve(t *testing.T) {
 
 		// block on `Write`
 		go func() {
-			_, err = aWrTransport.Write(msg)
+			_, err := aWrTransport.Write(msg)
 			require.Error(t, err)
 		}()
 
