@@ -719,9 +719,11 @@ func TestServer_Serve(t *testing.T) {
 		}
 
 		// block on `Write`
+		var blockedWriteErr error
+		blockedWriteDone := make(chan struct{})
 		go func() {
-			_, err = aWrTransport.Write(msg)
-			require.Error(t, err)
+			_, blockedWriteErr = aWrTransport.Write(msg)
+			close(blockedWriteDone)
 		}()
 
 		// wait till it's definitely blocked
@@ -748,6 +750,9 @@ func TestServer_Serve(t *testing.T) {
 
 		err = aWrTransport.Close()
 		require.NoError(t, err)
+
+		<-blockedWriteDone
+		require.Error(t, blockedWriteErr)
 
 		err = bWrTransport.Close()
 		require.NoError(t, err)
