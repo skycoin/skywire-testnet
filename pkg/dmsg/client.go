@@ -183,13 +183,10 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 	log := c.log.WithField("remoteServer", c.remoteSrv)
 	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 	defer func() {
+		c.close(true)
 		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ConnectionClosed")
 		c.wg.Done()
 	}()
-
-	closeConn := func(log *logrus.Entry) {
-		log.WithError(c.Close()).Warn("ClosingConnection")
-	}
 
 	for {
 		f, err := readFrame(c.Conn)
@@ -224,7 +221,8 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 				if err != nil {
 					log.WithField("remoteClient", initPK).WithError(err).Infoln("Rejected [REQUEST]")
 					if isWriteError(err) || err == ErrClientClosed {
-						closeConn(log)
+						err := c.Close()
+						log.WithError(err).Warn("ClosingConnection")
 					}
 					return
 				}
@@ -258,21 +256,37 @@ func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) 
 	return tp, nil
 }
 
-// Close closes the connection to dms_server.
-func (c *ClientConn) Close() error {
+// If 'isSrvDisconnect' is set, we don't need to send CLOSE frames or close the underlying TCP connection.
+func (c *ClientConn) close(isSrvDisconnect bool) (closed bool) {
 	c.once.Do(func() {
+		closed = true
 		c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
 		close(c.done)
 		c.mx.Lock()
-		for _, tp := range c.tps {
-			if tp != nil {
-				go tp.Close() //nolint:errcheck
+		if isSrvDisconnect {
+			for _, tp := range c.tps {
+				if tp != nil {
+					go tp.close()
+				}
 			}
+		} else {
+			for _, tp := range c.tps {
+				if tp != nil {
+					go tp.Close() //nolint:errcheck
+				}
+			}
+			_ = c.Conn.Close() //nolint:errcheck
 		}
-		_ = c.Conn.Close() //nolint:errcheck
 		c.mx.Unlock()
-		c.wg.Wait()
 	})
+	return closed
+}
+
+// Close closes the connection to dms_server.
+func (c *ClientConn) Close() error {
+	if c.close(false) {
+		c.wg.Wait()
+	}
 	return nil
 }
 
