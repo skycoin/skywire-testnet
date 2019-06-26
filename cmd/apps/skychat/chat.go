@@ -128,10 +128,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 		go handleConn(conn)
 	}
 
-	err := r.Do(func() error {
-		_, err := conn.Write([]byte(data["message"]))
-		return err
-	})
+	_, err := conn.Write([]byte(data["message"]))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		connsMu.Lock()

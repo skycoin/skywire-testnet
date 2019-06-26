@@ -130,14 +130,11 @@ func (app *App) Dial(raddr *Addr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("loop created")
 	addr := &LoopAddr{laddr.Port, *raddr}
 	conn, out := net.Pipe()
-	fmt.Println("locking mux...")
 	app.mu.Lock()
 	app.conns[*addr] = conn
 	app.mu.Unlock()
-	fmt.Println("serving conn...")
 	go app.serveConn(addr, conn)
 	return newAppConn(out, laddr, raddr), nil
 }

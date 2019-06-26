@@ -5,14 +5,9 @@ import (
 	"io"
 	"log"
 	"net"
-	"time"
-
-	"github.com/skycoin/skywire/internal/netutil"
 
 	"github.com/hashicorp/yamux"
 )
-
-var r = netutil.NewRetrier(50*time.Millisecond, 3, 2)
 
 // Client implement multiplexing proxy client using yamux.
 type Client struct {
@@ -48,10 +43,7 @@ func (c *Client) ListenAndServe(addr string) error {
 			return fmt.Errorf("accept: %s", err)
 		}
 
-		err = r.Do(func() error {
-			stream, err = c.session.Open()
-			return err
-		})
+		stream, err = c.session.Open()
 		if err != nil {
 			return fmt.Errorf("yamux: %s", err)
 		}

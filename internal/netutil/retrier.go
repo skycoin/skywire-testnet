@@ -33,7 +33,8 @@ func NewRetrier(exponentialBackoff time.Duration, times, factor uint32) *Retrier
 	}
 }
 
-// WithErrWhitelist sets a list of errors into the retrier, if the RetryFunc provided to Do() fails with one of them it will return inmediatelly with such error
+// WithErrWhitelist sets a list of errors into the retrier, if the RetryFunc provided to Do() fails with one of them it will return inmediatelly with such error. Calling
+// this function is not thread-safe, and is advised to only use it when initializing the Retrier
 func (r *Retrier) WithErrWhitelist(errors ...error) *Retrier {
 	m := make(map[error]struct{})
 	for _, err := range errors {
