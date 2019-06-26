@@ -11,7 +11,7 @@ import (
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
-var log = logging.MustGetLogger("noise")
+var noiseLogger = logging.MustGetLogger("noise") // TODO: initialize properly or remove
 
 // Config hold noise parameters.
 type Config struct {
@@ -136,7 +136,7 @@ func (ns *Noise) EncryptUnsafe(plaintext []byte) []byte {
 func (ns *Noise) DecryptUnsafe(ciphertext []byte) ([]byte, error) {
 	seq := binary.BigEndian.Uint32(ciphertext[:4])
 	if seq <= ns.previousSeq {
-		log.Warnf("current seq: %s is not higher than previous one: %s. "+
+		noiseLogger.Warnf("current seq: %s is not higher than previous one: %s. "+
 			"Highest sequence number received so far is: %s", ns.seq, ns.previousSeq, ns.highestPrevious)
 	} else {
 		if ns.previousSeq > ns.highestPrevious {

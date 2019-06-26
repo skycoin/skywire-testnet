@@ -223,10 +223,10 @@ func (ml *Listener) Accept() (net.Conn, error) {
 		}
 		rw := NewReadWriter(conn, ns)
 		if err := rw.Handshake(AcceptHandshakeTimeout); err != nil {
-			log.WithError(err).Warn("accept: noise handshake failed.")
+			noiseLogger.WithError(err).Warn("accept: noise handshake failed.")
 			continue
 		}
-		log.Infoln("accepted:", rw.RemoteStatic())
+		noiseLogger.Infoln("accepted:", rw.RemoteStatic())
 		return &Conn{Conn: conn, ns: rw}, nil
 	}
 }

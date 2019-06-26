@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -30,9 +32,21 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
+var masterLogger *logging.MasterLogger
+
 func TestMain(m *testing.M) {
-	lvl, _ := logging.LevelFromString("error") // nolint: errcheck
-	logging.SetLevel(lvl)
+	masterLogger = logging.NewMasterLogger()
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		masterLogger.SetLevel(lvl)
+	} else {
+		masterLogger.Out = ioutil.Discard
+	}
+
 	os.Exit(m.Run())
 }
 
@@ -56,7 +70,7 @@ func TestNewNode(t *testing.T) {
 
 	defer os.RemoveAll("local")
 
-	node, err := NewNode(&conf)
+	node, err := NewNode(&conf, masterLogger)
 	require.NoError(t, err)
 
 	assert.NotNil(t, node.router)
