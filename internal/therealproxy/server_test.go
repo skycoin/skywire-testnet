@@ -3,16 +3,34 @@ package therealproxy
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/proxy"
 )
+
+func TestMain(m *testing.M) {
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logging.SetLevel(lvl)
+	} else {
+		logging.Disable()
+	}
+
+	os.Exit(m.Run())
+}
 
 func TestProxy(t *testing.T) {
 	srv, err := NewServer("")

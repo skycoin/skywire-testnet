@@ -1,12 +1,30 @@
 package ioutil
 
 import (
+	"log"
 	"net"
+	"os"
 	"testing"
 
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
+	if ok {
+		lvl, err := logging.LevelFromString(loggingLevel)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logging.SetLevel(lvl)
+	} else {
+		logging.Disable()
+	}
+
+	os.Exit(m.Run())
+}
 
 func TestLenReadWriter(t *testing.T) {
 	in, out := net.Pipe()
