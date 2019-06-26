@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
-	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
@@ -909,7 +909,7 @@ func TestServer_Serve(t *testing.T) {
 }
 
 func testReconnect(t *testing.T, randomAddr bool) {
-	const smallDelay = 100 * time.Millisecond
+	const smallDelay = time.Second * 5
 	ctx := context.TODO()
 
 	serverPK, serverSK := cipher.GenerateKeyPair()
@@ -1127,6 +1127,7 @@ func testWithTimeout(timeout time.Duration, run func() error) error {
 			case <-timer.C:
 				return err
 			default:
+				time.Sleep(time.Millisecond * 5)
 				continue
 			}
 		}
