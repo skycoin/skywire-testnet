@@ -889,6 +889,115 @@ func TestServer_Serve(t *testing.T) {
 		require.Equal(t, true, ok)
 		require.Equal(t, true, tp.IsClosed())*/
 	})
+
+	t.Run("Reconnect to server should succeed", func(t *testing.T) {
+		t.Run("Same address", func(t *testing.T) {
+			t.Parallel()
+			testReconnect(t, false)
+		})
+
+		t.Run("Random address", func(t *testing.T) {
+			t.Parallel()
+			testReconnect(t, true)
+		})
+	})
+}
+
+func testReconnect(t *testing.T, randomAddr bool) {
+	const smallDelay = 100 * time.Millisecond
+	ctx := context.TODO()
+
+	serverPK, serverSK := cipher.GenerateKeyPair()
+	dc := client.NewMock()
+
+	l, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	s, err := NewServer(serverPK, serverSK, "", l, dc)
+	require.NoError(t, err)
+
+	serverAddr := s.Addr()
+
+	go s.Serve() // nolint:errcheck
+
+	remotePK, remoteSK := cipher.GenerateKeyPair()
+	initiatorPK, initiatorSK := cipher.GenerateKeyPair()
+
+	assert.Equal(t, 0, s.connCount())
+
+	remote := NewClient(remotePK, remoteSK, dc, SetLogger(logging.MustGetLogger("remote")))
+	err = remote.InitiateServerConnections(ctx, 1)
+	require.NoError(t, err)
+
+	require.NoError(t, testWithTimeout(smallDelay, func() error {
+		if s.connCount() != 1 {
+			return errors.New("s.conns is not equal to 1")
+		}
+		return nil
+	}))
+
+	initiator := NewClient(initiatorPK, initiatorSK, dc, SetLogger(logging.MustGetLogger("initiator")))
+	err = initiator.InitiateServerConnections(ctx, 1)
+	require.NoError(t, err)
+
+	initiatorTransport, err := initiator.Dial(ctx, remotePK)
+	require.NoError(t, err)
+
+	remoteTransport, err := remote.Accept(context.Background())
+	require.NoError(t, err)
+
+	require.NoError(t, testWithTimeout(smallDelay, func() error {
+		if s.connCount() != 2 {
+			return errors.New("s.conns is not equal to 2")
+		}
+		return nil
+	}))
+
+	err = s.Close()
+	assert.NoError(t, err)
+
+	initTr := initiatorTransport.(*Transport)
+	assert.False(t, isDoneChannelOpen(initTr.done))
+	assert.False(t, isReadChannelOpen(initTr.inCh))
+
+	remoteTr := remoteTransport.(*Transport)
+	assert.False(t, isDoneChannelOpen(remoteTr.done))
+	assert.False(t, isReadChannelOpen(remoteTr.inCh))
+
+	assert.Equal(t, 0, s.connCount())
+
+	addr := ""
+	if !randomAddr {
+		addr = serverAddr
+	}
+
+	l, err = net.Listen("tcp", serverAddr)
+	require.NoError(t, err)
+
+	s, err = NewServer(serverPK, serverSK, addr, l, dc)
+	require.NoError(t, err)
+
+	go s.Serve() // nolint:errcheck
+
+	require.NoError(t, testWithTimeout(clientReconnectInterval+smallDelay, func() error {
+		if s.connCount() != 2 {
+			return errors.New("s.conns is not equal to 2")
+		}
+		return nil
+	}))
+
+	require.NoError(t, testWithTimeout(smallDelay, func() error {
+		_, err = initiator.Dial(ctx, remotePK)
+		if err != nil {
+			return err
+		}
+
+		_, err = remote.Accept(context.Background())
+		return err
+	}))
+
+	err = s.Close()
+	assert.NoError(t, err)
 }
 
 // Given two client instances (a & b) and a server instance (s),
