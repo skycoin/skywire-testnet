@@ -13,12 +13,15 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
+	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")
+var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)
 
 var (
 	chatApp   *app.App
@@ -109,7 +112,10 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 
 	if conn == nil {
 		var err error
-		conn, err = chatApp.Dial(addr)
+		err = r.Do(func() error {
+			conn, err = chatApp.Dial(addr)
+			return err
+		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -122,10 +128,15 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 		go handleConn(conn)
 	}
 
-	if _, err := conn.Write([]byte(data["message"])); err != nil {
+	_, err := conn.Write([]byte(data["message"]))
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		connsMu.Lock()
+		delete(chatConns, pk)
+		connsMu.Unlock()
 		return
 	}
+
 }
 
 func sseHandler(w http.ResponseWriter, req *http.Request) {

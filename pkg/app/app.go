@@ -130,7 +130,6 @@ func (app *App) Dial(raddr *Addr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	addr := &LoopAddr{laddr.Port, *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()

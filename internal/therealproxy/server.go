@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	socks5 "github.com/armon/go-socks5"
+	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
 )
 
