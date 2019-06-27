@@ -32,8 +32,8 @@ type Transport struct {
 	local  cipher.PubKey // local PK
 	remote cipher.PubKey // remote PK
 
-	inCh chan Frame   // handles incoming frames (from dmsg.Client)
-	inMx sync.RWMutex // protects 'inCh'
+	inCh chan Frame // handles incoming frames (from dmsg.Client)
+	inMx sync.Mutex // protects 'inCh'
 
 	ackWaiter ioutil.Uint16AckWaiter // awaits for associated ACK frames
 	ackBuf    []byte                 // buffer for unsent ACK frames
@@ -130,17 +130,17 @@ func (tp *Transport) Type() string {
 
 // HandleFrame allows 'tp.Serve' to handle the frame (typically from 'ClientConn').
 func (tp *Transport) HandleFrame(f Frame) error {
-	tp.inMx.RLock()
-	defer tp.inMx.RUnlock()
+	tp.inMx.Lock()
+	defer tp.inMx.Unlock()
 
 handleFrame:
+	if tp.IsClosed() {
+		return io.ErrClosedPipe
+	}
 	select {
 	case tp.inCh <- f:
 		return nil
 	default:
-		if tp.IsClosed() {
-			return io.ErrClosedPipe
-		}
 		goto handleFrame
 	}
 }
@@ -275,10 +275,12 @@ func (tp *Transport) Serve() {
 				// add payload to 'buf'
 				tp.buf = append(tp.buf, p[2:])
 
-				// notify of new data via 'bufCh'
-				select {
-				case tp.bufCh <- struct{}{}:
-				default:
+				// notify of new data via 'bufCh' (only if not closed)
+				if !tp.IsClosed() {
+					select {
+					case tp.bufCh <- struct{}{}:
+					default:
+					}
 				}
 
 				log.WithField("bufSize", fmt.Sprintf("%d/%d", tp.bufSize, tpBufCap)).Infoln("Injected [FWD]")
