@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/messaging"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
+	"github.com/skycoin/skywire/pkg/messaging"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
@@ -75,7 +75,7 @@ func (c *Config) MessagingConfig() (*messaging.Config, error) {
 	return &messaging.Config{
 		PubKey:     c.Node.StaticPubKey,
 		SecKey:     c.Node.StaticSecKey,
-		Discovery:  mClient.NewHTTP(msgConfig.Discovery),
+		Discovery:  disc.NewHTTP(msgConfig.Discovery),
 		Retries:    5,
 		RetryDelay: time.Second,
 	}, nil

@@ -6,10 +6,10 @@ import (
 	"io"
 	"testing"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/skycoin/skywire/internal/ioutil"
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 func Test_isInitiatorID(t *testing.T) {

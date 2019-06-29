@@ -5,9 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 func TestListAuthoriser(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // APIClient implements messaging discovery API client.

@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (

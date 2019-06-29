@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/internal/noise"
-	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/transport"
 )
 

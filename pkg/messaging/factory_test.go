@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 
 func TestClientDial(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
-	discovery := client.NewMock()
+	discovery := disc.NewMock()
 	c1 := NewMsgFactory(&Config{pk, sk, discovery, 0, 0})
 	c1.retries = 0
 
@@ -147,7 +147,7 @@ type mockServer struct {
 	mu    sync.Mutex
 }
 
-func newMockServer(discovery client.APIClient) (*mockServer, error) {
+func newMockServer(discovery disc.APIClient) (*mockServer, error) {
 	pk, sk := cipher.GenerateKeyPair()
 	srv := &mockServer{}
 	pool := NewPool(DefaultLinkConfig(), &Callbacks{
@@ -163,7 +163,7 @@ func newMockServer(discovery client.APIClient) (*mockServer, error) {
 	}
 	go pool.Respond(l) // nolint: errcheck
 
-	entry := client.NewServerEntry(pk, 0, l.Addr().String(), 10)
+	entry := disc.NewServerEntry(pk, 0, l.Addr().String(), 10)
 	if err := entry.Sign(sk); err != nil {
 		return nil, err
 	}

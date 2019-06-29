@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/pkg/transport"
 )
 

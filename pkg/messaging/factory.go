@@ -12,11 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-
-	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
@@ -43,7 +42,7 @@ type clientLink struct {
 type Config struct {
 	PubKey     cipher.PubKey
 	SecKey     cipher.SecKey
-	Discovery  client.APIClient
+	Discovery  disc.APIClient
 	Retries    int
 	RetryDelay time.Duration
 }
@@ -55,7 +54,7 @@ type MsgFactory struct {
 
 	pubKey cipher.PubKey
 	secKey cipher.SecKey
-	dc     client.APIClient
+	dc     disc.APIClient
 	pool   *Pool
 
 	retries    int
@@ -219,7 +218,7 @@ func (msgFactory *MsgFactory) setEntry(ctx context.Context) error {
 
 	entry, err := msgFactory.dc.Entry(ctx, msgFactory.pubKey)
 	if err != nil {
-		entry = client.NewClientEntry(msgFactory.pubKey, 0, serverPKs)
+		entry = disc.NewClientEntry(msgFactory.pubKey, 0, serverPKs)
 		if err := entry.Sign(msgFactory.secKey); err != nil {
 			return err
 		}

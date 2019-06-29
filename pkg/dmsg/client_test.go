@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (

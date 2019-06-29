@@ -12,12 +12,11 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
-
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/dmsg"
-	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
 var (
@@ -78,7 +77,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Start
-		srv, err := dmsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, l, client.NewHTTP(conf.Discovery))
+		srv, err := dmsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, l, disc.NewHTTP(conf.Discovery))
 		if err != nil {
 			logger.Fatalf("Error creating DMSG server instance: %v", err)
 		}

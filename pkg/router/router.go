@@ -10,11 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dmsg"
-
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"

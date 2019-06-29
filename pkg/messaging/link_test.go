@@ -6,9 +6,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 var (

@@ -9,9 +9,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/skycoin/skywire/pkg/messaging-discovery/api"
 	"github.com/skycoin/skywire/pkg/messaging-discovery/client"

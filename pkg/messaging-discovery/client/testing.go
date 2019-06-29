@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // MockClient is an APIClient mock. The mock doesn't reply with the same errors as the

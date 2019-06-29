@@ -5,7 +5,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 var (

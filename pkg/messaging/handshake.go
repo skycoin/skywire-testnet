@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // HandshakeNonceSize defines size of the nonce used in handshake.

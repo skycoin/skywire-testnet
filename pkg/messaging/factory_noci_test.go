@@ -7,16 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
 func TestClientConnectInitialServers(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
-	discovery := client.NewMock()
+	discovery := disc.NewMock()
 	c := NewMsgFactory(&Config{pk, sk, discovery, 1, 100 * time.Millisecond})
 
 	srv, err := newMockServer(discovery)
