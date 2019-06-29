@@ -62,6 +62,9 @@ func NewFileAuthorizer(authFile string) (*FileAuthorizer, error) {
 
 // Close releases underlying file pointer.
 func (auth *FileAuthorizer) Close() error {
+	if auth == nil {
+		return nil
+	}
 	return auth.authFile.Close()
 }
 

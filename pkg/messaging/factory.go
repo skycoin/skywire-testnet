@@ -197,6 +197,10 @@ func (msgFactory *MsgFactory) Type() string {
 
 // Close closes underlying link pool.
 func (msgFactory *MsgFactory) Close() error {
+	if msgFactory == nil {
+		return nil
+	}
+
 	msgFactory.Logger.Info("Closing link pool")
 	select {
 	case <-msgFactory.doneCh:

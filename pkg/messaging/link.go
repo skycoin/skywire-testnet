@@ -94,6 +94,9 @@ func (c *Link) Open(wg *sync.WaitGroup) error {
 
 // Close closes the connection with the remote instance.
 func (c *Link) Close() error {
+	if c == nil {
+		return nil
+	}
 	return c.rw.Close()
 }
 

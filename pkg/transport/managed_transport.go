@@ -78,6 +78,10 @@ func (tr *ManagedTransport) killWorker() {
 
 // Close closes underlying
 func (tr *ManagedTransport) Close() error {
+	if tr == nil {
+		return nil
+	}
+
 	tr.mu.RLock()
 	err := tr.Transport.Close()
 	tr.mu.RUnlock()

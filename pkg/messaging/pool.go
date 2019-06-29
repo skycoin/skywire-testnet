@@ -122,6 +122,10 @@ func (p *Pool) Respond(l net.Listener) error {
 
 // Close closes the Pool.
 func (p *Pool) Close() error {
+	if p == nil {
+		return nil
+	}
+
 	p.closeDoneChan()
 	p.listenerMutex.Lock()
 	if p.listener != nil {

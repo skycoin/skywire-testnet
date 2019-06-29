@@ -246,6 +246,10 @@ func (sshCh *SSHChannel) WindowChange(sz *pty.Winsize) error {
 
 // Close safely closes Channel resources.
 func (sshCh *SSHChannel) Close() error {
+	if sshCh == nil {
+		return nil
+	}
+
 	select {
 	case <-sshCh.dataCh:
 	default:

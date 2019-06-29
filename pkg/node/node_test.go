@@ -268,6 +268,9 @@ func (r *mockRouter) ServeApp(conn net.Conn, port uint16, appConf *app.Config) e
 }
 
 func (r *mockRouter) Close() error {
+	if r == nil {
+		return nil
+	}
 	r.didClose = true
 	r.Lock()
 	if r.errChan != nil {

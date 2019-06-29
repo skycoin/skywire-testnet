@@ -263,6 +263,10 @@ func (f *muxFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.
 }
 
 func (f *muxFactory) Close() error {
+	if f == nil {
+		return nil
+	}
+
 	var err error
 	for _, factory := range f.factories {
 		if fErr := factory.Close(); err == nil && fErr != nil {

@@ -61,6 +61,9 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 
 // Close implements io.Closer
 func (f *TCPFactory) Close() error {
+	if f == nil {
+		return nil
+	}
 	return f.l.Close()
 }
 

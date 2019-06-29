@@ -72,6 +72,10 @@ func (conn *PipeConn) Write(b []byte) (n int, err error) {
 
 // Close closes the connection.
 func (conn *PipeConn) Close() error {
+	if conn == nil {
+		return nil
+	}
+
 	inErr := conn.inFile.Close()
 	outErr := conn.outFile.Close()
 	if inErr != nil {

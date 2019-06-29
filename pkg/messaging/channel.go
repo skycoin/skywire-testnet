@@ -159,6 +159,10 @@ func (mCh *msgChannel) write(p []byte) (n int, err error) {
 }
 
 func (mCh *msgChannel) Close() error {
+	if mCh == nil {
+		return nil
+	}
+
 	select {
 	case <-mCh.doneChan:
 		return ErrChannelClosed
@@ -188,6 +192,9 @@ func (mCh *msgChannel) OnChannelClosed() bool {
 }
 
 func (mCh *msgChannel) close() bool {
+	if mCh == nil {
+		return false
+	}
 	closed := false
 	mCh.doneOnce.Do(func() {
 		close(mCh.doneChan)

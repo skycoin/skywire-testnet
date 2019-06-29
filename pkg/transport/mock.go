@@ -71,6 +71,9 @@ func (f *MockFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport
 
 // Close closes notification channel between a pair of MockFactories.
 func (f *MockFactory) Close() error {
+	if f == nil {
+		return nil
+	}
 	select {
 	case <-f.inDone:
 	default:
@@ -125,6 +128,9 @@ func (m *MockTransport) Write(p []byte) (n int, err error) {
 
 // Close implements closer for mock transport
 func (m *MockTransport) Close() error {
+	if m == nil {
+		return nil
+	}
 	return m.rw.Close()
 }
 
