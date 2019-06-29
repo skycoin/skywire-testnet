@@ -23,7 +23,6 @@ import (
 
 	"github.com/skycoin/skywire/internal/httpauth"
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/messaging"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
@@ -87,7 +86,7 @@ func TestNodeStartClose(t *testing.T) {
 	defer os.RemoveAll("skychat")
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
-	mConf := &messaging.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
+	mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
 	node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
 
 	var err error
