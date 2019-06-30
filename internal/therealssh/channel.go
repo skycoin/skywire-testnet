@@ -39,11 +39,14 @@ type SSHChannel struct {
 
 	dataChMx sync.Mutex
 	dataCh   chan []byte
+
+	done chan struct{}
 }
 
 // OpenChannel constructs new SSHChannel with empty Session.
 func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *SSHChannel {
-	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
+	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte),
+		dataCh: make(chan []byte), done: make(chan struct{})}
 }
 
 // OpenClientChannel constructs new client SSHChannel with empty Session.
@@ -249,6 +252,8 @@ func (sshCh *SSHChannel) WindowChange(sz *pty.Winsize) error {
 
 // Close safely closes Channel resources.
 func (sshCh *SSHChannel) Close() error {
+	close(sshCh.done)
+
 	select {
 	case <-sshCh.dataCh:
 	default:
@@ -276,6 +281,16 @@ func (sshCh *SSHChannel) Close() error {
 	}
 
 	return nil
+}
+
+// IsClosed returns whether the Channel is closed.
+func (sshCh *SSHChannel) IsClosed() bool {
+	select {
+	case <-sshCh.done:
+		return true
+	default:
+		return false
+	}
 }
 
 func debug(format string, v ...interface{}) {

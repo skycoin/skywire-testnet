@@ -135,7 +135,9 @@ func (c *Client) serveConn(conn net.Conn) error {
 			sshCh.msgCh <- data
 		case CmdChannelData:
 			sshCh.dataChMx.Lock()
-			sshCh.dataCh <- data
+			if !sshCh.IsClosed() {
+				sshCh.dataCh <- data
+			}
 			sshCh.dataChMx.Unlock()
 		case CmdChannelServerClose:
 			err = sshCh.Close()

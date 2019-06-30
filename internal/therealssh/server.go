@@ -126,7 +126,9 @@ func (s *Server) HandleData(remotePK cipher.PubKey, localID uint32, data []byte)
 	}
 
 	channel.dataChMx.Lock()
-	channel.dataCh <- data
+	if !channel.IsClosed() {
+		channel.dataCh <- data
+	}
 	channel.dataChMx.Unlock()
 	return nil
 }
