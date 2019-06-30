@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/kr/pty"
 
@@ -35,6 +36,8 @@ type SSHChannel struct {
 
 	session  *Session
 	listener *net.UnixListener
+
+	dataChMx sync.Mutex
 	dataCh   chan []byte
 }
 
@@ -249,7 +252,9 @@ func (sshCh *SSHChannel) Close() error {
 	select {
 	case <-sshCh.dataCh:
 	default:
+		sshCh.dataChMx.Lock()
 		close(sshCh.dataCh)
+		sshCh.dataChMx.Unlock()
 	}
 	close(sshCh.msgCh)
 
