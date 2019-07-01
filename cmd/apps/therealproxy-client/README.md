@@ -2,7 +2,7 @@
 
 `socksproxy-client` app implements client for the SOCKS5 app.
 
-It opens persistent `skywire` connection to the configured remote node
+It opens persistent `skywire` connection to the configured remote visor
 and local TCP port, all incoming TCP traffics is forwarded to the
 ~skywire~ connection.
 

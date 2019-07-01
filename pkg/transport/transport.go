@@ -11,7 +11,7 @@ import (
 	"github.com/skycoin/skywire/pkg/cipher"
 )
 
-// Transport represents communication between two nodes via a single hop.
+// Transport represents communication between two visors via a single hop.
 type Transport interface {
 
 	// Read implements io.Reader
@@ -40,7 +40,7 @@ type Factory interface {
 	// Accept accepts a remotely-initiated Transport.
 	Accept(ctx context.Context) (Transport, error)
 
-	// Dial initiates a Transport with a remote node.
+	// Dial initiates a Transport with a remote visor.
 	Dial(ctx context.Context, remote cipher.PubKey) (Transport, error)
 
 	// Close implements io.Closer

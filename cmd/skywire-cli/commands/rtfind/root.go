@@ -24,8 +24,8 @@ func init() {
 
 // RootCmd is the command that queries the route-finder.
 var RootCmd = &cobra.Command{
-	Use:   "rtfind <public-key-node-1> <public-key-node-2>",
-	Short: "Queries the Route Finder for available routes between two nodes",
+	Use:   "rtfind <public-key-visor-1> <public-key-visor-2>",
+	Short: "Queries the Route Finder for available routes between two visors",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(_ *cobra.Command, args []string) {
 		rfc := client.NewHTTP(frAddr, timeout)

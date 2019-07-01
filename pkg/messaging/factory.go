@@ -1,6 +1,6 @@
 // Package messaging implements messaging communication. Messaging
 // communication is performed between 2 nodes using intermediate relay
-// server, node discovery is performed using messaging discovery.
+// server, visor discovery is performed using messaging discovery.
 package messaging
 
 import (
@@ -141,7 +141,7 @@ func (msgFactory *MsgFactory) Accept(ctx context.Context) (transport.Transport, 
 	}
 }
 
-// Dial initiates a Transport with a remote node.
+// Dial initiates a Transport with a remote visor.
 func (msgFactory *MsgFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
 	entry, err := msgFactory.dc.Entry(ctx, remote)
 	if err != nil {

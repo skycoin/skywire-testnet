@@ -22,7 +22,7 @@ import (
 
 var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)
 
-// Dialer dials to a remote node.
+// Dialer dials to a remote visor.
 type Dialer interface {
 	Dial(raddr *app.Addr) (net.Conn, error)
 }

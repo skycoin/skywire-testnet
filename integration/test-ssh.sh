@@ -11,14 +11,14 @@ do
 	echo Test with $N lines
 	mkdir -p ./logs/ssh/$N
 
-	echo Killing nodes and SSH-cli
-	echo Killing $(ps aux |grep "[N]odeA\|[N]odeB\|[N]odeC\|[s]kywire/SSH-cli" |awk '{print $2}')
-	kill $(ps aux |grep "[N]odeA\|[N]odeB\|[N]odeC\|[s]kywire/SSH-cli" |awk '{print $2}')
+	echo Killing visors and SSH-cli
+	echo Killing $(ps aux |grep "[V]isorA\|[V]isorB\|[V]isorC\|[s]kywire/SSH-cli" |awk '{print $2}')
+	kill $(ps aux |grep "[V]isorA\|[V]isorB\|[V]isorC\|[s]kywire/SSH-cli" |awk '{print $2}')
 
-	echo Restarting nodes
-	./bin/skywire-node ./integration/ssh/nodeA.json --tag NodeA &> ./logs/ssh/$N/nodeA.log &
-	./bin/skywire-node ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/ssh/$N/nodeB.log &
-	./bin/skywire-node ./integration/ssh/nodeC.json --tag NodeC &> ./logs/ssh/$N/nodeC.log &
+	echo Restarting visors
+	./bin/visor ./integration/ssh/visorA.json --tag VisorA &> ./logs/ssh/$N/visorA.log &
+	./bin/visor ./integration/intermediary-visorB.json --tag VisorB  &> ./logs/ssh/$N/visorB.log &
+	./bin/visor ./integration/ssh/visorC.json --tag VisorC &> ./logs/ssh/$N/visorC.log &
 
 	sleep 20
 	echo Trying SSH-cli

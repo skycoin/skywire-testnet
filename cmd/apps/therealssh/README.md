@@ -15,11 +15,12 @@ authentication file (`$HOME/.therealssh/authorized_keys` by default).
 
 ** Local setup
 
-Create 2 node config files:
+Create 2 visor config files:
 
-`skywire1.json`
+`visor1.json`
 
 ```json
+{
   "apps": [
     {
       "app": "SSH",
@@ -28,11 +29,13 @@ Create 2 node config files:
       "port": 2
     }
   ]
+}
 ```
 
-`skywire2.json`
+`visor2.json`
 
 ```json
+{
   "apps": [
     {
       "app": "SSH-client",
@@ -41,26 +44,27 @@ Create 2 node config files:
       "port": 22
     }
   ]
+}
 ```
 
-Compile binaries and start 2 nodes:
+Compile binaries and start 2 visors:
 
 ```bash
 $ go build -o apps/SSH.v1.0 ./cmd/apps/therealssh
 $ go build -o apps/SSH-client.v1.0 ./cmd/apps/therealssh-client
 $ go build ./cmd/SSH-cli
-$ ./skywire-node skywire1.json
-$ ./skywire-node skywire2.json
+$ ./visor visor1.json
+$ ./visor visor2.json
 ```
 
-Add public key of the second node to the auth file:
+Add public key of the second visor to the auth file:
 
 ```bash
-$ mkdir `/.therealssh
-$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > `/.SSH/authorized_keys
+$ mkdir /.therealssh
+$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > /.SSH/authorized_keys
 ```
 
-Connect to the first node using CLI:
+Connect to the first visor using CLI:
 
 ```bash
 $ ./SSH-cli 024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7

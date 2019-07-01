@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/skycoin/skywire/pkg/cipher"
 )

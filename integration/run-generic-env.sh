@@ -9,14 +9,14 @@ source ./integration/generic/env-vars.sh
 echo "Checking transport-discovery is up"
 curl --retry 5  --retry-connrefused 1 --connect-timeout 5 https://transport.discovery.skywire.skycoin.net/security/nonces/$PK_A   
 
-tmux rename-window -t skywire NodeA
-tmux send-keys -t NodeA -l "./skywire-node ./integration/generic/nodeA.json --tag NodeA $SYSLOG_OPTS"
+tmux rename-window -t skywire VisorA
+tmux send-keys -t VisorA -l "./visor ./integration/generic/visorA.json --tag VisorA $SYSLOG_OPTS"
 tmux send-keys C-m
-tmux new-window -t skywire -n NodeB
-tmux send-keys -t NodeB -l "./skywire-node ./integration/intermediary-nodeB.json --tag NodeB $SYSLOG_OPTS" 
+tmux new-window -t skywire -n VisorB
+tmux send-keys -t VisorB -l "./visor ./integration/intermediary-visorB.json --tag VisorB $SYSLOG_OPTS"
 tmux send-keys C-m
-tmux new-window -t skywire -n NodeC
-tmux send-keys -t NodeC -l "./skywire-node ./integration/generic/nodeC.json --tag NodeC $SYSLOG_OPTS" 
+tmux new-window -t skywire -n VisorC
+tmux send-keys -t VisorC -l "./visor ./integration/generic/visorC.json --tag VisorC $SYSLOG_OPTS"
 tmux send-keys C-m
 
 tmux new-window -t skywire -n shell

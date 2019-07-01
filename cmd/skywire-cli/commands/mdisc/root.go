@@ -33,13 +33,13 @@ func init() {
 }
 
 var entryCmd = &cobra.Command{
-	Use:   "entry <node-public-key>",
+	Use:   "entry <visor-public-key>",
 	Short: "fetches an entry from messaging-discovery",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		pk := internal.ParsePK("node-public-key", args[0])
+		pk := internal.ParsePK("visor-public-key", args[0])
 		entry, err := client.NewHTTP(mdAddr).Entry(ctx, pk)
 		internal.Catch(err)
 		fmt.Println(entry)

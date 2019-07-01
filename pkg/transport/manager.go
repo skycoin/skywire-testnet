@@ -22,7 +22,7 @@ type ManagerConfig struct {
 	SecKey          cipher.SecKey
 	DiscoveryClient DiscoveryClient
 	LogStore        LogStore
-	DefaultNodes    []cipher.PubKey // Nodes to automatically connect to
+	DefaultVisors   []cipher.PubKey // Visors to automatically connect to
 }
 
 // Manager manages Transports.
@@ -143,9 +143,9 @@ func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
 	return cipher.PubKey{}, false
 }
 
-// createDefaultTransports created transports to DefaultNodes if they don't exist.
+// createDefaultTransports created transports to DefaultVisors if they don't exist.
 func (tm *Manager) createDefaultTransports(ctx context.Context) {
-	for _, pk := range tm.config.DefaultNodes {
+	for _, pk := range tm.config.DefaultVisors {
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
 			remote, ok := tm.Remote(tr.Edges())
@@ -160,7 +160,7 @@ func (tm *Manager) createDefaultTransports(ctx context.Context) {
 		}
 		_, err := tm.CreateTransport(ctx, pk, "messaging", true)
 		if err != nil {
-			tm.Logger.Warnf("Failed to establish transport to a node %s: %s", pk, err)
+			tm.Logger.Warnf("Failed to establish transport to a visor %s: %s", pk, err)
 		}
 	}
 }
@@ -202,7 +202,7 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
-// CreateTransport begins to attempt to establish transports to the given 'remote' node.
+// CreateTransport begins to attempt to establish transports to the given 'remote' visor.
 func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
 	return tm.createTransport(ctx, remote, tpType, public)
 }

@@ -23,8 +23,8 @@ func HomeDir() string {
 	return os.Getenv("HOME")
 }
 
-// NodeDir returns a path to a directory used to store specific node configuration. Such dir is ~/.skywire/{PK}
-func NodeDir(pk cipher.PubKey) string {
+// VisorDir returns a path to a directory used to store specific visor configuration. Such dir is ~/.skywire/{PK}
+func VisorDir(pk cipher.PubKey) string {
 	return filepath.Join(HomeDir(), ".skycoin", "skywire", pk.String())
 }
 

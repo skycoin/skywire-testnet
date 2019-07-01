@@ -11,21 +11,21 @@ do
 	echo Test with $N requests
 	mkdir -p ./logs/proxy/$N
 
-	echo Killing nodes 
-	echo Killing $(ps aux |grep "[N]odeA\|[N]odeB\|[N]odeC" |awk '{print $2}')
-	kill $(ps aux |grep "[N]odeA\|[N]odeB\|[N]odeC" |awk '{print $2}')
+	echo Killing visors
+	echo Killing $(ps aux |grep "[V]isorA\|[V]isorB\|[V]isorC" |awk '{print $2}')
+	kill $(ps aux |grep "[V]isorA\|[V]isorB\|[V]isorC" |awk '{print $2}')
 
-	# This sleep needed to allow clean exit of node
+	# This sleep needed to allow clean exit of visor
 	sleep 10
 
-	echo Restarting nodeA and NodeB
-	./bin/skywire-node ./integration/proxy/nodeA.json --tag NodeA &> ./logs/proxy/$N/nodeA.log &
-	./bin/skywire-node ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/proxy/$N/nodeB.log &
+	echo Restarting visorA and VisorB
+	./bin/visor ./integration/proxy/visorA.json --tag VisorA &> ./logs/proxy/$N/visorA.log &
+	./bin/visor ./integration/intermediary-visorB.json --tag VisorB  &> ./logs/proxy/$N/visorB.log &
 
 	# TODO: improve this sleep
 	sleep 5
-	echo Restarting nodeC
-	./bin/skywire-node ./integration/proxy/nodeC.json --tag NodeC &> ./logs/proxy/$N/nodeC.log &
+	echo Restarting visorC
+	./bin/visor ./integration/proxy/visorC.json --tag VisorC &> ./logs/proxy/$N/visorC.log &
 
 	sleep 20
 	echo Trying socks5 proxy

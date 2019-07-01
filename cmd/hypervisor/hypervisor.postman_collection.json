@@ -1,0 +1,788 @@
+{
+	"info": {
+		"_postman_id": "daa8ec31-db75-4e92-b637-c5117644bfa8",
+		"name": "Skywire Hypervisor",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "/api/nodes",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes"
+					]
+				},
+				"description": "Provides a summary of all connected app visors."
+			},
+			"response": [
+				{
+					"name": "/api/nodes",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 00:43:57 GMT"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    {\n        \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n        \"apps\": [\n            {\n                \"name\": \"foo.v1.0\",\n                \"autostart\": false,\n                \"port\": 10,\n                \"status\": 0\n            },\n            {\n                \"name\": \"bar.v2.0\",\n                \"autostart\": false,\n                \"port\": 20,\n                \"status\": 0\n            }\n        ],\n        \"transports\": [\n            {\n                \"id\": \"3fb65ceb-0cd3-484c-8a9c-21617a06c6dd\",\n                \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n                \"remote_pk\": \"028825991ec52e8f135b9cf9c9f740698644ea2f2144e43a537ad416601ee1d905\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"4cf57b61-8a31-4c8f-b328-b2533978c4e1\",\n                \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n                \"remote_pk\": \"02af5570345c43715442aabdc72de8faecbccc38058fa3be88da8d85afb95762e6\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"0d2d208f-8e10-4bb4-ada5-58ffa4256723\",\n                \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n                \"remote_pk\": \"034b60e92c40f566e38753fd0e4bc680a0811d25bee949cb5fee4006e42599d6cd\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"b1afc8fd-cb62-4993-9b5e-79267cdcf557\",\n                \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n                \"remote_pk\": \"02add975773c2b1429368c961b9159c14de7662f8185ac5cbf173161e4b9f32937\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"43301e4e-594a-422a-b7b1-7a27e39050a8\",\n                \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n                \"remote_pk\": \"029e32e79f1a57aa42704d3d88618ef8458b12a8f897dbbb7eecec0a411820f7d4\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"2d92ce65-8e2f-45b9-be29-3057951f4821\",\n                \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n                \"remote_pk\": \"037f94a6071e7cb5edd8039cef0269ba43e48ab290e6144c4195d05478d5b446fb\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"1046b7a7-50ec-4795-91cd-a2fed648f305\",\n                \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n                \"remote_pk\": \"021a12b4514cadb248f65cb4c3b3c9eb32f631e1b9470509c44cd05758021cc32a\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            }\n        ]\n    },\n    {\n        \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n        \"apps\": [\n            {\n                \"name\": \"foo.v1.0\",\n                \"autostart\": false,\n                \"port\": 10,\n                \"status\": 0\n            },\n            {\n                \"name\": \"bar.v2.0\",\n                \"autostart\": false,\n                \"port\": 20,\n                \"status\": 0\n            }\n        ],\n        \"transports\": [\n            {\n                \"id\": \"2c3b35b3-866d-4931-b7b5-a67d59e3df42\",\n                \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n                \"remote_pk\": \"03371b181c5faee70eb040c038c006e6642aa432d8072047348ae087519f3cc684\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"1744577b-e36b-468f-ba34-93d2614ff6e0\",\n                \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n                \"remote_pk\": \"0289b6e477ebcda18a190e2a545e4606a70abdb724b676a60cea496f3a170334bc\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"c744dd91-d309-451a-b3aa-b452795e6551\",\n                \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n                \"remote_pk\": \"02de6056801854c18538dde4b1be096f3fae25c7fe9092d86ad3cd9812a4d91630\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"24a6a15c-ae24-4e5d-826f-789d7c564016\",\n                \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n                \"remote_pk\": \"0302f17f7dec96e7750ce771937e689e26ffd9366e7bd4d34832c8572d1d8a320e\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"5011d6cb-0a46-4131-aa2a-a78b2e02e269\",\n                \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n                \"remote_pk\": \"0200730f65fd7b15a184de1d68305f3e7ca813ef7b7678cbead104b59459a44a49\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"b5a795d8-ac72-497b-baa3-454adf6e036d\",\n                \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n                \"remote_pk\": \"03fa52ac4e875d61d4e12bee02264b8030b927194e8ecb41ebc7e6e97c1de542e6\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"97b7ff16-a06d-4bb3-b22f-56550ce81bcf\",\n                \"local_pk\": \"03d9ea0420cb9750b475e23f3f629a0eb521f9d94e1cc544abd76b87bf42ad71a5\",\n                \"remote_pk\": \"03bf84c5cd8cdc85406bee299001b6e2991920118a978e186bb9d7f7adf4b9a22b\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            }\n        ]\n    },\n    {\n        \"local_pk\": \"0301b27adf2954a9f97c443c478e48253a707e7b467d0c0c0ba7a2091fa8ec6145\",\n        \"apps\": [\n            {\n                \"name\": \"foo.v1.0\",\n                \"autostart\": false,\n                \"port\": 10,\n                \"status\": 0\n            },\n            {\n                \"name\": \"bar.v2.0\",\n                \"autostart\": false,\n                \"port\": 20,\n                \"status\": 0\n            }\n        ],\n        \"transports\": [\n            {\n                \"id\": \"fdb47e4e-64a4-4001-9213-4b7e53560dc1\",\n                \"local_pk\": \"0301b27adf2954a9f97c443c478e48253a707e7b467d0c0c0ba7a2091fa8ec6145\",\n                \"remote_pk\": \"0207ddf45bb57b4ef7a5c7b76b89464677569dcb585cf8627c788f3d44a3870e5e\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"b0294a2f-6f57-4f2b-8624-c1ae5b347b31\",\n                \"local_pk\": \"0301b27adf2954a9f97c443c478e48253a707e7b467d0c0c0ba7a2091fa8ec6145\",\n                \"remote_pk\": \"032dbd4f2b2531db9fbd23f3e53365c7ade63d08154025af7d94e7a7b6d715f4d8\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"81579b6e-d8a7-4cab-b2f2-3ba72a8eae83\",\n                \"local_pk\": \"0301b27adf2954a9f97c443c478e48253a707e7b467d0c0c0ba7a2091fa8ec6145\",\n                \"remote_pk\": \"02b4bcabcaaef410f6b9744715a77e8442e7849452e7202a408daccc4b1c63622b\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"bee8e0ad-8190-4c8b-8323-9680bda05580\",\n                \"local_pk\": \"0301b27adf2954a9f97c443c478e48253a707e7b467d0c0c0ba7a2091fa8ec6145\",\n                \"remote_pk\": \"03f2cf69c598c4981a12f665e3b288f9a39d260a883217ed278b0bfc9871faecb4\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"339c3342-0285-454f-b1af-d328a2790767\",\n                \"local_pk\": \"0301b27adf2954a9f97c443c478e48253a707e7b467d0c0c0ba7a2091fa8ec6145\",\n                \"remote_pk\": \"02017acb7de8041df23508a82ed2d49ded03f000d19bc000eb120db80a793664f6\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"8be92ca7-795b-44f6-9c3c-b364cff45bd4\",\n                \"local_pk\": \"0301b27adf2954a9f97c443c478e48253a707e7b467d0c0c0ba7a2091fa8ec6145\",\n                \"remote_pk\": \"03bd2e96d3b56037bfd179b400a5f4953d46467e4913d1c4322c66c1bec11158be\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            }\n        ]\n    },\n    {\n        \"local_pk\": \"03e26b70fa8de90444128d78909e10331683be7d304452def6f88ef13d19e2e22d\",\n        \"apps\": [\n            {\n                \"name\": \"foo.v1.0\",\n                \"autostart\": false,\n                \"port\": 10,\n                \"status\": 0\n            },\n            {\n                \"name\": \"bar.v2.0\",\n                \"autostart\": false,\n                \"port\": 20,\n                \"status\": 0\n            }\n        ],\n        \"transports\": null\n    },\n    {\n        \"local_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n        \"apps\": [\n            {\n                \"name\": \"foo.v1.0\",\n                \"autostart\": false,\n                \"port\": 10,\n                \"status\": 0\n            },\n            {\n                \"name\": \"bar.v2.0\",\n                \"autostart\": false,\n                \"port\": 20,\n                \"status\": 0\n            }\n        ],\n        \"transports\": [\n            {\n                \"id\": \"f40a8665-8687-461d-971a-2c93d234a449\",\n                \"local_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n                \"remote_pk\": \"03455586704d340771740533b3b5fff25656877e5f1b9118245e3d7a9f1cd46fb8\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"a350e9e0-4cf9-4121-b5a6-65733264f7a4\",\n                \"local_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n                \"remote_pk\": \"02bcd9e9540b7779b189841baa73cde2aaff4ae734acd4873155d9f578c69eb5d5\",\n                \"type\": \"native\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            },\n            {\n                \"id\": \"f7852f53-6758-40c5-b42d-d94331f3d82a\",\n                \"local_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n                \"remote_pk\": \"0392ff06c76763808a9a3d43e5cdc8dfbbbd01efb7b58c1fc315208498cc95807c\",\n                \"type\": \"messaging\",\n                \"log\": {\n                    \"received\": null,\n                    \"sent\": null\n                }\n            }\n        ]\n    }\n]"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/021c535e45756c63151820c8f31bfbb0efd6d7d49305e133e1650aae889d60ff02",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"021c535e45756c63151820c8f31bfbb0efd6d7d49305e133e1650aae889d60ff02"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": "",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Provides a summary of a given connected visor of public key."
+			},
+			"response": [
+				{
+					"name": "/api/nodes/:pk",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 00:47:03 GMT"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n    \"apps\": [\n        {\n            \"name\": \"foo.v1.0\",\n            \"autostart\": false,\n            \"port\": 10,\n            \"status\": 0\n        },\n        {\n            \"name\": \"bar.v2.0\",\n            \"autostart\": false,\n            \"port\": 20,\n            \"status\": 0\n        }\n    ],\n    \"transports\": [\n        {\n            \"id\": \"3fb65ceb-0cd3-484c-8a9c-21617a06c6dd\",\n            \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n            \"remote_pk\": \"028825991ec52e8f135b9cf9c9f740698644ea2f2144e43a537ad416601ee1d905\",\n            \"type\": \"native\",\n            \"log\": {\n                \"received\": null,\n                \"sent\": null\n            }\n        },\n        {\n            \"id\": \"4cf57b61-8a31-4c8f-b328-b2533978c4e1\",\n            \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n            \"remote_pk\": \"02af5570345c43715442aabdc72de8faecbccc38058fa3be88da8d85afb95762e6\",\n            \"type\": \"messaging\",\n            \"log\": {\n                \"received\": null,\n                \"sent\": null\n            }\n        },\n        {\n            \"id\": \"0d2d208f-8e10-4bb4-ada5-58ffa4256723\",\n            \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n            \"remote_pk\": \"034b60e92c40f566e38753fd0e4bc680a0811d25bee949cb5fee4006e42599d6cd\",\n            \"type\": \"messaging\",\n            \"log\": {\n                \"received\": null,\n                \"sent\": null\n            }\n        },\n        {\n            \"id\": \"b1afc8fd-cb62-4993-9b5e-79267cdcf557\",\n            \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n            \"remote_pk\": \"02add975773c2b1429368c961b9159c14de7662f8185ac5cbf173161e4b9f32937\",\n            \"type\": \"messaging\",\n            \"log\": {\n                \"received\": null,\n                \"sent\": null\n            }\n        },\n        {\n            \"id\": \"43301e4e-594a-422a-b7b1-7a27e39050a8\",\n            \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n            \"remote_pk\": \"029e32e79f1a57aa42704d3d88618ef8458b12a8f897dbbb7eecec0a411820f7d4\",\n            \"type\": \"messaging\",\n            \"log\": {\n                \"received\": null,\n                \"sent\": null\n            }\n        },\n        {\n            \"id\": \"2d92ce65-8e2f-45b9-be29-3057951f4821\",\n            \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n            \"remote_pk\": \"037f94a6071e7cb5edd8039cef0269ba43e48ab290e6144c4195d05478d5b446fb\",\n            \"type\": \"native\",\n            \"log\": {\n                \"received\": null,\n                \"sent\": null\n            }\n        },\n        {\n            \"id\": \"1046b7a7-50ec-4795-91cd-a2fed648f305\",\n            \"local_pk\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n            \"remote_pk\": \"021a12b4514cadb248f65cb4c3b3c9eb32f631e1b9470509c44cd05758021cc32a\",\n            \"type\": \"messaging\",\n            \"log\": {\n                \"received\": null,\n                \"sent\": null\n            }\n        }\n    ]\n}"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}/apps",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/021c535e45756c63151820c8f31bfbb0efd6d7d49305e133e1650aae889d60ff02/apps",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"021c535e45756c63151820c8f31bfbb0efd6d7d49305e133e1650aae889d60ff02",
+						"apps"
+					]
+				},
+				"description": "Provides a summary of an Visor's apps."
+			},
+			"response": [
+				{
+					"name": "/api/nodes/:pk/apps",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2/apps",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2",
+								"apps"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 00:48:55 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "119"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    {\n        \"name\": \"foo.v1.0\",\n        \"autostart\": false,\n        \"port\": 10,\n        \"status\": 0\n    },\n    {\n        \"name\": \"bar.v2.0\",\n        \"autostart\": false,\n        \"port\": 20,\n        \"status\": 0\n    }\n]"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}/apps/{app}",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/021c535e45756c63151820c8f31bfbb0efd6d7d49305e133e1650aae889d60ff02/apps/foo.v1.0",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"021c535e45756c63151820c8f31bfbb0efd6d7d49305e133e1650aae889d60ff02",
+						"apps",
+						"foo.v1.0"
+					]
+				},
+				"description": "Starts an app on an Visor."
+			},
+			"response": [
+				{
+					"name": "/api/nodes/:pk/apps/:app/start",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2/apps/foo.v1.0/start",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2",
+								"apps",
+								"foo.v1.0",
+								"start"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 00:50:40 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "130"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"node\": \"02500488fc25814e55e6c740537ed14ca677aebe8a883681bae718a36516a7b0a2\",\n    \"app\": \"foo.v1.0\",\n    \"command\": \"StartApp\",\n    \"success\": true\n}"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}/apps/{app}",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"autostart\": true,\n\t\"status\": 1\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/apps/foo.v1.0",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64",
+						"apps",
+						"foo.v1.0"
+					]
+				},
+				"description": "Starts an app on an Visor."
+			},
+			"response": [
+				{
+					"name": "/api/nodes/{pk}/apps/{app}",
+					"originalRequest": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"autostart\": true,\n\t\"status\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/apps/foo.v1.0",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64",
+								"apps",
+								"foo.v1.0"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Sun, 17 Feb 2019 10:37:17 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "58"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"name\": \"foo.v1.0\",\n    \"autostart\": true,\n    \"port\": 10,\n    \"status\": 0\n}"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}/transport-types",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/transport-types",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64",
+						"transport-types"
+					]
+				},
+				"description": "Lists supported transport types of the given Visor."
+			},
+			"response": [
+				{
+					"name": "/api/nodes/:pk/transport-types",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2/transport-types",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2",
+								"transport-types"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 01:14:08 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "22"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    \"messaging\",\n    \"native\"\n]"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}/transports",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/transports?logs=true",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64",
+						"transports"
+					],
+					"query": [
+						{
+							"key": "logs",
+							"value": "true",
+							"description": "whether to show with logs."
+						}
+					]
+				},
+				"description": "List transports of given Visor."
+			},
+			"response": [
+				{
+					"name": "/api/nodes/:pk/transports",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2/transports?logs=true",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2",
+								"transports"
+							],
+							"query": [
+								{
+									"key": "logs",
+									"value": "true",
+									"description": "whether to show with logs."
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 01:15:50 GMT"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    {\n        \"id\": \"e86f4d67-eb22-4d1c-8c27-8f021051a5cf\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"028684d27d1c9bc36406da560d3f75a295a54ad0649d54eb3437655d8524bbe279\",\n        \"type\": \"messaging\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    },\n    {\n        \"id\": \"2ff2d608-fe14-4c17-938c-3af8afd053ae\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"02a2f9b005ce53b77499e73eb4b67d60807a32d1616615809408150d2ff2631da8\",\n        \"type\": \"messaging\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    },\n    {\n        \"id\": \"50142ec9-027d-490d-ba86-e335b6ffffa0\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"02d2b79b0e37671e8da948ddb7a51b24096a7b7fe3a64403f78ab031816b3009f3\",\n        \"type\": \"native\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    },\n    {\n        \"id\": \"85a60d18-f1a3-45b1-b7cc-8906c95dfdb0\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"02c5015450d929bb38c496505f3781d671a11f108cecc0ef6f4a9ff6cf841e5bcf\",\n        \"type\": \"messaging\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    },\n    {\n        \"id\": \"16575562-14c4-492d-9112-dc9f9d3f201d\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"0206ad1343becba521d66ce58b72b2fd8592c998f05ce6fb82a8ab44f3583f9023\",\n        \"type\": \"messaging\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    },\n    {\n        \"id\": \"d0fa7457-e887-406e-ac84-e009fe6df490\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"026202dd7119e8f0635ff1adb52e826fc107472319033db47dbff428b66d3474ae\",\n        \"type\": \"native\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    },\n    {\n        \"id\": \"236d2c10-5d92-4d64-b66a-42e2a60ac231\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"020906cf03d1037149150f3d4d06b242d3fa5a3ee6fc25edef6373061176ad5279\",\n        \"type\": \"native\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    },\n    {\n        \"id\": \"03c845c9-57b0-4b84-a184-70f952497a8a\",\n        \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n        \"remote_pk\": \"0254cffd054fa00fa4c89f2b9d2ee3a52b69641bfd4a9e5ce59f5c086adf8d2e1e\",\n        \"type\": \"native\",\n        \"log\": {\n            \"received\": null,\n            \"sent\": null\n        }\n    }\n]"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}/transports",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"remote_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n\t\"transport_type\": \"native\",\n\t\"public\": true\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/transports",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64",
+						"transports"
+					]
+				},
+				"description": "Adds a transport to a given Visor."
+			},
+			"response": [
+				{
+					"name": "POST /api/nodes/transports",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"remote_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n\t\"transport_type\": \"native\",\n\t\"public\": true\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2/transports",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2",
+								"transports"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 01:19:01 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "258"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"id\": \"7a4236d4-8ae4-478c-acd7-e3577d730a49\",\n    \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n    \"remote_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n    \"type\": \"native\",\n    \"log\": {\n        \"received\": null,\n        \"sent\": null\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "/api/nodes/{pk}/transports/{tid}",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/transports/70836b44-f6e5-4c17-a5e8-e1cbef89a10f",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64",
+						"transports",
+						"70836b44-f6e5-4c17-a5e8-e1cbef89a10f"
+					]
+				},
+				"description": "Obtains summary of transport of given TransportID and Visor."
+			},
+			"response": [
+				{
+					"name": "/api/nodes/:pk/transports/:tid",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2/transports/2ff2d608-fe14-4c17-938c-3af8afd053ae",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2",
+								"transports",
+								"2ff2d608-fe14-4c17-938c-3af8afd053ae"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 01:23:06 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "261"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"id\": \"2ff2d608-fe14-4c17-938c-3af8afd053ae\",\n    \"local_pk\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n    \"remote_pk\": \"02a2f9b005ce53b77499e73eb4b67d60807a32d1616615809408150d2ff2631da8\",\n    \"type\": \"messaging\",\n    \"log\": {\n        \"received\": null,\n        \"sent\": null\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "DELETE /api/nodes/{pk}/transports/{tid}",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/transports/d5ace20e-06c8-4867-bda2-9449459a9e5a",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"nodes",
+						"023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64",
+						"transports",
+						"d5ace20e-06c8-4867-bda2-9449459a9e5a"
+					]
+				},
+				"description": "Removes transport of given TransportID and Visor."
+			},
+			"response": [
+				{
+					"name": "DELETE /api/nodes/:pk/transports/:tid",
+					"originalRequest": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/nodes/039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2/transports/2ff2d608-fe14-4c17-938c-3af8afd053ae",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"nodes",
+								"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2",
+								"transports",
+								"2ff2d608-fe14-4c17-938c-3af8afd053ae"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Date",
+							"value": "Wed, 13 Feb 2019 01:24:20 GMT"
+						},
+						{
+							"key": "Content-Length",
+							"value": "171"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"node\": \"039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2\",\n    \"transport\": \"2ff2d608-fe14-4c17-938c-3af8afd053ae\",\n    \"command\": \"RemoveTransport\",\n    \"success\": true\n}"
+				}
+			]
+		}
+	]
+}

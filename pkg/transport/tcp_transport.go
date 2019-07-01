@@ -44,7 +44,7 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, rpk}}, nil
 }
 
-// Dial initiates a Transport with a remote node.
+// Dial initiates a Transport with a remote visor.
 func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
 	raddr := f.pkt.RemoteAddr(remote)
 	if raddr == nil {
