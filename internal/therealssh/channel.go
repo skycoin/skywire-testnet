@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/kr/pty"
 
@@ -33,9 +34,10 @@ type SSHChannel struct {
 	conn  net.Conn
 	msgCh chan []byte
 
-	session  *Session
-	listener *net.UnixListener
-	dataCh   chan []byte
+	session    *Session
+	listenerMx sync.Mutex
+	listener   *net.UnixListener
+	dataCh     chan []byte
 }
 
 // OpenChannel constructs new SSHChannel with empty Session.
@@ -149,7 +151,9 @@ func (sshCh *SSHChannel) ServeSocket() error {
 		return fmt.Errorf("failed to open unix socket: %s", err)
 	}
 
+	sshCh.listenerMx.Lock()
 	sshCh.listener = l
+	sshCh.listenerMx.Unlock()
 	conn, err := l.AcceptUnix()
 	if err != nil {
 		return fmt.Errorf("failed to accept connection: %s", err)
@@ -158,8 +162,7 @@ func (sshCh *SSHChannel) ServeSocket() error {
 	debug("got new socket connection")
 	defer func() {
 		conn.Close()
-		sshCh.listener.Close()
-		sshCh.listener = nil
+		sshCh.closeListener() //nolint:errcheck
 		os.Remove(sshCh.SocketPath())
 	}()
 
@@ -258,9 +261,7 @@ func (sshCh *SSHChannel) Close() error {
 		sErr = sshCh.session.Close()
 	}
 
-	if sshCh.listener != nil {
-		lErr = sshCh.listener.Close()
-	}
+	lErr = sshCh.closeListener()
 
 	if sErr != nil {
 		return sErr
@@ -268,6 +269,19 @@ func (sshCh *SSHChannel) Close() error {
 
 	if lErr != nil {
 		return lErr
+	}
+
+	return nil
+}
+
+func (sshCh *SSHChannel) closeListener() error {
+	sshCh.listenerMx.Lock()
+	defer sshCh.listenerMx.Unlock()
+
+	if sshCh.listener != nil {
+		err := sshCh.listener.Close()
+		sshCh.listener = nil
+		return err
 	}
 
 	return nil
