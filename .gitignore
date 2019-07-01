@@ -27,3 +27,4 @@ pkg/node/foo/
 /*.json
 /*.sh
 /*.log
+go.mod-e
