@@ -29,3 +29,6 @@ require (
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20190627033414-4874f863e654 // indirect
 )
+
+// Uncomment for tests with alternate branches of 'dmsg'
+//replace github.com/skycoin/dmsg => ../dmsg
