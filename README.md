@@ -26,10 +26,10 @@
       - [Structure of `./visor`](#Structure-of-visor)
     - [Refresh and restart `SKY01`](#Refresh-and-restart-SKY01)
     - [Customization of dockers](#Customization-of-dockers)
-      - [1. DOCKER_IMAGE](#1-DOCKERIMAGE)
-      - [2.DOCKER_NETWORK](#2DOCKERNETWORK)
-      - [3. DOCKER_NODE](#3-DOCKERNODE)
-      - [4. DOCKER_OPTS](#4-DOCKEROPTS)
+      - [1. DOCKER_IMAGE](#1-DOCKER_IMAGE)
+      - [2. DOCKER_NETWORK](#2-DOCKER_NETWORK)
+      - [3. DOCKER_VISOR](#3-DOCKER_NODE)
+      - [4. DOCKER_OPTS](#4-DOCKER_OPTS)
     - [Dockerized `visor` recipes](#Dockerized-visor-recipes)
       - [1. Get Public Key of docker-visor](#1-Get-Public-Key-of-docker-visor)
       - [2. Get an IP of visor](#2-Get-an-IP-of-visor)
@@ -132,7 +132,7 @@ $ skywire-cli -h
 # Available Commands:
 #   help        Help about any command
 #   mdisc       Contains sub-commands that interact with a remote Messaging Discovery
-visor
+#   visor       Contains sub-commands that interact with the local Visor
 #   rtfind      Queries the Route Finder for available routes between two visors
 #   tpdisc      Queries the Transport Discovery to find transport(s) of given transport ID or edge public key
 #
@@ -286,7 +286,7 @@ This will:
 │   ├── routing.db                  #
 │   └── transport_logs              #
 ├── visor-config.json                    # config of visor
-└── visor                    # `visor binary` compiled with DOCKER_OPTS
+└── visor                    # `visor` binary compiled with DOCKER_OPTS
 ```
 
 Directory `./visor` is mounted as docker volume for `visor` container.
@@ -327,13 +327,13 @@ E.g.
 DOCKER_IMAGE=golang make docker-run #buildpack-deps:stretch-scm is OK too
 ```
 
-#### 2.DOCKER_NETWORK
+#### 2. DOCKER_NETWORK
 
 Name of virtual network for `visor`
 
 Default value: SKYNET
 
-#### 3. DOCKER_NODE
+#### 3. DOCKER_VISOR
 
 Name of container for `visor`
 

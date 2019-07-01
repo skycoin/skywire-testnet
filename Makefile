@@ -10,7 +10,7 @@
 OPTS?=GO111MODULE=on 
 DOCKER_IMAGE?=skywire-runner # docker image to use for running visor.`golang`, `buildpack-deps:stretch-scm`  is OK too
 DOCKER_NETWORK?=SKYNET 
-DOCKER_NODE?=SKY01
+DOCKER_VISOR?=SKY01
 DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker container
 TEST_OPTS?=-race -tags no_ci -cover -timeout=5m
 BUILD_OPTS?=-race
@@ -130,9 +130,9 @@ release: ## Build `hypervisor`, `skywire-cli`, `SSH-cli`, `visor` and apps witho
 docker-image: ## Build docker image `skywire-runner`
 	docker image build --tag=skywire-runner --rm  - < skywire-runner.Dockerfile
 
-docker-clean: ## Clean docker system: remove container ${DOCKER_NODE} and network ${DOCKER_NETWORK}
+docker-clean: ## Clean docker system: remove container ${DOCKER_VISOR} and network ${DOCKER_NETWORK}
 	-docker network rm ${DOCKER_NETWORK} 
-	-docker container rm --force ${DOCKER_NODE} 
+	-docker container rm --force ${DOCKER_VISOR}
 
 docker-network: ## Create docker network ${DOCKER_NETWORK}
 	-docker network create ${DOCKER_NETWORK}
@@ -153,9 +153,9 @@ docker-volume: dep docker-apps docker-bin bin  ## Prepare docker volume for dock
 	-./skywire-cli visor gen-config -o  ./visor/visor.json -r
 	perl -pi -e 's/localhost//g' ./visor/visor.json # To make visor accessible from outside with skywire-cli
 
-docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized visor ${DOCKER_NODE} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
+docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized visor ${DOCKER_VISOR} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
 	docker run -it -v $(shell pwd)/visor:/sky --network=${DOCKER_NETWORK} \
-		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./visor visor.json"
+		--name=${DOCKER_VISOR} ${DOCKER_IMAGE} bash -c "cd /sky && ./visor visor.json"
 
 docker-setup-node:	## Runs setup-visor in detached state in ${DOCKER_NETWORK}
 	-docker container rm setup-node -f
@@ -164,14 +164,14 @@ docker-setup-node:	## Runs setup-visor in detached state in ${DOCKER_NETWORK}
 	 				--hostname=setup-node	skywire-services \
 					  bash -c "./setup-node setup-node.json"
 
-docker-stop: ## Stop running dockerized visor ${DOCKER_NODE}
-	-docker container stop ${DOCKER_NODE}
+docker-stop: ## Stop running dockerized visor ${DOCKER_VISOR}
+	-docker container stop ${DOCKER_VISOR}
 
 docker-rerun: docker-stop
 	-./skywire-cli gen-config -o  ./visor/visor.json -r
 	perl -pi -e 's/localhost//g' ./visor/visor.json # To make visor accessible from outside with skywire-cli
 	${DOCKER_OPTS} go build -race -o ./visor/visor ./cmd/visor
-	docker container start -i ${DOCKER_NODE}
+	docker container start -i ${DOCKER_VISOR}
 
 run-syslog: ## Run syslog-ng in docker. Logs are mounted under /tmp/syslog
 	-rm -rf /tmp/syslog

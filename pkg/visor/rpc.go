@@ -15,7 +15,7 @@ import (
 
 const (
 	// RPCPrefix is the prefix used with all RPC calls.
-	RPCPrefix = "app-visor"
+	RPCPrefix = "visor"
 )
 
 var (

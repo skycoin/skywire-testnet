@@ -24,27 +24,27 @@
 integration
 ├── generic                            #  Generic environmnent
 │   ├── env-vars.sh                    #  
-│   ├── visorA.json                     #
-│   └── visorC.json                     #
+│   ├── visorA.json                    #
+│   └── visorC.json                    #
 ├── messaging                          # Messaging testing environment
 │   ├── env-vars.sh                    # 
-│   ├── visorA.json                     # 
-│   └── visorC.json                     # 
+│   ├── visorA.json                    # 
+│   └── visorC.json                    # 
 ├── proxy                              #  Proxy testing environment
 │   ├── env-vars.sh                    #
-│   ├── visorA.json                     #
-│   └── visorC.json                     #
+│   ├── visorA.json                    #
+│   └── visorC.json                    #
 ├── ssh                                #  ssh testing environment
 │   ├── env-vars.sh                    #
-│   ├── visorA.json                     #
-│   └── visorC.json                     #S
+│   ├── visorA.json                    #
+│   └── visorC.json                    #
 ├── InteractiveEnvironments.md         #  You're reading it
-├── intermediary-visorB.json            #  VisorB configurationS
+├── intermediary-visorB.json           #  VisorB configurationS
 ├── run-base-env.sh                    #  base environment in detached tmux session
 ├── run-generic-env.sh                 #  generic environment in tmux
 ├── run-proxy-env.sh                   #  proxy  environment in tmux
 ├── run-ssh-env.sh                     #  ssh  environment in tmuxS
-├── start-restart-visorB.sh             #  script for restart in cycle VisorB
+├── start-restart-visorB.sh            #  script for restart in cycle VisorB
 ├── startup.sh                         #  add transports between visors
 ├── tear-down.sh                       #  tear down everything
 ├── test-messaging-loop.sh             #  Test script for messaging in infinite loop

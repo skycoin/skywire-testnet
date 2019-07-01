@@ -1,4 +1,4 @@
-// Package hypervisor implements management visor
+// Package hypervisor implements visor manager
 package hypervisor
 
 import (

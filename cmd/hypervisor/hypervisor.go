@@ -1,5 +1,5 @@
 /*
-skywire management visor
+skywire hypervisor
 */
 package main
 

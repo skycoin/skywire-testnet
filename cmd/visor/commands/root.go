@@ -25,7 +25,7 @@ import (
 	"github.com/skycoin/skywire/pkg/visor"
 )
 
-const configEnv = "SW_CONFIG"
+const configEnv = "SW_VISOR_CONFIG"
 const defaultShutdownTimeout = visor.Duration(10 * time.Second)
 
 type runCfg struct {
