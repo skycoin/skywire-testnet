@@ -20,7 +20,6 @@ require (
 	github.com/skycoin/skycoin v0.26.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0
-	github.com/watercompany/skywire v0.0.0-20190308044018-9dc534b693a5
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
