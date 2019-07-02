@@ -19,9 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dmsg"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
-
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/noise"
@@ -30,6 +27,8 @@ import (
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
 // AppStatus defines running status of an App.
