@@ -166,6 +166,8 @@ func (app *App) handleProto() {
 }
 
 func (app *App) serveConn(addr *LoopAddr, conn io.ReadWriteCloser) {
+	defer conn.Close()
+
 	for {
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
@@ -179,11 +181,10 @@ func (app *App) serveConn(addr *LoopAddr, conn io.ReadWriteCloser) {
 		}
 	}
 
-	if app.conns[*addr] != nil {
+	app.mu.Lock()
+	if _, ok := app.conns[*addr]; ok {
 		app.proto.Send(FrameClose, &addr, nil) // nolint: errcheck
 	}
-
-	app.mu.Lock()
 	delete(app.conns, *addr)
 	app.mu.Unlock()
 }
@@ -251,13 +252,12 @@ func (app *App) confirmLoop(data []byte) error {
 
 type appConn struct {
 	net.Conn
-	rw    io.ReadWriteCloser
-	laddr *Addr
-	raddr *Addr
+	laddr  *Addr
+	raddr  *Addr
 }
 
 func newAppConn(conn net.Conn, laddr, raddr *Addr) *appConn {
-	return &appConn{conn, conn, laddr, raddr}
+	return &appConn{conn, laddr, raddr}
 }
 
 func (conn *appConn) LocalAddr() net.Addr {
@@ -269,13 +269,13 @@ func (conn *appConn) RemoteAddr() net.Addr {
 }
 
 func (conn *appConn) Write(p []byte) (n int, err error) {
-	return conn.rw.Write(p)
+	return conn.Conn.Write(p)
 }
 
 func (conn *appConn) Read(p []byte) (n int, err error) {
-	return conn.rw.Read(p)
+	return conn.Conn.Read(p)
 }
 
 func (conn *appConn) Close() error {
-	return conn.rw.Close()
+	return conn.Conn.Close()
 }

@@ -87,16 +87,16 @@ func TestTransportManager(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	tr1 := m1.Transport(tr2.ID)
+	tr1 := m1.Transport(tr2.Entry.ID)
 	require.NotNil(t, tr1)
 
-	dEntry, err := client.GetTransportByID(context.TODO(), tr2.ID)
+	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
 	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
 	assert.True(t, dEntry.IsUp)
 
-	require.NoError(t, m1.DeleteTransport(tr1.ID))
-	dEntry, err = client.GetTransportByID(context.TODO(), tr1.ID)
+	require.NoError(t, m1.DeleteTransport(tr1.Entry.ID))
+	dEntry, err = client.GetTransportByID(context.TODO(), tr1.Entry.ID)
 	require.NoError(t, err)
 	assert.False(t, dEntry.IsUp)
 
@@ -106,12 +106,12 @@ func TestTransportManager(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	dEntry, err = client.GetTransportByID(context.TODO(), tr1.ID)
+	dEntry, err = client.GetTransportByID(context.TODO(), tr1.Entry.ID)
 	require.NoError(t, err)
 	assert.True(t, dEntry.IsUp)
 
-	require.NoError(t, m2.DeleteTransport(tr2.ID))
-	dEntry, err = client.GetTransportByID(context.TODO(), tr2.ID)
+	require.NoError(t, m2.DeleteTransport(tr2.Entry.ID))
+	dEntry, err = client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
 	assert.False(t, dEntry.IsUp)
 
@@ -153,17 +153,17 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
 	require.NoError(t, err)
 
-	tr1 := m1.Transport(tr2.ID)
+	tr1 := m1.Transport(tr2.Entry.ID)
 	require.NotNil(t, tr1)
 
-	dEntry, err := client.GetTransportByID(context.TODO(), tr2.ID)
+	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
 	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m2.Close())
 
-	dEntry2, err := client.GetTransportByID(context.TODO(), tr2.ID)
+	dEntry2, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
 	assert.False(t, dEntry2.IsUp)
 
@@ -176,7 +176,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	go func() { m2errCh <- m2.Serve(context.TODO()) }()
 
 	//time.Sleep(time.Second * 1) // TODO: this time.Sleep looks fishy - figure out later
-	dEntry3, err := client.GetTransportByID(context.TODO(), tr2.ID)
+	dEntry3, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
 
 	assert.True(t, dEntry3.IsUp)
@@ -218,7 +218,7 @@ func TestTransportManagerLogs(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	tr1 := m1.Transport(tr2.ID)
+	tr1 := m1.Transport(tr2.Entry.ID)
 	require.NotNil(t, tr1)
 
 	go tr1.Write([]byte("foo")) // nolint
@@ -226,17 +226,17 @@ func TestTransportManagerLogs(t *testing.T) {
 	_, err = tr2.Read(buf)
 	require.NoError(t, err)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second * 10)
 
-	entry1, err := logStore1.Entry(tr1.ID)
+	entry1, err := logStore1.Entry(tr1.Entry.ID)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(3), entry1.SentBytes.Uint64())
-	assert.Equal(t, uint64(0), entry1.ReceivedBytes.Uint64())
+	assert.Equal(t, uint64(0), entry1.RecvBytes.Uint64())
 
-	entry2, err := logStore2.Entry(tr1.ID)
+	entry2, err := logStore2.Entry(tr1.Entry.ID)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(0), entry2.SentBytes.Uint64())
-	assert.Equal(t, uint64(3), entry2.ReceivedBytes.Uint64())
+	assert.Equal(t, uint64(3), entry2.RecvBytes.Uint64())
 
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())
@@ -314,7 +314,7 @@ func ExampleManager_CreateTransport() {
 			return
 		}
 
-		if (mtrAB.ID == uuid.UUID{}) {
+		if (mtrAB.Entry.ID == uuid.UUID{}) {
 			fmt.Printf("Manager.CreateTransport failed on iteration %v", i)
 			return
 		}

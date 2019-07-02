@@ -2,6 +2,7 @@ package transport
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -14,8 +15,69 @@ import (
 // LogEntry represents a logging entry for a given Transport.
 // The entry is updated every time a packet is received or sent.
 type LogEntry struct {
-	ReceivedBytes *big.Int `json:"received"` // Total received bytes.
-	SentBytes     *big.Int `json:"sent"`     // Total sent bytes.
+	RecvBytes big.Int `json:"recv"` // Total received bytes.
+	SentBytes big.Int `json:"sent"` // Total sent bytes.
+	rMx       sync.Mutex
+	sMx       sync.Mutex
+}
+
+// AddRecv records read.
+func (le *LogEntry) AddRecv(n int64) {
+	le.rMx.Lock()
+	le.RecvBytes.Add(&le.RecvBytes, big.NewInt(n))
+	le.rMx.Unlock()
+}
+
+// AddSent records write.
+func (le *LogEntry) AddSent(n int64) {
+	le.sMx.Lock()
+	le.SentBytes.Add(&le.SentBytes, big.NewInt(n))
+	le.sMx.Unlock()
+}
+
+// MarshalJSON implements json.Marshaller
+func (le *LogEntry) MarshalJSON() ([]byte, error) {
+	le.rMx.Lock()
+	recv := le.RecvBytes.String()
+	le.rMx.Unlock()
+
+	le.sMx.Lock()
+	sent := le.SentBytes.String()
+	le.sMx.Unlock()
+
+	data := `{"recv":` + recv + `,"sent":` + sent + `}`
+	return []byte(data), nil
+}
+
+// GobEncode implements gob.GobEncoder
+func (le *LogEntry) GobEncode() ([]byte, error) {
+	le.rMx.Lock()
+	rb, err := le.RecvBytes.GobEncode()
+	le.rMx.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	le.sMx.Lock()
+	sb, err := le.SentBytes.GobEncode()
+	le.sMx.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	return append(rb, sb...), err
+}
+
+// GobDecode implements gob.GobDecoder
+func (le *LogEntry) GobDecode(b []byte) error {
+	le.rMx.Lock()
+	err := le.RecvBytes.GobDecode(b)
+	le.rMx.Unlock()
+	if err != nil {
+		return err
+	}
+	le.sMx.Lock()
+	err = le.SentBytes.GobDecode(b)
+	le.sMx.Unlock()
+	return err
 }
 
 // LogStore stores transport log entries.
@@ -32,14 +94,17 @@ type inMemoryTransportLogStore struct {
 // InMemoryTransportLogStore implements in-memory TransportLogStore.
 func InMemoryTransportLogStore() LogStore {
 	return &inMemoryTransportLogStore{
-		entries: map[uuid.UUID]*LogEntry{},
+		entries: make(map[uuid.UUID]*LogEntry),
 	}
 }
 
 func (tls *inMemoryTransportLogStore) Entry(id uuid.UUID) (*LogEntry, error) {
 	tls.mu.Lock()
-	entry := tls.entries[id]
+	entry, ok := tls.entries[id]
 	tls.mu.Unlock()
+	if !ok {
+		return entry, errors.New("not found")
+	}
 
 	return entry, nil
 }
