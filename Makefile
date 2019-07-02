@@ -198,6 +198,11 @@ integration-run-proxy: ## Runs the proxy interactive testing environment
 integration-run-ssh: ## Runs the ssh interactive testing environment
 	./integration/run-ssh-env.sh
 
+mod-comm: ## Comments the 'replace' rule in go.mod
+	./ci_scripts/go_mod_replace.sh comment go.mod
+
+mod-uncomm: ## Uncomments the 'replace' rule in go.mod
+	./ci_scripts/go_mod_replace.sh uncomment go.mod
+
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-	

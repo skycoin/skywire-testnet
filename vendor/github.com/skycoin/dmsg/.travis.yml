@@ -1,0 +1,21 @@
+language: go
+go:
+  # - "1.11.x" At minimum the code should run make check on the latest two go versions in the default linux environment provided by Travis.
+  - "1.12.x"
+  
+dist: xenial
+
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      # Do not start osx build for PR
+      if: type != pull_request
+      osx_image: xcode8
+
+install:
+  - go get -u github.com/FiloSottile/vendorcheck
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $GOPATH/bin v1.17.1
+
+script:
+  - make check
