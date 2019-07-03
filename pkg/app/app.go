@@ -252,8 +252,8 @@ func (app *App) confirmLoop(data []byte) error {
 
 type appConn struct {
 	net.Conn
-	laddr  *Addr
-	raddr  *Addr
+	laddr *Addr
+	raddr *Addr
 }
 
 func newAppConn(conn net.Conn, laddr, raddr *Addr) *appConn {
