@@ -371,8 +371,7 @@ func (tm *Manager) isClosing() bool {
 }
 
 func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, factory Factory, remote cipher.PubKey) {
-
-	logTicker := time.NewTicker(time.Second * 5)
+	logTicker := time.NewTicker(logWriteInterval)
 	logUpdate := false
 
 	mgrQty := atomic.AddInt32(&tm.mgrQty, 1)

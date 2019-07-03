@@ -226,7 +226,8 @@ func TestTransportManagerLogs(t *testing.T) {
 	_, err = tr2.Read(buf)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second * 10)
+	// 2x log write interval just to be safe.
+	time.Sleep(logWriteInterval * 2)
 
 	entry1, err := logStore1.Entry(tr1.Entry.ID)
 	require.NoError(t, err)

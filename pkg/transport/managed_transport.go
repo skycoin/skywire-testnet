@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const logWriteInterval = time.Second * 3
+
 // ManagedTransport is a wrapper transport. It stores status and ID of
 // the Transport and can notify about network errors.
 type ManagedTransport struct {
