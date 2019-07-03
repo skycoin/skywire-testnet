@@ -8,8 +8,9 @@ import (
 	"log"
 	"net"
 
+	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 // CommandType represents global protocol messages.

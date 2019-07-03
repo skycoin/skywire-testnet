@@ -6,8 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // Hop defines a route hop between 2 nodes.

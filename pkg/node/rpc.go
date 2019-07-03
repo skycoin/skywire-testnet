@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -56,7 +55,7 @@ func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport,
 	}
 
 	summary := &TransportSummary{
-		ID:      tp.ID,
+		ID:      tp.Entry.ID,
 		Local:   tm.Local(),
 		Remote:  remote,
 		Type:    tp.Type(),

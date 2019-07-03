@@ -10,12 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 func TestMain(m *testing.M) {

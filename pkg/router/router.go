@@ -10,11 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dmsg"
-
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 
 	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"
@@ -100,6 +98,7 @@ func (r *Router) Serve(ctx context.Context) error {
 			}
 
 			go func(tp transport.Transport) {
+				defer tp.Close()
 				for {
 					if err := serve(tp); err != nil {
 						if err != io.EOF {
@@ -425,7 +424,7 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 	// TODO(evanlinjin): need string constant for tp type.
 	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], dmsg.Type, false)
 	if err != nil {
-		return nil, nil, fmt.Errorf("transport: %s", err)
+		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
 
 	sProto := setup.NewSetupProtocol(tr)

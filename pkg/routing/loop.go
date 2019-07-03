@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // Loop defines a loop over a pair of routes.
