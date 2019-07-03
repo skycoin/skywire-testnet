@@ -55,7 +55,7 @@ func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport,
 	}
 
 	summary := &TransportSummary{
-		ID:      tp.ID,
+		ID:      tp.Entry.ID,
 		Local:   tm.Local(),
 		Remote:  remote,
 		Type:    tp.Type(),
