@@ -246,7 +246,7 @@ func TestRPC(t *testing.T) {
 	t.Run("Transport", func(t *testing.T) {
 		var ids []uuid.UUID
 		node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-			ids = append(ids, tp.ID)
+			ids = append(ids, tp.Entry.ID)
 			return true
 		})
 
