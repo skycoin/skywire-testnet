@@ -154,15 +154,12 @@ func CreateLoop(p *Protocol, l *routing.Loop) error {
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func ConfirmLoop(p *Protocol, l *LoopData) (noiseRes []byte, err error) {
-	if err = p.WritePacket(PacketConfirmLoop, l); err != nil {
-		return
+func ConfirmLoop(p *Protocol, l *LoopData) error {
+	if err := p.WritePacket(PacketConfirmLoop, l); err != nil {
+		return err
 	}
 	var res []byte
-	if err = readAndDecodePacket(p, &res); err != nil {
-		return
-	}
-	return res, nil
+	return readAndDecodePacket(p, &res)
 }
 
 // CloseLoop sends CloseLoop setup request.
