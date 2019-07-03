@@ -92,7 +92,7 @@ func (tls *inMemoryTransportLogStore) Entry(id uuid.UUID) (*LogEntry, error) {
 	entry, ok := tls.entries[id]
 	tls.mu.Unlock()
 	if !ok {
-		return entry, errors.New("not found")
+		return entry, errors.New("transport log entry not found")
 	}
 
 	return entry, nil

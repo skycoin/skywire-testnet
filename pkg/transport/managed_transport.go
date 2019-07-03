@@ -34,7 +34,7 @@ func newManagedTransport(tr Transport, entry Entry, accepted bool) *ManagedTrans
 	}
 }
 
-// Read reads using underlying
+// Read reads using underlying transport.
 func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Read(p)
@@ -51,7 +51,7 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	return
 }
 
-// Write writes to an underlying
+// Write writes to an underlying transport.
 func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Write(p)
@@ -81,7 +81,7 @@ func (tr *ManagedTransport) killUpdate() {
 	tr.mu.Unlock()
 }
 
-// Close closes underlying
+// Close closes underlying transport and kills worker.
 func (tr *ManagedTransport) Close() error {
 	if tr == nil {
 		return nil
