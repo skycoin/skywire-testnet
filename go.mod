@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
-	github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.0
