@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -13,7 +12,6 @@ import (
 type loop struct {
 	trID    uuid.UUID
 	routeID routing.RouteID
-	noise   *noise.Noise
 }
 
 type loopList struct {

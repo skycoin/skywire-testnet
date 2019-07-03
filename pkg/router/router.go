@@ -14,7 +14,6 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -214,17 +213,8 @@ func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	raddr := &app.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
-	l, err := r.pm.GetLoop(rule.LocalPort(), raddr)
-	if err != nil {
-		return errors.New("unknown loop")
-	}
 
-	data, err := l.noise.DecryptUnsafe(payload)
-	if err != nil {
-		return fmt.Errorf("noise: %s", err)
-	}
-
-	p := &app.Packet{Addr: &app.LoopAddr{Port: rule.LocalPort(), Remote: *raddr}, Payload: data}
+	p := &app.Packet{Addr: &app.LoopAddr{Port: rule.LocalPort(), Remote: *raddr}, Payload: payload}
 	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
 		return err
@@ -249,7 +239,7 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 		return errors.New("unknown transport")
 	}
 
-	p := routing.MakePacket(l.routeID, l.noise.EncryptUnsafe(packet.Payload))
+	p := routing.MakePacket(l.routeID, packet.Payload)
 	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Addr.Port, l.routeID)
 	_, err = tr.Write(p)
 	return err
@@ -272,20 +262,8 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 }
 
 func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr, error) {
-	r.Logger.Infof("Requesting new loop to %s", raddr)
-	nConf := noise.Config{
-		LocalSK:   r.config.SecKey,
-		LocalPK:   r.config.PubKey,
-		RemotePK:  raddr.PubKey,
-		Initiator: true,
-	}
-	ni, err := noise.KKAndSecp256k1(nConf)
-	if err != nil {
-		return nil, fmt.Errorf("noise: %s", err)
-	}
-
 	lport := r.pm.Alloc(appConn)
-	if err := r.pm.SetLoop(lport, raddr, &loop{noise: ni}); err != nil {
+	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
 		return nil, err
 	}
 
@@ -341,18 +319,7 @@ func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule) error {
 		return err
 	}
 
-	nConf := noise.Config{
-		LocalSK:   r.config.SecKey,
-		LocalPK:   r.config.PubKey,
-		RemotePK:  addr.Remote.PubKey,
-		Initiator: false,
-	}
-	ni, err := noise.KKAndSecp256k1(nConf)
-	if err != nil {
-		return err
-	}
-
-	if err := r.pm.SetLoop(addr.Port, &addr.Remote, &loop{rule.TransportID(), rule.RouteID(), ni}); err != nil {
+	if err := r.pm.SetLoop(addr.Port, &addr.Remote, &loop{rule.TransportID(), rule.RouteID()}); err != nil {
 		return err
 	}
 
