@@ -79,24 +79,21 @@ func (sn *Node) Serve(ctx context.Context) error {
 		sn.Logger.Info("Connected to messaging servers")
 	}
 
-	go func() {
-		for {
-			tp, err := sn.messenger.Accept(ctx)
-			if err != nil {
-				sn.Logger.Warnf("Failed to accept Transport: %s", err)
-			}
-			go func(tp transport.Transport) {
-				for {
-					if err := sn.serveTransport(tp); err != nil {
-						sn.Logger.Warnf("Failed to serve Transport: %s", err)
-					}
-				}
-			}(tp)
-		}
-	}()
-
 	sn.Logger.Info("Starting Setup Node")
-	return nil
+
+	for {
+		tp, err := sn.messenger.Accept(ctx)
+		if err != nil {
+			return err
+		}
+		go func(tp transport.Transport) {
+			for {
+				if err := sn.serveTransport(tp); err != nil {
+					sn.Logger.Warnf("Failed to serve Transport: %s", err)
+				}
+			}
+		}(tp)
+	}
 }
 
 func (sn *Node) createLoop(l *routing.Loop) error {
