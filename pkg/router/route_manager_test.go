@@ -153,9 +153,8 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 		RouteID:      1,
 		NoiseMessage: []byte("bar"),
 	}
-	noiseRes, err := setup.ConfirmLoop(proto, ld)
+	err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
-	assert.Equal(t, []byte("foo"), noiseRes)
 	assert.Equal(t, rule, inRule)
 	assert.Equal(t, uint16(2), inAddr.Port)
 	assert.Equal(t, uint16(3), inAddr.Remote.Port)

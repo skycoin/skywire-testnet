@@ -343,24 +343,10 @@ func TestRouterSetup(t *testing.T) {
 	})
 
 	t.Run("`confirm loop - responder", func(t *testing.T) {
-		confI := noise.Config{
-			LocalSK:   sk2,
-			LocalPK:   pk2,
-			RemotePK:  pk1,
-			Initiator: true,
-		}
-
-		ni, err := noise.KKAndSecp256k1(confI)
-		require.NoError(t, err)
-		msg, err := ni.HandshakeMessage()
-		require.NoError(t, err)
-
-		time.Sleep(100 * time.Millisecond)
-
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
 		require.NoError(t, err)
 
-		noiseRes, err := setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID, NoiseMessage: msg})
+		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -381,8 +367,6 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, uint16(2), addrs[0].Port)
 		assert.Equal(t, pk2, addrs[1].PubKey)
 		assert.Equal(t, uint16(1), addrs[1].Port)
-
-		require.NoError(t, ni.ProcessMessage(noiseRes))
 	})
 
 	t.Run("confirm loop - initiator", func(t *testing.T) {
@@ -395,21 +379,6 @@ func TestRouterSetup(t *testing.T) {
 
 		ni, err := noise.KKAndSecp256k1(confI)
 		require.NoError(t, err)
-		msg, err := ni.HandshakeMessage()
-		require.NoError(t, err)
-
-		confR := noise.Config{
-			LocalSK:   sk2,
-			LocalPK:   pk2,
-			RemotePK:  pk1,
-			Initiator: false,
-		}
-
-		nr, err := noise.KKAndSecp256k1(confR)
-		require.NoError(t, err)
-		require.NoError(t, nr.ProcessMessage(msg))
-		noiseRes, err := nr.HandshakeMessage()
-		require.NoError(t, err)
 
 		time.Sleep(100 * time.Millisecond)
 
@@ -418,7 +387,7 @@ func TestRouterSetup(t *testing.T) {
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
 		require.NoError(t, err)
 
-		_, err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID, NoiseMessage: noiseRes})
+		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
