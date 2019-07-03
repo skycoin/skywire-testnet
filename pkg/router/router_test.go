@@ -84,7 +84,7 @@ func TestRouterForwarding(t *testing.T) {
 	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
 	require.NoError(t, err)
 
-	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.ID)
+	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.Entry.ID)
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -195,9 +195,9 @@ func TestRouterApp(t *testing.T) {
 	require.NoError(t, err)
 
 	raddr := &app.Addr{PubKey: pk2, Port: 5}
-	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.ID, 4}))
+	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.Entry.ID, 4}))
 
-	tr2 := m2.Transport(tr.ID)
+	tr2 := m2.Transport(tr.Entry.ID)
 	go proto.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 6, Remote: *raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
 
 	packet := make(routing.Packet, 9)
@@ -329,13 +329,13 @@ func TestRouterSetup(t *testing.T) {
 
 	var routeID routing.RouteID
 	t.Run("add route", func(t *testing.T) {
-		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.ID))
+		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.Entry.ID))
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(routeID)
 		require.NoError(t, err)
 		assert.Equal(t, routing.RouteID(2), rule.RouteID())
-		assert.Equal(t, tr.ID, rule.TransportID())
+		assert.Equal(t, tr.Entry.ID, rule.TransportID())
 	})
 
 	t.Run("`confirm loop - responder", func(t *testing.T) {
@@ -353,7 +353,7 @@ func TestRouterSetup(t *testing.T) {
 		loop, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, loop)
-		assert.Equal(t, tr.ID, loop.trID)
+		assert.Equal(t, tr.Entry.ID, loop.trID)
 		assert.Equal(t, routing.RouteID(2), loop.routeID)
 
 		addrs := [2]*app.Addr{}
@@ -382,7 +382,7 @@ func TestRouterSetup(t *testing.T) {
 		l, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, l)
-		assert.Equal(t, tr.ID, l.trID)
+		assert.Equal(t, tr.Entry.ID, l.trID)
 		assert.Equal(t, routing.RouteID(2), l.routeID)
 
 		addrs := [2]*app.Addr{}
