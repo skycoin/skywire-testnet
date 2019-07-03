@@ -108,10 +108,10 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 
 	addr := &app.Addr{PubKey: pk, Port: 1}
 	connsMu.Lock()
-	conn := chatConns[pk]
+	conn, ok := chatConns[pk]
 	connsMu.Unlock()
 
-	if conn == nil {
+	if !ok {
 		var err error
 		err = r.Do(func() error {
 			conn, err = chatApp.Dial(addr)
