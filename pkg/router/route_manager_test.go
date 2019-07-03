@@ -123,13 +123,11 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 	var inAddr *app.LoopAddr
 	var inRule routing.Rule
-	var noiseMsg []byte
 	callbacks := &setupCallbacks{
-		ConfirmLoop: func(addr *app.LoopAddr, rule routing.Rule, nMsg []byte) (noiseRes []byte, err error) {
+		ConfirmLoop: func(addr *app.LoopAddr, rule routing.Rule) (err error) {
 			inAddr = addr
 			inRule = rule
-			noiseMsg = nMsg
-			return []byte("foo"), nil
+			return nil
 		},
 	}
 	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, callbacks}
@@ -158,7 +156,6 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	noiseRes, err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("foo"), noiseRes)
-	assert.Equal(t, []byte("bar"), noiseMsg)
 	assert.Equal(t, rule, inRule)
 	assert.Equal(t, uint16(2), inAddr.Port)
 	assert.Equal(t, uint16(3), inAddr.Remote.Port)

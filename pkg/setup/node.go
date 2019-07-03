@@ -121,14 +121,13 @@ func (sn *Node) createLoop(l *routing.Loop) error {
 	initiator := l.Initiator()
 	responder := l.Responder()
 
-	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID, NoiseMessage: l.NoiseMessage}
-	noiseRes, err := sn.connectLoop(responder, ldR)
-	if err != nil {
+	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID}
+	if _, err := sn.connectLoop(responder, ldR); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID, NoiseMessage: noiseRes}
+	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID}
 	if _, err := sn.connectLoop(initiator, ldI); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with initiator: %s", err)
 		if err := sn.closeLoop(responder, ldR); err != nil {
@@ -222,7 +221,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	return proto.WritePacket(RespSuccess, nil)
 }
 
-func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, err error) {
+func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (res []byte, err error) {
 	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
@@ -231,7 +230,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, er
 	defer tr.Close()
 
 	proto := NewSetupProtocol(tr)
-	res, err := ConfirmLoop(proto, ld)
+	res, err = ConfirmLoop(proto, ld)
 	if err != nil {
 		return nil, err
 	}

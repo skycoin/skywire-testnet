@@ -284,11 +284,6 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 		return nil, fmt.Errorf("noise: %s", err)
 	}
 
-	msg, err := ni.HandshakeMessage()
-	if err != nil {
-		return nil, fmt.Errorf("noise handshake: %s", err)
-	}
-
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{noise: ni}); err != nil {
 		return nil, err
@@ -309,7 +304,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	}
 
 	l := &routing.Loop{LocalPort: laddr.Port, RemotePort: raddr.Port,
-		NoiseMessage: msg, Expiry: time.Now().Add(RouteTTL),
+		Expiry:  time.Now().Add(RouteTTL),
 		Forward: forwardRoute, Reverse: reverseRoute}
 
 	proto, tr, err := r.setupProto(context.Background())
@@ -340,19 +335,25 @@ func (r *Router) confirmLocalLoop(laddr, raddr *app.Addr) error {
 	return nil
 }
 
-func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule, noiseMsg []byte) ([]byte, error) {
+func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule) error {
 	b, err := r.pm.Get(addr.Port)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	ni, msg, err := r.advanceNoiseHandshake(addr, noiseMsg)
+	nConf := noise.Config{
+		LocalSK:   r.config.SecKey,
+		LocalPK:   r.config.PubKey,
+		RemotePK:  addr.Remote.PubKey,
+		Initiator: false,
+	}
+	ni, err := noise.KKAndSecp256k1(nConf)
 	if err != nil {
-		return nil, fmt.Errorf("noise handshake: %s", err)
+		return err
 	}
 
 	if err := r.pm.SetLoop(addr.Port, &addr.Remote, &loop{rule.TransportID(), rule.RouteID(), ni}); err != nil {
-		return nil, err
+		return err
 	}
 
 	addrs := [2]*app.Addr{&app.Addr{PubKey: r.config.PubKey, Port: addr.Port}, &addr.Remote}
@@ -360,7 +361,7 @@ func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule, noiseMsg []b
 		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
 	}
 
-	return msg, nil
+	return nil
 }
 
 func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
@@ -449,36 +450,6 @@ fetchRoutesAgain:
 
 	r.Logger.Infof("Found routes Forward: %s. Reverse %s", fwdRoutes, revRoutes)
 	return fwdRoutes[0], revRoutes[0], nil
-}
-
-func (r *Router) advanceNoiseHandshake(addr *app.LoopAddr, noiseMsg []byte) (ni *noise.Noise, noiseRes []byte, err error) {
-	var l *loop
-	l, _ = r.pm.GetLoop(addr.Port, &addr.Remote) // nolint: errcheck
-
-	if l != nil && l.routeID != 0 {
-		err = errors.New("loop already exist")
-		return
-	}
-
-	if l != nil && l.noise != nil {
-		return l.noise, nil, l.noise.ProcessMessage(noiseMsg)
-	}
-
-	nConf := noise.Config{
-		LocalSK:   r.config.SecKey,
-		LocalPK:   r.config.PubKey,
-		RemotePK:  addr.Remote.PubKey,
-		Initiator: false,
-	}
-	ni, err = noise.KKAndSecp256k1(nConf)
-	if err != nil {
-		return
-	}
-	if err = ni.ProcessMessage(noiseMsg); err != nil {
-		return
-	}
-	noiseRes, err = ni.HandshakeMessage()
-	return
 }
 
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
