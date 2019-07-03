@@ -57,11 +57,10 @@ const (
 
 // LoopData stores loop confirmation request data.
 type LoopData struct {
-	RemotePK     cipher.PubKey   `json:"remote-pk"`
-	RemotePort   uint16          `json:"remote-port"`
-	LocalPort    uint16          `json:"local-port"`
-	RouteID      routing.RouteID `json:"resp-rid,omitempty"`
-	NoiseMessage []byte          `json:"noise-msg,omitempty"`
+	RemotePK   cipher.PubKey   `json:"remote-pk"`
+	RemotePort uint16          `json:"remote-port"`
+	LocalPort  uint16          `json:"local-port"`
+	RouteID    routing.RouteID `json:"resp-rid,omitempty"`
 }
 
 // Protocol defines routes setup protocol.

@@ -147,11 +147,10 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := &setup.LoopData{
-		RemotePK:     pk,
-		RemotePort:   3,
-		LocalPort:    2,
-		RouteID:      1,
-		NoiseMessage: []byte("bar"),
+		RemotePK:   pk,
+		RemotePort: 3,
+		LocalPort:  2,
+		RouteID:    1,
 	}
 	err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
@@ -192,11 +191,10 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := &setup.LoopData{
-		RemotePK:     pk,
-		RemotePort:   3,
-		LocalPort:    2,
-		RouteID:      1,
-		NoiseMessage: []byte("bar"),
+		RemotePK:   pk,
+		RemotePort: 3,
+		LocalPort:  2,
+		RouteID:    1,
 	}
 	require.NoError(t, setup.LoopClosed(proto, ld))
 	assert.Equal(t, uint16(2), inAddr.Port)
