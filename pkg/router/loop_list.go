@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/skycoin/dmsg/noise"
+
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
