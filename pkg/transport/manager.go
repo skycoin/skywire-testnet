@@ -263,10 +263,15 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 		return nil, nil, err
 	}
 
-	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
-	if err != nil {
-		tr.Close()
-		return nil, nil, err
+	var entry *Entry
+	if tm.IsSetupTransport(tr) {
+		entry = makeEntry(tr, public)
+	} else {
+		entry, err = settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
+		if err != nil {
+			tr.Close()
+			return nil, nil, err
+		}
 	}
 
 	return tr, entry, nil
@@ -417,7 +422,7 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 }
 
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
-func (tm *Manager) IsSetupTransport(tr *ManagedTransport) bool {
+func (tm *Manager) IsSetupTransport(tr Transport) bool {
 	for _, pk := range tm.config.SetupNodes {
 		remote, ok := tm.Remote(tr.Edges())
 		if ok && (remote == pk) {
