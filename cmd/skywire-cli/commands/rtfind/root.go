@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/route-finder/client"
 )
 

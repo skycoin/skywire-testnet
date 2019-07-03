@@ -13,8 +13,7 @@ import (
 	"strings"
 
 	"github.com/kr/pty"
-
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/app"
 )

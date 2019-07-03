@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // ErrTransportCommunicationTimeout represent timeout error for a mock transport.

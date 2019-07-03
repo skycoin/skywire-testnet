@@ -5,8 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // Entry is the unsigned representation of a Transport.

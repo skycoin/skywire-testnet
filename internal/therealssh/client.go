@@ -11,12 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skycoin/skywire/internal/netutil"
-
 	"github.com/kr/pty"
+	"github.com/skycoin/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-
+	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/app"
 )
 

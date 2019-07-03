@@ -10,8 +10,7 @@ import (
 	"time"
 
 	"github.com/flynn/noise"
-
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 var (
