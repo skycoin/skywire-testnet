@@ -37,7 +37,7 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Read(p)
 	if n > 0 {
-		tr.LogEntry.AddRecv(int64(n))
+		tr.LogEntry.AddRecv(uint64(n))
 	}
 	if !tr.isClosing() {
 		select {
@@ -54,7 +54,7 @@ func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
 	tr.mu.RLock()
 	n, err = tr.Transport.Write(p)
 	if n > 0 {
-		tr.LogEntry.AddSent(int64(n))
+		tr.LogEntry.AddSent(uint64(n))
 	}
 	if !tr.isClosing() {
 		select {

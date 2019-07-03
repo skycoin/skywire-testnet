@@ -230,13 +230,13 @@ func TestTransportManagerLogs(t *testing.T) {
 
 	entry1, err := logStore1.Entry(tr1.Entry.ID)
 	require.NoError(t, err)
-	assert.Equal(t, uint64(3), entry1.SentBytes.Uint64())
-	assert.Equal(t, uint64(0), entry1.RecvBytes.Uint64())
+	assert.Equal(t, uint64(3), entry1.SentBytes)
+	assert.Equal(t, uint64(0), entry1.RecvBytes)
 
 	entry2, err := logStore2.Entry(tr1.Entry.ID)
 	require.NoError(t, err)
-	assert.Equal(t, uint64(0), entry2.SentBytes.Uint64())
-	assert.Equal(t, uint64(3), entry2.RecvBytes.Uint64())
+	assert.Equal(t, uint64(0), entry2.SentBytes)
+	assert.Equal(t, uint64(3), entry2.RecvBytes)
 
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())

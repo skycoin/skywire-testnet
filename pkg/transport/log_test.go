@@ -32,8 +32,8 @@ func testTransportLogStore(t *testing.T, logStore transport.LogStore) {
 
 	entry, err := logStore.Entry(id2)
 	require.NoError(t, err)
-	assert.Equal(t, int64(300), entry.RecvBytes.Int64())
-	assert.Equal(t, int64(400), entry.SentBytes.Int64())
+	assert.Equal(t, uint64(300), entry.RecvBytes)
+	assert.Equal(t, uint64(400), entry.SentBytes)
 }
 
 func TestInMemoryTransportLogStore(t *testing.T) {
