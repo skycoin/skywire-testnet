@@ -146,10 +146,7 @@ func CreateLoop(p *Protocol, l *routing.Loop) error {
 	if err := p.WritePacket(PacketCreateLoop, l); err != nil {
 		return err
 	}
-	if err := readAndDecodePacket(p, nil); err != nil { // TODO: data race.
-		return err
-	}
-	return nil
+	return readAndDecodePacket(p, nil) // TODO: data race.
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
@@ -157,8 +154,7 @@ func ConfirmLoop(p *Protocol, l *LoopData) error {
 	if err := p.WritePacket(PacketConfirmLoop, l); err != nil {
 		return err
 	}
-	var res []byte
-	return readAndDecodePacket(p, &res)
+	return readAndDecodePacket(p, nil)
 }
 
 // CloseLoop sends CloseLoop setup request.
@@ -166,10 +162,7 @@ func CloseLoop(p *Protocol, l *LoopData) error {
 	if err := p.WritePacket(PacketCloseLoop, l); err != nil {
 		return err
 	}
-	if err := readAndDecodePacket(p, nil); err != nil {
-		return err
-	}
-	return nil
+	return readAndDecodePacket(p, nil)
 }
 
 // LoopClosed sends LoopClosed setup request.
@@ -177,10 +170,7 @@ func LoopClosed(p *Protocol, l *LoopData) error {
 	if err := p.WritePacket(PacketLoopClosed, l); err != nil {
 		return err
 	}
-	if err := readAndDecodePacket(p, nil); err != nil {
-		return err
-	}
-	return nil
+	return readAndDecodePacket(p, nil)
 }
 
 func readAndDecodePacket(p *Protocol, v interface{}) error {
@@ -194,8 +184,5 @@ func readAndDecodePacket(p *Protocol, v interface{}) error {
 	if v == nil {
 		return nil
 	}
-	if err = json.Unmarshal(raw, v); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(raw, v)
 }
