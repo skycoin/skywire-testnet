@@ -224,6 +224,10 @@ func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 
 // Close closes opened transports and registered factories.
 func (tm *Manager) Close() error {
+	if tm == nil {
+		return nil
+	}
+
 	close(tm.doneChan)
 
 	tm.Logger.Info("Closing transport manager")

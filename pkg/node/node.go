@@ -305,6 +305,9 @@ func (node *Node) stopUnhandledApp(name string, pid int) {
 
 // Close safely stops spawned Apps and messaging Node.
 func (node *Node) Close() (err error) {
+	if node == nil {
+		return nil
+	}
 	if node.rpcListener != nil {
 		if err = node.rpcListener.Close(); err != nil {
 			node.logger.WithError(err).Error("failed to stop RPC interface")

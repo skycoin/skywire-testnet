@@ -289,6 +289,10 @@ func (sshCh *SSHChannel) close() (closed bool, err error) {
 
 // Close safely closes Channel resources.
 func (sshCh *SSHChannel) Close() error {
+	if sshCh == nil {
+		return nil
+	}
+
 	closed, err := sshCh.close()
 	if err != nil {
 		return err

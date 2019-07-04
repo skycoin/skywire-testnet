@@ -181,6 +181,9 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 
 // Close closes underlying transport manager.
 func (sn *Node) Close() error {
+	if sn == nil {
+		return nil
+	}
 	return sn.tm.Close()
 }
 

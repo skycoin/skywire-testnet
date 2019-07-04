@@ -177,6 +177,10 @@ func (s *Server) Serve(conn net.Conn) error {
 
 // Close closes all opened channels.
 func (s *Server) Close() error {
+	if s == nil {
+		return nil
+	}
+
 	for _, channel := range s.chans.dropAll() {
 		channel.Close()
 	}

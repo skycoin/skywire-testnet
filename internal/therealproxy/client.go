@@ -74,5 +74,8 @@ func (c *Client) ListenAndServe(addr string) error {
 
 // Close implement io.Closer.
 func (c *Client) Close() error {
+	if c == nil {
+		return nil
+	}
 	return c.listener.Close()
 }
