@@ -162,6 +162,10 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 
 // Close safely stops Router.
 func (r *Router) Close() error {
+	if r == nil {
+		return nil
+	}
+
 	r.Logger.Info("Closing all App connections and Loops")
 	r.expiryTicker.Stop()
 

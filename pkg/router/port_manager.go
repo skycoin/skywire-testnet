@@ -62,6 +62,10 @@ func (pm *portManager) AppPorts(appConn *app.Protocol) []uint16 {
 }
 
 func (pm *portManager) Close(port uint16) []app.Addr {
+	if pm == nil {
+		return nil
+	}
+
 	b := pm.ports.remove(port)
 	if b == nil {
 		return nil

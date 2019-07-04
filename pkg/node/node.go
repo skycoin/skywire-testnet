@@ -21,7 +21,8 @@ import (
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/noise"
+	"github.com/skycoin/dmsg/noise"
+
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/router"
@@ -304,6 +305,9 @@ func (node *Node) stopUnhandledApp(name string, pid int) {
 
 // Close safely stops spawned Apps and messaging Node.
 func (node *Node) Close() (err error) {
+	if node == nil {
+		return nil
+	}
 	if node.rpcListener != nil {
 		if err = node.rpcListener.Close(); err != nil {
 			node.logger.WithError(err).Error("failed to stop RPC interface")
