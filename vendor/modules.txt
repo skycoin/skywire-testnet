@@ -66,8 +66,8 @@ github.com/sirupsen/logrus
 github.com/skycoin/dmsg/cipher
 github.com/skycoin/dmsg
 github.com/skycoin/dmsg/disc
-github.com/skycoin/dmsg/ioutil
 github.com/skycoin/dmsg/noise
+github.com/skycoin/dmsg/ioutil
 # github.com/skycoin/skycoin v0.26.0
 github.com/skycoin/skycoin/src/util/logging
 github.com/skycoin/skycoin/src/cipher
