@@ -55,6 +55,9 @@ func (s *Server) Serve(l net.Listener) error {
 
 // Close implement io.Closer.
 func (s *Server) Close() error {
+	if s == nil {
+		return nil
+	}
 	return s.listener.Close()
 }
 

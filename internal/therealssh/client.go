@@ -132,7 +132,11 @@ func (c *Client) serveConn(conn net.Conn) error {
 		case CmdChannelOpenResponse, CmdChannelResponse:
 			sshCh.msgCh <- data
 		case CmdChannelData:
-			sshCh.dataCh <- data
+			sshCh.dataChMx.Lock()
+			if !sshCh.IsClosed() {
+				sshCh.dataCh <- data
+			}
+			sshCh.dataChMx.Unlock()
 		case CmdChannelServerClose:
 			err = sshCh.Close()
 		default:
@@ -147,6 +151,10 @@ func (c *Client) serveConn(conn net.Conn) error {
 
 // Close closes all opened channels.
 func (c *Client) Close() error {
+	if c == nil {
+		return nil
+	}
+
 	for _, sshCh := range c.chans.dropAll() {
 		sshCh.Close()
 	}
@@ -224,6 +232,10 @@ func (rpc *RPCClient) WindowChange(args *WindowChangeArgs, _ *int) error {
 
 // Close defines close client RPC request.
 func (rpc *RPCClient) Close(channelID *uint32, _ *struct{}) error {
+	if rpc == nil {
+		return nil
+	}
+
 	sshCh := rpc.c.chans.getChannel(*channelID)
 	if sshCh == nil {
 		return errors.New("unknown ssh channel")

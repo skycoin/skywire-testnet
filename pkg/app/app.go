@@ -91,6 +91,10 @@ func Setup(config *Config) (*App, error) {
 
 // Close implements io.Closer for an App.
 func (app *App) Close() error {
+	if app == nil {
+		return nil
+	}
+
 	select {
 	case <-app.doneChan: // already closed
 	default:
@@ -218,10 +222,6 @@ func (app *App) closeConn(data []byte) error {
 	delete(app.conns, *addr)
 	app.mu.Unlock()
 
-	if conn == nil {
-		return nil
-	}
-
 	return conn.Close()
 }
 
@@ -266,16 +266,4 @@ func (conn *appConn) LocalAddr() net.Addr {
 
 func (conn *appConn) RemoteAddr() net.Addr {
 	return conn.raddr
-}
-
-func (conn *appConn) Write(p []byte) (n int, err error) {
-	return conn.Conn.Write(p)
-}
-
-func (conn *appConn) Read(p []byte) (n int, err error) {
-	return conn.Conn.Read(p)
-}
-
-func (conn *appConn) Close() error {
-	return conn.Conn.Close()
 }

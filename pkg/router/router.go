@@ -14,7 +14,8 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/noise"
+	"github.com/skycoin/dmsg/noise"
+
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -162,6 +163,10 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 
 // Close safely stops Router.
 func (r *Router) Close() error {
+	if r == nil {
+		return nil
+	}
+
 	r.Logger.Info("Closing all App connections and Loops")
 	r.expiryTicker.Stop()
 
