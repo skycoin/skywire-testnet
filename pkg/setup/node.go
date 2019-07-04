@@ -178,6 +178,9 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 
 // Close closes underlying dmsg client.
 func (sn *Node) Close() error {
+  if sn == nil {
+		return nil
+	}
 	return sn.messenger.Close()
 }
 

@@ -14,7 +14,8 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/noise"
+	"github.com/skycoin/dmsg/noise"
+
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -97,6 +98,7 @@ func (r *Router) Serve(ctx context.Context) error {
 			}
 
 			go func(tp transport.Transport) {
+				defer tp.Close()
 				for {
 					if err := serve(tp); err != nil {
 						if err != io.EOF {
@@ -161,6 +163,10 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 
 // Close safely stops Router.
 func (r *Router) Close() error {
+	if r == nil {
+		return nil
+	}
+
 	r.Logger.Info("Closing all App connections and Loops")
 	r.expiryTicker.Stop()
 
@@ -423,7 +429,7 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 	// TODO(evanlinjin): need string constant for tp type.
 	tr, err := r.tm.CreateTransport(ctx, setupNodes[0], dmsg.Type, false)
 	if err != nil {
-		return nil, nil, fmt.Errorf("transport: %s", err)
+		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
 
 	sProto := setup.NewSetupProtocol(tr)

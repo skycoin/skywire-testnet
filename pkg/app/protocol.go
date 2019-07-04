@@ -126,6 +126,9 @@ func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) er
 
 // Close closes underlying ReadWriter.
 func (p *Protocol) Close() error {
+	if p == nil {
+		return nil
+	}
 	p.chans.closeAll()
 	return p.rw.Close()
 }

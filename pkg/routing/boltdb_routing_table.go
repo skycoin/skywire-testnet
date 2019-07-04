@@ -142,6 +142,9 @@ func (rt *boltDBRoutingTable) Count() (count int) {
 
 // Close closes underlying BoltDB instance.
 func (rt *boltDBRoutingTable) Close() error {
+	if rt == nil {
+		return nil
+	}
 	return rt.db.Close()
 }
 

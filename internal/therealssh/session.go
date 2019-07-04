@@ -123,5 +123,8 @@ func (s *Session) Read(p []byte) (int, error) {
 
 // Close releases PTY resources.
 func (s *Session) Close() error {
+	if s == nil {
+		return nil
+	}
 	return s.pty.Close()
 }
