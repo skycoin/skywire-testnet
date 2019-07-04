@@ -9,12 +9,11 @@ import (
 
 // Loop defines a loop over a pair of routes.
 type Loop struct {
-	LocalPort    uint16
-	RemotePort   uint16
-	Forward      Route
-	Reverse      Route
-	Expiry       time.Time
-	NoiseMessage []byte
+	LocalPort  uint16
+	RemotePort uint16
+	Forward    Route
+	Reverse    Route
+	Expiry     time.Time
 }
 
 // Initiator returns initiator of the Loop.
