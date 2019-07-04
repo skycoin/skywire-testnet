@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/kr/pty"
 	"github.com/skycoin/dmsg/cipher"
@@ -34,12 +35,18 @@ type SSHChannel struct {
 
 	session  *Session
 	listener *net.UnixListener
+
+	dataChMx sync.Mutex
 	dataCh   chan []byte
+
+	doneOnce sync.Once
+	done     chan struct{}
 }
 
 // OpenChannel constructs new SSHChannel with empty Session.
 func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *SSHChannel {
-	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
+	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte),
+		dataCh: make(chan []byte), done: make(chan struct{})}
 }
 
 // OpenClientChannel constructs new client SSHChannel with empty Session.
@@ -243,33 +250,64 @@ func (sshCh *SSHChannel) WindowChange(sz *pty.Winsize) error {
 	return sshCh.session.WindowChange(sz)
 }
 
+func (sshCh *SSHChannel) close() (closed bool, err error) {
+	sshCh.doneOnce.Do(func() {
+		closed = true
+
+		close(sshCh.done)
+
+		select {
+		case <-sshCh.dataCh:
+		default:
+			sshCh.dataChMx.Lock()
+			close(sshCh.dataCh)
+			sshCh.dataChMx.Unlock()
+		}
+		close(sshCh.msgCh)
+
+		var sErr, lErr error
+		if sshCh.session != nil {
+			sErr = sshCh.session.Close()
+		}
+
+		if sshCh.listener != nil {
+			lErr = sshCh.listener.Close()
+		}
+
+		if sErr != nil {
+			err = sErr
+			return
+		}
+
+		if lErr != nil {
+			err = lErr
+		}
+	})
+
+	return closed, err
+}
+
 // Close safely closes Channel resources.
 func (sshCh *SSHChannel) Close() error {
-	select {
-	case <-sshCh.dataCh:
-	default:
-		close(sshCh.dataCh)
+	closed, err := sshCh.close()
+	if err != nil {
+		return err
 	}
-	close(sshCh.msgCh)
-
-	var sErr, lErr error
-	if sshCh.session != nil {
-		sErr = sshCh.session.Close()
-	}
-
-	if sshCh.listener != nil {
-		lErr = sshCh.listener.Close()
-	}
-
-	if sErr != nil {
-		return sErr
-	}
-
-	if lErr != nil {
-		return lErr
+	if !closed {
+		return errors.New("channel is already closed")
 	}
 
 	return nil
+}
+
+// IsClosed returns whether the Channel is closed.
+func (sshCh *SSHChannel) IsClosed() bool {
+	select {
+	case <-sshCh.done:
+		return true
+	default:
+		return false
+	}
 }
 
 func debug(format string, v ...interface{}) {
