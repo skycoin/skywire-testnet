@@ -15,7 +15,7 @@ import (
 )
 
 type setupCallbacks struct {
-	ConfirmLoop func(addr *app.LoopAddr, rule routing.Rule, noiseMsg []byte) (noiseRes []byte, err error)
+	ConfirmLoop func(addr *app.LoopAddr, rule routing.Rule) (err error)
 	LoopClosed  func(addr *app.LoopAddr) error
 }
 
@@ -89,7 +89,7 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 	case setup.PacketDeleteRules:
 		respBody, err = rm.deleteRoutingRules(body)
 	case setup.PacketConfirmLoop:
-		respBody, err = rm.confirmLoop(body)
+		err = rm.confirmLoop(body)
 	case setup.PacketLoopClosed:
 		err = rm.loopClosed(body)
 	default:
@@ -97,7 +97,6 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 	}
 
 	if err != nil {
-
 		rm.Logger.Infof("Setup request with type %s failed: %s", t, err)
 		return proto.WritePacket(setup.RespFailure, err.Error())
 	}
@@ -141,17 +140,17 @@ func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, erro
 	return ruleIDs, nil
 }
 
-func (rm *routeManager) confirmLoop(data []byte) (noiseRes []byte, err error) {
+func (rm *routeManager) confirmLoop(data []byte) error {
 	ld := setup.LoopData{}
-	if err = json.Unmarshal(data, &ld); err != nil {
-		return
+	if err := json.Unmarshal(data, &ld); err != nil {
+		return err
 	}
 
 	raddr := &app.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
 
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
-	err = rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
+	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.RemotePK ||
 			rule.RemotePort() != ld.RemotePort || rule.LocalPort() != ld.LocalPort {
 			return true
@@ -163,41 +162,34 @@ func (rm *routeManager) confirmLoop(data []byte) (noiseRes []byte, err error) {
 		return false
 	})
 	if err != nil {
-		err = fmt.Errorf("routing table: %s", err)
-		return
+		return fmt.Errorf("routing table: %s", err)
 	}
 
 	if appRule == nil {
-		err = errors.New("unknown loop")
-		return
+		return errors.New("unknown loop")
 	}
 
 	rule, err := rm.rt.Rule(ld.RouteID)
 	if err != nil {
-		err = fmt.Errorf("routing table: %s", err)
-		return
+		return fmt.Errorf("routing table: %s", err)
 	}
 
 	if rule.Type() != routing.RuleForward {
-		err = errors.New("reverse rule is not forward")
-		return
+		return errors.New("reverse rule is not forward")
 	}
 
-	msg, err := rm.callbacks.ConfirmLoop(&app.LoopAddr{Port: ld.LocalPort, Remote: *raddr}, rule, ld.NoiseMessage)
-	if err != nil {
-		err = fmt.Errorf("confirm: %s", err)
-		return
+	if err = rm.callbacks.ConfirmLoop(&app.LoopAddr{Port: ld.LocalPort, Remote: *raddr}, rule); err != nil {
+		return fmt.Errorf("confirm: %s", err)
 	}
 
 	rm.Logger.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRouteID)
 	appRule.SetRouteID(ld.RouteID)
 	if rErr := rm.rt.SetRule(appRouteID, appRule); rErr != nil {
-		err = fmt.Errorf("routing table: %s", rErr)
-		return
+		return fmt.Errorf("routing table: %s", rErr)
 	}
 
 	rm.Logger.Infof("Confirmed loop with %s:%d", ld.RemotePK, ld.RemotePort)
-	return msg, nil
+	return nil
 }
 
 func (rm *routeManager) loopClosed(data []byte) error {

@@ -115,15 +115,14 @@ func (sn *Node) createLoop(l *routing.Loop) error {
 	initiator := l.Initiator()
 	responder := l.Responder()
 
-	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID, NoiseMessage: l.NoiseMessage}
-	noiseRes, err := sn.connectLoop(responder, ldR)
-	if err != nil {
+	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID}
+	if err := sn.connectLoop(responder, ldR); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID, NoiseMessage: noiseRes}
-	if _, err := sn.connectLoop(initiator, ldI); err != nil {
+	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID}
+	if err := sn.connectLoop(initiator, ldI); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with initiator: %s", err)
 		if err := sn.closeLoop(responder, ldR); err != nil {
 			sn.Logger.Warnf("Failed to close loop: %s", err)
@@ -175,7 +174,7 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 
 // Close closes underlying dmsg client.
 func (sn *Node) Close() error {
-  if sn == nil {
+	if sn == nil {
 		return nil
 	}
 	return sn.messenger.Close()
@@ -230,24 +229,22 @@ func (sn *Node) remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
 	return cipher.PubKey{}, false
 }
 
-func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, err error) {
+func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) error {
 	ctx := context.Background()
 
 	tr, err := sn.messenger.Dial(ctx, on)
 	if err != nil {
-		err = fmt.Errorf("transport: %s", err)
-		return
+		return fmt.Errorf("transport: %s", err)
 	}
 	defer tr.Close()
 
 	proto := NewSetupProtocol(tr)
-	res, err := ConfirmLoop(proto, ld)
-	if err != nil {
-		return nil, err
+	if err := ConfirmLoop(proto, ld); err != nil {
+		return err
 	}
 
 	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.RemotePK, ld.RemotePort, ld.LocalPort)
-	return res, nil
+	return nil
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
