@@ -96,11 +96,11 @@ func defaultConfig() *node.Config {
 	conf.Transport.Discovery = "https://transport.discovery.skywire.skycoin.net"
 	conf.Transport.LogStore.Type = "file"
 	conf.Transport.LogStore.Location = "./skywire/transport_logs"
-	sPK := cipher.PubKey{}
-	sPK.UnmarshalText([]byte("0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557")) // nolint: errcheck
-	conf.Transport.SetupNodes = []cipher.PubKey{sPK}
 
 	conf.Routing.RouteFinder = "https://routefinder.skywire.skycoin.net/"
+	sPK := cipher.PubKey{}
+	sPK.UnmarshalText([]byte("0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557")) // nolint: errcheck
+	conf.Routing.SetupNodes = []cipher.PubKey{sPK}
 	conf.Routing.Table.Type = "boltdb"
 	conf.Routing.Table.Location = "./skywire/routing.db"
 	conf.Routing.RouteFinderTimeout = node.Duration(10 * time.Second)

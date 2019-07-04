@@ -298,6 +298,7 @@ func TestRouterSetup(t *testing.T) {
 		SecKey:           sk1,
 		TransportManager: m1,
 		RoutingTable:     rt,
+		SetupNodes:       []cipher.PubKey{pk2},
 	}
 	r := New(conf)
 	errCh := make(chan error)
@@ -446,6 +447,7 @@ func TestRouterSetupLoop(t *testing.T) {
 		TransportManager: m1,
 		RoutingTable:     routing.InMemoryRoutingTable(),
 		RouteFinder:      routeFinder.NewMock(),
+		SetupNodes:       []cipher.PubKey{pk2},
 	}
 	r := New(conf)
 	errCh := make(chan error)
@@ -554,6 +556,7 @@ func TestRouterCloseLoop(t *testing.T) {
 		SecKey:           sk1,
 		TransportManager: m1,
 		RoutingTable:     rt,
+		SetupNodes:       []cipher.PubKey{pk2},
 	}
 	r := New(conf)
 	errCh := make(chan error)
@@ -647,6 +650,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 		SecKey:           sk1,
 		TransportManager: m1,
 		RoutingTable:     rt,
+		SetupNodes:       []cipher.PubKey{pk2},
 	}
 	r := New(conf)
 	errCh := make(chan error)

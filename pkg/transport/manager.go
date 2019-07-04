@@ -21,7 +21,6 @@ type ManagerConfig struct {
 	DiscoveryClient DiscoveryClient
 	LogStore        LogStore
 	DefaultNodes    []cipher.PubKey // Nodes to automatically connect to
-	SetupNodes      []cipher.PubKey
 }
 
 // Manager manages Transports.
@@ -267,15 +266,15 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 	}
 
 	var entry *Entry
-	if tm.IsSetupTransport(tr) {
-		entry = makeEntry(tr, public)
-	} else {
-		entry, err = settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
-		if err != nil {
-			tr.Close()
-			return nil, nil, err
-		}
+	// if tm.IsSetupTransport(tr) {
+	// 	entry = makeEntry(tr, public)
+	// } else {
+	entry, err = settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
+	if err != nil {
+		tr.Close()
+		return nil, nil, err
 	}
+	// }
 
 	return tr, entry, nil
 }
@@ -443,21 +442,4 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 			_ = mTr.updateTransport(ctx, tr, tm.config.DiscoveryClient) //nolint:errcheck
 		}
 	}
-}
-
-// IsSetupTransport checks whether `tr` is running in the `setup` mode.
-func (tm *Manager) IsSetupTransport(tr Transport) bool {
-	for _, pk := range tm.config.SetupNodes {
-		remote, ok := tm.Remote(tr.Edges())
-		if ok && (remote == pk) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// SetupNodes returns a list of Setup Nodes from Manager config.
-func (tm *Manager) SetupNodes() []cipher.PubKey {
-	return tm.config.SetupNodes
 }

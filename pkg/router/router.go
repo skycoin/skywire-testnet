@@ -36,6 +36,7 @@ type Config struct {
 	TransportManager *transport.Manager
 	RoutingTable     routing.Table
 	RouteFinder      routeFinder.Client
+	SetupNodes       []cipher.PubKey
 }
 
 // Router implements node.PacketRouter. It manages routing table by
@@ -80,7 +81,7 @@ func (r *Router) Serve(ctx context.Context) error {
 	go func() {
 		for tp := range r.tm.TrChan {
 			r.mu.Lock()
-			isAccepted, isSetup := tp.Accepted, r.tm.IsSetupTransport(tp)
+			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
 			r.mu.Unlock()
 
 			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", isAccepted, isSetup)
@@ -388,13 +389,12 @@ func (r *Router) destroyLoop(addr *app.LoopAddr) error {
 }
 
 func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
-	setupNodes := r.tm.SetupNodes()
-	if len(setupNodes) == 0 {
+	if len(r.config.SetupNodes) == 0 {
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
 	// TODO(evanlinjin): need string constant for tp type.
-	tr, err := r.tm.CreateTransport(ctx, setupNodes[0], dmsg.Type, false)
+	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], dmsg.Type, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
@@ -422,4 +422,16 @@ fetchRoutesAgain:
 
 	r.Logger.Infof("Found routes Forward: %s. Reverse %s", fwdRoutes, revRoutes)
 	return fwdRoutes[0], revRoutes[0], nil
+}
+
+// IsSetupTransport checks whether `tr` is running in the `setup` mode.
+func (r *Router) IsSetupTransport(tr *transport.ManagedTransport) bool {
+	for _, pk := range r.config.SetupNodes {
+		remote, ok := r.tm.Remote(tr.Edges())
+		if ok && (remote == pk) {
+			return true
+		}
+	}
+
+	return false
 }

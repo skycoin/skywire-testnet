@@ -39,8 +39,8 @@ func TestTransportManager(t *testing.T) {
 	pk1, sk1 := cipher.GenerateKeyPair()
 	pk2, sk2 := cipher.GenerateKeyPair()
 
-	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil, []cipher.PubKey{pk2}}
-	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil, []cipher.PubKey{pk2}}
+	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
+	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
@@ -134,8 +134,8 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	pk1, sk1 := cipher.GenerateKeyPair()
 	pk2, sk2 := cipher.GenerateKeyPair()
 
-	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil, []cipher.PubKey{pk2}}
-	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil, []cipher.PubKey{pk2}}
+	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
+	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
@@ -196,8 +196,8 @@ func TestTransportManagerLogs(t *testing.T) {
 	pk1, sk1 := cipher.GenerateKeyPair()
 	pk2, sk2 := cipher.GenerateKeyPair()
 
-	c1 := &ManagerConfig{pk1, sk1, client, logStore1, nil, []cipher.PubKey{pk2}}
-	c2 := &ManagerConfig{pk2, sk2, client, logStore2, nil, []cipher.PubKey{pk2}}
+	c1 := &ManagerConfig{pk1, sk1, client, logStore1, nil}
+	c2 := &ManagerConfig{pk2, sk2, client, logStore2, nil}
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)

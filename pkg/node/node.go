@@ -77,6 +77,7 @@ type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
 	ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
+	IsSetupTransport(tr *transport.ManagedTransport) bool
 }
 
 // Node provides messaging runtime for Apps by setting up all
@@ -138,7 +139,6 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
 		DefaultNodes:    config.TrustedNodes,
-		SetupNodes:      config.Transport.SetupNodes,
 	}
 	node.tm, err = transport.NewManager(tmConfig, node.messenger)
 	if err != nil {
@@ -157,6 +157,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		TransportManager: node.tm,
 		RoutingTable:     node.rt,
 		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
+		SetupNodes:       config.Routing.SetupNodes,
 	}
 	r := router.New(rConfig)
 	node.router = r

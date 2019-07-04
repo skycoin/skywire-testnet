@@ -32,17 +32,17 @@ type Config struct {
 	} `json:"messaging"`
 
 	Transport struct {
-		SetupNodes []cipher.PubKey `json:"setup_nodes"`
-		Discovery  string          `json:"discovery"`
-		LogStore   struct {
+		Discovery string `json:"discovery"`
+		LogStore  struct {
 			Type     string `json:"type"`
 			Location string `json:"location"`
 		} `json:"log_store"`
 	} `json:"transport"`
 
 	Routing struct {
-		RouteFinder        string   `json:"route_finder"`
-		RouteFinderTimeout Duration `json:"route_finder_timeout"`
+		SetupNodes         []cipher.PubKey `json:"setup_nodes"`
+		RouteFinder        string          `json:"route_finder"`
+		RouteFinderTimeout Duration        `json:"route_finder_timeout"`
 		Table              struct {
 			Type     string `json:"type"`
 			Location string `json:"location"`
