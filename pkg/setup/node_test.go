@@ -62,7 +62,7 @@ func TestCreateLoop(t *testing.T) {
 	_, err := c1.Dial(context.TODO(), pk2)
 	require.NoError(t, err)
 
-	_, err = c3.Dial(context.TODO(), pk2)
+	_, err = c3.Dial(context.TODO(), pk4)
 	require.NoError(t, err)
 
 	l := &routing.Loop{LocalPort: 1, RemotePort: 2, Expiry: time.Now().Add(time.Hour),

@@ -255,7 +255,6 @@ func (tm *Manager) Close() error {
 }
 
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
-
 	if tm.isClosing() {
 		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")
 	}
@@ -265,16 +264,11 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 		return nil, nil, err
 	}
 
-	var entry *Entry
-	// if tm.IsSetupTransport(tr) {
-	// 	entry = makeEntry(tr, public)
-	// } else {
-	entry, err = settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
+	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
 	if err != nil {
 		tr.Close()
 		return nil, nil, err
 	}
-	// }
 
 	return tr, entry, nil
 }

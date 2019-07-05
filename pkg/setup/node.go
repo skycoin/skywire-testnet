@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -15,7 +14,6 @@ import (
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
-	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
@@ -43,24 +41,6 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 		logger.SetLevel(lvl)
 	}
 	messenger := dmsg.NewClient(pk, sk, disc.NewHTTP(conf.Messaging.Discovery), dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
-
-	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
-	if err != nil {
-		return nil, fmt.Errorf("trdiscovery: %s", err)
-	}
-
-	tmConf := &transport.ManagerConfig{
-		PubKey:          pk,
-		SecKey:          sk,
-		DiscoveryClient: trDiscovery,
-		LogStore:        transport.InMemoryTransportLogStore(),
-	}
-
-	tm, err := transport.NewManager(tmConf, messenger)
-	if err != nil {
-		log.Fatal("Failed to setup Transport Manager: ", err)
-	}
-	tm.Logger = logger.PackageLogger("trmanager")
 
 	return &Node{
 		Logger:    logger.PackageLogger("routesetup"),
