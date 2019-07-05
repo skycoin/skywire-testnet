@@ -104,12 +104,12 @@ func (sn *Node) Serve(ctx context.Context) error {
 
 func (sn *Node) createLoop(l *routing.Loop) error {
 	sn.Logger.Infof("Creating new Loop %s", l)
-	rRouteID, err := sn.createRoute(l.Expiry, l.Reverse, l.LocalPort, l.RemotePort)
+	rRouteID, err := sn.createRoute(l.Expiry, l.Reverse, l.Local.Port, l.Remote.Port)
 	if err != nil {
 		return err
 	}
 
-	fRouteID, err := sn.createRoute(l.Expiry, l.Forward, l.RemotePort, l.LocalPort)
+	fRouteID, err := sn.createRoute(l.Expiry, l.Forward, l.Remote.Port, l.Local.Port)
 	if err != nil {
 		return err
 	}
@@ -121,13 +121,13 @@ func (sn *Node) createLoop(l *routing.Loop) error {
 	initiator := l.Initiator()
 	responder := l.Responder()
 
-	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID}
+	ldR := &LoopData{RemotePK: initiator, RemotePort: l.Local.Port, LocalPort: l.Remote.Port, RouteID: rRouteID}
 	if err := sn.connectLoop(responder, ldR); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID}
+	ldI := &LoopData{RemotePK: responder, RemotePort: l.Remote.Port, LocalPort: l.Local.Port, RouteID: fRouteID}
 	if err := sn.connectLoop(initiator, ldI); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with initiator: %s", err)
 		if err := sn.closeLoop(responder, ldR); err != nil {

@@ -10,7 +10,7 @@ import (
 
 func ExamplePacket() {
 	pk := cipher.PubKey{}
-	addr := routing.Addr{pk, 0}
+	addr := routing.Addr{PubKey: pk, Port: 0}
 	loopAddr := LoopAddr{0, addr}
 
 	fmt.Println(addr.Network())

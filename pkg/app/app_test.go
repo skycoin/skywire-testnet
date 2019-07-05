@@ -128,7 +128,7 @@ func TestAppWrite(t *testing.T) {
 	appIn, appOut := net.Pipe()
 	app := &App{proto: NewProtocol(in)}
 	go app.handleProto()
-	go app.serveConn(&LoopAddr{2, routing.Addr{rpk, 3}}, appIn)
+	go app.serveConn(&LoopAddr{Port: 2, Remote: routing.Addr{PubKey: rpk, Port: 3}}, appIn)
 
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
@@ -162,7 +162,7 @@ func TestAppRead(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, routing.Addr{pk, 3}}: appIn}}
+	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}: appIn}}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -170,7 +170,7 @@ func TestAppRead(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameSend, &Packet{&LoopAddr{2, routing.Addr{pk, 3}}, []byte("foo")}, nil)
+		errCh <- proto.Send(FrameSend, &Packet{&LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}, []byte("foo")}, nil)
 	}()
 
 	buf := make([]byte, 3)
@@ -220,7 +220,7 @@ func TestAppCloseConn(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, routing.Addr{pk, 3}}: appIn}}
+	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}: appIn}}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -228,7 +228,7 @@ func TestAppCloseConn(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameClose, &LoopAddr{2, routing.Addr{pk, 3}}, nil)
+		errCh <- proto.Send(FrameClose, &LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}, nil)
 	}()
 
 	_, err := appOut.Read(make([]byte, 3))
@@ -240,7 +240,7 @@ func TestAppClose(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, routing.Addr{pk, 3}}: appIn}, doneChan: make(chan struct{})}
+	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}: appIn}, doneChan: make(chan struct{})}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
