@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 type portManager struct {
@@ -29,7 +30,7 @@ func (pm *portManager) Open(port uint16, proto *app.Protocol) error {
 	return nil
 }
 
-func (pm *portManager) SetLoop(port uint16, raddr *app.Addr, l *loop) error {
+func (pm *portManager) SetLoop(port uint16, raddr *routing.Addr, l *loop) error {
 	b := pm.ports.get(port)
 	if b == nil {
 		return errors.New("port is not bound")
@@ -61,7 +62,7 @@ func (pm *portManager) AppPorts(appConn *app.Protocol) []uint16 {
 	return res
 }
 
-func (pm *portManager) Close(port uint16) []app.Addr {
+func (pm *portManager) Close(port uint16) []routing.Addr {
 	if pm == nil {
 		return nil
 	}
@@ -74,7 +75,7 @@ func (pm *portManager) Close(port uint16) []app.Addr {
 	return b.loops.dropAll()
 }
 
-func (pm *portManager) RemoveLoop(port uint16, raddr *app.Addr) error {
+func (pm *portManager) RemoveLoop(port uint16, raddr *routing.Addr) error {
 	b, err := pm.Get(port)
 	if err != nil {
 		return err
@@ -93,7 +94,7 @@ func (pm *portManager) Get(port uint16) (*portBind, error) {
 	return b, nil
 }
 
-func (pm *portManager) GetLoop(localPort uint16, remoteAddr *app.Addr) (*loop, error) {
+func (pm *portManager) GetLoop(localPort uint16, remoteAddr *routing.Addr) (*loop, error) {
 	b, err := pm.Get(localPort)
 	if err != nil {
 		return nil, err

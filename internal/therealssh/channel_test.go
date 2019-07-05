@@ -13,13 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestChannelSendWrite(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
-	ch := OpenChannel(1, &app.Addr{PubKey: pk, Port: Port}, in)
+	ch := OpenChannel(1, &routing.Addr{PubKey: pk, Port: Port}, in)
 
 	errCh := make(chan error)
 	go func() {
@@ -48,7 +48,7 @@ func TestChannelSendWrite(t *testing.T) {
 }
 
 func TestChannelRead(t *testing.T) {
-	ch := OpenChannel(1, &app.Addr{PubKey: cipher.PubKey{}, Port: Port}, nil)
+	ch := OpenChannel(1, &routing.Addr{PubKey: cipher.PubKey{}, Port: Port}, nil)
 
 	buf := make([]byte, 3)
 	go func() {
@@ -67,7 +67,7 @@ func TestChannelRead(t *testing.T) {
 
 func TestChannelRequest(t *testing.T) {
 	in, out := net.Pipe()
-	ch := OpenChannel(1, &app.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
+	ch := OpenChannel(1, &routing.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
 
 	type data struct {
 		res []byte
@@ -93,7 +93,7 @@ func TestChannelRequest(t *testing.T) {
 
 func TestChannelServeSocket(t *testing.T) {
 	in, out := net.Pipe()
-	ch := OpenChannel(1, &app.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
+	ch := OpenChannel(1, &routing.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
 
 	assert.Equal(t, filepath.Join(os.TempDir(), "therealsshd-1"), ch.SocketPath())
 

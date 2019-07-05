@@ -217,7 +217,7 @@ func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
-	raddr := &app.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
+	raddr := &routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
 	p := &app.Packet{Addr: &app.LoopAddr{Port: rule.LocalPort(), Remote: *raddr}, Payload: payload}
 	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
@@ -259,20 +259,20 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 	p := &app.Packet{
 		Addr: &app.LoopAddr{
 			Port:   packet.Addr.Remote.Port,
-			Remote: app.Addr{PubKey: packet.Addr.Remote.PubKey, Port: packet.Addr.Port},
+			Remote: routing.Addr{PubKey: packet.Addr.Remote.PubKey, Port: packet.Addr.Port},
 		},
 		Payload: packet.Payload,
 	}
 	return b.conn.Send(app.FrameSend, p, nil)
 }
 
-func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr, error) {
+func (r *Router) requestLoop(appConn *app.Protocol, raddr *routing.Addr) (*routing.Addr, error) {
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
 		return nil, err
 	}
 
-	laddr := &app.Addr{PubKey: r.config.PubKey, Port: lport}
+	laddr := &routing.Addr{PubKey: r.config.PubKey, Port: lport}
 	if raddr.PubKey == r.config.PubKey {
 		if err := r.confirmLocalLoop(laddr, raddr); err != nil {
 			return nil, fmt.Errorf("confirm: %s", err)
@@ -304,13 +304,13 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 	return laddr, nil
 }
 
-func (r *Router) confirmLocalLoop(laddr, raddr *app.Addr) error {
+func (r *Router) confirmLocalLoop(laddr, raddr *routing.Addr) error {
 	b, err := r.pm.Get(raddr.Port)
 	if err != nil {
 		return err
 	}
 
-	addrs := [2]*app.Addr{raddr, laddr}
+	addrs := [2]*routing.Addr{raddr, laddr}
 	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
 		return err
 	}
@@ -328,7 +328,7 @@ func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule) error {
 		return err
 	}
 
-	addrs := [2]*app.Addr{&app.Addr{PubKey: r.config.PubKey, Port: addr.Port}, &addr.Remote}
+	addrs := [2]*routing.Addr{{PubKey: r.config.PubKey, Port: addr.Port}, &addr.Remote}
 	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
 		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
 	}

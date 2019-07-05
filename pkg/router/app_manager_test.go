@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestAppManagerInit(t *testing.T) {
@@ -58,7 +59,7 @@ func TestAppManagerSetupLoop(t *testing.T) {
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			CreateLoop: func(conn *app.Protocol, raddr *app.Addr) (laddr *app.Addr, err error) {
+			CreateLoop: func(conn *app.Protocol, raddr *routing.Addr) (laddr *routing.Addr, err error) {
 				return raddr, nil
 			},
 		},
@@ -70,9 +71,9 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
 
-	var laddr *app.Addr
+	var laddr *routing.Addr
 	pk, _ := cipher.GenerateKeyPair()
-	raddr := &app.Addr{PubKey: pk, Port: 3}
+	raddr := &routing.Addr{PubKey: pk, Port: 3}
 	err := proto.Send(app.FrameCreateLoop, raddr, &laddr)
 	require.NoError(t, err)
 	assert.Equal(t, raddr, laddr)
@@ -103,7 +104,7 @@ func TestAppManagerCloseLoop(t *testing.T) {
 	go proto.Serve(nil) // nolint: errcheck
 
 	pk, _ := cipher.GenerateKeyPair()
-	addr := &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}
+	addr := &app.LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}
 	err := proto.Send(app.FrameClose, addr, nil)
 	require.NoError(t, err)
 	assert.Equal(t, addr, inAddr)
@@ -134,7 +135,7 @@ func TestAppManagerForward(t *testing.T) {
 	go proto.Serve(nil) // nolint: errcheck
 
 	pk, _ := cipher.GenerateKeyPair()
-	packet := &app.Packet{Payload: []byte("foo"), Addr: &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}}
+	packet := &app.Packet{Payload: []byte("foo"), Addr: &app.LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}}
 	err := proto.Send(app.FrameSend, packet, nil)
 	require.NoError(t, err)
 	assert.Equal(t, packet, inPacket)

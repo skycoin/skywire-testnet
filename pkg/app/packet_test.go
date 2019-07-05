@@ -4,11 +4,13 @@ import (
 	"fmt"
 
 	"github.com/skycoin/dmsg/cipher"
+
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func ExamplePacket() {
 	pk := cipher.PubKey{}
-	addr := Addr{pk, 0}
+	addr := routing.Addr{pk, 0}
 	loopAddr := LoopAddr{0, addr}
 
 	fmt.Println(addr.Network())

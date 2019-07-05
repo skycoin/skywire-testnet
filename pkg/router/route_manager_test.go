@@ -48,11 +48,11 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 	_, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
-	addr := &app.LoopAddr{Port: 3, Remote: app.Addr{PubKey: pk, Port: 3}}
+	addr := &app.LoopAddr{Port: 3, Remote: routing.Addr{PubKey: pk, Port: 3}}
 	require.NoError(t, rm.RemoveLoopRule(addr))
 	assert.Equal(t, 1, rt.Count())
 
-	addr = &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}
+	addr = &app.LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}
 	require.NoError(t, rm.RemoveLoopRule(addr))
 	assert.Equal(t, 0, rt.Count())
 }

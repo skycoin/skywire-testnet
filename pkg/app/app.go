@@ -13,6 +13,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 const (
@@ -36,7 +38,7 @@ type App struct {
 	config Config
 	proto  *Protocol
 
-	acceptChan chan [2]*Addr
+	acceptChan chan [2]*routing.Addr
 	doneChan   chan struct{}
 
 	conns map[LoopAddr]io.ReadWriteCloser
@@ -69,7 +71,7 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 	app := &App{
 		config:     *config,
 		proto:      NewProtocol(pipeConn),
-		acceptChan: make(chan [2]*Addr),
+		acceptChan: make(chan [2]*routing.Addr),
 		doneChan:   make(chan struct{}),
 		conns:      make(map[LoopAddr]io.ReadWriteCloser),
 	}
@@ -128,8 +130,8 @@ func (app *App) Accept() (net.Conn, error) {
 }
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
-func (app *App) Dial(raddr *Addr) (net.Conn, error) {
-	laddr := &Addr{}
+func (app *App) Dial(raddr *routing.Addr) (net.Conn, error) {
+	laddr := &routing.Addr{}
 	err := app.proto.Send(FrameCreateLoop, raddr, laddr)
 	if err != nil {
 		return nil, err
@@ -145,7 +147,7 @@ func (app *App) Dial(raddr *Addr) (net.Conn, error) {
 
 // Addr returns empty Addr, implements net.Listener.
 func (app *App) Addr() net.Addr {
-	return &Addr{}
+	return &routing.Addr{}
 }
 
 func (app *App) handleProto() {
@@ -226,7 +228,7 @@ func (app *App) closeConn(data []byte) error {
 }
 
 func (app *App) confirmLoop(data []byte) error {
-	addrs := [2]*Addr{}
+	addrs := [2]*routing.Addr{}
 	if err := json.Unmarshal(data, &addrs); err != nil {
 		return err
 	}
@@ -252,11 +254,11 @@ func (app *App) confirmLoop(data []byte) error {
 
 type appConn struct {
 	net.Conn
-	laddr *Addr
-	raddr *Addr
+	laddr *routing.Addr
+	raddr *routing.Addr
 }
 
-func newAppConn(conn net.Conn, laddr, raddr *Addr) *appConn {
+func newAppConn(conn net.Conn, laddr, raddr *routing.Addr) *appConn {
 	return &appConn{conn, laddr, raddr}
 }
 

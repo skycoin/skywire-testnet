@@ -12,12 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestChannelServe(t *testing.T) {
 	in, out := net.Pipe()
-	ch := OpenChannel(1, &app.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
+	ch := OpenChannel(1, &routing.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
 
 	errCh := make(chan error)
 	go func() {

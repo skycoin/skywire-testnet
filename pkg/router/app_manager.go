@@ -7,12 +7,13 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
-	CreateLoop func(conn *app.Protocol, raddr *app.Addr) (laddr *app.Addr, err error)
+	CreateLoop func(conn *app.Protocol, raddr *routing.Addr) (laddr *routing.Addr, err error)
 	CloseLoop  func(conn *app.Protocol, addr *app.LoopAddr) error
 	Forward    func(conn *app.Protocol, packet *app.Packet) error
 }
@@ -71,8 +72,8 @@ func (am *appManager) initApp(payload []byte) error {
 	return nil
 }
 
-func (am *appManager) setupLoop(payload []byte) (*app.Addr, error) {
-	raddr := &app.Addr{}
+func (am *appManager) setupLoop(payload []byte) (*routing.Addr, error) {
+	raddr := &routing.Addr{}
 	if err := json.Unmarshal(payload, raddr); err != nil {
 		return nil, err
 	}

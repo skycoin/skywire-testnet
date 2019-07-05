@@ -146,7 +146,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return err
 	}
 
-	raddr := &app.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
+	raddr := &routing.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
 
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
@@ -198,7 +198,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 		return err
 	}
 
-	raddr := &app.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
+	raddr := &routing.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
 	addr := &app.LoopAddr{Port: ld.LocalPort, Remote: *raddr}
 	return rm.callbacks.LoopClosed(addr)
 }

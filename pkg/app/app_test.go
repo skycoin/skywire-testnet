@@ -14,6 +14,8 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestMain(m *testing.M) {
@@ -43,7 +45,7 @@ func TestAppDial(t *testing.T) {
 	dataCh := make(chan []byte)
 	go proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck
 		if f == FrameCreateLoop {
-			return &Addr{PubKey: lpk, Port: 2}, nil
+			return &routing.Addr{PubKey: lpk, Port: 2}, nil
 		}
 
 		if f == FrameClose {
@@ -53,13 +55,13 @@ func TestAppDial(t *testing.T) {
 
 		return nil, errors.New("unexpected frame")
 	})
-	conn, err := app.Dial(&Addr{PubKey: rpk, Port: 3})
+	conn, err := app.Dial(&routing.Addr{PubKey: rpk, Port: 3})
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 	assert.Equal(t, rpk.Hex()+":3", conn.RemoteAddr().String())
 	assert.Equal(t, lpk.Hex()+":2", conn.LocalAddr().String())
 
-	require.NotNil(t, app.conns[LoopAddr{2, Addr{rpk, 3}}])
+	require.NotNil(t, app.conns[LoopAddr{Port: 2, Remote: routing.Addr{PubKey: rpk, Port: 3}}])
 	require.NoError(t, conn.Close())
 
 	// Justified. Attempt to remove produces: FAIL
@@ -81,7 +83,7 @@ func TestAppAccept(t *testing.T) {
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
-	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]*Addr), conns: make(map[LoopAddr]io.ReadWriteCloser)}
+	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]*routing.Addr), conns: make(map[LoopAddr]io.ReadWriteCloser)}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -95,7 +97,7 @@ func TestAppAccept(t *testing.T) {
 		connCh <- conn
 	}()
 
-	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*Addr{&Addr{lpk, 2}, &Addr{rpk, 3}}, nil))
+	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*routing.Addr{{PubKey: lpk, Port: 2}, {PubKey: rpk, Port: 3}}, nil))
 
 	require.NoError(t, <-errCh)
 	conn := <-connCh
@@ -110,7 +112,7 @@ func TestAppAccept(t *testing.T) {
 		connCh <- conn
 	}()
 
-	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*Addr{&Addr{lpk, 2}, &Addr{rpk, 2}}, nil))
+	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*routing.Addr{{PubKey: lpk, Port: 2}, {PubKey: rpk, Port: 2}}, nil))
 
 	require.NoError(t, <-errCh)
 	conn = <-connCh
@@ -126,7 +128,7 @@ func TestAppWrite(t *testing.T) {
 	appIn, appOut := net.Pipe()
 	app := &App{proto: NewProtocol(in)}
 	go app.handleProto()
-	go app.serveConn(&LoopAddr{2, Addr{rpk, 3}}, appIn)
+	go app.serveConn(&LoopAddr{2, routing.Addr{rpk, 3}}, appIn)
 
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
@@ -160,7 +162,7 @@ func TestAppRead(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, Addr{pk, 3}}: appIn}}
+	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, routing.Addr{pk, 3}}: appIn}}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -168,7 +170,7 @@ func TestAppRead(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameSend, &Packet{&LoopAddr{2, Addr{pk, 3}}, []byte("foo")}, nil)
+		errCh <- proto.Send(FrameSend, &Packet{&LoopAddr{2, routing.Addr{pk, 3}}, []byte("foo")}, nil)
 	}()
 
 	buf := make([]byte, 3)
@@ -218,7 +220,7 @@ func TestAppCloseConn(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, Addr{pk, 3}}: appIn}}
+	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, routing.Addr{pk, 3}}: appIn}}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -226,7 +228,7 @@ func TestAppCloseConn(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameClose, &LoopAddr{2, Addr{pk, 3}}, nil)
+		errCh <- proto.Send(FrameClose, &LoopAddr{2, routing.Addr{pk, 3}}, nil)
 	}()
 
 	_, err := appOut.Read(make([]byte, 3))
@@ -238,7 +240,7 @@ func TestAppClose(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, Addr{pk, 3}}: appIn}, doneChan: make(chan struct{})}
+	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{2, routing.Addr{pk, 3}}: appIn}, doneChan: make(chan struct{})}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
