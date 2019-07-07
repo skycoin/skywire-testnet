@@ -471,7 +471,7 @@ func TestRouterSetupLoop(t *testing.T) {
 			return
 		}
 
-		l := &routing.Loop{}
+		l := &routing.LoopDescriptor{}
 		if err := json.Unmarshal(data, l); err != nil {
 			errCh <- err
 			return

@@ -7,8 +7,8 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 )
 
-// Loop defines a loop over a pair of routes.
-type Loop struct {
+// LoopDescriptor defines a loop over a pair of routes.
+type LoopDescriptor struct {
 	Local   Addr
 	Remote  Addr
 	Forward Route
@@ -17,7 +17,7 @@ type Loop struct {
 }
 
 // Initiator returns initiator of the Loop.
-func (l *Loop) Initiator() cipher.PubKey {
+func (l *LoopDescriptor) Initiator() cipher.PubKey {
 	if len(l.Forward) == 0 {
 		panic("empty forward route")
 	}
@@ -26,7 +26,7 @@ func (l *Loop) Initiator() cipher.PubKey {
 }
 
 // Responder returns responder of the Loop.
-func (l *Loop) Responder() cipher.PubKey {
+func (l *LoopDescriptor) Responder() cipher.PubKey {
 	if len(l.Reverse) == 0 {
 		panic("empty reverse route")
 	}
@@ -34,7 +34,7 @@ func (l *Loop) Responder() cipher.PubKey {
 	return l.Reverse[0].From
 }
 
-func (l *Loop) String() string {
+func (l *LoopDescriptor) String() string {
 	return fmt.Sprintf("lport: %d. rport: %d. routes: %s/%s. expire at %s",
 		l.Local.Port, l.Remote.Port, l.Forward, l.Reverse, l.Expiry)
 }

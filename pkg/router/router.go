@@ -286,7 +286,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *routing.Addr) (*routi
 		return nil, fmt.Errorf("route finder: %s", err)
 	}
 
-	l := &routing.Loop{Local: *laddr, Remote: *raddr,
+	l := &routing.LoopDescriptor{Local: *laddr, Remote: *raddr,
 		Expiry:  time.Now().Add(RouteTTL),
 		Forward: forwardRoute, Reverse: reverseRoute}
 

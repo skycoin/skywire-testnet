@@ -102,7 +102,7 @@ func (sn *Node) Serve(ctx context.Context) error {
 	return sn.tm.Serve(ctx)
 }
 
-func (sn *Node) createLoop(l *routing.Loop) error {
+func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 	sn.Logger.Infof("Creating new Loop %s", l)
 	rRouteID, err := sn.createRoute(l.Expiry, l.Reverse, l.Local.Port, l.Remote.Port)
 	if err != nil {
@@ -198,7 +198,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	startTime := time.Now()
 	switch sp {
 	case PacketCreateLoop:
-		loop := &routing.Loop{}
+		loop := &routing.LoopDescriptor{}
 		if err = json.Unmarshal(data, loop); err == nil {
 			err = sn.createLoop(loop)
 		}
