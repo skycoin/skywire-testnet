@@ -155,8 +155,8 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
 	assert.Equal(t, rule, inRule)
-	assert.Equal(t, uint16(2), inAddr.Port)
-	assert.Equal(t, uint16(3), inAddr.Remote.Port)
+	assert.Equal(t, routing.Port(2), inAddr.Port)
+	assert.Equal(t, routing.Port(3), inAddr.Remote.Port)
 	assert.Equal(t, pk, inAddr.Remote.PubKey)
 
 	require.NoError(t, in.Close())
@@ -197,8 +197,8 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 		RouteID:    1,
 	}
 	require.NoError(t, setup.LoopClosed(proto, ld))
-	assert.Equal(t, uint16(2), inAddr.Port)
-	assert.Equal(t, uint16(3), inAddr.Remote.Port)
+	assert.Equal(t, routing.Port(2), inAddr.Port)
+	assert.Equal(t, routing.Port(3), inAddr.Remote.Port)
 	assert.Equal(t, pk, inAddr.Remote.PubKey)
 
 	require.NoError(t, in.Close())

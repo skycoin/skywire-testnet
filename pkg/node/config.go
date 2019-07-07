@@ -166,11 +166,11 @@ type ManagerConfig struct {
 
 // AppConfig defines app startup parameters.
 type AppConfig struct {
-	Version   string   `json:"version"`
-	App       string   `json:"app"`
-	AutoStart bool     `json:"auto_start"`
-	Port      uint16   `json:"port"`
-	Args      []string `json:"args"`
+	Version   string       `json:"version"`
+	App       string       `json:"app"`
+	AutoStart bool         `json:"auto_start"`
+	Port      routing.Port `json:"port"`
+	Args      []string     `json:"args"`
 }
 
 // InterfaceConfig defines listening interfaces for skywire Node.

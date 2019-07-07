@@ -130,8 +130,8 @@ func TestCreateLoop(t *testing.T) {
 	assert.Equal(t, routing.RuleApp, rule.Type())
 	assert.Equal(t, routing.RouteID(2), rule.RouteID())
 	assert.Equal(t, pk3, rule.RemotePK())
-	assert.Equal(t, uint16(2), rule.RemotePort())
-	assert.Equal(t, uint16(1), rule.LocalPort())
+	assert.Equal(t, routing.Port(2), rule.RemotePort())
+	assert.Equal(t, routing.Port(1), rule.LocalPort())
 	rule = rules[2]
 	assert.Equal(t, routing.RuleForward, rule.Type())
 	assert.Equal(t, tr1.Entry.ID, rule.TransportID())
@@ -158,8 +158,8 @@ func TestCreateLoop(t *testing.T) {
 	assert.Equal(t, routing.RuleApp, rule.Type())
 	assert.Equal(t, routing.RouteID(1), rule.RouteID())
 	assert.Equal(t, pk1, rule.RemotePK())
-	assert.Equal(t, uint16(1), rule.RemotePort())
-	assert.Equal(t, uint16(2), rule.LocalPort())
+	assert.Equal(t, routing.Port(1), rule.RemotePort())
+	assert.Equal(t, routing.Port(2), rule.LocalPort())
 
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)

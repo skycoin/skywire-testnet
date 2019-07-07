@@ -20,7 +20,7 @@ func TestPortManager(t *testing.T) {
 	proto := app.NewProtocol(in)
 
 	p1 := pm.Alloc(proto)
-	assert.Equal(t, uint16(10), p1)
+	assert.Equal(t, routing.Port(10), p1)
 
 	require.Error(t, pm.Open(10, proto))
 	require.NoError(t, pm.Open(8, proto))
@@ -35,7 +35,7 @@ func TestPortManager(t *testing.T) {
 
 	ports := pm.AppPorts(proto)
 	sort.Slice(ports, func(i, j int) bool { return ports[i] < ports[j] })
-	assert.Equal(t, []uint16{8, 10}, ports)
+	assert.Equal(t, []routing.Port{8, 10}, ports)
 
 	b, err := pm.Get(10)
 	require.NoError(t, err)

@@ -19,8 +19,8 @@ func TestAppRule(t *testing.T) {
 	assert.Equal(t, RuleApp, rule.Type())
 	assert.Equal(t, RouteID(2), rule.RouteID())
 	assert.Equal(t, pk, rule.RemotePK())
-	assert.Equal(t, uint16(3), rule.RemotePort())
-	assert.Equal(t, uint16(4), rule.LocalPort())
+	assert.Equal(t, Port(3), rule.RemotePort())
+	assert.Equal(t, Port(4), rule.LocalPort())
 
 	rule.SetRouteID(3)
 	assert.Equal(t, RouteID(3), rule.RouteID())

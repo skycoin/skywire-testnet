@@ -141,7 +141,7 @@ func (sn *Node) createLoop(l *routing.Loop) error {
 	return nil
 }
 
-func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lport uint16) (routing.RouteID, error) {
+func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lport routing.Port) (routing.RouteID, error) {
 	if len(route) == 0 {
 		return 0, nil
 	}

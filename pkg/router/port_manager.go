@@ -16,12 +16,12 @@ func newPortManager(minPort uint16) *portManager {
 	return &portManager{newPortList(minPort)}
 }
 
-func (pm *portManager) Alloc(conn *app.Protocol) uint16 {
+func (pm *portManager) Alloc(conn *app.Protocol) routing.Port {
 	b := &portBind{conn, newLoopList()}
 	return pm.ports.add(b)
 }
 
-func (pm *portManager) Open(port uint16, proto *app.Protocol) error {
+func (pm *portManager) Open(port routing.Port, proto *app.Protocol) error {
 	if pm.ports.get(port) != nil {
 		return fmt.Errorf("port %d is already bound", port)
 	}
@@ -30,7 +30,7 @@ func (pm *portManager) Open(port uint16, proto *app.Protocol) error {
 	return nil
 }
 
-func (pm *portManager) SetLoop(port uint16, raddr *routing.Addr, l *loop) error {
+func (pm *portManager) SetLoop(port routing.Port, raddr *routing.Addr, l *loop) error {
 	b := pm.ports.get(port)
 	if b == nil {
 		return errors.New("port is not bound")
@@ -52,8 +52,8 @@ func (pm *portManager) AppConns() []*app.Protocol {
 	return res
 }
 
-func (pm *portManager) AppPorts(appConn *app.Protocol) []uint16 {
-	res := []uint16{}
+func (pm *portManager) AppPorts(appConn *app.Protocol) []routing.Port {
+	res := []routing.Port{}
 	for port, bind := range pm.ports.all() {
 		if bind.conn == appConn {
 			res = append(res, port)
@@ -62,7 +62,7 @@ func (pm *portManager) AppPorts(appConn *app.Protocol) []uint16 {
 	return res
 }
 
-func (pm *portManager) Close(port uint16) []routing.Addr {
+func (pm *portManager) Close(port routing.Port) []routing.Addr {
 	if pm == nil {
 		return nil
 	}
@@ -75,7 +75,7 @@ func (pm *portManager) Close(port uint16) []routing.Addr {
 	return b.loops.dropAll()
 }
 
-func (pm *portManager) RemoveLoop(port uint16, raddr *routing.Addr) error {
+func (pm *portManager) RemoveLoop(port routing.Port, raddr *routing.Addr) error {
 	b, err := pm.Get(port)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (pm *portManager) RemoveLoop(port uint16, raddr *routing.Addr) error {
 	return nil
 }
 
-func (pm *portManager) Get(port uint16) (*portBind, error) {
+func (pm *portManager) Get(port routing.Port) (*portBind, error) {
 	b := pm.ports.get(port)
 	if b == nil {
 		return nil, errors.New("port is not bound")
@@ -94,7 +94,7 @@ func (pm *portManager) Get(port uint16) (*portBind, error) {
 	return b, nil
 }
 
-func (pm *portManager) GetLoop(localPort uint16, remoteAddr *routing.Addr) (*loop, error) {
+func (pm *portManager) GetLoop(localPort routing.Port, remoteAddr *routing.Addr) (*loop, error) {
 	b, err := pm.Get(localPort)
 	if err != nil {
 		return nil, err

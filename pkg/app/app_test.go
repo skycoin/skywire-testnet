@@ -69,9 +69,9 @@ func TestAppDial(t *testing.T) {
 
 	addr := &LoopAddr{}
 	require.NoError(t, json.Unmarshal(<-dataCh, addr))
-	assert.Equal(t, uint16(2), addr.Port)
+	assert.Equal(t, routing.Port(2), addr.Port)
 	assert.Equal(t, rpk, addr.Remote.PubKey)
-	assert.Equal(t, uint16(3), addr.Remote.Port)
+	assert.Equal(t, routing.Port(3), addr.Remote.Port)
 
 	app.mu.Lock()
 	require.Len(t, app.conns, 0)
@@ -150,8 +150,8 @@ func TestAppWrite(t *testing.T) {
 	packet := &Packet{}
 	require.NoError(t, json.Unmarshal(<-dataCh, packet))
 	assert.Equal(t, rpk, packet.Addr.Remote.PubKey)
-	assert.Equal(t, uint16(3), packet.Addr.Remote.Port)
-	assert.Equal(t, uint16(2), packet.Addr.Port)
+	assert.Equal(t, routing.Port(3), packet.Addr.Remote.Port)
+	assert.Equal(t, routing.Port(2), packet.Addr.Port)
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, proto.Close())
@@ -261,9 +261,9 @@ func TestAppClose(t *testing.T) {
 
 	addr := &LoopAddr{}
 	require.NoError(t, json.Unmarshal(<-dataCh, addr))
-	assert.Equal(t, uint16(2), addr.Port)
+	assert.Equal(t, routing.Port(2), addr.Port)
 	assert.Equal(t, pk, addr.Remote.PubKey)
-	assert.Equal(t, uint16(3), addr.Remote.Port)
+	assert.Equal(t, routing.Port(3), addr.Remote.Port)
 }
 
 func TestAppCommand(t *testing.T) {

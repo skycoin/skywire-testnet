@@ -38,13 +38,13 @@ func TestListApps(t *testing.T) {
 	app1 := reply[0]
 	assert.Equal(t, "foo", app1.Name)
 	assert.False(t, app1.AutoStart)
-	assert.Equal(t, uint16(10), app1.Port)
+	assert.Equal(t, routing.Port(10), app1.Port)
 	assert.Equal(t, AppStatusStopped, app1.Status)
 
 	app2 := reply[1]
 	assert.Equal(t, "bar", app2.Name)
 	assert.True(t, app2.AutoStart)
-	assert.Equal(t, uint16(11), app2.Port)
+	assert.Equal(t, routing.Port(11), app2.Port)
 	assert.Equal(t, AppStatusRunning, app2.Status)
 }
 

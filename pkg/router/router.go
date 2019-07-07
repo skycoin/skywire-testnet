@@ -53,7 +53,7 @@ type Router struct {
 	expiryTicker *time.Ticker
 	wg           sync.WaitGroup
 
-	staticPorts map[uint16]struct{}
+	staticPorts map[routing.Port]struct{}
 	mu          sync.Mutex
 }
 
@@ -65,7 +65,7 @@ func New(config *Config) *Router {
 		pm:           newPortManager(10),
 		config:       config,
 		expiryTicker: time.NewTicker(10 * time.Minute),
-		staticPorts:  make(map[uint16]struct{}),
+		staticPorts:  make(map[routing.Port]struct{}),
 	}
 	callbacks := &setupCallbacks{
 		ConfirmLoop: r.confirmLoop,
@@ -123,7 +123,7 @@ func (r *Router) Serve(ctx context.Context) error {
 }
 
 // ServeApp handles App packets from the App connection on provided port.
-func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error {
+func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
 	r.wg.Add(1)
 	defer r.wg.Done()
 

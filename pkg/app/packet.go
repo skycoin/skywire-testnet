@@ -8,7 +8,7 @@ import (
 
 // LoopAddr stores addressing parameters of a loop packets.
 type LoopAddr struct {
-	Port   uint16       `json:"port"`
+	Port   routing.Port `json:"port"`
 	Remote routing.Addr `json:"remote"`
 }
 

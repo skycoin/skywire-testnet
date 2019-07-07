@@ -215,8 +215,8 @@ func TestRouterApp(t *testing.T) {
 	aPacket := &app.Packet{}
 	require.NoError(t, json.Unmarshal(<-dataCh, aPacket))
 	assert.Equal(t, pk2, aPacket.Addr.Remote.PubKey)
-	assert.Equal(t, uint16(5), aPacket.Addr.Remote.Port)
-	assert.Equal(t, uint16(6), aPacket.Addr.Port)
+	assert.Equal(t, routing.Port(5), aPacket.Addr.Remote.Port)
+	assert.Equal(t, routing.Port(6), aPacket.Addr.Port)
 	assert.Equal(t, []byte("foo"), aPacket.Payload)
 
 	require.NoError(t, r.Close())
@@ -266,8 +266,8 @@ func TestRouterLocalApp(t *testing.T) {
 	require.NoError(t, json.Unmarshal(<-dataCh, packet))
 	require.NoError(t, err)
 	assert.Equal(t, pk, packet.Addr.Remote.PubKey)
-	assert.Equal(t, uint16(5), packet.Addr.Remote.Port)
-	assert.Equal(t, uint16(6), packet.Addr.Port)
+	assert.Equal(t, routing.Port(5), packet.Addr.Remote.Port)
+	assert.Equal(t, routing.Port(6), packet.Addr.Port)
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, r.Close())
@@ -360,9 +360,9 @@ func TestRouterSetup(t *testing.T) {
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
-		assert.Equal(t, uint16(2), addrs[0].Port)
+		assert.Equal(t, routing.Port(2), addrs[0].Port)
 		assert.Equal(t, pk2, addrs[1].PubKey)
-		assert.Equal(t, uint16(1), addrs[1].Port)
+		assert.Equal(t, routing.Port(1), addrs[1].Port)
 	})
 
 	t.Run("confirm loop - initiator", func(t *testing.T) {
@@ -389,9 +389,9 @@ func TestRouterSetup(t *testing.T) {
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
-		assert.Equal(t, uint16(4), addrs[0].Port)
+		assert.Equal(t, routing.Port(4), addrs[0].Port)
 		assert.Equal(t, pk2, addrs[1].PubKey)
-		assert.Equal(t, uint16(3), addrs[1].Port)
+		assert.Equal(t, routing.Port(3), addrs[1].Port)
 	})
 
 	t.Run("loop closed", func(t *testing.T) {
@@ -499,7 +499,7 @@ func TestRouterSetupLoop(t *testing.T) {
 	require.NotNil(t, ll)
 
 	assert.Equal(t, pk1, addr.PubKey)
-	assert.Equal(t, uint16(10), addr.Port)
+	assert.Equal(t, routing.Port(10), addr.Port)
 }
 
 func TestRouterSetupLoopLocal(t *testing.T) {
@@ -524,7 +524,7 @@ func TestRouterSetupLoopLocal(t *testing.T) {
 	require.NotNil(t, ll)
 
 	assert.Equal(t, pk, addr.PubKey)
-	assert.Equal(t, uint16(10), addr.Port)
+	assert.Equal(t, routing.Port(10), addr.Port)
 }
 
 func TestRouterCloseLoop(t *testing.T) {
