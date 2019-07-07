@@ -41,7 +41,7 @@ type App struct {
 	acceptChan chan [2]*routing.Addr
 	doneChan   chan struct{}
 
-	conns map[LoopAddr]io.ReadWriteCloser
+	conns map[routing.Loop]io.ReadWriteCloser
 	mu    sync.Mutex
 }
 
@@ -73,7 +73,7 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 		proto:      NewProtocol(pipeConn),
 		acceptChan: make(chan [2]*routing.Addr),
 		doneChan:   make(chan struct{}),
-		conns:      make(map[LoopAddr]io.ReadWriteCloser),
+		conns:      make(map[routing.Loop]io.ReadWriteCloser),
 	}
 
 	go app.handleProto()
@@ -120,7 +120,7 @@ func (app *App) Accept() (net.Conn, error) {
 	laddr := addrs[0]
 	raddr := addrs[1]
 
-	addr := &LoopAddr{laddr.Port, *raddr}
+	addr := &routing.Loop{Local: *laddr, Remote: *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[*addr] = conn
@@ -136,7 +136,7 @@ func (app *App) Dial(raddr *routing.Addr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	addr := &LoopAddr{laddr.Port, *raddr}
+	addr := &routing.Loop{Local: *laddr, Remote: *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[*addr] = conn
@@ -171,7 +171,7 @@ func (app *App) handleProto() {
 	}
 }
 
-func (app *App) serveConn(addr *LoopAddr, conn io.ReadWriteCloser) {
+func (app *App) serveConn(addr *routing.Loop, conn io.ReadWriteCloser) {
 	defer conn.Close()
 
 	for {
@@ -214,14 +214,14 @@ func (app *App) forwardPacket(data []byte) error {
 }
 
 func (app *App) closeConn(data []byte) error {
-	addr := &LoopAddr{}
-	if err := json.Unmarshal(data, addr); err != nil {
+	var loop routing.Loop
+	if err := json.Unmarshal(data, &loop); err != nil {
 		return err
 	}
 
 	app.mu.Lock()
-	conn := app.conns[*addr]
-	delete(app.conns, *addr)
+	conn := app.conns[loop]
+	delete(app.conns, loop)
 	app.mu.Unlock()
 
 	return conn.Close()
@@ -237,7 +237,7 @@ func (app *App) confirmLoop(data []byte) error {
 	raddr := addrs[1]
 
 	app.mu.Lock()
-	conn := app.conns[LoopAddr{laddr.Port, *raddr}]
+	conn := app.conns[routing.Loop{Local: *laddr, Remote: *raddr}]
 	app.mu.Unlock()
 
 	if conn != nil {

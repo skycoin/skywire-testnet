@@ -14,7 +14,7 @@ const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
 	CreateLoop func(conn *app.Protocol, raddr *routing.Addr) (laddr *routing.Addr, err error)
-	CloseLoop  func(conn *app.Protocol, addr *app.LoopAddr) error
+	CloseLoop  func(conn *app.Protocol, addr *routing.Loop) error
 	Forward    func(conn *app.Protocol, packet *app.Packet) error
 }
 
@@ -51,8 +51,8 @@ func (am *appManager) Serve() error {
 }
 
 func (am *appManager) initApp(payload []byte) error {
-	config := &app.Config{}
-	if err := json.Unmarshal(payload, config); err != nil {
+	var config app.Config
+	if err := json.Unmarshal(payload, &config); err != nil {
 		return errors.New("invalid Init payload")
 	}
 
@@ -73,21 +73,21 @@ func (am *appManager) initApp(payload []byte) error {
 }
 
 func (am *appManager) setupLoop(payload []byte) (*routing.Addr, error) {
-	raddr := &routing.Addr{}
-	if err := json.Unmarshal(payload, raddr); err != nil {
+	var raddr routing.Addr
+	if err := json.Unmarshal(payload, &raddr); err != nil {
 		return nil, err
 	}
 
-	return am.callbacks.CreateLoop(am.proto, raddr)
+	return am.callbacks.CreateLoop(am.proto, &raddr)
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {
-	addr := &app.LoopAddr{}
-	if err := json.Unmarshal(payload, addr); err != nil {
+	var loop routing.Loop
+	if err := json.Unmarshal(payload, &loop); err != nil {
 		return err
 	}
 
-	return am.callbacks.CloseLoop(am.proto, addr)
+	return am.callbacks.CloseLoop(am.proto, &loop)
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {

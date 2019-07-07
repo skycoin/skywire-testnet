@@ -39,7 +39,7 @@ func TestAppDial(t *testing.T) {
 
 	in, out := net.Pipe()
 	proto := NewProtocol(out)
-	app := &App{proto: NewProtocol(in), conns: make(map[LoopAddr]io.ReadWriteCloser)}
+	app := &App{proto: NewProtocol(in), conns: make(map[routing.Loop]io.ReadWriteCloser)}
 	go app.handleProto()
 
 	dataCh := make(chan []byte)
@@ -61,17 +61,18 @@ func TestAppDial(t *testing.T) {
 	assert.Equal(t, rpk.Hex()+":3", conn.RemoteAddr().String())
 	assert.Equal(t, lpk.Hex()+":2", conn.LocalAddr().String())
 
-	require.NotNil(t, app.conns[LoopAddr{Port: 2, Remote: routing.Addr{PubKey: rpk, Port: 3}}])
+	require.NotNil(t, app.conns[routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}])
 	require.NoError(t, conn.Close())
 
 	// Justified. Attempt to remove produces: FAIL
 	time.Sleep(100 * time.Millisecond)
 
-	addr := &LoopAddr{}
-	require.NoError(t, json.Unmarshal(<-dataCh, addr))
-	assert.Equal(t, routing.Port(2), addr.Port)
-	assert.Equal(t, rpk, addr.Remote.PubKey)
-	assert.Equal(t, routing.Port(3), addr.Remote.Port)
+	var loop routing.Loop
+	require.NoError(t, json.Unmarshal(<-dataCh, &loop))
+	assert.Equal(t, lpk, loop.Local.PubKey)
+	assert.Equal(t, routing.Port(2), loop.Local.Port)
+	assert.Equal(t, rpk, loop.Remote.PubKey)
+	assert.Equal(t, routing.Port(3), loop.Remote.Port)
 
 	app.mu.Lock()
 	require.Len(t, app.conns, 0)
@@ -83,7 +84,7 @@ func TestAppAccept(t *testing.T) {
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
-	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]*routing.Addr), conns: make(map[LoopAddr]io.ReadWriteCloser)}
+	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]*routing.Addr), conns: make(map[routing.Loop]io.ReadWriteCloser)}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -123,12 +124,13 @@ func TestAppAccept(t *testing.T) {
 }
 
 func TestAppWrite(t *testing.T) {
+	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
 	app := &App{proto: NewProtocol(in)}
 	go app.handleProto()
-	go app.serveConn(&LoopAddr{Port: 2, Remote: routing.Addr{PubKey: rpk, Port: 3}}, appIn)
+	go app.serveConn(&routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}, appIn)
 
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
@@ -151,7 +153,8 @@ func TestAppWrite(t *testing.T) {
 	require.NoError(t, json.Unmarshal(<-dataCh, packet))
 	assert.Equal(t, rpk, packet.Addr.Remote.PubKey)
 	assert.Equal(t, routing.Port(3), packet.Addr.Remote.Port)
-	assert.Equal(t, routing.Port(2), packet.Addr.Port)
+	assert.Equal(t, routing.Port(2), packet.Addr.Local.Port)
+	assert.Equal(t, lpk, packet.Addr.Local.PubKey)
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, proto.Close())
@@ -159,10 +162,11 @@ func TestAppWrite(t *testing.T) {
 }
 
 func TestAppRead(t *testing.T) {
+	lpk, _ := cipher.GenerateKeyPair()
 	pk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}: appIn}}
+	app := &App{proto: NewProtocol(in), conns: map[routing.Loop]io.ReadWriteCloser{routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}: appIn}}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -170,7 +174,7 @@ func TestAppRead(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameSend, &Packet{&LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}, []byte("foo")}, nil)
+		errCh <- proto.Send(FrameSend, &Packet{&routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}, []byte("foo")}, nil)
 	}()
 
 	buf := make([]byte, 3)
@@ -217,10 +221,11 @@ func TestAppSetup(t *testing.T) {
 }
 
 func TestAppCloseConn(t *testing.T) {
-	pk, _ := cipher.GenerateKeyPair()
+	lpk, _ := cipher.GenerateKeyPair()
+	rpk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}: appIn}}
+	app := &App{proto: NewProtocol(in), conns: map[routing.Loop]io.ReadWriteCloser{routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}: appIn}}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -228,7 +233,7 @@ func TestAppCloseConn(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameClose, &LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}, nil)
+		errCh <- proto.Send(FrameClose, &routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}, nil)
 	}()
 
 	_, err := appOut.Read(make([]byte, 3))
@@ -237,10 +242,11 @@ func TestAppCloseConn(t *testing.T) {
 }
 
 func TestAppClose(t *testing.T) {
-	pk, _ := cipher.GenerateKeyPair()
+	lpk, _ := cipher.GenerateKeyPair()
+	rpk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
 	appIn, appOut := net.Pipe()
-	app := &App{proto: NewProtocol(in), conns: map[LoopAddr]io.ReadWriteCloser{LoopAddr{Port: 2, Remote: routing.Addr{PubKey: pk, Port: 3}}: appIn}, doneChan: make(chan struct{})}
+	app := &App{proto: NewProtocol(in), conns: map[routing.Loop]io.ReadWriteCloser{routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}: appIn}, doneChan: make(chan struct{})}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -259,11 +265,12 @@ func TestAppClose(t *testing.T) {
 	_, err := appOut.Read(make([]byte, 3))
 	require.Equal(t, io.EOF, err)
 
-	addr := &LoopAddr{}
-	require.NoError(t, json.Unmarshal(<-dataCh, addr))
-	assert.Equal(t, routing.Port(2), addr.Port)
-	assert.Equal(t, pk, addr.Remote.PubKey)
-	assert.Equal(t, routing.Port(3), addr.Remote.Port)
+	var loop routing.Loop
+	require.NoError(t, json.Unmarshal(<-dataCh, &loop))
+	assert.Equal(t, lpk, loop.Local.PubKey)
+	assert.Equal(t, routing.Port(2), loop.Local.Port)
+	assert.Equal(t, rpk, loop.Remote.PubKey)
+	assert.Equal(t, routing.Port(3), loop.Remote.Port)
 }
 
 func TestAppCommand(t *testing.T) {
