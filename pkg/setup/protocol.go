@@ -55,9 +55,8 @@ const (
 
 // LoopData stores loop confirmation request data.
 type LoopData struct {
-	Remote    routing.Addr    `json:"remote"`
-	LocalPort routing.Port    `json:"local-port"`
-	RouteID   routing.RouteID `json:"resp-rid,omitempty"`
+	Loop    routing.Loop    `json:"loop"`
+	RouteID routing.RouteID `json:"resp-rid,omitempty"`
 }
 
 // Protocol defines routes setup protocol.
