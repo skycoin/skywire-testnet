@@ -30,6 +30,7 @@ FROM ${base} as node-runner
 COPY --from=builder /go/skywire/skywire-node skywire-node
 COPY --from=builder /go/skywire/apps bin/apps
 COPY --from=builder /go/skywire/docker/images/node/update.sh update.sh
+COPY --from=builder /go/skywire/skywire-cli bin/skywire-cli
 
 RUN ./update.sh
 
