@@ -14,8 +14,8 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -42,24 +42,26 @@ func TestCreateLoop(t *testing.T) {
 	dc := disc.NewMock()
 
 	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
+	pk2, _ := cipher.GenerateKeyPair()
 	pk3, sk3 := cipher.GenerateKeyPair()
 	pk4, sk4 := cipher.GenerateKeyPair()
 	pkS, _ := cipher.GenerateKeyPair()
 
+	n1, srvErrCh1, err := createServer(dc)
+	require.NoError(t, err)
+
+	n2, srvErrCh2, err := createServer(dc)
+	require.NoError(t, err)
+
+	n3, srvErrCh3, err := createServer(dc)
+	require.NoError(t, err)
+
 	c1 := dmsg.NewClient(pk1, sk1, dc)
-	c2 := dmsg.NewClient(pk2, sk2, dc)
+	// c2 := dmsg.NewClient(pk2, sk2, dc)
 	c3 := dmsg.NewClient(pk3, sk3, dc)
 	c4 := dmsg.NewClient(pk4, sk4, dc)
 
-	n1 := newMockNode(c1)
-	go n1.serve()
-	n2 := newMockNode(c2)
-	go n2.serve()
-	n3 := newMockNode(c3)
-	go n3.serve()
-
-	_, err := c1.Dial(context.TODO(), pk2)
+	_, err = c1.Dial(context.TODO(), pk2)
 	require.NoError(t, err)
 
 	_, err = c3.Dial(context.TODO(), pk4)
@@ -78,7 +80,7 @@ func TestCreateLoop(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	sn := &Node{logging.MustGetLogger("routesetup"), nil, 0, metrics.NewDummy()}
+	sn := &Node{logging.MustGetLogger("routesetup"), c1, 0, metrics.NewDummy()}
 	errChan := make(chan error)
 	go func() {
 		errChan <- sn.Serve(context.TODO())
@@ -90,41 +92,17 @@ func TestCreateLoop(t *testing.T) {
 	proto := NewSetupProtocol(tr)
 	require.NoError(t, CreateLoop(proto, l))
 
-	rules := n1.getRules()
-	require.Len(t, rules, 2)
-	rule := rules[1]
-	assert.Equal(t, routing.RuleApp, rule.Type())
-	assert.Equal(t, routing.RouteID(2), rule.RouteID())
-	assert.Equal(t, pk3, rule.RemotePK())
-	assert.Equal(t, uint16(2), rule.RemotePort())
-	assert.Equal(t, uint16(1), rule.LocalPort())
-	rule = rules[2]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, routing.RouteID(2), rule.RouteID())
-
-	rules = n2.getRules()
-	require.Len(t, rules, 2)
-	rule = rules[1]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, routing.RouteID(1), rule.RouteID())
-	rule = rules[2]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, routing.RouteID(2), rule.RouteID())
-
-	rules = n3.getRules()
-	require.Len(t, rules, 2)
-	rule = rules[1]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, routing.RouteID(1), rule.RouteID())
-	rule = rules[2]
-	assert.Equal(t, routing.RuleApp, rule.Type())
-	assert.Equal(t, routing.RouteID(1), rule.RouteID())
-	assert.Equal(t, pk1, rule.RemotePK())
-	assert.Equal(t, uint16(1), rule.RemotePort())
-	assert.Equal(t, uint16(2), rule.LocalPort())
-
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)
+
+	require.NoError(t, n1.Close())
+	require.NoError(t, errWithTimeout(srvErrCh1))
+
+	require.NoError(t, n2.Close())
+	require.NoError(t, errWithTimeout(srvErrCh2))
+
+	require.NoError(t, n3.Close())
+	require.NoError(t, errWithTimeout(srvErrCh3))
 }
 
 func TestCloseLoop(t *testing.T) {
@@ -132,15 +110,17 @@ func TestCloseLoop(t *testing.T) {
 
 	pk1, sk1 := cipher.GenerateKeyPair()
 	pk3, sk3 := cipher.GenerateKeyPair()
-	pkS, _ := cipher.GenerateKeyPair()
+
+	n3, srvErrCh, err := createServer(dc)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
 
 	c1 := dmsg.NewClient(pk1, sk1, dc)
 	c3 := dmsg.NewClient(pk3, sk3, dc)
 
-	n3 := newMockNode(c3)
-	go n3.serve()
-
-	time.Sleep(100 * time.Millisecond)
+	require.NoError(t, c1.InitiateServerConnections(context.Background(), 1))
+	require.NoError(t, c3.InitiateServerConnections(context.Background(), 1))
 
 	sn := &Node{logging.MustGetLogger("routesetup"), c3, 0, metrics.NewDummy()}
 	errChan := make(chan error)
@@ -148,22 +128,17 @@ func TestCloseLoop(t *testing.T) {
 		errChan <- sn.Serve(context.TODO())
 	}()
 
-	n3.setRule(1, routing.AppRule(time.Now(), 2, pk1, 1, 2))
-	rules := n3.getRules()
-	require.Len(t, rules, 1)
-
-	tr, err := c1.Dial(context.TODO(), pkS)
+	tr, err := c1.Dial(context.TODO(), pk3)
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
 	require.NoError(t, CloseLoop(proto, &LoopData{RemotePK: pk3, RemotePort: 2, LocalPort: 1}))
 
-	rules = n3.getRules()
-	require.Len(t, rules, 0)
-	require.Nil(t, rules[1])
-
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)
+
+	require.NoError(t, n3.Close())
+	require.NoError(t, errWithTimeout(srvErrCh))
 }
 
 type mockNode struct {
@@ -259,4 +234,34 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 	}
 
 	return proto.WritePacket(RespSuccess, res)
+}
+
+func createServer(dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error, err error) {
+	pk, sk := cipher.GenerateKeyPair()
+
+	l, err := nettest.NewLocalListener("tcp")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.Serve()
+	}()
+
+	return srv, errCh, nil
+}
+
+func errWithTimeout(ch <-chan error) error {
+	select {
+	case err := <-ch:
+		return err
+	case <-time.After(5 * time.Second):
+		return errors.New("timeout")
+	}
 }
