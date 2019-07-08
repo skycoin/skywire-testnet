@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/messaging"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
 // Config defines configuration parameters for Node.
@@ -63,8 +63,8 @@ type Config struct {
 	Interfaces InterfaceConfig `json:"interfaces"`
 }
 
-// MessagingConfig returns config for messaging client.
-func (c *Config) MessagingConfig() (*messaging.Config, error) {
+// MessagingConfig returns config for dmsg client.
+func (c *Config) MessagingConfig() (*dmsg.Config, error) {
 
 	msgConfig := c.Messaging
 
@@ -72,10 +72,10 @@ func (c *Config) MessagingConfig() (*messaging.Config, error) {
 		return nil, errors.New("empty discovery")
 	}
 
-	return &messaging.Config{
+	return &dmsg.Config{
 		PubKey:     c.Node.StaticPubKey,
 		SecKey:     c.Node.StaticSecKey,
-		Discovery:  mClient.NewHTTP(msgConfig.Discovery),
+		Discovery:  disc.NewHTTP(msgConfig.Discovery),
 		Retries:    5,
 		RetryDelay: time.Second,
 	}, nil

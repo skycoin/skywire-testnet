@@ -10,15 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dmsg"
-
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-
-	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -87,7 +84,7 @@ func TestRouterForwarding(t *testing.T) {
 	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
 	require.NoError(t, err)
 
-	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.ID)
+	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.Entry.ID)
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -197,23 +194,20 @@ func TestRouterApp(t *testing.T) {
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
-	ni1, ni2 := noiseInstances(t, pk1, pk2, sk1, sk2)
 	raddr := &app.Addr{PubKey: pk2, Port: 5}
-	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.ID, 4, ni1}))
+	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.Entry.ID, 4}))
 
-	tr2 := m2.Transport(tr.ID)
+	tr2 := m2.Transport(tr.Entry.ID)
 	go proto.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 6, Remote: *raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
 
-	packet := make(routing.Packet, 29)
+	packet := make(routing.Packet, 9)
 	_, err = tr2.Read(packet)
 	require.NoError(t, err)
-	assert.Equal(t, uint16(23), packet.Size())
+	assert.Equal(t, uint16(3), packet.Size())
 	assert.Equal(t, routing.RouteID(4), packet.RouteID())
-	decrypted, err := ni2.DecryptUnsafe(packet.Payload())
-	require.NoError(t, err)
-	assert.Equal(t, []byte("bar"), decrypted)
+	assert.Equal(t, []byte("bar"), packet.Payload())
 
-	_, err = tr2.Write(routing.MakePacket(routeID, ni2.EncryptUnsafe([]byte("foo"))))
+	_, err = tr2.Write(routing.MakePacket(routeID, []byte("foo")))
 	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
@@ -335,34 +329,20 @@ func TestRouterSetup(t *testing.T) {
 
 	var routeID routing.RouteID
 	t.Run("add route", func(t *testing.T) {
-		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.ID))
+		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.Entry.ID))
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(routeID)
 		require.NoError(t, err)
 		assert.Equal(t, routing.RouteID(2), rule.RouteID())
-		assert.Equal(t, tr.ID, rule.TransportID())
+		assert.Equal(t, tr.Entry.ID, rule.TransportID())
 	})
 
 	t.Run("`confirm loop - responder", func(t *testing.T) {
-		confI := noise.Config{
-			LocalSK:   sk2,
-			LocalPK:   pk2,
-			RemotePK:  pk1,
-			Initiator: true,
-		}
-
-		ni, err := noise.KKAndSecp256k1(confI)
-		require.NoError(t, err)
-		msg, err := ni.HandshakeMessage()
-		require.NoError(t, err)
-
-		time.Sleep(100 * time.Millisecond)
-
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
 		require.NoError(t, err)
 
-		noiseRes, err := setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID, NoiseMessage: msg})
+		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -373,7 +353,7 @@ func TestRouterSetup(t *testing.T) {
 		loop, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, loop)
-		assert.Equal(t, tr.ID, loop.trID)
+		assert.Equal(t, tr.Entry.ID, loop.trID)
 		assert.Equal(t, routing.RouteID(2), loop.routeID)
 
 		addrs := [2]*app.Addr{}
@@ -383,44 +363,17 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, uint16(2), addrs[0].Port)
 		assert.Equal(t, pk2, addrs[1].PubKey)
 		assert.Equal(t, uint16(1), addrs[1].Port)
-
-		require.NoError(t, ni.ProcessMessage(noiseRes))
 	})
 
 	t.Run("confirm loop - initiator", func(t *testing.T) {
-		confI := noise.Config{
-			LocalSK:   sk1,
-			LocalPK:   pk1,
-			RemotePK:  pk2,
-			Initiator: true,
-		}
-
-		ni, err := noise.KKAndSecp256k1(confI)
-		require.NoError(t, err)
-		msg, err := ni.HandshakeMessage()
-		require.NoError(t, err)
-
-		confR := noise.Config{
-			LocalSK:   sk2,
-			LocalPK:   pk2,
-			RemotePK:  pk1,
-			Initiator: false,
-		}
-
-		nr, err := noise.KKAndSecp256k1(confR)
-		require.NoError(t, err)
-		require.NoError(t, nr.ProcessMessage(msg))
-		noiseRes, err := nr.HandshakeMessage()
-		require.NoError(t, err)
-
 		time.Sleep(100 * time.Millisecond)
 
-		require.NoError(t, r.pm.SetLoop(4, &app.Addr{PubKey: pk2, Port: 3}, &loop{noise: ni}))
+		require.NoError(t, r.pm.SetLoop(4, &app.Addr{PubKey: pk2, Port: 3}, &loop{}))
 
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
 		require.NoError(t, err)
 
-		_, err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID, NoiseMessage: noiseRes})
+		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -429,7 +382,7 @@ func TestRouterSetup(t *testing.T) {
 		l, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, l)
-		assert.Equal(t, tr.ID, l.trID)
+		assert.Equal(t, tr.Entry.ID, l.trID)
 		assert.Equal(t, routing.RouteID(2), l.routeID)
 
 		addrs := [2]*app.Addr{}
@@ -544,7 +497,6 @@ func TestRouterSetupLoop(t *testing.T) {
 	ll, err := r.pm.GetLoop(10, &app.Addr{PubKey: pk2, Port: 6})
 	require.NoError(t, err)
 	require.NotNil(t, ll)
-	require.NotNil(t, ll.noise)
 
 	assert.Equal(t, pk1, addr.PubKey)
 	assert.Equal(t, uint16(10), addr.Port)
@@ -787,38 +739,4 @@ func TestRouterRouteExpiration(t *testing.T) {
 
 	assert.Equal(t, 0, rt.Count())
 	require.NoError(t, r.Close())
-}
-
-func noiseInstances(t *testing.T, pkI, pkR cipher.PubKey, skI, skR cipher.SecKey) (ni, nr *noise.Noise) {
-	t.Helper()
-
-	var err error
-	confI := noise.Config{
-		LocalSK:   skI,
-		LocalPK:   pkI,
-		RemotePK:  pkR,
-		Initiator: true,
-	}
-
-	confR := noise.Config{
-		LocalSK:   skR,
-		LocalPK:   pkR,
-		RemotePK:  pkI,
-		Initiator: false,
-	}
-
-	ni, err = noise.KKAndSecp256k1(confI)
-	require.NoError(t, err)
-
-	nr, err = noise.KKAndSecp256k1(confR)
-	require.NoError(t, err)
-
-	msg, err := ni.HandshakeMessage()
-	require.NoError(t, err)
-	require.NoError(t, nr.ProcessMessage(msg))
-
-	res, err := nr.HandshakeMessage()
-	require.NoError(t, err)
-	require.NoError(t, ni.ProcessMessage(res))
-	return ni, nr
 }

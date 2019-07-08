@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/skycoin/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
 // Key allows a byte slice to be marshaled or unmarshaled from a hex string.

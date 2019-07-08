@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -56,11 +57,10 @@ const (
 
 // LoopData stores loop confirmation request data.
 type LoopData struct {
-	RemotePK     cipher.PubKey   `json:"remote-pk"`
-	RemotePort   uint16          `json:"remote-port"`
-	LocalPort    uint16          `json:"local-port"`
-	RouteID      routing.RouteID `json:"resp-rid,omitempty"`
-	NoiseMessage []byte          `json:"noise-msg,omitempty"`
+	RemotePK   cipher.PubKey   `json:"remote-pk"`
+	RemotePort uint16          `json:"remote-port"`
+	LocalPort  uint16          `json:"local-port"`
+	RouteID    routing.RouteID `json:"resp-rid,omitempty"`
 }
 
 // Protocol defines routes setup protocol.
@@ -146,22 +146,15 @@ func CreateLoop(p *Protocol, l *routing.Loop) error {
 	if err := p.WritePacket(PacketCreateLoop, l); err != nil {
 		return err
 	}
-	if err := readAndDecodePacket(p, nil); err != nil { // TODO: data race.
-		return err
-	}
-	return nil
+	return readAndDecodePacket(p, nil) // TODO: data race.
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func ConfirmLoop(p *Protocol, l *LoopData) (noiseRes []byte, err error) {
-	if err = p.WritePacket(PacketConfirmLoop, l); err != nil {
-		return
+func ConfirmLoop(p *Protocol, l *LoopData) error {
+	if err := p.WritePacket(PacketConfirmLoop, l); err != nil {
+		return err
 	}
-	var res []byte
-	if err = readAndDecodePacket(p, &res); err != nil {
-		return
-	}
-	return res, nil
+	return readAndDecodePacket(p, nil)
 }
 
 // CloseLoop sends CloseLoop setup request.
@@ -169,10 +162,7 @@ func CloseLoop(p *Protocol, l *LoopData) error {
 	if err := p.WritePacket(PacketCloseLoop, l); err != nil {
 		return err
 	}
-	if err := readAndDecodePacket(p, nil); err != nil {
-		return err
-	}
-	return nil
+	return readAndDecodePacket(p, nil)
 }
 
 // LoopClosed sends LoopClosed setup request.
@@ -180,10 +170,7 @@ func LoopClosed(p *Protocol, l *LoopData) error {
 	if err := p.WritePacket(PacketLoopClosed, l); err != nil {
 		return err
 	}
-	if err := readAndDecodePacket(p, nil); err != nil {
-		return err
-	}
-	return nil
+	return readAndDecodePacket(p, nil)
 }
 
 func readAndDecodePacket(p *Protocol, v interface{}) error {
@@ -197,8 +184,5 @@ func readAndDecodePacket(p *Protocol, v interface{}) error {
 	if v == nil {
 		return nil
 	}
-	if err = json.Unmarshal(raw, v); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(raw, v)
 }

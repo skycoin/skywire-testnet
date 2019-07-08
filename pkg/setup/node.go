@@ -8,15 +8,15 @@ import (
 	"log"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/dmsg"
-	mClient "github.com/skycoin/skywire/pkg/messaging-discovery/client"
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
 // Hop is a wrapper around transport hop to add functionality
@@ -45,7 +45,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := dmsg.NewClient(pk, sk, mClient.NewHTTP(conf.Messaging.Discovery), dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
+	messenger := dmsg.NewClient(pk, sk, disc.NewHTTP(conf.Messaging.Discovery), dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {
@@ -121,15 +121,14 @@ func (sn *Node) createLoop(l *routing.Loop) error {
 	initiator := l.Initiator()
 	responder := l.Responder()
 
-	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID, NoiseMessage: l.NoiseMessage}
-	noiseRes, err := sn.connectLoop(responder, ldR)
-	if err != nil {
+	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID}
+	if err := sn.connectLoop(responder, ldR); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID, NoiseMessage: noiseRes}
-	if _, err := sn.connectLoop(initiator, ldI); err != nil {
+	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID}
+	if err := sn.connectLoop(initiator, ldI); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with initiator: %s", err)
 		if err := sn.closeLoop(responder, ldR); err != nil {
 			sn.Logger.Warnf("Failed to close loop: %s", err)
@@ -181,6 +180,9 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 
 // Close closes underlying transport manager.
 func (sn *Node) Close() error {
+	if sn == nil {
+		return nil
+	}
 	return sn.tm.Close()
 }
 
@@ -222,22 +224,20 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	return proto.WritePacket(RespSuccess, nil)
 }
 
-func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) (noiseRes []byte, err error) {
+func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) error {
 	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
-		err = fmt.Errorf("transport: %s", err)
-		return
+		return fmt.Errorf("transport: %s", err)
 	}
 	defer tr.Close()
 
 	proto := NewSetupProtocol(tr)
-	res, err := ConfirmLoop(proto, ld)
-	if err != nil {
-		return nil, err
+	if err := ConfirmLoop(proto, ld); err != nil {
+		return err
 	}
 
 	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.RemotePK, ld.RemotePort, ld.LocalPort)
-	return res, nil
+	return nil
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {

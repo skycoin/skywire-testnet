@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // ErrUnknownRemote returned for connection attempts for remotes
@@ -61,6 +61,9 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 
 // Close implements io.Closer
 func (f *TCPFactory) Close() error {
+	if f == nil {
+		return nil
+	}
 	return f.l.Close()
 }
 

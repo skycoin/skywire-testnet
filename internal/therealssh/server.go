@@ -8,8 +8,9 @@ import (
 	"log"
 	"net"
 
+	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 // CommandType represents global protocol messages.
@@ -125,7 +126,11 @@ func (s *Server) HandleData(remotePK cipher.PubKey, localID uint32, data []byte)
 		return errors.New("session is not started")
 	}
 
-	channel.dataCh <- data
+	channel.dataChMx.Lock()
+	if !channel.IsClosed() {
+		channel.dataCh <- data
+	}
+	channel.dataChMx.Unlock()
 	return nil
 }
 
@@ -172,6 +177,10 @@ func (s *Server) Serve(conn net.Conn) error {
 
 // Close closes all opened channels.
 func (s *Server) Close() error {
+	if s == nil {
+		return nil
+	}
+
 	for _, channel := range s.chans.dropAll() {
 		channel.Close()
 	}

@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
 )
@@ -123,13 +123,11 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 	var inAddr *app.LoopAddr
 	var inRule routing.Rule
-	var noiseMsg []byte
 	callbacks := &setupCallbacks{
-		ConfirmLoop: func(addr *app.LoopAddr, rule routing.Rule, nMsg []byte) (noiseRes []byte, err error) {
+		ConfirmLoop: func(addr *app.LoopAddr, rule routing.Rule) (err error) {
 			inAddr = addr
 			inRule = rule
-			noiseMsg = nMsg
-			return []byte("foo"), nil
+			return nil
 		},
 	}
 	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, callbacks}
@@ -149,16 +147,13 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := &setup.LoopData{
-		RemotePK:     pk,
-		RemotePort:   3,
-		LocalPort:    2,
-		RouteID:      1,
-		NoiseMessage: []byte("bar"),
+		RemotePK:   pk,
+		RemotePort: 3,
+		LocalPort:  2,
+		RouteID:    1,
 	}
-	noiseRes, err := setup.ConfirmLoop(proto, ld)
+	err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
-	assert.Equal(t, []byte("foo"), noiseRes)
-	assert.Equal(t, []byte("bar"), noiseMsg)
 	assert.Equal(t, rule, inRule)
 	assert.Equal(t, uint16(2), inAddr.Port)
 	assert.Equal(t, uint16(3), inAddr.Remote.Port)
@@ -196,11 +191,10 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := &setup.LoopData{
-		RemotePK:     pk,
-		RemotePort:   3,
-		LocalPort:    2,
-		RouteID:      1,
-		NoiseMessage: []byte("bar"),
+		RemotePK:   pk,
+		RemotePort: 3,
+		LocalPort:  2,
+		RouteID:    1,
 	}
 	require.NoError(t, setup.LoopClosed(proto, ld))
 	assert.Equal(t, uint16(2), inAddr.Port)

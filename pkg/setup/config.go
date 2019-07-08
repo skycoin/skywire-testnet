@@ -1,7 +1,7 @@
 package setup
 
 import (
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // Config defines configuration parameters for setup Node.

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
+	"github.com/skycoin/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAppRule(t *testing.T) {
