@@ -342,7 +342,7 @@ func TestRouterSetup(t *testing.T) {
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
 		require.NoError(t, err)
 
-		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID})
+		err = setup.ConfirmLoop(sProto, &setup.LoopData{Remote: routing.Addr{PubKey: pk2, Port: 1}, LocalPort: 2, RouteID: routeID})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -373,7 +373,7 @@ func TestRouterSetup(t *testing.T) {
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
 		require.NoError(t, err)
 
-		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID})
+		err = setup.ConfirmLoop(sProto, &setup.LoopData{Remote: routing.Addr{PubKey: pk2, Port: 3}, LocalPort: 4, RouteID: routeID})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -400,7 +400,7 @@ func TestRouterSetup(t *testing.T) {
 		require.NotNil(t, rule)
 		assert.Equal(t, routing.RuleApp, rule.Type())
 
-		require.NoError(t, setup.LoopClosed(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4}))
+		require.NoError(t, setup.LoopClosed(sProto, &setup.LoopData{Remote: routing.Addr{PubKey: pk2, Port: 3}, LocalPort: 4}))
 		time.Sleep(100 * time.Millisecond)
 
 		_, err = r.pm.GetLoop(4, &routing.Addr{PubKey: pk2, Port: 3})
@@ -588,7 +588,7 @@ func TestRouterCloseLoop(t *testing.T) {
 			return
 		}
 
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != pk3 {
+		if ld.LocalPort != 5 || ld.Remote.Port != 6 || ld.Remote.PubKey != pk3 {
 			errCh <- errors.New("invalid payload")
 			return
 		}
@@ -680,7 +680,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 			return
 		}
 
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != pk3 {
+		if ld.LocalPort != 5 || ld.Remote.Port != 6 || ld.Remote.PubKey != pk3 {
 			errCh <- errors.New("invalid payload")
 			return
 		}

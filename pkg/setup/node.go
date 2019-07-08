@@ -121,13 +121,13 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 	initiator := l.Initiator()
 	responder := l.Responder()
 
-	ldR := &LoopData{RemotePK: initiator, RemotePort: l.Local.Port, LocalPort: l.Remote.Port, RouteID: rRouteID}
+	ldR := &LoopData{Remote: routing.Addr{PubKey: initiator, Port: l.Local.Port}, LocalPort: l.Remote.Port, RouteID: rRouteID}
 	if err := sn.connectLoop(responder, ldR); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := &LoopData{RemotePK: responder, RemotePort: l.Remote.Port, LocalPort: l.Local.Port, RouteID: fRouteID}
+	ldI := &LoopData{Remote: routing.Addr{PubKey: responder, Port: l.Remote.Port}, LocalPort: l.Local.Port, RouteID: fRouteID}
 	if err := sn.connectLoop(initiator, ldI); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with initiator: %s", err)
 		if err := sn.closeLoop(responder, ldR); err != nil {
@@ -209,7 +209,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 			if !ok {
 				return errors.New("configured PubKey not found in edges")
 			}
-			err = sn.closeLoop(ld.RemotePK, &LoopData{RemotePK: remote, RemotePort: ld.LocalPort, LocalPort: ld.RemotePort})
+			err = sn.closeLoop(ld.Remote.PubKey, &LoopData{Remote: routing.Addr{PubKey: remote, Port: ld.LocalPort}, LocalPort: ld.Remote.Port})
 		}
 	default:
 		err = errors.New("unknown foundation packet")
@@ -236,7 +236,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) error {
 		return err
 	}
 
-	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.RemotePK, ld.RemotePort, ld.LocalPort)
+	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.Remote.PubKey, ld.Remote.Port, ld.LocalPort)
 	return nil
 }
 

@@ -145,13 +145,13 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return err
 	}
 
-	raddr := &routing.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
+	raddr := &routing.Addr{PubKey: ld.Remote.PubKey, Port: ld.Remote.Port}
 
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.RemotePK ||
-			rule.RemotePort() != ld.RemotePort || rule.LocalPort() != ld.LocalPort {
+		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.Remote.PubKey ||
+			rule.RemotePort() != ld.Remote.Port || rule.LocalPort() != ld.LocalPort {
 			return true
 		}
 
@@ -187,7 +187,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 
-	rm.Logger.Infof("Confirmed loop with %s:%d", ld.RemotePK, ld.RemotePort)
+	rm.Logger.Infof("Confirmed loop with %s:%d", ld.Remote.Port, ld.Remote.PubKey)
 	return nil
 }
 
@@ -197,7 +197,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 		return err
 	}
 
-	raddr := &routing.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
+	raddr := &routing.Addr{PubKey: ld.Remote.PubKey, Port: ld.Remote.Port}
 	loop := &routing.Loop{Local: routing.Addr{Port: ld.LocalPort}, Remote: *raddr}
 	return rm.callbacks.LoopClosed(loop)
 }

@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skycoin/dmsg/cipher"
-
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -57,10 +55,9 @@ const (
 
 // LoopData stores loop confirmation request data.
 type LoopData struct {
-	RemotePK   cipher.PubKey   `json:"remote-pk"`
-	RemotePort routing.Port    `json:"remote-port"`
-	LocalPort  routing.Port    `json:"local-port"`
-	RouteID    routing.RouteID `json:"resp-rid,omitempty"`
+	Remote    routing.Addr    `json:"remote"`
+	LocalPort routing.Port    `json:"local-port"`
+	RouteID   routing.RouteID `json:"resp-rid,omitempty"`
 }
 
 // Protocol defines routes setup protocol.
