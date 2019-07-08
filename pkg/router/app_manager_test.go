@@ -137,7 +137,7 @@ func TestAppManagerForward(t *testing.T) {
 
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
-	packet := &app.Packet{Payload: []byte("foo"), Addr: &routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}}
+	packet := &app.Packet{Payload: []byte("foo"), Loop: &routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}}
 	err := proto.Send(app.FrameSend, packet, nil)
 	require.NoError(t, err)
 	assert.Equal(t, packet, inPacket)

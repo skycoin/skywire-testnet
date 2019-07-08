@@ -151,10 +151,10 @@ func TestAppWrite(t *testing.T) {
 
 	packet := &Packet{}
 	require.NoError(t, json.Unmarshal(<-dataCh, packet))
-	assert.Equal(t, rpk, packet.Addr.Remote.PubKey)
-	assert.Equal(t, routing.Port(3), packet.Addr.Remote.Port)
-	assert.Equal(t, routing.Port(2), packet.Addr.Local.Port)
-	assert.Equal(t, lpk, packet.Addr.Local.PubKey)
+	assert.Equal(t, rpk, packet.Loop.Remote.PubKey)
+	assert.Equal(t, routing.Port(3), packet.Loop.Remote.Port)
+	assert.Equal(t, routing.Port(2), packet.Loop.Local.Port)
+	assert.Equal(t, lpk, packet.Loop.Local.PubKey)
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, proto.Close())

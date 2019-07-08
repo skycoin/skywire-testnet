@@ -171,7 +171,7 @@ func (app *App) handleProto() {
 	}
 }
 
-func (app *App) serveConn(addr *routing.Loop, conn io.ReadWriteCloser) {
+func (app *App) serveConn(loop *routing.Loop, conn io.ReadWriteCloser) {
 	defer conn.Close()
 
 	for {
@@ -181,17 +181,17 @@ func (app *App) serveConn(addr *routing.Loop, conn io.ReadWriteCloser) {
 			break
 		}
 
-		packet := &Packet{Addr: addr, Payload: buf[:n]}
+		packet := &Packet{Loop: loop, Payload: buf[:n]}
 		if err := app.proto.Send(FrameSend, packet, nil); err != nil {
 			break
 		}
 	}
 
 	app.mu.Lock()
-	if _, ok := app.conns[*addr]; ok {
-		app.proto.Send(FrameClose, &addr, nil) // nolint: errcheck
+	if _, ok := app.conns[*loop]; ok {
+		app.proto.Send(FrameClose, &loop, nil) // nolint: errcheck
 	}
-	delete(app.conns, *addr)
+	delete(app.conns, *loop)
 	app.mu.Unlock()
 }
 
@@ -202,7 +202,7 @@ func (app *App) forwardPacket(data []byte) error {
 	}
 
 	app.mu.Lock()
-	conn := app.conns[*packet.Addr]
+	conn := app.conns[*packet.Loop]
 	app.mu.Unlock()
 
 	if conn == nil {

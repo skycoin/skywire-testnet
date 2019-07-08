@@ -219,7 +219,7 @@ func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	raddr := &routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
-	p := &app.Packet{Addr: &routing.Loop{Local: routing.Addr{Port: rule.LocalPort()}, Remote: *raddr}, Payload: payload}
+	p := &app.Packet{Loop: &routing.Loop{Local: routing.Addr{Port: rule.LocalPort()}, Remote: *raddr}, Payload: payload}
 	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
 		return err
@@ -230,11 +230,11 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
-	if packet.Addr.Remote.PubKey == r.config.PubKey {
+	if packet.Loop.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
 	}
 
-	l, err := r.pm.GetLoop(packet.Addr.Local.Port, &packet.Addr.Remote)
+	l, err := r.pm.GetLoop(packet.Loop.Local.Port, &packet.Loop.Remote)
 	if err != nil {
 		return err
 	}
@@ -245,21 +245,21 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 	}
 
 	p := routing.MakePacket(l.routeID, packet.Payload)
-	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Addr.Local.Port, l.routeID)
+	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Loop.Local.Port, l.routeID)
 	_, err = tr.Write(p)
 	return err
 }
 
 func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
-	b, err := r.pm.Get(packet.Addr.Remote.Port)
+	b, err := r.pm.Get(packet.Loop.Remote.Port)
 	if err != nil {
 		return nil
 	}
 
 	p := &app.Packet{
-		Addr: &routing.Loop{
-			Local:  routing.Addr{Port: packet.Addr.Remote.Port},
-			Remote: routing.Addr{PubKey: packet.Addr.Remote.PubKey, Port: packet.Addr.Local.Port},
+		Loop: &routing.Loop{
+			Local:  routing.Addr{Port: packet.Loop.Remote.Port},
+			Remote: routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Local.Port},
 		},
 		Payload: packet.Payload,
 	}
