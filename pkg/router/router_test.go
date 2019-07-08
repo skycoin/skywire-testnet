@@ -198,7 +198,7 @@ func TestRouterApp(t *testing.T) {
 	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.Entry.ID, 4}))
 
 	tr2 := m2.Transport(tr.Entry.ID)
-	go proto.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 6, Remote: *raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
+	go proto.Send(app.FrameSend, &app.Packet{Addr: &routing.Loop{Local: routing.Addr{Port: 6}, Remote: *raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
 
 	packet := make(routing.Packet, 9)
 	_, err = tr2.Read(packet)
@@ -212,11 +212,11 @@ func TestRouterApp(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	aPacket := &app.Packet{}
-	require.NoError(t, json.Unmarshal(<-dataCh, aPacket))
+	var aPacket app.Packet
+	require.NoError(t, json.Unmarshal(<-dataCh, &aPacket))
 	assert.Equal(t, pk2, aPacket.Addr.Remote.PubKey)
 	assert.Equal(t, routing.Port(5), aPacket.Addr.Remote.Port)
-	assert.Equal(t, routing.Port(6), aPacket.Addr.Port)
+	assert.Equal(t, routing.Port(6), aPacket.Addr.Local.Port)
 	assert.Equal(t, []byte("foo"), aPacket.Payload)
 
 	require.NoError(t, r.Close())
@@ -258,7 +258,7 @@ func TestRouterLocalApp(t *testing.T) {
 		return nil, nil
 	})
 
-	go proto1.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 5, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo")}, nil) // nolint: errcheck
+	go proto1.Send(app.FrameSend, &app.Packet{Addr: &routing.Loop{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo")}, nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -267,7 +267,7 @@ func TestRouterLocalApp(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, pk, packet.Addr.Remote.PubKey)
 	assert.Equal(t, routing.Port(5), packet.Addr.Remote.Port)
-	assert.Equal(t, routing.Port(6), packet.Addr.Port)
+	assert.Equal(t, routing.Port(6), packet.Addr.Local.Port)
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, r.Close())
@@ -606,7 +606,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	raddr := &routing.Addr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
-	require.NoError(t, proto.Send(app.FrameClose, &app.LoopAddr{Port: 5, Remote: *raddr}, nil))
+	require.NoError(t, proto.Send(app.FrameClose, &routing.Loop{Local: routing.Addr{Port: 5}, Remote: *raddr}, nil))
 
 	time.Sleep(100 * time.Millisecond)
 
