@@ -318,13 +318,7 @@ func (sshCh *SSHChannel) closeListener() error {
 	sshCh.listenerMx.Lock()
 	defer sshCh.listenerMx.Unlock()
 
-	if sshCh.listener != nil {
-		err := sshCh.listener.Close()
-		sshCh.listener = nil
-		return err
-	}
-
-	return nil
+	return sshCh.listener.Close()
 }
 
 func debug(format string, v ...interface{}) {
