@@ -43,7 +43,7 @@ func TestTransportManager(t *testing.T) {
 	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
-	m1, err := NewManager(c1, f1)
+	m1, err := NewManager(c1, nil, f1)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"mock"}, m1.Factories())
@@ -53,7 +53,7 @@ func TestTransportManager(t *testing.T) {
 		errCh <- m1.Serve(context.TODO())
 	}()
 
-	m2, err := NewManager(c2, f2)
+	m2, err := NewManager(c2, nil, f2)
 	require.NoError(t, err)
 
 	var mu sync.Mutex
@@ -138,7 +138,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
-	m1, err := NewManager(c1, f1)
+	m1, err := NewManager(c1, nil, f1)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"mock"}, m1.Factories())
 
@@ -147,7 +147,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	m1errCh := make(chan error, 1)
 	go func() { m1errCh <- m1.Serve(context.TODO()) }()
 
-	m2, err := NewManager(c2, f2)
+	m2, err := NewManager(c2, nil, f2)
 	require.NoError(t, err)
 
 	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
@@ -167,7 +167,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, dEntry2.IsUp)
 
-	m2, err = NewManager(c2, f2)
+	m2, err = NewManager(c2, nil, f2)
 	require.NoError(t, err)
 
 	m2.reconnectTransports(context.TODO())
@@ -200,7 +200,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	c2 := &ManagerConfig{pk2, sk2, client, logStore2, nil}
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
-	m1, err := NewManager(c1, f1)
+	m1, err := NewManager(c1, nil, f1)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"mock"}, m1.Factories())
@@ -210,7 +210,7 @@ func TestTransportManagerLogs(t *testing.T) {
 		errCh <- m1.Serve(context.TODO())
 	}()
 
-	m2, err := NewManager(c2, f2)
+	m2, err := NewManager(c2, nil, f2)
 	require.NoError(t, err)
 
 	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)

@@ -2,11 +2,9 @@ package setup
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -19,7 +17,6 @@ import (
 
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
@@ -139,101 +136,6 @@ func TestCloseLoop(t *testing.T) {
 
 	require.NoError(t, n3.Close())
 	require.NoError(t, errWithTimeout(srvErrCh))
-}
-
-type mockNode struct {
-	sync.Mutex
-	rules     map[routing.RouteID]routing.Rule
-	messenger *dmsg.Client
-}
-
-func newMockNode(messenger *dmsg.Client) *mockNode {
-	return &mockNode{messenger: messenger, rules: make(map[routing.RouteID]routing.Rule)}
-}
-
-func (n *mockNode) serve() {
-	ctx := context.Background()
-
-	for {
-		tp, _ := n.messenger.Accept(ctx) // nolint:errcheck
-		go func(tp transport.Transport) {
-			for {
-				n.serveTransport(tp) // nolint:errcheck
-			}
-		}(tp)
-	}
-}
-
-func (n *mockNode) setRule(id routing.RouteID, rule routing.Rule) {
-	n.Lock()
-	n.rules[id] = rule
-	n.Unlock()
-}
-
-func (n *mockNode) getRules() map[routing.RouteID]routing.Rule {
-	res := make(map[routing.RouteID]routing.Rule)
-	n.Lock()
-	for id, rule := range n.rules {
-		res[id] = rule
-	}
-	n.Unlock()
-	return res
-}
-
-func (n *mockNode) serveTransport(tr transport.Transport) error {
-	proto := NewSetupProtocol(tr)
-	sp, data, err := proto.ReadPacket()
-	if err != nil {
-		return err
-	}
-
-	n.Lock()
-	var res interface{}
-	switch sp {
-	case PacketAddRules:
-		rules := []routing.Rule{}
-		json.Unmarshal(data, &rules) // nolint: errcheck
-		for _, rule := range rules {
-			for i := routing.RouteID(1); i < 255; i++ {
-				if n.rules[i] == nil {
-					n.rules[i] = rule
-					res = []routing.RouteID{i}
-					break
-				}
-			}
-		}
-	case PacketConfirmLoop:
-		ld := LoopData{}
-		json.Unmarshal(data, &ld) // nolint: errcheck
-		for _, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
-				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
-
-				rule.SetRouteID(ld.RouteID)
-				break
-			}
-		}
-	case PacketLoopClosed:
-		ld := &LoopData{}
-		json.Unmarshal(data, ld) // nolint: errcheck
-		for routeID, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
-				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
-
-				delete(n.rules, routeID)
-				break
-			}
-		}
-	default:
-		err = errors.New("unknown foundation packet")
-	}
-	n.Unlock()
-
-	if err != nil {
-		return proto.WritePacket(RespFailure, err)
-	}
-
-	return proto.WritePacket(RespSuccess, res)
 }
 
 func createServer(dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error, err error) {

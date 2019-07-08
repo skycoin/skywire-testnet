@@ -92,7 +92,7 @@ func TestNodeStartClose(t *testing.T) {
 	var err error
 
 	tmConf := &transport.ManagerConfig{PubKey: cipher.PubKey{}, DiscoveryClient: transport.NewDiscoveryMock()}
-	node.tm, err = transport.NewManager(tmConf, node.messenger)
+	node.tm, err = transport.NewManager(tmConf, nil, node.messenger)
 	require.NoError(t, err)
 
 	errCh := make(chan error)

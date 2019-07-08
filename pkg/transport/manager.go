@@ -37,11 +37,13 @@ type Manager struct {
 	mu       sync.RWMutex
 
 	mgrQty int32 // Count of spawned manageTransport goroutines
+
+	setupNodes []cipher.PubKey
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
 // 'factories' should be ordered by preference.
-func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
+func NewManager(config *ManagerConfig, setupNodes []cipher.PubKey, factories ...Factory) (*Manager, error) {
 	entries, _ := config.DiscoveryClient.GetTransportsByEdge(context.Background(), config.PubKey) // nolint
 
 	mEntries := make(map[Entry]struct{})
@@ -62,6 +64,7 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 		entries:    mEntries,
 		TrChan:     make(chan *ManagedTransport, 9), // TODO: eliminate or justify buffering here
 		doneChan:   make(chan struct{}),
+		setupNodes: setupNodes,
 	}, nil
 }
 
@@ -264,10 +267,15 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 		return nil, nil, err
 	}
 
-	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
-	if err != nil {
-		tr.Close()
-		return nil, nil, err
+	var entry *Entry
+	if tm.IsSetupTransport(tr) {
+		entry = makeEntry(tr, public)
+	} else {
+		entry, err = settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
+		if err != nil {
+			tr.Close()
+			return nil, nil, err
+		}
 	}
 
 	return tr, entry, nil
@@ -436,4 +444,16 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 			_ = mTr.updateTransport(ctx, tr, tm.config.DiscoveryClient) //nolint:errcheck
 		}
 	}
+}
+
+// IsSetupTransport checks whether `tr` is running in the `setup` mode.
+func (tm *Manager) IsSetupTransport(tr Transport) bool {
+	for _, pk := range tm.setupNodes {
+		remote, ok := tm.Remote(tr.Edges())
+		if ok && (remote == pk) {
+			return true
+		}
+	}
+
+	return false
 }
