@@ -19,15 +19,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/noise"
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/dmsg"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
@@ -304,6 +304,9 @@ func (visor *Visor) stopUnhandledApp(name string, pid int) {
 
 // Close safely stops spawned Apps and messaging Visor.
 func (visor *Visor) Close() (err error) {
+	if visor == nil {
+		return nil
+	}
 	if visor.rpcListener != nil {
 		if err = visor.rpcListener.Close(); err != nil {
 			visor.logger.WithError(err).Error("failed to stop RPC interface")

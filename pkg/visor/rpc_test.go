@@ -9,16 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/cipher"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
-
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
 func TestListApps(t *testing.T) {
@@ -247,7 +246,7 @@ func TestRPC(t *testing.T) {
 	t.Run("Transport", func(t *testing.T) {
 		var ids []uuid.UUID
 		node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-			ids = append(ids, tp.ID)
+			ids = append(ids, tp.Entry.ID)
 			return true
 		})
 

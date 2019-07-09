@@ -8,9 +8,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
 	"go.etcd.io/bbolt"
-
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // HomeDir obtains the path to the user's home directory via ENVs.

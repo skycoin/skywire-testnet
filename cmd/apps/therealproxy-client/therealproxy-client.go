@@ -9,11 +9,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/skycoin/skywire/internal/netutil"
+	"github.com/skycoin/dmsg/cipher"
 
+	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 const socksPort = 3

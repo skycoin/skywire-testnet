@@ -8,7 +8,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 type settlementHandshake func(tm *Manager, tr Transport) (*Entry, error)

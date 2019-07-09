@@ -15,9 +15,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")
@@ -107,10 +108,10 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 
 	addr := &app.Addr{PubKey: pk, Port: 1}
 	connsMu.Lock()
-	conn := chatConns[pk]
+	conn, ok := chatConns[pk]
 	connsMu.Unlock()
 
-	if conn == nil {
+	if !ok {
 		var err error
 		err = r.Do(func() error {
 			conn, err = chatApp.Dial(addr)

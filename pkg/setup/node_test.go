@@ -10,15 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/dmsg"
-
-	"github.com/skycoin/skywire/pkg/metrics"
-
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
@@ -101,12 +99,12 @@ func TestCreateLoop(t *testing.T) {
 
 	l := &routing.Loop{LocalPort: 1, RemotePort: 2, Expiry: time.Now().Add(time.Hour),
 		Forward: routing.Route{
-			&routing.Hop{From: pk1, To: pk2, Transport: tr1.ID},
-			&routing.Hop{From: pk2, To: pk3, Transport: tr3.ID},
+			&routing.Hop{From: pk1, To: pk2, Transport: tr1.Entry.ID},
+			&routing.Hop{From: pk2, To: pk3, Transport: tr3.Entry.ID},
 		},
 		Reverse: routing.Route{
-			&routing.Hop{From: pk3, To: pk2, Transport: tr3.ID},
-			&routing.Hop{From: pk2, To: pk1, Transport: tr1.ID},
+			&routing.Hop{From: pk3, To: pk2, Transport: tr3.Entry.ID},
+			&routing.Hop{From: pk2, To: pk1, Transport: tr1.Entry.ID},
 		},
 	}
 
@@ -134,25 +132,25 @@ func TestCreateLoop(t *testing.T) {
 	assert.Equal(t, uint16(1), rule.LocalPort())
 	rule = rules[2]
 	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr1.ID, rule.TransportID())
+	assert.Equal(t, tr1.Entry.ID, rule.TransportID())
 	assert.Equal(t, routing.RouteID(2), rule.RouteID())
 
 	rules = n2.getRules()
 	require.Len(t, rules, 2)
 	rule = rules[1]
 	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr1.ID, rule.TransportID())
+	assert.Equal(t, tr1.Entry.ID, rule.TransportID())
 	assert.Equal(t, routing.RouteID(1), rule.RouteID())
 	rule = rules[2]
 	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr3.ID, rule.TransportID())
+	assert.Equal(t, tr3.Entry.ID, rule.TransportID())
 	assert.Equal(t, routing.RouteID(2), rule.RouteID())
 
 	rules = n3.getRules()
 	require.Len(t, rules, 2)
 	rule = rules[1]
 	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr3.ID, rule.TransportID())
+	assert.Equal(t, tr3.Entry.ID, rule.TransportID())
 	assert.Equal(t, routing.RouteID(1), rule.RouteID())
 	rule = rules[2]
 	assert.Equal(t, routing.RuleApp, rule.Type())
@@ -263,6 +261,10 @@ func (f *muxFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.
 }
 
 func (f *muxFactory) Close() error {
+	if f == nil {
+		return nil
+	}
+
 	var err error
 	for _, factory := range f.factories {
 		if fErr := factory.Close(); err == nil && fErr != nil {

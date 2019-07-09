@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 func ExamplePacket() {

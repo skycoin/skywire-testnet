@@ -7,8 +7,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/cipher"
 )
 
 func main() {

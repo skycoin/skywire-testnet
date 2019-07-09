@@ -11,10 +11,10 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/kr/pty"
-
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/app"
 )
@@ -33,14 +33,21 @@ type SSHChannel struct {
 	conn  net.Conn
 	msgCh chan []byte
 
-	session  *Session
-	listener *net.UnixListener
+	session    *Session
+	listenerMx sync.Mutex
+	listener   *net.UnixListener
+
+	dataChMx sync.Mutex
 	dataCh   chan []byte
+
+	doneOnce sync.Once
+	done     chan struct{}
 }
 
 // OpenChannel constructs new SSHChannel with empty Session.
 func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *SSHChannel {
-	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte), dataCh: make(chan []byte)}
+	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte),
+		dataCh: make(chan []byte), done: make(chan struct{})}
 }
 
 // OpenClientChannel constructs new client SSHChannel with empty Session.
@@ -149,7 +156,9 @@ func (sshCh *SSHChannel) ServeSocket() error {
 		return fmt.Errorf("failed to open unix socket: %s", err)
 	}
 
+	sshCh.listenerMx.Lock()
 	sshCh.listener = l
+	sshCh.listenerMx.Unlock()
 	conn, err := l.AcceptUnix()
 	if err != nil {
 		return fmt.Errorf("failed to accept connection: %s", err)
@@ -158,8 +167,7 @@ func (sshCh *SSHChannel) ServeSocket() error {
 	debug("got new socket connection")
 	defer func() {
 		conn.Close()
-		sshCh.listener.Close()
-		sshCh.listener = nil
+		sshCh.closeListener() //nolint:errcheck
 		os.Remove(sshCh.SocketPath())
 	}()
 
@@ -244,33 +252,73 @@ func (sshCh *SSHChannel) WindowChange(sz *pty.Winsize) error {
 	return sshCh.session.WindowChange(sz)
 }
 
+func (sshCh *SSHChannel) close() (closed bool, err error) {
+	sshCh.doneOnce.Do(func() {
+		closed = true
+
+		close(sshCh.done)
+
+		select {
+		case <-sshCh.dataCh:
+		default:
+			sshCh.dataChMx.Lock()
+			close(sshCh.dataCh)
+			sshCh.dataChMx.Unlock()
+		}
+		close(sshCh.msgCh)
+
+		var sErr, lErr error
+		if sshCh.session != nil {
+			sErr = sshCh.session.Close()
+		}
+
+		lErr = sshCh.closeListener()
+
+		if sErr != nil {
+			err = sErr
+			return
+		}
+
+		if lErr != nil {
+			err = lErr
+		}
+	})
+
+	return closed, err
+}
+
 // Close safely closes Channel resources.
 func (sshCh *SSHChannel) Close() error {
-	select {
-	case <-sshCh.dataCh:
-	default:
-		close(sshCh.dataCh)
-	}
-	close(sshCh.msgCh)
-
-	var sErr, lErr error
-	if sshCh.session != nil {
-		sErr = sshCh.session.Close()
+	if sshCh == nil {
+		return nil
 	}
 
-	if sshCh.listener != nil {
-		lErr = sshCh.listener.Close()
+	closed, err := sshCh.close()
+	if err != nil {
+		return err
 	}
-
-	if sErr != nil {
-		return sErr
-	}
-
-	if lErr != nil {
-		return lErr
+	if !closed {
+		return errors.New("channel is already closed")
 	}
 
 	return nil
+}
+
+// IsClosed returns whether the Channel is closed.
+func (sshCh *SSHChannel) IsClosed() bool {
+	select {
+	case <-sshCh.done:
+		return true
+	default:
+		return false
+	}
+}
+
+func (sshCh *SSHChannel) closeListener() error {
+	sshCh.listenerMx.Lock()
+	defer sshCh.listenerMx.Unlock()
+
+	return sshCh.listener.Close()
 }
 
 func debug(format string, v ...interface{}) {

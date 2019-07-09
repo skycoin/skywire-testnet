@@ -7,10 +7,10 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/skycoin/dmsg/disc"
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/messaging-discovery/client"
 )
 
 var mdAddr string
@@ -40,7 +40,7 @@ var entryCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		pk := internal.ParsePK("visor-public-key", args[0])
-		entry, err := client.NewHTTP(mdAddr).Entry(ctx, pk)
+		entry, err := disc.NewHTTP(mdAddr).Entry(ctx, pk)
 		internal.Catch(err)
 		fmt.Println(entry)
 	},
@@ -52,13 +52,13 @@ var availableServersCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, _ []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		entries, err := client.NewHTTP(mdAddr).AvailableServers(ctx)
+		entries, err := disc.NewHTTP(mdAddr).AvailableServers(ctx)
 		internal.Catch(err)
 		printAvailableServers(entries)
 	},
 }
 
-func printAvailableServers(entries []*client.Entry) {
+func printAvailableServers(entries []*disc.Entry) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "version\tregistered\tpublic-key\taddress\tport\tconns")
 	internal.Catch(err)

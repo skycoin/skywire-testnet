@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 const (

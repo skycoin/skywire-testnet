@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // Transport represents communication between two visors via a single hop.

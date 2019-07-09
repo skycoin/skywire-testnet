@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/skycoin/skywire/pkg/cipher"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 // Authorizer defines interface for authorization providers.
@@ -62,6 +62,9 @@ func NewFileAuthorizer(authFile string) (*FileAuthorizer, error) {
 
 // Close releases underlying file pointer.
 func (auth *FileAuthorizer) Close() error {
+	if auth == nil {
+		return nil
+	}
 	return auth.authFile.Close()
 }
 
