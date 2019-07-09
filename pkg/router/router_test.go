@@ -367,7 +367,7 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, tr.Entry.ID, loop.trID)
 		assert.Equal(t, routing.RouteID(2), loop.routeID)
 
-		addrs := [2]*routing.Addr{}
+		var addrs [2]*routing.Addr
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
@@ -407,7 +407,7 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, tr.Entry.ID, l.trID)
 		assert.Equal(t, routing.RouteID(2), l.routeID)
 
-		addrs := [2]*routing.Addr{}
+		var addrs [2]*routing.Addr
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
@@ -503,8 +503,8 @@ func TestRouterSetupLoop(t *testing.T) {
 			return
 		}
 
-		l := &routing.LoopDescriptor{}
-		if err := json.Unmarshal(data, l); err != nil {
+		var l routing.LoopDescriptor
+		if err := json.Unmarshal(data, &l); err != nil {
 			errCh <- err
 			return
 		}
@@ -614,8 +614,8 @@ func TestRouterCloseLoop(t *testing.T) {
 			return
 		}
 
-		ld := &routing.LoopData{}
-		if err := json.Unmarshal(data, ld); err != nil {
+		var ld routing.LoopData
+		if err := json.Unmarshal(data, &ld); err != nil {
 			errCh <- err
 			return
 		}

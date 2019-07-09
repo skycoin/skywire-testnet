@@ -354,7 +354,7 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 			}
 		}
 	case PacketConfirmLoop:
-		ld := routing.LoopData{}
+		var ld routing.LoopData
 		json.Unmarshal(data, &ld) // nolint: errcheck
 		for _, rule := range n.rules {
 			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&

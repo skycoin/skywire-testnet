@@ -132,32 +132,32 @@ func DeleteRule(p *Protocol, routeID routing.RouteID) error {
 }
 
 // CreateLoop sends CreateLoop setup request.
-func CreateLoop(p *Protocol, l *routing.LoopDescriptor) error {
-	if err := p.WritePacket(PacketCreateLoop, l); err != nil {
+func CreateLoop(p *Protocol, ld *routing.LoopDescriptor) error {
+	if err := p.WritePacket(PacketCreateLoop, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil) // TODO: data race.
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func ConfirmLoop(p *Protocol, l *routing.LoopData) error {
-	if err := p.WritePacket(PacketConfirmLoop, l); err != nil {
+func ConfirmLoop(p *Protocol, ld *routing.LoopData) error {
+	if err := p.WritePacket(PacketConfirmLoop, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil)
 }
 
 // CloseLoop sends CloseLoop setup request.
-func CloseLoop(p *Protocol, l *routing.LoopData) error {
-	if err := p.WritePacket(PacketCloseLoop, l); err != nil {
+func CloseLoop(p *Protocol, ld *routing.LoopData) error {
+	if err := p.WritePacket(PacketCloseLoop, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil)
 }
 
 // LoopClosed sends LoopClosed setup request.
-func LoopClosed(p *Protocol, l *routing.LoopData) error {
-	if err := p.WritePacket(PacketLoopClosed, l); err != nil {
+func LoopClosed(p *Protocol, ld *routing.LoopData) error {
+	if err := p.WritePacket(PacketLoopClosed, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil)

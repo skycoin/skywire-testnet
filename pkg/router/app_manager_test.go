@@ -71,10 +71,10 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
 
-	var laddr *routing.Addr
+	var laddr routing.Addr
 	pk, _ := cipher.GenerateKeyPair()
-	raddr := &routing.Addr{PubKey: pk, Port: 3}
-	err := proto.Send(app.FrameCreateLoop, raddr, &laddr)
+	raddr := routing.Addr{PubKey: pk, Port: 3}
+	err := proto.Send(app.FrameCreateLoop, &raddr, &laddr)
 	require.NoError(t, err)
 	assert.Equal(t, raddr, laddr)
 

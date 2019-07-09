@@ -222,13 +222,13 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	startTime := time.Now()
 	switch sp {
 	case PacketCreateLoop:
-		loop := &routing.LoopDescriptor{}
-		if err = json.Unmarshal(data, loop); err == nil {
-			err = sn.createLoop(loop)
+		var loopDp routing.LoopDescriptor
+		if err = json.Unmarshal(data, &loopDp); err == nil {
+			err = sn.createLoop(&loopDp)
 		}
 	case PacketCloseLoop:
-		ld := &routing.LoopData{}
-		if err = json.Unmarshal(data, ld); err == nil {
+		var ld routing.LoopData
+		if err = json.Unmarshal(data, &ld); err == nil {
 			remote, ok := sn.tm.Remote(tr.Edges())
 			if !ok {
 				return errors.New("configured PubKey not found in edges")

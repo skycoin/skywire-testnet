@@ -120,12 +120,12 @@ func (app *App) Accept() (net.Conn, error) {
 	laddr := addrs[0]
 	raddr := addrs[1]
 
-	addr := &routing.Loop{Local: *laddr, Remote: *raddr}
+	loop := routing.Loop{Local: *laddr, Remote: *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
-	app.conns[*addr] = conn
+	app.conns[loop] = conn
 	app.mu.Unlock()
-	go app.serveConn(addr, conn)
+	go app.serveConn(&loop, conn)
 	return newAppConn(out, laddr, raddr), nil
 }
 
@@ -136,12 +136,12 @@ func (app *App) Dial(raddr *routing.Addr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	addr := &routing.Loop{Local: laddr, Remote: *raddr}
+	loop := routing.Loop{Local: laddr, Remote: *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
-	app.conns[*addr] = conn
+	app.conns[loop] = conn
 	app.mu.Unlock()
-	go app.serveConn(addr, conn)
+	go app.serveConn(&loop, conn)
 	return newAppConn(out, &laddr, raddr), nil
 }
 
@@ -228,7 +228,7 @@ func (app *App) closeConn(data []byte) error {
 }
 
 func (app *App) confirmLoop(data []byte) error {
-	addrs := [2]*routing.Addr{}
+	var addrs [2]*routing.Addr
 	if err := json.Unmarshal(data, &addrs); err != nil {
 		return err
 	}

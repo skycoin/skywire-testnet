@@ -217,9 +217,10 @@ func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
-	raddr := &routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
+	laddr := routing.Addr{Port: rule.LocalPort()}
+	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
-	p := &app.Packet{Loop: &routing.Loop{Local: routing.Addr{Port: rule.LocalPort()}, Remote: *raddr}, Payload: payload}
+	p := &app.Packet{Loop: &routing.Loop{Local: laddr, Remote: raddr}, Payload: payload}
 	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
 		return err

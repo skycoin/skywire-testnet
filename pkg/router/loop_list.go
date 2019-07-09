@@ -44,8 +44,8 @@ func (ll *loopList) remove(addr *routing.Addr) {
 }
 
 func (ll *loopList) dropAll() []routing.Addr {
-	r := make([]routing.Addr, 0)
 	ll.Lock()
+	r := make([]routing.Addr, 0, len(ll.loops))
 	for addr := range ll.loops {
 		r = append(r, addr)
 	}
