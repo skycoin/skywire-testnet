@@ -12,9 +12,9 @@ import (
 	"github.com/skycoin/skywire/pkg/app"
 )
 
-func TestAppManagerInit(t *testing.T) {
+func TestVisorInit(t *testing.T) {
 	in, out := net.Pipe()
-	am := &appManager{
+	am := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -51,9 +51,9 @@ func TestAppManagerInit(t *testing.T) {
 	require.NoError(t, <-srvCh)
 }
 
-func TestAppManagerSetupLoop(t *testing.T) {
+func TestVisorSetupLoop(t *testing.T) {
 	in, out := net.Pipe()
-	am := &appManager{
+	am := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -81,10 +81,10 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	require.NoError(t, <-srvCh)
 }
 
-func TestAppManagerCloseLoop(t *testing.T) {
+func TestVisorCloseLoop(t *testing.T) {
 	in, out := net.Pipe()
 	var inAddr *app.LoopAddr
-	am := &appManager{
+	am := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -112,10 +112,10 @@ func TestAppManagerCloseLoop(t *testing.T) {
 	require.NoError(t, <-srvCh)
 }
 
-func TestAppManagerForward(t *testing.T) {
+func TestVisorForward(t *testing.T) {
 	in, out := net.Pipe()
 	var inPacket *app.Packet
-	am := &appManager{
+	am := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},

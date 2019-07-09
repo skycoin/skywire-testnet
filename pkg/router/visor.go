@@ -17,7 +17,7 @@ type appCallbacks struct {
 	Forward    func(conn *app.Protocol, packet *app.Packet) error
 }
 
-type appManager struct {
+type visor struct {
 	Logger *logging.Logger
 
 	proto     *app.Protocol
@@ -25,31 +25,31 @@ type appManager struct {
 	callbacks *appCallbacks
 }
 
-func (am *appManager) Serve() error {
-	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
-		am.Logger.Infof("Got new App request with type %s: %s", frame, string(payload))
+func (v *visor) Serve() error {
+	return v.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
+		v.Logger.Infof("Got new App request with type %s: %s", frame, string(payload))
 		switch frame {
 		case app.FrameInit:
-			err = am.initApp(payload)
+			err = v.initApp(payload)
 		case app.FrameCreateLoop:
-			res, err = am.setupLoop(payload)
+			res, err = v.setupLoop(payload)
 		case app.FrameClose:
-			err = am.handleCloseLoop(payload)
+			err = v.handleCloseLoop(payload)
 		case app.FrameSend:
-			err = am.forwardAppPacket(payload)
+			err = v.forwardAppPacket(payload)
 		default:
 			err = errors.New("unexpected frame")
 		}
 
 		if err != nil {
-			am.Logger.Infof("App request with type %s failed: %s", frame, err)
+			v.Logger.Infof("App request with type %s failed: %s", frame, err)
 		}
 
 		return res, err
 	})
 }
 
-func (am *appManager) initApp(payload []byte) error {
+func (v *visor) initApp(payload []byte) error {
 	config := &app.Config{}
 	if err := json.Unmarshal(payload, config); err != nil {
 		return errors.New("invalid Init payload")
@@ -59,41 +59,41 @@ func (am *appManager) initApp(payload []byte) error {
 		return errors.New("unsupported protocol version")
 	}
 
-	if am.appConf.AppName != config.AppName {
+	if v.appConf.AppName != config.AppName {
 		return errors.New("unexpected app")
 	}
 
-	if am.appConf.AppVersion != config.AppVersion {
+	if v.appConf.AppVersion != config.AppVersion {
 		return errors.New("unexpected app version")
 	}
 
-	am.Logger.Infof("Handshaked new connection with the app %s.v%s", config.AppName, config.AppVersion)
+	v.Logger.Infof("Handshaked new connection with the app %s.v%s", config.AppName, config.AppVersion)
 	return nil
 }
 
-func (am *appManager) setupLoop(payload []byte) (*app.Addr, error) {
+func (v *visor) setupLoop(payload []byte) (*app.Addr, error) {
 	raddr := &app.Addr{}
 	if err := json.Unmarshal(payload, raddr); err != nil {
 		return nil, err
 	}
 
-	return am.callbacks.CreateLoop(am.proto, raddr)
+	return v.callbacks.CreateLoop(v.proto, raddr)
 }
 
-func (am *appManager) handleCloseLoop(payload []byte) error {
+func (v *visor) handleCloseLoop(payload []byte) error {
 	addr := &app.LoopAddr{}
 	if err := json.Unmarshal(payload, addr); err != nil {
 		return err
 	}
 
-	return am.callbacks.CloseLoop(am.proto, addr)
+	return v.callbacks.CloseLoop(v.proto, addr)
 }
 
-func (am *appManager) forwardAppPacket(payload []byte) error {
+func (v *visor) forwardAppPacket(payload []byte) error {
 	packet := &app.Packet{}
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err
 	}
 
-	return am.callbacks.Forward(am.proto, packet)
+	return v.callbacks.Forward(v.proto, packet)
 }

@@ -141,7 +141,7 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 		CloseLoop:  r.closeLoop,
 		Forward:    r.forwardAppPacket,
 	}
-	am := &appManager{r.Logger, appProto, appConf, callbacks}
+	am := &visor{r.Logger, appProto, appConf, callbacks}
 	err := am.Serve()
 
 	for _, port := range r.pm.AppPorts(appProto) {
