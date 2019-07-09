@@ -131,18 +131,18 @@ func (app *App) Accept() (net.Conn, error) {
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
 func (app *App) Dial(raddr *routing.Addr) (net.Conn, error) {
-	laddr := &routing.Addr{}
-	err := app.proto.Send(FrameCreateLoop, raddr, laddr)
+	var laddr routing.Addr
+	err := app.proto.Send(FrameCreateLoop, raddr, &laddr)
 	if err != nil {
 		return nil, err
 	}
-	addr := &routing.Loop{Local: *laddr, Remote: *raddr}
+	addr := &routing.Loop{Local: laddr, Remote: *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[*addr] = conn
 	app.mu.Unlock()
 	go app.serveConn(addr, conn)
-	return newAppConn(out, laddr, raddr), nil
+	return newAppConn(out, &laddr, raddr), nil
 }
 
 // Addr returns empty Addr, implements net.Listener.

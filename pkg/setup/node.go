@@ -123,8 +123,14 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 
 	ldR := &routing.LoopData{
 		Loop: routing.Loop{
-			Remote: routing.Addr{PubKey: initiator, Port: l.Local.Port},
-			Local:  routing.Addr{PubKey: responder, Port: l.Remote.Port},
+			Remote: routing.Addr{
+				PubKey: initiator,
+				Port:   l.Local.Port,
+			},
+			Local: routing.Addr{
+				PubKey: responder,
+				Port:   l.Remote.Port,
+			},
 		},
 		RouteID: rRouteID,
 	}

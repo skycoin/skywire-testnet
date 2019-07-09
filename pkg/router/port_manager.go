@@ -12,7 +12,7 @@ type portManager struct {
 	ports *portList
 }
 
-func newPortManager(minPort uint16) *portManager {
+func newPortManager(minPort routing.Port) *portManager {
 	return &portManager{newPortList(minPort)}
 }
 

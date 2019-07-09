@@ -17,11 +17,11 @@ type portBind struct {
 type portList struct {
 	sync.Mutex
 
-	minPort uint16
+	minPort routing.Port
 	ports   map[routing.Port]*portBind
 }
 
-func newPortList(minPort uint16) *portList {
+func newPortList(minPort routing.Port) *portList {
 	return &portList{minPort: minPort, ports: make(map[routing.Port]*portBind, minPort)}
 }
 
@@ -40,7 +40,7 @@ func (pl *portList) add(b *portBind) routing.Port {
 	pl.Lock()
 	defer pl.Unlock()
 
-	for i := routing.Port(pl.minPort); i < math.MaxUint16; i++ {
+	for i := pl.minPort; i < math.MaxUint16; i++ {
 		if pl.ports[i] == nil {
 			pl.ports[i] = b
 			return i
