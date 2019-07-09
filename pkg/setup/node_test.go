@@ -368,7 +368,7 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 		ld := &LoopData{}
 		json.Unmarshal(data, ld) // nolint: errcheck
 		for routeID, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Local.PubKey &&
+			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&
 				rule.RemotePort() == ld.Loop.Remote.Port && rule.LocalPort() == ld.Loop.Local.Port {
 
 				delete(n.rules, routeID)

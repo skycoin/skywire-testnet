@@ -146,12 +146,16 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := &setup.LoopData{
-		Remote: routing.Addr{
-			PubKey: pk,
-			Port:   3,
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: pk,
+				Port:   3,
+			},
+			Local: routing.Addr{
+				Port: 2,
+			},
 		},
-		LocalPort: 2,
-		RouteID:   1,
+		RouteID: 1,
 	}
 	err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
@@ -192,12 +196,16 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := &setup.LoopData{
-		Remote: routing.Addr{
-			PubKey: pk,
-			Port:   3,
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: pk,
+				Port:   3,
+			},
+			Local: routing.Addr{
+				Port: 2,
+			},
 		},
-		LocalPort: 2,
-		RouteID:   1,
+		RouteID: 1,
 	}
 	require.NoError(t, setup.LoopClosed(proto, ld))
 	assert.Equal(t, routing.Port(2), inLoop.Local.Port)

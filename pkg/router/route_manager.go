@@ -145,13 +145,11 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return err
 	}
 
-	raddr := &routing.Addr{PubKey: ld.Remote.PubKey, Port: ld.Remote.Port}
-
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.Remote.PubKey ||
-			rule.RemotePort() != ld.Remote.Port || rule.LocalPort() != ld.LocalPort {
+		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.Loop.Remote.PubKey ||
+			rule.RemotePort() != ld.Loop.Remote.Port || rule.LocalPort() != ld.Loop.Local.Port {
 			return true
 		}
 
@@ -177,7 +175,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return errors.New("reverse rule is not forward")
 	}
 
-	if err = rm.callbacks.ConfirmLoop(&routing.Loop{Local: routing.Addr{Port: ld.LocalPort}, Remote: *raddr}, rule); err != nil {
+	if err = rm.callbacks.ConfirmLoop(&ld.Loop, rule); err != nil {
 		return fmt.Errorf("confirm: %s", err)
 	}
 
@@ -187,7 +185,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 
-	rm.Logger.Infof("Confirmed loop with %s:%d", ld.Remote.Port, ld.Remote.PubKey)
+	rm.Logger.Infof("Confirmed loop with %s:%d", ld.Loop.Remote.Port, ld.Loop.Remote.PubKey)
 	return nil
 }
 
@@ -197,7 +195,5 @@ func (rm *routeManager) loopClosed(data []byte) error {
 		return err
 	}
 
-	raddr := &routing.Addr{PubKey: ld.Remote.PubKey, Port: ld.Remote.Port}
-	loop := &routing.Loop{Local: routing.Addr{Port: ld.LocalPort}, Remote: *raddr}
-	return rm.callbacks.LoopClosed(loop)
+	return rm.callbacks.LoopClosed(&ld.Loop)
 }

@@ -233,6 +233,9 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 						PubKey: remote,
 						Port:   ld.Loop.Local.Port,
 					},
+					Local: routing.Addr{
+						Port: ld.Loop.Remote.Port,
+					},
 				},
 			})
 		}
