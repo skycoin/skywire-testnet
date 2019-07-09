@@ -26,7 +26,7 @@
 						"nodes"
 					]
 				},
-				"description": "Provides a summary of all connected app visors."
+				"description": "Provides a summary of all connected app nodes."
 			},
 			"response": [
 				{
@@ -102,7 +102,7 @@
 						}
 					]
 				},
-				"description": "Provides a summary of a given connected visor of public key."
+				"description": "Provides a summary of a given connected app node of public key."
 			},
 			"response": [
 				{
@@ -180,7 +180,7 @@
 						"apps"
 					]
 				},
-				"description": "Provides a summary of an Visor's apps."
+				"description": "Provides a summary of an AppNode's apps."
 			},
 			"response": [
 				{
@@ -253,7 +253,7 @@
 						"foo.v1.0"
 					]
 				},
-				"description": "Starts an app on an Visor."
+				"description": "Starts an app on an AppNode."
 			},
 			"response": [
 				{
@@ -335,7 +335,7 @@
 						"foo.v1.0"
 					]
 				},
-				"description": "Starts an app on an Visor."
+				"description": "Starts an app on an AppNode."
 			},
 			"response": [
 				{
@@ -415,7 +415,7 @@
 						"transport-types"
 					]
 				},
-				"description": "Lists supported transport types of the given Visor."
+				"description": "Lists supported transport types of the given AppNode."
 			},
 			"response": [
 				{
@@ -494,7 +494,7 @@
 						}
 					]
 				},
-				"description": "List transports of given Visor."
+				"description": "List transports of given AppNode."
 			},
 			"response": [
 				{
@@ -580,7 +580,7 @@
 						"transports"
 					]
 				},
-				"description": "Adds a transport to a given Visor."
+				"description": "Adds a transport to a given AppNode."
 			},
 			"response": [
 				{
@@ -660,7 +660,7 @@
 						"70836b44-f6e5-4c17-a5e8-e1cbef89a10f"
 					]
 				},
-				"description": "Obtains summary of transport of given TransportID and Visor."
+				"description": "Obtains summary of transport of given TransportID and AppNode."
 			},
 			"response": [
 				{
@@ -734,7 +734,7 @@
 						"d5ace20e-06c8-4867-bda2-9449459a9e5a"
 					]
 				},
-				"description": "Removes transport of given TransportID and Visor."
+				"description": "Removes transport of given TransportID and AppNode."
 			},
 			"response": [
 				{

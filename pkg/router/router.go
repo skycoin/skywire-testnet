@@ -1,4 +1,4 @@
-// Package router implements package router for skywire visor.
+// Package router implements package router for skywire networking node.
 package router
 
 import (
@@ -39,7 +39,7 @@ type Config struct {
 	SetupNodes       []cipher.PubKey
 }
 
-// Router implements visor.PacketRouter. It manages routing table by
+// Router implements node.PacketRouter. It manages routing table by
 // communicating with setup nodes, forward packets according to local
 // rules and manages loops for apps.
 type Router struct {

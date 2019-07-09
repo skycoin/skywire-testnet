@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/visor"
+	"github.com/skycoin/skywire/pkg/node"
 )
 
 func init() {
@@ -23,7 +23,7 @@ func init() {
 
 var lsAppsCmd = &cobra.Command{
 	Use:   "ls-apps",
-	Short: "Lists apps running on the local visor",
+	Short: "Lists apps running on the local node",
 	Run: func(_ *cobra.Command, _ []string) {
 		states, err := rpcClient().Apps()
 		internal.Catch(err)
@@ -34,7 +34,7 @@ var lsAppsCmd = &cobra.Command{
 
 		for _, state := range states {
 			status := "stopped"
-			if state.Status == visor.AppStatusRunning {
+			if state.Status == node.AppStatusRunning {
 				status = "running"
 			}
 			_, err = fmt.Fprintf(w, "%s\t%s\t%t\t%s\n", state.Name, strconv.Itoa(int(state.Port)), state.AutoStart, status)

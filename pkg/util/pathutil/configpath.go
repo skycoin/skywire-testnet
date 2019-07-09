@@ -71,14 +71,14 @@ func (dp ConfigPaths) Get(cpType ConfigLocationType) string {
 	return ""
 }
 
-// VisorDefaults returns the default config paths for visor.
-func VisorDefaults() ConfigPaths {
+// NodeDefaults returns the default config paths for skywire-networking-node.
+func NodeDefaults() ConfigPaths {
 	paths := make(ConfigPaths)
 	if wd, err := os.Getwd(); err == nil {
-		paths[WorkingDirLoc] = filepath.Join(wd, "visor-config.json")
+		paths[WorkingDirLoc] = filepath.Join(wd, "skywire-config.json")
 	}
-	paths[HomeLoc] = filepath.Join(HomeDir(), ".skycoin/visor/visor-config.json")
-	paths[LocalLoc] = "/usr/local/skycoin/visor/visor-config.json"
+	paths[HomeLoc] = filepath.Join(HomeDir(), ".skycoin/skywire/skywire-config.json")
+	paths[LocalLoc] = "/usr/local/skycoin/skywire/skywire-config.json"
 	return paths
 }
 

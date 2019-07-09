@@ -1,5 +1,5 @@
 /*
-ssh client app for skywire visor
+ssh client app for skywire networking node
 */
 package main
 

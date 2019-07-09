@@ -1,6 +1,6 @@
 {
 	"version": "1.0",
-	"visor": {
+	"node": {
 		"static_public_key": "0372ee0a2b99b55906ac33b49704073ab90ab4f395d814d48d597b5b42c39e5c79",
 		"static_secret_key": "5092f14fe18bd7dcd34479c5d26bb3bf68b708ec74a12c4557091e82dd6e6c36"
 	},
@@ -12,7 +12,7 @@
 		"discovery": "https://transport.discovery.skywire.skycoin.net",
         "log_store": {
             "type": "file",
-            "location": "./local/visorB/transport_logs"
+            "location": "./local/nodeB/transport_logs"
         }
 	},
 	"routing": {
@@ -23,11 +23,11 @@
 		"route_finder_timeout": "60s",
 		"table": {
 			"type": "boltdb",
-			"location": "./local/visorB/routing.db"
+			"location": "./local/nodeB/routing.db"
 		}
 	},
 	"apps": [],
-	"trusted_visors": [],
+	"trusted_nodes": [],
 	"hypervisors": [],
 	"apps_path": "./bin/apps",
 	"local_path": "./local/localB",

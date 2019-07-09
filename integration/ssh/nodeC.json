@@ -1,6 +1,6 @@
 {
 	"version": "1.0",
-	"visor": {
+	"node": {
 		"static_public_key": "02c9ddf5c2ae6a5a2166028dafbc814eff3ec2352f429fb0aa37d96e1aa668f332",
 		"static_secret_key": "5ab3744ab56e4d0b82f9a915e07b8f05d51ec0f16ff8496bd92f4e378ca6c1fc"
 	},
@@ -12,7 +12,7 @@
 		"discovery": "https://transport.discovery.skywire.skycoin.net",
 		"log_store": {
             "type": "file",
-            "location": "./local/visorC/transport_logs"
+            "location": "./local/nodeC/transport_logs"
         }
 	},
 	"routing": {
@@ -22,7 +22,7 @@
 		"route_finder": "https://routefinder.skywire.skycoin.net/",
 		"table": {
 			"type": "boltdb",
-			"location": "./local/visorC/routing.db"
+			"location": "./local/nodeC/routing.db"
 		}
 	},
 	"apps": [
@@ -48,10 +48,10 @@
 				"args": ["-srv", "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7"]
 			}
 		],
-		"trusted_visors": [],
+		"trusted_nodes": [],
 		"hypervisors": [],
 		"apps_path": "./apps",
-		"local_path": "./local/visorC",
+		"local_path": "./local/nodeC",
 		"log_level": "info",
 		"interfaces": {
 			"rpc": "localhost:3438"

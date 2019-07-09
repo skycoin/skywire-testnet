@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"encoding/binary"
@@ -224,7 +224,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	return localPK, &mockRPCClient{
 		s: &Summary{
 			PubKey:          localPK,
-			VisorVersion:    Version,
+			NodeVersion:     Version,
 			AppProtoVersion: supportedProtocolVersion,
 			Apps: []*AppState{
 				{Name: "foo.v1.0", AutoStart: false, Port: 10},

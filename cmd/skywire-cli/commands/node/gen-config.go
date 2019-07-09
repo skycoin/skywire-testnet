@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"encoding/base64"
@@ -9,8 +9,8 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
-	"github.com/skycoin/skywire/pkg/visor"
 )
 
 func init() {
@@ -34,7 +34,7 @@ var genConfigCmd = &cobra.Command{
 	Short: "Generates a config file",
 	PreRun: func(_ *cobra.Command, _ []string) {
 		if output == "" {
-			output = pathutil.VisorDefaults().Get(configLocType)
+			output = pathutil.NodeDefaults().Get(configLocType)
 			log.Infof("No 'output' set; using default path: %s", output)
 		}
 		var err error
@@ -43,7 +43,7 @@ var genConfigCmd = &cobra.Command{
 		}
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		var conf *visor.Config
+		var conf *node.Config
 		switch configLocType {
 		case pathutil.WorkingDirLoc:
 			conf = defaultConfig()
@@ -58,7 +58,7 @@ var genConfigCmd = &cobra.Command{
 	},
 }
 
-func homeConfig() *visor.Config {
+func homeConfig() *node.Config {
 	c := defaultConfig()
 	c.AppsPath = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/apps")
 	c.Transport.LogStore.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/transport_logs")
@@ -66,7 +66,7 @@ func homeConfig() *visor.Config {
 	return c
 }
 
-func localConfig() *visor.Config {
+func localConfig() *node.Config {
 	c := defaultConfig()
 	c.AppsPath = "/usr/local/skycoin/skywire/apps"
 	c.Transport.LogStore.Location = "/usr/local/skycoin/skywire/transport_logs"
@@ -74,24 +74,24 @@ func localConfig() *visor.Config {
 	return c
 }
 
-func defaultConfig() *visor.Config {
-	conf := &visor.Config{}
+func defaultConfig() *node.Config {
+	conf := &node.Config{}
 	conf.Version = "1.0"
 
 	pk, sk := cipher.GenerateKeyPair()
-	conf.Visor.StaticPubKey = pk
-	conf.Visor.StaticSecKey = sk
+	conf.Node.StaticPubKey = pk
+	conf.Node.StaticSecKey = sk
 
 	conf.Messaging.Discovery = "https://messaging.discovery.skywire.skycoin.net"
 	conf.Messaging.ServerCount = 1
 
 	passcode := base64.StdEncoding.EncodeToString(cipher.RandByte(8))
-	conf.Apps = []visor.AppConfig{
+	conf.Apps = []node.AppConfig{
 		{App: "skychat", Version: "1.0", Port: 1, AutoStart: true, Args: []string{}},
 		{App: "SSH", Version: "1.0", Port: 2, AutoStart: true, Args: []string{}},
 		{App: "socksproxy", Version: "1.0", Port: 3, AutoStart: true, Args: []string{"-passcode", passcode}},
 	}
-	conf.TrustedVisors = []cipher.PubKey{}
+	conf.TrustedNodes = []cipher.PubKey{}
 
 	conf.Transport.Discovery = "https://transport.discovery.skywire.skycoin.net"
 	conf.Transport.LogStore.Type = "file"
@@ -103,16 +103,16 @@ func defaultConfig() *visor.Config {
 	conf.Routing.SetupNodes = []cipher.PubKey{sPK}
 	conf.Routing.Table.Type = "boltdb"
 	conf.Routing.Table.Location = "./skywire/routing.db"
-	conf.Routing.RouteFinderTimeout = visor.Duration(10 * time.Second)
+	conf.Routing.RouteFinderTimeout = node.Duration(10 * time.Second)
 
-	conf.Hypervisors = []visor.HypervisorConfig{}
+	conf.Hypervisors = []node.HypervisorConfig{}
 
 	conf.AppsPath = "./apps"
 	conf.LocalPath = "./local"
 
 	conf.LogLevel = "info"
 
-	conf.ShutdownTimeout = visor.Duration(10 * time.Second)
+	conf.ShutdownTimeout = node.Duration(10 * time.Second)
 
 	conf.Interfaces.RPCAddress = "localhost:3435"
 

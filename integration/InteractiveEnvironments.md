@@ -22,33 +22,33 @@
 
 ```text
 integration
-├── generic                            #  Generic environmnent
+├── generic                            #  Generic environment
 │   ├── env-vars.sh                    #  
-│   ├── visorA.json                    #
-│   └── visorC.json                    #
+│   ├── nodeA.json                     #
+│   └── nodeC.json                     #
 ├── messaging                          # Messaging testing environment
 │   ├── env-vars.sh                    # 
-│   ├── visorA.json                    # 
-│   └── visorC.json                    # 
+│   ├── nodeA.json                     # 
+│   └── nodeC.json                     # 
 ├── proxy                              #  Proxy testing environment
 │   ├── env-vars.sh                    #
-│   ├── visorA.json                    #
-│   └── visorC.json                    #
+│   ├── nodeA.json                     #
+│   └── nodeC.json                     #
 ├── ssh                                #  ssh testing environment
 │   ├── env-vars.sh                    #
-│   ├── visorA.json                    #
-│   └── visorC.json                    #
+│   ├── nodeA.json                     #
+│   └── nodeC.json                     #
 ├── InteractiveEnvironments.md         #  You're reading it
-├── intermediary-visorB.json           #  VisorB configurationS
+├── intermediary-nodeB.json            #  NodeB configurationS
 ├── run-base-env.sh                    #  base environment in detached tmux session
 ├── run-generic-env.sh                 #  generic environment in tmux
 ├── run-proxy-env.sh                   #  proxy  environment in tmux
-├── run-ssh-env.sh                     #  ssh  environment in tmuxS
-├── start-restart-visorB.sh            #  script for restart in cycle VisorB
-├── startup.sh                         #  add transports between visors
+├── run-ssh-env.sh                     #  ssh  environment in tmux
+├── start-restart-nodeB.sh             #  script for restart in cycle NodeB
+├── startup.sh                         #  add transports between nodes
 ├── tear-down.sh                       #  tear down everything
 ├── test-messaging-loop.sh             #  Test script for messaging in infinite loop
-├── test-messaging.sh                  #  Test one message between VisorA-VisorC, VisorC-VisorA
+├── test-messaging.sh                  #  Test one message between NodeA-NodeC, NodeC-NodeA
 ├── test-proxy.sh                      #  Test script for proxy
 ├── test-ssh.sh                        #  Test script for ssh
 ```
@@ -80,9 +80,9 @@ Usage:
 The generic test environment will define the following:
 
 - skywire-services running on localhost
-- 3 visors:
-  - VisorA, VisorC running all apps
-  - VisorB - intermediary visor without apps
+- 3 `skywire-networking-node`s:
+  - NodeA, NodeC running all apps
+  - NodeB - intermediary node without apps
 
 **Run**
 
@@ -90,7 +90,7 @@ The generic test environment will define the following:
 # Tear down everything
 $ make integration-teardown
 
-# Start all services and visors
+# Start all services and nodes
 $ make integration-run-generic
 
 # Adds pre-defined transports
@@ -115,8 +115,8 @@ $ make integration-teardown
 
 Instead of `../skywire/skywire-cli --rpc localhost:port [command]`, one can use:
 
-- `CLI_A visor ls-tp` - list transports from visorA
-- `CLI_B visor add-tp $PK_A` - add transport on visorB to visorA
+- `CLI_A node ls-tp` - list transports from nodeA
+- `CLI_B node add-tp $PK_A` - add transport on nodeB to nodeA
 
 Consult with `./integration/env-vars.sh` for details.
 
@@ -129,11 +129,11 @@ These tests assume that the generic environment is running (via the aforemention
     # To be run in the 'shell' tab of tmux.
     ./integration/test-messaging.sh 
     ```
-- **TEST 2: Test send/receive with unstable VisorB.**
-   1. Stop VisorB by switching to the 7th tmux window (`Ctrl+B` & `6`) and sending SIGTERM (`Ctrl-C`).
+- **TEST 2: Test send/receive with unstable NodeB.**
+   1. Stop NodeB by switching to the 7th tmux window (`Ctrl+B` & `6`) and sending SIGTERM (`Ctrl-C`).
    2. Run the following in the same window:
       ```bash
-      $ ./integration/start-restart-visorB.sh
+      $ ./integration/start-restart-nodeB.sh
       ```
    3. Switch to the `shell` window and run:
       ```bash
@@ -144,22 +144,22 @@ These tests assume that the generic environment is running (via the aforemention
 
 The following steps will be performed:
 
-1. copy sw*.json and start-restart-visorB.sh into skywire directory
+1. copy sw*.json and start-restart-nodeB.sh into skywire directory
 2. Create 9 tmux windows:
    1. MSGD: messaging-discovery
    2. MSG: messaging-server
    3. TRD: transport-discovery
    4. RF: route-finder
    5. SN: setup-node
-   6. VisorA: first visor running with generic/visorA.json
-   7. VisorB: first visor running with intermediary-visorB.json
-   8. VisorC: first visor running with generic/visorC.json
+   6. NodeA: first node running with generic/nodeA.json
+   7. NodeB: first node running with intermediary-nodeB.json
+   8. NodeC: first node running with generic/nodeC.json
    9. shell: new shell for interactive exploration
 3. ENV-vars in shell-window:
    1. $MSG_PK, $SN_PK - public keys of messaging-server and setup-node
-   2. $PK_A, $PK_B, $PK_C - public keys of visor_A, visor_B, visor_C
+   2. $PK_A, $PK_B, $PK_C - public keys of node_A, node_B, node_C
    3. $RPC_A, $RPC_B, $RPC_C - `--rpc` param for ../skywire/skywire-cli
-   4. $CHAT_A, $CHAT_B - addresses and ports for `skychat`-apps on visor_A and visor_C
+   4. $CHAT_A, $CHAT_B - addresses and ports for `skychat`-apps on node_A and node_C
 4. Aliases in shell-window: `CLI_A`, `CLI_B`, `CLI_C`
 
 ### SSH Test Environment
@@ -167,10 +167,10 @@ The following steps will be performed:
 The SSH Test Environment will define the following:
 
 - skywire-services running on localhost
-- 3 visors:
-  - VisorA - running  `SSH` app
-  - VisorB - intermediary visor without apps
-  - VisorC - running `SSH-client` app
+- 3 `skywire-networking-node`s:
+  - NodeA - running  `SSH` app
+  - NodeB - intermediary node without apps
+  - NodeC - running `SSH-client` app
 
 **Run**
 
@@ -181,7 +181,7 @@ $ make integration-teardown
 # Prerequisite
 $ echo $PK_C > ~/.therealssh/authorized_keys
 
-# Start all services and visors
+# Start all services and nodes
 $ make integration-run-ssh
 
 # Adds pre-defined transports
@@ -193,12 +193,12 @@ $ make integration-startup
 - **TEST 1**
   1. Run `./integration/run-ssh-env.sh` - it will run:
      1. skywire-services on localhost
-     2. VisorA with configured `SSH` app 
-     3. VisorB - intermediary
-     4. VisorC with configured `SSH-client` app
+     2. NodeA with configured `SSH` app 
+     3. NodeB - intermediary
+     4. NodeC with configured `SSH-client` app
   2. Run `./integration/test-ssh.sh` which will run in cycle:
      1. `./SSH-cli $PK_A "export n=1; loop -n $n echo A"`
-     2. kill all visors
+     2. kill all `skywire-networking-node`s
      3. Collect logs
      4. Increase n by power of 2
      5. Repeat
@@ -208,27 +208,27 @@ $ make integration-startup
 The proxy test environment will define the following:
 
 - skywire-services running on localhost
-- 3 visors:
-  - VisorA - running  `SSH` app
-  - VisorB - intermediary visor without apps
-  - VisorC - running `SSH-client` app
+- 3 `skywire-networking-node`s:
+  - NodeA - running  `SSH` app
+  - NodeB - intermediary node without apps
+  - NodeC - running `SSH-client` app
 
 #### Preparation
 
 It's really tricky to make socks5 proxy work now from clean start.
 
 Because `socksproxy-client` needs:
-- transport to VisorA
-- VisorA must be running **before** start of `socksproxy-client`
+- transport to NodeA
+- NodeA must be running **before** start of `socksproxy-client`
 
 Recipe for clean start:
 
 1. Run `make integration-teardown`
 2. Start `./integration/run-proxy-env.sh`
 3. Run `make integration-startup`
-4. Stop VisorA, VisorB, VisorC
-5. Restart all visors
-6. Wait for message in VisorC logs about successful start of
+4. Stop NodeA, NodeB, NodeC
+5. Restart all `skywire-networking-node`s
+6. Wait for message in NodeC logs about successful start of
 socksproxy-client
 7. Check `lsof -i :9999` that it's really started
 8. Check `curl -v --retry 5 --retry-connrefused 1  --connect-timeout 5 -x socks5://123456:@localhost:9999 https://www.google.com`
@@ -249,7 +249,7 @@ It's possible that a service could start earlier or later than needed.
 Examine windows,  in case of failed service - restart it (E.g. `KeyUp`-`Enter`)
 
 Problem still exists in proxy test environment:
-  - VisorC cannot start `SSH-client` when VisorA is still starting `SSH`
+  - NodeC cannot start `SSH-client` when NodeA is still starting `SSH`
 
 ### Tmux for new users
 

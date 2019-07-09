@@ -20,7 +20,7 @@ func (h Hop) String() string {
 	return fmt.Sprintf("%s -> %s @ %s", h.From, h.To, h.Transport)
 }
 
-// Route is a succession of transport entries that denotes a path from source visor to destination visor
+// Route is a succession of transport entries that denotes a path from source node to destination node
 type Route []*Hop
 
 func (r Route) String() string {

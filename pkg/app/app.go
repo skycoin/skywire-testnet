@@ -1,5 +1,5 @@
 /*
-Package app implements app to visor communication interface.
+Package app implements app to node communication interface.
 */
 package app
 
@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	// DefaultIn holds value of inFd for Apps setup via Visor
+	// DefaultIn holds value of inFd for Apps setup via Node
 	DefaultIn = uintptr(3)
 
-	// DefaultOut holds value of outFd for Apps setup via Visor
+	// DefaultOut holds value of outFd for Apps setup via Node
 	DefaultOut = uintptr(4)
 )
 
@@ -111,7 +111,7 @@ func (app *App) Close() error {
 	return app.proto.Close()
 }
 
-// Accept awaits for incoming loop confirmation request from a Visor and
+// Accept awaits for incoming loop confirmation request from a Node and
 // returns net.Conn for received loop.
 func (app *App) Accept() (net.Conn, error) {
 	addrs := <-app.acceptChan
@@ -127,7 +127,7 @@ func (app *App) Accept() (net.Conn, error) {
 	return newAppConn(out, laddr, raddr), nil
 }
 
-// Dial sends create loop request to a Visor and returns net.Conn for created loop.
+// Dial sends create loop request to a Node and returns net.Conn for created loop.
 func (app *App) Dial(raddr *Addr) (net.Conn, error) {
 	laddr := &Addr{}
 	err := app.proto.Send(FrameCreateLoop, raddr, laddr)

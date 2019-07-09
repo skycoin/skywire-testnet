@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ func init() {
 
 var pkCmd = &cobra.Command{
 	Use:   "pk",
-	Short: "Obtains the public key of the visor",
+	Short: "Obtains the public key of the node",
 	Run: func(_ *cobra.Command, _ []string) {
 
 		client := rpcClient()

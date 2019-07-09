@@ -1,5 +1,5 @@
 /*
-simple client server app for skywire visor testing
+simple client server app for skywire networking node testing
 */
 package main
 
@@ -36,7 +36,7 @@ func main() {
 
 				log.Printf("Message from %s: %s", conn.RemoteAddr().String(), string(buf))
 				if _, err := conn.Write([]byte("pong")); err != nil {
-					log.Println("Failed to write to a remote visor: ", err)
+					log.Println("Failed to write to a remote node: ", err)
 				}
 			}()
 		}
@@ -53,7 +53,7 @@ func main() {
 	}
 
 	if _, err := conn.Write([]byte("ping")); err != nil {
-		log.Fatal("Failed to write to a remote visor: ", err)
+		log.Fatal("Failed to write to a remote node: ", err)
 	}
 
 	buf := make([]byte, 4)

@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"encoding/json"
@@ -20,8 +20,8 @@ import (
 func TestMessagingDiscovery(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	conf := Config{}
-	conf.Visor.StaticPubKey = pk
-	conf.Visor.StaticSecKey = sk
+	conf.Node.StaticPubKey = pk
+	conf.Node.StaticSecKey = sk
 	conf.Messaging.Discovery = "skywire.skycoin.net:8001"
 	conf.Messaging.ServerCount = 10
 

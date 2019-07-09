@@ -21,12 +21,12 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
+	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
-	"github.com/skycoin/skywire/pkg/visor"
 )
 
-const configEnv = "SW_VISOR_CONFIG"
-const defaultShutdownTimeout = visor.Duration(10 * time.Second)
+const configEnv = "SW_CONFIG"
+const defaultShutdownTimeout = node.Duration(10 * time.Second)
 
 type runCfg struct {
 	syslogAddr   string
@@ -39,26 +39,26 @@ type runCfg struct {
 	profileStop  func()
 	logger       *logging.Logger
 	masterLogger *logging.MasterLogger
-	conf         visor.Config
-	visor        *visor.Visor
+	conf         node.Config
+	node         *node.Node
 }
 
 var cfg *runCfg
 
 var rootCmd = &cobra.Command{
-	Use:   "visor [config-path]",
-	Short: "Visor for skywire",
+	Use:   "skywire-networking-node [config-path]",
+	Short: "Networking Node for skywire",
 	Run: func(_ *cobra.Command, args []string) {
 		cfg.args = args
 
 		cfg.startProfiler().
 			startLogger().
 			readConfig().
-			runVisor().
+			runNode().
 			waitOsSignals().
-			stopVisor()
+			stopNode()
 	},
-	Version: visor.Version,
+	Version: node.Version,
 }
 
 func init() {
@@ -124,7 +124,7 @@ func (cfg *runCfg) readConfig() *runCfg {
 	var rdr io.Reader
 	var err error
 	if !cfg.cfgFromStdin {
-		configPath := pathutil.FindConfigPath(cfg.args, 0, configEnv, pathutil.VisorDefaults())
+		configPath := pathutil.FindConfigPath(cfg.args, 0, configEnv, pathutil.NodeDefaults())
 		rdr, err = os.Open(configPath)
 		if err != nil {
 			cfg.logger.Fatalf("Failed to open config: %s", err)
@@ -134,37 +134,37 @@ func (cfg *runCfg) readConfig() *runCfg {
 		rdr = bufio.NewReader(os.Stdin)
 	}
 
-	cfg.conf = visor.Config{}
+	cfg.conf = node.Config{}
 	if err := json.NewDecoder(rdr).Decode(&cfg.conf); err != nil {
 		cfg.logger.Fatalf("Failed to decode %s: %s", rdr, err)
 	}
 	return cfg
 }
 
-func (cfg *runCfg) runVisor() *runCfg {
-	visor, err := visor.New(&cfg.conf, cfg.masterLogger)
+func (cfg *runCfg) runNode() *runCfg {
+	node, err := node.NewNode(&cfg.conf, cfg.masterLogger)
 	if err != nil {
-		cfg.logger.Fatal("Failed to initialize visor: ", err)
+		cfg.logger.Fatal("Failed to initialize node: ", err)
 	}
 
 	go func() {
-		if err := visor.Start(); err != nil {
-			cfg.logger.Fatal("Failed to start visor: ", err)
+		if err := node.Start(); err != nil {
+			cfg.logger.Fatal("Failed to start node: ", err)
 		}
 	}()
 
 	if cfg.conf.ShutdownTimeout == 0 {
 		cfg.conf.ShutdownTimeout = defaultShutdownTimeout
 	}
-	cfg.visor = visor
+	cfg.node = node
 	return cfg
 }
 
-func (cfg *runCfg) stopVisor() *runCfg {
+func (cfg *runCfg) stopNode() *runCfg {
 	defer cfg.profileStop()
-	if err := cfg.visor.Close(); err != nil {
+	if err := cfg.node.Close(); err != nil {
 		if !strings.Contains(err.Error(), "closed") {
-			cfg.logger.Fatal("Failed to close visor: ", err)
+			cfg.logger.Fatal("Failed to close node: ", err)
 		}
 	}
 	return cfg

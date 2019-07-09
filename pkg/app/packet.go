@@ -31,7 +31,7 @@ func (l *LoopAddr) String() string {
 	return fmt.Sprintf(":%d <-> %s:%d", l.Port, l.Remote.PubKey, l.Remote.Port)
 }
 
-// Packet represents message exchanged between App and Visor.
+// Packet represents message exchanged between App and Node.
 type Packet struct {
 	Addr    *LoopAddr `json:"addr"`
 	Payload []byte    `json:"payload"`

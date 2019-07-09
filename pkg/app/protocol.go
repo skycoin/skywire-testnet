@@ -48,7 +48,7 @@ const (
 	FrameSuccess = 0xff
 )
 
-// Protocol implements full-duplex protocol for App to Visor communication.
+// Protocol implements full-duplex protocol for App to Node communication.
 type Protocol struct {
 	rw    io.ReadWriteCloser
 	chans *chanList

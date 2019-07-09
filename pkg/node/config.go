@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"encoding/json"
@@ -17,14 +17,14 @@ import (
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
-// Config defines configuration parameters for Visor.
+// Config defines configuration parameters for Node.
 type Config struct {
 	Version string `json:"version"`
 
-	Visor struct {
+	Node struct {
 		StaticPubKey cipher.PubKey `json:"static_public_key"`
 		StaticSecKey cipher.SecKey `json:"static_secret_key"`
-	} `json:"visor"`
+	} `json:"node"`
 
 	Messaging struct {
 		Discovery   string `json:"discovery"`
@@ -51,8 +51,8 @@ type Config struct {
 
 	Apps []AppConfig `json:"apps"`
 
-	TrustedVisors []cipher.PubKey    `json:"trusted_visors"`
-	Hypervisors   []HypervisorConfig `json:"hypervisors"`
+	TrustedNodes []cipher.PubKey    `json:"trusted_nodes"`
+	Hypervisors  []HypervisorConfig `json:"hypervisors"`
 
 	AppsPath  string `json:"apps_path"`
 	LocalPath string `json:"local_path"`
@@ -73,8 +73,8 @@ func (c *Config) MessagingConfig() (*dmsg.Config, error) {
 	}
 
 	return &dmsg.Config{
-		PubKey:     c.Visor.StaticPubKey,
-		SecKey:     c.Visor.StaticSecKey,
+		PubKey:     c.Node.StaticPubKey,
+		SecKey:     c.Node.StaticSecKey,
 		Discovery:  disc.NewHTTP(msgConfig.Discovery),
 		Retries:    5,
 		RetryDelay: time.Second,
@@ -87,7 +87,7 @@ func (c *Config) TransportDiscovery() (transport.DiscoveryClient, error) {
 		return nil, errors.New("empty transport_discovery")
 	}
 
-	return trClient.NewHTTP(c.Transport.Discovery, c.Visor.StaticPubKey, c.Visor.StaticSecKey)
+	return trClient.NewHTTP(c.Transport.Discovery, c.Node.StaticPubKey, c.Node.StaticSecKey)
 }
 
 // TransportLogStore returns configure transport.LogStore.
@@ -173,7 +173,7 @@ type AppConfig struct {
 	Args      []string `json:"args"`
 }
 
-// InterfaceConfig defines listening interfaces for skywire Visor.
+// InterfaceConfig defines listening interfaces for skywire networking node.
 type InterfaceConfig struct {
 	RPCAddress string `json:"rpc"` // RPC address and port for command-line interface (leave blank to disable RPC interface).
 }

@@ -1,5 +1,5 @@
-// Package visor implements skywire visor.
-package visor
+// Package node implements skywire networking node.
+package node
 
 import (
 	"bufio"
@@ -45,7 +45,7 @@ const (
 // ErrUnknownApp represents lookup error for App related calls.
 var ErrUnknownApp = errors.New("unknown app")
 
-// Version is the visor version.
+// Version is the node version.
 const Version = "0.0.1"
 
 const supportedProtocolVersion = "0.0.1"
@@ -79,9 +79,9 @@ type PacketRouter interface {
 	IsSetupTransport(tr *transport.ManagedTransport) bool
 }
 
-// Visor provides messaging runtime for Apps by setting up all
+// Node provides messaging runtime for Apps by setting up all
 // necessary connections and performing messaging gateway functions.
-type Visor struct {
+type Node struct {
 	config    *Config
 	router    PacketRouter
 	messenger *dmsg.Client
@@ -105,25 +105,25 @@ type Visor struct {
 	rpcDialers  []*noise.RPCClientDialer
 }
 
-// New constructs new Visor.
-func New(config *Config, masterLogger *logging.MasterLogger) (*Visor, error) {
-	visor := &Visor{
+// NewNode constructs new Node.
+func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) {
+	node := &Node{
 		config:      config,
 		executer:    newOSExecuter(),
 		startedApps: make(map[string]*appBind),
 	}
 
-	visor.Logger = masterLogger
-	visor.logger = visor.Logger.PackageLogger("skywire")
+	node.Logger = masterLogger
+	node.logger = node.Logger.PackageLogger("skywire")
 
-	pk := config.Visor.StaticPubKey
-	sk := config.Visor.StaticSecKey
+	pk := config.Node.StaticPubKey
+	sk := config.Node.StaticSecKey
 	mConfig, err := config.MessagingConfig()
 	if err != nil {
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	visor.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery, dmsg.SetLogger(visor.Logger.PackageLogger(dmsg.Type)))
+	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
@@ -137,47 +137,47 @@ func New(config *Config, masterLogger *logging.MasterLogger) (*Visor, error) {
 		PubKey: pk, SecKey: sk,
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
-		DefaultVisors:   config.TrustedVisors,
+		DefaultNodes:    config.TrustedNodes,
 	}
-	visor.tm, err = transport.NewManager(tmConfig, visor.messenger)
+	node.tm, err = transport.NewManager(tmConfig, node.messenger)
 	if err != nil {
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
-	visor.tm.Logger = visor.Logger.PackageLogger("trmanager")
+	node.tm.Logger = node.Logger.PackageLogger("trmanager")
 
-	visor.rt, err = config.RoutingTable()
+	node.rt, err = config.RoutingTable()
 	if err != nil {
 		return nil, fmt.Errorf("routing table: %s", err)
 	}
 	rConfig := &router.Config{
-		Logger:           visor.Logger.PackageLogger("router"),
+		Logger:           node.Logger.PackageLogger("router"),
 		PubKey:           pk,
 		SecKey:           sk,
-		TransportManager: visor.tm,
-		RoutingTable:     visor.rt,
+		TransportManager: node.tm,
+		RoutingTable:     node.rt,
 		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
 		SetupNodes:       config.Routing.SetupNodes,
 	}
 	r := router.New(rConfig)
-	visor.router = r
+	node.router = r
 
-	visor.appsConf, err = config.AppsConfig()
+	node.appsConf, err = config.AppsConfig()
 	if err != nil {
 		return nil, fmt.Errorf("invalid AppsConfig: %s", err)
 	}
 
-	visor.appsPath, err = config.AppsDir()
+	node.appsPath, err = config.AppsDir()
 	if err != nil {
 		return nil, fmt.Errorf("invalid AppsPath: %s", err)
 	}
 
-	visor.localPath, err = config.LocalDir()
+	node.localPath, err = config.LocalDir()
 	if err != nil {
 		return nil, fmt.Errorf("invalid LocalPath: %s", err)
 	}
 
 	if lvl, err := logging.LevelFromString(config.LogLevel); err == nil {
-		visor.Logger.SetLevel(lvl)
+		node.Logger.SetLevel(lvl)
 	}
 
 	if config.Interfaces.RPCAddress != "" {
@@ -185,11 +185,11 @@ func New(config *Config, masterLogger *logging.MasterLogger) (*Visor, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to setup RPC listener: %s", err)
 		}
-		visor.rpcListener = l
+		node.rpcListener = l
 	}
-	visor.rpcDialers = make([]*noise.RPCClientDialer, len(config.Hypervisors))
+	node.rpcDialers = make([]*noise.RPCClientDialer, len(config.Hypervisors))
 	for i, entry := range config.Hypervisors {
-		visor.rpcDialers[i] = noise.NewRPCClientDialer(entry.Addr, noise.HandshakeXK, noise.Config{
+		node.rpcDialers[i] = noise.NewRPCClientDialer(entry.Addr, noise.HandshakeXK, noise.Config{
 			LocalPK:   pk,
 			LocalSK:   sk,
 			RemotePK:  entry.PubKey,
@@ -197,62 +197,62 @@ func New(config *Config, masterLogger *logging.MasterLogger) (*Visor, error) {
 		})
 	}
 
-	return visor, err
+	return node, err
 }
 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
-func (visor *Visor) Start() error {
+func (node *Node) Start() error {
 	ctx := context.Background()
-	err := visor.messenger.InitiateServerConnections(ctx, visor.config.Messaging.ServerCount)
+	err := node.messenger.InitiateServerConnections(ctx, node.config.Messaging.ServerCount)
 	if err != nil {
 		return fmt.Errorf("%s: %s", dmsg.Type, err)
 	}
-	visor.logger.Info("Connected to messaging servers")
+	node.logger.Info("Connected to messaging servers")
 
-	pathutil.EnsureDir(visor.dir())
-	visor.closePreviousApps()
-	for _, ac := range visor.appsConf {
+	pathutil.EnsureDir(node.dir())
+	node.closePreviousApps()
+	for _, ac := range node.appsConf {
 		if !ac.AutoStart {
 			continue
 		}
 
 		go func(a AppConfig) {
-			if err := visor.SpawnApp(&a, nil); err != nil {
-				visor.logger.Warnf("Failed to start %s: %s\n", a.App, err)
+			if err := node.SpawnApp(&a, nil); err != nil {
+				node.logger.Warnf("Failed to start %s: %s\n", a.App, err)
 			}
 		}(ac)
 	}
 
 	rpcSvr := rpc.NewServer()
-	if err := rpcSvr.RegisterName(RPCPrefix, &RPC{visor: visor}); err != nil {
+	if err := rpcSvr.RegisterName(RPCPrefix, &RPC{node: node}); err != nil {
 		return fmt.Errorf("rpc server created failed: %s", err)
 	}
-	if visor.rpcListener != nil {
-		visor.logger.Info("Starting RPC interface on ", visor.rpcListener.Addr())
-		go rpcSvr.Accept(visor.rpcListener)
+	if node.rpcListener != nil {
+		node.logger.Info("Starting RPC interface on ", node.rpcListener.Addr())
+		go rpcSvr.Accept(node.rpcListener)
 	}
-	for _, dialer := range visor.rpcDialers {
+	for _, dialer := range node.rpcDialers {
 		go func(dialer *noise.RPCClientDialer) {
 			if err := dialer.Run(rpcSvr, time.Second); err != nil {
-				visor.logger.Errorf("Dialer exited with error: %v", err)
+				node.logger.Errorf("Dialer exited with error: %v", err)
 			}
 		}(dialer)
 	}
 
-	visor.logger.Info("Starting packet router")
-	if err := visor.router.Serve(ctx); err != nil {
-		return fmt.Errorf("failed to start Visor: %s", err)
+	node.logger.Info("Starting packet router")
+	if err := node.router.Serve(ctx); err != nil {
+		return fmt.Errorf("failed to start Node: %s", err)
 	}
 
 	return nil
 }
 
-func (visor *Visor) dir() string {
-	return pathutil.VisorDir(visor.config.Visor.StaticPubKey)
+func (node *Node) dir() string {
+	return pathutil.NodeDir(node.config.Node.StaticPubKey)
 }
 
-func (visor *Visor) pidFile() *os.File {
-	f, err := os.OpenFile(filepath.Join(visor.dir(), "apps-pid.txt"), os.O_RDWR|os.O_CREATE, 0600)
+func (node *Node) pidFile() *os.File {
+	f, err := os.OpenFile(filepath.Join(node.dir(), "apps-pid.txt"), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		panic(err)
 	}
@@ -260,36 +260,36 @@ func (visor *Visor) pidFile() *os.File {
 	return f
 }
 
-func (visor *Visor) closePreviousApps() {
-	visor.logger.Info("killing previously ran apps if any...")
+func (node *Node) closePreviousApps() {
+	node.logger.Info("killing previously ran apps if any...")
 
-	pids := visor.pidFile()
+	pids := node.pidFile()
 	defer pids.Close() // nocheck: err
 
 	scanner := bufio.NewScanner(pids)
 	for scanner.Scan() {
 		appInfo := strings.Split(scanner.Text(), " ")
 		if len(appInfo) != 2 {
-			visor.logger.Fatal("error parsing %s. Err: %s", pids.Name(), errors.New("line should be: [app name] [pid]"))
+			node.logger.Fatal("error parsing %s. Err: %s", pids.Name(), errors.New("line should be: [app name] [pid]"))
 		}
 
 		pid, err := strconv.Atoi(appInfo[1])
 		if err != nil {
-			visor.logger.Fatal("error parsing %s. Err: %s", pids.Name(), err)
+			node.logger.Fatal("error parsing %s. Err: %s", pids.Name(), err)
 		}
 
-		visor.stopUnhandledApp(appInfo[0], pid)
+		node.stopUnhandledApp(appInfo[0], pid)
 	}
 
 	// empty file
 	pathutil.AtomicWriteFile(pids.Name(), []byte{})
 }
 
-func (visor *Visor) stopUnhandledApp(name string, pid int) {
+func (node *Node) stopUnhandledApp(name string, pid int) {
 	p, err := os.FindProcess(pid)
 	if err != nil {
 		if runtime.GOOS != "windows" {
-			visor.logger.Infof("Previous app %s ran by this visor with pid: %d not found", name, pid)
+			node.logger.Infof("Previous app %s ran by this node with pid: %d not found", name, pid)
 		}
 		return
 	}
@@ -299,55 +299,55 @@ func (visor *Visor) stopUnhandledApp(name string, pid int) {
 		return
 	}
 
-	visor.logger.Infof("Found and killed hanged app %s with pid %d previously ran by this visor", name, pid)
+	node.logger.Infof("Found and killed hanged app %s with pid %d previously ran by this node", name, pid)
 }
 
-// Close safely stops spawned Apps and messaging Visor.
-func (visor *Visor) Close() (err error) {
-	if visor == nil {
+// Close safely stops spawned Apps and messaging Node.
+func (node *Node) Close() (err error) {
+	if node == nil {
 		return nil
 	}
-	if visor.rpcListener != nil {
-		if err = visor.rpcListener.Close(); err != nil {
-			visor.logger.WithError(err).Error("failed to stop RPC interface")
+	if node.rpcListener != nil {
+		if err = node.rpcListener.Close(); err != nil {
+			node.logger.WithError(err).Error("failed to stop RPC interface")
 		} else {
-			visor.logger.Info("RPC interface stopped successfully")
+			node.logger.Info("RPC interface stopped successfully")
 		}
 	}
-	for i, dialer := range visor.rpcDialers {
+	for i, dialer := range node.rpcDialers {
 		if err = dialer.Close(); err != nil {
-			visor.logger.WithError(err).Errorf("(%d) failed to stop RPC dialer", i)
+			node.logger.WithError(err).Errorf("(%d) failed to stop RPC dialer", i)
 		} else {
-			visor.logger.Infof("(%d) RPC dialer closed successfully", i)
+			node.logger.Infof("(%d) RPC dialer closed successfully", i)
 		}
 	}
-	visor.startedMu.Lock()
-	for a, bind := range visor.startedApps {
-		if err = visor.stopApp(a, bind); err != nil {
-			visor.logger.WithError(err).Errorf("(%s) failed to stop app", a)
+	node.startedMu.Lock()
+	for a, bind := range node.startedApps {
+		if err = node.stopApp(a, bind); err != nil {
+			node.logger.WithError(err).Errorf("(%s) failed to stop app", a)
 		} else {
-			visor.logger.Infof("(%s) app stopped successfully", a)
+			node.logger.Infof("(%s) app stopped successfully", a)
 		}
 	}
-	visor.startedMu.Unlock()
-	if err = visor.router.Close(); err != nil {
-		visor.logger.WithError(err).Error("failed to stop router")
+	node.startedMu.Unlock()
+	if err = node.router.Close(); err != nil {
+		node.logger.WithError(err).Error("failed to stop router")
 	} else {
-		visor.logger.Info("router stopped successfully")
+		node.logger.Info("router stopped successfully")
 	}
 	return err
 }
 
 // Apps returns list of AppStates for all registered apps.
-func (visor *Visor) Apps() []*AppState {
+func (node *Node) Apps() []*AppState {
 	res := []*AppState{}
-	for _, app := range visor.appsConf {
+	for _, app := range node.appsConf {
 		state := &AppState{app.App, app.AutoStart, app.Port, AppStatusStopped}
-		visor.startedMu.RLock()
-		if visor.startedApps[app.App] != nil {
+		node.startedMu.RLock()
+		if node.startedApps[app.App] != nil {
 			state.Status = AppStatusRunning
 		}
-		visor.startedMu.RUnlock()
+		node.startedMu.RUnlock()
 
 		res = append(res, state)
 	}
@@ -356,13 +356,13 @@ func (visor *Visor) Apps() []*AppState {
 }
 
 // StartApp starts registered App.
-func (visor *Visor) StartApp(appName string) error {
-	for _, app := range visor.appsConf {
+func (node *Node) StartApp(appName string) error {
+	for _, app := range node.appsConf {
 		if app.App == appName {
 			startCh := make(chan struct{})
 			go func() {
-				if err := visor.SpawnApp(&app, startCh); err != nil {
-					visor.logger.Warnf("Failed to start app %s: %s", appName, err)
+				if err := node.SpawnApp(&app, startCh); err != nil {
+					node.logger.Warnf("Failed to start app %s: %s", appName, err)
 				}
 			}()
 
@@ -375,11 +375,11 @@ func (visor *Visor) StartApp(appName string) error {
 }
 
 // SpawnApp configures and starts new App.
-func (visor *Visor) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
-	visor.logger.Infof("Starting %s.v%s", config.App, config.Version)
+func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
+	node.logger.Infof("Starting %s.v%s", config.App, config.Version)
 	conn, cmd, err := app.Command(
 		&app.Config{ProtocolVersion: supportedProtocolVersion, AppName: config.App, AppVersion: config.Version},
-		visor.appsPath,
+		node.appsPath,
 		config.Args,
 	)
 	if err != nil {
@@ -391,48 +391,48 @@ func (visor *Visor) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 		return fmt.Errorf("can't bind to reserved port %d", config.Port)
 	}
 
-	visor.startedMu.Lock()
-	if visor.startedApps[config.App] != nil {
-		visor.startedMu.Unlock()
+	node.startedMu.Lock()
+	if node.startedApps[config.App] != nil {
+		node.startedMu.Unlock()
 		return fmt.Errorf("app %s is already started", config.App)
 	}
 
-	visor.startedApps[config.App] = bind
-	visor.startedMu.Unlock()
+	node.startedApps[config.App] = bind
+	node.startedMu.Unlock()
 
 	// TODO: make PackageLogger return *Entry. FieldLogger doesn't expose Writer.
-	logger := visor.logger.WithField("_module", fmt.Sprintf("%s.v%s", config.App, config.Version)).Writer()
+	logger := node.logger.WithField("_module", fmt.Sprintf("%s.v%s", config.App, config.Version)).Writer()
 	defer logger.Close()
 
 	cmd.Stdout = logger
 	cmd.Stderr = logger
-	cmd.Dir = filepath.Join(visor.localPath, config.App, fmt.Sprintf("v%s", config.Version))
+	cmd.Dir = filepath.Join(node.localPath, config.App, fmt.Sprintf("v%s", config.Version))
 	if _, err := ensureDir(cmd.Dir); err != nil {
 		return err
 	}
 
 	appCh := make(chan error)
 	go func() {
-		pid, err := visor.executer.Start(cmd)
+		pid, err := node.executer.Start(cmd)
 		if err != nil {
 			appCh <- err
 			return
 		}
 
-		visor.startedMu.Lock()
+		node.startedMu.Lock()
 		bind.pid = pid
-		visor.startedMu.Unlock()
+		node.startedMu.Unlock()
 
-		visor.pidMu.Lock()
-		visor.logger.Infof("storing app %s pid %d", config.App, pid)
-		visor.persistPID(config.App, pid)
-		visor.pidMu.Unlock()
-		appCh <- visor.executer.Wait(cmd)
+		node.pidMu.Lock()
+		node.logger.Infof("storing app %s pid %d", config.App, pid)
+		node.persistPID(config.App, pid)
+		node.pidMu.Unlock()
+		appCh <- node.executer.Wait(cmd)
 	}()
 
 	srvCh := make(chan error)
 	go func() {
-		srvCh <- visor.router.ServeApp(conn, config.Port, &app.Config{AppName: config.App, AppVersion: config.Version})
+		srvCh <- node.router.ServeApp(conn, config.Port, &app.Config{AppName: config.App, AppVersion: config.Version})
 	}()
 
 	if startCh != nil {
@@ -453,15 +453,15 @@ func (visor *Visor) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 		}
 	}
 
-	visor.startedMu.Lock()
-	delete(visor.startedApps, config.App)
-	visor.startedMu.Unlock()
+	node.startedMu.Lock()
+	delete(node.startedApps, config.App)
+	node.startedMu.Unlock()
 
 	return appErr
 }
 
-func (visor *Visor) persistPID(name string, pid int) {
-	pidF := visor.pidFile()
+func (node *Node) persistPID(name string, pid int) {
+	pidF := node.pidFile()
 	pidFName := pidF.Name()
 	pidF.Close()
 
@@ -469,39 +469,39 @@ func (visor *Visor) persistPID(name string, pid int) {
 }
 
 // StopApp stops running App.
-func (visor *Visor) StopApp(appName string) error {
-	visor.startedMu.Lock()
-	bind := visor.startedApps[appName]
-	visor.startedMu.Unlock()
+func (node *Node) StopApp(appName string) error {
+	node.startedMu.Lock()
+	bind := node.startedApps[appName]
+	node.startedMu.Unlock()
 
 	if bind == nil {
 		return ErrUnknownApp
 	}
 
-	return visor.stopApp(appName, bind)
+	return node.stopApp(appName, bind)
 }
 
 // SetAutoStart sets an app to auto start or not.
-func (visor *Visor) SetAutoStart(appName string, autoStart bool) error {
-	for i, ac := range visor.appsConf {
+func (node *Node) SetAutoStart(appName string, autoStart bool) error {
+	for i, ac := range node.appsConf {
 		if ac.App == appName {
-			visor.appsConf[i].AutoStart = autoStart
+			node.appsConf[i].AutoStart = autoStart
 			return nil
 		}
 	}
 	return ErrUnknownApp
 }
 
-func (visor *Visor) stopApp(app string, bind *appBind) (err error) {
-	visor.logger.Infof("Stopping app %s and closing ports", app)
+func (node *Node) stopApp(app string, bind *appBind) (err error) {
+	node.logger.Infof("Stopping app %s and closing ports", app)
 
-	if excErr := visor.executer.Stop(bind.pid); excErr != nil && err == nil {
-		visor.logger.Warn("Failed to stop app: ", excErr)
+	if excErr := node.executer.Stop(bind.pid); excErr != nil && err == nil {
+		node.logger.Warn("Failed to stop app: ", excErr)
 		err = excErr
 	}
 
 	if srvErr := bind.conn.Close(); srvErr != nil && err == nil {
-		visor.logger.Warnf("Failed to close App conn: %s", srvErr)
+		node.logger.Warnf("Failed to close App conn: %s", srvErr)
 		err = srvErr
 	}
 

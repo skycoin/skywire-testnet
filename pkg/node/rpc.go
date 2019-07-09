@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 
 const (
 	// RPCPrefix is the prefix used with all RPC calls.
-	RPCPrefix = "visor"
+	RPCPrefix = "app-node"
 )
 
 var (
@@ -28,9 +28,9 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-// RPC defines RPC methods for Visor.
+// RPC defines RPC methods for Node.
 type RPC struct {
-	visor *Visor
+	node *Node
 }
 
 /*
@@ -67,31 +67,31 @@ func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport,
 	return summary
 }
 
-// Summary provides a summary of an Visor.
+// Summary provides a summary of an AppNode.
 type Summary struct {
 	PubKey          cipher.PubKey       `json:"local_pk"`
-	VisorVersion    string              `json:"visor_version"`
+	NodeVersion     string              `json:"node_version"`
 	AppProtoVersion string              `json:"app_protocol_version"`
 	Apps            []*AppState         `json:"apps"`
 	Transports      []*TransportSummary `json:"transports"`
 	RoutesCount     int                 `json:"routes_count"`
 }
 
-// Summary provides a summary of the Visor.
+// Summary provides a summary of the AppNode.
 func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	var summaries []*TransportSummary
-	r.visor.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
+	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
 		summaries = append(summaries,
-			newTransportSummary(r.visor.tm, tp, false, r.visor.router.IsSetupTransport(tp)))
+			newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp)))
 		return true
 	})
 	*out = Summary{
-		PubKey:          r.visor.config.Visor.StaticPubKey,
-		VisorVersion:    Version,
+		PubKey:          r.node.config.Node.StaticPubKey,
+		NodeVersion:     Version,
 		AppProtoVersion: supportedProtocolVersion,
-		Apps:            r.visor.Apps(),
+		Apps:            r.node.Apps(),
 		Transports:      summaries,
-		RoutesCount:     r.visor.rt.Count(),
+		RoutesCount:     r.node.rt.Count(),
 	}
 	return nil
 }
@@ -100,20 +100,20 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	<<< APP MANAGEMENT >>>
 */
 
-// Apps returns list of Apps registered on the Visor.
+// Apps returns list of Apps registered on the Node.
 func (r *RPC) Apps(_ *struct{}, reply *[]*AppState) error {
-	*reply = r.visor.Apps()
+	*reply = r.node.Apps()
 	return nil
 }
 
 // StartApp start App with provided name.
 func (r *RPC) StartApp(name *string, _ *struct{}) error {
-	return r.visor.StartApp(*name)
+	return r.node.StartApp(*name)
 }
 
 // StopApp stops App with provided name.
 func (r *RPC) StopApp(name *string, _ *struct{}) error {
-	return r.visor.StopApp(*name)
+	return r.node.StopApp(*name)
 }
 
 // SetAutoStartIn is input for SetAutoStart.
@@ -124,16 +124,16 @@ type SetAutoStartIn struct {
 
 // SetAutoStart sets auto-start settings for an app.
 func (r *RPC) SetAutoStart(in *SetAutoStartIn, _ *struct{}) error {
-	return r.visor.SetAutoStart(in.AppName, in.AutoStart)
+	return r.node.SetAutoStart(in.AppName, in.AutoStart)
 }
 
 /*
 	<<< TRANSPORT MANAGEMENT >>>
 */
 
-// TransportTypes lists all transport types supported by the Visor.
+// TransportTypes lists all transport types supported by the Node.
 func (r *RPC) TransportTypes(_ *struct{}, out *[]string) error {
-	*out = r.visor.tm.Factories()
+	*out = r.node.tm.Factories()
 	return nil
 }
 
@@ -144,7 +144,7 @@ type TransportsIn struct {
 	ShowLogs      bool
 }
 
-// Transports lists Transports of the Visor and provides a summary of each.
+// Transports lists Transports of the Node and provides a summary of each.
 func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 	typeIncluded := func(tType string) bool {
 		if in.FilterTypes != nil {
@@ -168,10 +168,10 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 		}
 		return true
 	}
-	r.visor.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-		if remote, ok := r.visor.tm.Remote(tp.Edges()); ok {
-			if typeIncluded(tp.Type()) && pkIncluded(r.visor.tm.Local(), remote) {
-				*out = append(*out, newTransportSummary(r.visor.tm, tp, in.ShowLogs, r.visor.router.IsSetupTransport(tp)))
+	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
+		if remote, ok := r.node.tm.Remote(tp.Edges()); ok {
+			if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), remote) {
+				*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs, r.node.router.IsSetupTransport(tp)))
 			}
 			return true
 		}
@@ -182,11 +182,11 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 
 // Transport obtains a Transport Summary of Transport of given Transport ID.
 func (r *RPC) Transport(in *uuid.UUID, out *TransportSummary) error {
-	tp := r.visor.tm.Transport(*in)
+	tp := r.node.tm.Transport(*in)
 	if tp == nil {
 		return ErrNotFound
 	}
-	*out = *newTransportSummary(r.visor.tm, tp, true, r.visor.router.IsSetupTransport(tp))
+	*out = *newTransportSummary(r.node.tm, tp, true, r.node.router.IsSetupTransport(tp))
 	return nil
 }
 
@@ -198,7 +198,7 @@ type AddTransportIn struct {
 	Timeout  time.Duration
 }
 
-// AddTransport creates a transport for the visor.
+// AddTransport creates a transport for the node.
 func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 	ctx := context.Background()
 	if in.Timeout > 0 {
@@ -207,17 +207,17 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 		defer cancel()
 	}
 
-	tp, err := r.visor.tm.CreateTransport(ctx, in.RemotePK, in.TpType, in.Public)
+	tp, err := r.node.tm.CreateTransport(ctx, in.RemotePK, in.TpType, in.Public)
 	if err != nil {
 		return err
 	}
-	*out = *newTransportSummary(r.visor.tm, tp, false, r.visor.router.IsSetupTransport(tp))
+	*out = *newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp))
 	return nil
 }
 
-// RemoveTransport removes a Transport from the visor.
+// RemoveTransport removes a Transport from the node.
 func (r *RPC) RemoveTransport(tid *uuid.UUID, _ *struct{}) error {
-	return r.visor.tm.DeleteTransport(*tid)
+	return r.node.tm.DeleteTransport(*tid)
 }
 
 /*
@@ -232,7 +232,7 @@ type RoutingEntry struct {
 
 // RoutingRules obtains all routing rules of the RoutingTable.
 func (r *RPC) RoutingRules(_ *struct{}, out *[]*RoutingEntry) error {
-	return r.visor.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) (next bool) {
+	return r.node.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) (next bool) {
 		*out = append(*out, &RoutingEntry{Key: routeID, Value: rule})
 		return true
 	})
@@ -241,25 +241,25 @@ func (r *RPC) RoutingRules(_ *struct{}, out *[]*RoutingEntry) error {
 // RoutingRule obtains a routing rule of given RouteID.
 func (r *RPC) RoutingRule(key *routing.RouteID, rule *routing.Rule) error {
 	var err error
-	*rule, err = r.visor.rt.Rule(*key)
+	*rule, err = r.node.rt.Rule(*key)
 	return err
 }
 
 // AddRoutingRule adds a RoutingRule and returns a Key in which the rule is stored under.
 func (r *RPC) AddRoutingRule(rule *routing.Rule, routeID *routing.RouteID) error {
 	var err error
-	*routeID, err = r.visor.rt.AddRule(*rule)
+	*routeID, err = r.node.rt.AddRule(*rule)
 	return err
 }
 
 // SetRoutingRule sets a routing rule.
 func (r *RPC) SetRoutingRule(in *RoutingEntry, out *struct{}) error {
-	return r.visor.rt.SetRule(in.Key, in.Value)
+	return r.node.rt.SetRule(in.Key, in.Value)
 }
 
 // RemoveRoutingRule removes a RoutingRule based on given RouteID key.
 func (r *RPC) RemoveRoutingRule(key *routing.RouteID, _ *struct{}) error {
-	return r.visor.rt.DeleteRules(*key)
+	return r.node.rt.DeleteRules(*key)
 }
 
 /*
@@ -276,7 +276,7 @@ type LoopInfo struct {
 // Loops retrieves loops via rules of the routing table.
 func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
 	var loops []LoopInfo
-	err := r.visor.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
+	err := r.node.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
 		if rule.Type() == routing.RuleApp {
 			loops = append(loops, LoopInfo{AppRule: rule})
 		}
@@ -287,7 +287,7 @@ func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
 	}
 	for i, l := range loops {
 		fwdRID := l.AppRule.RouteID()
-		rule, err := r.visor.rt.Rule(fwdRID)
+		rule, err := r.node.rt.Rule(fwdRID)
 		if err != nil {
 			return err
 		}

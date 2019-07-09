@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"context"
@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestNew(t *testing.T) {
+func TestNewNode(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}) // nolint: errcheck
@@ -54,8 +54,8 @@ func TestNew(t *testing.T) {
 	defer srv.Close()
 
 	conf := Config{Version: "1.0", LocalPath: "local", AppsPath: "apps"}
-	conf.Visor.StaticPubKey = pk
-	conf.Visor.StaticSecKey = sk
+	conf.Node.StaticPubKey = pk
+	conf.Node.StaticSecKey = sk
 	conf.Messaging.Discovery = "http://skywire.skycoin.net:8001"
 	conf.Messaging.ServerCount = 10
 	conf.Transport.Discovery = srv.URL
@@ -66,7 +66,7 @@ func TestNew(t *testing.T) {
 
 	defer os.RemoveAll("local")
 
-	node, err := New(&conf, masterLogger)
+	node, err := NewNode(&conf, masterLogger)
 	require.NoError(t, err)
 
 	assert.NotNil(t, node.router)
@@ -76,7 +76,7 @@ func TestNew(t *testing.T) {
 	assert.NotNil(t, node.startedApps)
 }
 
-func TestVisorStartClose(t *testing.T) {
+func TestNodeStartClose(t *testing.T) {
 	r := new(mockRouter)
 	executer := &MockExecuter{}
 	conf := []AppConfig{
@@ -84,7 +84,7 @@ func TestVisorStartClose(t *testing.T) {
 		{App: "foo", Version: "1.0", AutoStart: false},
 	}
 	defer os.RemoveAll("skychat")
-	node := &Visor{config: &Config{}, router: r, executer: executer, appsConf: conf,
+	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 	mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
 	node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
@@ -110,15 +110,15 @@ func TestVisorStartClose(t *testing.T) {
 	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
 }
 
-func TestVisorSpawnApp(t *testing.T) {
+func TestNodeSpawnApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	r := new(mockRouter)
 	executer := &MockExecuter{}
 	defer os.RemoveAll("skychat")
 	apps := []AppConfig{{App: "skychat", Version: "1.0", AutoStart: false, Port: 10, Args: []string{"foo"}}}
-	node := &Visor{router: r, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"),
+	node := &Node{router: r, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"),
 		config: &Config{}}
-	node.config.Visor.StaticPubKey = pk
+	node.config.Node.StaticPubKey = pk
 	pathutil.EnsureDir(node.dir())
 	defer os.RemoveAll(node.dir())
 
@@ -141,12 +141,12 @@ func TestVisorSpawnApp(t *testing.T) {
 	require.NoError(t, node.StopApp("skychat"))
 }
 
-func TestVisorSpawnAppValidations(t *testing.T) {
+func TestNodeSpawnAppValidations(t *testing.T) {
 	conn, _ := net.Pipe()
 	r := new(mockRouter)
 	executer := &MockExecuter{err: errors.New("foo")}
 	defer os.RemoveAll("skychat")
-	node := &Visor{router: r, executer: executer,
+	node := &Node{router: r, executer: executer,
 		startedApps: map[string]*appBind{"skychat": {conn, 10}},
 		logger:      logging.MustGetLogger("test")}
 

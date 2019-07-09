@@ -1,6 +1,6 @@
 # Skywire Chat app
 
-Chat implements basic text messaging between visors.
+Chat implements basic text messaging between skywire networking nodes.
 
 Messaging UI is exposed via web interface.
 
@@ -8,9 +8,9 @@ Chat only supports one WEB client user at a time.
 
 ## Local setup
 
-Create 2 visor config files:
+Create 2 node config files:
 
-`visor1.json`
+`skywire1.json`
 
 ```json
 {
@@ -25,7 +25,7 @@ Create 2 visor config files:
 }
 ```
 
-`visor2.json`
+`skywire2.json`
 
 ```json
 {
@@ -41,12 +41,12 @@ Create 2 visor config files:
 }
 ```
 
-Compile binaries and start 2 visors:
+Compile binaries and start 2 nodes:
 
 ```bash
 $ go build -o apps/skychat.v1.0 ./cmd/apps/skychat
-$ ./visor visor1.json
-$ ./visor visor2.json
+$ ./skywire-networking-node skywire1.json
+$ ./skywire-networking-node skywire2.json
 ```
 
 Chat interface will be available on ports `8000` and `8001`.

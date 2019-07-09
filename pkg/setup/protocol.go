@@ -1,4 +1,4 @@
-// Package setup defines setup visor protocol.
+// Package setup defines setup node protocol.
 package setup
 
 import (

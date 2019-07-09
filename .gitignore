@@ -9,15 +9,15 @@
 
 .idea/
 
-/visor.json
+/skywire.json
 /*-config.json
 /apps/
 /skywire/
 /local*
 
-pkg/visor/apps/
-pkg/visor/bar/
-pkg/visor/foo/
+pkg/node/apps/
+pkg/node/bar/
+pkg/node/foo/
 
 /node
 /users.db

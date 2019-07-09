@@ -20,7 +20,7 @@ var (
 
 	mock           bool
 	mockEnableAuth bool
-	mockVisors     int
+	mockNodes      int
 	mockMaxTps     int
 	mockMaxRoutes  int
 )
@@ -28,14 +28,14 @@ var (
 func init() {
 	rootCmd.Flags().BoolVarP(&mock, "mock", "m", false, "whether to run hypervisor with mock data")
 	rootCmd.Flags().BoolVar(&mockEnableAuth, "mock-enable-auth", false, "whether to enable user management in mock mode")
-	rootCmd.Flags().IntVar(&mockVisors, "mock-visors", 5, "number of app visors to have in mock mode")
-	rootCmd.Flags().IntVar(&mockMaxTps, "mock-max-tps", 10, "max number of transports per mock app visor")
-	rootCmd.Flags().IntVar(&mockMaxRoutes, "mock-max-routes", 30, "max number of routes per visor")
+	rootCmd.Flags().IntVar(&mockNodes, "mock-nodes", 5, "number of app nodes to have in mock mode")
+	rootCmd.Flags().IntVar(&mockMaxTps, "mock-max-tps", 10, "max number of transports per mock app node")
+	rootCmd.Flags().IntVar(&mockMaxRoutes, "mock-max-routes", 30, "max number of routes per node")
 }
 
 var rootCmd = &cobra.Command{
 	Use:   "hypervisor [config-path]",
-	Short: "Manages Skywire App Visors",
+	Short: "Manages Skywire App Nodes",
 	Run: func(_ *cobra.Command, args []string) {
 		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.HypervisorDefaults())
 
@@ -51,7 +51,7 @@ var rootCmd = &cobra.Command{
 			rpcAddr  = config.Interfaces.RPCAddr
 		)
 
-		m, err := hypervisor.New(config)
+		m, err := hypervisor.NewNode(config)
 		if err != nil {
 			log.Fatalln("Failed to start hypervisor:", err)
 		}
@@ -69,10 +69,10 @@ var rootCmd = &cobra.Command{
 
 		if mock {
 			err := m.AddMockData(hypervisor.MockConfig{
-				Visors:            mockVisors,
-				MaxTpsPerVisor:    mockMaxTps,
-				MaxRoutesPerVisor: mockMaxRoutes,
-				EnableAuth:        mockEnableAuth,
+				Nodes:            mockNodes,
+				MaxTpsPerNode:    mockMaxTps,
+				MaxRoutesPerNode: mockMaxRoutes,
+				EnableAuth:       mockEnableAuth,
 			})
 			if err != nil {
 				log.Fatalln("Failed to add mock data:", err)
@@ -81,7 +81,7 @@ var rootCmd = &cobra.Command{
 
 		log.Infof("serving HTTP on '%s'", httpAddr)
 		if err := http.ListenAndServe(httpAddr, m); err != nil {
-			log.Fatalln("Hypervisor exited with error:", err)
+			log.Fatalln("Node exited with error:", err)
 		}
 
 		log.Println("Good bye!")

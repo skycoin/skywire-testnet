@@ -5,7 +5,7 @@ This document defines a high level roadmap for Skywire mainnet development. It d
 - [ ] Implement bandwidth settlement system for monetization of network services
 - [ ] Integrate Coin Hour Bank / CoinJoin with the settlement system
 - [ ] Integrate the new manager interface with the manager backend
-- [ ] Add support for remote management of unlimited visors via messaging system
+- [ ] Add support for remote management of unlimited nodes via messaging system
 - [ ] Integrate CXO with Skywire
 - [ ] Create service discovery for peer discovery
 - [ ] Document the software and provide tutorials and help for developing applications using Skywire and to contribute to the development

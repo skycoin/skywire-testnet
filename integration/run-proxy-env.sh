@@ -9,14 +9,14 @@ source ./integration/proxy/env-vars.sh
 echo "Checking transport-discovery is up"
 curl --retry 5  --retry-connrefused 1 --connect-timeout 5 https://transport.discovery.skywire.skycoin.net/security/nonces/$PK_A   
 
-tmux rename-window -t skywire VisorA
-tmux send-keys -t VisorA -l "./visor ./integration/proxy/visorA.json --tag VisorA $SYSLOG_OPTS"
+tmux rename-window -t skywire NodeA
+tmux send-keys -t NodeA -l "./skywire-networking-node ./integration/proxy/nodeA.json --tag NodeA $SYSLOG_OPTS"
 tmux send-keys C-m
-tmux new-window -t skywire -n VisorB
-tmux send-keys -t VisorB -l "./visor ./integration/intermediary-visorB.json --tag VisorB $SYSLOG_OPTS"
+tmux new-window -t skywire -n NodeB
+tmux send-keys -t NodeB -l "./skywire-networking-node ./integration/intermediary-nodeB.json --tag NodeB $SYSLOG_OPTS"
 tmux send-keys C-m
-tmux new-window -t skywire -n VisorC
-tmux send-keys -t VisorC -l "./visor ./integration/proxy/visorC.json --tag VisorC $SYSLOG_OPTS"
+tmux new-window -t skywire -n NodeC
+tmux send-keys -t NodeC -l "./skywire-networking-node ./integration/proxy/nodeC.json --tag NodeC $SYSLOG_OPTS"
 tmux send-keys C-m
 
 tmux new-window -t skywire -n shell

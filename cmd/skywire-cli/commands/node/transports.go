@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/visor"
+	"github.com/skycoin/skywire/pkg/node"
 )
 
 func init() {
@@ -27,7 +27,7 @@ func init() {
 
 var lsTypesCmd = &cobra.Command{
 	Use:   "ls-types",
-	Short: "Lists transport types used by the local visor",
+	Short: "Lists transport types used by the local node",
 	Run: func(_ *cobra.Command, _ []string) {
 		types, err := rpcClient().TransportTypes()
 		internal.Catch(err)
@@ -106,7 +106,7 @@ var rmTpCmd = &cobra.Command{
 	},
 }
 
-func printTransports(tps ...*visor.TransportSummary) {
+func printTransports(tps ...*node.TransportSummary) {
 	sortTransports(tps...)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "type\tid\tremote\tmode")
@@ -123,7 +123,7 @@ func printTransports(tps ...*visor.TransportSummary) {
 	internal.Catch(w.Flush())
 }
 
-func sortTransports(tps ...*visor.TransportSummary) {
+func sortTransports(tps ...*node.TransportSummary) {
 	sort.Slice(tps, func(i, j int) bool {
 		return tps[i].ID.String() < tps[j].ID.String()
 	})

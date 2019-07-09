@@ -8,9 +8,9 @@
 .PHONY : docker-run docker-stop     
 
 OPTS?=GO111MODULE=on 
-DOCKER_IMAGE?=skywire-runner # docker image to use for running visor.`golang`, `buildpack-deps:stretch-scm`  is OK too
+DOCKER_IMAGE?=skywire-runner # docker image to use for running skywire-networking-node.`golang`, `buildpack-deps:stretch-scm`  is OK too
 DOCKER_NETWORK?=SKYNET 
-DOCKER_VISOR?=SKY01
+DOCKER_NODE?=SKY01
 DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker container
 TEST_OPTS?=-race -tags no_ci -cover -timeout=5m
 BUILD_OPTS?=-race
@@ -19,27 +19,27 @@ check: lint test ## Run linters and tests
 
 build: dep host-apps bin ## Install dependencies, build apps and binaries. `go build` with ${OPTS} 
 
-run: stop build	config  ## Run visor on host
-	./visor visor.json
+run: stop build	config  ## Run skywire-networking-node on host
+	./skywire-networking-node skywire.json
 
-stop: ## Stop running visor on host
-	-bash -c "kill $$(ps aux |grep '[v]isor' |awk '{print $$2}')"
+stop: ## Stop running skywire-networking-node on host
+	-bash -c "kill $$(ps aux |grep '[s]kywire-networking-node' |awk '{print $$2}')"
 
-config: ## Generate visor.json
-	-./skywire-cli visor gen-config -o  ./visor.json -r
+config: ## Generate skywire.json
+	-./skywire-cli node gen-config -o  ./skywire.json -r
 
 clean: ## Clean project: remove created binaries and apps
 	-rm -rf ./apps
-	-rm -f ./visor ./skywire-cli ./setup-node ./hypervisor ./SSH-cli
+	-rm -f ./skywire-networking-node ./skywire-cli ./setup-node ./hypervisor ./SSH-cli
 
-install: ## Install `visor`, `skywire-cli`, `hypervisor`, `SSH-cli`
-	${OPTS} go install ./cmd/visor ./cmd/skywire-cli ./cmd/setup-node ./cmd/hypervisor ./cmd/therealssh-cli
+install: ## Install `skywire-networking-node`, `skywire-cli`, `hypervisor`, `SSH-cli`
+	${OPTS} go install ./cmd/skywire-networking-node ./cmd/skywire-cli ./cmd/setup-node ./cmd/hypervisor ./cmd/therealssh-cli
 
 rerun: stop
-	${OPTS} go build -race -o ./visor ./cmd/visor
-	-./skywire-cli visor gen-config -o  ./visor.json -r
-	perl -pi -e 's/localhost//g' ./visor.json
-	./visor visor.json
+	${OPTS} go build -race -o ./skywire-networking-node ./cmd/skywire-networking-node
+	-./skywire-cli node gen-config -o  ./skywire.json -r
+	perl -pi -e 's/localhost//g' ./skywire.json
+	./skywire-networking-node skywire.json
 
 
 lint: ## Run linters. Use make install-linters first	
@@ -54,7 +54,7 @@ vendorcheck:  ## Run vendorcheck
 	GO111MODULE=off vendorcheck ./cmd/hypervisor/...
 	GO111MODULE=off vendorcheck ./cmd/setup-node/... 
 	GO111MODULE=off vendorcheck ./cmd/skywire-cli/... 
-	GO111MODULE=off vendorcheck ./cmd/visor/...
+	GO111MODULE=off vendorcheck ./cmd/skywire-networking-node/...
 	# vendorcheck fails on ./cmd/therealssh-cli
 	# the problem is indirect dependency to github.com/sirupsen/logrus
 	#GO111MODULE=off vendorcheck ./cmd/therealssh-cli/... 	
@@ -90,21 +90,21 @@ host-apps: ## Build app
 	${OPTS} go build ${BUILD_OPTS} -o ./apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
 
 # Bin 
-bin: ## Build `hypervisor`, `skywire-cli`, `SSH-cli`, `visor`
-	${OPTS} go build ${BUILD_OPTS} -o ./hypervisor ./cmd/hypervisor
+bin: ## Build `skywire-networking-node`, `skywire-cli`, `hypervisor`, `SSH-cli`
+	${OPTS} go build ${BUILD_OPTS} -o ./skywire-networking-node ./cmd/skywire-networking-node
 	${OPTS} go build ${BUILD_OPTS} -o ./skywire-cli  ./cmd/skywire-cli
 	${OPTS} go build ${BUILD_OPTS} -o ./setup-node ./cmd/setup-node
 	${OPTS} go build ${BUILD_OPTS} -o ./messaging-server ./cmd/messaging-server
+	${OPTS} go build ${BUILD_OPTS} -o ./hypervisor ./cmd/hypervisor
 	${OPTS} go build ${BUILD_OPTS} -o ./SSH-cli ./cmd/therealssh-cli
-	${OPTS} go build ${BUILD_OPTS} -o ./visor ./cmd/visor
 
 
-release: ## Build `hypervisor`, `skywire-cli`, `SSH-cli`, `visor` and apps without -race flag
-	${OPTS} go build -o ./hypervisor ./cmd/hypervisor
-	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli 
+release: ## Build `skywire-networking-node`, `skywire-cli`, `hypervisor`, `SSH-cli` and apps without -race flag
+	${OPTS} go build -o ./skywire-networking-node ./cmd/skywire-networking-node
+	${OPTS} go build -o ./skywire-cli  ./cmd/skywire-cli
 	${OPTS} go build -o ./setup-node ./cmd/setup-node
+	${OPTS} go build -o ./hypervisor ./cmd/hypervisor
 	${OPTS} go build -o ./SSH-cli ./cmd/therealssh-cli
-	${OPTS} go build -o ./visor ./cmd/visor
 	${OPTS} go build -o ./apps/skychat.v1.0 ./cmd/apps/skychat
 	${OPTS} go build -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld
 	${OPTS} go build -o ./apps/socksproxy.v1.0 ./cmd/apps/therealproxy
@@ -112,52 +112,52 @@ release: ## Build `hypervisor`, `skywire-cli`, `SSH-cli`, `visor` and apps witho
 	${OPTS} go build -o ./apps/SSH.v1.0  ./cmd/apps/therealssh
 	${OPTS} go build -o ./apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
 
-# Dockerized visor
+# Dockerized skywire-networking-node
 docker-image: ## Build docker image `skywire-runner`
 	docker image build --tag=skywire-runner --rm  - < skywire-runner.Dockerfile
 
-docker-clean: ## Clean docker system: remove container ${DOCKER_VISOR} and network ${DOCKER_NETWORK}
+docker-clean: ## Clean docker system: remove container ${DOCKER_NODE} and network ${DOCKER_NETWORK}
 	-docker network rm ${DOCKER_NETWORK} 
-	-docker container rm --force ${DOCKER_VISOR}
+	-docker container rm --force ${DOCKER_NODE}
 
 docker-network: ## Create docker network ${DOCKER_NETWORK}
 	-docker network create ${DOCKER_NETWORK}
 
-docker-apps: ## Build apps binaries for dockerized visor. `go build` with  ${DOCKER_OPTS}
-	-${DOCKER_OPTS} go build -race -o ./visor/apps/skychat.v1.0 ./cmd/apps/skychat
-	-${DOCKER_OPTS} go build -race -o ./visor/apps/helloworld.v1.0 ./cmd/apps/helloworld
-	-${DOCKER_OPTS} go build -race -o ./visor/apps/socksproxy.v1.0 ./cmd/apps/therealproxy
-	-${DOCKER_OPTS} go build -race -o ./visor/apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
-	-${DOCKER_OPTS} go build -race -o ./visor/apps/SSH.v1.0  ./cmd/apps/therealssh
-	-${DOCKER_OPTS} go build -race -o ./visor/apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
+docker-apps: ## Build apps binaries for dockerized skywire-networking-node. `go build` with  ${DOCKER_OPTS}
+	-${DOCKER_OPTS} go build -race -o ./node/apps/skychat.v1.0 ./cmd/apps/skychat
+	-${DOCKER_OPTS} go build -race -o ./node/apps/helloworld.v1.0 ./cmd/apps/helloworld
+	-${DOCKER_OPTS} go build -race -o ./node/apps/socksproxy.v1.0 ./cmd/apps/therealproxy
+	-${DOCKER_OPTS} go build -race -o ./node/apps/socksproxy-client.v1.0  ./cmd/apps/therealproxy-client
+	-${DOCKER_OPTS} go build -race -o ./node/apps/SSH.v1.0  ./cmd/apps/therealssh
+	-${DOCKER_OPTS} go build -race -o ./node/apps/SSH-client.v1.0  ./cmd/apps/therealssh-client
 
-docker-bin: ## Build `visor`, `skywire-cli`, `visor`, `therealssh-cli`. `go build` with  ${DOCKER_OPTS}
-	${DOCKER_OPTS} go build -race -o ./visor/visor ./cmd/visor
+docker-bin: ## Build `skywire-networking-node`, `skywire-cli`, `hypervisor`, `therealssh-cli`. `go build` with  ${DOCKER_OPTS}
+	${DOCKER_OPTS} go build -race -o ./node/skywire-networking-node ./cmd/skywire-networking-node
 
-docker-volume: dep docker-apps docker-bin bin  ## Prepare docker volume for dockerized visor
+docker-volume: dep docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-networking-node
 	-${DOCKER_OPTS} go build  -o ./docker/skywire-services/setup-node ./cmd/setup-node
-	-./skywire-cli visor gen-config -o  ./visor/visor.json -r
-	perl -pi -e 's/localhost//g' ./visor/visor.json # To make visor accessible from outside with skywire-cli
+	-./skywire-cli node gen-config -o  ./skywire-networking-node/skywire.json -r
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make skywire-networking-node accessible from outside with skywire-cli
 
-docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized visor ${DOCKER_VISOR} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
-	docker run -it -v $(shell pwd)/visor:/sky --network=${DOCKER_NETWORK} \
-		--name=${DOCKER_VISOR} ${DOCKER_IMAGE} bash -c "cd /sky && ./visor visor.json"
+docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized skywire-networking-node ${DOCKER_NODE} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
+	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
+		--name=${DOCKER_NODE} ${DOCKER_IMAGE} bash -c "cd /sky && ./skywire-networking-node skywire.json"
 
-docker-setup-node:	## Runs setup-visor in detached state in ${DOCKER_NETWORK}
+docker-setup-node:	## Runs setup-node in detached state in ${DOCKER_NETWORK}
 	-docker container rm setup-node -f
 	docker run -d --network=${DOCKER_NETWORK}  	\
 	 				--name=setup-node	\
 	 				--hostname=setup-node	skywire-services \
 					  bash -c "./setup-node setup-node.json"
 
-docker-stop: ## Stop running dockerized visor ${DOCKER_VISOR}
-	-docker container stop ${DOCKER_VISOR}
+docker-stop: ## Stop running dockerized skywire-networking-node ${DOCKER_NODE}
+	-docker container stop ${DOCKER_NODE}
 
 docker-rerun: docker-stop
-	-./skywire-cli gen-config -o  ./visor/visor.json -r
-	perl -pi -e 's/localhost//g' ./visor/visor.json # To make visor accessible from outside with skywire-cli
-	${DOCKER_OPTS} go build -race -o ./visor/visor ./cmd/visor
-	docker container start -i ${DOCKER_VISOR}
+	-./skywire-cli gen-config -o ./node/skywire.json -r
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make skywire-networking-node accessible from outside with skywire-cli
+	${DOCKER_OPTS} go build -race -o ./node/skywire-networking-node ./cmd/skywire-networking-node
+	docker container start -i ${DOCKER_NODE}
 
 run-syslog: ## Run syslog-ng in docker. Logs are mounted under /tmp/syslog
 	-rm -rf /tmp/syslog
@@ -166,7 +166,7 @@ run-syslog: ## Run syslog-ng in docker. Logs are mounted under /tmp/syslog
 	docker run -d -p 514:514/udp  -v /tmp/syslog:/var/log  --name syslog-ng balabit/syslog-ng:latest 
 
 
-integration-startup: ## Starts up the required transports between 'visor's of interactive testing environment
+integration-startup: ## Starts up the required transports between 'skywire-networking-node's of interactive testing environment
 	./integration/startup.sh
 
 integration-teardown: ## Tears down all saved configs and states of integration executables

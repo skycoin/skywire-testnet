@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestNew(t *testing.T) {
+func TestNewNode(t *testing.T) {
 	config := makeConfig()
 
 	confDir, err := ioutil.TempDir(os.TempDir(), "SWHV")
@@ -42,20 +42,20 @@ func TestNew(t *testing.T) {
 
 	defaultMockConfig := func() MockConfig {
 		return MockConfig{
-			Visors:            5,
-			MaxTpsPerVisor:    10,
-			MaxRoutesPerVisor: 10,
-			EnableAuth:        true,
+			Nodes:            5,
+			MaxTpsPerNode:    10,
+			MaxRoutesPerNode: 10,
+			EnableAuth:       true,
 		}
 	}
 
-	startHypervisor := func(mock MockConfig) (string, *http.Client, func()) {
-		hypervisor, err := New(config)
+	startNode := func(mock MockConfig) (string, *http.Client, func()) {
+		node, err := NewNode(config)
 		require.NoError(t, err)
-		require.NoError(t, hypervisor.AddMockData(mock))
+		require.NoError(t, node.AddMockData(mock))
 
-		srv := httptest.NewTLSServer(hypervisor)
-		hypervisor.c.Cookies.Domain = srv.Listener.Addr().String()
+		srv := httptest.NewTLSServer(node)
+		node.c.Cookies.Domain = srv.Listener.Addr().String()
 
 		client := srv.Client()
 		jar, err := cookiejar.New(&cookiejar.Options{})
@@ -94,7 +94,7 @@ func TestNew(t *testing.T) {
 	}
 
 	t.Run("no_access_without_login", func(t *testing.T) {
-		addr, client, stop := startHypervisor(defaultMockConfig())
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		makeCase := func(method string, uri string, body io.Reader) TestCase {
@@ -119,7 +119,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("only_admin_account_allowed", func(t *testing.T) {
-		addr, client, stop := startHypervisor(defaultMockConfig())
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -149,7 +149,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("cannot_login_twice", func(t *testing.T) {
-		addr, client, stop := startHypervisor(defaultMockConfig())
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -190,7 +190,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("access_after_login", func(t *testing.T) {
-		addr, client, stop := startHypervisor(defaultMockConfig())
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -230,7 +230,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("no_access_after_logout", func(t *testing.T) {
-		addr, client, stop := startHypervisor(defaultMockConfig())
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{
@@ -297,7 +297,7 @@ func TestNew(t *testing.T) {
 		// - Login with old password (should fail).
 		// - Login with new password (should succeed).
 
-		addr, client, stop := startHypervisor(defaultMockConfig())
+		addr, client, stop := startNode(defaultMockConfig())
 		defer stop()
 
 		testCases(t, addr, client, []TestCase{

@@ -1,4 +1,4 @@
-package visor
+package node
 
 import (
 	"context"
@@ -29,7 +29,7 @@ func TestListApps(t *testing.T) {
 	sApps := map[string]*appBind{
 		"bar": {},
 	}
-	rpc := &RPC{&Visor{appsConf: apps, startedApps: sApps}}
+	rpc := &RPC{&Node{appsConf: apps, startedApps: sApps}}
 
 	var reply []*AppState
 	require.NoError(t, rpc.Apps(nil, &reply))
@@ -55,12 +55,12 @@ func TestStartStopApp(t *testing.T) {
 	defer os.RemoveAll("skychat")
 
 	apps := []AppConfig{{App: "foo", Version: "1.0", AutoStart: false, Port: 10}}
-	node := &Visor{router: router, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"), config: &Config{}}
-	node.config.Visor.StaticPubKey = pk
+	node := &Node{router: router, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"), config: &Config{}}
+	node.config.Node.StaticPubKey = pk
 	pathutil.EnsureDir(node.dir())
 	defer os.RemoveAll(node.dir())
 
-	rpc := &RPC{visor: node}
+	rpc := &RPC{node: node}
 	unknownApp := "bar"
 	app := "foo"
 
@@ -114,8 +114,8 @@ func TestRPC(t *testing.T) {
 		{App: "bar", Version: "2.0", AutoStart: false, Port: 20},
 	}
 	conf := &Config{}
-	conf.Visor.StaticPubKey = pk1
-	node := &Visor{
+	conf.Node.StaticPubKey = pk1
+	node := &Node{
 		config:      conf,
 		router:      r,
 		tm:          tm1,
@@ -132,7 +132,7 @@ func TestRPC(t *testing.T) {
 	require.NoError(t, node.StartApp("bar"))
 
 	time.Sleep(time.Second)
-	gateway := &RPC{visor: node}
+	gateway := &RPC{node: node}
 
 	sConn, cConn := net.Pipe()
 	defer func() {
@@ -224,10 +224,10 @@ func TestRPC(t *testing.T) {
 		//assert.Equal(t, ErrUnknownApp.Error(), err.Error())
 		//
 		//require.NoError(t, client.SetAutoStart(in2.AppName, in2.AutoStart))
-		//assert.True(t, visor.appsConf[0].AutoStart)
+		//assert.True(t, node.appsConf[0].AutoStart)
 		//
 		//require.NoError(t, client.SetAutoStart(in3.AppName, in3.AutoStart))
-		//assert.False(t, visor.appsConf[0].AutoStart)
+		//assert.False(t, node.appsConf[0].AutoStart)
 	})
 
 	t.Run("TransportTypes", func(t *testing.T) {
