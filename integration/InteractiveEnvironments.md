@@ -151,9 +151,9 @@ The following steps will be performed:
    3. TRD: transport-discovery
    4. RF: route-finder
    5. SN: setup-node
-   6. NodeA: first node running with generic/nodeA.json
-   7. NodeB: first node running with intermediary-nodeB.json
-   8. NodeC: first node running with generic/nodeC.json
+   6. NodeA: first skywire-networking-node with generic/nodeA.json
+   7. NodeB: first skywire-networking-node with intermediary-nodeB.json
+   8. NodeC: first skywire-networking-node with generic/nodeC.json
    9. shell: new shell for interactive exploration
 3. ENV-vars in shell-window:
    1. $MSG_PK, $SN_PK - public keys of messaging-server and setup-node
@@ -227,7 +227,7 @@ Recipe for clean start:
 2. Start `./integration/run-proxy-env.sh`
 3. Run `make integration-startup`
 4. Stop NodeA, NodeB, NodeC
-5. Restart all `skywire-networking-node`s
+5. Restart all nodes
 6. Wait for message in NodeC logs about successful start of
 socksproxy-client
 7. Check `lsof -i :9999` that it's really started

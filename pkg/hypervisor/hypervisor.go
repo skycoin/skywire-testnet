@@ -1,4 +1,4 @@
-// Package hypervisor implements node manager
+// Package hypervisor implements management node
 package hypervisor
 
 import (

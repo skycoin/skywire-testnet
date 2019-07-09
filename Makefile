@@ -137,7 +137,7 @@ docker-bin: ## Build `skywire-networking-node`, `skywire-cli`, `hypervisor`, `th
 docker-volume: dep docker-apps docker-bin bin  ## Prepare docker volume for dockerized skywire-networking-node
 	-${DOCKER_OPTS} go build  -o ./docker/skywire-services/setup-node ./cmd/setup-node
 	-./skywire-cli node gen-config -o  ./skywire-networking-node/skywire.json -r
-	perl -pi -e 's/localhost//g' ./node/skywire.json # To make skywire-networking-node accessible from outside with skywire-cli
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
 
 docker-run: docker-clean docker-image docker-network docker-volume ## Run dockerized skywire-networking-node ${DOCKER_NODE} in image ${DOCKER_IMAGE} with network ${DOCKER_NETWORK}
 	docker run -it -v $(shell pwd)/node:/sky --network=${DOCKER_NETWORK} \
@@ -155,7 +155,7 @@ docker-stop: ## Stop running dockerized skywire-networking-node ${DOCKER_NODE}
 
 docker-rerun: docker-stop
 	-./skywire-cli gen-config -o ./node/skywire.json -r
-	perl -pi -e 's/localhost//g' ./node/skywire.json # To make skywire-networking-node accessible from outside with skywire-cli
+	perl -pi -e 's/localhost//g' ./node/skywire.json # To make node accessible from outside with skywire-cli
 	${DOCKER_OPTS} go build -race -o ./node/skywire-networking-node ./cmd/skywire-networking-node
 	docker container start -i ${DOCKER_NODE}
 
@@ -166,7 +166,7 @@ run-syslog: ## Run syslog-ng in docker. Logs are mounted under /tmp/syslog
 	docker run -d -p 514:514/udp  -v /tmp/syslog:/var/log  --name syslog-ng balabit/syslog-ng:latest 
 
 
-integration-startup: ## Starts up the required transports between 'skywire-networking-node's of interactive testing environment
+integration-startup: ## Starts up the required transports between `skywire-networking-node`s of interactive testing environment
 	./integration/startup.sh
 
 integration-teardown: ## Tears down all saved configs and states of integration executables

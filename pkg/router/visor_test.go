@@ -14,7 +14,7 @@ import (
 
 func TestVisorInit(t *testing.T) {
 	in, out := net.Pipe()
-	am := &visor{
+	visor := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -22,7 +22,7 @@ func TestVisorInit(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- am.Serve() }()
+	go func() { srvCh <- visor.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
@@ -53,7 +53,7 @@ func TestVisorInit(t *testing.T) {
 
 func TestVisorSetupLoop(t *testing.T) {
 	in, out := net.Pipe()
-	am := &visor{
+	visor := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -65,7 +65,7 @@ func TestVisorSetupLoop(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- am.Serve() }()
+	go func() { srvCh <- visor.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
@@ -84,7 +84,7 @@ func TestVisorSetupLoop(t *testing.T) {
 func TestVisorCloseLoop(t *testing.T) {
 	in, out := net.Pipe()
 	var inAddr *app.LoopAddr
-	am := &visor{
+	visor := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -97,7 +97,7 @@ func TestVisorCloseLoop(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- am.Serve() }()
+	go func() { srvCh <- visor.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
@@ -115,7 +115,7 @@ func TestVisorCloseLoop(t *testing.T) {
 func TestVisorForward(t *testing.T) {
 	in, out := net.Pipe()
 	var inPacket *app.Packet
-	am := &visor{
+	visor := &visor{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -128,7 +128,7 @@ func TestVisorForward(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- am.Serve() }()
+	go func() { srvCh <- visor.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck

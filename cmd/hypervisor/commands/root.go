@@ -81,7 +81,7 @@ var rootCmd = &cobra.Command{
 
 		log.Infof("serving HTTP on '%s'", httpAddr)
 		if err := http.ListenAndServe(httpAddr, m); err != nil {
-			log.Fatalln("Node exited with error:", err)
+			log.Fatalln("Hypervisor exited with error:", err)
 		}
 
 		log.Println("Good bye!")
