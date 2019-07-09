@@ -99,7 +99,7 @@ func TestCreateLoop(t *testing.T) {
 
 	lPK, _ := cipher.GenerateKeyPair()
 	rPK, _ := cipher.GenerateKeyPair()
-	l := &routing.LoopDescriptor{Local: routing.Addr{PubKey: lPK, Port: 1}, Remote: routing.Addr{PubKey: rPK, Port: 2}, Expiry: time.Now().Add(time.Hour),
+	l := &routing.LoopDescriptor{Loop: routing.Loop{Local: routing.Addr{PubKey: lPK, Port: 1}, Remote: routing.Addr{PubKey: rPK, Port: 2}}, Expiry: time.Now().Add(time.Hour),
 		Forward: routing.Route{
 			&routing.Hop{From: pk1, To: pk2, Transport: tr1.Entry.ID},
 			&routing.Hop{From: pk2, To: pk3, Transport: tr3.Entry.ID},

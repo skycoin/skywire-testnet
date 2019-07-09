@@ -104,12 +104,12 @@ func (sn *Node) Serve(ctx context.Context) error {
 
 func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 	sn.Logger.Infof("Creating new Loop %s", l)
-	rRouteID, err := sn.createRoute(l.Expiry, l.Reverse, l.Local.Port, l.Remote.Port)
+	rRouteID, err := sn.createRoute(l.Expiry, l.Reverse, l.Loop.Local.Port, l.Loop.Remote.Port)
 	if err != nil {
 		return err
 	}
 
-	fRouteID, err := sn.createRoute(l.Expiry, l.Forward, l.Remote.Port, l.Local.Port)
+	fRouteID, err := sn.createRoute(l.Expiry, l.Forward, l.Loop.Remote.Port, l.Loop.Local.Port)
 	if err != nil {
 		return err
 	}
@@ -125,11 +125,11 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: initiator,
-				Port:   l.Local.Port,
+				Port:   l.Loop.Local.Port,
 			},
 			Local: routing.Addr{
 				PubKey: responder,
-				Port:   l.Remote.Port,
+				Port:   l.Loop.Remote.Port,
 			},
 		},
 		RouteID: rRouteID,
@@ -143,11 +143,11 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: responder,
-				Port:   l.Remote.Port,
+				Port:   l.Loop.Remote.Port,
 			},
 			Local: routing.Addr{
 				PubKey: initiator,
-				Port:   l.Local.Port,
+				Port:   l.Loop.Local.Port,
 			},
 		},
 		RouteID: fRouteID,

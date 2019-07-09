@@ -509,7 +509,7 @@ func TestRouterSetupLoop(t *testing.T) {
 			return
 		}
 
-		if l.Local.Port != 10 || l.Remote.Port != 6 {
+		if l.Loop.Local.Port != 10 || l.Loop.Remote.Port != 6 {
 			errCh <- errors.New("invalid payload")
 			return
 		}
