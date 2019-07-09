@@ -21,6 +21,7 @@ pkg/node/foo/
 
 /node
 /users.db
+/hypervisor
 /*-node
 /*-cli
 /*-server
