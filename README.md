@@ -2,41 +2,41 @@
 
 # Skywire Mainnet - Public Test Phase
 
-- [Skywire Mainnet - Public Test Phase](#Skywire-Mainnet---Public-Test-Phase)
-  - [Notes on this release](#Notes-on-this-release)
-  - [Architecture](#Architecture)
-  - [Build and run](#Build-and-run)
-    - [Requirements](#Requirements)
-    - [Build](#Build)
-    - [Run `skywire-node`](#Run-skywire-node)
-    - [Run `skywire-node` in docker container](#Run-skywire-node-in-docker-container)
-    - [Run `skywire-cli`](#Run-skywire-cli)
-    - [Apps](#Apps)
-    - [Transports](#Transports)
-  - [App programming API](#App-programming-API)
-  - [Testing](#Testing)
-    - [Testing with default settings](#Testing-with-default-settings)
-    - [Customization with environment variables](#Customization-with-environment-variables)
-      - [$TEST_OPTS](#TESTOPTS)
-      - [$TEST_LOGGING_LEVEL](#TESTLOGGINGLEVEL)
-      - [$SYSLOG_OPTS](#SYSLOGOPTS)
-  - [Updater](#Updater)
-  - [Running skywire in docker containers](#Running-skywire-in-docker-containers)
-    - [Run dockerized `skywire-node`](#Run-dockerized-skywire-node)
-      - [Structure of `./node`](#Structure-of-node)
-    - [Refresh and restart `SKY01`](#Refresh-and-restart-SKY01)
-    - [Customization of dockers](#Customization-of-dockers)
-      - [1. DOCKER_IMAGE](#1-DOCKERIMAGE)
-      - [2.DOCKER_NETWORK](#2DOCKERNETWORK)
-      - [3. DOCKER_NODE](#3-DOCKERNODE)
-      - [4. DOCKER_OPTS](#4-DOCKEROPTS)
-    - [Dockerized `skywire-node` recipes](#Dockerized-skywire-node-recipes)
-      - [1. Get Public Key of docker-node](#1-Get-Public-Key-of-docker-node)
-      - [2. Get an IP of node](#2-Get-an-IP-of-node)
-      - [3. Open in browser containerized `skychat` application](#3-Open-in-browser-containerized-skychat-application)
-      - [4. Create new dockerized `skywire-nodes`](#4-Create-new-dockerized-skywire-nodes)
-      - [5. Env-vars for develoment-/testing- purposes](#5-Env-vars-for-develoment-testing--purposes)
-      - [6. "Hello-Mike-Hello-Joe" test](#6-%22Hello-Mike-Hello-Joe%22-test)
+- [Skywire Mainnet - Public Test Phase](#skywire-mainnet---public-test-phase)
+  - [Notes on this release](#notes-on-this-release)
+  - [Architecture](#architecture)
+  - [Build and run](#build-and-run)
+    - [Requirements](#requirements)
+    - [Build](#build)
+    - [Run `skywire-node`](#run-skywire-node)
+    - [Run `skywire-node` in docker container](#run-skywire-node-in-docker-container)
+    - [Run `skywire-cli`](#run-skywire-cli)
+    - [Apps](#apps)
+    - [Transports](#transports)
+  - [App programming API](#app-programming-api)
+  - [Testing](#testing)
+    - [Testing with default settings](#testing-with-default-settings)
+    - [Customization with environment variables](#customization-with-environment-variables)
+      - [$TEST_OPTS](#test_opts)
+      - [$TEST_LOGGING_LEVEL](#test_logging_level)
+      - [$SYSLOG_OPTS](#syslog_opts)
+  - [Updater](#updater)
+  - [Running skywire in docker containers](#running-skywire-in-docker-containers)
+    - [Run dockerized `skywire-node`](#run-dockerized-skywire-node)
+      - [Structure of `./node`](#structure-of-node)
+    - [Refresh and restart `SKY01`](#refresh-and-restart-sky01)
+    - [Customization of dockers](#customization-of-dockers)
+      - [1. DOCKER_IMAGE](#1-docker_image)
+      - [2. DOCKER_NETWORK](#2-docker_network)
+      - [3. DOCKER_NODE](#3-docker_node)
+      - [4. DOCKER_OPTS](#4-docker_opts)
+    - [Dockerized `skywire-node` recipes](#dockerized-skywire-node-recipes)
+      - [1. Get Public Key of docker-node](#1-get-public-key-of-docker-node)
+      - [2. Get an IP of node](#2-get-an-ip-of-node)
+      - [3. Open in browser containerized `skychat` application](#3-open-in-browser-containerized-skychat-application)
+      - [4. Create new dockerized `skywire-nodes`](#4-create-new-dockerized-skywire-nodes)
+      - [5. Env-vars for develoment-/testing- purposes](#5-env-vars-for-develoment-testing--purposes)
+      - [6. "Hello-Mike-Hello-Joe" test](#6-hello-mike-hello-joe-test)
 
 ## Notes on this release
 
@@ -150,7 +150,7 @@ After `skywire-node` is up and running with default environment, default apps ar
 - [Chat](/cmd/apps/skychat)
 - [Hello World](/cmd/apps/helloworld)
 - [The Real Proxy](/cmd/apps/therealproxy) ([Client](/cmd/apps/therealproxy-client))
-- [The Real SSH](/cmd/apps/SSH) ([Client](/cmd/apps/SSH-client))
+- [The Real SSH](/cmd/apps/therealssh) ([Client](/cmd/apps/therealssh-client))
 
 ### Transports
 
@@ -247,7 +247,7 @@ $ sudo cat /tmp/syslog/messages ## collected logs from NodeA, NodeB, NodeC insta
 
 ## Updater
 
-This software comes with an updater, which is located in this repo: https://github.com/skycoin/skywire-updater. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface.
+This software comes with an updater, which is located in this repo: <https://github.com/skycoin/skywire-updater>. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface.
 
 ## Running skywire in docker containers
 
@@ -327,7 +327,7 @@ E.g.
 DOCKER_IMAGE=golang make docker-run #buildpack-deps:stretch-scm is OK too
 ```
 
-#### 2.DOCKER_NETWORK
+#### 2. DOCKER_NETWORK
 
 Name of virtual network for `skywire-node`
 
@@ -435,7 +435,7 @@ export SW_NODE_B_PK=$(cat ./node/skywire-config.json|grep static_public_key |cut
 
 #### 6. "Hello-Mike-Hello-Joe" test
 
-Idea of test from Erlang classics: https://youtu.be/uKfKtXYLG78?t=120
+Idea of test from Erlang classics: <https://youtu.be/uKfKtXYLG78?t=120>
 
 ```bash
 # Setup: run skywire-nodes on host and in docker
