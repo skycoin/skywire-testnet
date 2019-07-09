@@ -145,7 +145,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
 	require.NoError(t, rt.SetRule(1, rule))
 
-	ld := &setup.LoopData{
+	ld := &routing.LoopData{
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: pk,
@@ -195,7 +195,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
 	require.NoError(t, rt.SetRule(1, rule))
 
-	ld := &setup.LoopData{
+	ld := &routing.LoopData{
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: pk,

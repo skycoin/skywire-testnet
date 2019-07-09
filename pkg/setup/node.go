@@ -121,7 +121,7 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 	initiator := l.Initiator()
 	responder := l.Responder()
 
-	ldR := &LoopData{
+	ldR := &routing.LoopData{
 		Loop: routing.Loop{
 			Remote: routing.Addr{PubKey: initiator, Port: l.Local.Port},
 			Local:  routing.Addr{PubKey: responder, Port: l.Remote.Port},
@@ -133,7 +133,7 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := &LoopData{
+	ldI := &routing.LoopData{
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: responder,
@@ -221,13 +221,13 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 			err = sn.createLoop(loop)
 		}
 	case PacketCloseLoop:
-		ld := &LoopData{}
+		ld := &routing.LoopData{}
 		if err = json.Unmarshal(data, ld); err == nil {
 			remote, ok := sn.tm.Remote(tr.Edges())
 			if !ok {
 				return errors.New("configured PubKey not found in edges")
 			}
-			err = sn.closeLoop(ld.Loop.Remote.PubKey, &LoopData{
+			err = sn.closeLoop(ld.Loop.Remote.PubKey, &routing.LoopData{
 				Loop: routing.Loop{
 					Remote: routing.Addr{
 						PubKey: remote,
@@ -252,7 +252,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	return proto.WritePacket(RespSuccess, nil)
 }
 
-func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) error {
+func (sn *Node) connectLoop(on cipher.PubKey, ld *routing.LoopData) error {
 	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
@@ -268,7 +268,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) error {
 	return nil
 }
 
-func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
+func (sn *Node) closeLoop(on cipher.PubKey, ld *routing.LoopData) error {
 	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)

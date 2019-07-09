@@ -53,12 +53,6 @@ const (
 	RespSuccess = 0xff
 )
 
-// LoopData stores loop confirmation request data.
-type LoopData struct {
-	Loop    routing.Loop    `json:"loop"`
-	RouteID routing.RouteID `json:"resp-rid,omitempty"`
-}
-
 // Protocol defines routes setup protocol.
 type Protocol struct {
 	rw io.ReadWriter
@@ -146,7 +140,7 @@ func CreateLoop(p *Protocol, l *routing.LoopDescriptor) error {
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func ConfirmLoop(p *Protocol, l *LoopData) error {
+func ConfirmLoop(p *Protocol, l *routing.LoopData) error {
 	if err := p.WritePacket(PacketConfirmLoop, l); err != nil {
 		return err
 	}
@@ -154,7 +148,7 @@ func ConfirmLoop(p *Protocol, l *LoopData) error {
 }
 
 // CloseLoop sends CloseLoop setup request.
-func CloseLoop(p *Protocol, l *LoopData) error {
+func CloseLoop(p *Protocol, l *routing.LoopData) error {
 	if err := p.WritePacket(PacketCloseLoop, l); err != nil {
 		return err
 	}
@@ -162,7 +156,7 @@ func CloseLoop(p *Protocol, l *LoopData) error {
 }
 
 // LoopClosed sends LoopClosed setup request.
-func LoopClosed(p *Protocol, l *LoopData) error {
+func LoopClosed(p *Protocol, l *routing.LoopData) error {
 	if err := p.WritePacket(PacketLoopClosed, l); err != nil {
 		return err
 	}

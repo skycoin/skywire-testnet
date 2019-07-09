@@ -213,7 +213,7 @@ func TestCloseLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
-	require.NoError(t, CloseLoop(proto, &LoopData{
+	require.NoError(t, CloseLoop(proto, &routing.LoopData{
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: pk3,
@@ -354,7 +354,7 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 			}
 		}
 	case PacketConfirmLoop:
-		ld := LoopData{}
+		ld := routing.LoopData{}
 		json.Unmarshal(data, &ld) // nolint: errcheck
 		for _, rule := range n.rules {
 			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&
@@ -365,8 +365,8 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 			}
 		}
 	case PacketLoopClosed:
-		ld := &LoopData{}
-		json.Unmarshal(data, ld) // nolint: errcheck
+		var ld routing.LoopData
+		json.Unmarshal(data, &ld) // nolint: errcheck
 		for routeID, rule := range n.rules {
 			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&
 				rule.RemotePort() == ld.Loop.Remote.Port && rule.LocalPort() == ld.Loop.Local.Port {

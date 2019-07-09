@@ -49,3 +49,9 @@ func (l *LoopDescriptor) String() string {
 	return fmt.Sprintf("lport: %d. rport: %d. routes: %s/%s. expire at %s",
 		l.Local.Port, l.Remote.Port, l.Forward, l.Reverse, l.Expiry)
 }
+
+// LoopData stores loop confirmation request data.
+type LoopData struct {
+	Loop    Loop    `json:"loop"`
+	RouteID RouteID `json:"resp-rid,omitempty"`
+}
