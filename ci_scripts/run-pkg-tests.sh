@@ -28,10 +28,10 @@ go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/node	 -run TestStartStopApp >> ./logs/pkg/TestStartStopApp.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/node	 -run TestRPC >> ./logs/pkg/TestRPC.log
 
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestVisorInit >> ./logs/pkg/TestVisorInit.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestVisorSetupLoop >> ./logs/pkg/TestVisorSetupLoop.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestVisorCloseLoop >> ./logs/pkg/TestVisorCloseLoop.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestVisorForward >> ./logs/pkg/TestVisorForward.log
+go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestAppManagerInit >> ./logs/pkg/TestAppManagerInit.log
+go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestAppManagerSetupLoop >> ./logs/pkg/TestAppManagerSetupLoop.log
+go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestAppManagerCloseLoop >> ./logs/pkg/TestAppManagerCloseLoop.log
+go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestAppManagerForward >> ./logs/pkg/TestAppManagerForward.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestManagedRoutingTableCleanup >> ./logs/pkg/TestManagedRoutingTableCleanup.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestPortManager >> ./logs/pkg/TestPortManager.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/router -run  TestRouteManagerGetRule >> ./logs/pkg/TestRouteManagerGetRule.log

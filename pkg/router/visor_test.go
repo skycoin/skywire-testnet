@@ -12,9 +12,9 @@ import (
 	"github.com/skycoin/skywire/pkg/app"
 )
 
-func TestVisorInit(t *testing.T) {
+func TestAppManagerInit(t *testing.T) {
 	in, out := net.Pipe()
-	visor := &visor{
+	am := &appManager{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -22,7 +22,7 @@ func TestVisorInit(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- visor.Serve() }()
+	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
@@ -51,9 +51,9 @@ func TestVisorInit(t *testing.T) {
 	require.NoError(t, <-srvCh)
 }
 
-func TestVisorSetupLoop(t *testing.T) {
+func TestAppManagerSetupLoop(t *testing.T) {
 	in, out := net.Pipe()
-	visor := &visor{
+	am := &appManager{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -65,7 +65,7 @@ func TestVisorSetupLoop(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- visor.Serve() }()
+	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
@@ -81,10 +81,10 @@ func TestVisorSetupLoop(t *testing.T) {
 	require.NoError(t, <-srvCh)
 }
 
-func TestVisorCloseLoop(t *testing.T) {
+func TestAppManagerCloseLoop(t *testing.T) {
 	in, out := net.Pipe()
 	var inAddr *app.LoopAddr
-	visor := &visor{
+	am := &appManager{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -97,7 +97,7 @@ func TestVisorCloseLoop(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- visor.Serve() }()
+	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
@@ -112,10 +112,10 @@ func TestVisorCloseLoop(t *testing.T) {
 	require.NoError(t, <-srvCh)
 }
 
-func TestVisorForward(t *testing.T) {
+func TestAppManagerForward(t *testing.T) {
 	in, out := net.Pipe()
 	var inPacket *app.Packet
-	visor := &visor{
+	am := &appManager{
 		logging.MustGetLogger("routesetup"),
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
@@ -128,7 +128,7 @@ func TestVisorForward(t *testing.T) {
 	}
 
 	srvCh := make(chan error)
-	go func() { srvCh <- visor.Serve() }()
+	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
 	go proto.Serve(nil) // nolint: errcheck
