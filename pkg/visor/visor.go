@@ -1,4 +1,4 @@
-// Package visor implements skywire networking node.
+// Package visor implements skywire visor.
 package visor
 
 import (

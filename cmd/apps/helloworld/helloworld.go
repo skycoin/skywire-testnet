@@ -1,5 +1,5 @@
 /*
-simple client server app for skywire networking node testing
+simple client server app for skywire visor testing
 */
 package main
 

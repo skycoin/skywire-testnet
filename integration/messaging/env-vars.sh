@@ -18,9 +18,9 @@ alias CLI_A='./skywire-cli --rpc $RPC_A'
 alias CLI_B='./skywire-cli --rpc $RPC_B'
 alias CLI_C='./skywire-cli --rpc $RPC_C'
 
-alias RUN_A='./skywire-networking-node ./integration/messaging/nodeA.json --tag NodeA'
-alias RUN_B='./skywire-networking-node ./integration/messaging/intermediary-nodeB.json --tag NodeB'
-alias RUN_C='./skywire-networking-node ./integration/messaging/nodeC.json --tag NodeC'
+alias RUN_A='./skywire-visor ./integration/messaging/nodeA.json --tag NodeA'
+alias RUN_B='./skywire-visor ./integration/messaging/intermediary-nodeB.json --tag NodeB'
+alias RUN_C='./skywire-visor ./integration/messaging/nodeC.json --tag NodeC'
 
 echo PK_A: $PK_A
 echo PK_B: $PK_B

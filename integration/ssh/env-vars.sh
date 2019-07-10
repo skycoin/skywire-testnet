@@ -15,9 +15,9 @@ export MSGD=https://messaging.discovery.skywire.skycoin.net
 export TRD=https://transport.discovery.skywire.skycoin.net
 export RF=https://routefinder.skywire.skycoin.net
 
-alias RUN_A='go run ./cmd/skywire-networking-node ./integration/messaging/nodeA.json --tag NodeA'
-alias RUN_B='go run ./cmd/skywire-networking-node ./integration/intermediary-nodeB.json --tag NodeB'
-alias RUN_C='go run ./cmd/skywire-networking-node ./integration/messaging/nodeC.json --tag NodeC'
+alias RUN_A='go run ./cmd/skywire-visor ./integration/messaging/nodeA.json --tag NodeA'
+alias RUN_B='go run ./cmd/skywire-visor ./integration/intermediary-nodeB.json --tag NodeB'
+alias RUN_C='go run ./cmd/skywire-visor ./integration/messaging/nodeC.json --tag NodeC'
 
 echo PK_A: $PK_A
 echo PK_B: $PK_B

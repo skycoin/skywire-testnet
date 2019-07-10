@@ -16,9 +16,9 @@ do
 	kill $(ps aux |grep "[N]odeA\|[N]odeB\|[N]odeC\|[s]kywire/SSH-cli" |awk '{print $2}')
 
 	echo Restarting nodes
-	./bin/skywire-networking-node ./integration/ssh/nodeA.json --tag NodeA &> ./logs/ssh/$N/nodeA.log &
-	./bin/skywire-networking-node ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/ssh/$N/nodeB.log &
-	./bin/skywire-networking-node ./integration/ssh/nodeC.json --tag NodeC &> ./logs/ssh/$N/nodeC.log &
+	./bin/skywire-visor ./integration/ssh/nodeA.json --tag NodeA &> ./logs/ssh/$N/nodeA.log &
+	./bin/skywire-visor ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/ssh/$N/nodeB.log &
+	./bin/skywire-visor ./integration/ssh/nodeC.json --tag NodeC &> ./logs/ssh/$N/nodeC.log &
 
 	sleep 20
 	echo Trying SSH-cli

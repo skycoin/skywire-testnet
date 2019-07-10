@@ -173,7 +173,7 @@ type AppConfig struct {
 	Args      []string `json:"args"`
 }
 
-// InterfaceConfig defines listening interfaces for skywire networking node.
+// InterfaceConfig defines listening interfaces for skywire visor.
 type InterfaceConfig struct {
 	RPCAddress string `json:"rpc"` // RPC address and port for command-line interface (leave blank to disable RPC interface).
 }

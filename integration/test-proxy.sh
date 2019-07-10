@@ -19,13 +19,13 @@ do
 	sleep 10
 
 	echo Restarting nodeA and NodeB
-	./bin/skywire-networking-node ./integration/proxy/nodeA.json --tag NodeA &> ./logs/proxy/$N/nodeA.log &
-	./bin/skywire-networking-node ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/proxy/$N/nodeB.log &
+	./bin/skywire-visor ./integration/proxy/nodeA.json --tag NodeA &> ./logs/proxy/$N/nodeA.log &
+	./bin/skywire-visor ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/proxy/$N/nodeB.log &
 
 	# TODO: improve this sleep
 	sleep 5
 	echo Restarting nodeC
-	./bin/skywire-networking-note ./integration/proxy/nodeC.json --tag NodeC &> ./logs/proxy/$N/nodeC.log &
+	./bin/skywire-visor ./integration/proxy/nodeC.json --tag NodeC &> ./logs/proxy/$N/nodeC.log &
 
 	sleep 20
 	echo Trying socks5 proxy

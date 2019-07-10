@@ -49,8 +49,8 @@ Compile binaries and start 2 nodes:
 ```sh
 $ go build -o apps/socksproxy.v1.0 ./cmd/apps/therealproxy
 $ go build -o apps/socksproxy-client.v1.0 ./cmd/apps/therealproxy-client
-$ ./skywire-networking-node skywire1.json
-$ ./skywire-networking-node skywire2.json
+$ ./skywire-visor skywire1.json
+$ ./skywire-visor skywire2.json
 ```
 
 You should be able to connect to a secondary node via `curl`:

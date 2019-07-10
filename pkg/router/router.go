@@ -1,4 +1,4 @@
-// Package router implements package router for skywire networking node.
+// Package router implements package router for skywire visor.
 package router
 
 import (

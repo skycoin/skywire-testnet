@@ -71,7 +71,7 @@ func (dp ConfigPaths) Get(cpType ConfigLocationType) string {
 	return ""
 }
 
-// NodeDefaults returns the default config paths for skywire-networking-node.
+// NodeDefaults returns the default config paths for skywire-visor.
 func NodeDefaults() ConfigPaths {
 	paths := make(ConfigPaths)
 	if wd, err := os.Getwd(); err == nil {

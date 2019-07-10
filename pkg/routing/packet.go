@@ -8,7 +8,7 @@ import (
 // RouteID represents ID of a Route in a Packet.
 type RouteID uint32
 
-// Packet defines generic packet recognized by all skywire networking nodes.
+// Packet defines generic packet recognized by all skywire visors.
 type Packet []byte
 
 // MakePacket constructs a new Packet. If payload size is more than

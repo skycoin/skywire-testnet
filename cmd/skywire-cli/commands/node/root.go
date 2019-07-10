@@ -17,10 +17,10 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&rpcAddr, "rpc", "", "localhost:3435", "RPC server address")
 }
 
-// RootCmd contains commands that interact with the skywire-networking-node
+// RootCmd contains commands that interact with the skywire-visor
 var RootCmd = &cobra.Command{
 	Use:   "node",
-	Short: "Contains sub-commands that interact with the local Skywire Networking Node",
+	Short: "Contains sub-commands that interact with the local Skywire Visor",
 }
 
 func rpcClient() visor.RPCClient {

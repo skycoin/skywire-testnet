@@ -46,8 +46,8 @@ type runCfg struct {
 var cfg *runCfg
 
 var rootCmd = &cobra.Command{
-	Use:   "skywire-networking-node [config-path]",
-	Short: "Networking Node for skywire",
+	Use:   "skywire-visor [config-path]",
+	Short: "Visor for skywire",
 	Run: func(_ *cobra.Command, args []string) {
 		cfg.args = args
 

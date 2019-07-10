@@ -22,4 +22,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- First release of the mainnet Skywire networking node and apps for testing.
+- First release of the mainnet Skywire visor and apps for testing.

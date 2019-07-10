@@ -69,7 +69,7 @@ func NewHTTP(addr string, apiTimeout time.Duration) Client {
 	}
 }
 
-// PairedRoutes returns routes from source skywire networking node to destiny, that has at least the given minHops and as much
+// PairedRoutes returns routes from source skywire visor to destiny, that has at least the given minHops and as much
 // the given maxHops as well as the reverse routes from destiny to source.
 func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops uint16) ([]routing.Route, []routing.Route, error) {
 	requestBody := &GetRoutesRequest{

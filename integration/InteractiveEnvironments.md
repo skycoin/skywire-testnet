@@ -80,7 +80,7 @@ Usage:
 The generic test environment will define the following:
 
 - skywire-services running on localhost
-- 3 `skywire-networking-node`s:
+- 3 `skywire-visor`s:
   - NodeA, NodeC running all apps
   - NodeB - intermediary node without apps
 
@@ -151,9 +151,9 @@ The following steps will be performed:
    3. TRD: transport-discovery
    4. RF: route-finder
    5. SN: setup-node
-   6. NodeA: first skywire-networking-node with generic/nodeA.json
-   7. NodeB: first skywire-networking-node with intermediary-nodeB.json
-   8. NodeC: first skywire-networking-node with generic/nodeC.json
+   6. NodeA: first skywire-visor with generic/nodeA.json
+   7. NodeB: first skywire-visor with intermediary-nodeB.json
+   8. NodeC: first skywire-visor with generic/nodeC.json
    9. shell: new shell for interactive exploration
 3. ENV-vars in shell-window:
    1. $MSG_PK, $SN_PK - public keys of messaging-server and setup-node
@@ -167,7 +167,7 @@ The following steps will be performed:
 The SSH Test Environment will define the following:
 
 - skywire-services running on localhost
-- 3 `skywire-networking-node`s:
+- 3 `skywire-visor`s:
   - NodeA - running  `SSH` app
   - NodeB - intermediary node without apps
   - NodeC - running `SSH-client` app
@@ -198,7 +198,7 @@ $ make integration-startup
      4. NodeC with configured `SSH-client` app
   2. Run `./integration/test-ssh.sh` which will run in cycle:
      1. `./SSH-cli $PK_A "export n=1; loop -n $n echo A"`
-     2. kill all `skywire-networking-node`s
+     2. kill all `skywire-visor`s
      3. Collect logs
      4. Increase n by power of 2
      5. Repeat
@@ -208,7 +208,7 @@ $ make integration-startup
 The proxy test environment will define the following:
 
 - skywire-services running on localhost
-- 3 `skywire-networking-node`s:
+- 3 `skywire-visor`s:
   - NodeA - running  `SSH` app
   - NodeB - intermediary node without apps
   - NodeC - running `SSH-client` app

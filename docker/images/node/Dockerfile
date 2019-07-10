@@ -14,7 +14,7 @@ COPY . skywire
 WORKDIR skywire
 
 RUN go build -mod=vendor -tags netgo -ldflags="-w -s" \
-      -o skywire-networking-node cmd/skywire-networking-node/skywire-networking-node.go &&\
+      -o skywire-visor cmd/skywire-visor/skywire-visor.go &&\
     go build  -mod=vendor -ldflags="-w -s" -o ./apps/skychat.v1.0 ./cmd/apps/skychat	&&\
 	  go build  -mod=vendor -ldflags="-w -s" -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld &&\
 	  go build  -mod=vendor -ldflags="-w -s" -o ./apps/socksproxy.v1.0 ./cmd/apps/therealproxy &&\
@@ -26,13 +26,13 @@ RUN go build -mod=vendor -tags netgo -ldflags="-w -s" \
 ## Resulting image
 FROM ${base} as node-runner
 
-COPY --from=builder /go/skywire/skywire-networking-node skywire-networking-node
+COPY --from=builder /go/skywire/skywire-visor skywire-visor
 COPY --from=builder /go/skywire/apps bin/apps
 COPY --from=builder /go/skywire/docker/images/node/update.sh update.sh
 
 RUN ./update.sh
 
-ENTRYPOINT [ "./skywire-networking-node" ]
+ENTRYPOINT [ "./skywire-visor" ]
 
 # default target
 FROM  node-runner
