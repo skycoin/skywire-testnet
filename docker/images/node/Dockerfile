@@ -15,6 +15,7 @@ WORKDIR skywire
 
 RUN go build -mod=vendor -tags netgo -ldflags="-w -s" \
       -o skywire-node cmd/skywire-node/skywire-node.go &&\ 
+    go build  -mod=vendor -ldflags="-w -s" -o skywire-cli ./cmd/skywire-cli	&&\
     go build  -mod=vendor -ldflags="-w -s" -o ./apps/skychat.v1.0 ./cmd/apps/skychat	&&\
 	  go build  -mod=vendor -ldflags="-w -s" -o ./apps/helloworld.v1.0 ./cmd/apps/helloworld &&\
 	  go build  -mod=vendor -ldflags="-w -s" -o ./apps/socksproxy.v1.0 ./cmd/apps/therealproxy &&\
@@ -29,6 +30,7 @@ FROM ${base} as node-runner
 COPY --from=builder /go/skywire/skywire-node skywire-node
 COPY --from=builder /go/skywire/apps bin/apps
 COPY --from=builder /go/skywire/docker/images/node/update.sh update.sh
+COPY --from=builder /go/skywire/skywire-cli bin/skywire-cli
 
 RUN ./update.sh
 
