@@ -1,5 +1,5 @@
-// Package node implements skywire networking node.
-package node
+// Package visor implements skywire networking node.
+package visor
 
 import (
 	"bufio"

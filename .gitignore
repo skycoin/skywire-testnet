@@ -15,9 +15,9 @@
 /skywire/
 /local*
 
-pkg/node/apps/
-pkg/node/bar/
-pkg/node/foo/
+pkg/visor/apps/
+pkg/visor/bar/
+pkg/visor/foo/
 
 /node
 /users.db

@@ -6,7 +6,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/visor"
 )
 
 var log = logging.MustGetLogger("skywire-cli")
@@ -23,10 +23,10 @@ var RootCmd = &cobra.Command{
 	Short: "Contains sub-commands that interact with the local Skywire Networking Node",
 }
 
-func rpcClient() node.RPCClient {
+func rpcClient() visor.RPCClient {
 	client, err := rpc.Dial("tcp", rpcAddr)
 	if err != nil {
 		log.Fatal("RPC connection failed:", err)
 	}
-	return node.NewRPCClient(client, node.RPCPrefix)
+	return visor.NewRPCClient(client, visor.RPCPrefix)
 }
