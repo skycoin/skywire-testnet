@@ -1,45 +1,45 @@
 {
-    "version": "1.0",
-    "node": {
-        "static_public_key": "02072dd1e2ccd761e717096e1a264de1d8917e78e3176ca99dbf7ccf7292969845",
-        "static_secret_key": "7073e557aa2308b448525397ea2f45d56c9962c4dcdf82c5fdb5cc02fca0481c"
-    },
-    "messaging": {
-        "discovery": "https://messaging.discovery.skywire.skycoin.net",
-        "server_count": 1
-    },
-    "transport": {
-        "discovery": "https://transport.discovery.skywire.skycoin.net",
-        "log_store": {
-            "type": "file",
-            "location": "./local/nodeA/transport_logs"
-        }
-    },
-    "routing": {
-        "setup_nodes": [
-            "0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557"
-        ],
-        "route_finder": "https://routefinder.skywire.skycoin.net/",
-		"table": {
-			"type": "boltdb",
-			"location": "./local/nodeA/routing.db"
-		}
-    },
-    "apps": [
-           {
-               "app": "socksproxy",
-               "version": "1.0",
-               "auto_start": true,
-               "port": 3,
-               "args": []
-           }
-       ],
-    "trusted_nodes": [],
-    "hypervisors": [],
-    "apps_path": "./apps",
-    "local_path": "./local/nodeA",
-    "log_level": "info",
-    "interfaces": {
-        "rpc": "localhost:3436"
+  "version": "1.0",
+  "node": {
+    "static_public_key": "02072dd1e2ccd761e717096e1a264de1d8917e78e3176ca99dbf7ccf7292969845",
+    "static_secret_key": "7073e557aa2308b448525397ea2f45d56c9962c4dcdf82c5fdb5cc02fca0481c"
+  },
+  "messaging": {
+    "discovery": "https://messaging.discovery.skywire.skycoin.net",
+    "server_count": 1
+  },
+  "transport": {
+    "discovery": "https://transport.discovery.skywire.skycoin.net",
+    "log_store": {
+      "type": "file",
+      "location": "./local/nodeA/transport_logs"
     }
+  },
+  "routing": {
+    "setup_nodes": [
+      "0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557"
+    ],
+    "route_finder": "https://routefinder.skywire.skycoin.net/",
+    "table": {
+      "type": "boltdb",
+      "location": "./local/nodeA/routing.db"
+    }
+  },
+  "apps": [
+    {
+      "app": "socksproxy",
+      "version": "1.0",
+      "auto_start": true,
+      "port": 3,
+      "args": []
+    }
+  ],
+  "trusted_nodes": [],
+  "hypervisors": [],
+  "apps_path": "./apps",
+  "local_path": "./local/nodeA",
+  "log_level": "info",
+  "interfaces": {
+    "rpc": "localhost:3436"
+  }
 }
