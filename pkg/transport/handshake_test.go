@@ -35,8 +35,8 @@ func newHsMockEnv() *hsMockEnv {
 	tr1 := NewMockTransport(in, pk1, pk2)
 	tr2 := NewMockTransport(out, pk2, pk1)
 
-	m1, err1 := NewManager(&ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client}, nil)
-	m2, err2 := NewManager(&ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client}, nil)
+	m1, err1 := NewManager(&ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client})
+	m2, err2 := NewManager(&ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client})
 
 	return &hsMockEnv{
 		client: client,

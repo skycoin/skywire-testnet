@@ -55,13 +55,13 @@ func TestRouterForwarding(t *testing.T) {
 	f3.SetType("mock2")
 	f4.SetType("mock2")
 
-	m1, err := transport.NewManager(c1, nil, f1)
+	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
-	m2, err := transport.NewManager(c2, nil, f2, f3)
+	m2, err := transport.NewManager(c2, f2, f3)
 	require.NoError(t, err)
 
-	m3, err := transport.NewManager(c3, nil, f4)
+	m3, err := transport.NewManager(c3, f4)
 	require.NoError(t, err)
 
 	rt := routing.InMemoryRoutingTable()
@@ -116,7 +116,7 @@ func TestRouterAppInit(t *testing.T) {
 	pk1, sk1 := cipher.GenerateKeyPair()
 	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
 
-	m1, err := transport.NewManager(c1, nil)
+	m1, err := transport.NewManager(c1)
 	require.NoError(t, err)
 
 	conf := &Config{
@@ -154,10 +154,10 @@ func TestRouterApp(t *testing.T) {
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	m1, err := transport.NewManager(c1, nil, f1)
+	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
-	m2, err := transport.NewManager(c2, nil, f2)
+	m2, err := transport.NewManager(c2, f2)
 	require.NoError(t, err)
 
 	go m2.Serve(context.TODO()) // nolint
@@ -228,7 +228,7 @@ func TestRouterLocalApp(t *testing.T) {
 	logStore := transport.InMemoryTransportLogStore()
 
 	pk, sk := cipher.GenerateKeyPair()
-	m, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk, SecKey: sk, DiscoveryClient: client, LogStore: logStore}, nil)
+	m, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk, SecKey: sk, DiscoveryClient: client, LogStore: logStore})
 	require.NoError(t, err)
 
 	conf := &Config{
@@ -285,10 +285,10 @@ func TestRouterSetup(t *testing.T) {
 	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
 
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	m1, err := transport.NewManager(c1, nil, f1)
+	m1, err := transport.NewManager(c1, f1)
 	require.NoError(t, err)
 
-	m2, err := transport.NewManager(c2, nil, f2)
+	m2, err := transport.NewManager(c2, f2)
 	require.NoError(t, err)
 
 	rt := routing.InMemoryRoutingTable()
@@ -433,10 +433,10 @@ func TestRouterSetupLoop(t *testing.T) {
 	f1.SetType(dmsg.Type)
 	f2.SetType(dmsg.Type)
 
-	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, nil, f1)
+	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
 
-	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, nil, f2)
+	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
 	go m2.Serve(context.TODO()) // nolint: errcheck
 
@@ -538,10 +538,10 @@ func TestRouterCloseLoop(t *testing.T) {
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType(dmsg.Type)
 
-	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, nil, f1)
+	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
 
-	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, nil, f2)
+	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
 	go m2.Serve(context.TODO()) // nolint: errcheck
 
@@ -632,10 +632,10 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
 	f1.SetType(dmsg.Type)
 
-	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, nil, f1)
+	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
 
-	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, nil, f2)
+	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
 	go m2.Serve(context.TODO()) // nolint: errcheck
 
@@ -716,7 +716,7 @@ func TestRouterRouteExpiration(t *testing.T) {
 	logStore := transport.InMemoryTransportLogStore()
 
 	pk, sk := cipher.GenerateKeyPair()
-	m, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk, SecKey: sk, DiscoveryClient: client, LogStore: logStore}, nil)
+	m, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk, SecKey: sk, DiscoveryClient: client, LogStore: logStore})
 	require.NoError(t, err)
 
 	rt := routing.InMemoryRoutingTable()

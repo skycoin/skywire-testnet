@@ -43,7 +43,7 @@ type Manager struct {
 
 // NewManager creates a Manager with the provided configuration and transport factories.
 // 'factories' should be ordered by preference.
-func NewManager(config *ManagerConfig, setupNodes []cipher.PubKey, factories ...Factory) (*Manager, error) {
+func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	entries, _ := config.DiscoveryClient.GetTransportsByEdge(context.Background(), config.PubKey) // nolint
 
 	mEntries := make(map[Entry]struct{})
@@ -64,8 +64,23 @@ func NewManager(config *ManagerConfig, setupNodes []cipher.PubKey, factories ...
 		entries:    mEntries,
 		TrChan:     make(chan *ManagedTransport, 9), // TODO: eliminate or justify buffering here
 		doneChan:   make(chan struct{}),
-		setupNodes: setupNodes,
 	}, nil
+}
+
+// SetupNodes returns setup node list contained within the TransportManager.
+func (tm *Manager) SetupNodes() []cipher.PubKey {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	return tm.setupNodes
+}
+
+// SetSetupNodes sets setup node list contained within the TransportManager.
+func (tm *Manager) SetSetupNodes(nodes []cipher.PubKey) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	tm.setupNodes = nodes
 }
 
 // Factories returns all the factory types contained within the TransportManager.

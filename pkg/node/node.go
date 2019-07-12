@@ -140,11 +140,12 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		LogStore:        logStore,
 		DefaultNodes:    config.TrustedNodes,
 	}
-	node.tm, err = transport.NewManager(tmConfig, config.Routing.SetupNodes, node.messenger)
+	node.tm, err = transport.NewManager(tmConfig, node.messenger)
 	if err != nil {
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
 	node.tm.Logger = node.Logger.PackageLogger("trmanager")
+	node.tm.SetSetupNodes(config.Routing.SetupNodes)
 
 	node.rt, err = config.RoutingTable()
 	if err != nil {
