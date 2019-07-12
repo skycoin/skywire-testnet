@@ -23,6 +23,7 @@ pkg/visor/foo/
 /users.db
 /hypervisor
 /*-node
+/*-visor
 /*-cli
 /*-server
 /*.json
