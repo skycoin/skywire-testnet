@@ -141,21 +141,22 @@ func TestRegisterTransportResponses(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(_ *testing.T) {
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(_ *testing.T) {
 			wg.Add(1)
 
 			srv := httptest.NewServer(authHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				defer wg.Done()
-				test.handler(w, r)
+				tc.handler(w, r)
 			})))
 			defer srv.Close()
 
 			c, err := NewHTTP(srv.URL, testPubKey, testSecKey)
 			require.NoError(t, err)
 			err = c.RegisterTransports(context.Background(), &transport.SignedEntry{})
-			if test.assert != nil {
-				test.assert(err)
+			if tc.assert != nil {
+				tc.assert(err)
 			}
 
 			wg.Wait()

@@ -147,6 +147,7 @@ func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
 // createDefaultTransports created transports to DefaultNodes if they don't exist.
 func (tm *Manager) createDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
+		pk := pk
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
 			remote, ok := tm.Remote(tr.Edges())

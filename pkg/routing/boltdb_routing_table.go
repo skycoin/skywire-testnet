@@ -138,7 +138,7 @@ func (rt *boltDBRoutingTable) Count() (count int) {
 		b := tx.Bucket(boltDBBucket)
 
 		stats := b.Stats()
-		count = int(stats.KeyN)
+		count = stats.KeyN
 		return nil
 	})
 	if err != nil {

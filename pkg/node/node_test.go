@@ -170,18 +170,19 @@ func TestNodeSpawnAppValidations(t *testing.T) {
 		{&AppConfig{App: "foo", Version: "1.0", Port: 11}, "failed to run app executable: foo"},
 	}
 
-	for _, c := range cases {
-		t.Run(c.err, func(t *testing.T) {
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.err, func(t *testing.T) {
 			errCh := make(chan error)
 			go func() {
-				errCh <- node.SpawnApp(c.conf, nil)
+				errCh <- node.SpawnApp(tc.conf, nil)
 			}()
 
 			time.Sleep(100 * time.Millisecond)
 			require.NoError(t, node.Close())
 			err := <-errCh
 			require.Error(t, err)
-			assert.Equal(t, c.err, err.Error())
+			assert.Equal(t, tc.err, err.Error())
 		})
 	}
 }

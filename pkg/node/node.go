@@ -367,11 +367,11 @@ func (node *Node) StartApp(appName string) error {
 	for _, app := range node.appsConf {
 		if app.App == appName {
 			startCh := make(chan struct{})
-			go func() {
+			go func(app AppConfig) {
 				if err := node.SpawnApp(&app, startCh); err != nil {
 					node.logger.Warnf("Failed to start app %s: %s", appName, err)
 				}
-			}()
+			}(app)
 
 			<-startCh
 			return nil

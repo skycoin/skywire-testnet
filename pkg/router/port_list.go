@@ -38,7 +38,7 @@ func (pl *portList) add(b *portBind) uint16 {
 	pl.Lock()
 	defer pl.Unlock()
 
-	for i := uint16(pl.minPort); i < math.MaxUint16; i++ {
+	for i := pl.minPort; i < math.MaxUint16; i++ {
 		if pl.ports[i] == nil {
 			pl.ports[i] = b
 			return i

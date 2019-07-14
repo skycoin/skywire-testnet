@@ -41,6 +41,7 @@ func TestAppManagerInit(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.err, func(t *testing.T) {
 			err := proto.Send(app.FrameInit, tc.conf, nil)
 			require.Error(t, err)

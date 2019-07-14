@@ -153,7 +153,7 @@ func (c *Client) Nonce(ctx context.Context, key cipher.PubKey) (Nonce, error) {
 		return 0, err
 	}
 
-	return Nonce(nr.NextNonce), nil
+	return nr.NextNonce, nil
 }
 
 // SetNonce sets client current nonce to given nonce

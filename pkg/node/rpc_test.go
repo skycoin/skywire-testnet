@@ -261,6 +261,7 @@ func TestRPC(t *testing.T) {
 		})
 
 		for _, id := range ids {
+			id := id
 			var summary TransportSummary
 			require.NoError(t, gateway.Transport(&id, &summary))
 

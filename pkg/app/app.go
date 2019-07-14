@@ -111,7 +111,8 @@ func (app *App) Close() error {
 
 	app.mu.Lock()
 	for addr, conn := range app.conns {
-		if err := app.proto.Send(FrameClose, &addr, nil); err != nil {
+		connAddr := addr
+		if err := app.proto.Send(FrameClose, &connAddr, nil); err != nil {
 			log.WithError(err).Warn("Failed to send command frame")
 		}
 		if err := conn.Close(); err != nil {
