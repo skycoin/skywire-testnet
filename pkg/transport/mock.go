@@ -141,7 +141,6 @@ func (m *MockTransport) Edges() [2]cipher.PubKey {
 
 // SetDeadline sets a deadline for the write/read operations of the mock transport
 func (m *MockTransport) SetDeadline(t time.Time) error {
-	// nolint
 	ctx, cancel := context.WithDeadline(m.context, t)
 	m.context = ctx
 

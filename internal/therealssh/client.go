@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/rpc"
 	"strings"
@@ -73,7 +72,7 @@ func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, sshCh *SSH
 
 	go func() {
 		if err := c.serveConn(conn); err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}()
 
@@ -156,7 +155,9 @@ func (c *Client) Close() error {
 	}
 
 	for _, sshCh := range c.chans.dropAll() {
-		sshCh.Close()
+		if err := sshCh.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close SSH channel")
+		}
 	}
 
 	return nil
@@ -194,11 +195,11 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 	debug("requesting shell process")
 	if args.CommandWithArgs == nil {
 		if _, err := sshCh.Request(RequestShell, nil); err != nil {
-			return fmt.Errorf("Shell request failure: %s", err)
+			return fmt.Errorf("shell request failure: %s", err)
 		}
 	} else {
 		if _, err := sshCh.Request(RequestExec, args.ToBinary()); err != nil {
-			return fmt.Errorf("Shell request failure: %s", err)
+			return fmt.Errorf("shell request failure: %s", err)
 		}
 	}
 
@@ -207,7 +208,7 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 		debug("starting socket listener")
 		waitCh <- true
 		if err := sshCh.ServeSocket(); err != nil {
-			log.Println("Session failure:", err)
+			log.Error("Session failure:", err)
 		}
 	}()
 

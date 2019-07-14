@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 )
 
@@ -25,7 +26,10 @@ func TestAppManagerInit(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	tcs := []struct {
 		conf *app.Config
@@ -49,6 +53,8 @@ func TestAppManagerInit(t *testing.T) {
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
+	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppManagerSetupLoop(t *testing.T) {
@@ -68,7 +74,10 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	var laddr *app.Addr
 	pk, _ := cipher.GenerateKeyPair()
@@ -79,6 +88,8 @@ func TestAppManagerSetupLoop(t *testing.T) {
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
+	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppManagerCloseLoop(t *testing.T) {
@@ -100,7 +111,10 @@ func TestAppManagerCloseLoop(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	pk, _ := cipher.GenerateKeyPair()
 	addr := &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}
@@ -110,6 +124,8 @@ func TestAppManagerCloseLoop(t *testing.T) {
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
+	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppManagerForward(t *testing.T) {
@@ -131,7 +147,10 @@ func TestAppManagerForward(t *testing.T) {
 	go func() { srvCh <- am.Serve() }()
 
 	proto := app.NewProtocol(in)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	pk, _ := cipher.GenerateKeyPair()
 	packet := &app.Packet{Payload: []byte("foo"), Addr: &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}}
@@ -141,4 +160,6 @@ func TestAppManagerForward(t *testing.T) {
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
+	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }

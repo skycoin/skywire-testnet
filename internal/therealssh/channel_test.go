@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 )
 
@@ -97,7 +98,10 @@ func TestChannelServeSocket(t *testing.T) {
 
 	assert.Equal(t, filepath.Join(os.TempDir(), "therealsshd-1"), ch.SocketPath())
 
-	go func() { ch.ServeSocket() }() // nolint
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- ch.ServeSocket()
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: ch.SocketPath(), Net: "unix"})
@@ -122,4 +126,5 @@ func TestChannelServeSocket(t *testing.T) {
 	assert.Equal(t, []byte("bar"), buf)
 
 	require.NoError(t, ch.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErr))
 }

@@ -20,6 +20,7 @@ Create 2 node config files:
 `skywire1.json`
 
 ```json
+{
   "apps": [
     {
       "app": "SSH",
@@ -28,11 +29,13 @@ Create 2 node config files:
       "port": 2
     }
   ]
+}
 ```
 
 `skywire2.json`
 
 ```json
+{
   "apps": [
     {
       "app": "SSH-client",
@@ -41,6 +44,7 @@ Create 2 node config files:
       "port": 22
     }
   ]
+}
 ```
 
 Compile binaries and start 2 nodes:
@@ -56,8 +60,8 @@ $ ./skywire-node skywire2.json
 Add public key of the second node to the auth file:
 
 ```bash
-$ mkdir `/.therealssh
-$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > `/.SSH/authorized_keys
+$ mkdir /.therealssh
+$ echo "0348c941c5015a05c455ff238af2e57fb8f914c399aab604e9abb5b32b91a4c1fe" > /.SSH/authorized_keys
 ```
 
 Connect to the first node using CLI:

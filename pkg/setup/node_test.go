@@ -84,12 +84,19 @@ func TestCreateLoop(t *testing.T) {
 	mS, err := transport.NewManager(cS, fS)
 	require.NoError(t, err)
 
-	n1 := newMockNode(m1)
-	go n1.serve() // nolint: errcheck
-	n2 := newMockNode(m2)
-	go n2.serve() // nolint: errcheck
-	n3 := newMockNode(m3)
-	go n3.serve() // nolint: errcheck
+	var serveErr1, serveErr2, serveErr3 error
+	n1 := newMockNode(t, m1)
+	go func() {
+		serveErr1 = n1.serve()
+	}()
+	n2 := newMockNode(t, m2)
+	go func() {
+		serveErr2 = n2.serve()
+	}()
+	n3 := newMockNode(t, m3)
+	go func() {
+		serveErr3 = n3.serve()
+	}()
 
 	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
 	require.NoError(t, err)
@@ -161,6 +168,10 @@ func TestCreateLoop(t *testing.T) {
 
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)
+
+	require.NoError(t, serveErr1)
+	require.NoError(t, serveErr2)
+	require.NoError(t, serveErr3)
 }
 
 func TestCloseLoop(t *testing.T) {
@@ -192,8 +203,11 @@ func TestCloseLoop(t *testing.T) {
 	mS, err := transport.NewManager(cS, fS)
 	require.NoError(t, err)
 
-	n3 := newMockNode(m3)
-	go n3.serve() // nolint: errcheck
+	n3 := newMockNode(t, m3)
+	var serveErr error
+	go func() {
+		serveErr = n3.serve()
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -219,6 +233,8 @@ func TestCloseLoop(t *testing.T) {
 
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)
+
+	require.NoError(t, serveErr)
 }
 
 type muxFactory struct {
@@ -285,18 +301,23 @@ func (f *muxFactory) Type() string {
 
 type mockNode struct {
 	sync.Mutex
-	rules map[routing.RouteID]routing.Rule
-	tm    *transport.Manager
+	testing *testing.T
+	rules   map[routing.RouteID]routing.Rule
+	tm      *transport.Manager
 }
 
-func newMockNode(tm *transport.Manager) *mockNode {
-	return &mockNode{tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
+func newMockNode(t *testing.T, tm *transport.Manager) *mockNode {
+	return &mockNode{testing: t, tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
 }
 
 func (n *mockNode) serve() error {
 	go func() {
 		for tr := range n.tm.TrChan {
-			go func(t transport.Transport) { n.serveTransport(t) }(tr) // nolint: errcheck
+			go func(t transport.Transport) {
+				if err := n.serveTransport(t); err != nil {
+					n.testing.Error(err)
+				}
+			}(tr)
 		}
 	}()
 
@@ -330,8 +351,10 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 	var res interface{}
 	switch sp {
 	case PacketAddRules:
-		rules := []routing.Rule{}
-		json.Unmarshal(data, &rules) // nolint: errcheck
+		var rules []routing.Rule
+		if err = json.Unmarshal(data, &rules); err != nil {
+			return err
+		}
 		for _, rule := range rules {
 			for i := routing.RouteID(1); i < 255; i++ {
 				if n.rules[i] == nil {
@@ -343,7 +366,9 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 		}
 	case PacketConfirmLoop:
 		ld := LoopData{}
-		json.Unmarshal(data, &ld) // nolint: errcheck
+		if err = json.Unmarshal(data, &ld); err != nil {
+			return err
+		}
 		for _, rule := range n.rules {
 			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
 				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
@@ -354,7 +379,9 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 		}
 	case PacketLoopClosed:
 		ld := &LoopData{}
-		json.Unmarshal(data, ld) // nolint: errcheck
+		if err = json.Unmarshal(data, ld); err != nil {
+			return err
+		}
 		for routeID, rule := range n.rules {
 			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
 				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {

@@ -17,7 +17,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer helloworldApp.Close()
+	defer func() {
+		if err := helloworldApp.Close(); err != nil {
+			log.Println("Failed to close app: ", err)
+		}
+	}()
 
 	if len(os.Args) == 1 {
 		log.Println("listening for incoming connections")

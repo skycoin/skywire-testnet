@@ -22,11 +22,11 @@
 
 ```text
 integration
-├── generic                            #  Generic environmnent
+├── generic                            #  Generic environment
 │   ├── env-vars.sh                    #  
 │   ├── nodeA.json                     #
 │   └── nodeC.json                     #
-├── messaging                          # Messaging testing environment
+├── messaging                          #  Messaging testing environment
 │   ├── env-vars.sh                    # 
 │   ├── nodeA.json                     # 
 │   └── nodeC.json                     # 
@@ -37,7 +37,7 @@ integration
 ├── ssh                                #  ssh testing environment
 │   ├── env-vars.sh                    #
 │   ├── nodeA.json                     #
-│   └── nodeC.json                     #S
+│   └── nodeC.json                     #
 ├── InteractiveEnvironments.md         #  You're reading it
 ├── intermediary-nodeB.json            #  NodeB configurationS
 ├── run-base-env.sh                    #  base environment in detached tmux session

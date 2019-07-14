@@ -3,6 +3,7 @@ package setup
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"testing"
 
@@ -12,7 +13,11 @@ import (
 
 func ExampleNewSetupProtocol() {
 	in, _ := net.Pipe()
-	defer in.Close()
+	defer func() {
+		if err := in.Close(); err != nil {
+			log.Println("Failed to close connection: ", err)
+		}
+	}()
 
 	sProto := NewSetupProtocol(in)
 	fmt.Printf("Success: %v\n", sProto != nil)

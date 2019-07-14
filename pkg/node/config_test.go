@@ -38,7 +38,7 @@ func TestMessagingDiscovery(t *testing.T) {
 func TestTransportDiscovery(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}) // nolint: errcheck
+		require.NoError(t, json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}))
 	}))
 	defer srv.Close()
 
@@ -53,7 +53,9 @@ func TestTransportDiscovery(t *testing.T) {
 
 func TestTransportLogStore(t *testing.T) {
 	dir := filepath.Join(os.TempDir(), "foo")
-	defer os.RemoveAll(dir)
+	defer func() {
+		require.NoError(t, os.RemoveAll(dir))
+	}()
 
 	conf := Config{}
 	conf.Transport.LogStore.Type = "file"
@@ -72,7 +74,9 @@ func TestTransportLogStore(t *testing.T) {
 func TestRoutingTable(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "routing")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		require.NoError(t, os.Remove(tmpfile.Name()))
+	}()
 
 	conf := Config{}
 	conf.Routing.Table.Type = "boltdb"
@@ -114,7 +118,9 @@ func TestAppsDir(t *testing.T) {
 	dir, err := conf.AppsDir()
 	require.NoError(t, err)
 
-	defer os.Remove(dir)
+	defer func() {
+		require.NoError(t, os.Remove(dir))
+	}()
 
 	_, err = os.Stat(dir)
 	assert.NoError(t, err)
@@ -125,7 +131,9 @@ func TestLocalDir(t *testing.T) {
 	dir, err := conf.LocalDir()
 	require.NoError(t, err)
 
-	defer os.Remove(dir)
+	defer func() {
+		require.NoError(t, os.Remove(dir))
+	}()
 
 	_, err = os.Stat(dir)
 	assert.NoError(t, err)

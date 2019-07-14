@@ -42,7 +42,10 @@ type Manager struct {
 // NewManager creates a Manager with the provided configuration and transport factories.
 // 'factories' should be ordered by preference.
 func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
-	entries, _ := config.DiscoveryClient.GetTransportsByEdge(context.Background(), config.PubKey) // nolint
+	entries, err := config.DiscoveryClient.GetTransportsByEdge(context.Background(), config.PubKey)
+	if err != nil {
+		entries = make([]*EntryWithStatus, 0)
+	}
 
 	mEntries := make(map[Entry]struct{})
 	for _, entry := range entries {
@@ -209,7 +212,9 @@ func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tp
 func (tm *Manager) DeleteTransport(id uuid.UUID) error {
 	tm.mu.Lock()
 	if tr, ok := tm.transports[id]; ok {
-		_ = tr.Close() //nolint:errcheck
+		if err := tr.Close(); err != nil {
+			tm.Logger.Warnf("Failed to close transport: %s", err)
+		}
 		delete(tm.transports, id)
 	}
 	tm.mu.Unlock()
@@ -239,7 +244,11 @@ func (tm *Manager) Close() error {
 		}
 		statuses = append(statuses, &Status{ID: tr.Entry.ID, IsUp: false})
 
-		tr.Close()
+		go func(tr io.Closer) {
+			if err := tr.Close(); err != nil {
+				tm.Logger.Warnf("Failed to close transport: %s", err)
+			}
+		}(tr)
 	}
 	tm.mu.Unlock()
 
@@ -248,14 +257,17 @@ func (tm *Manager) Close() error {
 	}
 
 	for _, f := range tm.factories {
-		go f.Close()
+		go func(f io.Closer) {
+			if err := f.Close(); err != nil {
+				tm.Logger.Warnf("Failed to close factory: %s", err)
+			}
+		}(f)
 	}
 
 	return nil
 }
 
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
-
 	if tm.isClosing() {
 		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")
 	}
@@ -267,7 +279,11 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 
 	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
 	if err != nil {
-		tr.Close()
+		go func() {
+			if err := tr.Close(); err != nil {
+				tm.Logger.Warnf("Failed to close transport: %s", err)
+			}
+		}()
 		return nil, nil, err
 	}
 
@@ -318,7 +334,11 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 
 	entry, err := settlementResponderHandshake().Do(tm, tr, 30*time.Second)
 	if err != nil {
-		tr.Close()
+		go func() {
+			if err = tr.Close(); err != nil {
+				tm.Logger.Warnf("Failed to close transport: %s", err)
+			}
+		}()
 		return nil, err
 	}
 
@@ -434,7 +454,9 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 			}
 
 			tm.Logger.Infof("Updating transport %s", mTr.Entry.ID)
-			_ = mTr.updateTransport(ctx, tr, tm.config.DiscoveryClient) //nolint:errcheck
+			if err = mTr.updateTransport(ctx, tr, tm.config.DiscoveryClient); err != nil {
+				tm.Logger.Warnf("Failed to update transport: %s", err)
+			}
 		}
 	}
 }

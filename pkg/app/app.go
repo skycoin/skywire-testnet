@@ -13,6 +13,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 const (
@@ -21,6 +23,10 @@ const (
 
 	// DefaultOut holds value of outFd for Apps setup via Node
 	DefaultOut = uintptr(4)
+)
+
+var (
+	log = logging.MustGetLogger("app")
 )
 
 // Config defines configuration parameters for App
@@ -52,7 +58,7 @@ func Command(config *Config, appsPath string, args []string) (net.Conn, *exec.Cm
 	}
 
 	binaryPath := filepath.Join(appsPath, fmt.Sprintf("%s.v%s", config.AppName, config.AppVersion))
-	cmd := exec.Command(binaryPath, args...)
+	cmd := exec.Command(binaryPath, args...) // nolint:gosec
 	cmd.ExtraFiles = []*os.File{clientConn.inFile, clientConn.outFile}
 
 	return srvConn, cmd, nil
@@ -77,7 +83,9 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 	go app.handleProto()
 
 	if err := app.proto.Send(FrameInit, config, nil); err != nil {
-		app.Close()
+		if err := app.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close app")
+		}
 		return nil, fmt.Errorf("INIT handshake failed: %s", err)
 	}
 
@@ -103,8 +111,12 @@ func (app *App) Close() error {
 
 	app.mu.Lock()
 	for addr, conn := range app.conns {
-		app.proto.Send(FrameClose, &addr, nil) // nolint: errcheck
-		conn.Close()
+		if err := app.proto.Send(FrameClose, &addr, nil); err != nil {
+			log.WithError(err).Warn("Failed to send command frame")
+		}
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 	}
 	app.mu.Unlock()
 
@@ -170,7 +182,11 @@ func (app *App) handleProto() {
 }
 
 func (app *App) serveConn(addr *LoopAddr, conn io.ReadWriteCloser) {
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("failed to close connection")
+		}
+	}()
 
 	for {
 		buf := make([]byte, 32*1024)
@@ -187,7 +203,9 @@ func (app *App) serveConn(addr *LoopAddr, conn io.ReadWriteCloser) {
 
 	app.mu.Lock()
 	if _, ok := app.conns[*addr]; ok {
-		app.proto.Send(FrameClose, &addr, nil) // nolint: errcheck
+		if err := app.proto.Send(FrameClose, &addr, nil); err != nil {
+			log.WithError(err).Warn("Failed to send command frame")
+		}
 	}
 	delete(app.conns, *addr)
 	app.mu.Unlock()

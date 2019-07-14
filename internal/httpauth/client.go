@@ -15,11 +15,14 @@ import (
 	"sync/atomic"
 
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 const (
 	invalidNonceErrorMessage = "SW-Nonce does not match"
 )
+
+var log = logging.MustGetLogger("httpauth")
 
 // NextNonceResponse represents a ServeHTTP response for json encoding
 type NextNonceResponse struct {
@@ -81,7 +84,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		req.Body.Close()
+		if err := req.Body.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close HTTP request body")
+		}
 		req.Body = ioutil.NopCloser(bytes.NewBuffer(auxBody))
 		body = auxBody
 	}
@@ -103,7 +108,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		}
 		c.SetNonce(nonce)
 
-		res.Body.Close()
+		if err := res.Body.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close HTTP response body")
+		}
 		res, err = c.doRequest(req, body)
 		if err != nil {
 			return nil, err
@@ -126,10 +133,16 @@ func (c *Client) Nonce(ctx context.Context, key cipher.PubKey) (Nonce, error) {
 	req = req.WithContext(ctx)
 
 	resp, err := c.client.Do(req)
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close HTTP response body")
+			}
+		}()
+	}
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return 0, fmt.Errorf("error getting current nonce: status: %d <- %v", resp.StatusCode, extractError(resp.Body))
@@ -186,7 +199,9 @@ func isNonceValid(res *http.Response) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	res.Body.Close()
+	if err := res.Body.Close(); err != nil {
+		return false, err
+	}
 	res.Body = ioutil.NopCloser(bytes.NewBuffer(auxRespBody))
 
 	if err := json.Unmarshal(auxRespBody, &serverResponse); err != nil || serverResponse.Error == nil {

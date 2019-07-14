@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"log"
+
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/commands/mdisc"
@@ -25,5 +27,7 @@ func init() {
 
 // Execute executes root CLI command.
 func Execute() {
-	_ = rootCmd.Execute() //nolint:errcheck
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal("Failed to execute command: ", err)
+	}
 }

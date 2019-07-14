@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net"
 	"os"
 	"testing"
@@ -14,6 +13,8 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/internal/testhelpers"
 )
 
 func TestMain(m *testing.M) {
@@ -41,18 +42,22 @@ func TestAppDial(t *testing.T) {
 	go app.handleProto()
 
 	dataCh := make(chan []byte)
-	go proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck
-		if f == FrameCreateLoop {
-			return &Addr{PubKey: lpk, Port: 2}, nil
-		}
+	serveErrCh := make(chan error, 1)
+	go func() {
+		f := func(f Frame, p []byte) (interface{}, error) {
+			if f == FrameCreateLoop {
+				return &Addr{PubKey: lpk, Port: 2}, nil
+			}
 
-		if f == FrameClose {
-			go func() { dataCh <- p }()
-			return nil, nil
-		}
+			if f == FrameClose {
+				go func() { dataCh <- p }()
+				return nil, nil
+			}
 
-		return nil, errors.New("unexpected frame")
-	})
+			return nil, errors.New("unexpected frame")
+		}
+		serveErrCh <- proto.Serve(f)
+	}()
 	conn, err := app.Dial(&Addr{PubKey: rpk, Port: 3})
 	require.NoError(t, err)
 	require.NotNil(t, conn)
@@ -75,6 +80,7 @@ func TestAppDial(t *testing.T) {
 	require.Len(t, app.conns, 0)
 	app.mu.Unlock()
 	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppAccept(t *testing.T) {
@@ -85,7 +91,10 @@ func TestAppAccept(t *testing.T) {
 	go app.handleProto()
 
 	proto := NewProtocol(out)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	connCh := make(chan net.Conn)
 	errCh := make(chan error)
@@ -95,7 +104,7 @@ func TestAppAccept(t *testing.T) {
 		connCh <- conn
 	}()
 
-	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*Addr{&Addr{lpk, 2}, &Addr{rpk, 3}}, nil))
+	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*Addr{{lpk, 2}, {rpk, 3}}, nil))
 
 	require.NoError(t, <-errCh)
 	conn := <-connCh
@@ -110,7 +119,7 @@ func TestAppAccept(t *testing.T) {
 		connCh <- conn
 	}()
 
-	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*Addr{&Addr{lpk, 2}, &Addr{rpk, 2}}, nil))
+	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*Addr{{lpk, 2}, {rpk, 2}}, nil))
 
 	require.NoError(t, <-errCh)
 	conn = <-connCh
@@ -118,6 +127,8 @@ func TestAppAccept(t *testing.T) {
 	assert.Equal(t, rpk.Hex()+":2", conn.RemoteAddr().String())
 	assert.Equal(t, lpk.Hex()+":2", conn.LocalAddr().String())
 	require.Len(t, app.conns, 2)
+	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppWrite(t *testing.T) {
@@ -130,15 +141,17 @@ func TestAppWrite(t *testing.T) {
 
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
+	serveErrCh := make(chan error, 1)
 	go func() {
-		proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck
+		f := func(f Frame, p []byte) (interface{}, error) {
 			if f != FrameSend {
 				return nil, errors.New("unexpected frame")
 			}
 
 			go func() { dataCh <- p }()
 			return nil, nil
-		})
+		}
+		serveErrCh <- proto.Serve(f)
 	}()
 
 	n, err := appOut.Write([]byte("foo"))
@@ -153,6 +166,7 @@ func TestAppWrite(t *testing.T) {
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 	require.NoError(t, appOut.Close())
 }
 
@@ -164,7 +178,10 @@ func TestAppRead(t *testing.T) {
 	go app.handleProto()
 
 	proto := NewProtocol(out)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	errCh := make(chan error)
 	go func() {
@@ -180,6 +197,7 @@ func TestAppRead(t *testing.T) {
 	require.NoError(t, <-errCh)
 
 	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 	require.NoError(t, appOut.Close())
 }
 
@@ -187,19 +205,23 @@ func TestAppSetup(t *testing.T) {
 	srvConn, clientConn, err := OpenPipeConn()
 	require.NoError(t, err)
 
-	srvConn.SetDeadline(time.Now().Add(time.Second))    // nolint: errcheck
-	clientConn.SetDeadline(time.Now().Add(time.Second)) // nolint: errcheck
+	require.NoError(t, srvConn.SetDeadline(time.Now().Add(time.Second)))
+	require.NoError(t, clientConn.SetDeadline(time.Now().Add(time.Second)))
 
 	proto := NewProtocol(srvConn)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck, unparam
-		if f != FrameInit {
-			return nil, errors.New("unexpected frame")
-		}
+	serveErrCh := make(chan error, 1)
+	go func() {
+		f := func(f Frame, p []byte) (interface{}, error) {
+			if f != FrameInit {
+				return nil, errors.New("unexpected frame")
+			}
 
-		go func() { dataCh <- p }()
-		return nil, nil
-	})
+			go func() { dataCh <- p }()
+			return nil, nil
+		}
+		serveErrCh <- proto.Serve(f)
+	}()
 
 	inFd, outFd := clientConn.Fd()
 	_, err = SetupFromPipe(&Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, inFd, outFd)
@@ -212,6 +234,7 @@ func TestAppSetup(t *testing.T) {
 	assert.Equal(t, "0.0.1", config.ProtocolVersion)
 
 	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppCloseConn(t *testing.T) {
@@ -222,7 +245,10 @@ func TestAppCloseConn(t *testing.T) {
 	go app.handleProto()
 
 	proto := NewProtocol(out)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	errCh := make(chan error)
 	go func() {
@@ -232,6 +258,9 @@ func TestAppCloseConn(t *testing.T) {
 	_, err := appOut.Read(make([]byte, 3))
 	require.Equal(t, io.EOF, err)
 	require.Len(t, app.conns, 0)
+
+	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppClose(t *testing.T) {
@@ -243,15 +272,19 @@ func TestAppClose(t *testing.T) {
 
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(f Frame, p []byte) (interface{}, error) { // nolint: errcheck, unparam
-		if f != FrameClose {
-			return nil, errors.New("unexpected frame")
+	serveErrCh := make(chan error, 1)
+	go func() {
+		f := func(f Frame, p []byte) (interface{}, error) {
+			if f != FrameClose {
+				return nil, errors.New("unexpected frame")
+			}
+
+			go func() { dataCh <- p }()
+			return nil, nil
 		}
 
-		go func() { dataCh <- p }()
-		return nil, nil
-	})
-
+		serveErrCh <- proto.Serve(f)
+	}()
 	require.NoError(t, app.Close())
 
 	_, err := appOut.Read(make([]byte, 3))
@@ -262,6 +295,9 @@ func TestAppClose(t *testing.T) {
 	assert.Equal(t, uint16(2), addr.Port)
 	assert.Equal(t, pk, addr.Remote.PubKey)
 	assert.Equal(t, uint16(3), addr.Remote.Port)
+
+	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppCommand(t *testing.T) {

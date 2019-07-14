@@ -3,7 +3,6 @@ package therealproxy
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -36,7 +35,7 @@ func TestProxy(t *testing.T) {
 	srv, err := NewServer("")
 	require.NoError(t, err)
 
-	l, err := net.Listen("tcp", ":10081") // nolint: gosec
+	l, err := net.Listen("tcp", "localhost:10081")
 	require.NoError(t, err)
 
 	errChan := make(chan error)
@@ -46,7 +45,7 @@ func TestProxy(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	conn, err := net.Dial("tcp", ":10081")
+	conn, err := net.Dial("tcp", "localhost:10081")
 	require.NoError(t, err)
 
 	client, err := NewClient(conn)
@@ -54,16 +53,17 @@ func TestProxy(t *testing.T) {
 
 	errChan2 := make(chan error)
 	go func() {
-		errChan2 <- client.ListenAndServe(":10080")
+		errChan2 <- client.ListenAndServe("localhost:10080")
 	}()
 
 	time.Sleep(100 * time.Millisecond)
 
-	proxyDial, err := proxy.SOCKS5("tcp", ":10080", nil, proxy.Direct)
+	proxyDial, err := proxy.SOCKS5("tcp", "localhost:10080", nil, proxy.Direct)
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		_, err := fmt.Fprintln(w, "Hello, client")
+		require.NoError(t, err)
 	}))
 	defer ts.Close()
 

@@ -13,6 +13,7 @@ Create 2 node config files:
 `skywire1.json`
 
 ```json
+{
   "apps": [
     {
       "app": "skychat",
@@ -21,11 +22,13 @@ Create 2 node config files:
       "port": 1
     }
   ]
+}
 ```
 
 `skywire2.json`
 
 ```json
+{
   "apps": [
     {
       "app": "skychat",
@@ -35,6 +38,7 @@ Create 2 node config files:
       "args": ["-addr", ":8001"]
     }
   ]
+}
 ```
 
 Compile binaries and start 2 nodes:

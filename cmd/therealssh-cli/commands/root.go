@@ -21,9 +21,7 @@ import (
 	ssh "github.com/skycoin/skywire/internal/therealssh"
 )
 
-var (
-	rpcAddr string
-)
+var rpcAddr string
 
 var rootCmd = &cobra.Command{
 	Use:   "SSH-cli [user@]remotePK [command] [args...]",
@@ -55,7 +53,11 @@ var rootCmd = &cobra.Command{
 		if err := client.Call("RPCClient.RequestPTY", ptyArgs, &channelID); err != nil {
 			log.Fatal("Failed to request PTY:", err)
 		}
-		defer client.Call("RPCClient.Close", &channelID, nil) // nolint: errcheck
+		defer func() {
+			if err := client.Call("RPCClient.Close", &channelID, nil); err != nil {
+				log.Printf("Failed to close RPC client: %v", err)
+			}
+		}()
 
 		var socketPath string
 		execArgs := &ssh.ExecArgs{ChannelID: channelID, CommandWithArgs: args[1:]}
@@ -97,7 +99,11 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal("Failed to set terminal to raw mode:", err)
 		}
-		defer terminal.Restore(int(os.Stdin.Fd()), oldState) // nolint
+		defer func() {
+			if err := terminal.Restore(int(os.Stdin.Fd()), oldState); err != nil {
+				log.Printf("Failed to restore terminal: %v", err)
+			}
+		}()
 
 		go func() {
 			if _, err := io.Copy(conn, os.Stdin); err != nil {

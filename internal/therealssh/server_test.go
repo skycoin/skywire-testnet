@@ -2,7 +2,6 @@ package therealssh
 
 import (
 	"encoding/binary"
-	"log"
 	"net"
 	"os"
 	"testing"

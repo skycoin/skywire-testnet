@@ -106,7 +106,7 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 }
 
 func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) {
-	rules := []routing.Rule{}
+	var rules []routing.Rule
 	if err := json.Unmarshal(data, &rules); err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) 
 }
 
 func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, error) {
-	ruleIDs := []routing.RouteID{}
+	var ruleIDs []routing.RouteID
 	if err := json.Unmarshal(data, &ruleIDs); err != nil {
 		return nil, err
 	}

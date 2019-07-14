@@ -293,10 +293,6 @@ func (s *Server) connCount() int {
 
 // Close closes the dms_server.
 func (s *Server) Close() (err error) {
-	if s == nil {
-		return nil
-	}
-
 	if err = s.lis.Close(); err != nil {
 		return err
 	}

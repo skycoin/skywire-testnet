@@ -38,7 +38,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer func() { _ = a.Close() }()
+	defer func() {
+		if err := a.Close(); err != nil {
+			log.Println("Failed to close app: ", err)
+		}
+	}()
 
 	chatApp = a
 
@@ -83,7 +87,10 @@ func handleConn(conn net.Conn) {
 			return
 		}
 
-		clientMsg, _ := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])}) // nolint
+		clientMsg, err := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])})
+		if err != nil {
+			log.Printf("Failed to marshal json: %v", err)
+		}
 		select {
 		case clientCh <- string(clientMsg):
 			log.Printf("received and sent to ui: %s\n", clientMsg)

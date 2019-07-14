@@ -15,6 +15,7 @@ Create 2 node config files:
 - `skywire1.json`
 
 ```json
+{  
   "apps": [
     {
       "app": "socksproxy",
@@ -24,11 +25,13 @@ Create 2 node config files:
       "args": ["-passcode", "123456"]
     }
   ]
+}
 ```
 
 - `skywire2.json`
 
 ```json
+{
   "apps": [
     {
       "app": "socksproxy-client",
@@ -38,6 +41,7 @@ Create 2 node config files:
       "args": ["-srv", "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7"]
     }
   ]
+}
 ```
 
 Compile binaries and start 2 nodes:

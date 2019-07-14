@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -43,7 +42,7 @@ func TestClient(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 
 	headerCh := make(chan http.Header, 1)
-	ts := newTestServer(pk, headerCh)
+	ts := newTestServer(t, pk, headerCh)
 	defer ts.Close()
 
 	c, err := NewClient(context.TODO(), ts.URL, pk, sk)
@@ -55,8 +54,10 @@ func TestClient(t *testing.T) {
 	require.NoError(t, err)
 
 	b, err := ioutil.ReadAll(res.Body)
+	if b != nil {
+		require.NoError(t, res.Body.Close())
+	}
 	require.NoError(t, err)
-	res.Body.Close()
 	assert.Equal(t, []byte(payload), b)
 	assert.Equal(t, uint64(2), c.nonce)
 
@@ -69,7 +70,7 @@ func TestClient_BadNonce(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 
 	headerCh := make(chan http.Header, 1)
-	ts := newTestServer(pk, headerCh)
+	ts := newTestServer(t, pk, headerCh)
 	defer ts.Close()
 
 	c, err := NewClient(context.TODO(), ts.URL, pk, sk)
@@ -83,8 +84,10 @@ func TestClient_BadNonce(t *testing.T) {
 	require.NoError(t, err)
 
 	b, err := ioutil.ReadAll(res.Body)
+	if b != nil {
+		require.NoError(t, res.Body.Close())
+	}
 	require.NoError(t, err)
-	res.Body.Close()
 	assert.Equal(t, uint64(2), c.nonce)
 
 	headers := <-headerCh
@@ -99,17 +102,21 @@ func checkResp(t *testing.T, headers http.Header, body []byte, pk cipher.PubKey,
 	require.NoError(t, cipher.VerifyPubKeySignedPayload(pk, sig, PayloadWithNonce(body, Nonce(nonce))))
 }
 
-func newTestServer(pk cipher.PubKey, headerCh chan<- http.Header) *httptest.Server {
+func newTestServer(t *testing.T, pk cipher.PubKey, headerCh chan<- http.Header) *httptest.Server {
 	nonce := 1
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.String() == fmt.Sprintf("/security/nonces/%s", pk) {
-			json.NewEncoder(w).Encode(&NextNonceResponse{pk, Nonce(nonce)}) // nolint: errcheck
+			require.NoError(t, json.NewEncoder(w).Encode(&NextNonceResponse{pk, Nonce(nonce)}))
 		} else {
 			body, err := ioutil.ReadAll(r.Body)
+			if body != nil {
+				defer func() {
+					require.NoError(t, r.Body.Close())
+				}()
+			}
 			if err != nil {
 				return
 			}
-			defer r.Body.Close()
 			respMessage := string(body)
 			if r.Header.Get("Sw-Nonce") != strconv.Itoa(nonce) {
 				respMessage = errorMessage
@@ -117,7 +124,8 @@ func newTestServer(pk cipher.PubKey, headerCh chan<- http.Header) *httptest.Serv
 				headerCh <- r.Header
 				nonce++
 			}
-			fmt.Fprint(w, respMessage)
+			_, err = fmt.Fprint(w, respMessage)
+			require.NoError(t, err)
 		}
 	}))
 }

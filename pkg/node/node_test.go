@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -49,7 +48,7 @@ func TestMain(m *testing.M) {
 func TestNewNode(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}) // nolint: errcheck
+		require.NoError(t, json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}))
 	}))
 	defer srv.Close()
 
@@ -64,7 +63,9 @@ func TestNewNode(t *testing.T) {
 		{App: "bar", AutoStart: true, Port: 2},
 	}
 
-	defer os.RemoveAll("local")
+	defer func() {
+		require.NoError(t, os.RemoveAll("local"))
+	}()
 
 	node, err := NewNode(&conf, masterLogger)
 	require.NoError(t, err)
@@ -83,7 +84,11 @@ func TestNodeStartClose(t *testing.T) {
 		{App: "skychat", Version: "1.0", AutoStart: true, Port: 1},
 		{App: "foo", Version: "1.0", AutoStart: false},
 	}
-	defer os.RemoveAll("skychat")
+
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
+
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 	mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
@@ -114,13 +119,17 @@ func TestNodeSpawnApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	r := new(mockRouter)
 	executer := &MockExecuter{}
-	defer os.RemoveAll("skychat")
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
 	apps := []AppConfig{{App: "skychat", Version: "1.0", AutoStart: false, Port: 10, Args: []string{"foo"}}}
 	node := &Node{router: r, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"),
 		config: &Config{}}
 	node.config.Node.StaticPubKey = pk
 	pathutil.EnsureDir(node.dir())
-	defer os.RemoveAll(node.dir())
+	defer func() {
+		require.NoError(t, os.RemoveAll(node.dir()))
+	}()
 
 	require.NoError(t, node.StartApp("skychat"))
 	time.Sleep(100 * time.Millisecond)
@@ -145,7 +154,9 @@ func TestNodeSpawnAppValidations(t *testing.T) {
 	conn, _ := net.Pipe()
 	r := new(mockRouter)
 	executer := &MockExecuter{err: errors.New("foo")}
-	defer os.RemoveAll("skychat")
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
 	node := &Node{router: r, executer: executer,
 		startedApps: map[string]*appBind{"skychat": {conn, 10}},
 		logger:      logging.MustGetLogger("test")}

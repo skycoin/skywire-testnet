@@ -8,20 +8,19 @@ import (
 	"io/ioutil"
 	"log"
 	"log/syslog"
+	"net/http"
+	_ "net/http/pprof" // used for HTTP profiling
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
-	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	"github.com/pkg/profile"
+	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
-
-	"net/http"
-	_ "net/http/pprof" //no_lint
-
-	"github.com/pkg/profile"
 
 	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
@@ -111,7 +110,7 @@ func (cfg *runCfg) startLogger() *runCfg {
 	cfg.logger = cfg.masterLogger.PackageLogger(cfg.tag)
 
 	if cfg.syslogAddr != "none" {
-		hook, err := logrus_syslog.NewSyslogHook("udp", cfg.syslogAddr, syslog.LOG_INFO, cfg.tag)
+		hook, err := logrussyslog.NewSyslogHook("udp", cfg.syslogAddr, syslog.LOG_INFO, cfg.tag)
 		if err != nil {
 			cfg.logger.Error("Unable to connect to syslog daemon:", err)
 		} else {
@@ -127,7 +126,7 @@ func (cfg *runCfg) readConfig() *runCfg {
 	var err error
 	if !cfg.cfgFromStdin {
 		configPath := pathutil.FindConfigPath(cfg.args, 0, configEnv, pathutil.NodeDefaults())
-		rdr, err = os.Open(configPath)
+		rdr, err = os.Open(filepath.Clean(configPath))
 		if err != nil {
 			cfg.logger.Fatalf("Failed to open config: %s", err)
 		}

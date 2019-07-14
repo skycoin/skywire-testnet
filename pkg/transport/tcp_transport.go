@@ -133,7 +133,7 @@ func FilePubKeyTable(dbFile string) (PubKeyTable, error) {
 		return nil, err
 	}
 
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,11 @@ func (t *filePKTable) RemotePK(remoteIP net.IP) cipher.PubKey {
 }
 
 func (t *filePKTable) Seek(seekFunc func(pk cipher.PubKey, addr *net.TCPAddr) bool) {
-	defer t.dbFile.Seek(0, 0) // nolint
+	defer func() {
+		if _, err := t.dbFile.Seek(0, 0); err != nil {
+			log.WithError(err).Warn("Failed to seek to the beginning of DB")
+		}
+	}()
 
 	scanner := bufio.NewScanner(t.dbFile)
 	for scanner.Scan() {

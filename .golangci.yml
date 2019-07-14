@@ -169,10 +169,6 @@ issues:
   # it can be disabled by `exclude-use-default: false`. To list all
   # excluded by default patterns execute `golangci-lint run --help`
   exclude:
-    - "G304: Potential file inclusion via variable"
-    - "G204: Subprocess launched with variable"
-    - "G104: Errors unhandled"
-    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
 
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all

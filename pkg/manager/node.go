@@ -93,7 +93,10 @@ type MockConfig struct {
 func (m *Node) AddMockData(config MockConfig) error {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < config.Nodes; i++ {
-		pk, client := node.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
+		pk, client, err := node.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
+		if err != nil {
+			return err
+		}
 		m.mu.Lock()
 		m.nodes[pk] = appNodeConn{
 			Addr: &noise.Addr{

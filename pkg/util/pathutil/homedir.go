@@ -62,14 +62,16 @@ func AtomicWriteFile(filename string, data []byte) {
 	}
 
 	if err != nil {
-		os.Remove(f.Name()) // nolint: errcheck
+		if err = os.Remove(f.Name()); err != nil {
+			log.WithError(err).Warnf("Failed to remove file %s", f.Name())
+		}
 		panic(err)
 	}
 }
 
 // AtomicAppendToFile calls AtomicWriteFile but appends new data to destiny file
 func AtomicAppendToFile(filename string, data []byte) {
-	oldFile, err := ioutil.ReadFile(filename)
+	oldFile, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		panic(err)
 	}
