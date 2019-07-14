@@ -185,7 +185,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 
-	rm.Logger.Infof("Confirmed loop with %s:%d", ld.Loop.Remote.Port, ld.Loop.Remote.PubKey)
+	rm.Logger.Infof("Confirmed loop with %s:%d", ld.Loop.Remote.PubKey, ld.Loop.Remote.Port)
 	return nil
 }
 
