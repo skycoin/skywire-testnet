@@ -61,7 +61,7 @@ func TestAppDial(t *testing.T) {
 	assert.Equal(t, rpk.Hex()+":3", conn.RemoteAddr().String())
 	assert.Equal(t, lpk.Hex()+":2", conn.LocalAddr().String())
 
-	require.NotNil(t, app.conns[routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}])
+	require.NotNil(t, app.conns[routing.Loop{Local: routing.Addr{Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}])
 	require.NoError(t, conn.Close())
 
 	// Justified. Attempt to remove produces: FAIL
@@ -69,7 +69,6 @@ func TestAppDial(t *testing.T) {
 
 	var loop routing.Loop
 	require.NoError(t, json.Unmarshal(<-dataCh, &loop))
-	assert.Equal(t, lpk, loop.Local.PubKey)
 	assert.Equal(t, routing.Port(2), loop.Local.Port)
 	assert.Equal(t, rpk, loop.Remote.PubKey)
 	assert.Equal(t, routing.Port(3), loop.Remote.Port)

@@ -120,7 +120,7 @@ func (app *App) Accept() (net.Conn, error) {
 	laddr := addrs[0]
 	raddr := addrs[1]
 
-	loop := routing.Loop{Local: *laddr, Remote: *raddr}
+	loop := routing.Loop{Local: routing.Addr{Port: laddr.Port}, Remote: *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
@@ -136,7 +136,7 @@ func (app *App) Dial(raddr *routing.Addr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	loop := routing.Loop{Local: laddr, Remote: *raddr}
+	loop := routing.Loop{Local: routing.Addr{Port: laddr.Port}, Remote: *raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
