@@ -85,15 +85,15 @@ func TestCreateLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	var serveErr1, serveErr2, serveErr3 error
-	n1 := newMockNode(t, m1)
+	n1 := newMockNode(m1)
 	go func() {
 		serveErr1 = n1.serve()
 	}()
-	n2 := newMockNode(t, m2)
+	n2 := newMockNode(m2)
 	go func() {
 		serveErr2 = n2.serve()
 	}()
-	n3 := newMockNode(t, m3)
+	n3 := newMockNode(m3)
 	go func() {
 		serveErr3 = n3.serve()
 	}()
@@ -203,7 +203,7 @@ func TestCloseLoop(t *testing.T) {
 	mS, err := transport.NewManager(cS, fS)
 	require.NoError(t, err)
 
-	n3 := newMockNode(t, m3)
+	n3 := newMockNode(m3)
 	var serveErr error
 	go func() {
 		serveErr = n3.serve()
@@ -301,27 +301,31 @@ func (f *muxFactory) Type() string {
 
 type mockNode struct {
 	sync.Mutex
-	testing *testing.T
-	rules   map[routing.RouteID]routing.Rule
-	tm      *transport.Manager
+	rules map[routing.RouteID]routing.Rule
+	tm    *transport.Manager
 }
 
-func newMockNode(t *testing.T, tm *transport.Manager) *mockNode {
-	return &mockNode{testing: t, tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
+func newMockNode(tm *transport.Manager) *mockNode {
+	return &mockNode{tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
 }
 
 func (n *mockNode) serve() error {
+	errCh := make(chan error)
 	go func() {
 		for tr := range n.tm.TrChan {
 			go func(t transport.Transport) {
 				if err := n.serveTransport(t); err != nil {
-					n.testing.Error(err)
+					errCh <- err
 				}
 			}(tr)
 		}
 	}()
 
-	return n.tm.Serve(context.Background())
+	go func() {
+		errCh <- n.tm.Serve(context.Background())
+	}()
+
+	return <-errCh
 }
 
 func (n *mockNode) setRule(id routing.RouteID, rule routing.Rule) {
