@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/app"
@@ -56,18 +58,19 @@ var responseUnauthorized = append([]byte{ResponseFail}, []byte("unauthorized")..
 
 // Server handles remote PTY data exchange.
 type Server struct {
+	log   *logging.Logger
 	auth  Authorizer
 	chans *chanList
 }
 
 // NewServer constructs new Server.
 func NewServer(auth Authorizer) *Server {
-	return &Server{auth, newChanList()}
+	return &Server{logging.MustGetLogger("therealssh_server"), auth, newChanList()}
 }
 
 // OpenChannel opens new client channel.
 func (s *Server) OpenChannel(remoteAddr *app.Addr, remoteID uint32, conn net.Conn) error {
-	debug("opening new channel")
+	s.log.Debugln("opening new channel")
 	channel := OpenChannel(remoteID, remoteAddr, conn)
 	var res []byte
 
@@ -77,14 +80,14 @@ func (s *Server) OpenChannel(remoteAddr *app.Addr, remoteID uint32, conn net.Con
 		res = appendU32([]byte{ResponseConfirm}, s.chans.add(channel))
 	}
 
-	debug("sending response")
+	s.log.Debugln("sending response")
 	if err := channel.Send(CmdChannelOpenResponse, res); err != nil {
 		channel.Close()
 		return fmt.Errorf("channel response failure: %s", err)
 	}
 
 	go func() {
-		debug("listening for channel requests")
+		s.log.Debugln("listening for channel requests")
 		if err := channel.Serve(); err != nil {
 			log.Println("channel failure:", err)
 		}
@@ -157,7 +160,7 @@ func (s *Server) Serve(conn net.Conn) error {
 		payloadID := binary.BigEndian.Uint32(payload[1:])
 		data := payload[5:]
 
-		debug("got new command: %x", payload[0])
+		s.log.Debugf("got new command: %x", payload[0])
 		switch CommandType(payload[0]) {
 		case CmdChannelOpen:
 			err = s.OpenChannel(raddr, payloadID, conn)

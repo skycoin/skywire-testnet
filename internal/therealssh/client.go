@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/kr/pty"
 	"github.com/skycoin/dmsg/cipher"
 
@@ -28,13 +30,14 @@ type Dialer interface {
 // Client proxies CLI's requests to a remote server. Control messages
 // are sent via RPC interface. PTY data is exchanged via unix socket.
 type Client struct {
+	log    *logging.Logger
 	dialer Dialer
 	chans  *chanList
 }
 
 // NewClient construct new RPC listener and Client from a given RPC address and app dialer.
 func NewClient(rpcAddr string, d Dialer) (net.Listener, *Client, error) {
-	client := &Client{chans: newChanList(), dialer: d}
+	client := &Client{log: logging.MustGetLogger("therealssh_client"), chans: newChanList(), dialer: d}
 	rpcClient := &RPCClient{client}
 	if err := rpc.Register(rpcClient); err != nil {
 		return nil, nil, fmt.Errorf("RPC register failure: %s", err)
@@ -63,7 +66,7 @@ func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, sshCh *SSH
 	}
 
 	sshCh = OpenClientChannel(0, remotePK, conn)
-	debug("sending channel open command")
+	c.log.Debugln("sending channel open command")
 	localID = c.chans.add(sshCh)
 	req := appendU32([]byte{byte(CmdChannelOpen)}, localID)
 	if _, err := conn.Write(req); err != nil {
@@ -77,9 +80,9 @@ func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, sshCh *SSH
 		}
 	}()
 
-	debug("waiting for channel open response")
+	c.log.Debugln("waiting for channel open response")
 	data := <-sshCh.msgCh
-	debug("got channel open response")
+	c.log.Debugln("got channel open response")
 	if data[0] == ResponseFail {
 		cErr = fmt.Errorf("failed to open channel: %s", string(data[1:]))
 		return
@@ -127,7 +130,7 @@ func (c *Client) serveConn(conn net.Conn) error {
 		}
 
 		data := payload[5:]
-		debug("got new command: %x", payload[0])
+		c.log.Debugf("got new command: %x", payload[0])
 		switch CommandType(payload[0]) {
 		case CmdChannelOpenResponse, CmdChannelResponse:
 			sshCh.msgCh <- data
@@ -169,13 +172,13 @@ type RPCClient struct {
 
 // RequestPTY defines RPC request for a new PTY session.
 func (rpc *RPCClient) RequestPTY(args *RequestPTYArgs, channelID *uint32) error {
-	debug("requesting SSH channel")
+	rpc.c.log.Debugln("requesting SSH channel")
 	localID, channel, err := rpc.c.OpenChannel(args.RemotePK)
 	if err != nil {
 		return err
 	}
 
-	debug("requesting PTY session")
+	rpc.c.log.Debugln("requesting PTY session")
 	if _, err := channel.Request(RequestPTY, args.ToBinary()); err != nil {
 		return fmt.Errorf("PTY request failure: %s", err)
 	}
@@ -191,7 +194,7 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 		return errors.New("unknown channel")
 	}
 
-	debug("requesting shell process")
+	rpc.c.log.Debugln("requesting shell process")
 	if args.CommandWithArgs == nil {
 		if _, err := sshCh.Request(RequestShell, nil); err != nil {
 			return fmt.Errorf("Shell request failure: %s", err)
@@ -204,7 +207,7 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 
 	waitCh := make(chan bool)
 	go func() {
-		debug("starting socket listener")
+		rpc.c.log.Debugln("starting socket listener")
 		waitCh <- true
 		if err := sshCh.ServeSocket(); err != nil {
 			log.Println("Session failure:", err)

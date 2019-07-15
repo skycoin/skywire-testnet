@@ -7,6 +7,9 @@ import (
 	"flag"
 	"log"
 
+	"github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	homedir "github.com/mitchellh/go-homedir"
 
 	ssh "github.com/skycoin/skywire/internal/therealssh"
@@ -32,6 +35,9 @@ func main() {
 	}
 
 	ssh.Debug = *debug
+	if !ssh.Debug {
+		logging.SetLevel(logrus.InfoLevel)
+	}
 
 	auth, err := ssh.NewFileAuthorizer(path)
 	if err != nil {

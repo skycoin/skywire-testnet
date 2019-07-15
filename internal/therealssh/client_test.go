@@ -5,6 +5,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +17,7 @@ import (
 func TestClientOpenChannel(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	conn, dialer := newPipeDialer()
-	c := &Client{dialer, newChanList()}
+	c := &Client{logging.MustGetLogger("therealssh_client"), dialer, newChanList()}
 
 	type data struct {
 		ch  *SSHChannel
@@ -46,7 +48,7 @@ func TestClientOpenChannel(t *testing.T) {
 
 func TestClientHandleResponse(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	c := &Client{nil, newChanList()}
+	c := &Client{logging.MustGetLogger("therealssh_client"), nil, newChanList()}
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
