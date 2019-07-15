@@ -1,4 +1,4 @@
-package manager
+package hypervisor
 
 import (
 	"encoding/hex"
@@ -33,7 +33,7 @@ func (hk *Key) UnmarshalText(text []byte) error {
 	return err
 }
 
-// Config configures the manager node.
+// Config configures the hypervisor.
 type Config struct {
 	PK         cipher.PubKey   `json:"public_key"`
 	SK         cipher.SecKey   `json:"secret_key"`
@@ -69,14 +69,14 @@ func GenerateWorkDirConfig() Config {
 // GenerateHomeConfig generates a config with default values and uses db from user's home folder.
 func GenerateHomeConfig() Config {
 	c := makeConfig()
-	c.DBPath = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire-manager/users.db")
+	c.DBPath = filepath.Join(pathutil.HomeDir(), ".skycoin/hypervisor/users.db")
 	return c
 }
 
 // GenerateLocalConfig generates a config with default values and uses db from shared folder.
 func GenerateLocalConfig() Config {
 	c := makeConfig()
-	c.DBPath = "/usr/local/skycoin/skywire-manager/users.db"
+	c.DBPath = "/usr/local/skycoin/hypervisor/users.db"
 	return c
 }
 
@@ -100,7 +100,7 @@ func (c *Config) Parse(path string) error {
 	return json.NewDecoder(f).Decode(c)
 }
 
-// CookieConfig configures cookies used for manager.
+// CookieConfig configures cookies used for hypervisor.
 type CookieConfig struct {
 	HashKey  Key `json:"hash_key"`  // Signs the cookie: 32 or 64 bytes.
 	BlockKey Key `json:"block_key"` // Encrypts the cookie: 16 (AES-128), 24 (AES-192), 32 (AES-256) bytes. (optional)
@@ -123,7 +123,7 @@ func (c *CookieConfig) FillDefaults() {
 	c.SameSite = http.SameSiteDefaultMode
 }
 
-// InterfaceConfig configures the interfaces exposed by manager.
+// InterfaceConfig configures the interfaces exposed by hypervisor.
 type InterfaceConfig struct {
 	HTTPAddr string `json:"http_address"`
 	RPCAddr  string `json:"rpc_addr"`

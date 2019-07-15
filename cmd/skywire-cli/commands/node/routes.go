@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/visor"
 )
 
 func init() {
@@ -48,7 +48,7 @@ var ruleCmd = &cobra.Command{
 		rule, err := rpcClient().RoutingRule(routing.RouteID(id))
 		internal.Catch(err)
 
-		printRoutingRules(&node.RoutingEntry{Key: rule.RouteID(), Value: rule})
+		printRoutingRules(&visor.RoutingEntry{Key: rule.RouteID(), Value: rule})
 	},
 }
 
@@ -114,7 +114,7 @@ var addRuleCmd = &cobra.Command{
 	},
 }
 
-func printRoutingRules(rules ...*node.RoutingEntry) {
+func printRoutingRules(rules ...*visor.RoutingEntry) {
 	printAppRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
 		_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%d\t%s\t%s\t%s\n", id, s.Type, s.AppFields.LocalPort,
 			s.AppFields.RemotePort, s.AppFields.RemotePK, s.AppFields.RespRID, "-", "-", s.ExpireAt)

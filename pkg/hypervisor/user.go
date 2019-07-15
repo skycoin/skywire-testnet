@@ -1,4 +1,4 @@
-package manager
+package hypervisor
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ func init() {
 	gob.Register(User{})
 }
 
-// User represents a user of the manager.
+// User represents a user of the hypervisor.
 type User struct {
 	Name   string
 	PwSalt []byte

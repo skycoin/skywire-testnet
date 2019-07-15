@@ -28,7 +28,7 @@
   },
   "apps": [],
   "trusted_nodes": [],
-  "manager_nodes": [],
+  "hypervisors": [],
   "apps_path": "./bin/apps",
   "local_path": "./local/localB",
   "log_level": "info",

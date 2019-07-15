@@ -1,5 +1,5 @@
 /*
-proxy client app for skywire node
+proxy client app for skywire visor
 */
 package main
 

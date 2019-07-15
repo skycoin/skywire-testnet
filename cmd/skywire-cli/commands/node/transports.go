@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/node"
+	"github.com/skycoin/skywire/pkg/visor"
 )
 
 func init() {
@@ -106,7 +106,7 @@ var rmTpCmd = &cobra.Command{
 	},
 }
 
-func printTransports(tps ...*node.TransportSummary) {
+func printTransports(tps ...*visor.TransportSummary) {
 	sortTransports(tps...)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "type\tid\tremote\tmode")
@@ -123,7 +123,7 @@ func printTransports(tps ...*node.TransportSummary) {
 	internal.Catch(w.Flush())
 }
 
-func sortTransports(tps ...*node.TransportSummary) {
+func sortTransports(tps ...*visor.TransportSummary) {
 	sort.Slice(tps, func(i, j int) bool {
 		return tps[i].ID.String() < tps[j].ID.String()
 	})
