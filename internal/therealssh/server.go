@@ -8,9 +8,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
 )

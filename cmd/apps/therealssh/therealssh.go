@@ -7,10 +7,9 @@ import (
 	"flag"
 	"log"
 
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/logging"
-
-	homedir "github.com/mitchellh/go-homedir"
 
 	ssh "github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
