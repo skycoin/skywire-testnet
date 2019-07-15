@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/manager"
+	"github.com/skycoin/skywire/pkg/hypervisor"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
@@ -28,7 +28,7 @@ var genConfigCmd = &cobra.Command{
 	Short: "generates a configuration file",
 	PreRun: func(_ *cobra.Command, _ []string) {
 		if output == "" {
-			output = pathutil.ManagerDefaults().Get(configLocType)
+			output = pathutil.HypervisorDefaults().Get(configLocType)
 			log.Infof("no 'output,o' flag is empty, using default path: %s", output)
 		}
 		var err error
@@ -37,14 +37,14 @@ var genConfigCmd = &cobra.Command{
 		}
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		var conf manager.Config
+		var conf hypervisor.Config
 		switch configLocType {
 		case pathutil.WorkingDirLoc:
-			conf = manager.GenerateWorkDirConfig()
+			conf = hypervisor.GenerateWorkDirConfig()
 		case pathutil.HomeLoc:
-			conf = manager.GenerateHomeConfig()
+			conf = hypervisor.GenerateHomeConfig()
 		case pathutil.LocalLoc:
-			conf = manager.GenerateLocalConfig()
+			conf = hypervisor.GenerateLocalConfig()
 		default:
 			log.Fatalln("invalid config type:", configLocType)
 		}

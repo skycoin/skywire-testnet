@@ -131,7 +131,7 @@ func (d *RPCClientDialer) clearDone() {
 	d.mu.Unlock()
 }
 
-// Addr is the address of a either an AppNode or ManagerNode.
+// Addr is the address of a either an Visor or Hypervisor.
 type Addr struct {
 	PK   cipher.PubKey
 	Addr net.Addr

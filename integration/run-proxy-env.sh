@@ -10,13 +10,13 @@ echo "Checking transport-discovery is up"
 curl --retry 5  --retry-connrefused 1 --connect-timeout 5 https://transport.discovery.skywire.skycoin.net/security/nonces/$PK_A   
 
 tmux rename-window -t skywire NodeA
-tmux send-keys -t NodeA -l "./skywire-node ./integration/proxy/nodeA.json --tag NodeA $SYSLOG_OPTS"
+tmux send-keys -t NodeA -l "./skywire-visor ./integration/proxy/nodeA.json --tag NodeA $SYSLOG_OPTS"
 tmux send-keys C-m
 tmux new-window -t skywire -n NodeB
-tmux send-keys -t NodeB -l "./skywire-node ./integration/intermediary-nodeB.json --tag NodeB $SYSLOG_OPTS" 
+tmux send-keys -t NodeB -l "./skywire-visor ./integration/intermediary-nodeB.json --tag NodeB $SYSLOG_OPTS"
 tmux send-keys C-m
 tmux new-window -t skywire -n NodeC
-tmux send-keys -t NodeC -l "./skywire-node ./integration/proxy/nodeC.json --tag NodeC $SYSLOG_OPTS" 
+tmux send-keys -t NodeC -l "./skywire-visor ./integration/proxy/nodeC.json --tag NodeC $SYSLOG_OPTS"
 tmux send-keys C-m
 
 tmux new-window -t skywire -n shell

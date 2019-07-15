@@ -33,8 +33,9 @@ type SSHChannel struct {
 	conn  net.Conn
 	msgCh chan []byte
 
-	session  *Session
-	listener *net.UnixListener
+	session    *Session
+	listenerMx sync.Mutex
+	listener   *net.UnixListener
 
 	dataChMx sync.Mutex
 	dataCh   chan []byte
@@ -155,7 +156,9 @@ func (sshCh *SSHChannel) ServeSocket() error {
 		return fmt.Errorf("failed to open unix socket: %s", err)
 	}
 
+	sshCh.listenerMx.Lock()
 	sshCh.listener = l
+	sshCh.listenerMx.Unlock()
 	conn, err := l.AcceptUnix()
 	if err != nil {
 		return fmt.Errorf("failed to accept connection: %s", err)
@@ -164,8 +167,7 @@ func (sshCh *SSHChannel) ServeSocket() error {
 	debug("got new socket connection")
 	defer func() {
 		conn.Close()
-		sshCh.listener.Close()
-		sshCh.listener = nil
+		sshCh.closeListener() //nolint:errcheck
 		os.Remove(sshCh.SocketPath())
 	}()
 
@@ -270,9 +272,7 @@ func (sshCh *SSHChannel) close() (closed bool, err error) {
 			sErr = sshCh.session.Close()
 		}
 
-		if sshCh.listener != nil {
-			lErr = sshCh.listener.Close()
-		}
+		lErr = sshCh.closeListener()
 
 		if sErr != nil {
 			err = sErr
@@ -312,6 +312,13 @@ func (sshCh *SSHChannel) IsClosed() bool {
 	default:
 		return false
 	}
+}
+
+func (sshCh *SSHChannel) closeListener() error {
+	sshCh.listenerMx.Lock()
+	defer sshCh.listenerMx.Unlock()
+
+	return sshCh.listener.Close()
 }
 
 func debug(format string, v ...interface{}) {

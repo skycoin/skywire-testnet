@@ -1,7 +1,7 @@
 //go:generate esc -o static.go -prefix static static
 
 /*
-skychat app for skywire node
+skychat app for skywire visor
 */
 package main
 
