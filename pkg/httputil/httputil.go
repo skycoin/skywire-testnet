@@ -19,7 +19,11 @@ func WriteJSON(w http.ResponseWriter, r *http.Request, code int, v interface{}) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	enc := json.NewEncoder(w)
-	if pretty, err := BoolFromQuery(r, "pretty", false); err == nil && pretty {
+	pretty, err := BoolFromQuery(r, "pretty", false)
+	if err != nil {
+		log.WithError(err).Warn("Failed to get bool from query")
+	}
+	if pretty {
 		enc.SetIndent("", "  ")
 	}
 	if err, ok := v.(error); ok {
