@@ -83,10 +83,6 @@ func (tp *Transport) serve() (started bool) {
 // 3. Our worry now, is writing to `inCh`/`bufCh` AFTER they have been closed.
 // 4. But as, under the mutexes protecting `inCh`/`bufCh`, checking `done` comes first, and we know that `done` is closed before `inCh`/`bufCh`, we can guarantee that it avoids writing to closed chan.
 func (tp *Transport) close() (closed bool) {
-	if tp == nil {
-		return false
-	}
-
 	tp.doneOnce.Do(func() {
 		closed = true
 
@@ -109,9 +105,6 @@ func (tp *Transport) close() (closed bool) {
 
 // Close closes the dmsg_tp.
 func (tp *Transport) Close() error {
-	if tp == nil {
-		return nil
-	}
 	if tp.close() {
 		_ = writeFrame(tp.Conn, MakeFrame(CloseType, tp.id, []byte{0})) //nolint:errcheck
 	}
