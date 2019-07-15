@@ -338,10 +338,15 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
-	entry, err := settlementResponderHandshake().Do(tm, tr, 30*time.Second)
-	if err != nil {
-		tr.Close()
-		return nil, err
+	var entry *Entry
+	if tm.IsSetupTransport(tr) {
+		entry = makeEntry(tr, false)
+	} else {
+		entry, err = settlementResponderHandshake().Do(tm, tr, 30*time.Second)
+		if err != nil {
+			tr.Close()
+			return nil, err
+		}
 	}
 
 	remote, ok := tm.Remote(tr.Edges())
