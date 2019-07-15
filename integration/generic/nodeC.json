@@ -55,7 +55,7 @@
     }
   ],
   "trusted_nodes": [],
-  "manager_nodes": [],
+  "hypervisors": [],
   "apps_path": "./apps",
   "local_path": "./local/nodeC",
   "log_level": "info",

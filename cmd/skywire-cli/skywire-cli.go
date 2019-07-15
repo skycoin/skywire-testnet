@@ -1,5 +1,5 @@
 /*
-CLI for skywire node
+CLI for skywire visor
 */
 package main
 

@@ -1,5 +1,5 @@
-// Package node implements skywire node.
-package node
+// Package visor implements skywire visor.
+package visor
 
 import (
 	"bufio"
@@ -19,9 +19,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/skycoin/dmsg/noise"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
@@ -189,8 +188,8 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		}
 		node.rpcListener = l
 	}
-	node.rpcDialers = make([]*noise.RPCClientDialer, len(config.ManagerNodes))
-	for i, entry := range config.ManagerNodes {
+	node.rpcDialers = make([]*noise.RPCClientDialer, len(config.Hypervisors))
+	for i, entry := range config.Hypervisors {
 		node.rpcDialers[i] = noise.NewRPCClientDialer(entry.Addr, noise.HandshakeXK, noise.Config{
 			LocalPK:   pk,
 			LocalSK:   sk,

@@ -71,7 +71,7 @@ func (dp ConfigPaths) Get(cpType ConfigLocationType) string {
 	return ""
 }
 
-// NodeDefaults returns the default config paths for skywire-node.
+// NodeDefaults returns the default config paths for skywire-visor.
 func NodeDefaults() ConfigPaths {
 	paths := make(ConfigPaths)
 	if wd, err := os.Getwd(); err == nil {
@@ -82,14 +82,14 @@ func NodeDefaults() ConfigPaths {
 	return paths
 }
 
-// ManagerDefaults returns the default config paths for manager-node.
-func ManagerDefaults() ConfigPaths {
+// HypervisorDefaults returns the default config paths for hypervisor.
+func HypervisorDefaults() ConfigPaths {
 	paths := make(ConfigPaths)
 	if wd, err := os.Getwd(); err == nil {
-		paths[WorkingDirLoc] = filepath.Join(wd, "manager-config.json")
+		paths[WorkingDirLoc] = filepath.Join(wd, "hypervisor-config.json")
 	}
-	paths[HomeLoc] = filepath.Join(HomeDir(), ".skycoin/skywire-manager/manager-config.json")
-	paths[LocalLoc] = "/usr/local/skycoin/skywire-manager/manager-config.json"
+	paths[HomeLoc] = filepath.Join(HomeDir(), ".skycoin/hypervisor/hypervisor-config.json")
+	paths[LocalLoc] = "/usr/local/skycoin/hypervisor/hypervisor-config.json"
 	return paths
 }
 
