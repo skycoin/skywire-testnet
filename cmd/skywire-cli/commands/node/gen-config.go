@@ -9,8 +9,8 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/skycoin/skywire/pkg/visor"
 )
 
 func init() {
@@ -43,7 +43,7 @@ var genConfigCmd = &cobra.Command{
 		}
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		var conf *node.Config
+		var conf *visor.Config
 		switch configLocType {
 		case pathutil.WorkingDirLoc:
 			conf = defaultConfig()
@@ -58,7 +58,7 @@ var genConfigCmd = &cobra.Command{
 	},
 }
 
-func homeConfig() *node.Config {
+func homeConfig() *visor.Config {
 	c := defaultConfig()
 	c.AppsPath = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/apps")
 	c.Transport.LogStore.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/transport_logs")
@@ -66,7 +66,7 @@ func homeConfig() *node.Config {
 	return c
 }
 
-func localConfig() *node.Config {
+func localConfig() *visor.Config {
 	c := defaultConfig()
 	c.AppsPath = "/usr/local/skycoin/skywire/apps"
 	c.Transport.LogStore.Location = "/usr/local/skycoin/skywire/transport_logs"
@@ -74,8 +74,8 @@ func localConfig() *node.Config {
 	return c
 }
 
-func defaultConfig() *node.Config {
-	conf := &node.Config{}
+func defaultConfig() *visor.Config {
+	conf := &visor.Config{}
 	conf.Version = "1.0"
 
 	pk, sk := cipher.GenerateKeyPair()
@@ -86,7 +86,7 @@ func defaultConfig() *node.Config {
 	conf.Messaging.ServerCount = 1
 
 	passcode := base64.StdEncoding.EncodeToString(cipher.RandByte(8))
-	conf.Apps = []node.AppConfig{
+	conf.Apps = []visor.AppConfig{
 		{App: "skychat", Version: "1.0", Port: 1, AutoStart: true, Args: []string{}},
 		{App: "SSH", Version: "1.0", Port: 2, AutoStart: true, Args: []string{}},
 		{App: "socksproxy", Version: "1.0", Port: 3, AutoStart: true, Args: []string{"-passcode", passcode}},
@@ -107,16 +107,16 @@ func defaultConfig() *node.Config {
 	conf.Routing.SetupNodes = []cipher.PubKey{sPK}
 	conf.Routing.Table.Type = "boltdb"
 	conf.Routing.Table.Location = "./skywire/routing.db"
-	conf.Routing.RouteFinderTimeout = node.Duration(10 * time.Second)
+	conf.Routing.RouteFinderTimeout = visor.Duration(10 * time.Second)
 
-	conf.ManagerNodes = []node.ManagerConfig{}
+	conf.Hypervisors = []visor.HypervisorConfig{}
 
 	conf.AppsPath = "./apps"
 	conf.LocalPath = "./local"
 
 	conf.LogLevel = "info"
 
-	conf.ShutdownTimeout = node.Duration(10 * time.Second)
+	conf.ShutdownTimeout = visor.Duration(10 * time.Second)
 
 	conf.Interfaces.RPCAddress = "localhost:3435"
 

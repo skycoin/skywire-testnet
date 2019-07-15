@@ -11,16 +11,7 @@ go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/app  -run TestProtocol >> ./logs/pkg/TestProtocol.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/app  -run TestProtocolParallel >> ./logs/pkg/TestProtocolParallel.log
  
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestPubKeyString >> ./logs/pkg/TestPubKeyString.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestPubKeyTextMarshaller >> ./logs/pkg/TestPubKeyTextMarshaller.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestPubKeyBinaryMarshaller >> ./logs/pkg/TestPubKeyBinaryMarshaller.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestSecKeyString >> ./logs/pkg/TestSecKeyString.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestSecKeyTextMarshaller >> ./logs/pkg/TestSecKeyTextMarshaller.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestSecKeyBinaryMarshaller >> ./logs/pkg/TestSecKeyBinaryMarshaller.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestSigString >> ./logs/pkg/TestSigString.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/cipher -run TestSigTextMarshaller >> ./logs/pkg/TestSigTextMarshaller.log
-
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m  github.com/skycoin/skywire/pkg/manager -run TestNewNode >> ./logs/pkg/TestNewNode.log
+go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/hypervisor -run TestNewNode >> ./logs/pkg/TestNewNode.log
 
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/node	 -run TestMessagingDiscovery >> ./logs/pkg/TestMessagingDiscovery.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/node	 -run TestTransportDiscovery >> ./logs/pkg/TestTransportDiscovery.log

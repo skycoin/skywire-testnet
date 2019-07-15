@@ -9,14 +9,14 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/manager"
+	"github.com/skycoin/skywire/pkg/hypervisor"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
-const configEnv = "SW_MANAGER_CONFIG"
+const configEnv = "SW_HYPERVISOR_CONFIG"
 
 var (
-	log = logging.MustGetLogger("manager-node")
+	log = logging.MustGetLogger("hypervisor")
 
 	mock           bool
 	mockEnableAuth bool
@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().BoolVarP(&mock, "mock", "m", false, "whether to run manager node with mock data")
+	rootCmd.Flags().BoolVarP(&mock, "mock", "m", false, "whether to run hypervisor with mock data")
 	rootCmd.Flags().BoolVar(&mockEnableAuth, "mock-enable-auth", false, "whether to enable user management in mock mode")
 	rootCmd.Flags().IntVar(&mockNodes, "mock-nodes", 5, "number of app nodes to have in mock mode")
 	rootCmd.Flags().IntVar(&mockMaxTps, "mock-max-tps", 10, "max number of transports per mock app node")
@@ -34,12 +34,12 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "manager-node [config-path]",
+	Use:   "hypervisor [config-path]",
 	Short: "Manages Skywire App Nodes",
 	Run: func(_ *cobra.Command, args []string) {
-		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.ManagerDefaults())
+		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.HypervisorDefaults())
 
-		var config manager.Config
+		var config hypervisor.Config
 		config.FillDefaults()
 		if err := config.Parse(configPath); err != nil {
 			log.WithError(err).Fatalln("failed to parse config file")
@@ -51,9 +51,9 @@ var rootCmd = &cobra.Command{
 			rpcAddr  = config.Interfaces.RPCAddr
 		)
 
-		m, err := manager.NewNode(config)
+		m, err := hypervisor.NewNode(config)
 		if err != nil {
-			log.Fatalln("Failed to start manager:", err)
+			log.Fatalln("Failed to start hypervisor:", err)
 		}
 
 		log.Infof("serving  RPC on '%s'", rpcAddr)
@@ -68,7 +68,7 @@ var rootCmd = &cobra.Command{
 		}()
 
 		if mock {
-			err := m.AddMockData(manager.MockConfig{
+			err := m.AddMockData(hypervisor.MockConfig{
 				Nodes:            mockNodes,
 				MaxTpsPerNode:    mockMaxTps,
 				MaxRoutesPerNode: mockMaxRoutes,
@@ -81,7 +81,7 @@ var rootCmd = &cobra.Command{
 
 		log.Infof("serving HTTP on '%s'", httpAddr)
 		if err := http.ListenAndServe(httpAddr, m); err != nil {
-			log.Fatalln("Manager exited with error:", err)
+			log.Fatalln("Hypervisor exited with error:", err)
 		}
 
 		log.Println("Good bye!")

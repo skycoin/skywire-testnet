@@ -1,6 +1,6 @@
 # Skywire Chat app
 
-Chat implements basic text messaging between skywire nodes.
+Chat implements basic text messaging between skywire visors.
 
 Messaging UI is exposed via web interface.
 
@@ -45,8 +45,8 @@ Compile binaries and start 2 nodes:
 
 ```bash
 $ go build -o apps/skychat.v1.0 ./cmd/apps/skychat
-$ ./skywire-node skywire1.json
-$ ./skywire-node skywire2.json
+$ ./skywire-visor skywire1.json
+$ ./skywire-visor skywire2.json
 ```
 
 Chat interface will be available on ports `8000` and `8001`.

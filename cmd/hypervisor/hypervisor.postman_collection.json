@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "daa8ec31-db75-4e92-b637-c5117644bfa8",
-    "name": "Skywire Manager Node",
+    "name": "Skywire Hypervisor",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

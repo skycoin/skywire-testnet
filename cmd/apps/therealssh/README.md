@@ -53,8 +53,8 @@ Compile binaries and start 2 nodes:
 $ go build -o apps/SSH.v1.0 ./cmd/apps/therealssh
 $ go build -o apps/SSH-client.v1.0 ./cmd/apps/therealssh-client
 $ go build ./cmd/SSH-cli
-$ ./skywire-node skywire1.json
-$ ./skywire-node skywire2.json
+$ ./skywire-visor skywire1.json
+$ ./skywire-visor skywire2.json
 ```
 
 Add public key of the second node to the auth file:

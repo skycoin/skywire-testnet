@@ -22,12 +22,12 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/skycoin/skywire/pkg/visor"
 )
 
 const configEnv = "SW_CONFIG"
-const defaultShutdownTimeout = node.Duration(10 * time.Second)
+const defaultShutdownTimeout = visor.Duration(10 * time.Second)
 
 type runCfg struct {
 	syslogAddr   string
@@ -40,15 +40,15 @@ type runCfg struct {
 	profileStop  func()
 	logger       *logging.Logger
 	masterLogger *logging.MasterLogger
-	conf         node.Config
-	node         *node.Node
+	conf         visor.Config
+	node         *visor.Node
 }
 
 var cfg *runCfg
 
 var rootCmd = &cobra.Command{
-	Use:   "skywire-node [config-path]",
-	Short: "App Node for skywire",
+	Use:   "skywire-visor [config-path]",
+	Short: "Visor for skywire",
 	Run: func(_ *cobra.Command, args []string) {
 		cfg.args = args
 
@@ -59,7 +59,7 @@ var rootCmd = &cobra.Command{
 			waitOsSignals().
 			stopNode()
 	},
-	Version: node.Version,
+	Version: visor.Version,
 }
 
 func init() {
@@ -135,7 +135,7 @@ func (cfg *runCfg) readConfig() *runCfg {
 		rdr = bufio.NewReader(os.Stdin)
 	}
 
-	cfg.conf = node.Config{}
+	cfg.conf = visor.Config{}
 	if err := json.NewDecoder(rdr).Decode(&cfg.conf); err != nil {
 		cfg.logger.Fatalf("Failed to decode %s: %s", rdr, err)
 	}
@@ -143,7 +143,7 @@ func (cfg *runCfg) readConfig() *runCfg {
 }
 
 func (cfg *runCfg) runNode() *runCfg {
-	node, err := node.NewNode(&cfg.conf, cfg.masterLogger)
+	node, err := visor.NewNode(&cfg.conf, cfg.masterLogger)
 	if err != nil {
 		cfg.logger.Fatal("Failed to initialize node: ", err)
 	}
