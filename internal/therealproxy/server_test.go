@@ -13,6 +13,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 	"golang.org/x/net/proxy"
 )
 
@@ -35,7 +36,7 @@ func TestProxy(t *testing.T) {
 	srv, err := NewServer("")
 	require.NoError(t, err)
 
-	l, err := net.Listen("tcp", "localhost:10081")
+	l, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
 	errChan := make(chan error)
@@ -45,7 +46,7 @@ func TestProxy(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	conn, err := net.Dial("tcp", "localhost:10081")
+	conn, err := net.Dial("tcp", l.Addr().String())
 	require.NoError(t, err)
 
 	client, err := NewClient(conn)
@@ -53,12 +54,12 @@ func TestProxy(t *testing.T) {
 
 	errChan2 := make(chan error)
 	go func() {
-		errChan2 <- client.ListenAndServe("localhost:10080")
+		errChan2 <- client.ListenAndServe(":10080")
 	}()
 
 	time.Sleep(100 * time.Millisecond)
 
-	proxyDial, err := proxy.SOCKS5("tcp", "localhost:10080", nil, proxy.Direct)
+	proxyDial, err := proxy.SOCKS5("tcp", ":10080", nil, proxy.Direct)
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
