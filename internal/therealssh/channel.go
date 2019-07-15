@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"os/user"
@@ -176,7 +175,7 @@ func (sshCh *SSHChannel) ServeSocket() error {
 
 	go func() {
 		if _, err := io.Copy(sshCh, conn); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			log.Println("failed to write to server:", err)
+			sshCh.log.Errorf("failed to write to server:", err)
 			return
 		}
 	}()
@@ -217,7 +216,7 @@ func (sshCh *SSHChannel) Start(command string) error {
 
 	go func() {
 		if err := sshCh.serveSession(); err != nil {
-			log.Println("Session failure:", err)
+			sshCh.log.Errorf("Session failure:", err)
 		}
 	}()
 
@@ -233,7 +232,7 @@ func (sshCh *SSHChannel) serveSession() error {
 
 	go func() {
 		if _, err := io.Copy(sshCh.session, sshCh); err != nil {
-			log.Println("PTY copy: ", err)
+			sshCh.log.Errorf("PTY copy: ", err)
 			return
 		}
 	}()

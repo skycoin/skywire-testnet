@@ -209,7 +209,7 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 		rpc.c.log.Debugln("starting socket listener")
 		waitCh <- true
 		if err := sshCh.ServeSocket(); err != nil {
-			log.Println("Session failure:", err)
+			sshCh.log.Errorf("Session failure:", err)
 		}
 	}()
 
