@@ -73,7 +73,7 @@ func (pk PubKey) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (pk *PubKey) UnmarshalText(data []byte) error {
-	if bytes.Count(data, []byte{48}) == len(data) {
+	if bytes.Count(data, []byte("0")) == len(data) {
 		return nil
 	}
 

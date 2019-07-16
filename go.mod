@@ -15,7 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/skycoin/dmsg v0.0.0-20190628092537-e69f75132be9
+	github.com/skycoin/dmsg v0.0.0-20190708174832-eb49a4b802f7
 	github.com/skycoin/skycoin v0.26.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0

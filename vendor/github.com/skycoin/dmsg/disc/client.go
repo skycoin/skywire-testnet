@@ -64,7 +64,7 @@ func (c *httpClient) Entry(ctx context.Context, publicKey cipher.PubKey) (*Entry
 			return nil, err
 		}
 
-		return nil, errFromString(message.String())
+		return nil, errFromString(message.Message)
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&entry)
@@ -173,7 +173,7 @@ func (c *httpClient) AvailableServers(ctx context.Context) ([]*Entry, error) {
 			return nil, err
 		}
 
-		return nil, errFromString(message.String())
+		return nil, errFromString(message.Message)
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&entries)
