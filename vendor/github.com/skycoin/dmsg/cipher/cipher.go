@@ -3,6 +3,7 @@
 package cipher
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -72,6 +73,10 @@ func (pk PubKey) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (pk *PubKey) UnmarshalText(data []byte) error {
+	if bytes.Count(data, []byte{48}) == len(data) {
+		return nil
+	}
+
 	dPK, err := cipher.PubKeyFromHex(string(data))
 	if err == nil {
 		*pk = PubKey(dPK)
