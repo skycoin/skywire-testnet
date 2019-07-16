@@ -13,7 +13,7 @@ func ExampleNewDiscoveryMock() {
 	dc := transport.NewDiscoveryMock()
 	pk1, _ := cipher.GenerateKeyPair()
 	pk2, _ := cipher.GenerateKeyPair()
-	entry := &transport.Entry{Type: "mock", EdgeKeys: transport.SortPubKeys(pk1, pk2)}
+	entry := &transport.Entry{Type: "mock", LocalKey: pk1, RemoteKey: pk2}
 
 	sEntry := &transport.SignedEntry{Entry: entry}
 
@@ -30,9 +30,9 @@ func ExampleNewDiscoveryMock() {
 		fmt.Printf("%v", entryWS)
 	}
 
-	if entriesWS, err := dc.GetTransportsByEdge(context.TODO(), entry.Edges()[0]); err == nil {
+	if entriesWS, err := dc.GetTransportsByEdge(context.TODO(), entry.LocalPK()); err == nil {
 		fmt.Println("GetTransportsByEdge success")
-		fmt.Printf("entriesWS[0].Entry.Edges()[0] == entry.Edges()[0] is %v\n", entriesWS[0].Entry.Edges()[0] == entry.Edges()[0])
+		fmt.Printf("entriesWS[0].Entry.LocalPK() == entry.LocalPK() is %v\n", entriesWS[0].Entry.LocalPK() == entry.LocalPK())
 	}
 
 	if _, err := dc.UpdateStatuses(context.TODO(), &transport.Status{}); err == nil {
@@ -45,6 +45,6 @@ func ExampleNewDiscoveryMock() {
 	// GetTransportByID success
 	// entryWS.Entry.ID == sEntry.Entry.ID is true
 	// GetTransportsByEdge success
-	// entriesWS[0].Entry.Edges()[0] == entry.Edges()[0] is true
+	// entriesWS[0].Entry.LocalPK() == entry.LocalPK() is true
 	// UpdateStatuses success
 }

@@ -205,11 +205,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	case PacketCloseLoop:
 		ld := &LoopData{}
 		if err = json.Unmarshal(data, ld); err == nil {
-			remote, ok := sn.tm.Remote(tr.Edges())
-			if !ok {
-				return errors.New("configured PubKey not found in edges")
-			}
-			err = sn.closeLoop(ld.RemotePK, &LoopData{RemotePK: remote, RemotePort: ld.LocalPort, LocalPort: ld.RemotePort})
+			err = sn.closeLoop(ld.RemotePK, &LoopData{RemotePK: tr.RemotePK(), RemotePort: ld.LocalPort, LocalPort: ld.RemotePort})
 		}
 	default:
 		err = errors.New("unknown foundation packet")

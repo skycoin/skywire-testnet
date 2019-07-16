@@ -106,13 +106,7 @@ func (tm *Manager) reconnectTransports(ctx context.Context) {
 			continue
 		}
 
-		remote, ok := tm.Remote(entry.Edges())
-		if !ok {
-			tm.Logger.Warnf("Failed to re-establish transport: remote pk not found in edges")
-			continue
-		}
-
-		_, err := tm.createTransport(ctx, remote, entry.Type, entry.Public)
+		_, err := tm.createTransport(ctx, entry.RemotePK(), entry.Type, entry.Public)
 		if err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
@@ -129,25 +123,12 @@ func (tm *Manager) Local() cipher.PubKey {
 	return tm.config.PubKey
 }
 
-// Remote returns the key from the edges that is not equal to Manager.config.PubKey
-// in case when both edges are different - returns  (cipher.PubKey{}, false)
-func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
-	if tm.config.PubKey == edges[0] {
-		return edges[1], true
-	}
-	if tm.config.PubKey == edges[1] {
-		return edges[0], true
-	}
-	return cipher.PubKey{}, false
-}
-
 // createDefaultTransports created transports to DefaultNodes if they don't exist.
 func (tm *Manager) createDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
-			remote, ok := tm.Remote(tr.Edges())
-			if ok && (remote == pk) {
+			if tr.RemotePK() == pk {
 				exist = true
 				return false
 			}
@@ -322,10 +303,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, err
 	}
 
-	remote, ok := tm.Remote(tr.Edges())
-	if !ok {
-		return nil, errors.New("remote pubkey not found in edges")
-	}
+	remote := tr.RemotePK()
 
 	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
 

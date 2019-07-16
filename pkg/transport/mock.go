@@ -95,15 +95,16 @@ func (f *MockFactory) Type() string {
 // MockTransport is a transport that accepts custom writers and readers to use them in Read and Write
 // operations
 type MockTransport struct {
-	rw      io.ReadWriteCloser
-	edges   [2]cipher.PubKey
-	context context.Context
+	rw        io.ReadWriteCloser
+	localKey  cipher.PubKey
+	remoteKey cipher.PubKey
+	context   context.Context
 }
 
 // NewMockTransport creates a transport with the given secret key and remote public key, taking a writer
 // and a reader that will be used in the Write and Read operation
 func NewMockTransport(rw io.ReadWriteCloser, local, remote cipher.PubKey) *MockTransport {
-	return &MockTransport{rw, SortPubKeys(local, remote), context.Background()}
+	return &MockTransport{rw, local, remote, context.Background()}
 }
 
 // Read implements reader for mock transport
@@ -134,9 +135,14 @@ func (m *MockTransport) Close() error {
 	return m.rw.Close()
 }
 
-// Edges returns edges of MockTransport
-func (m *MockTransport) Edges() [2]cipher.PubKey {
-	return SortEdges(m.edges)
+// LocalPK returns local public key of MockTransport
+func (m *MockTransport) LocalPK() cipher.PubKey {
+	return m.localKey
+}
+
+// RemotePK returns remote public key of MockTransport
+func (m *MockTransport) RemotePK() cipher.PubKey {
+	return m.remoteKey
 }
 
 // SetDeadline sets a deadline for the write/read operations of the mock transport

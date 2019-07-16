@@ -22,8 +22,11 @@ type Transport interface {
 	// Close implements io.Closer
 	Close() error
 
-	// Edges returns sorted edges of transport
-	Edges() [2]cipher.PubKey
+	// LocalPK returns local public key of transport
+	LocalPK() cipher.PubKey
+
+	// RemotePK returns remote public key of transport
+	RemotePK() cipher.PubKey
 
 	// SetDeadline functions the same as that from net.Conn
 	// With a Transport, we don't have a distinction between write and read timeouts.
@@ -77,9 +80,4 @@ func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
 		}
 	}
 	return [2]cipher.PubKey{keyA, keyB}
-}
-
-// SortEdges sorts edges so that list-significant comes firs
-func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
-	return SortPubKeys(edges[0], edges[1])
 }

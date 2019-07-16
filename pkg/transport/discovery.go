@@ -66,7 +66,7 @@ func (td *mockDiscoveryClient) GetTransportsByEdge(ctx context.Context, pk ciphe
 	td.Lock()
 	res := []*EntryWithStatus{}
 	for _, entry := range td.entries {
-		if entry.Entry.Edges()[0] == pk || entry.Entry.Edges()[1] == pk {
+		if entry.Entry.LocalPK() == pk || entry.Entry.RemotePK() == pk {
 			e := &EntryWithStatus{}
 			*e = entry
 			res = append(res, e)

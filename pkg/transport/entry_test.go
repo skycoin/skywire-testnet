@@ -22,41 +22,79 @@ func ExampleNewEntry() {
 	if entryAB.ID == entryBA.ID {
 		fmt.Println("entryAB.ID == entryBA.ID")
 	}
-	if entryAB.Edges() == entryBA.Edges() {
-		fmt.Println("entryAB.Edges() == entryBA.Edges()")
+	if entryAB.LocalPK() == entryBA.LocalPK() {
+		fmt.Println("entryAB.LocalPK() == entryBA.LocalPK()")
+	}
+	if entryAB.RemotePK() == entryBA.RemotePK() {
+		fmt.Println("entryAB.RemotePK() == entryBA.RemotePK()")
 	}
 	// Output: entryAB.ID == entryBA.ID
-	// entryAB.Edges() == entryBA.Edges()
+	// entryAB.LocalPK() == entryBA.LocalPK()
+	// entryAB.RemotePK() == entryBA.RemotePK()
 }
 
-func ExampleEntry_Edges() {
+func ExampleEntry_LocalPK() {
 	pkA, _ := cipher.GenerateKeyPair()
 	pkB, _ := cipher.GenerateKeyPair()
 
 	entryAB := transport.Entry{
-		ID:       uuid.UUID{},
-		EdgeKeys: [2]cipher.PubKey{pkA, pkB},
-		Type:     "",
-		Public:   true,
+		ID:        uuid.UUID{},
+		LocalKey:  pkA,
+		RemoteKey: pkB,
+		Type:      "",
+		Public:    true,
 	}
 
 	entryBA := transport.Entry{
-		ID:       uuid.UUID{},
-		EdgeKeys: [2]cipher.PubKey{pkB, pkA},
-		Type:     "",
-		Public:   true,
+		ID:        uuid.UUID{},
+		LocalKey:  pkB,
+		RemoteKey: pkA,
+		Type:      "",
+		Public:    true,
 	}
 
-	if entryAB.EdgeKeys != entryBA.EdgeKeys {
-		fmt.Println("entryAB.EdgeKeys != entryBA.EdgeKeys")
+	if entryAB.LocalKey != entryBA.LocalKey {
+		fmt.Println("entryAB.LocalKey != entryBA.LocalKey")
 	}
 
-	if entryAB.Edges() == entryBA.Edges() {
-		fmt.Println("entryAB.Edges() == entryBA.Edges()")
+	if entryAB.LocalPK() == entryBA.LocalPK() {
+		fmt.Println("entryAB.LocalPK() == entryBA.LocalPK()")
 	}
 
-	// Output: entryAB.EdgeKeys != entryBA.EdgeKeys
-	// entryAB.Edges() == entryBA.Edges()
+	// Output: entryAB.LocalKey != entryBA.LocalKey
+	// entryAB.LocalPK() == entryBA.LocalPK()
+}
+
+func ExampleEntry_RemotePK() {
+	pkA, _ := cipher.GenerateKeyPair()
+	pkB, _ := cipher.GenerateKeyPair()
+
+	entryAB := transport.Entry{
+		ID:        uuid.UUID{},
+		LocalKey:  pkA,
+		RemoteKey: pkB,
+		Type:      "",
+		Public:    true,
+	}
+
+	entryBA := transport.Entry{
+		ID:        uuid.UUID{},
+		LocalKey:  pkB,
+		RemoteKey: pkA,
+		Type:      "",
+		Public:    true,
+	}
+
+	if entryAB.RemoteKey != entryBA.RemoteKey {
+		fmt.Println("entryAB.RemoteKey != entryBA.RemoteKey")
+	}
+
+	if entryAB.RemotePK() == entryBA.RemotePK() {
+		fmt.Println("entryAB.RemotePK() == entryBA.RemotePK()")
+	}
+
+	// Output: entryAB.RemoteKey != entryBA.RemoteKey
+	// entryAB.RemotePK() == entryBA.RemotePK()
 }
 
 func ExampleEntry_SetEdges() {
@@ -65,11 +103,15 @@ func ExampleEntry_SetEdges() {
 
 	entryAB, entryBA := transport.Entry{}, transport.Entry{}
 
-	entryAB.SetEdges([2]cipher.PubKey{pkA, pkB})
-	entryBA.SetEdges([2]cipher.PubKey{pkA, pkB})
+	entryAB.SetEdges(pkA, pkB)
+	entryBA.SetEdges(pkA, pkB)
 
-	if entryAB.EdgeKeys == entryBA.EdgeKeys {
-		fmt.Println("entryAB.EdgeKeys == entryBA.EdgeKeys")
+	if entryAB.LocalKey != entryBA.LocalKey {
+		fmt.Println("entryAB.LocalKey != entryBA.LocalKey")
+	}
+
+	if entryAB.RemoteKey != entryBA.RemoteKey {
+		fmt.Println("entryAB.RemoteKey != entryBA.RemoteKey")
 	}
 
 	if (entryAB.ID == entryBA.ID) && (entryAB.ID != uuid.UUID{}) {

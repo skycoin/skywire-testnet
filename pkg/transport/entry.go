@@ -14,8 +14,11 @@ type Entry struct {
 	// ID is the Transport ID that uniquely identifies the Transport.
 	ID uuid.UUID `json:"t_id"`
 
-	// Edges contains the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
-	EdgeKeys [2]cipher.PubKey `json:"edges"`
+	// LocalPK contains the local public key of the Transport's nodes
+	LocalKey cipher.PubKey `json:"local_pk"`
+
+	// Remote contains the local public key of the Transport's nodes
+	RemoteKey cipher.PubKey `json:"remote_pk"`
 
 	// Type represents the transport type.
 	Type string `json:"type"`
@@ -26,24 +29,31 @@ type Entry struct {
 }
 
 // NewEntry constructs *Entry
-func NewEntry(edgeA, edgeB cipher.PubKey, tpType string, public bool) *Entry {
+func NewEntry(localPK, remotePK cipher.PubKey, tpType string, public bool) *Entry {
 	return &Entry{
-		ID:       MakeTransportID(edgeA, edgeB, tpType, public),
-		EdgeKeys: SortPubKeys(edgeA, edgeB),
-		Type:     tpType,
-		Public:   public,
+		ID:        MakeTransportID(localPK, remotePK, tpType, public),
+		LocalKey:  localPK,
+		RemoteKey: remotePK,
+		Type:      tpType,
+		Public:    public,
 	}
 }
 
-// Edges returns the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
-func (e *Entry) Edges() [2]cipher.PubKey {
-	return SortPubKeys(e.EdgeKeys[0], e.EdgeKeys[1])
+// LocalPK returns the local public key of the Transport's nodes.
+func (e *Entry) LocalPK() cipher.PubKey {
+	return e.LocalKey
+}
+
+// RemotePK returns the remote public key of the Transport's nodes.
+func (e *Entry) RemotePK() cipher.PubKey {
+	return e.RemoteKey
 }
 
 // SetEdges sets edges of Entry
-func (e *Entry) SetEdges(edges [2]cipher.PubKey) {
-	e.ID = MakeTransportID(edges[0], edges[1], e.Type, e.Public)
-	e.EdgeKeys = SortPubKeys(edges[0], edges[1])
+func (e *Entry) SetEdges(localPK, remotePK cipher.PubKey) {
+	e.ID = MakeTransportID(localPK, remotePK, e.Type, e.Public)
+	e.LocalKey = localPK
+	e.RemoteKey = remotePK
 }
 
 // String implements stringer
@@ -57,19 +67,20 @@ func (e *Entry) String() string {
 	res += fmt.Sprintf("\ttype: %s\n", e.Type)
 	res += fmt.Sprintf("\tid: %s\n", e.ID)
 	res += fmt.Sprintf("\tedges:\n")
-	res += fmt.Sprintf("\t\tedge 1: %s\n", e.Edges()[0])
-	res += fmt.Sprintf("\t\tedge 2: %s\n", e.Edges()[1])
+	res += fmt.Sprintf("\t\tlocal_pk 1: %s\n", e.LocalPK())
+	res += fmt.Sprintf("\t\tlocal_pk 2: %s\n", e.RemotePK())
 
 	return res
 }
 
 // ToBinary returns binary representation of an Entry
 func (e *Entry) ToBinary() []byte {
-	edges := e.Edges()
+	localPK := e.LocalPK()
+	remotePK := e.RemotePK()
 	return append(
 		append(
-			append(e.ID[:], edges[0][:]...),
-			edges[1][:]...),
+			append(e.ID[:], localPK[:]...),
+			remotePK[:]...),
 		[]byte(e.Type)...)
 }
 
@@ -93,10 +104,10 @@ type SignedEntry struct {
 
 // Index returns position of a given pk in edges
 func (se *SignedEntry) Index(pk cipher.PubKey) int8 {
-	if pk == se.Entry.Edges()[1] {
+	if pk == se.Entry.RemotePK() {
 		return 1
 	}
-	if pk == se.Entry.Edges()[0] {
+	if pk == se.Entry.LocalPK() {
 		return 0
 	}
 	return -1
@@ -104,7 +115,6 @@ func (se *SignedEntry) Index(pk cipher.PubKey) int8 {
 
 // Sign sets Signature for a given PubKey in correct position
 func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) bool {
-
 	idx := se.Index(pk)
 	if idx == -1 {
 		return false

@@ -232,10 +232,11 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 	tpType := "mock"
 	entry := &Entry{
-		ID:       MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType, true),
-		EdgeKeys: SortPubKeys(mockEnv.pk1, mockEnv.pk2),
-		Type:     tpType,
-		Public:   true,
+		ID:        MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType, true),
+		LocalKey:  mockEnv.pk1,
+		RemoteKey: mockEnv.pk2,
+		Type:      tpType,
+		Public:    true,
 	}
 
 	mockEnv.m1.entries[*entry] = struct{}{}
