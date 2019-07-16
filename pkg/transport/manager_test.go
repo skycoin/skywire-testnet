@@ -59,7 +59,7 @@ func TestTransportManager(t *testing.T) {
 	var mu sync.Mutex
 	m1Observed := uint32(0)
 
-	acceptCh := m1.TrChan
+	acceptCh := m1.DataTpChan
 	go func() {
 		for tr := range acceptCh {
 			mu.Lock()
@@ -71,7 +71,7 @@ func TestTransportManager(t *testing.T) {
 	}()
 
 	m2Observed := uint32(0)
-	dialCh := m2.TrChan
+	dialCh := m2.DataTpChan
 	go func() {
 		for tr := range dialCh {
 			mu.Lock()

@@ -77,36 +77,22 @@ func New(config *Config) *Router {
 
 // Serve starts transport listening loop.
 func (r *Router) Serve(ctx context.Context) error {
-
 	go func() {
-		for tp := range r.tm.TrChan {
+		for tp := range r.tm.DataTpChan {
 			r.mu.Lock()
-			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
+			isAccepted := tp.Accepted
 			r.mu.Unlock()
 
-			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", isAccepted, isSetup)
+			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", isAccepted, false)
 
-			var serve func(io.ReadWriter) error
-			switch {
-			case isAccepted && isSetup:
-				serve = r.rm.Serve
-			case !isSetup:
-				serve = r.serveTransport
-			default:
-				continue
-			}
+			r.handleTransport(tp, isAccepted, false)
+		}
+	}()
 
-			go func(tp transport.Transport) {
-				defer tp.Close()
-				for {
-					if err := serve(tp); err != nil {
-						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
-						}
-						return
-					}
-				}
-			}(tp)
+	go func() {
+		for tp := range r.tm.SetupTpChan {
+			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", true, true)
+			r.handleTransport(tp, true, false)
 		}
 	}()
 
@@ -120,6 +106,30 @@ func (r *Router) Serve(ctx context.Context) error {
 
 	r.Logger.Info("Starting router")
 	return r.tm.Serve(ctx)
+}
+
+func (r *Router) handleTransport(tp transport.Transport, isAccepted, isSetup bool) {
+	var serve func(io.ReadWriter) error
+	switch {
+	case isAccepted && isSetup:
+		serve = r.rm.Serve
+	case !isSetup:
+		serve = r.serveTransport
+	default:
+		return
+	}
+
+	go func(tp transport.Transport) {
+		defer tp.Close()
+		for {
+			if err := serve(tp); err != nil {
+				if err != io.EOF {
+					r.Logger.Warnf("Stopped serving Transport: %s", err)
+				}
+				return
+			}
+		}
+	}(tp)
 }
 
 // ServeApp handles App packets from the App connection on provided port.

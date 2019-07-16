@@ -32,9 +32,10 @@ type Manager struct {
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
 
-	doneChan chan struct{}
-	TrChan   chan *ManagedTransport
-	mu       sync.RWMutex
+	doneChan    chan struct{}
+	SetupTpChan chan Transport
+	DataTpChan  chan *ManagedTransport
+	mu          sync.RWMutex
 
 	mgrQty int32 // Count of spawned manageTransport goroutines
 
@@ -57,13 +58,14 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	}
 
 	return &Manager{
-		Logger:     logging.MustGetLogger("trmanager"),
-		config:     config,
-		factories:  fMap,
-		transports: make(map[uuid.UUID]*ManagedTransport),
-		entries:    mEntries,
-		TrChan:     make(chan *ManagedTransport, 9), // TODO: eliminate or justify buffering here
-		doneChan:   make(chan struct{}),
+		Logger:      logging.MustGetLogger("trmanager"),
+		config:      config,
+		factories:   fMap,
+		transports:  make(map[uuid.UUID]*ManagedTransport),
+		entries:     mEntries,
+		SetupTpChan: make(chan Transport, 9),         // TODO: eliminate or justify buffering here
+		DataTpChan:  make(chan *ManagedTransport, 9), // TODO: eliminate or justify buffering here
+		doneChan:    make(chan struct{}),
 	}, nil
 }
 
@@ -319,11 +321,22 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
+	var setupTpChan chan Transport
+	var dataTpChan chan *ManagedTransport
+
+	if tm.IsSetupTransport(tr) {
+		setupTpChan = tm.SetupTpChan
+	} else {
+		dataTpChan = tm.DataTpChan
+	}
+
 	select {
 	case <-tm.doneChan:
 		return nil, io.ErrClosedPipe
-	case tm.TrChan <- mTr:
+	case dataTpChan <- mTr:
 		go tm.manageTransport(ctx, mTr, factory, remote)
+		return mTr, nil
+	case setupTpChan <- mTr:
 		return mTr, nil
 	}
 }
@@ -338,10 +351,15 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
+	var setupTpChan chan Transport
+	var dataTpChan chan *ManagedTransport
+
 	var entry *Entry
 	if tm.IsSetupTransport(tr) {
+		setupTpChan = tm.SetupTpChan
 		entry = makeEntry(tr, false)
 	} else {
+		dataTpChan = tm.DataTpChan
 		entry, err = settlementResponderHandshake().Do(tm, tr, 30*time.Second)
 		if err != nil {
 			tr.Close()
@@ -370,8 +388,10 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	select {
 	case <-tm.doneChan:
 		return nil, io.ErrClosedPipe
-	case tm.TrChan <- mTr:
+	case dataTpChan <- mTr:
 		go tm.manageTransport(ctx, mTr, factory, remote)
+		return mTr, nil
+	case setupTpChan <- mTr:
 		return mTr, nil
 	}
 }

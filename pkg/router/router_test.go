@@ -453,7 +453,7 @@ func TestRouterSetupLoop(t *testing.T) {
 	errCh := make(chan error)
 	go func() {
 		var tr *transport.ManagedTransport
-		for tr = range m2.TrChan {
+		for tr = range m2.DataTpChan {
 			if tr.Accepted {
 				break
 			}
@@ -564,7 +564,7 @@ func TestRouterCloseLoop(t *testing.T) {
 		// acceptCh, _ := m2.Observe()
 		// tr := <-acceptCh
 		var tr *transport.ManagedTransport
-		for tr = range m2.TrChan {
+		for tr = range m2.DataTpChan {
 			if tr.Accepted {
 				break
 			}
@@ -656,7 +656,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	errCh := make(chan error)
 	go func() {
 		var tr *transport.ManagedTransport
-		for tr = range m2.TrChan {
+		for tr = range m2.DataTpChan {
 			if tr.Accepted {
 				break
 			}
