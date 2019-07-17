@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
+
+	"strings"
 
 	"github.com/skycoin/dmsg/cipher"
 )

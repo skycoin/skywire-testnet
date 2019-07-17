@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +22,7 @@ import (
 
 	"github.com/skycoin/skywire/internal/httpauth"
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 func TestNewNode(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}) // nolint: errcheck
+		require.NoError(t, json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}))
 	}))
 	defer srv.Close()
 
@@ -64,7 +64,9 @@ func TestNewNode(t *testing.T) {
 		{App: "bar", AutoStart: true, Port: 2},
 	}
 
-	defer os.RemoveAll("local")
+	defer func() {
+		require.NoError(t, os.RemoveAll("local"))
+	}()
 
 	node, err := NewNode(&conf, masterLogger)
 	require.NoError(t, err)
@@ -83,7 +85,11 @@ func TestNodeStartClose(t *testing.T) {
 		{App: "skychat", Version: "1.0", AutoStart: true, Port: 1},
 		{App: "foo", Version: "1.0", AutoStart: false},
 	}
-	defer os.RemoveAll("skychat")
+
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
+
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 	mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
@@ -114,13 +120,17 @@ func TestNodeSpawnApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	r := new(mockRouter)
 	executer := &MockExecuter{}
-	defer os.RemoveAll("skychat")
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
 	apps := []AppConfig{{App: "skychat", Version: "1.0", AutoStart: false, Port: 10, Args: []string{"foo"}}}
 	node := &Node{router: r, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"),
 		config: &Config{}}
 	node.config.Node.StaticPubKey = pk
 	pathutil.EnsureDir(node.dir())
-	defer os.RemoveAll(node.dir())
+	defer func() {
+		require.NoError(t, os.RemoveAll(node.dir()))
+	}()
 
 	require.NoError(t, node.StartApp("skychat"))
 	time.Sleep(100 * time.Millisecond)
@@ -136,7 +146,7 @@ func TestNodeSpawnApp(t *testing.T) {
 
 	ports := r.Ports()
 	require.Len(t, ports, 1)
-	assert.Equal(t, uint16(10), ports[0])
+	assert.Equal(t, routing.Port(10), ports[0])
 
 	require.NoError(t, node.StopApp("skychat"))
 }
@@ -145,7 +155,9 @@ func TestNodeSpawnAppValidations(t *testing.T) {
 	conn, _ := net.Pipe()
 	r := new(mockRouter)
 	executer := &MockExecuter{err: errors.New("foo")}
-	defer os.RemoveAll("skychat")
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
 	node := &Node{router: r, executer: executer,
 		startedApps: map[string]*appBind{"skychat": {conn, 10}},
 		logger:      logging.MustGetLogger("test")}
@@ -159,18 +171,19 @@ func TestNodeSpawnAppValidations(t *testing.T) {
 		{&AppConfig{App: "foo", Version: "1.0", Port: 11}, "failed to run app executable: foo"},
 	}
 
-	for _, c := range cases {
-		t.Run(c.err, func(t *testing.T) {
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.err, func(t *testing.T) {
 			errCh := make(chan error)
 			go func() {
-				errCh <- node.SpawnApp(c.conf, nil)
+				errCh <- node.SpawnApp(tc.conf, nil)
 			}()
 
 			time.Sleep(100 * time.Millisecond)
 			require.NoError(t, node.Close())
 			err := <-errCh
 			require.Error(t, err)
-			assert.Equal(t, c.err, err.Error())
+			assert.Equal(t, tc.err, err.Error())
 		})
 	}
 }
@@ -225,7 +238,7 @@ func (exc *MockExecuter) Wait(cmd *exec.Cmd) error {
 type mockRouter struct {
 	sync.Mutex
 
-	ports []uint16
+	ports []routing.Port
 
 	didStart bool
 	didClose bool
@@ -233,7 +246,7 @@ type mockRouter struct {
 	errChan chan error
 }
 
-func (r *mockRouter) Ports() []uint16 {
+func (r *mockRouter) Ports() []routing.Port {
 	r.Lock()
 	p := r.ports
 	r.Unlock()
@@ -245,10 +258,10 @@ func (r *mockRouter) Serve(_ context.Context) error {
 	return nil
 }
 
-func (r *mockRouter) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error {
+func (r *mockRouter) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
 	r.Lock()
 	if r.ports == nil {
-		r.ports = []uint16{}
+		r.ports = []routing.Port{}
 	}
 
 	r.ports = append(r.ports, port)

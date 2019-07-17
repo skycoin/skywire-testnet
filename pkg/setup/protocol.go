@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skycoin/dmsg/cipher"
-
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -54,14 +52,6 @@ const (
 	// RespSuccess represents successful response for a foundation packet.
 	RespSuccess = 0xff
 )
-
-// LoopData stores loop confirmation request data.
-type LoopData struct {
-	RemotePK   cipher.PubKey   `json:"remote-pk"`
-	RemotePort uint16          `json:"remote-port"`
-	LocalPort  uint16          `json:"local-port"`
-	RouteID    routing.RouteID `json:"resp-rid,omitempty"`
-}
 
 // Protocol defines routes setup protocol.
 type Protocol struct {
@@ -142,32 +132,32 @@ func DeleteRule(p *Protocol, routeID routing.RouteID) error {
 }
 
 // CreateLoop sends CreateLoop setup request.
-func CreateLoop(p *Protocol, l *routing.Loop) error {
-	if err := p.WritePacket(PacketCreateLoop, l); err != nil {
+func CreateLoop(p *Protocol, ld routing.LoopDescriptor) error {
+	if err := p.WritePacket(PacketCreateLoop, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil) // TODO: data race.
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func ConfirmLoop(p *Protocol, l *LoopData) error {
-	if err := p.WritePacket(PacketConfirmLoop, l); err != nil {
+func ConfirmLoop(p *Protocol, ld routing.LoopData) error {
+	if err := p.WritePacket(PacketConfirmLoop, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil)
 }
 
 // CloseLoop sends CloseLoop setup request.
-func CloseLoop(p *Protocol, l *LoopData) error {
-	if err := p.WritePacket(PacketCloseLoop, l); err != nil {
+func CloseLoop(p *Protocol, ld routing.LoopData) error {
+	if err := p.WritePacket(PacketCloseLoop, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil)
 }
 
 // LoopClosed sends LoopClosed setup request.
-func LoopClosed(p *Protocol, l *LoopData) error {
-	if err := p.WritePacket(PacketLoopClosed, l); err != nil {
+func LoopClosed(p *Protocol, ld routing.LoopData) error {
+	if err := p.WritePacket(PacketLoopClosed, ld); err != nil {
 		return err
 	}
 	return readAndDecodePacket(p, nil)

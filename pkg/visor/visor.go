@@ -31,6 +31,8 @@ import (
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
+var log = logging.MustGetLogger("node")
+
 // AppStatus defines running status of an App.
 type AppStatus int
 
@@ -50,14 +52,14 @@ const Version = "0.0.1"
 
 const supportedProtocolVersion = "0.0.1"
 
-var reservedPorts = map[uint16]string{0: "router", 1: "skychat", 2: "SSH", 3: "socksproxy"}
+var reservedPorts = map[routing.Port]string{0: "router", 1: "skychat", 2: "SSH", 3: "socksproxy"}
 
 // AppState defines state parameters for a registered App.
 type AppState struct {
-	Name      string    `json:"name"`
-	AutoStart bool      `json:"autostart"`
-	Port      uint16    `json:"port"`
-	Status    AppStatus `json:"status"`
+	Name      string       `json:"name"`
+	AutoStart bool         `json:"autostart"`
+	Port      routing.Port `json:"port"`
+	Status    AppStatus    `json:"status"`
 }
 
 type appExecuter interface {
@@ -75,7 +77,7 @@ type appBind struct {
 type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
-	ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
+	ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error
 	IsSetupTransport(tr *transport.ManagedTransport) bool
 }
 
@@ -264,18 +266,22 @@ func (node *Node) closePreviousApps() {
 	node.logger.Info("killing previously ran apps if any...")
 
 	pids := node.pidFile()
-	defer pids.Close() // nocheck: err
+	defer func() {
+		if err := pids.Close(); err != nil {
+			node.logger.Warnf("error closing PID file: %s", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(pids)
 	for scanner.Scan() {
 		appInfo := strings.Split(scanner.Text(), " ")
 		if len(appInfo) != 2 {
-			node.logger.Fatal("error parsing %s. Err: %s", pids.Name(), errors.New("line should be: [app name] [pid]"))
+			node.logger.Fatalf("error parsing %s. Err: %s", pids.Name(), errors.New("line should be: [app name] [pid]"))
 		}
 
 		pid, err := strconv.Atoi(appInfo[1])
 		if err != nil {
-			node.logger.Fatal("error parsing %s. Err: %s", pids.Name(), err)
+			node.logger.Fatalf("error parsing %s. Err: %s", pids.Name(), err)
 		}
 
 		node.stopUnhandledApp(appInfo[0], pid)
@@ -340,7 +346,7 @@ func (node *Node) Close() (err error) {
 
 // Apps returns list of AppStates for all registered apps.
 func (node *Node) Apps() []*AppState {
-	res := []*AppState{}
+	res := make([]*AppState, 0)
 	for _, app := range node.appsConf {
 		state := &AppState{app.App, app.AutoStart, app.Port, AppStatusStopped}
 		node.startedMu.RLock()
@@ -360,11 +366,11 @@ func (node *Node) StartApp(appName string) error {
 	for _, app := range node.appsConf {
 		if app.App == appName {
 			startCh := make(chan struct{})
-			go func() {
+			go func(app AppConfig) {
 				if err := node.SpawnApp(&app, startCh); err != nil {
 					node.logger.Warnf("Failed to start app %s: %s", appName, err)
 				}
-			}()
+			}(app)
 
 			<-startCh
 			return nil
@@ -375,7 +381,7 @@ func (node *Node) StartApp(appName string) error {
 }
 
 // SpawnApp configures and starts new App.
-func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
+func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) (err error) {
 	node.logger.Infof("Starting %s.v%s", config.App, config.Version)
 	conn, cmd, err := app.Command(
 		&app.Config{ProtocolVersion: supportedProtocolVersion, AppName: config.App, AppVersion: config.Version},
@@ -402,7 +408,11 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 
 	// TODO: make PackageLogger return *Entry. FieldLogger doesn't expose Writer.
 	logger := node.logger.WithField("_module", fmt.Sprintf("%s.v%s", config.App, config.Version)).Writer()
-	defer logger.Close()
+	defer func() {
+		if logErr := logger.Close(); err == nil && logErr != nil {
+			err = logErr
+		}
+	}()
 
 	cmd.Stdout = logger
 	cmd.Stderr = logger
@@ -463,7 +473,9 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) error {
 func (node *Node) persistPID(name string, pid int) {
 	pidF := node.pidFile()
 	pidFName := pidF.Name()
-	pidF.Close()
+	if err := pidF.Close(); err != nil {
+		log.WithError(err).Warn("Failed to close PID file")
+	}
 
 	pathutil.AtomicAppendToFile(pidFName, []byte(fmt.Sprintf("%s %d\n", name, pid)))
 }
@@ -495,7 +507,7 @@ func (node *Node) SetAutoStart(appName string, autoStart bool) error {
 func (node *Node) stopApp(app string, bind *appBind) (err error) {
 	node.logger.Infof("Stopping app %s and closing ports", app)
 
-	if excErr := node.executer.Stop(bind.pid); excErr != nil && err == nil {
+	if excErr := node.executer.Stop(bind.pid); excErr != nil {
 		node.logger.Warn("Failed to stop app: ", excErr)
 		err = excErr
 	}

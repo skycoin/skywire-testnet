@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestClientOpenChannel(t *testing.T) {
@@ -51,7 +51,7 @@ func TestClientHandleResponse(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: pk, Port: Port}})
+		errCh <- c.serveConn(&mockConn{out, routing.Addr{PubKey: pk, Port: Port}})
 	}()
 
 	_, err := in.Write(appendU32([]byte{byte(CmdChannelResponse)}, 0))
@@ -59,10 +59,10 @@ func TestClientHandleResponse(t *testing.T) {
 	assert.Equal(t, "channel is not opened", (<-errCh).Error())
 
 	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: cipher.PubKey{}, Port: Port}})
+		errCh <- c.serveConn(&mockConn{out, routing.Addr{PubKey: cipher.PubKey{}, Port: Port}})
 	}()
 
-	ch := OpenChannel(4, &app.Addr{PubKey: pk, Port: Port}, nil)
+	ch := OpenChannel(4, routing.Addr{PubKey: pk, Port: Port}, nil)
 	c.chans.add(ch)
 
 	_, err = in.Write(appendU32([]byte{byte(CmdChannelResponse)}, 0))
@@ -70,7 +70,7 @@ func TestClientHandleResponse(t *testing.T) {
 	assert.Equal(t, "unauthorized", (<-errCh).Error())
 
 	go func() {
-		errCh <- c.serveConn(&mockConn{out, &app.Addr{PubKey: pk, Port: Port}})
+		errCh <- c.serveConn(&mockConn{out, routing.Addr{PubKey: pk, Port: Port}})
 	}()
 	dataCh := make(chan []byte)
 	go func() {
@@ -92,13 +92,13 @@ func newPipeDialer() (net.Conn, *pipeDialer) {
 	return out, &pipeDialer{in}
 }
 
-func (d *pipeDialer) Dial(raddr *app.Addr) (net.Conn, error) {
+func (d *pipeDialer) Dial(raddr routing.Addr) (net.Conn, error) {
 	return d.conn, nil
 }
 
 type mockConn struct {
 	net.Conn
-	addr *app.Addr
+	addr routing.Addr
 }
 
 func (conn *mockConn) RemoteAddr() net.Addr {

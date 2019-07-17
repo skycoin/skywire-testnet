@@ -7,7 +7,7 @@ import (
 	"flag"
 	"log"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -26,7 +26,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer sshApp.Close()
+	defer func() {
+		if err := sshApp.Close(); err != nil {
+			log.Println("Failed to close app:", err)
+		}
+	}()
 
 	path, err := homedir.Expand(*authFile)
 	if err != nil {
@@ -40,11 +44,15 @@ func main() {
 
 	auth, err := ssh.NewFileAuthorizer(path)
 	if err != nil {
-		log.Fatal("Failed to setup Authoriser: ", err)
+		log.Fatal("Failed to setup Authorizer: ", err)
 	}
 
 	server := ssh.NewServer(auth)
-	defer server.Close()
+	defer func() {
+		if err := server.Close(); err != nil {
+			log.Println("Failed to close server:", err)
+		}
+	}()
 
 	for {
 		conn, err := sshApp.Accept()

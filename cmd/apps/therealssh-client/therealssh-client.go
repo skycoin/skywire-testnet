@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	ssh "github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
 )
@@ -22,15 +25,26 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer sshApp.Close()
+	defer func() {
+		if err := sshApp.Close(); err != nil {
+			log.Println("Failed to close app:", err)
+		}
+	}()
 
 	ssh.Debug = *debug
+	if !ssh.Debug {
+		logging.SetLevel(logrus.InfoLevel)
+	}
 
 	rpc, client, err := ssh.NewClient(*rpcAddr, sshApp)
 	if err != nil {
 		log.Fatal("Client setup failure: ", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			log.Println("Failed to close client:", err)
+		}
+	}()
 
 	if err := http.Serve(rpc, nil); err != nil {
 		log.Fatal("Failed to start RPC interface: ", err)

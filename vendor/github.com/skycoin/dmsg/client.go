@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net"
 	"sync"
 	"time"
@@ -44,7 +43,7 @@ type ClientConn struct {
 	nextInitID uint16
 
 	// Transports: map of transports to remote dms_clients (key: tp_id, val: transport).
-	tps [math.MaxUint16 + 1]*Transport
+	tps map[uint16]*Transport
 	mx  sync.RWMutex // to protect tps
 
 	done chan struct{}
@@ -60,6 +59,7 @@ func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubK
 		local:      local,
 		remoteSrv:  remote,
 		nextInitID: randID(true),
+		tps:        make(map[uint16]*Transport),
 		done:       make(chan struct{}),
 	}
 	cc.wg.Add(1)
@@ -229,7 +229,7 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 			}(log)
 
 		default:
-			log.Infof("Ignored [%s]: No transport of given ID.", ft)
+			log.Debugf("Ignored [%s]: No transport of given ID.", ft)
 			if ft != CloseType {
 				if err := writeCloseFrame(c.Conn, id, 0); err != nil {
 					return err
@@ -256,18 +256,14 @@ func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) 
 }
 
 func (c *ClientConn) close() (closed bool) {
-	if c == nil {
-		return false
-	}
 	c.once.Do(func() {
 		closed = true
 		c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
 		close(c.done)
 		c.mx.Lock()
 		for _, tp := range c.tps {
-			// Nil check is required here to keep 8192 running goroutines limit in tests with -race flag.
 			if tp != nil {
-				go tp.Close() // nolint:errcheck
+				go tp.Close() //nolint:errcheck
 			}
 		}
 		_ = c.Conn.Close() //nolint:errcheck
@@ -278,9 +274,6 @@ func (c *ClientConn) close() (closed bool) {
 
 // Close closes the connection to dms_server.
 func (c *ClientConn) Close() error {
-	if c == nil {
-		return nil
-	}
 	if c.close() {
 		c.wg.Wait()
 	}
@@ -546,10 +539,6 @@ func (c *Client) Type() string {
 // Close closes the dms_client and associated connections.
 // TODO(evaninjin): proper error handling.
 func (c *Client) Close() error {
-	if c == nil {
-		return nil
-	}
-
 	c.once.Do(func() {
 		close(c.done)
 		for {

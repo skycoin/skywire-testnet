@@ -28,6 +28,8 @@ const (
 	maxHops  = 50
 )
 
+var log = logging.MustGetLogger("router")
+
 // Config configures Router.
 type Config struct {
 	Logger           *logging.Logger
@@ -53,7 +55,7 @@ type Router struct {
 	expiryTicker *time.Ticker
 	wg           sync.WaitGroup
 
-	staticPorts map[uint16]struct{}
+	staticPorts map[routing.Port]struct{}
 	mu          sync.Mutex
 }
 
@@ -65,7 +67,7 @@ func New(config *Config) *Router {
 		pm:           newPortManager(10),
 		config:       config,
 		expiryTicker: time.NewTicker(10 * time.Minute),
-		staticPorts:  make(map[uint16]struct{}),
+		staticPorts:  make(map[routing.Port]struct{}),
 	}
 	callbacks := &setupCallbacks{
 		ConfirmLoop: r.confirmLoop,
@@ -97,7 +99,11 @@ func (r *Router) Serve(ctx context.Context) error {
 			}
 
 			go func(tp transport.Transport) {
-				defer tp.Close()
+				defer func() {
+					if err := tp.Close(); err != nil {
+						r.Logger.Warnf("Failed to close transport: %s", err)
+					}
+				}()
 				for {
 					if err := serve(tp); err != nil {
 						if err != io.EOF {
@@ -123,7 +129,7 @@ func (r *Router) Serve(ctx context.Context) error {
 }
 
 // ServeApp handles App packets from the App connection on provided port.
-func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error {
+func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
 	r.wg.Add(1)
 	defer r.wg.Done()
 
@@ -146,7 +152,9 @@ func (r *Router) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
 
 	for _, port := range r.pm.AppPorts(appProto) {
 		for _, addr := range r.pm.Close(port) {
-			r.closeLoop(appProto, &app.LoopAddr{Port: port, Remote: addr}) // nolint: errcheck
+			if err := r.closeLoop(appProto, routing.Loop{Local: routing.Addr{Port: port}, Remote: addr}); err != nil {
+				log.WithError(err).Warn("Failed to close loop")
+			}
 		}
 	}
 
@@ -170,7 +178,9 @@ func (r *Router) Close() error {
 	r.expiryTicker.Stop()
 
 	for _, conn := range r.pm.AppConns() {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 	}
 
 	r.wg.Wait()
@@ -217,10 +227,14 @@ func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
-	raddr := &app.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
+	laddr := routing.Addr{Port: rule.LocalPort()}
+	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
-	p := &app.Packet{Addr: &app.LoopAddr{Port: rule.LocalPort(), Remote: *raddr}, Payload: payload}
-	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
+	p := &app.Packet{Loop: routing.Loop{Local: laddr, Remote: raddr}, Payload: payload}
+	b, err := r.pm.Get(rule.LocalPort())
+	if err != nil {
+		return err
+	}
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
 		return err
 	}
@@ -230,11 +244,11 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
-	if packet.Addr.Remote.PubKey == r.config.PubKey {
+	if packet.Loop.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
 	}
 
-	l, err := r.pm.GetLoop(packet.Addr.Port, &packet.Addr.Remote)
+	l, err := r.pm.GetLoop(packet.Loop.Local.Port, packet.Loop.Remote)
 	if err != nil {
 		return err
 	}
@@ -245,37 +259,37 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 	}
 
 	p := routing.MakePacket(l.routeID, packet.Payload)
-	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Addr.Port, l.routeID)
+	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Loop.Local.Port, l.routeID)
 	_, err = tr.Write(p)
 	return err
 }
 
 func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
-	b, err := r.pm.Get(packet.Addr.Remote.Port)
+	b, err := r.pm.Get(packet.Loop.Remote.Port)
 	if err != nil {
 		return nil
 	}
 
 	p := &app.Packet{
-		Addr: &app.LoopAddr{
-			Port:   packet.Addr.Remote.Port,
-			Remote: app.Addr{PubKey: packet.Addr.Remote.PubKey, Port: packet.Addr.Port},
+		Loop: routing.Loop{
+			Local:  routing.Addr{Port: packet.Loop.Remote.Port},
+			Remote: routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Local.Port},
 		},
 		Payload: packet.Payload,
 	}
 	return b.conn.Send(app.FrameSend, p, nil)
 }
 
-func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr, error) {
+func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
-		return nil, err
+		return routing.Addr{}, err
 	}
 
-	laddr := &app.Addr{PubKey: r.config.PubKey, Port: lport}
+	laddr := routing.Addr{PubKey: r.config.PubKey, Port: lport}
 	if raddr.PubKey == r.config.PubKey {
 		if err := r.confirmLocalLoop(laddr, raddr); err != nil {
-			return nil, fmt.Errorf("confirm: %s", err)
+			return routing.Addr{}, fmt.Errorf("confirm: %s", err)
 		}
 		r.Logger.Infof("Created local loop on port %d", laddr.Port)
 		return laddr, nil
@@ -283,34 +297,44 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *app.Addr) (*app.Addr,
 
 	forwardRoute, reverseRoute, err := r.fetchBestRoutes(laddr.PubKey, raddr.PubKey)
 	if err != nil {
-		return nil, fmt.Errorf("route finder: %s", err)
+		return routing.Addr{}, fmt.Errorf("route finder: %s", err)
 	}
 
-	l := &routing.Loop{LocalPort: laddr.Port, RemotePort: raddr.Port,
+	ld := routing.LoopDescriptor{
+		Loop: routing.Loop{
+			Local:  laddr,
+			Remote: raddr,
+		},
 		Expiry:  time.Now().Add(RouteTTL),
-		Forward: forwardRoute, Reverse: reverseRoute}
+		Forward: forwardRoute,
+		Reverse: reverseRoute,
+	}
 
 	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
-		return nil, err
+		return routing.Addr{}, err
 	}
-	defer tr.Close()
+	defer func() {
+		if err := tr.Close(); err != nil {
+			r.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
 
-	if err := setup.CreateLoop(proto, l); err != nil {
-		return nil, fmt.Errorf("route setup: %s", err)
+	if err := setup.CreateLoop(proto, ld); err != nil {
+		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
 
 	r.Logger.Infof("Created new loop to %s on port %d", raddr, laddr.Port)
 	return laddr, nil
 }
 
-func (r *Router) confirmLocalLoop(laddr, raddr *app.Addr) error {
+func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
 	b, err := r.pm.Get(raddr.Port)
 	if err != nil {
 		return err
 	}
 
-	addrs := [2]*app.Addr{raddr, laddr}
+	addrs := [2]routing.Addr{raddr, laddr}
 	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
 		return err
 	}
@@ -318,17 +342,17 @@ func (r *Router) confirmLocalLoop(laddr, raddr *app.Addr) error {
 	return nil
 }
 
-func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule) error {
-	b, err := r.pm.Get(addr.Port)
+func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
+	b, err := r.pm.Get(l.Local.Port)
 	if err != nil {
 		return err
 	}
 
-	if err := r.pm.SetLoop(addr.Port, &addr.Remote, &loop{rule.TransportID(), rule.RouteID()}); err != nil {
+	if err := r.pm.SetLoop(l.Local.Port, l.Remote, &loop{rule.TransportID(), rule.RouteID()}); err != nil {
 		return err
 	}
 
-	addrs := [2]*app.Addr{&app.Addr{PubKey: r.config.PubKey, Port: addr.Port}, &addr.Remote}
+	addrs := [2]routing.Addr{{PubKey: r.config.PubKey, Port: l.Local.Port}, l.Remote}
 	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
 		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
 	}
@@ -336,8 +360,8 @@ func (r *Router) confirmLoop(addr *app.LoopAddr, rule routing.Rule) error {
 	return nil
 }
 
-func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
-	if err := r.destroyLoop(addr); err != nil {
+func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
+	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
@@ -345,47 +369,53 @@ func (r *Router) closeLoop(appConn *app.Protocol, addr *app.LoopAddr) error {
 	if err != nil {
 		return err
 	}
-	defer tr.Close()
+	defer func() {
+		if err := tr.Close(); err != nil {
+			r.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
 
-	ld := &setup.LoopData{RemotePK: addr.Remote.PubKey, RemotePort: addr.Remote.Port, LocalPort: addr.Port}
+	ld := routing.LoopData{Loop: loop}
 	if err := setup.CloseLoop(proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
 
-	r.Logger.Infof("Closed loop %s", addr)
+	r.Logger.Infof("Closed loop %s", loop)
 	return nil
 }
 
-func (r *Router) loopClosed(addr *app.LoopAddr) error {
-	b, err := r.pm.Get(addr.Port)
+func (r *Router) loopClosed(loop routing.Loop) error {
+	b, err := r.pm.Get(loop.Local.Port)
 	if err != nil {
 		return nil
 	}
 
-	if err := r.destroyLoop(addr); err != nil {
+	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
-	if err := b.conn.Send(app.FrameClose, addr, nil); err != nil {
+	if err := b.conn.Send(app.FrameClose, loop, nil); err != nil {
 		return err
 	}
 
-	r.Logger.Infof("Closed loop %s", addr)
+	r.Logger.Infof("Closed loop %s", loop)
 	return nil
 }
 
-func (r *Router) destroyLoop(addr *app.LoopAddr) error {
+func (r *Router) destroyLoop(loop routing.Loop) error {
 	r.mu.Lock()
-	_, ok := r.staticPorts[addr.Port]
+	_, ok := r.staticPorts[loop.Local.Port]
 	r.mu.Unlock()
 
 	if ok {
-		r.pm.RemoveLoop(addr.Port, &addr.Remote) // nolint: errcheck
+		if err := r.pm.RemoveLoop(loop.Local.Port, loop.Remote); err != nil {
+			log.WithError(err).Warn("Failed to remove loop")
+		}
 	} else {
-		r.pm.Close(addr.Port)
+		r.pm.Close(loop.Local.Port)
 	}
 
-	return r.rm.RemoveLoopRule(addr)
+	return r.rm.RemoveLoopRule(loop)
 }
 
 func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {

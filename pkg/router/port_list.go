@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 type portBind struct {
@@ -15,16 +16,16 @@ type portBind struct {
 type portList struct {
 	sync.Mutex
 
-	minPort uint16
-	ports   map[uint16]*portBind
+	minPort routing.Port
+	ports   map[routing.Port]*portBind
 }
 
-func newPortList(minPort uint16) *portList {
-	return &portList{minPort: minPort, ports: make(map[uint16]*portBind, minPort)}
+func newPortList(minPort routing.Port) *portList {
+	return &portList{minPort: minPort, ports: make(map[routing.Port]*portBind, minPort)}
 }
 
-func (pl *portList) all() map[uint16]*portBind {
-	r := make(map[uint16]*portBind)
+func (pl *portList) all() map[routing.Port]*portBind {
+	r := make(map[routing.Port]*portBind)
 	pl.Lock()
 	for port, bind := range pl.ports {
 		r[port] = bind
@@ -34,11 +35,11 @@ func (pl *portList) all() map[uint16]*portBind {
 	return r
 }
 
-func (pl *portList) add(b *portBind) uint16 {
+func (pl *portList) add(b *portBind) routing.Port {
 	pl.Lock()
 	defer pl.Unlock()
 
-	for i := uint16(pl.minPort); i < math.MaxUint16; i++ {
+	for i := pl.minPort; i < math.MaxUint16; i++ {
 		if pl.ports[i] == nil {
 			pl.ports[i] = b
 			return i
@@ -48,13 +49,13 @@ func (pl *portList) add(b *portBind) uint16 {
 	panic("no free ports")
 }
 
-func (pl *portList) set(port uint16, b *portBind) {
+func (pl *portList) set(port routing.Port, b *portBind) {
 	pl.Lock()
 	pl.ports[port] = b
 	pl.Unlock()
 }
 
-func (pl *portList) get(port uint16) *portBind {
+func (pl *portList) get(port routing.Port) *portBind {
 	pl.Lock()
 	l := pl.ports[port]
 	pl.Unlock()
@@ -62,7 +63,7 @@ func (pl *portList) get(port uint16) *portBind {
 	return l
 }
 
-func (pl *portList) remove(port uint16) *portBind {
+func (pl *portList) remove(port routing.Port) *portBind {
 	pl.Lock()
 	b := pl.ports[port]
 	delete(pl.ports, port)

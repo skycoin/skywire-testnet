@@ -9,20 +9,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestListAuthoriser(t *testing.T) {
+func TestListAuthorizer(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	auth := &ListAuthorizer{[]cipher.PubKey{pk}}
 	require.Error(t, auth.Authorize(cipher.PubKey{}))
 	require.NoError(t, auth.Authorize(pk))
 }
 
-func TestFileAuthoriser(t *testing.T) {
+func TestFileAuthorizer(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	anotherPK, _ := cipher.GenerateKeyPair()
 
 	tmpfile, err := ioutil.TempFile("", "authorized_keys")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		require.NoError(t, os.Remove(tmpfile.Name()))
+	}()
 
 	_, err = tmpfile.Write([]byte(pk.Hex() + "\n"))
 	require.NoError(t, err)

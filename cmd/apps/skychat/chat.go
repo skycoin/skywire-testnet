@@ -19,6 +19,7 @@ import (
 
 	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")
@@ -38,7 +39,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer func() { _ = a.Close() }()
+	defer func() {
+		if err := a.Close(); err != nil {
+			log.Println("Failed to close app:", err)
+		}
+	}()
 
 	chatApp = a
 
@@ -60,11 +65,11 @@ func listenLoop() {
 	for {
 		conn, err := chatApp.Accept()
 		if err != nil {
-			log.Println("failed to accept conn: ", err)
+			log.Println("failed to accept conn:", err)
 			return
 		}
 
-		raddr := conn.RemoteAddr().(*app.Addr)
+		raddr := conn.RemoteAddr().(routing.Addr)
 		connsMu.Lock()
 		chatConns[raddr.PubKey] = conn
 		connsMu.Unlock()
@@ -74,16 +79,19 @@ func listenLoop() {
 }
 
 func handleConn(conn net.Conn) {
-	raddr := conn.RemoteAddr().(*app.Addr)
+	raddr := conn.RemoteAddr().(routing.Addr)
 	for {
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Println("failed to read packet: ", err)
+			log.Println("failed to read packet:", err)
 			return
 		}
 
-		clientMsg, _ := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])}) // nolint
+		clientMsg, err := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])})
+		if err != nil {
+			log.Printf("Failed to marshal json: %v", err)
+		}
 		select {
 		case clientCh <- string(clientMsg):
 			log.Printf("received and sent to ui: %s\n", clientMsg)
@@ -106,7 +114,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	addr := &app.Addr{PubKey: pk, Port: 1}
+	addr := routing.Addr{PubKey: pk, Port: 1}
 	connsMu.Lock()
 	conn, ok := chatConns[pk]
 	connsMu.Unlock()

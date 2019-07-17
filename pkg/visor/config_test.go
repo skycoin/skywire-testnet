@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/internal/httpauth"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestMessagingDiscovery(t *testing.T) {
@@ -38,7 +39,7 @@ func TestMessagingDiscovery(t *testing.T) {
 func TestTransportDiscovery(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}) // nolint: errcheck
+		require.NoError(t, json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}))
 	}))
 	defer srv.Close()
 
@@ -53,7 +54,9 @@ func TestTransportDiscovery(t *testing.T) {
 
 func TestTransportLogStore(t *testing.T) {
 	dir := filepath.Join(os.TempDir(), "foo")
-	defer os.RemoveAll(dir)
+	defer func() {
+		require.NoError(t, os.RemoveAll(dir))
+	}()
 
 	conf := Config{}
 	conf.Transport.LogStore.Type = "file"
@@ -72,7 +75,9 @@ func TestTransportLogStore(t *testing.T) {
 func TestRoutingTable(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "routing")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		require.NoError(t, os.Remove(tmpfile.Name()))
+	}()
 
 	conf := Config{}
 	conf.Routing.Table.Type = "boltdb"
@@ -99,13 +104,13 @@ func TestAppsConfig(t *testing.T) {
 	app1 := appsConf[0]
 	assert.Equal(t, "foo", app1.App)
 	assert.Equal(t, "1.1", app1.Version)
-	assert.Equal(t, uint16(1), app1.Port)
+	assert.Equal(t, routing.Port(1), app1.Port)
 	assert.False(t, app1.AutoStart)
 
 	app2 := appsConf[1]
 	assert.Equal(t, "bar", app2.App)
 	assert.Equal(t, "1.0", app2.Version)
-	assert.Equal(t, uint16(2), app2.Port)
+	assert.Equal(t, routing.Port(2), app2.Port)
 	assert.True(t, app2.AutoStart)
 }
 
@@ -114,7 +119,9 @@ func TestAppsDir(t *testing.T) {
 	dir, err := conf.AppsDir()
 	require.NoError(t, err)
 
-	defer os.Remove(dir)
+	defer func() {
+		require.NoError(t, os.Remove(dir))
+	}()
 
 	_, err = os.Stat(dir)
 	assert.NoError(t, err)
@@ -125,7 +132,9 @@ func TestLocalDir(t *testing.T) {
 	dir, err := conf.LocalDir()
 	require.NoError(t, err)
 
-	defer os.Remove(dir)
+	defer func() {
+		require.NoError(t, os.Remove(dir))
+	}()
 
 	_, err = os.Stat(dir)
 	assert.NoError(t, err)

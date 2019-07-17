@@ -20,7 +20,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer socksApp.Close()
+	defer func() {
+		if err := socksApp.Close(); err != nil {
+			log.Println("Failed to close app:", err)
+		}
+	}()
 
 	srv, err := therealproxy.NewServer(*passcode)
 	if err != nil {

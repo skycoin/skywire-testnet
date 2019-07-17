@@ -19,8 +19,8 @@ go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m 
 
 go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealproxy -run TestProxy >> ./logs/internal/TestProxy.log
 
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealssh  -run TestListAuthoriser >> ./logs/internal/TestListAuthoriser.log
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealssh  -run TestFileAuthoriser >> ./logs/internal/TestFileAuthoriser.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealssh  -run TestListAuthorizer >> ./logs/internal/TestListAuthorizer.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealssh  -run TestFileAuthorizer >> ./logs/internal/TestFileAuthorizer.log
 go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealssh  -run TestChannelServe >> ./logs/internal/TestChannelServe.log
 go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealssh  -run TestChannelSendWrite >> ./logs/internal/TestChannelSendWrite.log
 go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/internal/therealssh  -run TestChannelRead >> ./logs/internal/TestChannelRead.log

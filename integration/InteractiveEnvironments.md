@@ -26,7 +26,7 @@ integration
 │   ├── env-vars.sh                    #  
 │   ├── nodeA.json                     #
 │   └── nodeC.json                     #
-├── messaging                          # Messaging testing environment
+├── messaging                          #  Messaging testing environment
 │   ├── env-vars.sh                    # 
 │   ├── nodeA.json                     # 
 │   └── nodeC.json                     # 
