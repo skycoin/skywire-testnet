@@ -1,5 +1,5 @@
 /*
-proxy client app for skywire node
+proxy client app for skywire visor
 */
 package main
 
@@ -14,6 +14,7 @@ import (
 	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 const socksPort = 3
@@ -30,7 +31,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer socksApp.Close()
+	defer func() {
+		if err := socksApp.Close(); err != nil {
+			log.Println("Failed to close app:", err)
+		}
+	}()
 
 	if *serverPK == "" {
 		log.Fatal("Invalid server PubKey")
@@ -43,7 +48,7 @@ func main() {
 
 	var conn net.Conn
 	err = r.Do(func() error {
-		conn, err = socksApp.Dial(&app.Addr{PubKey: pk, Port: uint16(socksPort)})
+		conn, err = socksApp.Dial(routing.Addr{PubKey: pk, Port: routing.Port(socksPort)})
 		return err
 	})
 	if err != nil {

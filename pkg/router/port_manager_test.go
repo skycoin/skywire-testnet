@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestPortManager(t *testing.T) {
@@ -19,14 +20,14 @@ func TestPortManager(t *testing.T) {
 	proto := app.NewProtocol(in)
 
 	p1 := pm.Alloc(proto)
-	assert.Equal(t, uint16(10), p1)
+	assert.Equal(t, routing.Port(10), p1)
 
 	require.Error(t, pm.Open(10, proto))
 	require.NoError(t, pm.Open(8, proto))
 	require.Error(t, pm.Open(8, proto))
 
 	pk, _ := cipher.GenerateKeyPair()
-	raddr := &app.Addr{PubKey: pk, Port: 3}
+	raddr := routing.Addr{PubKey: pk, Port: 3}
 	require.NoError(t, pm.SetLoop(8, raddr, &loop{}))
 	require.Error(t, pm.SetLoop(7, raddr, &loop{}))
 
@@ -34,7 +35,7 @@ func TestPortManager(t *testing.T) {
 
 	ports := pm.AppPorts(proto)
 	sort.Slice(ports, func(i, j int) bool { return ports[i] < ports[j] })
-	assert.Equal(t, []uint16{8, 10}, ports)
+	assert.Equal(t, []routing.Port{8, 10}, ports)
 
 	b, err := pm.Get(10)
 	require.NoError(t, err)
@@ -62,5 +63,5 @@ func TestPortManager(t *testing.T) {
 
 	assert.Empty(t, pm.Close(10))
 	assert.Empty(t, pm.Close(7))
-	assert.Equal(t, []app.Addr{*raddr}, pm.Close(8))
+	assert.Equal(t, []routing.Addr{raddr}, pm.Close(8))
 }

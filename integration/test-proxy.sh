@@ -11,7 +11,7 @@ do
 	echo Test with $N requests
 	mkdir -p ./logs/proxy/$N
 
-	echo Killing nodes 
+	echo Killing nodes
 	echo Killing $(ps aux |grep "[N]odeA\|[N]odeB\|[N]odeC" |awk '{print $2}')
 	kill $(ps aux |grep "[N]odeA\|[N]odeB\|[N]odeC" |awk '{print $2}')
 
@@ -19,13 +19,13 @@ do
 	sleep 10
 
 	echo Restarting nodeA and NodeB
-	./bin/skywire-node ./integration/proxy/nodeA.json --tag NodeA &> ./logs/proxy/$N/nodeA.log &
-	./bin/skywire-node ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/proxy/$N/nodeB.log &
+	./bin/skywire-visor ./integration/proxy/nodeA.json --tag NodeA &> ./logs/proxy/$N/nodeA.log &
+	./bin/skywire-visor ./integration/intermediary-nodeB.json --tag NodeB  &> ./logs/proxy/$N/nodeB.log &
 
 	# TODO: improve this sleep
 	sleep 5
 	echo Restarting nodeC
-	./bin/skywire-node ./integration/proxy/nodeC.json --tag NodeC &> ./logs/proxy/$N/nodeC.log &
+	./bin/skywire-visor ./integration/proxy/nodeC.json --tag NodeC &> ./logs/proxy/$N/nodeC.log &
 
 	sleep 20
 	echo Trying socks5 proxy

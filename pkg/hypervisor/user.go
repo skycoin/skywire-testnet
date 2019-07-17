@@ -1,4 +1,4 @@
-package manager
+package hypervisor
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ func init() {
 	gob.Register(User{})
 }
 
-// User represents a user of the manager.
+// User represents a user of the hypervisor.
 type User struct {
 	Name   string
 	PwSalt []byte
@@ -102,7 +102,7 @@ func NewBoltUserStore(path string) (*BoltUserStore, error) {
 
 // User obtains a single user. Returns true if user exists.
 func (s *BoltUserStore) User(name string) (user User, ok bool) {
-	catch(s.View(func(tx *bbolt.Tx) error { //nolint:unparam
+	catch(s.View(func(tx *bbolt.Tx) error {
 		users := tx.Bucket([]byte(boltUserBucketName))
 		rawUser := users.Get([]byte(name))
 		if rawUser == nil {

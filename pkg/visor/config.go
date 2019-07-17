@@ -1,4 +1,4 @@
-package node
+package visor
 
 import (
 	"encoding/json"
@@ -51,8 +51,8 @@ type Config struct {
 
 	Apps []AppConfig `json:"apps"`
 
-	TrustedNodes []cipher.PubKey `json:"trusted_nodes"`
-	ManagerNodes []ManagerConfig `json:"manager_nodes"`
+	TrustedNodes []cipher.PubKey    `json:"trusted_nodes"`
+	Hypervisors  []HypervisorConfig `json:"hypervisors"`
 
 	AppsPath  string `json:"apps_path"`
 	LocalPath string `json:"local_path"`
@@ -110,7 +110,7 @@ func (c *Config) RoutingTable() (routing.Table, error) {
 
 // AppsConfig decodes AppsConfig from a local json config file.
 func (c *Config) AppsConfig() ([]AppConfig, error) {
-	apps := []AppConfig{}
+	apps := make([]AppConfig, 0)
 	for _, app := range c.Apps {
 		if app.Version == "" {
 			app.Version = c.Version
@@ -158,22 +158,22 @@ func ensureDir(path string) (string, error) {
 	return absPath, nil
 }
 
-// ManagerConfig represents a connection to a manager.
-type ManagerConfig struct {
+// HypervisorConfig represents a connection to a hypervisor.
+type HypervisorConfig struct {
 	PubKey cipher.PubKey `json:"public_key"`
 	Addr   string        `json:"address"`
 }
 
 // AppConfig defines app startup parameters.
 type AppConfig struct {
-	Version   string   `json:"version"`
-	App       string   `json:"app"`
-	AutoStart bool     `json:"auto_start"`
-	Port      uint16   `json:"port"`
-	Args      []string `json:"args"`
+	Version   string       `json:"version"`
+	App       string       `json:"app"`
+	AutoStart bool         `json:"auto_start"`
+	Port      routing.Port `json:"port"`
+	Args      []string     `json:"args"`
 }
 
-// InterfaceConfig defines listening interfaces for skywire Node.
+// InterfaceConfig defines listening interfaces for skywire visor.
 type InterfaceConfig struct {
 	RPCAddress string `json:"rpc"` // RPC address and port for command-line interface (leave blank to disable RPC interface).
 }

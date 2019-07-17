@@ -1,4 +1,4 @@
-package manager
+package hypervisor
 
 import (
 	"encoding/json"
@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 func TestNewNode(t *testing.T) {
 	config := makeConfig()
 
-	confDir, err := ioutil.TempDir(os.TempDir(), "SWM")
+	confDir, err := ioutil.TempDir(os.TempDir(), "SWHV")
 	require.NoError(t, err)
 	config.DBPath = filepath.Join(confDir, "users.db")
 

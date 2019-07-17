@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"sync"
 	"testing"
@@ -15,6 +14,8 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/internal/testhelpers"
 )
 
 func TestMain(m *testing.M) {
@@ -177,7 +178,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	m2errCh := make(chan error, 1)
 	go func() { m2errCh <- m2.Serve(context.TODO()) }()
 
-	//time.Sleep(time.Second * 1) // TODO: this time.Sleep looks fishy - figure out later
+	// time.Sleep(time.Second * 1) // TODO: this time.Sleep looks fishy - figure out later
 	dEntry3, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
 
@@ -223,7 +224,11 @@ func TestTransportManagerLogs(t *testing.T) {
 	tr1 := m1.Transport(tr2.Entry.ID)
 	require.NotNil(t, tr1)
 
-	go tr1.Write([]byte("foo")) // nolint
+	writeErrCh := make(chan error, 1)
+	go func() {
+		_, writeErr := tr1.Write([]byte("foo"))
+		writeErrCh <- writeErr
+	}()
 	buf := make([]byte, 3)
 	_, err = tr2.Read(buf)
 	require.NoError(t, err)
@@ -244,6 +249,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())
 	require.NoError(t, <-errCh)
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(writeErrCh))
 }
 
 func ExampleSortPubKeys() {

@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/visor"
 )
 
 func init() {
@@ -48,7 +48,7 @@ var ruleCmd = &cobra.Command{
 		rule, err := rpcClient().RoutingRule(routing.RouteID(id))
 		internal.Catch(err)
 
-		printRoutingRules(&node.RoutingEntry{Key: rule.RouteID(), Value: rule})
+		printRoutingRules(&visor.RoutingEntry{Key: rule.RouteID(), Value: rule})
 	},
 }
 
@@ -97,8 +97,8 @@ var addRuleCmd = &cobra.Command{
 			var (
 				routeID    = routing.RouteID(parseUint("route-id", args[1], 32))
 				remotePK   = internal.ParsePK("remote-pk", args[2])
-				remotePort = uint16(parseUint("remote-port", args[3], 16))
-				localPort  = uint16(parseUint("local-port", args[4], 16))
+				remotePort = routing.Port(parseUint("remote-port", args[3], 16))
+				localPort  = routing.Port(parseUint("local-port", args[4], 16))
 			)
 			rule = routing.AppRule(time.Now().Add(expire), routeID, remotePK, remotePort, localPort)
 		case "fwd":
@@ -114,7 +114,7 @@ var addRuleCmd = &cobra.Command{
 	},
 }
 
-func printRoutingRules(rules ...*node.RoutingEntry) {
+func printRoutingRules(rules ...*visor.RoutingEntry) {
 	printAppRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
 		_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%d\t%s\t%s\t%s\n", id, s.Type, s.AppFields.LocalPort,
 			s.AppFields.RemotePort, s.AppFields.RemotePK, s.AppFields.RespRID, "-", "-", s.ExpireAt)

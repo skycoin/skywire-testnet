@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"os/user"
@@ -16,7 +15,7 @@ import (
 	"github.com/kr/pty"
 	"github.com/skycoin/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 // Port reserved for SSH app
@@ -28,7 +27,7 @@ var Debug = false
 // SSHChannel defines communication channel parameters.
 type SSHChannel struct {
 	RemoteID   uint32
-	RemoteAddr *app.Addr
+	RemoteAddr routing.Addr
 
 	conn  net.Conn
 	msgCh chan []byte
@@ -45,14 +44,14 @@ type SSHChannel struct {
 }
 
 // OpenChannel constructs new SSHChannel with empty Session.
-func OpenChannel(remoteID uint32, remoteAddr *app.Addr, conn net.Conn) *SSHChannel {
+func OpenChannel(remoteID uint32, remoteAddr routing.Addr, conn net.Conn) *SSHChannel {
 	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte),
 		dataCh: make(chan []byte), done: make(chan struct{})}
 }
 
 // OpenClientChannel constructs new client SSHChannel with empty Session.
 func OpenClientChannel(remoteID uint32, remotePK cipher.PubKey, conn net.Conn) *SSHChannel {
-	ch := OpenChannel(remoteID, &app.Addr{PubKey: remotePK, Port: Port}, conn)
+	ch := OpenChannel(remoteID, routing.Addr{PubKey: remotePK, Port: Port}, conn)
 	return ch
 }
 
@@ -149,7 +148,10 @@ func (sshCh *SSHChannel) SocketPath() string {
 
 // ServeSocket starts socket handling loop.
 func (sshCh *SSHChannel) ServeSocket() error {
-	os.Remove(sshCh.SocketPath())
+	if err := os.Remove(sshCh.SocketPath()); err != nil {
+		log.WithError(err).Warn("Failed to remove SSH channel socket file")
+	}
+
 	debug("waiting for new socket connections on: %s", sshCh.SocketPath())
 	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: sshCh.SocketPath(), Net: "unix"})
 	if err != nil {
@@ -166,9 +168,15 @@ func (sshCh *SSHChannel) ServeSocket() error {
 
 	debug("got new socket connection")
 	defer func() {
-		conn.Close()
-		sshCh.closeListener() //nolint:errcheck
-		os.Remove(sshCh.SocketPath())
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
+		if err := sshCh.closeListener(); err != nil {
+			log.WithError(err).Warn("Failed to close listener")
+		}
+		if err := os.Remove(sshCh.SocketPath()); err != nil {
+			log.WithError(err).Warn("Failed to close SSH channel socket file")
+		}
 	}()
 
 	go func() {
@@ -214,7 +222,7 @@ func (sshCh *SSHChannel) Start(command string) error {
 
 	go func() {
 		if err := sshCh.serveSession(); err != nil {
-			log.Println("Session failure:", err)
+			log.Error("Session failure:", err)
 		}
 	}()
 
@@ -224,13 +232,17 @@ func (sshCh *SSHChannel) Start(command string) error {
 
 func (sshCh *SSHChannel) serveSession() error {
 	defer func() {
-		sshCh.Send(CmdChannelServerClose, nil) // nolint
-		sshCh.Close()
+		if err := sshCh.Send(CmdChannelServerClose, nil); err != nil {
+			log.WithError(err).Warn("Failed to send to SSH channel")
+		}
+		if err := sshCh.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close SSH channel")
+		}
 	}()
 
 	go func() {
 		if _, err := io.Copy(sshCh.session, sshCh); err != nil {
-			log.Println("PTY copy: ", err)
+			log.Error("PTY copy: ", err)
 			return
 		}
 	}()

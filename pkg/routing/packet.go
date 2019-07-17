@@ -8,11 +8,11 @@ import (
 // RouteID represents ID of a Route in a Packet.
 type RouteID uint32
 
-// Packet defines generic packet recognized by all skywire nodes.
+// Packet defines generic packet recognized by all skywire visors.
 type Packet []byte
 
 // MakePacket constructs a new Packet. If payload size is more than
-// uint16, PutUvarint will panic.
+// uint16, MakePacket will panic.
 func MakePacket(id RouteID, payload []byte) Packet {
 	if len(payload) > math.MaxUint16 {
 		panic("packet size exceeded")

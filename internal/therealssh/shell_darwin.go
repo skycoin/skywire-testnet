@@ -9,7 +9,7 @@ import (
 
 func resolveShell(u *user.User) (string, error) {
 	dir := "Local/Default/Users/" + u.Username
-	out, err := exec.Command("dscl", "localhost", "-read", dir, "UserShell").Output()
+	out, err := exec.Command("dscl", "localhost", "-read", dir, "UserShell").Output() // nolint:gosec
 	if err != nil {
 		return "", err
 	}
@@ -18,7 +18,7 @@ func resolveShell(u *user.User) (string, error) {
 	matched := re.FindStringSubmatch(string(out))
 	shell := matched[1]
 	if shell == "" {
-		return "", fmt.Errorf("Invalid output: %s", string(out))
+		return "", fmt.Errorf("invalid output: %s", string(out))
 	}
 
 	return shell, nil

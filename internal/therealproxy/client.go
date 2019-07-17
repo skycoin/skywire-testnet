@@ -3,11 +3,13 @@ package therealproxy
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 
 	"github.com/hashicorp/yamux"
+	"github.com/skycoin/skycoin/src/util/logging"
 )
+
+var log = logging.MustGetLogger("therealproxy")
 
 // Client implement multiplexing proxy client using yamux.
 type Client struct {
@@ -61,11 +63,15 @@ func (c *Client) ListenAndServe(addr string) error {
 			}()
 
 			for err := range errCh {
-				conn.Close()
-				stream.Close()
+				if err := conn.Close(); err != nil {
+					log.WithError(err).Warn("Failed to close connection")
+				}
+				if err := stream.Close(); err != nil {
+					log.WithError(err).Warn("Failed to close stream")
+				}
 
 				if err != nil {
-					log.Println("Copy error:", err)
+					log.Error("Copy error:", err)
 				}
 			}
 		}()

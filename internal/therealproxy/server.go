@@ -2,7 +2,6 @@ package therealproxy
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/armon/go-socks5"
@@ -47,7 +46,7 @@ func (s *Server) Serve(l net.Listener) error {
 
 		go func() {
 			if err := s.socks.Serve(session); err != nil {
-				log.Println("Failed to start SOCKS5 server:", err)
+				log.Error("Failed to start SOCKS5 server:", err)
 			}
 		}()
 	}

@@ -1,5 +1,5 @@
-// Package manager implements management node
-package manager
+// Package hypervisor implements management node
+package hypervisor
 
 import (
 	"encoding/hex"
@@ -17,22 +17,21 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/dmsg/noise"
-
 	"github.com/skycoin/skywire/pkg/httputil"
-	"github.com/skycoin/skywire/pkg/node"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/visor"
 )
 
 var (
-	log = logging.MustGetLogger("manager")
+	log = logging.MustGetLogger("hypervisor")
 )
 
 type appNodeConn struct {
 	Addr   *noise.Addr
-	Client node.RPCClient
+	Client visor.RPCClient
 }
 
 // Node manages AppNodes.
@@ -70,7 +69,7 @@ func (m *Node) ServeRPC(lis net.Listener) error {
 		m.mu.RLock()
 		m.nodes[addr.PK] = appNodeConn{
 			Addr:   addr,
-			Client: node.NewRPCClient(rpc.NewClient(conn), node.RPCPrefix),
+			Client: visor.NewRPCClient(rpc.NewClient(conn), visor.RPCPrefix),
 		}
 		m.mu.RUnlock()
 	}
@@ -89,11 +88,14 @@ type MockConfig struct {
 	EnableAuth       bool
 }
 
-// AddMockData adds mock data to Manager Node.
+// AddMockData adds mock data to Node.
 func (m *Node) AddMockData(config MockConfig) error {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < config.Nodes; i++ {
-		pk, client := node.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
+		pk, client, err := visor.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
+		if err != nil {
+			return err
+		}
 		m.mu.Lock()
 		m.nodes[pk] = appNodeConn{
 			Addr: &noise.Addr{
@@ -150,7 +152,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 type summaryResp struct {
 	TCPAddr string `json:"tcp_addr"`
-	*node.Summary
+	*visor.Summary
 }
 
 // provides summary of all nodes.
@@ -162,7 +164,7 @@ func (m *Node) getNodes() http.HandlerFunc {
 			summary, err := c.Client.Summary()
 			if err != nil {
 				log.Printf("failed to obtain summary from AppNode with pk %s. Error: %v", pk, err)
-				summary = &node.Summary{PubKey: pk}
+				summary = &visor.Summary{PubKey: pk}
 			}
 			summaries = append(summaries, summaryResp{
 				TCPAddr: c.Addr.Addr.String(),
@@ -227,17 +229,18 @@ func (m *Node) putApp() http.HandlerFunc {
 			}
 		}
 		if reqBody.Status != nil {
-			if *reqBody.Status == 0 {
+			switch *reqBody.Status {
+			case 0:
 				if err := ctx.RPC.StopApp(ctx.App.Name); err != nil {
 					httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 					return
 				}
-			} else if *reqBody.Status == 1 {
+			case 1:
 				if err := ctx.RPC.StartApp(ctx.App.Name); err != nil {
 					httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 					return
 				}
-			} else {
+			default:
 				httputil.WriteJSON(w, r, http.StatusBadRequest,
 					fmt.Errorf("value of 'status' field is %d when expecting 0 or 1", *reqBody.Status))
 				return
@@ -429,7 +432,7 @@ type loopResp struct {
 	FwdRule routing.RuleForwardFields `json:"resp"`
 }
 
-func makeLoopResp(info node.LoopInfo) loopResp {
+func makeLoopResp(info visor.LoopInfo) loopResp {
 	if len(info.FwdRule) == 0 || len(info.AppRule) == 0 {
 		return loopResp{}
 	}
@@ -458,7 +461,7 @@ func (m *Node) getLoops() http.HandlerFunc {
 	<<< Helper functions >>>
 */
 
-func (m *Node) client(pk cipher.PubKey) (*noise.Addr, node.RPCClient, bool) {
+func (m *Node) client(pk cipher.PubKey) (*noise.Addr, visor.RPCClient, bool) {
 	m.mu.RLock()
 	conn, ok := m.nodes[pk]
 	m.mu.RUnlock()
@@ -469,13 +472,13 @@ type httpCtx struct {
 	// Node
 	PK   cipher.PubKey
 	Addr *noise.Addr
-	RPC  node.RPCClient
+	RPC  visor.RPCClient
 
 	// App
-	App *node.AppState
+	App *visor.AppState
 
 	// Transport
-	Tp *node.TransportSummary
+	Tp *visor.TransportSummary
 
 	// Route
 	RtKey routing.RouteID
@@ -546,7 +549,7 @@ func (m *Node) tpCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool) {
 	}
 	tp, err := ctx.RPC.Transport(tid)
 	if err != nil {
-		if err.Error() == node.ErrNotFound.Error() {
+		if err.Error() == visor.ErrNotFound.Error() {
 			httputil.WriteJSON(w, r, http.StatusNotFound,
 				fmt.Errorf("transport of ID %s is not found", tid))
 			return nil, false
@@ -574,7 +577,7 @@ func (m *Node) routeCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool)
 func pkFromParam(r *http.Request, key string) (cipher.PubKey, error) {
 	pk := cipher.PubKey{}
 	err := pk.UnmarshalText([]byte(chi.URLParam(r, key)))
-	return cipher.PubKey(pk), err
+	return pk, err
 }
 
 func uuidFromParam(r *http.Request, key string) (uuid.UUID, error) {
@@ -608,7 +611,7 @@ func pkSliceFromQuery(r *http.Request, key string, defaultVal []cipher.PubKey) (
 		if err := pk.UnmarshalText([]byte(qPK)); err != nil {
 			return nil, err
 		}
-		pks[i] = cipher.PubKey(pk)
+		pks[i] = pk
 	}
 	return pks, nil
 }

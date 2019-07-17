@@ -64,7 +64,7 @@ func (td *mockDiscoveryClient) GetTransportByID(ctx context.Context, id uuid.UUI
 
 func (td *mockDiscoveryClient) GetTransportsByEdge(ctx context.Context, pk cipher.PubKey) ([]*EntryWithStatus, error) {
 	td.Lock()
-	res := []*EntryWithStatus{}
+	res := make([]*EntryWithStatus, 0)
 	for _, entry := range td.entries {
 		if entry.Entry.LocalPK() == pk || entry.Entry.RemotePK() == pk {
 			e := &EntryWithStatus{}
@@ -82,7 +82,7 @@ func (td *mockDiscoveryClient) GetTransportsByEdge(ctx context.Context, pk ciphe
 }
 
 func (td *mockDiscoveryClient) UpdateStatuses(ctx context.Context, statuses ...*Status) ([]*EntryWithStatus, error) {
-	res := []*EntryWithStatus{}
+	res := make([]*EntryWithStatus, 0)
 	for _, status := range statuses {
 		entry, err := td.GetTransportByID(ctx, status.ID)
 		if err != nil {

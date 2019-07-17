@@ -12,11 +12,14 @@ import (
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
 const defaultContextTimeout = 10 * time.Second
+
+var log = logging.MustGetLogger("route-finder")
 
 // GetRoutesRequest parses json body for /routes endpoint request
 type GetRoutesRequest struct {
@@ -69,7 +72,7 @@ func NewHTTP(addr string, apiTimeout time.Duration) Client {
 	}
 }
 
-// PairedRoutes returns routes from source skywire node to destiny, that has at least the given minHops and as much
+// PairedRoutes returns routes from source skywire visor to destiny, that has at least the given minHops and as much
 // the given maxHops as well as the reverse routes from destiny to source.
 func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops uint16) ([]routing.Route, []routing.Route, error) {
 	requestBody := &GetRoutesRequest{
@@ -93,6 +96,13 @@ func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops
 	req = req.WithContext(ctx)
 
 	res, err := c.client.Do(req)
+	if res != nil {
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close HTTP response body")
+			}
+		}()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -104,7 +114,6 @@ func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops
 		if err != nil {
 			return nil, nil, err
 		}
-		defer res.Body.Close()
 
 		return nil, nil, errors.New(apiErr.Error.Message)
 	}
@@ -114,7 +123,6 @@ func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops
 	if err != nil {
 		return nil, nil, err
 	}
-	defer res.Body.Close()
 
 	return routes.Forward, routes.Reverse, nil
 }

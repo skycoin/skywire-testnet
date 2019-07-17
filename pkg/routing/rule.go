@@ -74,24 +74,26 @@ func (r Rule) RemotePK() cipher.PubKey {
 	}
 
 	pk := cipher.PubKey{}
-	pk.UnmarshalBinary(r[13:46]) // nolint: errcheck
+	if err := pk.UnmarshalBinary(r[13:46]); err != nil {
+		log.WithError(err).Warn("Failed to unmarshal public key")
+	}
 	return pk
 }
 
 // RemotePort returns remote Port for an app rule.
-func (r Rule) RemotePort() uint16 {
+func (r Rule) RemotePort() Port {
 	if r.Type() != RuleApp {
 		panic("invalid rule")
 	}
-	return binary.BigEndian.Uint16(r[46:])
+	return Port(binary.BigEndian.Uint16(r[46:]))
 }
 
 // LocalPort returns local Port for an app rule.
-func (r Rule) LocalPort() uint16 {
+func (r Rule) LocalPort() Port {
 	if r.Type() != RuleApp {
 		panic("invalid rule")
 	}
-	return binary.BigEndian.Uint16(r[48:])
+	return Port(binary.BigEndian.Uint16(r[48:]))
 }
 
 func (r Rule) String() string {
@@ -107,8 +109,8 @@ func (r Rule) String() string {
 type RuleAppFields struct {
 	RespRID    RouteID       `json:"resp_rid"`
 	RemotePK   cipher.PubKey `json:"remote_pk"`
-	RemotePort uint16        `json:"remote_port"`
-	LocalPort  uint16        `json:"local_port"`
+	RemotePort Port          `json:"remote_port"`
+	LocalPort  Port          `json:"local_port"`
 }
 
 // RuleForwardFields summarizes Forward fields of a RoutingRule.
@@ -161,7 +163,7 @@ func (r Rule) Summary() *RuleSummary {
 }
 
 // AppRule constructs a new consume RoutingRule.
-func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remotePort, localPort uint16) Rule {
+func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remotePort, localPort Port) Rule {
 	rule := make([]byte, 13)
 	if expireAt.Unix() <= time.Now().Unix() {
 		binary.BigEndian.PutUint64(rule[0:], 0)
@@ -173,8 +175,8 @@ func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remo
 	binary.BigEndian.PutUint32(rule[9:], uint32(respRoute))
 	rule = append(rule, remotePK[:]...)
 	rule = append(rule, 0, 0, 0, 0)
-	binary.BigEndian.PutUint16(rule[46:], remotePort)
-	binary.BigEndian.PutUint16(rule[48:], localPort)
+	binary.BigEndian.PutUint16(rule[46:], uint16(remotePort))
+	binary.BigEndian.PutUint16(rule[48:], uint16(localPort))
 	return Rule(rule)
 }
 
