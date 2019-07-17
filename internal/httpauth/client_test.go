@@ -54,10 +54,8 @@ func TestClient(t *testing.T) {
 	require.NoError(t, err)
 
 	b, err := ioutil.ReadAll(res.Body)
-	if b != nil {
-		require.NoError(t, res.Body.Close())
-	}
 	require.NoError(t, err)
+	require.NoError(t, res.Body.Close())
 	assert.Equal(t, []byte(payload), b)
 	assert.Equal(t, uint64(2), c.nonce)
 
@@ -84,10 +82,8 @@ func TestClient_BadNonce(t *testing.T) {
 	require.NoError(t, err)
 
 	b, err := ioutil.ReadAll(res.Body)
-	if b != nil {
-		require.NoError(t, res.Body.Close())
-	}
 	require.NoError(t, err)
+	require.NoError(t, res.Body.Close())
 	assert.Equal(t, uint64(2), c.nonce)
 
 	headers := <-headerCh
