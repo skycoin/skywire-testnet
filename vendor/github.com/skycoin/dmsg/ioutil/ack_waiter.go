@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"io"
-	"math"
 	"sync"
 )
 
@@ -30,8 +29,15 @@ func (s Uint16Seq) Encode() []byte {
 // Uint16AckWaiter implements acknowledgement-waiting logic (with uint16 sequences).
 type Uint16AckWaiter struct {
 	nextSeq Uint16Seq
-	waiters [math.MaxUint16 + 1]chan struct{}
+	waiters map[Uint16Seq]chan struct{}
 	mx      sync.RWMutex
+}
+
+// NewUint16AckWaiter creates a new Uint16AckWaiter
+func NewUint16AckWaiter() Uint16AckWaiter {
+	return Uint16AckWaiter{
+		waiters: make(map[Uint16Seq]chan struct{}),
+	}
 }
 
 // RandSeq should only be run once on startup. It is not thread-safe.

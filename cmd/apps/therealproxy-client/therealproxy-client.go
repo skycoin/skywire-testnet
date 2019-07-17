@@ -14,6 +14,7 @@ import (
 	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 const socksPort = 3
@@ -43,7 +44,7 @@ func main() {
 
 	var conn net.Conn
 	err = r.Do(func() error {
-		conn, err = socksApp.Dial(&app.Addr{PubKey: pk, Port: uint16(socksPort)})
+		conn, err = socksApp.Dial(routing.Addr{PubKey: pk, Port: routing.Port(socksPort)})
 		return err
 	})
 	if err != nil {

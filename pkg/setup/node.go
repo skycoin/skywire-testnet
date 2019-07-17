@@ -102,32 +102,56 @@ func (sn *Node) Serve(ctx context.Context) error {
 	return sn.tm.Serve(ctx)
 }
 
-func (sn *Node) createLoop(l *routing.Loop) error {
-	sn.Logger.Infof("Creating new Loop %s", l)
-	rRouteID, err := sn.createRoute(l.Expiry, l.Reverse, l.LocalPort, l.RemotePort)
+func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
+	sn.Logger.Infof("Creating new Loop %s", ld)
+	rRouteID, err := sn.createRoute(ld.Expiry, ld.Reverse, ld.Loop.Local.Port, ld.Loop.Remote.Port)
 	if err != nil {
 		return err
 	}
 
-	fRouteID, err := sn.createRoute(l.Expiry, l.Forward, l.RemotePort, l.LocalPort)
+	fRouteID, err := sn.createRoute(ld.Expiry, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	if err != nil {
 		return err
 	}
 
-	if len(l.Forward) == 0 || len(l.Reverse) == 0 {
+	if len(ld.Forward) == 0 || len(ld.Reverse) == 0 {
 		return nil
 	}
 
-	initiator := l.Initiator()
-	responder := l.Responder()
+	initiator := ld.Initiator()
+	responder := ld.Responder()
 
-	ldR := &LoopData{RemotePK: initiator, RemotePort: l.LocalPort, LocalPort: l.RemotePort, RouteID: rRouteID}
+	ldR := routing.LoopData{
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: initiator,
+				Port:   ld.Loop.Local.Port,
+			},
+			Local: routing.Addr{
+				PubKey: responder,
+				Port:   ld.Loop.Remote.Port,
+			},
+		},
+		RouteID: rRouteID,
+	}
 	if err := sn.connectLoop(responder, ldR); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := &LoopData{RemotePK: responder, RemotePort: l.RemotePort, LocalPort: l.LocalPort, RouteID: fRouteID}
+	ldI := routing.LoopData{
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: responder,
+				Port:   ld.Loop.Remote.Port,
+			},
+			Local: routing.Addr{
+				PubKey: initiator,
+				Port:   ld.Loop.Local.Port,
+			},
+		},
+		RouteID: fRouteID,
+	}
 	if err := sn.connectLoop(initiator, ldI); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with initiator: %s", err)
 		if err := sn.closeLoop(responder, ldR); err != nil {
@@ -137,11 +161,11 @@ func (sn *Node) createLoop(l *routing.Loop) error {
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	sn.Logger.Infof("Created Loop %s", l)
+	sn.Logger.Infof("Created Loop %s", ld)
 	return nil
 }
 
-func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lport uint16) (routing.RouteID, error) {
+func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lport routing.Port) (routing.RouteID, error) {
 	if len(route) == 0 {
 		return 0, nil
 	}
@@ -198,18 +222,28 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	startTime := time.Now()
 	switch sp {
 	case PacketCreateLoop:
-		loop := &routing.Loop{}
-		if err = json.Unmarshal(data, loop); err == nil {
-			err = sn.createLoop(loop)
+		var ld routing.LoopDescriptor
+		if err = json.Unmarshal(data, &ld); err == nil {
+			err = sn.createLoop(ld)
 		}
 	case PacketCloseLoop:
-		ld := &LoopData{}
-		if err = json.Unmarshal(data, ld); err == nil {
+		var ld routing.LoopData
+		if err = json.Unmarshal(data, &ld); err == nil {
 			remote, ok := sn.tm.Remote(tr.Edges())
 			if !ok {
 				return errors.New("configured PubKey not found in edges")
 			}
-			err = sn.closeLoop(ld.RemotePK, &LoopData{RemotePK: remote, RemotePort: ld.LocalPort, LocalPort: ld.RemotePort})
+			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.LoopData{
+				Loop: routing.Loop{
+					Remote: routing.Addr{
+						PubKey: remote,
+						Port:   ld.Loop.Local.Port,
+					},
+					Local: routing.Addr{
+						Port: ld.Loop.Remote.Port,
+					},
+				},
+			})
 		}
 	default:
 		err = errors.New("unknown foundation packet")
@@ -224,7 +258,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	return proto.WritePacket(RespSuccess, nil)
 }
 
-func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) error {
+func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
 	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
@@ -236,11 +270,11 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld *LoopData) error {
 		return err
 	}
 
-	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.RemotePK, ld.RemotePort, ld.LocalPort)
+	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.Loop.Remote.PubKey, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	return nil
 }
 
-func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
+func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
@@ -252,7 +286,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld *LoopData) error {
 		return err
 	}
 
-	sn.Logger.Infof("Closed loop on %s. LocalPort: %d", on, ld.LocalPort)
+	sn.Logger.Infof("Closed loop on %s. LocalPort: %d", on, ld.Loop.Local.Port)
 	return nil
 }
 

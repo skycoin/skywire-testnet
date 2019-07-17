@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -17,36 +16,36 @@ type loop struct {
 type loopList struct {
 	sync.Mutex
 
-	loops map[app.Addr]*loop // key: remote address (pk+port), value: forwarding transport and route ID.
+	loops map[routing.Addr]*loop // key: remote address (pk+port), value: forwarding transport and route ID.
 }
 
 func newLoopList() *loopList {
-	return &loopList{loops: make(map[app.Addr]*loop)}
+	return &loopList{loops: make(map[routing.Addr]*loop)}
 }
 
-func (ll *loopList) get(addr *app.Addr) *loop {
+func (ll *loopList) get(addr routing.Addr) *loop {
 	ll.Lock()
-	l := ll.loops[*addr]
+	l := ll.loops[addr]
 	ll.Unlock()
 
 	return l
 }
 
-func (ll *loopList) set(addr *app.Addr, l *loop) {
+func (ll *loopList) set(addr routing.Addr, l *loop) {
 	ll.Lock()
-	ll.loops[*addr] = l
+	ll.loops[addr] = l
 	ll.Unlock()
 }
 
-func (ll *loopList) remove(addr *app.Addr) {
+func (ll *loopList) remove(addr routing.Addr) {
 	ll.Lock()
-	delete(ll.loops, *addr)
+	delete(ll.loops, addr)
 	ll.Unlock()
 }
 
-func (ll *loopList) dropAll() []app.Addr {
-	r := make([]app.Addr, 0)
+func (ll *loopList) dropAll() []routing.Addr {
 	ll.Lock()
+	r := make([]routing.Addr, 0, len(ll.loops))
 	for addr := range ll.loops {
 		r = append(r, addr)
 	}
