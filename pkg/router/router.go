@@ -354,7 +354,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
 	}
 	defer tr.Close()
 
-	ld := &routing.LoopData{Loop: loop}
+	ld := routing.LoopData{Loop: loop}
 	if err := setup.CloseLoop(proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}

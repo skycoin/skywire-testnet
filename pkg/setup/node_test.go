@@ -213,7 +213,7 @@ func TestCloseLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
-	require.NoError(t, CloseLoop(proto, &routing.LoopData{
+	require.NoError(t, CloseLoop(proto, routing.LoopData{
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: pk3,

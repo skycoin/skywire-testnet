@@ -342,7 +342,7 @@ func TestRouterSetup(t *testing.T) {
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
 		require.NoError(t, err)
 
-		err = setup.ConfirmLoop(sProto, &routing.LoopData{
+		err = setup.ConfirmLoop(sProto, routing.LoopData{
 			Loop: routing.Loop{
 				Remote: routing.Addr{
 					PubKey: pk2,
@@ -384,7 +384,7 @@ func TestRouterSetup(t *testing.T) {
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
 		require.NoError(t, err)
 
-		err = setup.ConfirmLoop(sProto, &routing.LoopData{
+		err = setup.ConfirmLoop(sProto, routing.LoopData{
 			Loop: routing.Loop{
 				Remote: routing.Addr{
 					PubKey: pk2,
@@ -422,7 +422,7 @@ func TestRouterSetup(t *testing.T) {
 		require.NotNil(t, rule)
 		assert.Equal(t, routing.RuleApp, rule.Type())
 
-		require.NoError(t, setup.LoopClosed(sProto, &routing.LoopData{
+		require.NoError(t, setup.LoopClosed(sProto, routing.LoopData{
 			Loop: routing.Loop{
 				Remote: routing.Addr{
 					PubKey: pk2,
