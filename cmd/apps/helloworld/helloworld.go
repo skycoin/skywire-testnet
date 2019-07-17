@@ -48,7 +48,7 @@ func main() {
 		log.Fatal("Failed to construct PubKey: ", err, os.Args[1])
 	}
 
-	conn, err := helloworldApp.Dial(&routing.Addr{PubKey: remotePK, Port: 10})
+	conn, err := helloworldApp.Dial(routing.Addr{PubKey: remotePK, Port: 10})
 	if err != nil {
 		log.Fatal("Failed to open remote conn: ", err)
 	}

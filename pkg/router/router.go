@@ -235,7 +235,7 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 		return r.forwardLocalAppPacket(packet)
 	}
 
-	l, err := r.pm.GetLoop(packet.Loop.Local.Port, &packet.Loop.Remote)
+	l, err := r.pm.GetLoop(packet.Loop.Local.Port, packet.Loop.Remote)
 	if err != nil {
 		return err
 	}
@@ -267,16 +267,16 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 	return b.conn.Send(app.FrameSend, p, nil)
 }
 
-func (r *Router) requestLoop(appConn *app.Protocol, raddr *routing.Addr) (*routing.Addr, error) {
+func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
-		return nil, err
+		return routing.Addr{}, err
 	}
 
-	laddr := &routing.Addr{PubKey: r.config.PubKey, Port: lport}
+	laddr := routing.Addr{PubKey: r.config.PubKey, Port: lport}
 	if raddr.PubKey == r.config.PubKey {
 		if err := r.confirmLocalLoop(laddr, raddr); err != nil {
-			return nil, fmt.Errorf("confirm: %s", err)
+			return routing.Addr{}, fmt.Errorf("confirm: %s", err)
 		}
 		r.Logger.Infof("Created local loop on port %d", laddr.Port)
 		return laddr, nil
@@ -284,13 +284,13 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *routing.Addr) (*routi
 
 	forwardRoute, reverseRoute, err := r.fetchBestRoutes(laddr.PubKey, raddr.PubKey)
 	if err != nil {
-		return nil, fmt.Errorf("route finder: %s", err)
+		return routing.Addr{}, fmt.Errorf("route finder: %s", err)
 	}
 
 	l := &routing.LoopDescriptor{
 		Loop: routing.Loop{
-			Local:  *laddr,
-			Remote: *raddr,
+			Local:  laddr,
+			Remote: raddr,
 		},
 		Expiry:  time.Now().Add(RouteTTL),
 		Forward: forwardRoute,
@@ -299,25 +299,25 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr *routing.Addr) (*routi
 
 	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
-		return nil, err
+		return routing.Addr{}, err
 	}
 	defer tr.Close()
 
 	if err := setup.CreateLoop(proto, l); err != nil {
-		return nil, fmt.Errorf("route setup: %s", err)
+		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
 
 	r.Logger.Infof("Created new loop to %s on port %d", raddr, laddr.Port)
 	return laddr, nil
 }
 
-func (r *Router) confirmLocalLoop(laddr, raddr *routing.Addr) error {
+func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
 	b, err := r.pm.Get(raddr.Port)
 	if err != nil {
 		return err
 	}
 
-	addrs := [2]*routing.Addr{raddr, laddr}
+	addrs := [2]routing.Addr{raddr, laddr}
 	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
 		return err
 	}
@@ -331,11 +331,11 @@ func (r *Router) confirmLoop(l *routing.Loop, rule routing.Rule) error {
 		return err
 	}
 
-	if err := r.pm.SetLoop(l.Local.Port, &l.Remote, &loop{rule.TransportID(), rule.RouteID()}); err != nil {
+	if err := r.pm.SetLoop(l.Local.Port, l.Remote, &loop{rule.TransportID(), rule.RouteID()}); err != nil {
 		return err
 	}
 
-	addrs := [2]*routing.Addr{{PubKey: r.config.PubKey, Port: l.Local.Port}, &l.Remote}
+	addrs := [2]routing.Addr{{PubKey: r.config.PubKey, Port: l.Local.Port}, l.Remote}
 	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
 		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
 	}
@@ -387,7 +387,7 @@ func (r *Router) destroyLoop(loop *routing.Loop) error {
 	r.mu.Unlock()
 
 	if ok {
-		r.pm.RemoveLoop(loop.Local.Port, &loop.Remote) // nolint: errcheck
+		r.pm.RemoveLoop(loop.Local.Port, loop.Remote) // nolint: errcheck
 	} else {
 		r.pm.Close(loop.Local.Port)
 	}

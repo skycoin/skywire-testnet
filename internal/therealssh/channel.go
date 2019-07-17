@@ -28,7 +28,7 @@ var Debug = false
 // SSHChannel defines communication channel parameters.
 type SSHChannel struct {
 	RemoteID   uint32
-	RemoteAddr *routing.Addr
+	RemoteAddr routing.Addr
 
 	conn  net.Conn
 	msgCh chan []byte
@@ -45,14 +45,14 @@ type SSHChannel struct {
 }
 
 // OpenChannel constructs new SSHChannel with empty Session.
-func OpenChannel(remoteID uint32, remoteAddr *routing.Addr, conn net.Conn) *SSHChannel {
+func OpenChannel(remoteID uint32, remoteAddr routing.Addr, conn net.Conn) *SSHChannel {
 	return &SSHChannel{RemoteID: remoteID, conn: conn, RemoteAddr: remoteAddr, msgCh: make(chan []byte),
 		dataCh: make(chan []byte), done: make(chan struct{})}
 }
 
 // OpenClientChannel constructs new client SSHChannel with empty Session.
 func OpenClientChannel(remoteID uint32, remotePK cipher.PubKey, conn net.Conn) *SSHChannel {
-	ch := OpenChannel(remoteID, &routing.Addr{PubKey: remotePK, Port: Port}, conn)
+	ch := OpenChannel(remoteID, routing.Addr{PubKey: remotePK, Port: Port}, conn)
 	return ch
 }
 

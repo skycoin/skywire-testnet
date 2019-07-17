@@ -59,7 +59,7 @@ func TestAppManagerSetupLoop(t *testing.T) {
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			CreateLoop: func(conn *app.Protocol, raddr *routing.Addr) (laddr *routing.Addr, err error) {
+			CreateLoop: func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
 				return raddr, nil
 			},
 		},

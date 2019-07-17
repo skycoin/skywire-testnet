@@ -17,7 +17,7 @@ import (
 
 func TestChannelServe(t *testing.T) {
 	in, out := net.Pipe()
-	ch := OpenChannel(1, &routing.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
+	ch := OpenChannel(1, routing.Addr{PubKey: cipher.PubKey{}, Port: Port}, in)
 
 	errCh := make(chan error)
 	go func() {

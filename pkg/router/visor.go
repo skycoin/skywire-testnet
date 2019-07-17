@@ -13,7 +13,7 @@ import (
 const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
-	CreateLoop func(conn *app.Protocol, raddr *routing.Addr) (laddr *routing.Addr, err error)
+	CreateLoop func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
 	CloseLoop  func(conn *app.Protocol, loop *routing.Loop) error
 	Forward    func(conn *app.Protocol, packet *app.Packet) error
 }
@@ -72,13 +72,13 @@ func (am *appManager) initApp(payload []byte) error {
 	return nil
 }
 
-func (am *appManager) setupLoop(payload []byte) (*routing.Addr, error) {
+func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
 	var raddr routing.Addr
 	if err := json.Unmarshal(payload, &raddr); err != nil {
-		return nil, err
+		return routing.Addr{}, err
 	}
 
-	return am.callbacks.CreateLoop(am.proto, &raddr)
+	return am.callbacks.CreateLoop(am.proto, raddr)
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {

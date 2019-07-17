@@ -44,7 +44,7 @@ func main() {
 
 	var conn net.Conn
 	err = r.Do(func() error {
-		conn, err = socksApp.Dial(&routing.Addr{PubKey: pk, Port: routing.Port(socksPort)})
+		conn, err = socksApp.Dial(routing.Addr{PubKey: pk, Port: routing.Port(socksPort)})
 		return err
 	})
 	if err != nil {

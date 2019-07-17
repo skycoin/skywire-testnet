@@ -19,10 +19,10 @@ type Addr struct {
 }
 
 // Network returns type of `a`'s network
-func (a *Addr) Network() string {
+func (a Addr) Network() string {
 	return networkType
 }
 
-func (a *Addr) String() string {
+func (a Addr) String() string {
 	return fmt.Sprintf("%s:%d", a.PubKey, a.Port)
 }

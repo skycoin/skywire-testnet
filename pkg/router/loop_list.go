@@ -23,23 +23,23 @@ func newLoopList() *loopList {
 	return &loopList{loops: make(map[routing.Addr]*loop)}
 }
 
-func (ll *loopList) get(addr *routing.Addr) *loop {
+func (ll *loopList) get(addr routing.Addr) *loop {
 	ll.Lock()
-	l := ll.loops[*addr]
+	l := ll.loops[addr]
 	ll.Unlock()
 
 	return l
 }
 
-func (ll *loopList) set(addr *routing.Addr, l *loop) {
+func (ll *loopList) set(addr routing.Addr, l *loop) {
 	ll.Lock()
-	ll.loops[*addr] = l
+	ll.loops[addr] = l
 	ll.Unlock()
 }
 
-func (ll *loopList) remove(addr *routing.Addr) {
+func (ll *loopList) remove(addr routing.Addr) {
 	ll.Lock()
-	delete(ll.loops, *addr)
+	delete(ll.loops, addr)
 	ll.Unlock()
 }
 

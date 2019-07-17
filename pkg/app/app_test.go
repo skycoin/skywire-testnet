@@ -55,7 +55,7 @@ func TestAppDial(t *testing.T) {
 
 		return nil, errors.New("unexpected frame")
 	})
-	conn, err := app.Dial(&routing.Addr{PubKey: rpk, Port: 3})
+	conn, err := app.Dial(routing.Addr{PubKey: rpk, Port: 3})
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 	assert.Equal(t, rpk.Hex()+":3", conn.RemoteAddr().String())
@@ -83,7 +83,7 @@ func TestAppAccept(t *testing.T) {
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
-	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]*routing.Addr), conns: make(map[routing.Loop]io.ReadWriteCloser)}
+	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]routing.Addr), conns: make(map[routing.Loop]io.ReadWriteCloser)}
 	go app.handleProto()
 
 	proto := NewProtocol(out)
@@ -97,7 +97,7 @@ func TestAppAccept(t *testing.T) {
 		connCh <- conn
 	}()
 
-	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*routing.Addr{{PubKey: lpk, Port: 2}, {PubKey: rpk, Port: 3}}, nil))
+	require.NoError(t, proto.Send(FrameConfirmLoop, [2]routing.Addr{{PubKey: lpk, Port: 2}, {PubKey: rpk, Port: 3}}, nil))
 
 	require.NoError(t, <-errCh)
 	conn := <-connCh
@@ -112,7 +112,7 @@ func TestAppAccept(t *testing.T) {
 		connCh <- conn
 	}()
 
-	require.NoError(t, proto.Send(FrameConfirmLoop, [2]*routing.Addr{{PubKey: lpk, Port: 2}, {PubKey: rpk, Port: 2}}, nil))
+	require.NoError(t, proto.Send(FrameConfirmLoop, [2]routing.Addr{{PubKey: lpk, Port: 2}, {PubKey: rpk, Port: 2}}, nil))
 
 	require.NoError(t, <-errCh)
 	conn = <-connCh

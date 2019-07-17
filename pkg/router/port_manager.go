@@ -30,7 +30,7 @@ func (pm *portManager) Open(port routing.Port, proto *app.Protocol) error {
 	return nil
 }
 
-func (pm *portManager) SetLoop(port routing.Port, raddr *routing.Addr, l *loop) error {
+func (pm *portManager) SetLoop(port routing.Port, raddr routing.Addr, l *loop) error {
 	b := pm.ports.get(port)
 	if b == nil {
 		return errors.New("port is not bound")
@@ -75,7 +75,7 @@ func (pm *portManager) Close(port routing.Port) []routing.Addr {
 	return b.loops.dropAll()
 }
 
-func (pm *portManager) RemoveLoop(port routing.Port, raddr *routing.Addr) error {
+func (pm *portManager) RemoveLoop(port routing.Port, raddr routing.Addr) error {
 	b, err := pm.Get(port)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (pm *portManager) Get(port routing.Port) (*portBind, error) {
 	return b, nil
 }
 
-func (pm *portManager) GetLoop(localPort routing.Port, remoteAddr *routing.Addr) (*loop, error) {
+func (pm *portManager) GetLoop(localPort routing.Port, remoteAddr routing.Addr) (*loop, error) {
 	b, err := pm.Get(localPort)
 	if err != nil {
 		return nil, err
