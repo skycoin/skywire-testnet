@@ -41,7 +41,7 @@ func main() {
 	}
 	defer func() {
 		if err := a.Close(); err != nil {
-			log.Println("Failed to close app: ", err)
+			log.Println("Failed to close app:", err)
 		}
 	}()
 
@@ -65,7 +65,7 @@ func listenLoop() {
 	for {
 		conn, err := chatApp.Accept()
 		if err != nil {
-			log.Println("failed to accept conn: ", err)
+			log.Println("failed to accept conn:", err)
 			return
 		}
 
@@ -84,7 +84,7 @@ func handleConn(conn net.Conn) {
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Println("failed to read packet: ", err)
+			log.Println("failed to read packet:", err)
 			return
 		}
 

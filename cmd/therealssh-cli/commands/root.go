@@ -84,13 +84,13 @@ var rootCmd = &cobra.Command{
 			for range ch {
 				size, err := pty.GetsizeFull(os.Stdin)
 				if err != nil {
-					log.Println("Failed to change pty size: ", err)
+					log.Println("Failed to change pty size:", err)
 					return
 				}
 
 				var result int
 				if err := client.Call("RPCClient.WindowChange", &ssh.WindowChangeArgs{ChannelID: channelID, Size: size}, &result); err != nil {
-					log.Println("Failed to change pty size: ", err)
+					log.Println("Failed to change pty size:", err)
 				}
 			}
 		}()

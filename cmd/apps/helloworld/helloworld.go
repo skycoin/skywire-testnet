@@ -16,7 +16,7 @@ import (
 func main() {
 	helloworldApp, err := app.Setup(&app.Config{AppName: "helloworld", AppVersion: "1.0", ProtocolVersion: "0.0.1"})
 	if err != nil {
-		log.Fatal("Setup failure: ", err)
+		log.Fatal("Setup failure:", err)
 	}
 	defer func() {
 		if err := helloworldApp.Close(); err != nil {
@@ -36,12 +36,12 @@ func main() {
 			go func() {
 				buf := make([]byte, 4)
 				if _, err := conn.Read(buf); err != nil {
-					log.Println("Failed to read remote data: ", err)
+					log.Println("Failed to read remote data:", err)
 				}
 
 				log.Printf("Message from %s: %s", conn.RemoteAddr().String(), string(buf))
 				if _, err := conn.Write([]byte("pong")); err != nil {
-					log.Println("Failed to write to a remote node: ", err)
+					log.Println("Failed to write to a remote node:", err)
 				}
 			}()
 		}

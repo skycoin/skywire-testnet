@@ -26,7 +26,7 @@ func main() {
 	}
 	defer func() {
 		if err := sshApp.Close(); err != nil {
-			log.Println("Failed to close app: ", err)
+			log.Println("Failed to close app:", err)
 		}
 	}()
 
@@ -45,7 +45,7 @@ func main() {
 	server := ssh.NewServer(auth)
 	defer func() {
 		if err := server.Close(); err != nil {
-			log.Println("Failed to close server: ", err)
+			log.Println("Failed to close server:", err)
 		}
 	}()
 

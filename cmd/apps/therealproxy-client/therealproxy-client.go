@@ -33,7 +33,7 @@ func main() {
 	}
 	defer func() {
 		if err := socksApp.Close(); err != nil {
-			log.Println("Failed to close app: ", err)
+			log.Println("Failed to close app:", err)
 		}
 	}()
 

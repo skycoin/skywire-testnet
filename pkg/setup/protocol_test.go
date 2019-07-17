@@ -15,7 +15,7 @@ func ExampleNewSetupProtocol() {
 	in, _ := net.Pipe()
 	defer func() {
 		if err := in.Close(); err != nil {
-			log.Println("Failed to close connection: ", err)
+			log.Println("Failed to close connection:", err)
 		}
 	}()
 
