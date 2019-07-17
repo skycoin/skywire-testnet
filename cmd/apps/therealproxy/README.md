@@ -15,7 +15,7 @@ Create 2 node config files:
 - `skywire1.json`
 
 ```json
-{
+{  
   "apps": [
     {
       "app": "socksproxy",

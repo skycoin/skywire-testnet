@@ -92,7 +92,10 @@ type MockConfig struct {
 func (m *Node) AddMockData(config MockConfig) error {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < config.Nodes; i++ {
-		pk, client := visor.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
+		pk, client, err := visor.NewMockRPCClient(r, config.MaxTpsPerNode, config.MaxRoutesPerNode)
+		if err != nil {
+			return err
+		}
 		m.mu.Lock()
 		m.nodes[pk] = appNodeConn{
 			Addr: &noise.Addr{
@@ -226,17 +229,18 @@ func (m *Node) putApp() http.HandlerFunc {
 			}
 		}
 		if reqBody.Status != nil {
-			if *reqBody.Status == 0 {
+			switch *reqBody.Status {
+			case 0:
 				if err := ctx.RPC.StopApp(ctx.App.Name); err != nil {
 					httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 					return
 				}
-			} else if *reqBody.Status == 1 {
+			case 1:
 				if err := ctx.RPC.StartApp(ctx.App.Name); err != nil {
 					httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 					return
 				}
-			} else {
+			default:
 				httputil.WriteJSON(w, r, http.StatusBadRequest,
 					fmt.Errorf("value of 'status' field is %d when expecting 0 or 1", *reqBody.Status))
 				return
@@ -573,7 +577,7 @@ func (m *Node) routeCtx(w http.ResponseWriter, r *http.Request) (*httpCtx, bool)
 func pkFromParam(r *http.Request, key string) (cipher.PubKey, error) {
 	pk := cipher.PubKey{}
 	err := pk.UnmarshalText([]byte(chi.URLParam(r, key)))
-	return cipher.PubKey(pk), err
+	return pk, err
 }
 
 func uuidFromParam(r *http.Request, key string) (uuid.UUID, error) {
@@ -607,7 +611,7 @@ func pkSliceFromQuery(r *http.Request, key string, defaultVal []cipher.PubKey) (
 		if err := pk.UnmarshalText([]byte(qPK)); err != nil {
 			return nil, err
 		}
-		pks[i] = cipher.PubKey(pk)
+		pks[i] = pk
 	}
 	return pks, nil
 }

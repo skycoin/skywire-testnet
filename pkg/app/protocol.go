@@ -109,17 +109,23 @@ func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) er
 
 		go func() {
 			if handleFunc == nil {
-				p.writeFrame(FrameSuccess, id, nil) // nolint: errcheck
+				if err := p.writeFrame(FrameSuccess, id, nil); err != nil {
+					log.WithError(err).Warn("Failed to write frame")
+				}
 				return
 			}
 
 			res, err := handleFunc(fType, frame[2:])
 			if err != nil {
-				p.writeFrame(FrameFailure, id, err) // nolint: errcheck
+				if err := p.writeFrame(FrameFailure, id, err); err != nil {
+					log.WithError(err).Warn("Failed to write frame")
+				}
 				return
 			}
 
-			p.writeFrame(FrameSuccess, id, res) // nolint: errcheck
+			if err := p.writeFrame(FrameSuccess, id, res); err != nil {
+				log.WithError(err).Warn("Failed to write frame")
+			}
 		}()
 	}
 }

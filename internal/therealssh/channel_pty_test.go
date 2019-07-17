@@ -37,8 +37,8 @@ func TestChannelServe(t *testing.T) {
 	buf := make([]byte, 6)
 	_, err = out.Read(buf)
 	require.NoError(t, err)
-	assert.Equal(t, byte(CmdChannelResponse), buf[0])
-	assert.Equal(t, byte(ResponseConfirm), buf[5])
+	assert.Equal(t, CmdChannelResponse, buf[0])
+	assert.Equal(t, ResponseConfirm, buf[5])
 
 	require.NotNil(t, ch.session)
 
@@ -48,13 +48,13 @@ func TestChannelServe(t *testing.T) {
 	buf = make([]byte, 6)
 	_, err = out.Read(buf)
 	require.NoError(t, err)
-	assert.Equal(t, byte(CmdChannelResponse), buf[0])
-	assert.Equal(t, byte(ResponseConfirm), buf[5])
+	assert.Equal(t, CmdChannelResponse, buf[0])
+	assert.Equal(t, ResponseConfirm, buf[5])
 
 	buf = make([]byte, 10)
 	_, err = out.Read(buf)
 	require.NoError(t, err)
-	assert.Equal(t, byte(CmdChannelData), buf[0])
+	assert.Equal(t, CmdChannelData, buf[0])
 	assert.NotNil(t, buf[5:])
 
 	require.NotNil(t, ch.dataCh)
@@ -64,13 +64,13 @@ func TestChannelServe(t *testing.T) {
 	buf = make([]byte, 15)
 	_, err = out.Read(buf)
 	require.NoError(t, err)
-	assert.Equal(t, byte(CmdChannelData), buf[0])
+	assert.Equal(t, CmdChannelData, buf[0])
 	assert.Contains(t, string(buf[5:]), "echo foo")
 
 	buf = make([]byte, 15)
 	_, err = out.Read(buf)
 	require.NoError(t, err)
-	assert.Equal(t, byte(CmdChannelData), buf[0])
+	assert.Equal(t, CmdChannelData, buf[0])
 	assert.Contains(t, string(buf[5:]), "foo")
 
 	req = appendU32([]byte{byte(RequestWindowChange)}, 40)
@@ -83,8 +83,8 @@ func TestChannelServe(t *testing.T) {
 	buf = make([]byte, 6)
 	_, err = out.Read(buf)
 	require.NoError(t, err)
-	assert.Equal(t, byte(CmdChannelResponse), buf[0])
-	assert.Equal(t, byte(ResponseConfirm), buf[5])
+	assert.Equal(t, CmdChannelResponse, buf[0])
+	assert.Equal(t, ResponseConfirm, buf[5])
 
 	require.NoError(t, ch.Close())
 	require.NoError(t, <-errCh)

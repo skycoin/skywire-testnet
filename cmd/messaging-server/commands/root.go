@@ -9,9 +9,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
@@ -56,7 +57,7 @@ var rootCmd = &cobra.Command{
 		logging.SetLevel(logLevel)
 
 		if syslogAddr != "" {
-			hook, err := logrus_syslog.NewSyslogHook("udp", syslogAddr, syslog.LOG_INFO, tag)
+			hook, err := logrussyslog.NewSyslogHook("udp", syslogAddr, syslog.LOG_INFO, tag)
 			if err != nil {
 				logger.Fatalf("Unable to connect to syslog daemon on %v", syslogAddr)
 			}
@@ -97,7 +98,7 @@ func parseConfig(configFile string) *Config {
 	var rdr io.Reader
 	var err error
 	if !cfgFromStdin {
-		rdr, err = os.Open(configFile)
+		rdr, err = os.Open(filepath.Clean(configFile))
 		if err != nil {
 			log.Fatalf("Failed to open config: %s", err)
 		}

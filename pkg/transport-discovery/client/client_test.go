@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -63,7 +62,8 @@ func TestClientAuth(t *testing.T) {
 				assert.NotEmpty(t, r.Header.Get("SW-Sig")) // TODO: check for the right key
 
 			case fmt.Sprintf("/security/nonces/%s", testPubKey):
-				fmt.Fprintf(w, `{"edge": "%s", "next_nonce": 1}`, testPubKey)
+				_, err := fmt.Fprintf(w, `{"edge": "%s", "next_nonce": 1}`, testPubKey)
+				require.NoError(t, err)
 
 			default:
 				t.Errorf("Don't know how to handle URL = '%s'", url)
@@ -122,7 +122,8 @@ func TestRegisterTransportResponses(t *testing.T) {
 			"NonJSONError",
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "boom")
+				_, err := fmt.Fprintf(w, "boom")
+				require.NoError(t, err)
 			},
 			func(err error) {
 				require.Error(t, err)
@@ -140,21 +141,22 @@ func TestRegisterTransportResponses(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(_ *testing.T) {
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(_ *testing.T) {
 			wg.Add(1)
 
-			srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			srv := httptest.NewServer(authHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				defer wg.Done()
-				test.handler(w, r)
+				tc.handler(w, r)
 			})))
 			defer srv.Close()
 
 			c, err := NewHTTP(srv.URL, testPubKey, testSecKey)
 			require.NoError(t, err)
 			err = c.RegisterTransports(context.Background(), &transport.SignedEntry{})
-			if test.assert != nil {
-				test.assert(err)
+			if tc.assert != nil {
+				tc.assert(err)
 			}
 
 			wg.Wait()
@@ -166,9 +168,9 @@ func TestRegisterTransports(t *testing.T) {
 	// Signatures does not matter in this test
 	sEntry := &transport.SignedEntry{Entry: newTestEntry()}
 
-	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(authHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/transports/", r.URL.String())
-		entries := []*transport.SignedEntry{}
+		var entries []*transport.SignedEntry
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&entries))
 		require.Len(t, entries, 1)
 		assert.Equal(t, sEntry.Entry, entries[0].Entry)
@@ -183,9 +185,9 @@ func TestRegisterTransports(t *testing.T) {
 
 func TestGetTransportByID(t *testing.T) {
 	entry := &transport.EntryWithStatus{Entry: newTestEntry(), IsUp: true}
-	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(authHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, fmt.Sprintf("/transports/id:%s", entry.Entry.ID), r.URL.String())
-		json.NewEncoder(w).Encode(entry) // nolint: errcheck
+		require.NoError(t, json.NewEncoder(w).Encode(entry))
 	})))
 	defer srv.Close()
 
@@ -200,9 +202,9 @@ func TestGetTransportByID(t *testing.T) {
 
 func TestGetTransportsByEdge(t *testing.T) {
 	entry := &transport.EntryWithStatus{Entry: newTestEntry(), IsUp: true}
-	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(authHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, fmt.Sprintf("/transports/edge:%s", entry.Entry.Edges()[0]), r.URL.String())
-		json.NewEncoder(w).Encode([]*transport.EntryWithStatus{entry}) // nolint: errcheck
+		require.NoError(t, json.NewEncoder(w).Encode([]*transport.EntryWithStatus{entry}))
 	})))
 	defer srv.Close()
 
@@ -218,13 +220,13 @@ func TestGetTransportsByEdge(t *testing.T) {
 
 func TestUpdateStatuses(t *testing.T) {
 	entry := &transport.EntryWithStatus{Entry: newTestEntry(), IsUp: true}
-	srv := httptest.NewServer(authHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(authHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/statuses", r.URL.String())
-		statuses := []*transport.Status{}
+		statuses := make([]*transport.Status, 0)
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&statuses))
 		require.Len(t, statuses, 1)
 		assert.Equal(t, entry.Entry.ID, statuses[0].ID)
-		json.NewEncoder(w).Encode([]*transport.EntryWithStatus{entry}) // nolint: errcheck
+		require.NoError(t, json.NewEncoder(w).Encode([]*transport.EntryWithStatus{entry}))
 	})))
 	defer srv.Close()
 
@@ -237,11 +239,11 @@ func TestUpdateStatuses(t *testing.T) {
 	assert.Equal(t, entry.Entry, entries[0].Entry)
 }
 
-func authHandler(next http.Handler) http.Handler {
+func authHandler(t *testing.T, next http.Handler) http.Handler {
 	m := http.NewServeMux()
 	m.Handle("/security/nonces/", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: testPubKey, NextNonce: 1}) // nolint: errcheck
+			require.NoError(t, json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: testPubKey, NextNonce: 1}))
 		},
 	))
 	m.Handle("/", next)

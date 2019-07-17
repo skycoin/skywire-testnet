@@ -31,7 +31,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}
-	defer socksApp.Close()
+	defer func() {
+		if err := socksApp.Close(); err != nil {
+			log.Println("Failed to close app:", err)
+		}
+	}()
 
 	if *serverPK == "" {
 		log.Fatal("Invalid server PubKey")

@@ -31,7 +31,7 @@ func AuthFromHeaders(hdr http.Header) (*Auth, error) {
 	}
 	key := cipher.PubKey{}
 	if err := key.UnmarshalText([]byte(v)); err != nil {
-		return nil, fmt.Errorf("Error parsing SW-Public: %s", err.Error())
+		return nil, fmt.Errorf("error parsing SW-Public: %s", err.Error())
 	}
 	a.Key = key
 
@@ -40,7 +40,7 @@ func AuthFromHeaders(hdr http.Header) (*Auth, error) {
 	}
 	sig := cipher.Sig{}
 	if err := sig.UnmarshalText([]byte(v)); err != nil {
-		return nil, fmt.Errorf("Error parsing SW-Sig:'%s': %s", v, err.Error())
+		return nil, fmt.Errorf("error parsing SW-Sig:'%s': %s", v, err.Error())
 	}
 	a.Sig = sig
 
@@ -51,10 +51,10 @@ func AuthFromHeaders(hdr http.Header) (*Auth, error) {
 	nonceUint, err := strconv.ParseUint(nonceStr, 10, 64)
 	if err != nil {
 		if numErr, ok := err.(*strconv.NumError); ok {
-			return nil, fmt.Errorf("Error parsing SW-Nonce: %s", numErr.Err.Error())
+			return nil, fmt.Errorf("error parsing SW-Nonce: %s", numErr.Err.Error())
 		}
 
-		return nil, fmt.Errorf("Error parsing SW-Nonce: %s", err.Error())
+		return nil, fmt.Errorf("error parsing SW-Nonce: %s", err.Error())
 	}
 	a.Nonce = Nonce(nonceUint)
 

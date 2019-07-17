@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -79,14 +78,16 @@ func (s *Server) OpenChannel(remoteAddr routing.Addr, remoteID uint32, conn net.
 
 	debug("sending response")
 	if err := channel.Send(CmdChannelOpenResponse, res); err != nil {
-		channel.Close()
+		if err := channel.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close channel")
+		}
 		return fmt.Errorf("channel response failure: %s", err)
 	}
 
 	go func() {
 		debug("listening for channel requests")
 		if err := channel.Serve(); err != nil {
-			log.Println("channel failure:", err)
+			log.Error("channel failure:", err)
 		}
 	}()
 
@@ -102,7 +103,7 @@ func (s *Server) HandleRequest(remotePK cipher.PubKey, localID uint32, data []by
 
 	if s.auth.Authorize(remotePK) != nil || channel.RemoteAddr.PubKey != remotePK {
 		if err := channel.Send(CmdChannelResponse, responseUnauthorized); err != nil {
-			log.Println("failed to send response: ", err)
+			log.Error("failed to send response: ", err)
 		}
 		return nil
 	}
@@ -182,7 +183,9 @@ func (s *Server) Close() error {
 	}
 
 	for _, channel := range s.chans.dropAll() {
-		channel.Close()
+		if err := channel.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close channel")
+		}
 	}
 
 	return nil

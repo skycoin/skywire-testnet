@@ -263,7 +263,11 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
-	defer tr.Close()
+	defer func() {
+		if err := tr.Close(); err != nil {
+			sn.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
 
 	proto := NewSetupProtocol(tr)
 	if err := ConfirmLoop(proto, ld); err != nil {
@@ -279,7 +283,11 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
-	defer tr.Close()
+	defer func() {
+		if err := tr.Close(); err != nil {
+			sn.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
 
 	proto := NewSetupProtocol(tr)
 	if err := LoopClosed(proto, ld); err != nil {
@@ -296,7 +304,11 @@ func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID rout
 		err = fmt.Errorf("transport: %s", err)
 		return
 	}
-	defer tr.Close()
+	defer func() {
+		if err := tr.Close(); err != nil {
+			sn.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
 
 	proto := NewSetupProtocol(tr)
 	routeID, err = AddRule(proto, rule)

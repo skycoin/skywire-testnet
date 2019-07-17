@@ -52,13 +52,17 @@ func TestStartStopApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	router := new(mockRouter)
 	executer := new(MockExecuter)
-	defer os.RemoveAll("skychat")
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
 
 	apps := []AppConfig{{App: "foo", Version: "1.0", AutoStart: false, Port: 10}}
 	node := &Node{router: router, executer: executer, appsConf: apps, startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test"), config: &Config{}}
 	node.config.Node.StaticPubKey = pk
 	pathutil.EnsureDir(node.dir())
-	defer os.RemoveAll(node.dir())
+	defer func() {
+		require.NoError(t, os.RemoveAll(node.dir()))
+	}()
 
 	rpc := &RPC{node: node}
 	unknownApp := "bar"
@@ -95,7 +99,9 @@ func TestStartStopApp(t *testing.T) {
 func TestRPC(t *testing.T) {
 	r := new(mockRouter)
 	executer := new(MockExecuter)
-	defer os.RemoveAll("skychat")
+	defer func() {
+		require.NoError(t, os.RemoveAll("skychat"))
+	}()
 
 	pk1, _, tm1, tm2, errCh, err := transport.MockTransportManagersPair()
 	require.NoError(t, err)
@@ -126,7 +132,11 @@ func TestRPC(t *testing.T) {
 		logger:      logging.MustGetLogger("test"),
 	}
 	pathutil.EnsureDir(node.dir())
-	defer os.RemoveAll(node.dir())
+	defer func() {
+		if err := os.RemoveAll(node.dir()); err != nil {
+			log.WithError(err).Warn(err)
+		}
+	}()
 
 	require.NoError(t, node.StartApp("foo"))
 	require.NoError(t, node.StartApp("bar"))
@@ -144,9 +154,9 @@ func TestRPC(t *testing.T) {
 	require.NoError(t, svr.RegisterName(RPCPrefix, gateway))
 	go svr.ServeConn(sConn)
 
-	//client := RPCClient{Client: rpc.NewClient(cConn)}
+	// client := RPCClient{Client: rpc.NewClient(cConn)}
 
-	print := func(t *testing.T, name string, v interface{}) {
+	printFunc := func(t *testing.T, name string, v interface{}) {
 		j, err := json.MarshalIndent(v, name+": ", "  ")
 		require.NoError(t, err)
 		t.Log(string(j))
@@ -157,45 +167,45 @@ func TestRPC(t *testing.T) {
 			assert.Equal(t, pk1, summary.PubKey)
 			assert.Len(t, summary.Apps, 2)
 			assert.Len(t, summary.Transports, 1)
-			print(t, "Summary", summary)
+			printFunc(t, "Summary", summary)
 		}
 		t.Run("RPCServer", func(t *testing.T) {
 			var summary Summary
 			require.NoError(t, gateway.Summary(&struct{}{}, &summary))
 			test(t, &summary)
 		})
-		//t.Run("RPCClient", func(t *testing.T) {
+		// t.Run("RPCClient", func(t *testing.T) {
 		//	summary, err := client.Summary()
 		//	require.NoError(t, err)
 		//	test(t, summary)
-		//})
+		// })
 	})
 
 	t.Run("Apps", func(t *testing.T) {
 		test := func(t *testing.T, apps []*AppState) {
 			assert.Len(t, apps, 2)
-			print(t, "Apps", apps)
+			printFunc(t, "Apps", apps)
 		}
 		t.Run("RPCServer", func(t *testing.T) {
 			var apps []*AppState
 			require.NoError(t, gateway.Apps(&struct{}{}, &apps))
 			test(t, apps)
 		})
-		//t.Run("RPCClient", func(t *testing.T) {
+		// t.Run("RPCClient", func(t *testing.T) {
 		//	apps, err := client.Apps()
 		//	require.NoError(t, err)
 		//	test(t, apps)
-		//})
+		// })
 	})
 
 	// TODO(evanlinjin): For some reason, this freezes.
-	//t.Run("StopStartApp", func(t *testing.T) {
+	// t.Run("StopStartApp", func(t *testing.T) {
 	//	appName := "foo"
 	//	require.NoError(t, gateway.StopApp(&appName, &struct{}{}))
 	//	require.NoError(t, gateway.StartApp(&appName, &struct{}{}))
 	//	require.NoError(t, client.StopApp(appName))
 	//	require.NoError(t, client.StartApp(appName))
-	//})
+	// })
 
 	t.Run("SetAutoStart", func(t *testing.T) {
 		unknownAppName := "whoAmI"
@@ -219,15 +229,15 @@ func TestRPC(t *testing.T) {
 
 		// Test with RPC Client
 
-		//err = client.SetAutoStart(in1.AppName, in1.AutoStart)
-		//require.Error(t, err)
-		//assert.Equal(t, ErrUnknownApp.Error(), err.Error())
+		// err = client.SetAutoStart(in1.AppName, in1.AutoStart)
+		// require.Error(t, err)
+		// assert.Equal(t, ErrUnknownApp.Error(), err.Error())
 		//
-		//require.NoError(t, client.SetAutoStart(in2.AppName, in2.AutoStart))
-		//assert.True(t, node.appsConf[0].AutoStart)
+		// require.NoError(t, client.SetAutoStart(in2.AppName, in2.AutoStart))
+		// assert.True(t, node.appsConf[0].AutoStart)
 		//
-		//require.NoError(t, client.SetAutoStart(in3.AppName, in3.AutoStart))
-		//assert.False(t, node.appsConf[0].AutoStart)
+		// require.NoError(t, client.SetAutoStart(in3.AppName, in3.AutoStart))
+		// assert.False(t, node.appsConf[0].AutoStart)
 	})
 
 	t.Run("TransportTypes", func(t *testing.T) {
@@ -238,9 +248,9 @@ func TestRPC(t *testing.T) {
 		assert.Len(t, out, 1)
 		assert.Equal(t, "mock", out[0].Type)
 
-		//out2, err := client.Transports(in.FilterTypes, in.FilterPubKeys, in.ShowLogs)
-		//require.NoError(t, err)
-		//assert.Equal(t, out, out2)
+		// out2, err := client.Transports(in.FilterTypes, in.FilterPubKeys, in.ShowLogs)
+		// require.NoError(t, err)
+		// assert.Equal(t, out, out2)
 	})
 
 	t.Run("Transport", func(t *testing.T) {
@@ -251,12 +261,13 @@ func TestRPC(t *testing.T) {
 		})
 
 		for _, id := range ids {
+			id := id
 			var summary TransportSummary
 			require.NoError(t, gateway.Transport(&id, &summary))
 
-			//summary2, err := client.Transport(id)
-			//require.NoError(t, err)
-			//require.Equal(t, summary, *summary2)
+			// summary2, err := client.Transport(id)
+			// require.NoError(t, err)
+			// require.Equal(t, summary, *summary2)
 		}
 	})
 

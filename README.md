@@ -35,7 +35,7 @@
       - [2. Get an IP of node](#2-get-an-ip-of-node)
       - [3. Open in browser containerized `skychat` application](#3-open-in-browser-containerized-skychat-application)
       - [4. Create new dockerized `skywire-visors`](#4-create-new-dockerized-skywire-visors)
-      - [5. Env-vars for develoment-/testing- purposes](#5-env-vars-for-develoment-testing--purposes)
+      - [5. Env-vars for development-/testing- purposes](#5-env-vars-for-development-testing--purposes)
       - [6. "Hello-Mike-Hello-Joe" test](#6-hello-mike-hello-joe-test)
 
 ## Notes on this release
@@ -424,7 +424,7 @@ Instead of skywire-runner you can use:
 - `golang`, `buildpack-deps:stretch-scm` "as is"
 - and `debian`, `ubuntu` - after `apt-get install ca-certificates` in them. Look in `skywire-runner.Dockerfile` for example
 
-#### 5. Env-vars for develoment-/testing- purposes
+#### 5. Env-vars for development-/testing- purposes
 
 ```bash
 export SW_NODE_A=127.0.0.1

@@ -28,6 +28,8 @@ const (
 	maxHops  = 50
 )
 
+var log = logging.MustGetLogger("router")
+
 // Config configures Router.
 type Config struct {
 	Logger           *logging.Logger
@@ -97,7 +99,11 @@ func (r *Router) Serve(ctx context.Context) error {
 			}
 
 			go func(tp transport.Transport) {
-				defer tp.Close()
+				defer func() {
+					if err := tp.Close(); err != nil {
+						r.Logger.Warnf("Failed to close transport: %s", err)
+					}
+				}()
 				for {
 					if err := serve(tp); err != nil {
 						if err != io.EOF {
@@ -146,7 +152,9 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 
 	for _, port := range r.pm.AppPorts(appProto) {
 		for _, addr := range r.pm.Close(port) {
-			r.closeLoop(appProto, routing.Loop{Local: routing.Addr{Port: port}, Remote: addr}) // nolint: errcheck
+			if err := r.closeLoop(appProto, routing.Loop{Local: routing.Addr{Port: port}, Remote: addr}); err != nil {
+				log.WithError(err).Warn("Failed to close loop")
+			}
 		}
 	}
 
@@ -170,7 +178,9 @@ func (r *Router) Close() error {
 	r.expiryTicker.Stop()
 
 	for _, conn := range r.pm.AppConns() {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 	}
 
 	r.wg.Wait()
@@ -221,7 +231,10 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
 	p := &app.Packet{Loop: routing.Loop{Local: laddr, Remote: raddr}, Payload: payload}
-	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
+	b, err := r.pm.Get(rule.LocalPort())
+	if err != nil {
+		return err
+	}
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
 		return err
 	}
@@ -301,7 +314,11 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 	if err != nil {
 		return routing.Addr{}, err
 	}
-	defer tr.Close()
+	defer func() {
+		if err := tr.Close(); err != nil {
+			r.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
 
 	if err := setup.CreateLoop(proto, ld); err != nil {
 		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
@@ -352,7 +369,11 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
 	if err != nil {
 		return err
 	}
-	defer tr.Close()
+	defer func() {
+		if err := tr.Close(); err != nil {
+			r.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
 
 	ld := routing.LoopData{Loop: loop}
 	if err := setup.CloseLoop(proto, ld); err != nil {
@@ -387,7 +408,9 @@ func (r *Router) destroyLoop(loop routing.Loop) error {
 	r.mu.Unlock()
 
 	if ok {
-		r.pm.RemoveLoop(loop.Local.Port, loop.Remote) // nolint: errcheck
+		if err := r.pm.RemoveLoop(loop.Local.Port, loop.Remote); err != nil {
+			log.WithError(err).Warn("Failed to remove loop")
+		}
 	} else {
 		r.pm.Close(loop.Local.Port)
 	}

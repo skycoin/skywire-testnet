@@ -43,7 +43,9 @@ func TestInMemoryTransportLogStore(t *testing.T) {
 func TestFileTransportLogStore(t *testing.T) {
 	dir, err := ioutil.TempDir("", "log_store")
 	require.NoError(t, err)
-	defer os.RemoveAll(dir)
+	defer func() {
+		require.NoError(t, os.RemoveAll(dir))
+	}()
 
 	ls, err := transport.FileTransportLogStore(dir)
 	require.NoError(t, err)

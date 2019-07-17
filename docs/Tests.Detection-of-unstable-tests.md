@@ -1,8 +1,8 @@
 # Tests. Detection of unstable tests
 
-## Synopsys
+## Synopsis
 
-This document describe procedure to detect tests that FAILs with some probability, e.g. 10-15% of runs.
+This document describes a procedure to detect tests that FAIL with some probability, e.g. 10-15% of runs.
 
 Such tests are questionable themselves and they add instability of CI builds.
 
@@ -17,7 +17,7 @@ go test ./pkg/... -list "Test*|Example*" > ./logs/list-of-pkg-tests.txt  # use a
 go test ./internal/... -list "Test*|Example*" > ./logs/list-of-internal-tests.txt
 ```
 
-You will get output simlar to:
+You will get output similar to:
 
 ```text
 TestClient
@@ -114,7 +114,7 @@ Either fix it or tag it with `no_ci` tag.
 
 **Detected unstable test**
 
-It was observed that travic_ci builds randomly fails.
+It was observed that Travis CI builds randomly fail.
 
 Narrowing search it was found that problem arises in `pkg/messaging` tests.
 

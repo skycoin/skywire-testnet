@@ -88,7 +88,7 @@ func (s *UserManager) Login() http.HandlerFunc {
 			User:   rb.Username,
 			Expiry: time.Now().Add(s.c.ExpiresDuration),
 		})
-		//http.SetCookie()
+		// http.SetCookie()
 		httputil.WriteJSON(w, r, http.StatusOK, ok)
 	}
 }

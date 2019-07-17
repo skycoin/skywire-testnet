@@ -43,7 +43,7 @@ func NewFileAuthorizer(authFile string) (*FileAuthorizer, error) {
 		return nil, fmt.Errorf("failed to resolve auth file path: %s", err)
 	}
 
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
@@ -70,7 +70,11 @@ func (auth *FileAuthorizer) Close() error {
 
 // Authorize implements Authorizer for FileAuthorizer
 func (auth *FileAuthorizer) Authorize(remotePK cipher.PubKey) error {
-	defer auth.authFile.Seek(0, 0) // nolint
+	defer func() {
+		if _, err := auth.authFile.Seek(0, 0); err != nil {
+			log.WithError(err).Warn("Failed to seek to the beginning of auth file")
+		}
+	}()
 
 	hexPK := remotePK.Hex()
 	scanner := bufio.NewScanner(auth.authFile)

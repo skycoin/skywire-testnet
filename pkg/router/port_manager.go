@@ -41,7 +41,7 @@ func (pm *portManager) SetLoop(port routing.Port, raddr routing.Addr, l *loop) e
 }
 
 func (pm *portManager) AppConns() []*app.Protocol {
-	res := []*app.Protocol{}
+	res := make([]*app.Protocol, 0)
 	set := map[*app.Protocol]struct{}{}
 	for _, bind := range pm.ports.all() {
 		if _, ok := set[bind.conn]; !ok {
@@ -53,7 +53,7 @@ func (pm *portManager) AppConns() []*app.Protocol {
 }
 
 func (pm *portManager) AppPorts(appConn *app.Protocol) []routing.Port {
-	res := []routing.Port{}
+	res := make([]routing.Port, 0)
 	for port, bind := range pm.ports.all() {
 		if bind.conn == appConn {
 			res = append(res, port)
