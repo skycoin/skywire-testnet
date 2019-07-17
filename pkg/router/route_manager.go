@@ -14,8 +14,8 @@ import (
 )
 
 type setupCallbacks struct {
-	ConfirmLoop func(loop *routing.Loop, rule routing.Rule) (err error)
-	LoopClosed  func(loop *routing.Loop) error
+	ConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
+	LoopClosed  func(loop routing.Loop) error
 }
 
 type routeManager struct {
@@ -42,7 +42,7 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 	return rule, nil
 }
 
-func (rm *routeManager) RemoveLoopRule(loop *routing.Loop) error {
+func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
@@ -175,7 +175,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return errors.New("reverse rule is not forward")
 	}
 
-	if err = rm.callbacks.ConfirmLoop(&ld.Loop, rule); err != nil {
+	if err = rm.callbacks.ConfirmLoop(ld.Loop, rule); err != nil {
 		return fmt.Errorf("confirm: %s", err)
 	}
 
@@ -195,5 +195,5 @@ func (rm *routeManager) loopClosed(data []byte) error {
 		return err
 	}
 
-	return rm.callbacks.LoopClosed(&ld.Loop)
+	return rm.callbacks.LoopClosed(ld.Loop)
 }

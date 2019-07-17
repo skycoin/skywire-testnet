@@ -14,7 +14,7 @@ type Loop struct {
 }
 
 // TODO: discuss if we should add local PK to the output
-func (l *Loop) String() string {
+func (l Loop) String() string {
 	return fmt.Sprintf(":%d <-> %s:%d", l.Local.Port, l.Remote.PubKey, l.Remote.Port)
 }
 

@@ -146,7 +146,7 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 
 	for _, port := range r.pm.AppPorts(appProto) {
 		for _, addr := range r.pm.Close(port) {
-			r.closeLoop(appProto, &routing.Loop{Local: routing.Addr{Port: port}, Remote: addr}) // nolint: errcheck
+			r.closeLoop(appProto, routing.Loop{Local: routing.Addr{Port: port}, Remote: addr}) // nolint: errcheck
 		}
 	}
 
@@ -220,7 +220,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	laddr := routing.Addr{Port: rule.LocalPort()}
 	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
-	p := &app.Packet{Loop: &routing.Loop{Local: laddr, Remote: raddr}, Payload: payload}
+	p := &app.Packet{Loop: routing.Loop{Local: laddr, Remote: raddr}, Payload: payload}
 	b, _ := r.pm.Get(rule.LocalPort()) // nolint: errcheck
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
 		return err
@@ -258,7 +258,7 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 	}
 
 	p := &app.Packet{
-		Loop: &routing.Loop{
+		Loop: routing.Loop{
 			Local:  routing.Addr{Port: packet.Loop.Remote.Port},
 			Remote: routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Local.Port},
 		},
@@ -325,7 +325,7 @@ func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
 	return nil
 }
 
-func (r *Router) confirmLoop(l *routing.Loop, rule routing.Rule) error {
+func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
 	b, err := r.pm.Get(l.Local.Port)
 	if err != nil {
 		return err
@@ -343,7 +343,7 @@ func (r *Router) confirmLoop(l *routing.Loop, rule routing.Rule) error {
 	return nil
 }
 
-func (r *Router) closeLoop(appConn *app.Protocol, loop *routing.Loop) error {
+func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
 	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
@@ -354,7 +354,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop *routing.Loop) error {
 	}
 	defer tr.Close()
 
-	ld := &routing.LoopData{Loop: *loop}
+	ld := &routing.LoopData{Loop: loop}
 	if err := setup.CloseLoop(proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
@@ -363,7 +363,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop *routing.Loop) error {
 	return nil
 }
 
-func (r *Router) loopClosed(loop *routing.Loop) error {
+func (r *Router) loopClosed(loop routing.Loop) error {
 	b, err := r.pm.Get(loop.Local.Port)
 	if err != nil {
 		return nil
@@ -381,7 +381,7 @@ func (r *Router) loopClosed(loop *routing.Loop) error {
 	return nil
 }
 
-func (r *Router) destroyLoop(loop *routing.Loop) error {
+func (r *Router) destroyLoop(loop routing.Loop) error {
 	r.mu.Lock()
 	_, ok := r.staticPorts[loop.Local.Port]
 	r.mu.Unlock()

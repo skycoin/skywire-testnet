@@ -129,7 +129,7 @@ func TestAppWrite(t *testing.T) {
 	appIn, appOut := net.Pipe()
 	app := &App{proto: NewProtocol(in)}
 	go app.handleProto()
-	go app.serveConn(&routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}, appIn)
+	go app.serveConn(routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}, appIn)
 
 	proto := NewProtocol(out)
 	dataCh := make(chan []byte)
@@ -173,7 +173,7 @@ func TestAppRead(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameSend, &Packet{&routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}, []byte("foo")}, nil)
+		errCh <- proto.Send(FrameSend, &Packet{routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}, []byte("foo")}, nil)
 	}()
 
 	buf := make([]byte, 3)
@@ -232,7 +232,7 @@ func TestAppCloseConn(t *testing.T) {
 
 	errCh := make(chan error)
 	go func() {
-		errCh <- proto.Send(FrameClose, &routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}, nil)
+		errCh <- proto.Send(FrameClose, routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}, nil)
 	}()
 
 	_, err := appOut.Read(make([]byte, 3))

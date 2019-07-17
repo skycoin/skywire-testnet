@@ -14,7 +14,7 @@ const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
 	CreateLoop func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
-	CloseLoop  func(conn *app.Protocol, loop *routing.Loop) error
+	CloseLoop  func(conn *app.Protocol, loop routing.Loop) error
 	Forward    func(conn *app.Protocol, packet *app.Packet) error
 }
 
@@ -87,7 +87,7 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 		return err
 	}
 
-	return am.callbacks.CloseLoop(am.proto, &loop)
+	return am.callbacks.CloseLoop(am.proto, loop)
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {

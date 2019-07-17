@@ -47,11 +47,11 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 	_, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
-	loop := &routing.Loop{Local: routing.Addr{Port: 3}, Remote: routing.Addr{PubKey: pk, Port: 3}}
+	loop := routing.Loop{Local: routing.Addr{Port: 3}, Remote: routing.Addr{PubKey: pk, Port: 3}}
 	require.NoError(t, rm.RemoveLoopRule(loop))
 	assert.Equal(t, 1, rt.Count())
 
-	loop = &routing.Loop{Local: routing.Addr{Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}
+	loop = routing.Loop{Local: routing.Addr{Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}
 	require.NoError(t, rm.RemoveLoopRule(loop))
 	assert.Equal(t, 0, rt.Count())
 }
@@ -120,10 +120,10 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 
 func TestRouteManagerConfirmLoop(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	var inLoop *routing.Loop
+	var inLoop routing.Loop
 	var inRule routing.Rule
 	callbacks := &setupCallbacks{
-		ConfirmLoop: func(loop *routing.Loop, rule routing.Rule) (err error) {
+		ConfirmLoop: func(loop routing.Loop, rule routing.Rule) (err error) {
 			inLoop = loop
 			inRule = rule
 			return nil
@@ -170,9 +170,9 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 
 func TestRouteManagerLoopClosed(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	var inLoop *routing.Loop
+	var inLoop routing.Loop
 	callbacks := &setupCallbacks{
-		LoopClosed: func(loop *routing.Loop) error {
+		LoopClosed: func(loop routing.Loop) error {
 			inLoop = loop
 			return nil
 		},
