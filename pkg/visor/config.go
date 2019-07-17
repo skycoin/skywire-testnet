@@ -110,7 +110,7 @@ func (c *Config) RoutingTable() (routing.Table, error) {
 
 // AppsConfig decodes AppsConfig from a local json config file.
 func (c *Config) AppsConfig() ([]AppConfig, error) {
-	apps := []AppConfig{}
+	apps := make([]AppConfig, 0)
 	for _, app := range c.Apps {
 		if app.Version == "" {
 			app.Version = c.Version

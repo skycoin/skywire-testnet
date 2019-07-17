@@ -92,7 +92,7 @@ func (c *Config) Parse(path string) error {
 	if path, err = filepath.Abs(path); err != nil {
 		return err
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return err
 	}

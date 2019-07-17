@@ -3,7 +3,6 @@ package therealproxy
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +13,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 	"golang.org/x/net/proxy"
 )
 
@@ -36,7 +36,7 @@ func TestProxy(t *testing.T) {
 	srv, err := NewServer("")
 	require.NoError(t, err)
 
-	l, err := net.Listen("tcp", ":10081") // nolint: gosec
+	l, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
 	errChan := make(chan error)
@@ -46,7 +46,7 @@ func TestProxy(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	conn, err := net.Dial("tcp", ":10081")
+	conn, err := net.Dial("tcp", l.Addr().String())
 	require.NoError(t, err)
 
 	client, err := NewClient(conn)
@@ -63,7 +63,8 @@ func TestProxy(t *testing.T) {
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		_, err := fmt.Fprintln(w, "Hello, client")
+		require.NoError(t, err)
 	}))
 	defer ts.Close()
 

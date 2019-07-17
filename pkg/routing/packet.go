@@ -12,7 +12,7 @@ type RouteID uint32
 type Packet []byte
 
 // MakePacket constructs a new Packet. If payload size is more than
-// uint16, PutUvarint will panic.
+// uint16, MakePacket will panic.
 func MakePacket(id RouteID, payload []byte) Packet {
 	if len(payload) > math.MaxUint16 {
 		panic("packet size exceeded")

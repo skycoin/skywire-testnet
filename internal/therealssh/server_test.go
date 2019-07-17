@@ -2,7 +2,6 @@ package therealssh
 
 import (
 	"encoding/binary"
-	"log"
 	"net"
 	"os"
 	"testing"
@@ -45,7 +44,7 @@ func TestServerOpenChannel(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, <-errCh)
 	assert.Equal(t, byte(CmdChannelOpenResponse), buf[0])
-	assert.Equal(t, byte(ResponseFail), buf[5])
+	assert.Equal(t, ResponseFail, buf[5])
 	assert.Equal(t, []byte("unauthorized"), buf[6:])
 
 	go func() {
@@ -57,7 +56,7 @@ func TestServerOpenChannel(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, <-errCh)
 	assert.Equal(t, byte(CmdChannelOpenResponse), buf[0])
-	assert.Equal(t, byte(ResponseConfirm), buf[5])
+	assert.Equal(t, ResponseConfirm, buf[5])
 	assert.Equal(t, uint32(0), binary.BigEndian.Uint32(buf[6:]))
 }
 
@@ -83,7 +82,7 @@ func TestServerHandleRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, <-errCh)
 	assert.Equal(t, byte(CmdChannelResponse), buf[0])
-	assert.Equal(t, byte(ResponseFail), buf[5])
+	assert.Equal(t, ResponseFail, buf[5])
 	assert.Equal(t, []byte("unauthorized"), buf[6:])
 
 	dataCh := make(chan []byte)

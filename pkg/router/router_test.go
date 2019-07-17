@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"net"
 	"os"
 	"testing"
@@ -16,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -133,12 +133,16 @@ func TestRouterAppInit(t *testing.T) {
 	}()
 
 	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- proto.Serve(nil)
+	}()
 
 	require.NoError(t, proto.Send(app.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
 	require.Error(t, proto.Send(app.FrameInit, &app.Config{AppName: "foo1", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
 
 	require.NoError(t, proto.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 	require.NoError(t, r.Close())
 	require.NoError(t, <-errCh)
 }
@@ -160,7 +164,10 @@ func TestRouterApp(t *testing.T) {
 	m2, err := transport.NewManager(c2, f2)
 	require.NoError(t, err)
 
-	go m2.Serve(context.TODO()) // nolint
+	trServeErrCh := make(chan error, 1)
+	go func() {
+		trServeErrCh <- m2.Serve(context.TODO())
+	}()
 
 	rt := routing.InMemoryRoutingTable()
 	conf := &Config{
@@ -177,13 +184,20 @@ func TestRouterApp(t *testing.T) {
 	}()
 
 	rw, rwIn := net.Pipe()
-	go r.ServeApp(rwIn, 6, &app.Config{}) // nolint: errcheck
+	serveAppErrCh := make(chan error, 1)
+	go func() {
+		serveAppErrCh <- r.ServeApp(rwIn, 6, &app.Config{})
+	}()
 	proto := app.NewProtocol(rw)
 	dataCh := make(chan []byte)
-	go proto.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
-		go func() { dataCh <- p }()
-		return nil, nil
-	})
+	protoServeErrCh := make(chan error, 1)
+	go func() {
+		f := func(_ app.Frame, p []byte) (interface{}, error) {
+			go func() { dataCh <- p }()
+			return nil, nil
+		}
+		protoServeErrCh <- proto.Serve(f)
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -198,7 +212,10 @@ func TestRouterApp(t *testing.T) {
 	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.Entry.ID, 4}))
 
 	tr2 := m2.Transport(tr.Entry.ID)
-	go proto.Send(app.FrameSend, &app.Packet{Loop: routing.Loop{Local: routing.Addr{Port: 6}, Remote: raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
+	sendErrCh := make(chan error, 1)
+	go func() {
+		sendErrCh <- proto.Send(app.FrameSend, &app.Packet{Loop: routing.Loop{Local: routing.Addr{Port: 6}, Remote: raddr}, Payload: []byte("bar")}, nil)
+	}()
 
 	packet := make(routing.Packet, 9)
 	_, err = tr2.Read(packet)
@@ -221,6 +238,12 @@ func TestRouterApp(t *testing.T) {
 
 	require.NoError(t, r.Close())
 	require.NoError(t, <-errCh)
+
+	require.NoError(t, m2.Close())
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(trServeErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(sendErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErrCh))
 }
 
 func TestRouterLocalApp(t *testing.T) {
@@ -245,20 +268,39 @@ func TestRouterLocalApp(t *testing.T) {
 	}()
 
 	rw1, rw1In := net.Pipe()
-	go r.ServeApp(rw1In, 5, &app.Config{}) // nolint: errcheck
+	serveAppErr1Ch := make(chan error, 1)
+	go func() {
+		serveAppErr1Ch <- r.ServeApp(rw1In, 5, &app.Config{})
+	}()
 	proto1 := app.NewProtocol(rw1)
-	go proto1.Serve(nil) // nolint: errcheck
+	protoServeErr1Ch := make(chan error, 1)
+	go func() {
+		protoServeErr1Ch <- proto1.Serve(nil)
+	}()
 
 	rw2, rw2In := net.Pipe()
-	go r.ServeApp(rw2In, 6, &app.Config{}) // nolint: errcheck
+	serveAppErr2Ch := make(chan error, 1)
+	go func() {
+		serveAppErr2Ch <- r.ServeApp(rw2In, 6, &app.Config{})
+	}()
 	proto2 := app.NewProtocol(rw2)
 	dataCh := make(chan []byte)
-	go proto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
-		go func() { dataCh <- p }()
-		return nil, nil
-	})
+	protoServeErr2Ch := make(chan error, 1)
+	go func() {
+		f := func(_ app.Frame, p []byte) (interface{}, error) {
+			go func() { dataCh <- p }()
+			return nil, nil
+		}
+		protoServeErr2Ch <- proto2.Serve(f)
+	}()
 
-	go proto1.Send(app.FrameSend, &app.Packet{Loop: routing.Loop{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo")}, nil) // nolint: errcheck
+	sendErrCh := make(chan error, 1)
+	go func() {
+		packet := &app.Packet{
+			Loop: routing.Loop{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo"),
+		}
+		sendErrCh <- proto1.Send(app.FrameSend, packet, nil)
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -272,6 +314,12 @@ func TestRouterLocalApp(t *testing.T) {
 
 	require.NoError(t, r.Close())
 	require.NoError(t, <-errCh)
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErr1Ch))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErr2Ch))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(sendErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErr1Ch))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErr2Ch))
 }
 
 func TestRouterSetup(t *testing.T) {
@@ -311,21 +359,35 @@ func TestRouterSetup(t *testing.T) {
 	sProto := setup.NewSetupProtocol(tr)
 
 	rw1, rwIn1 := net.Pipe()
-	go r.ServeApp(rwIn1, 2, &app.Config{}) // nolint: errcheck
+	serveAppErr1Ch := make(chan error, 1)
+	go func() {
+		serveAppErr1Ch <- r.ServeApp(rwIn1, 2, &app.Config{})
+	}()
 	appProto1 := app.NewProtocol(rw1)
 	dataCh := make(chan []byte)
-	go appProto1.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
-		go func() { dataCh <- p }()
-		return nil, nil
-	})
+	protoServeErr1Ch := make(chan error, 1)
+	go func() {
+		f := func(_ app.Frame, p []byte) (interface{}, error) {
+			go func() { dataCh <- p }()
+			return nil, nil
+		}
+		protoServeErr1Ch <- appProto1.Serve(f)
+	}()
 
 	rw2, rwIn2 := net.Pipe()
-	go r.ServeApp(rwIn2, 4, &app.Config{}) // nolint: errcheck
+	serveAppErr2Ch := make(chan error, 1)
+	go func() {
+		serveAppErr2Ch <- r.ServeApp(rwIn2, 4, &app.Config{})
+	}()
 	appProto2 := app.NewProtocol(rw2)
-	go appProto2.Serve(func(_ app.Frame, p []byte) (interface{}, error) { // nolint: errcheck,unparam
-		go func() { dataCh <- p }()
-		return nil, nil
-	})
+	protoServeErr2Ch := make(chan error, 1)
+	go func() {
+		f := func(_ app.Frame, p []byte) (interface{}, error) {
+			go func() { dataCh <- p }()
+			return nil, nil
+		}
+		protoServeErr2Ch <- appProto2.Serve(f)
+	}()
 
 	var routeID routing.RouteID
 	t.Run("add route", func(t *testing.T) {
@@ -452,6 +514,11 @@ func TestRouterSetup(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, rule)
 	})
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErr1Ch))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErr2Ch))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErr1Ch))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErr2Ch))
 }
 
 func TestRouterSetupLoop(t *testing.T) {
@@ -470,7 +537,10 @@ func TestRouterSetupLoop(t *testing.T) {
 
 	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
-	go m2.Serve(context.TODO()) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- m2.Serve(context.TODO())
+	}()
 
 	conf := &Config{
 		Logger:           logging.MustGetLogger("routesetup"),
@@ -518,9 +588,15 @@ func TestRouterSetupLoop(t *testing.T) {
 	}()
 
 	rw, rwIn := net.Pipe()
-	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
+	serveAppErrCh := make(chan error, 1)
+	go func() {
+		serveAppErrCh <- r.ServeApp(rwIn, 5, &app.Config{})
+	}()
 	appProto := app.NewProtocol(rw)
-	go appProto.Serve(nil) // nolint: errcheck
+	protoServeErrCh := make(chan error, 1)
+	go func() {
+		protoServeErrCh <- appProto.Serve(nil)
+	}()
 
 	addr := routing.Addr{}
 	require.NoError(t, appProto.Send(app.FrameCreateLoop, routing.Addr{PubKey: pk2, Port: 6}, &addr))
@@ -532,6 +608,10 @@ func TestRouterSetupLoop(t *testing.T) {
 
 	assert.Equal(t, pk1, addr.PubKey)
 	assert.Equal(t, routing.Port(10), addr.Port)
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErrCh))
 }
 
 func TestRouterSetupLoopLocal(t *testing.T) {
@@ -544,9 +624,15 @@ func TestRouterSetupLoopLocal(t *testing.T) {
 	r := New(conf)
 
 	rw, rwIn := net.Pipe()
-	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
+	serveAppErrCh := make(chan error, 1)
+	go func() {
+		serveAppErrCh <- r.ServeApp(rwIn, 5, &app.Config{})
+	}()
 	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	protoServeErrCh := make(chan error, 1)
+	go func() {
+		protoServeErrCh <- proto.Serve(nil)
+	}()
 
 	addr := routing.Addr{}
 	require.NoError(t, proto.Send(app.FrameCreateLoop, routing.Addr{PubKey: pk, Port: 5}, &addr))
@@ -557,6 +643,9 @@ func TestRouterSetupLoopLocal(t *testing.T) {
 
 	assert.Equal(t, pk, addr.PubKey)
 	assert.Equal(t, routing.Port(10), addr.Port)
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErrCh))
 }
 
 func TestRouterCloseLoop(t *testing.T) {
@@ -575,7 +664,10 @@ func TestRouterCloseLoop(t *testing.T) {
 
 	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
-	go m2.Serve(context.TODO()) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- m2.Serve(context.TODO())
+	}()
 
 	rt := routing.InMemoryRoutingTable()
 	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5)
@@ -629,9 +721,15 @@ func TestRouterCloseLoop(t *testing.T) {
 	}()
 
 	rw, rwIn := net.Pipe()
-	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
+	serveAppErrCh := make(chan error, 1)
+	go func() {
+		serveAppErrCh <- r.ServeApp(rwIn, 5, &app.Config{})
+	}()
 	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	protoServeErrCh := make(chan error, 1)
+	go func() {
+		protoServeErrCh <- proto.Serve(nil)
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -651,6 +749,10 @@ func TestRouterCloseLoop(t *testing.T) {
 	rule, err = rt.Rule(routeID)
 	require.NoError(t, err)
 	require.Nil(t, rule)
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErrCh))
 }
 
 func TestRouterCloseLoopOnAppClose(t *testing.T) {
@@ -669,7 +771,10 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 
 	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
-	go m2.Serve(context.TODO()) // nolint: errcheck
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- m2.Serve(context.TODO())
+	}()
 
 	rt := routing.InMemoryRoutingTable()
 	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5)
@@ -721,9 +826,15 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	}()
 
 	rw, rwIn := net.Pipe()
-	go r.ServeApp(rwIn, 5, &app.Config{}) // nolint: errcheck
+	serveAppErrCh := make(chan error, 1)
+	go func() {
+		serveAppErrCh <- r.ServeApp(rwIn, 5, &app.Config{})
+	}()
 	proto := app.NewProtocol(rw)
-	go proto.Serve(nil) // nolint: errcheck
+	protoServeErrCh := make(chan error, 1)
+	go func() {
+		protoServeErrCh <- proto.Serve(nil)
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -741,6 +852,10 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	rule, err = rt.Rule(routeID)
 	require.NoError(t, err)
 	require.Nil(t, rule)
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErrCh))
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErrCh))
 }
 
 func TestRouterRouteExpiration(t *testing.T) {
@@ -765,10 +880,15 @@ func TestRouterRouteExpiration(t *testing.T) {
 	}
 	r := New(conf)
 	r.expiryTicker = time.NewTicker(100 * time.Millisecond)
-	go r.Serve(context.TODO()) // nolint
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- r.Serve(context.TODO())
+	}()
 
 	time.Sleep(110 * time.Millisecond)
 
 	assert.Equal(t, 0, rt.Count())
 	require.NoError(t, r.Close())
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }

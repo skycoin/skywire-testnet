@@ -98,8 +98,12 @@ func defaultConfig() *visor.Config {
 	conf.Transport.LogStore.Location = "./skywire/transport_logs"
 
 	conf.Routing.RouteFinder = "https://routefinder.skywire.skycoin.net/"
+
+	const defaultSetupNodePK = "0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557"
 	sPK := cipher.PubKey{}
-	sPK.UnmarshalText([]byte("0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557")) // nolint: errcheck
+	if err := sPK.UnmarshalText([]byte(defaultSetupNodePK)); err != nil {
+		log.WithError(err).Warnf("Failed to unmarshal default setup node public key %s", defaultSetupNodePK)
+	}
 	conf.Routing.SetupNodes = []cipher.PubKey{sPK}
 	conf.Routing.Table.Type = "boltdb"
 	conf.Routing.Table.Location = "./skywire/routing.db"

@@ -13,10 +13,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/httpauth"
 	"github.com/skycoin/skywire/pkg/transport"
 )
+
+var log = logging.MustGetLogger("transport-discovery")
 
 // Error is the object returned to the client when there's an error.
 type Error struct {
@@ -77,10 +80,16 @@ func (c *apiClient) RegisterTransports(ctx context.Context, entries ...*transpor
 	}
 
 	resp, err := c.Post(ctx, "/transports/", entries)
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close HTTP response body")
+			}
+		}()
+	}
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusCreated {
 		return nil
@@ -92,10 +101,16 @@ func (c *apiClient) RegisterTransports(ctx context.Context, entries ...*transpor
 // GetTransportByID returns Transport for corresponding ID.
 func (c *apiClient) GetTransportByID(ctx context.Context, id uuid.UUID) (*transport.EntryWithStatus, error) {
 	resp, err := c.Get(ctx, fmt.Sprintf("/transports/id:%s", id.String()))
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close HTTP response body")
+			}
+		}()
+	}
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status: %d, error: %v", resp.StatusCode, extractError(resp.Body))
@@ -112,21 +127,27 @@ func (c *apiClient) GetTransportByID(ctx context.Context, id uuid.UUID) (*transp
 // GetTransportsByEdge returns all Transports registered for the edge.
 func (c *apiClient) GetTransportsByEdge(ctx context.Context, pk cipher.PubKey) ([]*transport.EntryWithStatus, error) {
 	resp, err := c.Get(ctx, fmt.Sprintf("/transports/edge:%s", pk))
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close HTTP response body")
+			}
+		}()
+	}
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status: %d, error: %v", resp.StatusCode, extractError(resp.Body))
 	}
 
-	entry := []*transport.EntryWithStatus{}
-	if err := json.NewDecoder(resp.Body).Decode(&entry); err != nil {
+	var entries []*transport.EntryWithStatus
+	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
 		return nil, fmt.Errorf("json: %s", err)
 	}
 
-	return entry, nil
+	return entries, nil
 }
 
 // UpdateStatuses updates statuses of transports in discovery.
@@ -136,16 +157,22 @@ func (c *apiClient) UpdateStatuses(ctx context.Context, statuses ...*transport.S
 	}
 
 	resp, err := c.Post(ctx, "/statuses", statuses)
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close HTTP response body")
+			}
+		}()
+	}
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status: %d, error: %v", resp.StatusCode, extractError(resp.Body))
 	}
 
-	entries := []*transport.EntryWithStatus{}
+	var entries []*transport.EntryWithStatus
 	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
 		return nil, fmt.Errorf("json: %s", err)
 	}

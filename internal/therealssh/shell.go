@@ -10,7 +10,7 @@ import (
 )
 
 func resolveShell(u *user.User) (string, error) {
-	out, err := exec.Command("getent", "passwd", u.Uid).Output() // nolint
+	out, err := exec.Command("getent", "passwd", u.Uid).Output() // nolint:gosec
 	if err != nil {
 		return "", fmt.Errorf("getent failure: %s", err)
 	}

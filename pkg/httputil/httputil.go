@@ -8,7 +8,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/handlers"
+	"github.com/skycoin/skycoin/src/util/logging"
 )
+
+var log = logging.MustGetLogger("httputil")
 
 // WriteJSON writes a json object on a http.ResponseWriter with the given code,
 // panics on marshaling error
@@ -16,7 +19,11 @@ func WriteJSON(w http.ResponseWriter, r *http.Request, code int, v interface{}) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	enc := json.NewEncoder(w)
-	if pretty, _ := BoolFromQuery(r, "pretty", false); pretty { //nolint:errcheck
+	pretty, err := BoolFromQuery(r, "pretty", false)
+	if err != nil {
+		log.WithError(err).Warn("Failed to get bool from query")
+	}
+	if pretty {
 		enc.SetIndent("", "  ")
 	}
 	if err, ok := v.(error); ok {
@@ -56,8 +63,11 @@ func WriteLog(writer io.Writer, params handlers.LogFormatterParams) {
 		host = params.Request.RemoteAddr
 	}
 
-	fmt.Fprintf(
+	_, err = fmt.Fprintf(
 		writer, "%s - \"%s %s %s\" %d\n",
 		host, params.Request.Method, params.URL.String(), params.Request.Proto, params.StatusCode,
 	)
+	if err != nil {
+		log.WithError(err).Warn("Failed to write log")
+	}
 }

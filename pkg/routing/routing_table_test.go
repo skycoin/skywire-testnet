@@ -1,7 +1,6 @@
 package routing
 
 import (
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -51,7 +50,7 @@ func RoutingTableSuite(t *testing.T, tbl Table) {
 	require.NoError(t, err)
 	assert.Equal(t, rule, r)
 
-	ids := []RouteID{}
+	ids := make([]RouteID, 0)
 	err = tbl.RangeRules(func(routeID RouteID, _ Rule) bool {
 		ids = append(ids, routeID)
 		return true

@@ -72,7 +72,9 @@ func TestFilePKTable(t *testing.T) {
 
 	tmpfile, err := ioutil.TempFile("", "pktable")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		assert.NoError(t, os.Remove(tmpfile.Name()))
+	}()
 
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9000")
 	require.NoError(t, err)

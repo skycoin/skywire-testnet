@@ -178,7 +178,7 @@ type mockRPCClient struct {
 }
 
 // NewMockRPCClient creates a new mock RPCClient.
-func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RPCClient) {
+func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RPCClient, error) {
 	log := logging.MustGetLogger("mock-rpc-client")
 
 	types := []string{"messaging", "native"}
@@ -203,8 +203,12 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	for i := 0; i < r.Intn(maxRules+1); i++ {
 		remotePK, _ := cipher.GenerateKeyPair()
 		var lpRaw, rpRaw [2]byte
-		r.Read(lpRaw[:])
-		r.Read(rpRaw[:])
+		if _, err := r.Read(lpRaw[:]); err != nil {
+			return cipher.PubKey{}, nil, err
+		}
+		if _, err := r.Read(rpRaw[:]); err != nil {
+			return cipher.PubKey{}, nil, err
+		}
 		lp := routing.Port(binary.BigEndian.Uint16(lpRaw[:]))
 		rp := routing.Port(binary.BigEndian.Uint16(rpRaw[:]))
 		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
@@ -221,7 +225,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		log.Infof("rt[%2db]: %v %v", i, appRID, appRule.Summary().AppFields)
 	}
 	log.Printf("rtCount: %d", rt.Count())
-	return localPK, &mockRPCClient{
+	client := &mockRPCClient{
 		s: &Summary{
 			PubKey:          localPK,
 			NodeVersion:     Version,
@@ -236,6 +240,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		tpTypes: types,
 		rt:      rt,
 	}
+	return localPK, client, nil
 }
 
 func (mc *mockRPCClient) do(write bool, f func() error) error {

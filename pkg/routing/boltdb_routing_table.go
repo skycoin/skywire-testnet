@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/skycoin/skycoin/src/util/logging"
 	"go.etcd.io/bbolt"
 )
 
 var boltDBBucket = []byte("routing")
+var log = logging.MustGetLogger("routing")
 
 // BoltDBRoutingTable implements RoutingTable on top of BoltDB.
 type boltDBRoutingTable struct {
 	db *bbolt.DB
 }
 
-// BoltDBRoutingTable consturcts a new BoldDBRoutingTable.
+// BoltDBRoutingTable constructs a new BoldDBRoutingTable.
 func BoltDBRoutingTable(path string) (Table, error) {
 	db, err := bbolt.Open(path, 0600, nil)
 	if err != nil {
@@ -41,7 +43,10 @@ func BoltDBRoutingTable(path string) (Table, error) {
 func (rt *boltDBRoutingTable) AddRule(rule Rule) (routeID RouteID, err error) {
 	err = rt.db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(boltDBBucket)
-		nextID, _ := b.NextSequence() // nolint
+		nextID, err := b.NextSequence()
+		if err != nil {
+			return err
+		}
 
 		if nextID > math.MaxUint32 {
 			return errors.New("no available routeIDs")
@@ -66,7 +71,7 @@ func (rt *boltDBRoutingTable) SetRule(routeID RouteID, rule Rule) error {
 // Rule returns RoutingRule with a given RouteID.
 func (rt *boltDBRoutingTable) Rule(routeID RouteID) (Rule, error) {
 	var rule Rule
-	err := rt.db.View(func(tx *bbolt.Tx) error { // nolint: unparam
+	err := rt.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(boltDBBucket)
 		rule = b.Get(binaryID(routeID))
 		return nil
@@ -77,15 +82,18 @@ func (rt *boltDBRoutingTable) Rule(routeID RouteID) (Rule, error) {
 
 // RangeRules iterates over all rules and yields values to the rangeFunc until `next` is false.
 func (rt *boltDBRoutingTable) RangeRules(rangeFunc RangeFunc) error {
-	return rt.db.View(func(tx *bbolt.Tx) error { // nolint: unparam
+	return rt.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(boltDBBucket)
-		b.ForEach(func(k, v []byte) error { // nolint
+		f := func(k, v []byte) error {
 			if !rangeFunc(RouteID(binary.BigEndian.Uint32(k)), v) {
 				return errors.New("iterator stopped")
 			}
 
 			return nil
-		})
+		}
+		if err := b.ForEach(f); err != nil {
+			log.Warn(err)
+		}
 		return nil
 	})
 }
@@ -93,7 +101,7 @@ func (rt *boltDBRoutingTable) RangeRules(rangeFunc RangeFunc) error {
 // Rules returns RoutingRules for a given RouteIDs.
 func (rt *boltDBRoutingTable) Rules(routeIDs ...RouteID) (rules []Rule, err error) {
 	rules = []Rule{}
-	err = rt.db.View(func(tx *bbolt.Tx) error { // nolint: unparam
+	err = rt.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(boltDBBucket)
 
 		for _, routeID := range routeIDs {
@@ -126,11 +134,11 @@ func (rt *boltDBRoutingTable) DeleteRules(routeIDs ...RouteID) error {
 
 // Count returns the number of routing rules stored.
 func (rt *boltDBRoutingTable) Count() (count int) {
-	err := rt.db.View(func(tx *bbolt.Tx) error { // nolint: unparam
+	err := rt.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(boltDBBucket)
 
 		stats := b.Stats()
-		count = int(stats.KeyN)
+		count = stats.KeyN
 		return nil
 	})
 	if err != nil {

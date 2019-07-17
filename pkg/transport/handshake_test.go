@@ -87,7 +87,7 @@ func Example_newHsMock() {
 	// err2 is nil: true
 }
 
-//func Example_validateEntry() {
+// func Example_validateEntry() {
 //	pk1, sk1 := cipher.GenerateKeyPair()
 //	pk2, _ := cipher.GenerateKeyPair()
 //	pk3, _ := cipher.GenerateKeyPair()
@@ -111,9 +111,9 @@ func Example_newHsMock() {
 //	}
 //
 //	// Output: invalid entry edges
-//}
+// }
 
-//func TestValidateEntry(t *testing.T) {
+// func TestValidateEntry(t *testing.T) {
 //	pk1, sk1 := cipher.GenerateKeyPair()
 //	pk2, sk2 := cipher.GenerateKeyPair()
 //	pk3, _ := cipher.GenerateKeyPair()
@@ -164,7 +164,7 @@ func Example_newHsMock() {
 //	require.True(t, sEntry.Sign(pk2, sk2))
 //
 //	require.NoError(t, validateSignedEntry(sEntry, tr, pk1))
-//}
+// }
 
 func TestSettlementHandshake(t *testing.T) {
 	mockEnv := newHsMockEnv()
@@ -273,7 +273,7 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 }
 
-//func Example_validateSignedEntry() {
+// func Example_validateSignedEntry() {
 //	mockEnv := newHsMockEnv()
 //
 //	tm, tr := mockEnv.m1, mockEnv.tr1
@@ -288,7 +288,7 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 //
 //	fmt.Printf("System is working")
 //	// Output: System is working
-//}
+// }
 
 func Example_settlementInitiatorHandshake() {
 	mockEnv := newHsMockEnv()

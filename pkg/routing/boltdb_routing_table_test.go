@@ -2,7 +2,6 @@ package routing
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
@@ -16,7 +15,9 @@ func TestBoltDBRoutingTable(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	defer os.Remove(dbfile.Name())
+	defer func() {
+		require.NoError(t, os.Remove(dbfile.Name()))
+	}()
 
 	tbl, err := BoltDBRoutingTable(dbfile.Name())
 	require.NoError(t, err)

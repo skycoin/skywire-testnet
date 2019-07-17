@@ -8,7 +8,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 )
+
+var log = logging.MustGetLogger("transport")
 
 // Transport represents communication between two nodes via a single hop.
 type Transport interface {

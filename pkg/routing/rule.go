@@ -74,7 +74,9 @@ func (r Rule) RemotePK() cipher.PubKey {
 	}
 
 	pk := cipher.PubKey{}
-	pk.UnmarshalBinary(r[13:46]) // nolint: errcheck
+	if err := pk.UnmarshalBinary(r[13:46]); err != nil {
+		log.WithError(err).Warn("Failed to unmarshal public key")
+	}
 	return pk
 }
 
