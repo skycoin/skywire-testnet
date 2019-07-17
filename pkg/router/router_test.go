@@ -194,11 +194,11 @@ func TestRouterApp(t *testing.T) {
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
-	raddr := &app.Addr{PubKey: pk2, Port: 5}
+	raddr := routing.Addr{PubKey: pk2, Port: 5}
 	require.NoError(t, r.pm.SetLoop(6, raddr, &loop{tr.Entry.ID, 4}))
 
 	tr2 := m2.Transport(tr.Entry.ID)
-	go proto.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 6, Remote: *raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
+	go proto.Send(app.FrameSend, &app.Packet{Loop: routing.Loop{Local: routing.Addr{Port: 6}, Remote: raddr}, Payload: []byte("bar")}, nil) // nolint: errcheck
 
 	packet := make(routing.Packet, 9)
 	_, err = tr2.Read(packet)
@@ -212,11 +212,11 @@ func TestRouterApp(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	aPacket := &app.Packet{}
-	require.NoError(t, json.Unmarshal(<-dataCh, aPacket))
-	assert.Equal(t, pk2, aPacket.Addr.Remote.PubKey)
-	assert.Equal(t, uint16(5), aPacket.Addr.Remote.Port)
-	assert.Equal(t, uint16(6), aPacket.Addr.Port)
+	var aPacket app.Packet
+	require.NoError(t, json.Unmarshal(<-dataCh, &aPacket))
+	assert.Equal(t, pk2, aPacket.Loop.Remote.PubKey)
+	assert.Equal(t, routing.Port(5), aPacket.Loop.Remote.Port)
+	assert.Equal(t, routing.Port(6), aPacket.Loop.Local.Port)
 	assert.Equal(t, []byte("foo"), aPacket.Payload)
 
 	require.NoError(t, r.Close())
@@ -258,16 +258,16 @@ func TestRouterLocalApp(t *testing.T) {
 		return nil, nil
 	})
 
-	go proto1.Send(app.FrameSend, &app.Packet{Addr: &app.LoopAddr{Port: 5, Remote: app.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo")}, nil) // nolint: errcheck
+	go proto1.Send(app.FrameSend, &app.Packet{Loop: routing.Loop{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo")}, nil) // nolint: errcheck
 
 	time.Sleep(100 * time.Millisecond)
 
 	packet := &app.Packet{}
 	require.NoError(t, json.Unmarshal(<-dataCh, packet))
 	require.NoError(t, err)
-	assert.Equal(t, pk, packet.Addr.Remote.PubKey)
-	assert.Equal(t, uint16(5), packet.Addr.Remote.Port)
-	assert.Equal(t, uint16(6), packet.Addr.Port)
+	assert.Equal(t, pk, packet.Loop.Remote.PubKey)
+	assert.Equal(t, routing.Port(5), packet.Loop.Remote.Port)
+	assert.Equal(t, routing.Port(6), packet.Loop.Local.Port)
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, r.Close())
@@ -342,7 +342,18 @@ func TestRouterSetup(t *testing.T) {
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
 		require.NoError(t, err)
 
-		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 1, LocalPort: 2, RouteID: routeID})
+		err = setup.ConfirmLoop(sProto, routing.LoopData{
+			Loop: routing.Loop{
+				Remote: routing.Addr{
+					PubKey: pk2,
+					Port:   1,
+				},
+				Local: routing.Addr{
+					Port: 2,
+				},
+			},
+			RouteID: routeID,
+		})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
@@ -350,48 +361,59 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, routeID, rule.RouteID())
 		_, err = r.pm.Get(2)
 		require.NoError(t, err)
-		loop, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
+		loop, err := r.pm.GetLoop(2, routing.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, loop)
 		assert.Equal(t, tr.Entry.ID, loop.trID)
 		assert.Equal(t, routing.RouteID(2), loop.routeID)
 
-		addrs := [2]*app.Addr{}
+		var addrs [2]routing.Addr
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
-		assert.Equal(t, uint16(2), addrs[0].Port)
+		assert.Equal(t, routing.Port(2), addrs[0].Port)
 		assert.Equal(t, pk2, addrs[1].PubKey)
-		assert.Equal(t, uint16(1), addrs[1].Port)
+		assert.Equal(t, routing.Port(1), addrs[1].Port)
 	})
 
 	t.Run("confirm loop - initiator", func(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
-		require.NoError(t, r.pm.SetLoop(4, &app.Addr{PubKey: pk2, Port: 3}, &loop{}))
+		require.NoError(t, r.pm.SetLoop(4, routing.Addr{PubKey: pk2, Port: 3}, &loop{}))
 
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
 		require.NoError(t, err)
 
-		err = setup.ConfirmLoop(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4, RouteID: routeID})
+		err = setup.ConfirmLoop(sProto, routing.LoopData{
+			Loop: routing.Loop{
+				Remote: routing.Addr{
+					PubKey: pk2,
+					Port:   3,
+				},
+				Local: routing.Addr{
+					Port: 4,
+				},
+			},
+			RouteID: routeID,
+		})
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(appRouteID)
 		require.NoError(t, err)
 		assert.Equal(t, routeID, rule.RouteID())
-		l, err := r.pm.GetLoop(2, &app.Addr{PubKey: pk2, Port: 1})
+		l, err := r.pm.GetLoop(2, routing.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, l)
 		assert.Equal(t, tr.Entry.ID, l.trID)
 		assert.Equal(t, routing.RouteID(2), l.routeID)
 
-		addrs := [2]*app.Addr{}
+		var addrs [2]routing.Addr
 		require.NoError(t, json.Unmarshal(<-dataCh, &addrs))
 		require.NoError(t, err)
 		assert.Equal(t, pk1, addrs[0].PubKey)
-		assert.Equal(t, uint16(4), addrs[0].Port)
+		assert.Equal(t, routing.Port(4), addrs[0].Port)
 		assert.Equal(t, pk2, addrs[1].PubKey)
-		assert.Equal(t, uint16(3), addrs[1].Port)
+		assert.Equal(t, routing.Port(3), addrs[1].Port)
 	})
 
 	t.Run("loop closed", func(t *testing.T) {
@@ -400,10 +422,20 @@ func TestRouterSetup(t *testing.T) {
 		require.NotNil(t, rule)
 		assert.Equal(t, routing.RuleApp, rule.Type())
 
-		require.NoError(t, setup.LoopClosed(sProto, &setup.LoopData{RemotePK: pk2, RemotePort: 3, LocalPort: 4}))
+		require.NoError(t, setup.LoopClosed(sProto, routing.LoopData{
+			Loop: routing.Loop{
+				Remote: routing.Addr{
+					PubKey: pk2,
+					Port:   3,
+				},
+				Local: routing.Addr{
+					Port: 4,
+				},
+			},
+		}))
 		time.Sleep(100 * time.Millisecond)
 
-		_, err = r.pm.GetLoop(4, &app.Addr{PubKey: pk2, Port: 3})
+		_, err = r.pm.GetLoop(4, routing.Addr{PubKey: pk2, Port: 3})
 		require.Error(t, err)
 		_, err = r.pm.Get(4)
 		require.NoError(t, err)
@@ -471,13 +503,13 @@ func TestRouterSetupLoop(t *testing.T) {
 			return
 		}
 
-		l := &routing.Loop{}
-		if err := json.Unmarshal(data, l); err != nil {
+		var ld routing.LoopDescriptor
+		if err := json.Unmarshal(data, &ld); err != nil {
 			errCh <- err
 			return
 		}
 
-		if l.LocalPort != 10 || l.RemotePort != 6 {
+		if ld.Loop.Local.Port != 10 || ld.Loop.Remote.Port != 6 {
 			errCh <- errors.New("invalid payload")
 			return
 		}
@@ -490,16 +522,16 @@ func TestRouterSetupLoop(t *testing.T) {
 	appProto := app.NewProtocol(rw)
 	go appProto.Serve(nil) // nolint: errcheck
 
-	addr := &app.Addr{}
-	require.NoError(t, appProto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk2, Port: 6}, addr))
+	addr := routing.Addr{}
+	require.NoError(t, appProto.Send(app.FrameCreateLoop, routing.Addr{PubKey: pk2, Port: 6}, &addr))
 
 	require.NoError(t, <-errCh)
-	ll, err := r.pm.GetLoop(10, &app.Addr{PubKey: pk2, Port: 6})
+	ll, err := r.pm.GetLoop(10, routing.Addr{PubKey: pk2, Port: 6})
 	require.NoError(t, err)
 	require.NotNil(t, ll)
 
 	assert.Equal(t, pk1, addr.PubKey)
-	assert.Equal(t, uint16(10), addr.Port)
+	assert.Equal(t, routing.Port(10), addr.Port)
 }
 
 func TestRouterSetupLoopLocal(t *testing.T) {
@@ -516,15 +548,15 @@ func TestRouterSetupLoopLocal(t *testing.T) {
 	proto := app.NewProtocol(rw)
 	go proto.Serve(nil) // nolint: errcheck
 
-	addr := &app.Addr{}
-	require.NoError(t, proto.Send(app.FrameCreateLoop, &app.Addr{PubKey: pk, Port: 5}, addr))
+	addr := routing.Addr{}
+	require.NoError(t, proto.Send(app.FrameCreateLoop, routing.Addr{PubKey: pk, Port: 5}, &addr))
 
-	ll, err := r.pm.GetLoop(10, &app.Addr{PubKey: pk, Port: 5})
+	ll, err := r.pm.GetLoop(10, routing.Addr{PubKey: pk, Port: 5})
 	require.NoError(t, err)
 	require.NotNil(t, ll)
 
 	assert.Equal(t, pk, addr.PubKey)
-	assert.Equal(t, uint16(10), addr.Port)
+	assert.Equal(t, routing.Port(10), addr.Port)
 }
 
 func TestRouterCloseLoop(t *testing.T) {
@@ -582,13 +614,13 @@ func TestRouterCloseLoop(t *testing.T) {
 			return
 		}
 
-		ld := &setup.LoopData{}
-		if err := json.Unmarshal(data, ld); err != nil {
+		var ld routing.LoopData
+		if err := json.Unmarshal(data, &ld); err != nil {
 			errCh <- err
 			return
 		}
 
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != pk3 {
+		if ld.Loop.Local.Port != 5 || ld.Loop.Remote.Port != 6 || ld.Loop.Remote.PubKey != pk3 {
 			errCh <- errors.New("invalid payload")
 			return
 		}
@@ -603,15 +635,15 @@ func TestRouterCloseLoop(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	raddr := &app.Addr{PubKey: pk3, Port: 6}
+	raddr := routing.Addr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
-	require.NoError(t, proto.Send(app.FrameClose, &app.LoopAddr{Port: 5, Remote: *raddr}, nil))
+	require.NoError(t, proto.Send(app.FrameClose, routing.Loop{Local: routing.Addr{Port: 5}, Remote: raddr}, nil))
 
 	time.Sleep(100 * time.Millisecond)
 
 	require.NoError(t, <-errCh)
-	_, err = r.pm.GetLoop(5, &app.Addr{PubKey: pk3, Port: 6})
+	_, err = r.pm.GetLoop(5, routing.Addr{PubKey: pk3, Port: 6})
 	require.Error(t, err)
 	_, err = r.pm.Get(5)
 	require.NoError(t, err)
@@ -674,13 +706,13 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 			return
 		}
 
-		ld := &setup.LoopData{}
-		if err := json.Unmarshal(data, ld); err != nil {
+		var ld routing.LoopData
+		if err := json.Unmarshal(data, &ld); err != nil {
 			errCh <- err
 			return
 		}
 
-		if ld.LocalPort != 5 || ld.RemotePort != 6 || ld.RemotePK != pk3 {
+		if ld.Loop.Local.Port != 5 || ld.Loop.Remote.Port != 6 || ld.Loop.Remote.PubKey != pk3 {
 			errCh <- errors.New("invalid payload")
 			return
 		}
@@ -695,7 +727,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	raddr := &app.Addr{PubKey: pk3, Port: 6}
+	raddr := routing.Addr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
 
 	require.NoError(t, rw.Close())

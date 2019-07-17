@@ -64,7 +64,9 @@ func TestCreateLoop(t *testing.T) {
 	_, err = c3.Dial(context.TODO(), pk4)
 	require.NoError(t, err)
 
-	l := &routing.Loop{LocalPort: 1, RemotePort: 2, Expiry: time.Now().Add(time.Hour),
+	lPK, _ := cipher.GenerateKeyPair()
+	rPK, _ := cipher.GenerateKeyPair()
+	ld := routing.LoopDescriptor{Loop: routing.Loop{Local: routing.Addr{PubKey: lPK, Port: 1}, Remote: routing.Addr{PubKey: rPK, Port: 2}}, Expiry: time.Now().Add(time.Hour),
 		Forward: routing.Route{
 			&routing.Hop{From: pk1, To: pk2, Transport: uuid.New()},
 			&routing.Hop{From: pk2, To: pk3, Transport: uuid.New()},
@@ -87,7 +89,7 @@ func TestCreateLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
-	require.NoError(t, CreateLoop(proto, l))
+	require.NoError(t, CreateLoop(proto, ld))
 
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)
@@ -129,7 +131,17 @@ func TestCloseLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
-	require.NoError(t, CloseLoop(proto, &LoopData{RemotePK: pk3, RemotePort: 2, LocalPort: 1}))
+	require.NoError(t, CloseLoop(proto, routing.LoopData{
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: pk3,
+				Port:   2,
+			},
+			Local: routing.Addr{
+				Port: 1,
+			},
+		},
+	}))
 
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)

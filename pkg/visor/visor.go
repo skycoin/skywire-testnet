@@ -50,14 +50,14 @@ const Version = "0.0.1"
 
 const supportedProtocolVersion = "0.0.1"
 
-var reservedPorts = map[uint16]string{0: "router", 1: "skychat", 2: "SSH", 3: "socksproxy"}
+var reservedPorts = map[routing.Port]string{0: "router", 1: "skychat", 2: "SSH", 3: "socksproxy"}
 
 // AppState defines state parameters for a registered App.
 type AppState struct {
-	Name      string    `json:"name"`
-	AutoStart bool      `json:"autostart"`
-	Port      uint16    `json:"port"`
-	Status    AppStatus `json:"status"`
+	Name      string       `json:"name"`
+	AutoStart bool         `json:"autostart"`
+	Port      routing.Port `json:"port"`
+	Status    AppStatus    `json:"status"`
 }
 
 type appExecuter interface {
@@ -75,7 +75,7 @@ type appBind struct {
 type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
-	ServeApp(conn net.Conn, port uint16, appConf *app.Config) error
+	ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error
 	IsSetupTransport(tr *transport.ManagedTransport) bool
 }
 

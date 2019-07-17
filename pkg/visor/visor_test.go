@@ -23,6 +23,7 @@ import (
 
 	"github.com/skycoin/skywire/internal/httpauth"
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
@@ -136,7 +137,7 @@ func TestNodeSpawnApp(t *testing.T) {
 
 	ports := r.Ports()
 	require.Len(t, ports, 1)
-	assert.Equal(t, uint16(10), ports[0])
+	assert.Equal(t, routing.Port(10), ports[0])
 
 	require.NoError(t, node.StopApp("skychat"))
 }
@@ -225,7 +226,7 @@ func (exc *MockExecuter) Wait(cmd *exec.Cmd) error {
 type mockRouter struct {
 	sync.Mutex
 
-	ports []uint16
+	ports []routing.Port
 
 	didStart bool
 	didClose bool
@@ -233,7 +234,7 @@ type mockRouter struct {
 	errChan chan error
 }
 
-func (r *mockRouter) Ports() []uint16 {
+func (r *mockRouter) Ports() []routing.Port {
 	r.Lock()
 	p := r.ports
 	r.Unlock()
@@ -245,10 +246,10 @@ func (r *mockRouter) Serve(_ context.Context) error {
 	return nil
 }
 
-func (r *mockRouter) ServeApp(conn net.Conn, port uint16, appConf *app.Config) error {
+func (r *mockRouter) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
 	r.Lock()
 	if r.ports == nil {
-		r.ports = []uint16{}
+		r.ports = []routing.Port{}
 	}
 
 	r.ports = append(r.ports, port)

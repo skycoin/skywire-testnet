@@ -9,14 +9,13 @@ import (
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
 )
 
 type setupCallbacks struct {
-	ConfirmLoop func(addr *app.LoopAddr, rule routing.Rule) (err error)
-	LoopClosed  func(addr *app.LoopAddr) error
+	ConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
+	LoopClosed  func(loop routing.Loop) error
 }
 
 type routeManager struct {
@@ -43,12 +42,12 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 	return rule, nil
 }
 
-func (rm *routeManager) RemoveLoopRule(addr *app.LoopAddr) error {
+func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleApp || rule.RemotePK() != addr.Remote.PubKey ||
-			rule.RemotePort() != addr.Remote.Port || rule.LocalPort() != addr.Port {
+		if rule.Type() != routing.RuleApp || rule.RemotePK() != loop.Remote.PubKey ||
+			rule.RemotePort() != loop.Remote.Port || rule.LocalPort() != loop.Local.Port {
 			return true
 		}
 
@@ -141,18 +140,16 @@ func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, erro
 }
 
 func (rm *routeManager) confirmLoop(data []byte) error {
-	ld := setup.LoopData{}
+	var ld routing.LoopData
 	if err := json.Unmarshal(data, &ld); err != nil {
 		return err
 	}
 
-	raddr := &app.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
-
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.RemotePK ||
-			rule.RemotePort() != ld.RemotePort || rule.LocalPort() != ld.LocalPort {
+		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.Loop.Remote.PubKey ||
+			rule.RemotePort() != ld.Loop.Remote.Port || rule.LocalPort() != ld.Loop.Local.Port {
 			return true
 		}
 
@@ -178,7 +175,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return errors.New("reverse rule is not forward")
 	}
 
-	if err = rm.callbacks.ConfirmLoop(&app.LoopAddr{Port: ld.LocalPort, Remote: *raddr}, rule); err != nil {
+	if err = rm.callbacks.ConfirmLoop(ld.Loop, rule); err != nil {
 		return fmt.Errorf("confirm: %s", err)
 	}
 
@@ -188,17 +185,15 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 
-	rm.Logger.Infof("Confirmed loop with %s:%d", ld.RemotePK, ld.RemotePort)
+	rm.Logger.Infof("Confirmed loop with %s:%d", ld.Loop.Remote.PubKey, ld.Loop.Remote.Port)
 	return nil
 }
 
 func (rm *routeManager) loopClosed(data []byte) error {
-	ld := &setup.LoopData{}
-	if err := json.Unmarshal(data, ld); err != nil {
+	var ld routing.LoopData
+	if err := json.Unmarshal(data, &ld); err != nil {
 		return err
 	}
 
-	raddr := &app.Addr{PubKey: ld.RemotePK, Port: ld.RemotePort}
-	addr := &app.LoopAddr{Port: ld.LocalPort, Remote: *raddr}
-	return rm.callbacks.LoopClosed(addr)
+	return rm.callbacks.LoopClosed(ld.Loop)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net"
 	"sync"
 	"time"
@@ -44,7 +43,7 @@ type ClientConn struct {
 	nextInitID uint16
 
 	// Transports: map of transports to remote dms_clients (key: tp_id, val: transport).
-	tps [math.MaxUint16 + 1]*Transport
+	tps map[uint16]*Transport
 	mx  sync.RWMutex // to protect tps
 
 	done chan struct{}
@@ -60,6 +59,7 @@ func NewClientConn(log *logging.Logger, conn net.Conn, local, remote cipher.PubK
 		local:      local,
 		remoteSrv:  remote,
 		nextInitID: randID(true),
+		tps:        make(map[uint16]*Transport),
 		done:       make(chan struct{}),
 	}
 	cc.wg.Add(1)
@@ -229,7 +229,7 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 			}(log)
 
 		default:
-			log.Infof("Ignored [%s]: No transport of given ID.", ft)
+			log.Debugf("Ignored [%s]: No transport of given ID.", ft)
 			if ft != CloseType {
 				if err := writeCloseFrame(c.Conn, id, 0); err != nil {
 					return err

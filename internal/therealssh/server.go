@@ -10,7 +10,7 @@ import (
 
 	"github.com/skycoin/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 // CommandType represents global protocol messages.
@@ -66,7 +66,7 @@ func NewServer(auth Authorizer) *Server {
 }
 
 // OpenChannel opens new client channel.
-func (s *Server) OpenChannel(remoteAddr *app.Addr, remoteID uint32, conn net.Conn) error {
+func (s *Server) OpenChannel(remoteAddr routing.Addr, remoteID uint32, conn net.Conn) error {
 	debug("opening new channel")
 	channel := OpenChannel(remoteID, remoteAddr, conn)
 	var res []byte
@@ -147,7 +147,7 @@ func (s *Server) Serve(conn net.Conn) error {
 			return err
 		}
 
-		raddr := conn.RemoteAddr().(*app.Addr)
+		raddr := conn.RemoteAddr().(routing.Addr)
 		payload := buf[:n]
 
 		if len(payload) < 5 {
