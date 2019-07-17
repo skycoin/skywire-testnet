@@ -20,20 +20,15 @@ import (
 
 var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)
 
-// Dialer dials to a remote node.
-type Dialer interface {
-	Dial(raddr routing.Addr) (net.Conn, error)
-}
-
 // Client proxies CLI's requests to a remote server. Control messages
 // are sent via RPC interface. PTY data is exchanged via unix socket.
 type Client struct {
-	dialer Dialer
+	dialer dialer
 	chans  *chanList
 }
 
 // NewClient construct new RPC listener and Client from a given RPC address and app dialer.
-func NewClient(rpcAddr string, d Dialer) (net.Listener, *Client, error) {
+func NewClient(rpcAddr string, d dialer) (net.Listener, *Client, error) {
 	client := &Client{chans: newChanList(), dialer: d}
 	rpcClient := &RPCClient{client}
 	if err := rpc.Register(rpcClient); err != nil {
