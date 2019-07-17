@@ -102,34 +102,34 @@ func (sn *Node) Serve(ctx context.Context) error {
 	return sn.tm.Serve(ctx)
 }
 
-func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
-	sn.Logger.Infof("Creating new Loop %s", l)
-	rRouteID, err := sn.createRoute(l.Expiry, l.Reverse, l.Loop.Local.Port, l.Loop.Remote.Port)
+func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
+	sn.Logger.Infof("Creating new Loop %s", ld)
+	rRouteID, err := sn.createRoute(ld.Expiry, ld.Reverse, ld.Loop.Local.Port, ld.Loop.Remote.Port)
 	if err != nil {
 		return err
 	}
 
-	fRouteID, err := sn.createRoute(l.Expiry, l.Forward, l.Loop.Remote.Port, l.Loop.Local.Port)
+	fRouteID, err := sn.createRoute(ld.Expiry, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	if err != nil {
 		return err
 	}
 
-	if len(l.Forward) == 0 || len(l.Reverse) == 0 {
+	if len(ld.Forward) == 0 || len(ld.Reverse) == 0 {
 		return nil
 	}
 
-	initiator := l.Initiator()
-	responder := l.Responder()
+	initiator := ld.Initiator()
+	responder := ld.Responder()
 
 	ldR := &routing.LoopData{
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: initiator,
-				Port:   l.Loop.Local.Port,
+				Port:   ld.Loop.Local.Port,
 			},
 			Local: routing.Addr{
 				PubKey: responder,
-				Port:   l.Loop.Remote.Port,
+				Port:   ld.Loop.Remote.Port,
 			},
 		},
 		RouteID: rRouteID,
@@ -143,11 +143,11 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 		Loop: routing.Loop{
 			Remote: routing.Addr{
 				PubKey: responder,
-				Port:   l.Loop.Remote.Port,
+				Port:   ld.Loop.Remote.Port,
 			},
 			Local: routing.Addr{
 				PubKey: initiator,
-				Port:   l.Loop.Local.Port,
+				Port:   ld.Loop.Local.Port,
 			},
 		},
 		RouteID: fRouteID,
@@ -161,7 +161,7 @@ func (sn *Node) createLoop(l *routing.LoopDescriptor) error {
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	sn.Logger.Infof("Created Loop %s", l)
+	sn.Logger.Infof("Created Loop %s", ld)
 	return nil
 }
 
@@ -222,9 +222,9 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	startTime := time.Now()
 	switch sp {
 	case PacketCreateLoop:
-		var loopDp routing.LoopDescriptor
-		if err = json.Unmarshal(data, &loopDp); err == nil {
-			err = sn.createLoop(&loopDp)
+		var ld routing.LoopDescriptor
+		if err = json.Unmarshal(data, &ld); err == nil {
+			err = sn.createLoop(ld)
 		}
 	case PacketCloseLoop:
 		var ld routing.LoopData

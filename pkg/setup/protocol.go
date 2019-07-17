@@ -132,7 +132,7 @@ func DeleteRule(p *Protocol, routeID routing.RouteID) error {
 }
 
 // CreateLoop sends CreateLoop setup request.
-func CreateLoop(p *Protocol, ld *routing.LoopDescriptor) error {
+func CreateLoop(p *Protocol, ld routing.LoopDescriptor) error {
 	if err := p.WritePacket(PacketCreateLoop, ld); err != nil {
 		return err
 	}

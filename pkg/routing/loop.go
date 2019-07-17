@@ -27,7 +27,7 @@ type LoopDescriptor struct {
 }
 
 // Initiator returns initiator of the Loop.
-func (l *LoopDescriptor) Initiator() cipher.PubKey {
+func (l LoopDescriptor) Initiator() cipher.PubKey {
 	if len(l.Forward) == 0 {
 		panic("empty forward route")
 	}
@@ -36,7 +36,7 @@ func (l *LoopDescriptor) Initiator() cipher.PubKey {
 }
 
 // Responder returns responder of the Loop.
-func (l *LoopDescriptor) Responder() cipher.PubKey {
+func (l LoopDescriptor) Responder() cipher.PubKey {
 	if len(l.Reverse) == 0 {
 		panic("empty reverse route")
 	}
@@ -44,7 +44,7 @@ func (l *LoopDescriptor) Responder() cipher.PubKey {
 	return l.Reverse[0].From
 }
 
-func (l *LoopDescriptor) String() string {
+func (l LoopDescriptor) String() string {
 	return fmt.Sprintf("lport: %d. rport: %d. routes: %s/%s. expire at %s",
 		l.Loop.Local.Port, l.Loop.Remote.Port, l.Forward, l.Reverse, l.Expiry)
 }

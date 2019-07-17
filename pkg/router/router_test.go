@@ -503,13 +503,13 @@ func TestRouterSetupLoop(t *testing.T) {
 			return
 		}
 
-		var l routing.LoopDescriptor
-		if err := json.Unmarshal(data, &l); err != nil {
+		var ld routing.LoopDescriptor
+		if err := json.Unmarshal(data, &ld); err != nil {
 			errCh <- err
 			return
 		}
 
-		if l.Loop.Local.Port != 10 || l.Loop.Remote.Port != 6 {
+		if ld.Loop.Local.Port != 10 || ld.Loop.Remote.Port != 6 {
 			errCh <- errors.New("invalid payload")
 			return
 		}
