@@ -78,6 +78,9 @@ func (d *RPCClientDialer) Run(srv *rpc.Server, retry time.Duration) error {
 
 // Close closes the handler.
 func (d *RPCClientDialer) Close() (err error) {
+	if d == nil {
+		return nil
+	}
 	d.mu.Lock()
 	if d.done != nil {
 		close(d.done)
@@ -131,7 +134,7 @@ func (d *RPCClientDialer) clearDone() {
 	d.mu.Unlock()
 }
 
-// Addr is the address of a either an Visor or Hypervisor.
+// Addr is the address of a either an AppNode or ManagerNode.
 type Addr struct {
 	PK   cipher.PubKey
 	Addr net.Addr

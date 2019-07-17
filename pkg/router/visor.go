@@ -7,13 +7,14 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
-	CreateLoop func(conn *app.Protocol, raddr *app.Addr) (laddr *app.Addr, err error)
-	CloseLoop  func(conn *app.Protocol, addr *app.LoopAddr) error
+	CreateLoop func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
+	CloseLoop  func(conn *app.Protocol, loop routing.Loop) error
 	Forward    func(conn *app.Protocol, packet *app.Packet) error
 }
 
@@ -50,8 +51,8 @@ func (am *appManager) Serve() error {
 }
 
 func (am *appManager) initApp(payload []byte) error {
-	config := &app.Config{}
-	if err := json.Unmarshal(payload, config); err != nil {
+	var config app.Config
+	if err := json.Unmarshal(payload, &config); err != nil {
 		return errors.New("invalid Init payload")
 	}
 
@@ -71,22 +72,22 @@ func (am *appManager) initApp(payload []byte) error {
 	return nil
 }
 
-func (am *appManager) setupLoop(payload []byte) (*app.Addr, error) {
-	raddr := &app.Addr{}
-	if err := json.Unmarshal(payload, raddr); err != nil {
-		return nil, err
+func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
+	var raddr routing.Addr
+	if err := json.Unmarshal(payload, &raddr); err != nil {
+		return routing.Addr{}, err
 	}
 
 	return am.callbacks.CreateLoop(am.proto, raddr)
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {
-	addr := &app.LoopAddr{}
-	if err := json.Unmarshal(payload, addr); err != nil {
+	var loop routing.Loop
+	if err := json.Unmarshal(payload, &loop); err != nil {
 		return err
 	}
 
-	return am.callbacks.CloseLoop(am.proto, addr)
+	return am.callbacks.CloseLoop(am.proto, loop)
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {

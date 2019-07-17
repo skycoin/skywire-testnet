@@ -104,7 +104,9 @@ func TestCreateLoop(t *testing.T) {
 	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
 	require.NoError(t, err)
 
-	l := &routing.Loop{LocalPort: 1, RemotePort: 2, Expiry: time.Now().Add(time.Hour),
+	lPK, _ := cipher.GenerateKeyPair()
+	rPK, _ := cipher.GenerateKeyPair()
+	ld := routing.LoopDescriptor{Loop: routing.Loop{Local: routing.Addr{PubKey: lPK, Port: 1}, Remote: routing.Addr{PubKey: rPK, Port: 2}}, Expiry: time.Now().Add(time.Hour),
 		Forward: routing.Route{
 			&routing.Hop{From: pk1, To: pk2, Transport: tr1.Entry.ID},
 			&routing.Hop{From: pk2, To: pk3, Transport: tr3.Entry.ID},
@@ -127,7 +129,7 @@ func TestCreateLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
-	require.NoError(t, CreateLoop(proto, l))
+	require.NoError(t, CreateLoop(proto, ld))
 
 	rules := n1.getRules()
 	require.Len(t, rules, 2)
@@ -135,8 +137,8 @@ func TestCreateLoop(t *testing.T) {
 	assert.Equal(t, routing.RuleApp, rule.Type())
 	assert.Equal(t, routing.RouteID(2), rule.RouteID())
 	assert.Equal(t, pk3, rule.RemotePK())
-	assert.Equal(t, uint16(2), rule.RemotePort())
-	assert.Equal(t, uint16(1), rule.LocalPort())
+	assert.Equal(t, routing.Port(2), rule.RemotePort())
+	assert.Equal(t, routing.Port(1), rule.LocalPort())
 	rule = rules[2]
 	assert.Equal(t, routing.RuleForward, rule.Type())
 	assert.Equal(t, tr1.Entry.ID, rule.TransportID())
@@ -163,8 +165,8 @@ func TestCreateLoop(t *testing.T) {
 	assert.Equal(t, routing.RuleApp, rule.Type())
 	assert.Equal(t, routing.RouteID(1), rule.RouteID())
 	assert.Equal(t, pk1, rule.RemotePK())
-	assert.Equal(t, uint16(1), rule.RemotePort())
-	assert.Equal(t, uint16(2), rule.LocalPort())
+	assert.Equal(t, routing.Port(1), rule.RemotePort())
+	assert.Equal(t, routing.Port(2), rule.LocalPort())
 
 	require.NoError(t, sn.Close())
 	require.NoError(t, <-errChan)
@@ -225,7 +227,17 @@ func TestCloseLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
-	require.NoError(t, CloseLoop(proto, &LoopData{RemotePK: pk3, RemotePort: 2, LocalPort: 1}))
+	require.NoError(t, CloseLoop(proto, routing.LoopData{
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: pk3,
+				Port:   2,
+			},
+			Local: routing.Addr{
+				Port: 1,
+			},
+		},
+	}))
 
 	rules = n3.getRules()
 	require.Len(t, rules, 0)
@@ -369,26 +381,26 @@ func (n *mockNode) serveTransport(tr transport.Transport) error {
 			}
 		}
 	case PacketConfirmLoop:
-		ld := LoopData{}
+		var ld routing.LoopData
 		if err = json.Unmarshal(data, &ld); err != nil {
 			return err
 		}
 		for _, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
-				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
+			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&
+				rule.RemotePort() == ld.Loop.Remote.Port && rule.LocalPort() == ld.Loop.Local.Port {
 
 				rule.SetRouteID(ld.RouteID)
 				break
 			}
 		}
 	case PacketLoopClosed:
-		ld := &LoopData{}
-		if err = json.Unmarshal(data, ld); err != nil {
+		var ld routing.LoopData
+		if err = json.Unmarshal(data, &ld); err != nil {
 			return err
 		}
 		for routeID, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.RemotePK &&
-				rule.RemotePort() == ld.RemotePort && rule.LocalPort() == ld.LocalPort {
+			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&
+				rule.RemotePort() == ld.Loop.Remote.Port && rule.LocalPort() == ld.Loop.Local.Port {
 
 				delete(n.rules, routeID)
 				break

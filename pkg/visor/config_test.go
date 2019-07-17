@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/internal/httpauth"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestMessagingDiscovery(t *testing.T) {
@@ -103,13 +104,13 @@ func TestAppsConfig(t *testing.T) {
 	app1 := appsConf[0]
 	assert.Equal(t, "foo", app1.App)
 	assert.Equal(t, "1.1", app1.Version)
-	assert.Equal(t, uint16(1), app1.Port)
+	assert.Equal(t, routing.Port(1), app1.Port)
 	assert.False(t, app1.AutoStart)
 
 	app2 := appsConf[1]
 	assert.Equal(t, "bar", app2.App)
 	assert.Equal(t, "1.0", app2.Version)
-	assert.Equal(t, uint16(2), app2.Port)
+	assert.Equal(t, routing.Port(2), app2.Port)
 	assert.True(t, app2.AutoStart)
 }
 

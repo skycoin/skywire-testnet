@@ -10,6 +10,7 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func main() {
@@ -51,7 +52,7 @@ func main() {
 		log.Fatal("Failed to construct PubKey: ", err, os.Args[1])
 	}
 
-	conn, err := helloworldApp.Dial(&app.Addr{PubKey: remotePK, Port: 10})
+	conn, err := helloworldApp.Dial(routing.Addr{PubKey: remotePK, Port: 10})
 	if err != nil {
 		log.Fatal("Failed to open remote conn: ", err)
 	}

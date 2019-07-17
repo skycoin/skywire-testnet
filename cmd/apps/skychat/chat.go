@@ -19,6 +19,7 @@ import (
 
 	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")
@@ -68,7 +69,7 @@ func listenLoop() {
 			return
 		}
 
-		raddr := conn.RemoteAddr().(*app.Addr)
+		raddr := conn.RemoteAddr().(routing.Addr)
 		connsMu.Lock()
 		chatConns[raddr.PubKey] = conn
 		connsMu.Unlock()
@@ -78,7 +79,7 @@ func listenLoop() {
 }
 
 func handleConn(conn net.Conn) {
-	raddr := conn.RemoteAddr().(*app.Addr)
+	raddr := conn.RemoteAddr().(routing.Addr)
 	for {
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
@@ -113,7 +114,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	addr := &app.Addr{PubKey: pk, Port: 1}
+	addr := routing.Addr{PubKey: pk, Port: 1}
 	connsMu.Lock()
 	conn, ok := chatConns[pk]
 	connsMu.Unlock()

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
 )
@@ -48,12 +47,12 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 	_, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
-	addr := &app.LoopAddr{Port: 3, Remote: app.Addr{PubKey: pk, Port: 3}}
-	require.NoError(t, rm.RemoveLoopRule(addr))
+	loop := routing.Loop{Local: routing.Addr{Port: 3}, Remote: routing.Addr{PubKey: pk, Port: 3}}
+	require.NoError(t, rm.RemoveLoopRule(loop))
 	assert.Equal(t, 1, rt.Count())
 
-	addr = &app.LoopAddr{Port: 2, Remote: app.Addr{PubKey: pk, Port: 3}}
-	require.NoError(t, rm.RemoveLoopRule(addr))
+	loop = routing.Loop{Local: routing.Addr{Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}
+	require.NoError(t, rm.RemoveLoopRule(loop))
 	assert.Equal(t, 0, rt.Count())
 }
 
@@ -121,11 +120,11 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 
 func TestRouteManagerConfirmLoop(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	var inAddr *app.LoopAddr
+	var inLoop routing.Loop
 	var inRule routing.Rule
 	callbacks := &setupCallbacks{
-		ConfirmLoop: func(addr *app.LoopAddr, rule routing.Rule) (err error) {
-			inAddr = addr
+		ConfirmLoop: func(loop routing.Loop, rule routing.Rule) (err error) {
+			inLoop = loop
 			inRule = rule
 			return nil
 		},
@@ -146,18 +145,24 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
 	require.NoError(t, rt.SetRule(1, rule))
 
-	ld := &setup.LoopData{
-		RemotePK:   pk,
-		RemotePort: 3,
-		LocalPort:  2,
-		RouteID:    1,
+	ld := routing.LoopData{
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: pk,
+				Port:   3,
+			},
+			Local: routing.Addr{
+				Port: 2,
+			},
+		},
+		RouteID: 1,
 	}
 	err := setup.ConfirmLoop(proto, ld)
 	require.NoError(t, err)
 	assert.Equal(t, rule, inRule)
-	assert.Equal(t, uint16(2), inAddr.Port)
-	assert.Equal(t, uint16(3), inAddr.Remote.Port)
-	assert.Equal(t, pk, inAddr.Remote.PubKey)
+	assert.Equal(t, routing.Port(2), inLoop.Local.Port)
+	assert.Equal(t, routing.Port(3), inLoop.Remote.Port)
+	assert.Equal(t, pk, inLoop.Remote.PubKey)
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-errCh)
@@ -165,10 +170,10 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 
 func TestRouteManagerLoopClosed(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
-	var inAddr *app.LoopAddr
+	var inLoop routing.Loop
 	callbacks := &setupCallbacks{
-		LoopClosed: func(addr *app.LoopAddr) error {
-			inAddr = addr
+		LoopClosed: func(loop routing.Loop) error {
+			inLoop = loop
 			return nil
 		},
 	}
@@ -190,16 +195,22 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
 	require.NoError(t, rt.SetRule(1, rule))
 
-	ld := &setup.LoopData{
-		RemotePK:   pk,
-		RemotePort: 3,
-		LocalPort:  2,
-		RouteID:    1,
+	ld := routing.LoopData{
+		Loop: routing.Loop{
+			Remote: routing.Addr{
+				PubKey: pk,
+				Port:   3,
+			},
+			Local: routing.Addr{
+				Port: 2,
+			},
+		},
+		RouteID: 1,
 	}
 	require.NoError(t, setup.LoopClosed(proto, ld))
-	assert.Equal(t, uint16(2), inAddr.Port)
-	assert.Equal(t, uint16(3), inAddr.Remote.Port)
-	assert.Equal(t, pk, inAddr.Remote.PubKey)
+	assert.Equal(t, routing.Port(2), inLoop.Local.Port)
+	assert.Equal(t, routing.Port(3), inLoop.Remote.Port)
+	assert.Equal(t, pk, inLoop.Remote.PubKey)
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-errCh)

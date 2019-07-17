@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestMain(m *testing.M) {
@@ -36,7 +36,7 @@ func TestServerOpenChannel(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- s.OpenChannel(&app.Addr{PubKey: cipher.PubKey{}, Port: Port}, 4, in)
+		errCh <- s.OpenChannel(routing.Addr{PubKey: cipher.PubKey{}, Port: Port}, 4, in)
 	}()
 
 	buf := make([]byte, 18)
@@ -48,7 +48,7 @@ func TestServerOpenChannel(t *testing.T) {
 	assert.Equal(t, []byte("unauthorized"), buf[6:])
 
 	go func() {
-		errCh <- s.OpenChannel(&app.Addr{PubKey: pk, Port: Port}, 4, in)
+		errCh <- s.OpenChannel(routing.Addr{PubKey: pk, Port: Port}, 4, in)
 	}()
 
 	buf = make([]byte, 10)
@@ -69,7 +69,7 @@ func TestServerHandleRequest(t *testing.T) {
 	assert.Equal(t, "channel is not opened", err.Error())
 
 	in, out := net.Pipe()
-	ch := OpenChannel(4, &app.Addr{PubKey: pk, Port: Port}, in)
+	ch := OpenChannel(4, routing.Addr{PubKey: pk, Port: Port}, in)
 	s.chans.add(ch)
 
 	errCh := make(chan error)
@@ -102,7 +102,7 @@ func TestServerHandleData(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, "channel is not opened", err.Error())
 
-	ch := OpenChannel(4, &app.Addr{PubKey: pk, Port: Port}, nil)
+	ch := OpenChannel(4, routing.Addr{PubKey: pk, Port: Port}, nil)
 	s.chans.add(ch)
 
 	err = s.HandleData(cipher.PubKey{}, 0, []byte("foo"))
