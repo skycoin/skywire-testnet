@@ -339,22 +339,15 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
-	var setupTpChan chan Transport
-	var dataTpChan chan *ManagedTransport
-
 	if tm.IsSetupTransport(tr) {
-		setupTpChan = tm.SetupTpChan
-	} else {
-		dataTpChan = tm.DataTpChan
+		return mTr, nil
 	}
 
 	select {
 	case <-tm.doneChan:
 		return nil, io.ErrClosedPipe
-	case dataTpChan <- mTr:
+	case tm.DataTpChan <- mTr:
 		go tm.manageTransport(ctx, mTr, factory, remote)
-		return mTr, nil
-	case setupTpChan <- mTr:
 		return mTr, nil
 	}
 }
