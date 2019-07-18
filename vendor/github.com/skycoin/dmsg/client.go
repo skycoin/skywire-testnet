@@ -256,14 +256,18 @@ func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) 
 }
 
 func (c *ClientConn) close() (closed bool) {
+	if c == nil {
+		return false
+	}
 	c.once.Do(func() {
 		closed = true
 		c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
 		close(c.done)
 		c.mx.Lock()
 		for _, tp := range c.tps {
+			// Nil check is required here to keep 8192 running goroutines limit in tests with -race flag.
 			if tp != nil {
-				go tp.Close() //nolint:errcheck
+				go tp.Close() // nolint:errcheck
 			}
 		}
 		_ = c.Conn.Close() //nolint:errcheck
@@ -539,6 +543,10 @@ func (c *Client) Type() string {
 // Close closes the dms_client and associated connections.
 // TODO(evaninjin): proper error handling.
 func (c *Client) Close() error {
+	if c == nil {
+		return nil
+	}
+
 	c.once.Do(func() {
 		close(c.done)
 		for {

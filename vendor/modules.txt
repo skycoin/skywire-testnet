@@ -95,6 +95,7 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
 # golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
+golang.org/x/net/nettest
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
 # golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
