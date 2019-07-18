@@ -100,6 +100,7 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 func settlementResponderHandshake() settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		expectedEntry := makeEntry(tr, false)
+		expectedEntry.LocalKey, expectedEntry.RemoteKey = expectedEntry.RemoteKey, expectedEntry.LocalKey
 		recvSignedEntry, err := receiveAndVerifyEntry(tr, expectedEntry, tr.RemotePK(), false)
 		if err != nil {
 			return nil, err

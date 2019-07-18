@@ -93,8 +93,8 @@ func TestTransportManager(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
-	assert.Equal(t, pk1, dEntry.Entry.LocalPK())
-	assert.Equal(t, pk2, dEntry.Entry.RemotePK())
+	assert.Equal(t, pk2, dEntry.Entry.LocalPK())
+	assert.Equal(t, pk1, dEntry.Entry.RemotePK())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m1.DeleteTransport(tr1.Entry.ID))
@@ -160,8 +160,8 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
-	assert.Equal(t, pk1, dEntry.Entry.LocalPK())
-	assert.Equal(t, pk2, dEntry.Entry.RemotePK())
+	assert.Equal(t, pk2, dEntry.Entry.LocalPK())
+	assert.Equal(t, pk1, dEntry.Entry.RemotePK())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m2.Close())

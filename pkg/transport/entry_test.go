@@ -17,7 +17,7 @@ func ExampleNewEntry() {
 	pkB, _ := cipher.GenerateKeyPair()
 
 	entryAB := transport.NewEntry(pkA, pkB, "", true)
-	entryBA := transport.NewEntry(pkB, pkA, "", true)
+	entryBA := transport.NewEntry(pkA, pkB, "", true)
 
 	if entryAB.ID == entryBA.ID {
 		fmt.Println("entryAB.ID == entryBA.ID")
@@ -57,12 +57,12 @@ func ExampleEntry_LocalPK() {
 		fmt.Println("entryAB.LocalKey != entryBA.LocalKey")
 	}
 
-	if entryAB.LocalPK() == entryBA.LocalPK() {
-		fmt.Println("entryAB.LocalPK() == entryBA.LocalPK()")
+	if entryAB.LocalPK() == entryBA.RemotePK() {
+		fmt.Println("entryAB.LocalPK() == entryBA.RemotePK()")
 	}
 
 	// Output: entryAB.LocalKey != entryBA.LocalKey
-	// entryAB.LocalPK() == entryBA.LocalPK()
+	// entryAB.LocalPK() == entryBA.RemotePK()
 }
 
 func ExampleEntry_RemotePK() {
@@ -89,12 +89,12 @@ func ExampleEntry_RemotePK() {
 		fmt.Println("entryAB.RemoteKey != entryBA.RemoteKey")
 	}
 
-	if entryAB.RemotePK() == entryBA.RemotePK() {
-		fmt.Println("entryAB.RemotePK() == entryBA.RemotePK()")
+	if entryAB.RemotePK() == entryBA.LocalPK() {
+		fmt.Println("entryAB.RemotePK() == entryBA.LocalPK()")
 	}
 
 	// Output: entryAB.RemoteKey != entryBA.RemoteKey
-	// entryAB.RemotePK() == entryBA.RemotePK()
+	// entryAB.RemotePK() == entryBA.LocalPK()
 }
 
 func ExampleEntry_SetEdges() {
@@ -108,9 +108,13 @@ func ExampleEntry_SetEdges() {
 
 	if entryAB.LocalKey != entryBA.LocalKey {
 		fmt.Println("entryAB.LocalKey != entryBA.LocalKey")
+	} else {
+		fmt.Println("entryAB.LocalKey == entryBA.LocalKey")
 	}
 
 	if entryAB.RemoteKey != entryBA.RemoteKey {
+		fmt.Println("entryAB.RemoteKey != entryBA.RemoteKey")
+	} else {
 		fmt.Println("entryAB.RemoteKey != entryBA.RemoteKey")
 	}
 
@@ -119,7 +123,9 @@ func ExampleEntry_SetEdges() {
 		fmt.Println("entryAB.ID == entryBA.ID")
 	}
 
-	// Output: entryAB.EdgeKeys == entryBA.EdgeKeys
+	// Output:
+	// entryAB.LocalKey == entryBA.LocalKey
+	// entryAB.RemoteKey != entryBA.RemoteKey
 	// entryAB.ID != uuid.UUID{}
 	// entryAB.ID == entryBA.ID
 }
