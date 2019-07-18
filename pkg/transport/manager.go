@@ -340,15 +340,21 @@ func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tp
 	tm.mu.Unlock()
 
 	if tm.IsSetupTransport(tr) {
-		return mTr, nil
-	}
-
-	select {
-	case <-tm.doneChan:
-		return nil, io.ErrClosedPipe
-	case tm.DataTpChan <- mTr:
-		go tm.manageTransport(ctx, mTr, factory, remote)
-		return mTr, nil
+		select {
+		case <-tm.doneChan:
+			return nil, io.ErrClosedPipe
+		case tm.SetupTpChan <- mTr:
+			go tm.manageTransport(ctx, mTr, factory, remote)
+			return mTr, nil
+		}
+	} else {
+		select {
+		case <-tm.doneChan:
+			return nil, io.ErrClosedPipe
+		case tm.DataTpChan <- mTr:
+			go tm.manageTransport(ctx, mTr, factory, remote)
+			return mTr, nil
+		}
 	}
 }
 
@@ -362,15 +368,11 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
-	var setupTpChan chan Transport
-	var dataTpChan chan *ManagedTransport
-
 	var entry *Entry
-	if tm.IsSetupTransport(tr) {
-		setupTpChan = tm.SetupTpChan
+	isSetup := tm.IsSetupTransport(tr)
+	if isSetup {
 		entry = makeEntry(tr, false)
 	} else {
-		dataTpChan = tm.DataTpChan
 		entry, err = settlementResponderHandshake().Do(tm, tr, 30*time.Second)
 		if err != nil {
 			go func() {
@@ -400,14 +402,22 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
-	select {
-	case <-tm.doneChan:
-		return nil, io.ErrClosedPipe
-	case dataTpChan <- mTr:
-		go tm.manageTransport(ctx, mTr, factory, remote)
-		return mTr, nil
-	case setupTpChan <- mTr:
-		return mTr, nil
+	if isSetup {
+		select {
+		case <-tm.doneChan:
+			return nil, io.ErrClosedPipe
+		case tm.SetupTpChan <- mTr:
+			go tm.manageTransport(ctx, mTr, factory, remote)
+			return mTr, nil
+		}
+	} else {
+		select {
+		case <-tm.doneChan:
+			return nil, io.ErrClosedPipe
+		case tm.DataTpChan <- mTr:
+			go tm.manageTransport(ctx, mTr, factory, remote)
+			return mTr, nil
+		}
 	}
 }
 
