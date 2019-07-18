@@ -135,7 +135,7 @@ func (tm *Manager) reconnectTransports(ctx context.Context) {
 			continue
 		}
 
-		_, err := tm.createTransport(ctx, remote, entry.Type, entry.Public)
+		_, err := tm.CreateDataTransport(ctx, remote, entry.Type, entry.Public)
 		if err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
@@ -180,7 +180,7 @@ func (tm *Manager) createDefaultTransports(ctx context.Context) {
 		if exist {
 			continue
 		}
-		_, err := tm.CreateTransport(ctx, pk, "messaging", true)
+		_, err := tm.CreateDataTransport(ctx, pk, "messaging", true)
 		if err != nil {
 			tm.Logger.Warnf("Failed to establish transport to a node %s: %s", pk, err)
 		}
@@ -224,9 +224,64 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
-// CreateTransport begins to attempt to establish transports to the given 'remote' node.
-func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	return tm.createTransport(ctx, remote, tpType, public)
+// CreateSetupTransport begins to attempt to establish setup transports to the given 'remote' node.
+func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (Transport, error) {
+	factory := tm.factories[tpType]
+	if factory == nil {
+		return nil, errors.New("unknown transport type")
+	}
+
+	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
+	if err != nil {
+		return nil, err
+	}
+
+	oldTr := tm.Transport(entry.ID)
+	if oldTr != nil {
+		oldTr.killWorker()
+	}
+
+	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
+
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.SetupTpChan <- tr:
+		return tr, nil
+	}
+}
+
+// CreateDataTransport begins to attempt to establish data transports to the given 'remote' node.
+func (tm *Manager) CreateDataTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
+	factory := tm.factories[tpType]
+	if factory == nil {
+		return nil, errors.New("unknown transport type")
+	}
+
+	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
+	if err != nil {
+		return nil, err
+	}
+
+	oldTr := tm.Transport(entry.ID)
+	if oldTr != nil {
+		oldTr.killWorker()
+	}
+
+	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
+	mTr := newManagedTransport(tr, *entry, false)
+
+	tm.mu.Lock()
+	tm.transports[entry.ID] = mTr
+	tm.mu.Unlock()
+
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.DataTpChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, remote)
+		return mTr, nil
+	}
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
@@ -314,48 +369,6 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 	}
 
 	return tr, entry, nil
-}
-
-func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	factory := tm.factories[tpType]
-	if factory == nil {
-		return nil, errors.New("unknown transport type")
-	}
-
-	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
-	if err != nil {
-		return nil, err
-	}
-
-	oldTr := tm.Transport(entry.ID)
-	if oldTr != nil {
-		oldTr.killWorker()
-	}
-
-	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
-	mTr := newManagedTransport(tr, *entry, false)
-
-	tm.mu.Lock()
-	tm.transports[entry.ID] = mTr
-	tm.mu.Unlock()
-
-	if tm.IsSetupTransport(tr) {
-		select {
-		case <-tm.doneChan:
-			return nil, io.ErrClosedPipe
-		case tm.SetupTpChan <- mTr:
-			go tm.manageTransport(ctx, mTr, factory, remote)
-			return mTr, nil
-		}
-	} else {
-		select {
-		case <-tm.doneChan:
-			return nil, io.ErrClosedPipe
-		case tm.DataTpChan <- mTr:
-			go tm.manageTransport(ctx, mTr, factory, remote)
-			return mTr, nil
-		}
-	}
 }
 
 func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*ManagedTransport, error) {

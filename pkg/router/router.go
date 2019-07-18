@@ -434,7 +434,7 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 	}
 
 	// TODO(evanlinjin): need string constant for tp type.
-	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], dmsg.Type, false)
+	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
