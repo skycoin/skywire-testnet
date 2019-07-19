@@ -10,7 +10,9 @@ import (
 func BufRead(buf *bytes.Buffer, data, p []byte) (int, error) {
 	n := copy(p, data)
 	if n < len(data) {
-		buf.Write(data[n:])
+		if _, err := buf.Write(data[n:]); err != nil {
+			log.WithError(err).Warn("Failed to write to buffer")
+		}
 	}
 	return n, nil
 }
