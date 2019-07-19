@@ -27,7 +27,11 @@ type NextConn struct {
 
 func (r *NextConn) writeFrame(ft FrameType, p []byte) error {
 	if err := writeFrame(r.conn.Conn, MakeFrame(ft, r.id, p)); err != nil {
-		go r.conn.Close()
+		go func() {
+			if err := r.conn.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close connection")
+			}
+		}()
 		return err
 	}
 	return nil
@@ -109,13 +113,17 @@ type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error) {
 	go func() {
 		<-ctx.Done()
-		c.Conn.Close()
+		if err := c.Conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 	}()
 
 	log := c.log.WithField("srcClient", c.remoteClient)
 	defer func() {
 		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
-		c.Conn.Close()
+		if err := c.Conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 	}()
 	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 
@@ -187,7 +195,8 @@ func (c *ServerConn) writeOK() error {
 	return nil
 }
 
-func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn, byte, bool) { //nolint:unparam
+// nolint:unparam
+func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn, byte, bool) {
 	next, ok := c.getNext(id)
 	if !ok {
 		return next, 0, false
@@ -198,7 +207,8 @@ func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn,
 	return next, 0, true
 }
 
-func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id uint16, p []byte) (*NextConn, byte, bool) { //nolint:unparam
+// nolint:unparam
+func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id uint16, p []byte) (*NextConn, byte, bool) {
 	initPK, respPK, ok := splitPKs(p)
 	if !ok || initPK != c.PK() {
 		return nil, 0, false

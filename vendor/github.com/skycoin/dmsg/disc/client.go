@@ -11,8 +11,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/dmsg/cipher"
 )
+
+var log = logging.MustGetLogger("disc")
 
 // APIClient implements messaging discovery API client.
 type APIClient interface {
@@ -50,11 +54,16 @@ func (c *httpClient) Entry(ctx context.Context, publicKey cipher.PubKey) (*Entry
 	req = req.WithContext(ctx)
 
 	resp, err := c.client.Do(req)
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close response body")
+			}
+		}()
+	}
 	if err != nil {
 		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	// if the response is an error it will be codified as an HTTPMessage
 	if resp.StatusCode != http.StatusOK {
@@ -92,11 +101,16 @@ func (c *httpClient) SetEntry(ctx context.Context, e *Entry) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.client.Do(req)
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close response body")
+			}
+		}()
+	}
 	if err != nil {
 		return err
 	}
-
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		var httpResponse HTTPMessage
@@ -159,11 +173,16 @@ func (c *httpClient) AvailableServers(ctx context.Context) ([]*Entry, error) {
 	req = req.WithContext(ctx)
 
 	resp, err := c.client.Do(req)
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close response body")
+			}
+		}()
+	}
 	if err != nil {
 		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	// if the response is an error it will be codified as an HTTPMessage
 	if resp.StatusCode != http.StatusOK {
