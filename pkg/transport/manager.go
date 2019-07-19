@@ -371,7 +371,7 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 	return tr, entry, nil
 }
 
-func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*ManagedTransport, error) {
+func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transport, error) {
 	tr, err := factory.Accept(ctx)
 	if err != nil {
 		return nil, err
@@ -409,28 +409,27 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		oldTr.killWorker()
 	}
 
+	if isSetup {
+		select {
+		case <-tm.doneChan:
+			return nil, io.ErrClosedPipe
+		case tm.SetupTpChan <- tr:
+			return tr, nil
+		}
+	}
+
 	mTr := newManagedTransport(tr, *entry, true)
 
 	tm.mu.Lock()
 	tm.transports[entry.ID] = mTr
 	tm.mu.Unlock()
 
-	if isSetup {
-		select {
-		case <-tm.doneChan:
-			return nil, io.ErrClosedPipe
-		case tm.SetupTpChan <- mTr:
-			go tm.manageTransport(ctx, mTr, factory, remote)
-			return mTr, nil
-		}
-	} else {
-		select {
-		case <-tm.doneChan:
-			return nil, io.ErrClosedPipe
-		case tm.DataTpChan <- mTr:
-			go tm.manageTransport(ctx, mTr, factory, remote)
-			return mTr, nil
-		}
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.DataTpChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, remote)
+		return mTr, nil
 	}
 }
 

@@ -306,7 +306,7 @@ func ExampleMakeTransportID() {
 	// uuid is different for public and private transports
 }
 
-func ExampleManager_CreateTransport() {
+func ExampleManager_CreateDataTransport() {
 	// Repetition is required here to guarantee that correctness does not depends on order of edges
 	for i := 0; i < 4; i++ {
 		pkB, mgrA, err := MockTransportManager()
