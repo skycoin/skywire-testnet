@@ -79,34 +79,38 @@ func New(config *Config) *Router {
 
 // Serve starts transport listening loop.
 func (r *Router) Serve(ctx context.Context) error {
-	go func() {
-		for tp := range r.tm.DataTpChan {
-			r.mu.Lock()
-			isAccepted := tp.Accepted
-			r.mu.Unlock()
-
-			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", isAccepted, false)
-
-			r.handleTransport(tp, isAccepted, false)
-		}
-	}()
+	r.Logger.Info("Starting router")
 
 	go func() {
-		for tp := range r.tm.SetupTpChan {
-			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", true, true)
-			r.handleTransport(tp, true, false)
-		}
-	}()
+		for {
+			select {
+			case dTp, ok := <-r.tm.DataTpChan:
+				if !ok {
+					return
+				}
+				r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", dTp.Accepted, false)
+				r.handleTransport(dTp, dTp.Accepted, false)
+				initStatus := "locally"
+				if dTp.Accepted {
+					initStatus = "remotely"
+				}
+				r.Logger.Infof("New %s-initiated transport: purpose(data)", initStatus)
+				r.handleTransport(dTp, dTp.Accepted, false)
 
-	go func() {
-		for range r.expiryTicker.C {
-			if err := r.rm.rt.Cleanup(); err != nil {
-				r.Logger.Warnf("Failed to expiry routes: %s", err)
+			case sTp, ok := <-r.tm.SetupTpChan:
+				if !ok {
+					return
+				}
+				r.Logger.Infof("New remotely-initiated transport: purpose(setup)")
+				r.handleTransport(sTp, true, true)
+
+			case <-r.expiryTicker.C:
+				if err := r.rm.rt.Cleanup(); err != nil {
+					r.Logger.Warnf("Failed to expiry routes: %s", err)
+				}
 			}
 		}
 	}()
-
-	r.Logger.Info("Starting router")
 	return r.tm.Serve(ctx)
 }
 
@@ -434,7 +438,7 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 	}
 
 	// TODO(evanlinjin): need string constant for tp type.
-	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type, false)
+	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}

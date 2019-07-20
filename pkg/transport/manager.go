@@ -180,7 +180,7 @@ func (tm *Manager) createDefaultTransports(ctx context.Context) {
 		if exist {
 			continue
 		}
-		_, err := tm.CreateDataTransport(ctx, pk, "messaging", true)
+		_, err := tm.CreateDataTransport(ctx, pk, "dmsg", true)
 		if err != nil {
 			tm.Logger.Warnf("Failed to establish transport to a node %s: %s", pk, err)
 		}
@@ -225,36 +225,23 @@ func (tm *Manager) Serve(ctx context.Context) error {
 }
 
 // CreateSetupTransport begins to attempt to establish setup transports to the given 'remote' node.
-func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (Transport, error) {
-	factory := tm.factories[tpType]
-	if factory == nil {
+func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKey, tpType string) (Transport, error) {
+	factory, ok := tm.factories[tpType]
+	if !ok {
 		return nil, errors.New("unknown transport type")
 	}
-
-	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
+	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
 		return nil, err
 	}
-
-	oldTr := tm.Transport(entry.ID)
-	if oldTr != nil {
-		oldTr.killWorker()
-	}
-
-	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
-
-	select {
-	case <-tm.doneChan:
-		return nil, io.ErrClosedPipe
-	case tm.SetupTpChan <- tr:
-		return tr, nil
-	}
+	tm.Logger.Infof("Dialed to setup node %s using %s factory.", remote, tpType)
+	return tr, nil
 }
 
 // CreateDataTransport begins to attempt to establish data transports to the given 'remote' node.
 func (tm *Manager) CreateDataTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	factory := tm.factories[tpType]
-	if factory == nil {
+	factory, ok := tm.factories[tpType]
+	if !ok {
 		return nil, errors.New("unknown transport type")
 	}
 
@@ -347,25 +334,23 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 	if tm.isClosing() {
 		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")
 	}
+	if tm.IsSetupPK(remote) {
+		return nil, nil, errors.New("cannot dial to setup node")
+	}
 
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var entry *Entry
-	if tm.IsSetupTransport(tr) {
-		entry = makeEntry(tr, public)
-	} else {
-		entry, err = settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
-		if err != nil {
-			go func() {
-				if err := tr.Close(); err != nil {
-					tm.Logger.Warnf("Failed to close transport: %s", err)
-				}
-			}()
-			return nil, nil, err
-		}
+	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
+	if err != nil {
+		go func() {
+			if err := tr.Close(); err != nil {
+				tm.Logger.Warnf("Failed to close transport: %s", err)
+			}
+		}()
+		return nil, nil, err
 	}
 
 	return tr, entry, nil
@@ -381,41 +366,34 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transp
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
-	var entry *Entry
-	isSetup := tm.IsSetupTransport(tr)
-	if isSetup {
-		entry = makeEntry(tr, false)
-	} else {
-		entry, err = settlementResponderHandshake().Do(tm, tr, 30*time.Second)
-		if err != nil {
-			go func() {
-				if err = tr.Close(); err != nil {
-					tm.Logger.Warnf("Failed to close transport: %s", err)
-				}
-			}()
-			return nil, err
-		}
-	}
-
-	remote, ok := tm.Remote(tr.Edges())
+	remotePK, ok := tm.Remote(tr.Edges())
 	if !ok {
-		return nil, errors.New("remote pubkey not found in edges")
+		return nil, errors.New("failed to determine remote edge of accepted transport")
 	}
 
-	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
-
-	oldTr := tm.Transport(entry.ID)
-	if oldTr != nil {
-		oldTr.killWorker()
-	}
-
-	if isSetup {
+	if isSetup := tm.IsSetupPK(remotePK); isSetup {
 		select {
 		case <-tm.doneChan:
 			return nil, io.ErrClosedPipe
 		case tm.SetupTpChan <- tr:
 			return tr, nil
 		}
+	}
+
+	entry, err := settlementResponderHandshake().Do(tm, tr, 30*time.Second)
+	if err != nil {
+		go func() {
+			if err = tr.Close(); err != nil {
+				tm.Logger.Warnf("Failed to close transport: %s", err)
+			}
+		}()
+		return nil, err
+	}
+
+	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remotePK, entry.ID)
+
+	if oldTr := tm.Transport(entry.ID); oldTr != nil {
+		oldTr.killWorker()
 	}
 
 	mTr := newManagedTransport(tr, *entry, true)
@@ -428,7 +406,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transp
 	case <-tm.doneChan:
 		return nil, io.ErrClosedPipe
 	case tm.DataTpChan <- mTr:
-		go tm.manageTransport(ctx, mTr, factory, remote)
+		go tm.manageTransport(ctx, mTr, factory, remotePK)
 		return mTr, nil
 	}
 }
@@ -526,13 +504,11 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 }
 
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
-func (tm *Manager) IsSetupTransport(tr Transport) bool {
-	for _, pk := range tm.setupNodes {
-		remote, ok := tm.Remote(tr.Edges())
-		if ok && (remote == pk) {
+func (tm *Manager) IsSetupPK(pk cipher.PubKey) bool {
+	for _, sPK := range tm.setupNodes {
+		if sPK == pk {
 			return true
 		}
 	}
-
 	return false
 }

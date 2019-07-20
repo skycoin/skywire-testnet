@@ -2,6 +2,8 @@ package dmsg
 
 import (
 	"context"
+	"net"
+	"time"
 
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
@@ -16,13 +18,30 @@ const (
 	Type = dmsg.Type
 )
 
-// Client is a wrapper type for "github.com/skycoin/dmsg".Client
-type Client struct {
-	*dmsg.Client
+// Config configures dmsg
+type Config struct {
+	PubKey     cipher.PubKey
+	SecKey     cipher.SecKey
+	Discovery  disc.APIClient
+	Retries    int
+	RetryDelay time.Duration
+}
+
+// Server is an alias for dmsg.Server.
+type Server = dmsg.Server
+
+// NewServer is an alias for dmsg.NewServer.
+func NewServer(pk cipher.PubKey, sk cipher.SecKey, addr string, l net.Listener, dc disc.APIClient) (*Server, error) {
+	return dmsg.NewServer(pk, sk, addr, l, dc)
 }
 
 // ClientOption is a wrapper type for "github.com/skycoin/dmsg".ClientOption
 type ClientOption = dmsg.ClientOption
+
+// Client is a wrapper type for "github.com/skycoin/dmsg".Client
+type Client struct {
+	*dmsg.Client
+}
 
 // NewClient is a wrapper type for "github.com/skycoin/dmsg".NewClient
 func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc disc.APIClient, opts ...ClientOption) *Client {
@@ -50,22 +69,22 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Tran
 	return NewTransport(tp), nil
 }
 
-// Close is a wrapper type for "github.com/skycoin/dmsg".Close
-func (c *Client) Close() error {
-	return c.Client.Close()
-}
-
-// Local is a wrapper type for "github.com/skycoin/dmsg".Local
-func (c *Client) Local() cipher.PubKey {
-	return c.Client.Local()
-}
-
-// Type is a wrapper type for "github.com/skycoin/dmsg".Type
-func (c *Client) Type() string {
-	return c.Client.Type()
-}
-
 // SetLogger is a wrapper type for "github.com/skycoin/dmsg".SetLogger
 func SetLogger(log *logging.Logger) ClientOption {
 	return dmsg.SetLogger(log)
+}
+
+// Transport is a wrapper type for "github.com/skycoin/dmsg".Transport
+type Transport struct {
+	*dmsg.Transport
+}
+
+// NewTransport creates a new Transport.
+func NewTransport(tp *dmsg.Transport) *Transport {
+	return &Transport{Transport: tp}
+}
+
+// Edges returns sorted edges of transport
+func (tp *Transport) Edges() [2]cipher.PubKey {
+	return transport.SortPubKeys(tp.LocalPK(), tp.RemotePK())
 }
