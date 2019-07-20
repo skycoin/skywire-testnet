@@ -206,11 +206,14 @@ func (r *Router) serveTransport(rw io.ReadWriter) error {
 	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
 	}
+	fmt.Println("got packet!", packet)
 
 	payload := make([]byte, packet.Size())
+	fmt.Println("payload size:", len(payload))
 	if _, err := io.ReadFull(rw, payload); err != nil {
 		return err
 	}
+	fmt.Println("got packet payload!", payload)
 
 	rule, err := r.rm.GetRule(packet.RouteID())
 	if err != nil {
