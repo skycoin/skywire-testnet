@@ -143,9 +143,9 @@ type Client struct {
     DelegatedServers []cipher.PubKey `json:"delegated_servers"`
 }
 
-// Server contains the entity's required server meta, if it is to be advertised as a Messaging Server.
+// Server contains the entity's required server meta, if it is to be advertised as a dmsg Server.
 type Server struct {
-    // IPv4 or IPv6 public address of the Messaging Server.
+    // IPv4 or IPv6 public address of the dmsg Server.
     Address string `json:"address"`
 
     // Number of connections still available.
@@ -155,7 +155,7 @@ type Server struct {
 
 **Definition rules:**
 
-- A record **MUST** have either a "Server" field, a "Client" field, or both "Server" and "Client" fields. In other words, a Messaging Node can be a Messaging Server Node, a Messaging Client Node, or both a Messaging Server Node and a Messaging Client Node.
+- A record **MUST** have either a "Server" field, a "Client" field, or both "Server" and "Client" fields. In other words, a dmsg node can be a dmsg Server, a dmsg Client, or both a dmsg Server and a dmsg Client.
 
 **Iteration rules:**
 
@@ -180,7 +180,7 @@ Only 3 endpoints need to be defined; Get Entry, Post Entry, and Get Available Se
 
 #### GET Entry
 
-Obtains a messaging node's entry.
+Obtains a dmsg node's entry.
 
 > `GET {domain}/discovery/entries/{public_key}`
 

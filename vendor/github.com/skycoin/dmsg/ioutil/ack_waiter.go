@@ -61,7 +61,7 @@ func (w *Uint16AckWaiter) stopWaiter(seq Uint16Seq) {
 func (w *Uint16AckWaiter) StopAll() {
 	w.mx.Lock()
 	for seq := range w.waiters {
-		w.stopWaiter(Uint16Seq(seq))
+		w.stopWaiter(seq)
 	}
 	w.mx.Unlock()
 }
