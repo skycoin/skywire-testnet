@@ -503,7 +503,7 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 	}
 }
 
-// IsSetupTransport checks whether `tr` is running in the `setup` mode.
+// IsSetupPK checks whether provided `pk` is of `setup` purpose.
 func (tm *Manager) IsSetupPK(pk cipher.PubKey) bool {
 	for _, sPK := range tm.setupNodes {
 		if sPK == pk {
