@@ -1,9 +1,24 @@
 package setup
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
+
+	"github.com/skycoin/skywire/pkg/metrics"
+	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 )
@@ -23,74 +38,215 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-//func TestCreateLoop(t *testing.T) {
-//	dc := disc.NewMock()
-//
-//	pk1, sk1 := cipher.GenerateKeyPair()
-//	pk2, _ := cipher.GenerateKeyPair()
-//	pk3, sk3 := cipher.GenerateKeyPair()
-//	pk4, sk4 := cipher.GenerateKeyPair()
-//	pkS, _ := cipher.GenerateKeyPair()
-//
-//	n1, srvErrCh1, err := createServer(dc)
-//	require.NoError(t, err)
-//
-//	n2, srvErrCh2, err := createServer(dc)
-//	require.NoError(t, err)
-//
-//	n3, srvErrCh3, err := createServer(dc)
-//	require.NoError(t, err)
-//
-//	c1 := dmsg.NewClient(pk1, sk1, dc)
-//	// c2 := dmsg.NewClient(pk2, sk2, dc)
-//	c3 := dmsg.NewClient(pk3, sk3, dc)
-//	c4 := dmsg.NewClient(pk4, sk4, dc)
-//
-//	_, err = c1.Dial(context.TODO(), pk2)
-//	require.NoError(t, err)
-//
-//	_, err = c3.Dial(context.TODO(), pk4)
-//	require.NoError(t, err)
-//
-//	lPK, _ := cipher.GenerateKeyPair()
-//	rPK, _ := cipher.GenerateKeyPair()
-//	ld := routing.LoopDescriptor{Loop: routing.Loop{Local: routing.Addr{PubKey: lPK, Port: 1}, Remote: routing.Addr{PubKey: rPK, Port: 2}}, Expiry: time.Now().Add(time.Hour),
-//		Forward: routing.Route{
-//			&routing.Hop{From: pk1, To: pk2, Transport: uuid.New()},
-//			&routing.Hop{From: pk2, To: pk3, Transport: uuid.New()},
-//		},
-//		Reverse: routing.Route{
-//			&routing.Hop{From: pk3, To: pk2, Transport: uuid.New()},
-//			&routing.Hop{From: pk2, To: pk1, Transport: uuid.New()},
-//		},
-//	}
-//
-//	time.Sleep(100 * time.Millisecond)
-//
-//	sn := &Node{logging.MustGetLogger("routesetup"), c1, 0, metrics.NewDummy()}
-//	errChan := make(chan error)
-//	go func() {
-//		errChan <- sn.Serve(context.TODO())
-//	}()
-//
-//	tr, err := c4.Dial(context.TODO(), pkS)
-//	require.NoError(t, err)
-//
-//	proto := NewSetupProtocol(tr)
-//	require.NoError(t, CreateLoop(proto, ld))
-//
-//	require.NoError(t, sn.Close())
-//	require.NoError(t, <-errChan)
-//
-//	require.NoError(t, n1.Close())
-//	require.NoError(t, errWithTimeout(srvErrCh1))
-//
-//	require.NoError(t, n2.Close())
-//	require.NoError(t, errWithTimeout(srvErrCh2))
-//
-//	require.NoError(t, n3.Close())
-//	require.NoError(t, errWithTimeout(srvErrCh3))
-//}
+func TestNode(t *testing.T) {
+
+	// Prepare mock dmsg discovery.
+	discovery := disc.NewMock()
+
+	// Prepare dmsg server.
+	server, serverErr := createServer(t, discovery)
+	defer func() {
+		require.NoError(t, server.Close())
+		require.NoError(t, errWithTimeout(serverErr))
+	}()
+
+	// CLOSURE: sets up dmsg clients.
+	prepClients := func(n int) ([]*dmsg.Client, func()) {
+		clients := make([]*dmsg.Client, n)
+		for i := 0; i < n; i++ {
+			pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte{byte(i)})
+			require.NoError(t, err)
+			t.Logf("> client[%d] PK: %s\n", i, pk)
+			c := dmsg.NewClient(pk, sk, discovery, dmsg.SetLogger(logging.MustGetLogger(fmt.Sprintf("client_%d:%s", i, pk))))
+			require.NoError(t, c.InitiateServerConnections(context.TODO(), 1))
+			clients[i] = c
+		}
+		return clients, func() {
+			for _, c := range clients {
+				require.NoError(t, c.Close())
+			}
+		}
+	}
+
+	// CLOSURE: sets up setup node.
+	prepSetupNode := func(c *dmsg.Client) (*Node, func()) {
+		sn := &Node{
+			Logger:    logging.MustGetLogger("setup_node"),
+			messenger: c,
+			metrics:   metrics.NewDummy(),
+		}
+		go func() { _ = sn.Serve(context.TODO()) }() //nolint:errcheck
+		return sn, func() {
+			require.NoError(t, sn.Close())
+		}
+	}
+
+	// TEST: Emulates the communication between 4 visor nodes and a setup node,
+	// where the first client node initiates a loop to the last.
+	t.Run("CreateLoop", func(t *testing.T) {
+
+		// client index 0 is for setup node.
+		// clients index 1 to 4 are for visor nodes.
+		clients, closeClients := prepClients(5)
+		defer closeClients()
+
+		// prepare and serve setup node (using client 0).
+		sn, closeSetup := prepSetupNode(clients[0])
+		setupPK := sn.messenger.Local()
+		defer closeSetup()
+
+		// prepare loop creation (client_1 will use this to request loop creation with setup node).
+		ld := routing.LoopDescriptor{
+			Loop: routing.Loop{
+				Local:  routing.Addr{PubKey: clients[1].Local(), Port: 1},
+				Remote: routing.Addr{PubKey: clients[4].Local(), Port: 1},
+			},
+			Reverse: routing.Route{
+				&routing.Hop{From: clients[1].Local(), To: clients[2].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[2].Local(), To: clients[3].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[3].Local(), To: clients[4].Local(), Transport: uuid.New()},
+			},
+			Forward: routing.Route{
+				&routing.Hop{From: clients[4].Local(), To: clients[3].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[3].Local(), To: clients[2].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[2].Local(), To: clients[1].Local(), Transport: uuid.New()},
+			},
+			Expiry: time.Now().Add(time.Hour),
+		}
+
+		// client_1 initiates loop creation with setup node.
+		iTp, err := clients[1].Dial(context.TODO(), setupPK)
+		require.NoError(t, err)
+		iTpErrs := make(chan error, 2)
+		go func() {
+			iTpErrs <- CreateLoop(NewSetupProtocol(iTp), ld)
+			iTpErrs <- iTp.Close()
+			close(iTpErrs)
+		}()
+		defer func() {
+			i := 0
+			for err := range iTpErrs {
+				require.NoError(t, err, i)
+				i++
+			}
+		}()
+
+		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
+		expectAddRules := func(client int, expRule routing.RuleType) {
+			tp, err := clients[client].Accept(context.TODO())
+			require.NoError(t, err)
+			defer func() { require.NoError(t, tp.Close()) }()
+
+			proto := NewSetupProtocol(tp)
+
+			pt, pp, err := proto.ReadPacket()
+			require.NoError(t, err)
+			require.Equal(t, PacketAddRules, pt)
+
+			var rs []routing.Rule
+			require.NoError(t, json.Unmarshal(pp, &rs))
+
+			rIDs := make([]routing.RouteID, len(rs))
+			for i, r := range rs {
+				rIDs[i] = r.RouteID()
+				require.Equal(t, expRule, r.Type())
+			}
+
+			// TODO: This error is not checked due to a bug in dmsg.
+			_ = proto.WritePacket(RespSuccess, rIDs)
+		}
+
+		// CLOSURE: emulates how a visor node should react when expecting an ConfirmLoop packet.
+		expectConfirmLoop := func(client int) {
+			tp, err := clients[client].Accept(context.TODO())
+			require.NoError(t, err)
+			defer func() { require.NoError(t, tp.Close()) }()
+
+			proto := NewSetupProtocol(tp)
+
+			pt, pp, err := proto.ReadPacket()
+			require.NoError(t, err)
+			require.Equal(t, PacketConfirmLoop, pt)
+
+			var d routing.LoopData
+			require.NoError(t, json.Unmarshal(pp, &d))
+
+			switch client {
+			case 1:
+				require.Equal(t, ld.Loop, d.Loop)
+			case 4:
+				require.Equal(t, ld.Loop.Local, d.Loop.Remote)
+				require.Equal(t, ld.Loop.Remote, d.Loop.Local)
+			default:
+				t.Fatalf("We shouldn't be receiving a ConfirmLoop packet from client %d", client)
+			}
+
+			// TODO: This error is not checked due to a bug in dmsg.
+			_ = proto.WritePacket(RespSuccess, nil)
+		}
+
+		expectAddRules(4, routing.RuleApp)
+		expectAddRules(3, routing.RuleForward)
+		expectAddRules(2, routing.RuleForward)
+		expectAddRules(1, routing.RuleForward)
+		expectAddRules(1, routing.RuleApp)
+		expectAddRules(2, routing.RuleForward)
+		expectAddRules(3, routing.RuleForward)
+		expectAddRules(4, routing.RuleForward)
+		expectConfirmLoop(1)
+		expectConfirmLoop(4)
+	})
+
+	// TEST: Emulates the communication between 2 visor nodes and a setup nodes,
+	// where a route is already established,
+	// and the first client attempts to tear it down.
+	//t.Run("CloseLoop", func(t *testing.T) {
+	//	t.SkipNow()
+	//
+	//	// clients index 0 and 1 are for visor nodes.
+	//	// clients index 2 is for setup node.
+	//	clients, closeClients := prepClients(3)
+	//	defer closeClients()
+	//
+	//	// prepare and serve setup node.
+	//	sn, closeSetup := prepSetupNode(clients[0])
+	//	setupPK := sn.messenger.Local()
+	//	defer closeSetup()
+	//
+	//	// prepare loop data describing the loop that is to be closed.
+	//	ld := routing.LoopData{
+	//		Loop:    routing.Loop{
+	//			Local: routing.Addr{
+	//				PubKey: clients[1].Local(),
+	//				Port:   1,
+	//			},
+	//			Remote: routing.Addr{
+	//				PubKey: clients[2].Local(),
+	//				Port:   2,
+	//			},
+	//		},
+	//		RouteID: 3,
+	//	}
+	//
+	//	iTpErrs := make(chan error, 3)
+	//	var iTp transport.Transport
+	//	go func() {
+	//		tp, err := clients[1].Dial(context.TODO(), setupPK)
+	//		iTp = tp
+	//		iTpErrs <- err
+	//		iTpErrs <- CloseLoop(NewSetupProtocol(tp), ld)
+	//		iTpErrs <- iTp.Close()
+	//		close(iTpErrs)
+	//	}()
+	//	defer func() {
+	//		i := 0
+	//		for err := range iTpErrs {
+	//			require.NoError(t, err, i)
+	//			i++
+	//		}
+	//	}()
+	//})
+}
 
 //func TestCloseLoop(t *testing.T) {
 //	dc := disc.NewMock()
@@ -98,8 +254,7 @@ func TestMain(m *testing.M) {
 //	pk1, sk1 := cipher.GenerateKeyPair()
 //	pk3, sk3 := cipher.GenerateKeyPair()
 //
-//	n3, srvErrCh, err := createServer(dc)
-//	require.NoError(t, err)
+//	n3, srvErrCh := createServer(t, dc)
 //
 //	time.Sleep(100 * time.Millisecond)
 //
@@ -109,7 +264,7 @@ func TestMain(m *testing.M) {
 //	require.NoError(t, c1.InitiateServerConnections(context.Background(), 1))
 //	require.NoError(t, c3.InitiateServerConnections(context.Background(), 1))
 //
-//	sn := &Node{logging.MustGetLogger("routesetup"), c3, 0, metrics.NewDummy()}
+//	sn := &Node{logging.MustGetLogger("setup_node"), c3, 0, metrics.NewDummy()}
 //	errChan := make(chan error)
 //	go func() {
 //		errChan <- sn.Serve(context.TODO())
@@ -138,32 +293,26 @@ func TestMain(m *testing.M) {
 //	require.NoError(t, errWithTimeout(srvErrCh))
 //}
 
-//func createServer(dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error, err error) {
-//	pk, sk := cipher.GenerateKeyPair()
-//
-//	l, err := nettest.NewLocalListener("tcp")
-//	if err != nil {
-//		return nil, nil, err
-//	}
-//
-//	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
-//	if err != nil {
-//		return nil, nil, err
-//	}
-//
-//	errCh := make(chan error, 1)
-//	go func() {
-//		errCh <- srv.Serve()
-//	}()
-//
-//	return srv, errCh, nil
-//}
-//
-//func errWithTimeout(ch <-chan error) error {
-//	select {
-//	case err := <-ch:
-//		return err
-//	case <-time.After(5 * time.Second):
-//		return errors.New("timeout")
-//	}
-//}
+func createServer(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
+	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
+	require.NoError(t, err)
+	l, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
+	require.NoError(t, err)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.Serve()
+		close(errCh)
+	}()
+	return srv, errCh
+}
+
+func errWithTimeout(ch <-chan error) error {
+	select {
+	case err := <-ch:
+		return err
+	case <-time.After(5 * time.Second):
+		return errors.New("timeout")
+	}
+}

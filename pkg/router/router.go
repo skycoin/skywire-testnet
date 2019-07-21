@@ -206,14 +206,11 @@ func (r *Router) serveTransport(rw io.ReadWriter) error {
 	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
 	}
-	fmt.Println("got packet!", packet)
 
 	payload := make([]byte, packet.Size())
-	fmt.Println("payload size:", len(payload))
 	if _, err := io.ReadFull(rw, payload); err != nil {
 		return err
 	}
-	fmt.Println("got packet payload!", payload)
 
 	rule, err := r.rm.GetRule(packet.RouteID())
 	if err != nil {
@@ -440,7 +437,6 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	// TODO(evanlinjin): need string constant for tp type.
 	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)

@@ -383,7 +383,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transp
 	entry, err := settlementResponderHandshake().Do(tm, tr, 30*time.Second)
 	if err != nil {
 		go func() {
-			if err = tr.Close(); err != nil {
+			if err := tr.Close(); err != nil {
 				tm.Logger.Warnf("Failed to close transport: %s", err)
 			}
 		}()

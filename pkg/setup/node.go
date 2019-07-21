@@ -67,13 +67,59 @@ func (sn *Node) Serve(ctx context.Context) error {
 			return err
 		}
 		go func(tp transport.Transport) {
-			for {
-				if err := sn.serveTransport(tp); err != nil {
-					sn.Logger.Warnf("Failed to serve Transport: %s", err)
-				}
+			if err := sn.serveTransport(tp); err != nil {
+				sn.Logger.Warnf("Failed to serve Transport: %s", err)
 			}
 		}(tp)
 	}
+}
+
+func (sn *Node) serveTransport(tr transport.Transport) error {
+	proto := NewSetupProtocol(tr)
+	sp, data, err := proto.ReadPacket()
+	if err != nil {
+		return err
+	}
+
+	sn.Logger.Infof("Got new Setup request with type %s: %s", sp, string(data))
+
+	startTime := time.Now()
+	switch sp {
+	case PacketCreateLoop:
+		var ld routing.LoopDescriptor
+		if err = json.Unmarshal(data, &ld); err == nil {
+			err = sn.createLoop(ld)
+		}
+	case PacketCloseLoop:
+		var ld routing.LoopData
+		if err = json.Unmarshal(data, &ld); err == nil {
+			remote, ok := sn.remote(tr.Edges())
+			if !ok {
+				return errors.New("configured PubKey not found in edges")
+			}
+			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.LoopData{
+				Loop: routing.Loop{
+					Remote: routing.Addr{
+						PubKey: remote,
+						Port:   ld.Loop.Local.Port,
+					},
+					Local: routing.Addr{
+						Port: ld.Loop.Remote.Port,
+					},
+				},
+			})
+		}
+	default:
+		err = errors.New("unknown foundation packet")
+	}
+	sn.metrics.Record(time.Since(startTime), err != nil)
+
+	if err != nil {
+		sn.Logger.Infof("Setup request with type %s failed: %s", sp, err)
+		return proto.WritePacket(RespFailure, err)
+	}
+
+	return proto.WritePacket(RespSuccess, nil)
 }
 
 func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
@@ -131,7 +177,6 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 		if err := sn.closeLoop(responder, ldR); err != nil {
 			sn.Logger.Warnf("Failed to close loop: %s", err)
 		}
-
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
@@ -176,73 +221,6 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 	return routeID, nil
 }
 
-// Close closes underlying dmsg client.
-func (sn *Node) Close() error {
-	if sn == nil {
-		return nil
-	}
-	return sn.messenger.Close()
-}
-
-func (sn *Node) serveTransport(tr transport.Transport) error {
-	proto := NewSetupProtocol(tr)
-	sp, data, err := proto.ReadPacket()
-	if err != nil {
-		return err
-	}
-
-	sn.Logger.Infof("Got new Setup request with type %s: %s", sp, string(data))
-
-	startTime := time.Now()
-	switch sp {
-	case PacketCreateLoop:
-		var ld routing.LoopDescriptor
-		if err = json.Unmarshal(data, &ld); err == nil {
-			err = sn.createLoop(ld)
-		}
-	case PacketCloseLoop:
-		var ld routing.LoopData
-		if err = json.Unmarshal(data, &ld); err == nil {
-			remote, ok := sn.remote(tr.Edges())
-			if !ok {
-				return errors.New("configured PubKey not found in edges")
-			}
-			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.LoopData{
-				Loop: routing.Loop{
-					Remote: routing.Addr{
-						PubKey: remote,
-						Port:   ld.Loop.Local.Port,
-					},
-					Local: routing.Addr{
-						Port: ld.Loop.Remote.Port,
-					},
-				},
-			})
-		}
-	default:
-		err = errors.New("unknown foundation packet")
-	}
-	sn.metrics.Record(time.Since(startTime), err != nil)
-
-	if err != nil {
-		sn.Logger.Infof("Setup request with type %s failed: %s", sp, err)
-		return proto.WritePacket(RespFailure, err)
-	}
-
-	return proto.WritePacket(RespSuccess, nil)
-}
-
-func (sn *Node) remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
-	pubKey := sn.messenger.Local()
-	if pubKey == edges[0] {
-		return edges[1], true
-	}
-	if pubKey == edges[1] {
-		return edges[0], true
-	}
-	return cipher.PubKey{}, false
-}
-
 func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
 	ctx := context.Background()
 
@@ -256,13 +234,31 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
 		}
 	}()
 
-	proto := NewSetupProtocol(tr)
-	if err := ConfirmLoop(proto, ld); err != nil {
+	if err := ConfirmLoop(NewSetupProtocol(tr), ld); err != nil {
 		return err
 	}
 
 	sn.Logger.Infof("Confirmed loop on %s with %s. RemotePort: %d. LocalPort: %d", on, ld.Loop.Remote.PubKey, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	return nil
+}
+
+// Close closes underlying dmsg client.
+func (sn *Node) Close() error {
+	if sn == nil {
+		return nil
+	}
+	return sn.messenger.Close()
+}
+
+func (sn *Node) remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
+	pubKey := sn.messenger.Local()
+	if pubKey == edges[0] {
+		return edges[1], true
+	}
+	if pubKey == edges[1] {
+		return edges[0], true
+	}
+	return cipher.PubKey{}, false
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
@@ -290,6 +286,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
 	ctx := context.Background()
 
+	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
 	tr, err := sn.messenger.Dial(ctx, pubKey)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)

@@ -56,12 +56,13 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	//fmt.Printf("> Accepted: local(%s) remote(%s)\n", c.Local().String()[:6], tp.RemotePK().String()[:6])
 	return NewTransport(tp), nil
 }
 
 // Dial is a wrapper type for "github.com/skycoin/dmsg".Dial
 func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
+	//fmt.Printf("> Dialing: local(%s) remote(%s)\n", c.Local().String()[:6], remote.String()[:6])
 	tp, err := c.Client.Dial(ctx, remote)
 	if err != nil {
 		return nil, err

@@ -2,12 +2,15 @@
 package setup
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/skycoin/dmsg/cipher"
+
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
 
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -29,6 +32,10 @@ func (sp PacketType) String() string {
 		return "CloseLoop"
 	case PacketLoopClosed:
 		return "LoopClosed"
+	case RespSuccess:
+		return "Success"
+	case RespFailure:
+		return "Failure"
 	}
 	return fmt.Sprintf("Unknown(%d)", sp)
 }
@@ -58,6 +65,30 @@ type Protocol struct {
 	rw io.ReadWriter
 }
 
+func (p *Protocol) pks() string {
+	humanize := func(pk cipher.PubKey) string {
+		switch pk.String() {
+		case "02d75d089b307032a3dfd1e6808f6a4ea0011205f60e7f28f69f444c4e48b2b7c3":
+			return "1"
+		case "0217fcf0478d41aa7eab8ae023658910e76e5aeae9bf18fdd607188c290a9be649":
+			return "2"
+		case "028e90b6fcb4ce3ecdf0fff555be992ab612d85c00897af8bdabff157916468fc1":
+			return "3"
+		case "03739ff49de06eab6b26f55e658c97121457bb690a1d8b55cd892decbc95073b80":
+			return "4"
+		case "0345327088f0f34c359ecf67892fbe58a1cd7299e15a797339fa29365cc2e7c551":
+			return "s"
+		default:
+			return fmt.Sprintf("(%s)", pk)
+		}
+	}
+	tp, ok := p.rw.(*dmsg.Transport)
+	if !ok {
+		return "[~~]"
+	}
+	return fmt.Sprintf("[%s%s]", humanize(tp.LocalPK()), humanize(tp.RemotePK()))
+}
+
 // NewSetupProtocol constructs a new setup Protocol.
 func NewSetupProtocol(rw io.ReadWriter) *Protocol {
 	return &Protocol{rw}
@@ -65,39 +96,34 @@ func NewSetupProtocol(rw io.ReadWriter) *Protocol {
 
 // ReadPacket reads a single setup packet.
 func (p *Protocol) ReadPacket() (PacketType, []byte, error) {
-	rawLen := make([]byte, 2)
-	if _, err := io.ReadFull(p.rw, rawLen); err != nil { // TODO: data race.
+	h := make([]byte, 3)
+	if _, err := io.ReadFull(p.rw, h); err != nil {
 		return 0, nil, err
 	}
-	rawBody := make([]byte, binary.BigEndian.Uint16(rawLen))
-	_, err := io.ReadFull(p.rw, rawBody)
-	if err != nil {
+	t := PacketType(h[0])
+	pay := make([]byte, binary.BigEndian.Uint16(h[1:3]))
+	if _, err := io.ReadFull(p.rw, pay); err != nil {
 		return 0, nil, err
 	}
-	if len(rawBody) == 0 {
+	if len(pay) == 0 {
 		return 0, nil, errors.New("empty packet")
 	}
-	return PacketType(rawBody[0]), rawBody[1:], nil
+	//fmt.Println(p.pks(), "READ:", t, string(pay))
+	return t, pay, nil
 }
 
 // WritePacket writes a single setup packet.
 func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
-	raw, err := json.Marshal(body)
+	pay, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	buf.Grow(3 + len(raw))
-	if err := binary.Write(&buf, binary.BigEndian, uint16(1+len(raw))); err != nil {
-		return err
-	}
-	if err := buf.WriteByte(byte(t)); err != nil {
-		return err
-	}
-	if _, err := buf.Write(raw); err != nil {
-		return err
-	}
-	_, err = buf.WriteTo(p.rw)
+	//fmt.Println(p.pks(), "WRITE:", t, string(pay))
+	raw := make([]byte, 3+len(pay))
+	raw[0] = byte(t)
+	binary.BigEndian.PutUint16(raw[1:3], uint16(len(pay)))
+	copy(raw[3:], pay)
+	_, err = p.rw.Write(raw)
 	return err
 }
 
@@ -168,6 +194,7 @@ func readAndDecodePacket(p *Protocol, v interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	if t == RespFailure {
 		return errors.New("RespFailure, packet type: " + t.String())
 	}
