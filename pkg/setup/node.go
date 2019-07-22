@@ -259,7 +259,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 }
 
 func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, dmsg.PurposeSetup, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
@@ -279,7 +279,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
-	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), on, dmsg.Type, dmsg.PurposeSetup, false)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
@@ -299,7 +299,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 }
 
 func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
-	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dmsg.Type, false)
+	tr, err := sn.tm.CreateTransport(context.Background(), pubKey, dmsg.Type, dmsg.PurposeSetup, false)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return

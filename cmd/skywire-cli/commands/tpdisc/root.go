@@ -66,11 +66,12 @@ var RootCmd = &cobra.Command{
 
 func printTransportEntries(entries ...*transport.EntryWithStatus) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
-	_, err := fmt.Fprintln(w, "id\ttype\tpublic\tregistered\tup\tedge1\tedge2\topinion1\topinion2")
+	_, err := fmt.Fprintln(w, "id\ttype\tpurpose\tpublic\tregistered\tup\tedge1\tedge2\topinion1\topinion2")
 	internal.Catch(err)
 	for _, e := range entries {
-		_, err := fmt.Fprintf(w, "%s\t%s\t%t\t%d\t%t\t%s\t%s\t%t\t%t\n",
-			e.Entry.ID, e.Entry.Type, e.Entry.Public, e.Registered, e.IsUp, e.Entry.Edges()[0], e.Entry.Edges()[1], e.Statuses[0], e.Statuses[1])
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%t\t%d\t%t\t%s\t%s\t%t\t%t\n",
+			e.Entry.ID, e.Entry.Type, e.Entry.Purpose, e.Entry.Public, e.Registered, e.IsUp,
+			e.Entry.Edges()[0], e.Entry.Edges()[1], e.Statuses[0], e.Statuses[1])
 		internal.Catch(err)
 	}
 	internal.Catch(w.Flush())

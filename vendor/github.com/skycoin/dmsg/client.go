@@ -90,7 +90,7 @@ func (c *ClientConn) getNextInitID(ctx context.Context) (uint16, error) {
 	}
 }
 
-func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
+func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey, purpose string) (*Transport, error) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 
@@ -98,7 +98,7 @@ func (c *ClientConn) addTp(ctx context.Context, clientPK cipher.PubKey) (*Transp
 	if err != nil {
 		return nil, err
 	}
-	tp := NewTransport(c.Conn, c.log, c.local, clientPK, id, c.delTp)
+	tp := NewTransport(c.Conn, c.log, c.local, clientPK, id, purpose, c.delTp)
 	c.tps[id] = tp
 	return tp, nil
 }
@@ -145,39 +145,39 @@ func (c *ClientConn) readOK() error {
 
 func (c *ClientConn) handleRequestFrame(accept chan<- *Transport, id uint16, p []byte) (cipher.PubKey, error) {
 	// remotely-initiated tps should:
-	// - have a payload structured as 'init_pk:resp_pk'.
+	// - have a payload structured as HandshakePayload marshaled to JSON.
 	// - resp_pk should be of local client.
 	// - use an odd tp_id with the intermediary dmsg_server.
-	initPK, respPK, ok := splitPKs(p)
-	if !ok || respPK != c.local || isInitiatorID(id) {
+	payload, err := unmarshalHandshakePayload(p)
+	if err != nil || payload.RespPK != c.local || isInitiatorID(id) {
 		if err := writeCloseFrame(c.Conn, id, 0); err != nil {
-			return initPK, err
+			return payload.InitPK, err
 		}
-		return initPK, ErrRequestCheckFailed
+		return payload.InitPK, ErrRequestCheckFailed
 	}
 
-	tp := NewTransport(c.Conn, c.log, c.local, initPK, id, c.delTp)
+	tp := NewTransport(c.Conn, c.log, c.local, payload.InitPK, id, payload.Purpose, c.delTp)
 
 	select {
 	case <-c.done:
 		if err := tp.Close(); err != nil {
 			log.WithError(err).Warn("Failed to close transport")
 		}
-		return initPK, ErrClientClosed
+		return payload.InitPK, ErrClientClosed
 
 	case accept <- tp:
 		c.setTp(tp)
 		if err := tp.WriteAccept(); err != nil {
-			return initPK, err
+			return payload.InitPK, err
 		}
 		go tp.Serve()
-		return initPK, nil
+		return payload.InitPK, nil
 
 	default:
 		if err := tp.Close(); err != nil {
 			log.WithError(err).Warn("Failed to close transport")
 		}
-		return initPK, ErrClientAcceptMaxed
+		return payload.InitPK, ErrClientAcceptMaxed
 	}
 }
 
@@ -245,8 +245,8 @@ func (c *ClientConn) Serve(ctx context.Context, accept chan<- *Transport) (err e
 }
 
 // DialTransport dials a transport to remote dms_client.
-func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) (*Transport, error) {
-	tp, err := c.addTp(ctx, clientPK)
+func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey, purpose string) (*Transport, error) {
+	tp, err := c.addTp(ctx, clientPK, purpose)
 	if err != nil {
 		return nil, err
 	}
@@ -517,7 +517,7 @@ func (c *Client) Accept(ctx context.Context) (*Transport, error) {
 }
 
 // Dial dials a transport to remote dms_client.
-func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (*Transport, error) {
+func (c *Client) Dial(ctx context.Context, remote cipher.PubKey, purpose string) (*Transport, error) {
 	entry, err := c.dc.Entry(ctx, remote)
 	if err != nil {
 		return nil, fmt.Errorf("get entry failure: %s", err)
@@ -534,7 +534,7 @@ func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (*Transport, er
 			c.log.WithError(err).Warn("failed to connect to server")
 			continue
 		}
-		return conn.DialTransport(ctx, remote)
+		return conn.DialTransport(ctx, remote, purpose)
 	}
 	return nil, errors.New("failed to find dms_servers for given client pk")
 }

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -40,9 +41,10 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 func newTestEntry() *transport.Entry {
 	pk1, _ := cipher.GenerateKeyPair()
 	entry := &transport.Entry{
-		ID:     transport.MakeTransportID(pk1, testPubKey, "messaging", false),
-		Type:   "messaging",
-		Public: true,
+		ID:      transport.MakeTransportID(pk1, testPubKey, "messaging", dmsg.PurposeTest, false),
+		Type:    "messaging",
+		Purpose: dmsg.PurposeTest,
+		Public:  true,
 	}
 	entry.SetEdges([2]cipher.PubKey{pk1, testPubKey})
 

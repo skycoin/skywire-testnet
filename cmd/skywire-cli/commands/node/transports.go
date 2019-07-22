@@ -73,12 +73,14 @@ var tpCmd = &cobra.Command{
 
 var (
 	transportType string
+	purpose       string
 	public        bool
 	timeout       time.Duration
 )
 
 func init() {
 	addTpCmd.Flags().StringVar(&transportType, "type", dmsg.Type, "type of transport to add")
+	addTpCmd.Flags().StringVar(&purpose, "purpose", dmsg.PurposeData, "purpose of transport to add")
 	addTpCmd.Flags().BoolVar(&public, "public", true, "whether to make the transport public")
 	addTpCmd.Flags().DurationVarP(&timeout, "timeout", "t", 0, "if specified, sets an operation timeout")
 }
@@ -89,7 +91,7 @@ var addTpCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		pk := internal.ParsePK("remote-public-key", args[0])
-		tp, err := rpcClient().AddTransport(pk, transportType, public, timeout)
+		tp, err := rpcClient().AddTransport(pk, transportType, purpose, public, timeout)
 		internal.Catch(err)
 		printTransports(tp)
 	},
@@ -109,7 +111,7 @@ var rmTpCmd = &cobra.Command{
 func printTransports(tps ...*visor.TransportSummary) {
 	sortTransports(tps...)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
-	_, err := fmt.Fprintln(w, "type\tid\tremote\tmode")
+	_, err := fmt.Fprintln(w, "type\tid\tremote\tmode\tpurpose")
 	internal.Catch(err)
 	for _, tp := range tps {
 		tpMode := "regular"
@@ -117,7 +119,7 @@ func printTransports(tps ...*visor.TransportSummary) {
 			tpMode = "setup"
 		}
 
-		_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", tp.Type, tp.ID, tp.Remote, tpMode)
+		_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", tp.Type, tp.ID, tp.Remote, tpMode, tp.Purpose)
 		internal.Catch(err)
 	}
 	internal.Catch(w.Flush())

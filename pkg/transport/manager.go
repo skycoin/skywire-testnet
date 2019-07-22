@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 )
@@ -115,7 +116,7 @@ func (tm *Manager) reconnectTransports(ctx context.Context) {
 			continue
 		}
 
-		_, err := tm.createTransport(ctx, remote, entry.Type, entry.Public)
+		_, err := tm.createTransport(ctx, remote, entry.Type, dmsg.PurposeData, entry.Public)
 		if err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
@@ -160,7 +161,7 @@ func (tm *Manager) createDefaultTransports(ctx context.Context) {
 		if exist {
 			continue
 		}
-		_, err := tm.CreateTransport(ctx, pk, "messaging", true)
+		_, err := tm.CreateTransport(ctx, pk, "messaging", dmsg.PurposeData, true)
 		if err != nil {
 			tm.Logger.Warnf("Failed to establish transport to a node %s: %s", pk, err)
 		}
@@ -205,8 +206,8 @@ func (tm *Manager) Serve(ctx context.Context) error {
 }
 
 // CreateTransport begins to attempt to establish transports to the given 'remote' node.
-func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	return tm.createTransport(ctx, remote, tpType, public)
+func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType, purpose string, public bool) (*ManagedTransport, error) {
+	return tm.createTransport(ctx, remote, tpType, purpose, public)
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
@@ -268,12 +269,12 @@ func (tm *Manager) Close() error {
 	return nil
 }
 
-func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
+func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, purpose string, public bool) (Transport, *Entry, error) {
 	if tm.isClosing() {
 		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")
 	}
 
-	tr, err := factory.Dial(ctx, remote)
+	tr, err := factory.Dial(ctx, remote, purpose)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -291,13 +292,13 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 	return tr, entry, nil
 }
 
-func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
+func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType, purpose string, public bool) (*ManagedTransport, error) {
 	factory := tm.factories[tpType]
 	if factory == nil {
 		return nil, errors.New("unknown transport type")
 	}
 
-	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
+	tr, entry, err := tm.dialTransport(ctx, factory, remote, purpose, public)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +449,7 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 				return
 			}
 
-			tr, _, err := tm.dialTransport(ctx, factory, remote, mTr.Entry.Public)
+			tr, _, err := tm.dialTransport(ctx, factory, remote, mTr.Purpose(), mTr.Entry.Public)
 			if err != nil {
 				tm.Logger.Infof("Failed to redial Transport %s: %s", mTr.Entry.ID, err)
 				continue

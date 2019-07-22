@@ -42,27 +42,12 @@ func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
 }
 
 // Dial is a wrapper type for "github.com/skycoin/dmsg".Dial
-func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	tp, err := c.Client.Dial(ctx, remote)
+func (c *Client) Dial(ctx context.Context, remote cipher.PubKey, purpose string) (transport.Transport, error) {
+	tp, err := c.Client.Dial(ctx, remote, purpose)
 	if err != nil {
 		return nil, err
 	}
 	return NewTransport(tp), nil
-}
-
-// Close is a wrapper type for "github.com/skycoin/dmsg".Close
-func (c *Client) Close() error {
-	return c.Client.Close()
-}
-
-// Local is a wrapper type for "github.com/skycoin/dmsg".Local
-func (c *Client) Local() cipher.PubKey {
-	return c.Client.Local()
-}
-
-// Type is a wrapper type for "github.com/skycoin/dmsg".Type
-func (c *Client) Type() string {
-	return c.Client.Type()
 }
 
 // SetLogger is a wrapper type for "github.com/skycoin/dmsg".SetLogger

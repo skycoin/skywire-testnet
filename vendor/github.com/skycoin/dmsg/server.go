@@ -209,11 +209,11 @@ func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn,
 
 // nolint:unparam
 func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id uint16, p []byte) (*NextConn, byte, bool) {
-	initPK, respPK, ok := splitPKs(p)
-	if !ok || initPK != c.PK() {
+	payload, err := unmarshalHandshakePayload(p)
+	if err != nil || payload.InitPK != c.PK() {
 		return nil, 0, false
 	}
-	respL, ok := getLink(respPK)
+	respL, ok := getLink(payload.RespPK)
 	if !ok {
 		return nil, 0, false
 	}

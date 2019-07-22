@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 )
 
@@ -41,11 +42,11 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 		return nil, ErrUnknownRemote
 	}
 
-	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, rpk}}, nil
+	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, rpk}, dmsg.PurposeTest}, nil
 }
 
 // Dial initiates a Transport with a remote node.
-func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
+func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey, purpose string) (Transport, error) {
 	raddr := f.pkt.RemoteAddr(remote)
 	if raddr == nil {
 		return nil, ErrUnknownRemote
@@ -56,7 +57,7 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 		return nil, err
 	}
 
-	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, remote}}, nil
+	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, remote}, purpose}, nil
 }
 
 // Close implements io.Closer
@@ -80,7 +81,8 @@ func (f *TCPFactory) Type() string {
 // TCPTransport implements Transport over TCP connection.
 type TCPTransport struct {
 	*net.TCPConn
-	edges [2]cipher.PubKey
+	edges   [2]cipher.PubKey
+	purpose string
 }
 
 // Edges returns the  TCPTransport edges.
@@ -91,6 +93,11 @@ func (tr *TCPTransport) Edges() [2]cipher.PubKey {
 // Type returns the string representation of the transport type.
 func (tr *TCPTransport) Type() string {
 	return "tcp"
+}
+
+// Purpose returns the string representation of the transport purpose.
+func (tr *TCPTransport) Purpose() string {
+	return tr.purpose
 }
 
 // PubKeyTable provides translation between remote PubKey and TCPAddr.

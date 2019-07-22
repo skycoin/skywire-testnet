@@ -43,6 +43,7 @@ type TransportSummary struct {
 	Local   cipher.PubKey       `json:"local_pk"`
 	Remote  cipher.PubKey       `json:"remote_pk"`
 	Type    string              `json:"type"`
+	Purpose string              `json:"purpose"`
 	Log     *transport.LogEntry `json:"log,omitempty"`
 	IsSetup bool                `json:"is_setup"`
 }
@@ -194,6 +195,7 @@ func (r *RPC) Transport(in *uuid.UUID, out *TransportSummary) error {
 type AddTransportIn struct {
 	RemotePK cipher.PubKey
 	TpType   string
+	Purpose  string
 	Public   bool
 	Timeout  time.Duration
 }
@@ -207,7 +209,7 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 		defer cancel()
 	}
 
-	tp, err := r.node.tm.CreateTransport(ctx, in.RemotePK, in.TpType, in.Public)
+	tp, err := r.node.tm.CreateTransport(ctx, in.RemotePK, in.TpType, in.Purpose, in.Public)
 	if err != nil {
 		return err
 	}

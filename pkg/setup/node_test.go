@@ -67,7 +67,7 @@ func TestCreateLoop(t *testing.T) {
 	fs7, fs8 := transport.NewMockFactoryPair(pk4, pkS)
 	fs7.SetType(dmsg.Type)
 
-	fS := newMuxFactory(pkS, dmsg.Type, map[cipher.PubKey]transport.Factory{pk1: fs2, pk2: fs4, pk3: fs6, pk4: fs8})
+	fS := newMuxFactory(pkS, dmsg.Type, dmsg.PurposeTest, map[cipher.PubKey]transport.Factory{pk1: fs2, pk2: fs4, pk3: fs6, pk4: fs8})
 
 	m1, err := transport.NewManager(c1, f1, fs1)
 	require.NoError(t, err)
@@ -98,10 +98,10 @@ func TestCreateLoop(t *testing.T) {
 		serveErr3 = n3.serve()
 	}()
 
-	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
+	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
-	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
+	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
 	lPK, _ := cipher.GenerateKeyPair()
@@ -125,7 +125,7 @@ func TestCreateLoop(t *testing.T) {
 		errChan <- sn.Serve(context.TODO())
 	}()
 
-	tr, err := m4.CreateTransport(context.TODO(), pkS, dmsg.Type, false)
+	tr, err := m4.CreateTransport(context.TODO(), pkS, dmsg.Type, dmsg.PurposeTest, false)
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
@@ -194,7 +194,7 @@ func TestCloseLoop(t *testing.T) {
 	fs5, fs6 := transport.NewMockFactoryPair(pk3, pkS)
 	fs5.SetType(dmsg.Type)
 
-	fS := newMuxFactory(pkS, dmsg.Type, map[cipher.PubKey]transport.Factory{pk1: fs2, pk3: fs6})
+	fS := newMuxFactory(pkS, dmsg.Type, dmsg.PurposeTest, map[cipher.PubKey]transport.Factory{pk1: fs2, pk3: fs6})
 
 	m1, err := transport.NewManager(c1, fs1)
 	require.NoError(t, err)
@@ -223,7 +223,7 @@ func TestCloseLoop(t *testing.T) {
 	rules := n3.getRules()
 	require.Len(t, rules, 1)
 
-	tr, err := m1.CreateTransport(context.TODO(), pkS, dmsg.Type, false)
+	tr, err := m1.CreateTransport(context.TODO(), pkS, dmsg.Type, dmsg.PurposeTest, false)
 	require.NoError(t, err)
 
 	proto := NewSetupProtocol(tr)
@@ -252,11 +252,12 @@ func TestCloseLoop(t *testing.T) {
 type muxFactory struct {
 	pk        cipher.PubKey
 	fType     string
+	purpose   string
 	factories map[cipher.PubKey]transport.Factory
 }
 
-func newMuxFactory(pk cipher.PubKey, fType string, factories map[cipher.PubKey]transport.Factory) *muxFactory {
-	return &muxFactory{pk, fType, factories}
+func newMuxFactory(pk cipher.PubKey, fType, purpose string, factories map[cipher.PubKey]transport.Factory) *muxFactory {
+	return &muxFactory{pk, fType, purpose, factories}
 }
 
 func (f *muxFactory) Accept(ctx context.Context) (transport.Transport, error) {
@@ -284,8 +285,8 @@ func (f *muxFactory) Accept(ctx context.Context) (transport.Transport, error) {
 	}
 }
 
-func (f *muxFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	return f.factories[remote].Dial(ctx, remote)
+func (f *muxFactory) Dial(ctx context.Context, remote cipher.PubKey, purpose string) (transport.Transport, error) {
+	return f.factories[remote].Dial(ctx, remote, purpose)
 }
 
 func (f *muxFactory) Close() error {
@@ -309,6 +310,10 @@ func (f *muxFactory) Local() cipher.PubKey {
 
 func (f *muxFactory) Type() string {
 	return f.fType
+}
+
+func (f *muxFactory) Purpose() string {
+	return f.purpose
 }
 
 type mockNode struct {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -83,7 +84,7 @@ func TestTransportManager(t *testing.T) {
 		}
 	}()
 
-	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
+	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -151,7 +152,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	m2, err := NewManager(c2, f2)
 	require.NoError(t, err)
 
-	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
+	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
 	tr1 := m1.Transport(tr2.Entry.ID)
@@ -214,7 +215,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	m2, err := NewManager(c2, f2)
 	require.NoError(t, err)
 
-	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
+	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
@@ -271,31 +272,33 @@ func ExampleMakeTransportID() {
 	keyA, _ := cipher.GenerateKeyPair()
 	keyB, _ := cipher.GenerateKeyPair()
 
-	uuidAB := MakeTransportID(keyA, keyB, "type", true)
+	uuidAB := MakeTransportID(keyA, keyB, "type", dmsg.PurposeTest, true)
 
 	for i := 0; i < 256; i++ {
-		if MakeTransportID(keyA, keyB, "type", true) != uuidAB {
+		if MakeTransportID(keyA, keyB, "type", dmsg.PurposeTest, true) != uuidAB {
 			fmt.Println("uuid is unstable")
 			break
 		}
 	}
 	fmt.Printf("uuid is stable\n")
 
-	uuidBA := MakeTransportID(keyB, keyA, "type", true)
+	uuidBA := MakeTransportID(keyB, keyA, "type", dmsg.PurposeTest, true)
 	if uuidAB == uuidBA {
 		fmt.Println("uuid is bidirectional")
 	} else {
 		fmt.Printf("keyA = %v\n keyB=%v\n uuidAB=%v\n uuidBA=%v\n", keyA, keyB, uuidAB, uuidBA)
 	}
 
-	_ = MakeTransportID(keyA, keyA, "type", true) // works for equal keys
+	_ = MakeTransportID(keyA, keyA, "type", dmsg.PurposeTest, true) // works for equal keys
 	fmt.Println("works for equal keys")
 
-	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "another_type", true) {
+	if MakeTransportID(keyA, keyB, "type", dmsg.PurposeTest, true) !=
+		MakeTransportID(keyA, keyB, "another_type", dmsg.PurposeTest, true) {
 		fmt.Println("uuid is different for different types")
 	}
 
-	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "type", false) {
+	if MakeTransportID(keyA, keyB, "type", dmsg.PurposeTest, true) !=
+		MakeTransportID(keyA, keyB, "type", dmsg.PurposeTest, false) {
 		fmt.Println("uuid is different for public and private transports")
 	}
 
@@ -315,7 +318,7 @@ func ExampleManager_CreateTransport() {
 			return
 		}
 
-		mtrAB, err := mgrA.CreateTransport(context.TODO(), pkB, "mock", true)
+		mtrAB, err := mgrA.CreateTransport(context.TODO(), pkB, "mock", dmsg.PurposeTest, true)
 		if err != nil {
 			fmt.Printf("Manager.CreateTransport failed on iteration %v with: %v\n", i, err)
 			return

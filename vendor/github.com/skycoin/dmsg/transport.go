@@ -14,6 +14,15 @@ import (
 	"github.com/skycoin/dmsg/ioutil"
 )
 
+const (
+	// PurposeData means that transport is used for data transmission.
+	PurposeData = "data"
+	// PurposeSetup means that transport is used for setup nodes.
+	PurposeSetup = "setup"
+	// PurposeTest means that transport is used for tests.
+	PurposeTest = "test"
+)
+
 // Errors related to REQUEST frames.
 var (
 	ErrRequestRejected    = errors.New("failed to create transport: request rejected")
@@ -26,9 +35,10 @@ type Transport struct {
 	net.Conn // underlying connection to dmsg.Server
 	log      *logging.Logger
 
-	id     uint16        // tp ID that identifies this dmsg.Transport
-	local  cipher.PubKey // local PK
-	remote cipher.PubKey // remote PK
+	id      uint16        // tp ID that identifies this dmsg.Transport
+	local   cipher.PubKey // local PK
+	remote  cipher.PubKey // remote PK
+	purpose string        // purpose of tp
 
 	inCh chan Frame // handles incoming frames (from dmsg.Client)
 	inMx sync.Mutex // protects 'inCh'
@@ -48,13 +58,16 @@ type Transport struct {
 }
 
 // NewTransport creates a new dms_tp.
-func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKey, id uint16, doneFunc func(id uint16)) *Transport {
+func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKey, id uint16, purpose string,
+	doneFunc func(id uint16)) *Transport {
+
 	tp := &Transport{
 		Conn:      conn,
 		log:       log,
 		id:        id,
 		local:     local,
 		remote:    remote,
+		purpose:   purpose,
 		inCh:      make(chan Frame),
 		ackWaiter: ioutil.NewUint16AckWaiter(),
 		ackBuf:    make([]byte, 0, tpAckCap),
@@ -144,6 +157,11 @@ func (tp *Transport) Type() string {
 	return Type
 }
 
+// Purpose returns the transport purpose.
+func (tp *Transport) Purpose() string {
+	return tp.purpose
+}
+
 // HandleFrame allows 'tp.Serve' to handle the frame (typically from 'ClientConn').
 func (tp *Transport) HandleFrame(f Frame) error {
 	tp.inMx.Lock()
@@ -162,7 +180,17 @@ func (tp *Transport) HandleFrame(f Frame) error {
 
 // WriteRequest writes a REQUEST frame to dmsg_server to be forwarded to associated client.
 func (tp *Transport) WriteRequest() error {
-	f := MakeFrame(RequestType, tp.id, combinePKs(tp.local, tp.remote))
+	payload := HandshakePayload{
+		Version: HandshakePayloadVersion,
+		InitPK:  tp.local,
+		RespPK:  tp.remote,
+		Purpose: tp.purpose,
+	}
+	payloadBytes, err := marshalHandshakePayload(payload)
+	if err != nil {
+		return err
+	}
+	f := MakeFrame(RequestType, tp.id, payloadBytes)
 	if err := writeFrame(tp.Conn, f); err != nil {
 		tp.log.WithError(err).Error("HandshakeFailed")
 		tp.close()
@@ -181,7 +209,18 @@ func (tp *Transport) WriteAccept() (err error) {
 		}
 	}()
 
-	f := MakeFrame(AcceptType, tp.id, combinePKs(tp.remote, tp.local))
+	payload := HandshakePayload{
+		Version: HandshakePayloadVersion,
+		InitPK:  tp.remote,
+		RespPK:  tp.local,
+		Purpose: tp.purpose,
+	}
+	bytes, err := marshalHandshakePayload(payload)
+	if err != nil {
+		tp.close()
+		return err
+	}
+	f := MakeFrame(AcceptType, tp.id, bytes)
 	if err = writeFrame(tp.Conn, f); err != nil {
 		tp.close()
 		return err
@@ -219,12 +258,12 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 		switch ft, id, p := f.Disassemble(); ft {
 		case AcceptType:
 			// locally-initiated tps should:
-			// - have a payload structured as 'init_pk:resp_pk'.
+			// - have a payload structured as HandshakePayload marshaled to JSON.
 			// - init_pk should be of local client.
 			// - resp_pk should be of remote client.
 			// - use an even number with the intermediary dmsg_server.
-			initPK, respPK, ok := splitPKs(p)
-			if !ok || initPK != tp.local || respPK != tp.remote || !isInitiatorID(id) {
+			payload, err := unmarshalHandshakePayload(p)
+			if err != nil || payload.InitPK != tp.local || payload.RespPK != tp.remote || !isInitiatorID(id) {
 				if err := tp.Close(); err != nil {
 					log.WithError(err).Warn("Failed to close transport")
 				}

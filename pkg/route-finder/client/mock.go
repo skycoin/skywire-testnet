@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/routing"
@@ -34,7 +35,7 @@ func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint1
 				&routing.Hop{
 					From:      src,
 					To:        dst,
-					Transport: transport.MakeTransportID(src, dst, "", true),
+					Transport: transport.MakeTransportID(src, dst, "", dmsg.PurposeTest, true),
 				},
 			},
 		}, []routing.Route{
@@ -42,7 +43,7 @@ func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint1
 				&routing.Hop{
 					From:      src,
 					To:        dst,
-					Transport: transport.MakeTransportID(src, dst, "", true),
+					Transport: transport.MakeTransportID(src, dst, "", dmsg.PurposeTest, true),
 				},
 			},
 		}, nil

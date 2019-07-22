@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 )
 
@@ -51,7 +52,7 @@ func (f *MockFactory) Accept(ctx context.Context) (Transport, error) {
 	select {
 	case conn, ok := <-f.in:
 		if ok {
-			return NewMockTransport(conn, f.local, conn.PubKey), nil
+			return NewMockTransport(conn, f.local, conn.PubKey, dmsg.PurposeTest), nil
 		}
 	case <-f.inDone:
 	}
@@ -59,13 +60,13 @@ func (f *MockFactory) Accept(ctx context.Context) (Transport, error) {
 }
 
 // Dial creates pair of net.Conn via net.Pipe and passes one end to another MockFactory.
-func (f *MockFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
+func (f *MockFactory) Dial(ctx context.Context, remote cipher.PubKey, purpose string) (Transport, error) {
 	in, out := net.Pipe()
 	select {
 	case <-f.outDone:
 		return nil, errors.New("factory: closed")
 	case f.out <- &fConn{in, f.local}:
-		return NewMockTransport(out, f.local, remote), nil
+		return NewMockTransport(out, f.local, remote, purpose), nil
 	}
 }
 
@@ -97,13 +98,14 @@ func (f *MockFactory) Type() string {
 type MockTransport struct {
 	rw      io.ReadWriteCloser
 	edges   [2]cipher.PubKey
+	purpose string
 	context context.Context
 }
 
 // NewMockTransport creates a transport with the given secret key and remote public key, taking a writer
 // and a reader that will be used in the Write and Read operation
-func NewMockTransport(rw io.ReadWriteCloser, local, remote cipher.PubKey) *MockTransport {
-	return &MockTransport{rw, SortPubKeys(local, remote), context.Background()}
+func NewMockTransport(rw io.ReadWriteCloser, local, remote cipher.PubKey, purpose string) *MockTransport {
+	return &MockTransport{rw, SortPubKeys(local, remote), purpose, context.Background()}
 }
 
 // Read implements reader for mock transport
@@ -155,6 +157,11 @@ func (m *MockTransport) SetDeadline(t time.Time) error {
 // Type returns the type of the mock transport
 func (m *MockTransport) Type() string {
 	return "mock"
+}
+
+// Purpose returns the purpose of the mock transport
+func (m *MockTransport) Purpose() string {
+	return dmsg.PurposeTest
 }
 
 // MockTransportManagersPair constructs a pair of Transport Managers

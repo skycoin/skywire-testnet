@@ -20,17 +20,21 @@ type Entry struct {
 	// Type represents the transport type.
 	Type string `json:"type"`
 
+	// Purpose represents the transport purpose.
+	Purpose string `json:"purpose"`
+
 	// Public determines whether the transport is to be exposed to other nodes or not.
 	// Public transports are to be registered in the Transport Discovery.
 	Public bool `json:"public"`
 }
 
 // NewEntry constructs *Entry
-func NewEntry(edgeA, edgeB cipher.PubKey, tpType string, public bool) *Entry {
+func NewEntry(edgeA, edgeB cipher.PubKey, tpType, purpose string, public bool) *Entry {
 	return &Entry{
-		ID:       MakeTransportID(edgeA, edgeB, tpType, public),
+		ID:       MakeTransportID(edgeA, edgeB, tpType, purpose, public),
 		EdgeKeys: SortPubKeys(edgeA, edgeB),
 		Type:     tpType,
+		Purpose:  purpose,
 		Public:   public,
 	}
 }
@@ -42,7 +46,7 @@ func (e *Entry) Edges() [2]cipher.PubKey {
 
 // SetEdges sets edges of Entry
 func (e *Entry) SetEdges(edges [2]cipher.PubKey) {
-	e.ID = MakeTransportID(edges[0], edges[1], e.Type, e.Public)
+	e.ID = MakeTransportID(edges[0], edges[1], e.Type, e.Purpose, e.Public)
 	e.EdgeKeys = SortPubKeys(edges[0], edges[1])
 }
 
@@ -55,6 +59,7 @@ func (e *Entry) String() string {
 		res += fmt.Sprintf("visibility: private\n")
 	}
 	res += fmt.Sprintf("\ttype: %s\n", e.Type)
+	res += fmt.Sprintf("\tpurpose: %s\n", e.Purpose)
 	res += fmt.Sprintf("\tid: %s\n", e.ID)
 	res += fmt.Sprintf("\tedges:\n")
 	res += fmt.Sprintf("\t\tedge 1: %s\n", e.Edges()[0])
@@ -68,9 +73,11 @@ func (e *Entry) ToBinary() []byte {
 	edges := e.Edges()
 	return append(
 		append(
-			append(e.ID[:], edges[0][:]...),
-			edges[1][:]...),
-		[]byte(e.Type)...)
+			append(
+				append(e.ID[:], edges[0][:]...),
+				edges[1][:]...),
+			[]byte(e.Type)...),
+		[]byte(e.Purpose)...)
 }
 
 // Signature returns signature for Entry calculated from binary

@@ -2,20 +2,25 @@ package dmsg
 
 import (
 	"encoding/binary"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"sync/atomic"
 	"time"
 
-	"github.com/skycoin/dmsg/ioutil"
-
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/ioutil"
 )
 
 const (
 	// Type returns the transport type string.
 	Type = "dmsg"
+	// HandshakePayloadVersion returns the current version of the HandshakePayload structure format
+	HandshakePayloadVersion = "1"
+	// PurposeMaxLen defines maximal possible length of purpose field in the HandshakePayload structure.
+	PurposeMaxLen = 16
 
 	tpBufCap      = math.MaxUint16
 	tpBufFrameCap = math.MaxUint8
@@ -29,6 +34,9 @@ var (
 
 	// AcceptBufferSize defines the size of the accepts buffer.
 	AcceptBufferSize = 20
+
+	// ErrPurposeTooLong is returned when the purpose field of HandshakePayload is more than PurposeMaxLen
+	ErrPurposeTooLong = errors.New("purpose is too long")
 )
 
 func isInitiatorID(tpID uint16) bool { return tpID%2 == 0 }
@@ -151,18 +159,23 @@ func writeCloseFrame(w io.Writer, id uint16, reason byte) error {
 	return writeFrame(w, MakeFrame(CloseType, id, []byte{reason}))
 }
 
-func combinePKs(initPK, respPK cipher.PubKey) []byte {
-	return append(initPK[:], respPK[:]...)
+// HandshakePayload represents the format of payload in REQUEST and ACCEPT frames.
+type HandshakePayload struct {
+	Version string        `json:"version"` // just in case the struct changes.
+	InitPK  cipher.PubKey `json:"init_pk"`
+	RespPK  cipher.PubKey `json:"resp_pk"`
+	Purpose string        `json:"purpose"`
 }
 
-func splitPKs(b []byte) (initPK, respPK cipher.PubKey, ok bool) {
-	const pkLen = 33
-
-	if len(b) != pkLen*2 {
-		ok = false
-		return
+func marshalHandshakePayload(p HandshakePayload) ([]byte, error) {
+	if len(p.Purpose) > PurposeMaxLen {
+		return nil, ErrPurposeTooLong
 	}
-	copy(initPK[:], b[:pkLen])
-	copy(respPK[:], b[pkLen:])
-	return initPK, respPK, true
+	return json.Marshal(p)
+}
+
+func unmarshalHandshakePayload(b []byte) (HandshakePayload, error) {
+	var p HandshakePayload
+	err := json.Unmarshal(b, &p)
+	return p, err
 }

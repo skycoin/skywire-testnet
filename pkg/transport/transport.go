@@ -34,6 +34,9 @@ type Transport interface {
 
 	// Type returns the string representation of the transport type.
 	Type() string
+
+	// Purpose returns the string representation of the transport purpose.
+	Purpose() string
 }
 
 // Factory generates Transports of a certain type.
@@ -43,7 +46,7 @@ type Factory interface {
 	Accept(ctx context.Context) (Transport, error)
 
 	// Dial initiates a Transport with a remote node.
-	Dial(ctx context.Context, remote cipher.PubKey) (Transport, error)
+	Dial(ctx context.Context, remote cipher.PubKey, purpose string) (Transport, error)
 
 	// Close implements io.Closer
 	Close() error
@@ -55,18 +58,18 @@ type Factory interface {
 	Type() string
 }
 
-// MakeTransportID generates uuid.UUID from pair of keys + type + public
+// MakeTransportID generates uuid.UUID from pair of keys + type + purpose + public
 // Generated uuid is:
 // - always the same for a given pair
 // - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
-func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
+func MakeTransportID(keyA, keyB cipher.PubKey, tpType, purpose string, public bool) uuid.UUID {
 	keys := SortPubKeys(keyA, keyB)
 	if public {
 		return uuid.NewSHA1(uuid.UUID{},
-			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
+			append(append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), []byte(purpose)...), 1))
 	}
 	return uuid.NewSHA1(uuid.UUID{},
-		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
+		append(append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), []byte(purpose)...), 0))
 }
 
 // SortPubKeys sorts keys so that least-significant comes first

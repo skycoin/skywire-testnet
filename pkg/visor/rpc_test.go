@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
@@ -112,7 +113,7 @@ func TestRPC(t *testing.T) {
 		require.NoError(t, <-errCh)
 	}()
 
-	_, err = tm2.CreateTransport(context.TODO(), pk1, "mock", true)
+	_, err = tm2.CreateTransport(context.TODO(), pk1, "mock", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
 	apps := []AppConfig{

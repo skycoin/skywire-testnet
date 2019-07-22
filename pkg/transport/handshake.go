@@ -30,9 +30,10 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 
 func makeEntry(tp Transport, public bool) *Entry {
 	return &Entry{
-		ID:       MakeTransportID(tp.Edges()[0], tp.Edges()[1], tp.Type(), public),
+		ID:       MakeTransportID(tp.Edges()[0], tp.Edges()[1], tp.Type(), tp.Purpose(), public),
 		EdgeKeys: tp.Edges(),
 		Type:     tp.Type(),
+		Purpose:  tp.Purpose(),
 		Public:   public,
 	}
 }
@@ -40,7 +41,8 @@ func makeEntry(tp Transport, public bool) *Entry {
 func compareEntries(expected, received *Entry, checkPublic bool) error {
 	if !checkPublic {
 		expected.Public = received.Public
-		expected.ID = MakeTransportID(expected.EdgeKeys[0], expected.EdgeKeys[1], expected.Type, expected.Public)
+		expected.ID = MakeTransportID(expected.EdgeKeys[0], expected.EdgeKeys[1], expected.Type, expected.Purpose,
+			expected.Public)
 	}
 	if expected.ID != received.ID {
 		return errors.New("received entry's 'tp_id' is not of expected")
@@ -50,6 +52,9 @@ func compareEntries(expected, received *Entry, checkPublic bool) error {
 	}
 	if expected.Type != received.Type {
 		return errors.New("received entry's 'type' is not of expected")
+	}
+	if expected.Purpose != received.Purpose {
+		return errors.New("received entry's 'purpose' is not of expected")
 	}
 	if expected.Public != received.Public {
 		return errors.New("received entry's 'public' is not of expected")

@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +54,7 @@ func TestTCPFactory(t *testing.T) {
 	assert.Equal(t, "tcp", f2.Type())
 	assert.Equal(t, pk2, f2.Local())
 
-	tr, err := f2.Dial(context.TODO(), pk1)
+	tr, err := f2.Dial(context.TODO(), pk1, dmsg.PurposeTest)
 	require.NoError(t, err)
 	assert.Equal(t, "tcp", tr.Type())
 

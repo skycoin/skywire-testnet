@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -28,7 +29,7 @@ type RPCClient interface {
 	TransportTypes() ([]string, error)
 	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
 	Transport(tid uuid.UUID) (*TransportSummary, error)
-	AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error)
+	AddTransport(remote cipher.PubKey, tpType, purpose string, public bool, timeout time.Duration) (*TransportSummary, error)
 	RemoveTransport(tid uuid.UUID) error
 
 	RoutingRules() ([]*RoutingEntry, error)
@@ -115,11 +116,12 @@ func (rc *rpcClient) Transport(tid uuid.UUID) (*TransportSummary, error) {
 }
 
 // AddTransport calls AddTransport.
-func (rc *rpcClient) AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error) {
+func (rc *rpcClient) AddTransport(remote cipher.PubKey, tpType, purpose string, public bool, timeout time.Duration) (*TransportSummary, error) {
 	var summary TransportSummary
 	err := rc.Call("AddTransport", &AddTransportIn{
 		RemotePK: remote,
 		TpType:   tpType,
+		Purpose:  purpose,
 		Public:   public,
 		Timeout:  timeout,
 	}, &summary)
@@ -190,7 +192,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	for i := range tps {
 		remotePK, _ := cipher.GenerateKeyPair()
 		tps[i] = &TransportSummary{
-			ID:     transport.MakeTransportID(localPK, remotePK, types[r.Int()%len(types)], true),
+			ID:     transport.MakeTransportID(localPK, remotePK, types[r.Int()%len(types)], dmsg.PurposeTest, true),
 			Local:  localPK,
 			Remote: remotePK,
 			Type:   types[r.Int()%len(types)],
@@ -363,9 +365,9 @@ func (mc *mockRPCClient) Transport(tid uuid.UUID) (*TransportSummary, error) {
 }
 
 // AddTransport implements RPCClient.
-func (mc *mockRPCClient) AddTransport(remote cipher.PubKey, tpType string, public bool, _ time.Duration) (*TransportSummary, error) {
+func (mc *mockRPCClient) AddTransport(remote cipher.PubKey, tpType, purpose string, public bool, _ time.Duration) (*TransportSummary, error) {
 	summary := &TransportSummary{
-		ID:     transport.MakeTransportID(mc.s.PubKey, remote, tpType, public),
+		ID:     transport.MakeTransportID(mc.s.PubKey, remote, tpType, purpose, public),
 		Local:  mc.s.PubKey,
 		Remote: remote,
 		Type:   tpType,

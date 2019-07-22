@@ -6,6 +6,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,8 +33,8 @@ func newHsMockEnv() *hsMockEnv {
 	pk2, sk2 := cipher.GenerateKeyPair()
 
 	in, out := net.Pipe()
-	tr1 := NewMockTransport(in, pk1, pk2)
-	tr2 := NewMockTransport(out, pk2, pk1)
+	tr1 := NewMockTransport(in, pk1, pk2, dmsg.PurposeTest)
+	tr2 := NewMockTransport(out, pk2, pk1, dmsg.PurposeTest)
 
 	m1, err1 := NewManager(&ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client})
 	m2, err2 := NewManager(&ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client})
@@ -231,10 +232,12 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 	require.NoError(t, mockEnv.err2)
 
 	tpType := "mock"
+	purpose := dmsg.PurposeTest
 	entry := &Entry{
-		ID:       MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType, true),
+		ID:       MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType, purpose, true),
 		EdgeKeys: SortPubKeys(mockEnv.pk1, mockEnv.pk2),
 		Type:     tpType,
+		Purpose:  purpose,
 		Public:   true,
 	}
 

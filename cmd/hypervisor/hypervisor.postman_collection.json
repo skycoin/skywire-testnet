@@ -564,7 +564,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n\t\"remote_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n\t\"transport_type\": \"native\",\n\t\"public\": true\n}"
+          "raw": "{\n\t\"remote_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n\t\"transport_type\": \"native\",\n\t\"purpose\": \"data\",\n\t\"public\": true\n}"
         },
         "url": {
           "raw": "http://localhost:8080/api/nodes/023ab9f45c0eb3625f9848a9ff6822c6d0965a94d3e7955f1869f38153df0e5b64/transports",
@@ -597,7 +597,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n\t\"remote_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n\t\"transport_type\": \"native\",\n\t\"public\": true\n}"
+              "raw": "{\n\t\"remote_pk\": \"03c497380efd87e19208bb484ee322ede1e091b2a0b653e6d25475f641602376a9\",\n\t\"transport_type\": \"native\",\n\t\"purpose\": \"data\",\n\t\"public\": true\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/nodes/039337a306ffbd6a7495f79b65aec91ce65756e4fd1cb2cd726840b2eee4fa59c2/transports",

@@ -78,10 +78,10 @@ func TestRouterForwarding(t *testing.T) {
 		errCh <- r.Serve(context.TODO())
 	}()
 
-	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
+	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
-	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
+	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
 	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.Entry.ID)
@@ -201,7 +201,7 @@ func TestRouterApp(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	tr, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
+	tr, err := m1.CreateTransport(context.TODO(), pk2, "mock", dmsg.PurposeTest, true)
 	require.NoError(t, err)
 
 	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk2, 5, 6)
@@ -354,7 +354,7 @@ func TestRouterSetup(t *testing.T) {
 		errCh <- r.Serve(context.TODO())
 	}()
 
-	tr, err := m2.CreateTransport(context.TODO(), pk1, "mock", false)
+	tr, err := m2.CreateTransport(context.TODO(), pk1, "mock", dmsg.PurposeTest, false)
 	require.NoError(t, err)
 	sProto := setup.NewSetupProtocol(tr)
 

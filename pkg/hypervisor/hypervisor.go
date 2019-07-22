@@ -290,15 +290,16 @@ func (m *Node) getTransports() http.HandlerFunc {
 func (m *Node) postTransport() http.HandlerFunc {
 	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		var reqBody struct {
-			Remote cipher.PubKey `json:"remote_pk"`
-			TpType string        `json:"transport_type"`
-			Public bool          `json:"public"`
+			Remote  cipher.PubKey `json:"remote_pk"`
+			TpType  string        `json:"transport_type"`
+			Purpose string        `json:"purpose"`
+			Public  bool          `json:"public"`
 		}
 		if err := httputil.ReadJSON(r, &reqBody); err != nil {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
 			return
 		}
-		summary, err := ctx.RPC.AddTransport(reqBody.Remote, reqBody.TpType, reqBody.Public, 30*time.Second)
+		summary, err := ctx.RPC.AddTransport(reqBody.Remote, reqBody.TpType, reqBody.Purpose, reqBody.Public, 30*time.Second)
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 			return

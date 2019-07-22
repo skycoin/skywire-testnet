@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/transport"
@@ -16,8 +17,8 @@ func ExampleNewEntry() {
 	pkA, _ := cipher.GenerateKeyPair()
 	pkB, _ := cipher.GenerateKeyPair()
 
-	entryAB := transport.NewEntry(pkA, pkB, "", true)
-	entryBA := transport.NewEntry(pkB, pkA, "", true)
+	entryAB := transport.NewEntry(pkA, pkB, "", dmsg.PurposeTest, true)
+	entryBA := transport.NewEntry(pkB, pkA, "", dmsg.PurposeTest, true)
 
 	if entryAB.ID == entryBA.ID {
 		fmt.Println("entryAB.ID == entryBA.ID")
@@ -37,6 +38,7 @@ func ExampleEntry_Edges() {
 		ID:       uuid.UUID{},
 		EdgeKeys: [2]cipher.PubKey{pkA, pkB},
 		Type:     "",
+		Purpose:  dmsg.PurposeTest,
 		Public:   true,
 	}
 
@@ -44,6 +46,7 @@ func ExampleEntry_Edges() {
 		ID:       uuid.UUID{},
 		EdgeKeys: [2]cipher.PubKey{pkB, pkA},
 		Type:     "",
+		Purpose:  dmsg.PurposeTest,
 		Public:   true,
 	}
 
@@ -86,7 +89,7 @@ func ExampleSignedEntry_Sign() {
 	pkA, skA := cipher.GenerateKeyPair()
 	pkB, skB := cipher.GenerateKeyPair()
 
-	entry := transport.NewEntry(pkA, pkB, "mock", true)
+	entry := transport.NewEntry(pkA, pkB, "mock", dmsg.PurposeTest, true)
 	sEntry := &transport.SignedEntry{Entry: entry}
 
 	if sEntry.Signatures[0].Null() && sEntry.Signatures[1].Null() {
@@ -120,7 +123,7 @@ func ExampleSignedEntry_Signature() {
 	pkA, skA := cipher.GenerateKeyPair()
 	pkB, skB := cipher.GenerateKeyPair()
 
-	entry := transport.NewEntry(pkA, pkB, "mock", true)
+	entry := transport.NewEntry(pkA, pkB, "mock", dmsg.PurposeTest, true)
 	sEntry := &transport.SignedEntry{Entry: entry}
 	if ok := sEntry.Sign(pkA, skA); !ok {
 		fmt.Println("Error signing sEntry with (pkA,skA)")

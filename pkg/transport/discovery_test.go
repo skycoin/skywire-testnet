@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/transport"
@@ -13,7 +14,7 @@ func ExampleNewDiscoveryMock() {
 	dc := transport.NewDiscoveryMock()
 	pk1, _ := cipher.GenerateKeyPair()
 	pk2, _ := cipher.GenerateKeyPair()
-	entry := &transport.Entry{Type: "mock", EdgeKeys: transport.SortPubKeys(pk1, pk2)}
+	entry := &transport.Entry{Type: "mock", Purpose: dmsg.PurposeTest, EdgeKeys: transport.SortPubKeys(pk1, pk2)}
 
 	sEntry := &transport.SignedEntry{Entry: entry}
 
