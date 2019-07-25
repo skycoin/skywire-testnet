@@ -16,7 +16,9 @@ type Config struct {
 
 	TransportDiscovery string `json:"transport_discovery"`
 
-	TransportType string `json:TransportType`
+	TransportType    string `json:"transport_type"`
+	PubKeysFile      string `json:"pubkeys_file"`
+	TCPTransportAddr string `json:"tcptransport_addr"`
 
 	LogLevel string `json:"log_level"`
 }

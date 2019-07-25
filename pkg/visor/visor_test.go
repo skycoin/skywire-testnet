@@ -64,57 +64,68 @@ func TestNewNode(t *testing.T) {
 		{App: "bar", AutoStart: true, Port: 2},
 	}
 
-	conf.TransportType = "dmsg"
-	defer func() {
+	for _, trType := range []string{"dmsg", "tcp-transport"} {
+		conf.TransportType = trType
+
+		node, err := NewNode(&conf, masterLogger)
+		require.NoError(t, err)
+
+		assert.NotNil(t, node.router)
+		assert.NotNil(t, node.appsConf)
+		assert.NotNil(t, node.appsPath)
+		assert.NotNil(t, node.localPath)
+		assert.NotNil(t, node.startedApps)
+
 		require.NoError(t, os.RemoveAll("local"))
-	}()
-
-	node, err := NewNode(&conf, masterLogger)
-	require.NoError(t, err)
-
-	assert.NotNil(t, node.router)
-	assert.NotNil(t, node.appsConf)
-	assert.NotNil(t, node.appsPath)
-	assert.NotNil(t, node.localPath)
-	assert.NotNil(t, node.startedApps)
+	}
 }
 
 func TestNodeStartClose(t *testing.T) {
-	r := new(mockRouter)
-	executer := &MockExecuter{}
-	conf := []AppConfig{
-		{App: "skychat", Version: "1.0", AutoStart: true, Port: 1},
-		{App: "foo", Version: "1.0", AutoStart: false},
+
+	for _, trType := range []string{"dmsg", "tcp-transport"} {
+		t.Run(trType, func(t *testing.T) {
+			r := new(mockRouter)
+			executer := &MockExecuter{}
+			conf := []AppConfig{
+				{App: "skychat", Version: "1.0", AutoStart: true, Port: 1},
+				{App: "foo", Version: "1.0", AutoStart: false},
+			}
+
+			defer func() {
+				require.NoError(t, os.RemoveAll("skychat"))
+			}()
+
+			node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
+				startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
+			mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
+
+			switch trType {
+			case "dmsg":
+				node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
+			case "tcp-transport":
+				node.messenger = transport.NewTCPFactory(mConf.PubKey, nil, nil)
+			}
+
+			var err error
+			tmConf := &transport.ManagerConfig{PubKey: cipher.PubKey{}, DiscoveryClient: transport.NewDiscoveryMock()}
+			node.tm, err = transport.NewManager(tmConf, node.messenger)
+			require.NoError(t, err)
+
+			errCh := make(chan error)
+			go func() {
+				errCh <- node.Start()
+			}()
+
+			time.Sleep(100 * time.Millisecond)
+			require.NoError(t, node.Close())
+			require.True(t, r.didClose)
+			require.NoError(t, <-errCh)
+
+			require.Len(t, executer.cmds, 1)
+			assert.Equal(t, "skychat.v1.0", executer.cmds[0].Path)
+			assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
+		})
 	}
-
-	defer func() {
-		require.NoError(t, os.RemoveAll("skychat"))
-	}()
-
-	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
-		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
-	mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
-	node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
-
-	var err error
-
-	tmConf := &transport.ManagerConfig{PubKey: cipher.PubKey{}, DiscoveryClient: transport.NewDiscoveryMock()}
-	node.tm, err = transport.NewManager(tmConf, node.messenger)
-	require.NoError(t, err)
-
-	errCh := make(chan error)
-	go func() {
-		errCh <- node.Start()
-	}()
-
-	time.Sleep(100 * time.Millisecond)
-	require.NoError(t, node.Close())
-	require.True(t, r.didClose)
-	require.NoError(t, <-errCh)
-
-	require.Len(t, executer.cmds, 1)
-	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Path)
-	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
 }
 
 func TestNodeSpawnApp(t *testing.T) {

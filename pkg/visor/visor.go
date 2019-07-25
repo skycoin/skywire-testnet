@@ -130,7 +130,23 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey,
 			mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
 	case "tcp-transport":
-		node.messenger = transport.NewTCPFactory(mConfig.PubKey, nil, nil)
+
+		pkTbl, err := transport.FilePubKeyTable(config.PubKeysFile)
+		if err != nil {
+			return nil, fmt.Errorf("error %v reading %v", err, config.PubKeysFile)
+		}
+
+		addr, err := net.ResolveTCPAddr("tcp", config.TCPTransportAddr)
+		if err != nil {
+			return nil, fmt.Errorf("error %v resolving %v", err, config.TCPTransportAddr)
+		}
+
+		tcpListener, err := net.ListenTCP("tcp", addr)
+		if err != nil {
+			return nil, fmt.Errorf("error %v listening %v", err, config.TCPTransportAddr)
+		}
+
+		node.messenger = transport.NewTCPFactory(pk, pkTbl, tcpListener)
 	}
 
 	trDiscovery, err := config.TransportDiscovery()
@@ -138,6 +154,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("invalid MessagingConfig: %s", err)
 	}
 	logStore, err := config.TransportLogStore()
+
 	if err != nil {
 		return nil, fmt.Errorf("invalid TransportLogStore: %s", err)
 	}

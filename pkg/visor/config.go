@@ -57,7 +57,9 @@ type Config struct {
 	AppsPath  string `json:"apps_path"`
 	LocalPath string `json:"local_path"`
 
-	TransportType string `json:"transport-type"`
+	TransportType    string `json:"transport_type"`
+	PubKeysFile      string `json:"pubkeys_file"`
+	TCPTransportAddr string `json:"tcptransport_addr"`
 
 	ShutdownTimeout Duration        `json:"shutdown_timeout"` // time value, examples: 10s, 1m, etc
 	Interfaces      InterfaceConfig `json:"interfaces"`

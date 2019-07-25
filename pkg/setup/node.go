@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -49,10 +50,27 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	var factory transport.Factory
 	switch conf.TransportType {
 	case "dmsg":
+
 		factory = dmsg.NewClient(pk, sk, disc.NewHTTP(conf.Messaging.Discovery),
 			dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
 	case "tcp-transport":
-		factory = transport.NewTCPFactory(pk, nil, nil)
+
+		pkTbl, err := transport.FilePubKeyTable(conf.PubKeysFile)
+		if err != nil {
+			return nil, fmt.Errorf("error %v reading %v", err, conf.PubKeysFile)
+		}
+
+		addr, err := net.ResolveTCPAddr("tcp", conf.TCPTransportAddr)
+		if err != nil {
+			return nil, fmt.Errorf("error %v resolving %v", err, conf.TCPTransportAddr)
+		}
+
+		tcpListener, err := net.ListenTCP("tcp", addr)
+		if err != nil {
+			return nil, fmt.Errorf("error %v listening %v", err, conf.TCPTransportAddr)
+		}
+
+		factory = transport.NewTCPFactory(pk, pkTbl, tcpListener)
 	}
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
