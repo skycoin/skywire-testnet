@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/kr/pty"
+	"github.com/creack/pty"
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 

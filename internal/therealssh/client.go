@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kr/pty"
+	"github.com/creack/pty"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/internal/netutil"

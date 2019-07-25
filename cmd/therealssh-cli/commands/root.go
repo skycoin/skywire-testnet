@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kr/pty"
+	"github.com/creack/pty"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
