@@ -57,10 +57,11 @@ type Config struct {
 	AppsPath  string `json:"apps_path"`
 	LocalPath string `json:"local_path"`
 
-	LogLevel        string   `json:"log_level"`
-	ShutdownTimeout Duration `json:"shutdown_timeout"` // time value, examples: 10s, 1m, etc
+	TransportType string `json:"transport-type"`
 
-	Interfaces InterfaceConfig `json:"interfaces"`
+	ShutdownTimeout Duration        `json:"shutdown_timeout"` // time value, examples: 10s, 1m, etc
+	Interfaces      InterfaceConfig `json:"interfaces"`
+	LogLevel        string          `json:"log_level"`
 }
 
 // MessagingConfig returns config for dmsg client.

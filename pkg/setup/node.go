@@ -30,7 +30,7 @@ type Node struct {
 	Logger *logging.Logger
 
 	tm        *transport.Manager
-	messenger *dmsg.Client
+	messenger transport.Factory
 
 	srvCount int
 	metrics  metrics.Recorder
@@ -45,7 +45,15 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := dmsg.NewClient(pk, sk, disc.NewHTTP(conf.Messaging.Discovery), dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
+
+	var factory transport.Factory
+	switch conf.TransportType {
+	case "dmsg":
+		factory = dmsg.NewClient(pk, sk, disc.NewHTTP(conf.Messaging.Discovery),
+			dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
+	case "tcp-transport":
+		factory = transport.NewTCPFactory(pk, nil, nil)
+	}
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
 	if err != nil {
@@ -59,7 +67,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 		LogStore:        transport.InMemoryTransportLogStore(),
 	}
 
-	tm, err := transport.NewManager(tmConf, messenger)
+	tm, err := transport.NewManager(tmConf, factory)
 	if err != nil {
 		log.Fatal("Failed to setup Transport Manager: ", err)
 	}
@@ -69,18 +77,22 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 		Logger:    logger.PackageLogger("routesetup"),
 		metrics:   metrics,
 		tm:        tm,
-		messenger: messenger,
+		messenger: factory,
 		srvCount:  conf.Messaging.ServerCount,
 	}, nil
 }
 
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
-	if sn.srvCount > 0 {
-		if err := sn.messenger.InitiateServerConnections(ctx, sn.srvCount); err != nil {
-			return fmt.Errorf("messaging: %s", err)
+
+	switch factory := sn.messenger.(type) {
+	case *dmsg.Client:
+		if sn.srvCount > 0 {
+			if err := factory.InitiateServerConnections(ctx, sn.srvCount); err != nil {
+				return fmt.Errorf("messaging: %s", err)
+			}
+			sn.Logger.Info("Connected to messaging servers")
 		}
-		sn.Logger.Info("Connected to messaging servers")
 	}
 
 	go func() {

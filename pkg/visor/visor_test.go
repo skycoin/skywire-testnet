@@ -64,6 +64,7 @@ func TestNewNode(t *testing.T) {
 		{App: "bar", AutoStart: true, Port: 2},
 	}
 
+	conf.TransportType = "dmsg"
 	defer func() {
 		require.NoError(t, os.RemoveAll("local"))
 	}()

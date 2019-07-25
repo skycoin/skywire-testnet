@@ -86,7 +86,7 @@ type PacketRouter interface {
 type Node struct {
 	config    *Config
 	router    PacketRouter
-	messenger *dmsg.Client
+	messenger transport.Factory
 	tm        *transport.Manager
 	rt        routing.Table
 	executer  appExecuter
@@ -125,7 +125,13 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
+	switch config.TransportType {
+	case "dmsg":
+		node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey,
+			mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
+	case "tcp-transport":
+		node.messenger = transport.NewTCPFactory(mConfig.PubKey, nil, nil)
+	}
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
@@ -205,11 +211,17 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
 	ctx := context.Background()
-	err := node.messenger.InitiateServerConnections(ctx, node.config.Messaging.ServerCount)
-	if err != nil {
-		return fmt.Errorf("%s: %s", dmsg.Type, err)
+
+	switch factory := node.messenger.(type) {
+	case *dmsg.Client:
+		err := factory.InitiateServerConnections(ctx, node.config.Messaging.ServerCount)
+		if err != nil {
+			return fmt.Errorf("%s: %s", dmsg.Type, err)
+		}
+		node.logger.Info("Connected to messaging servers")
+	case *transport.TCPFactory:
+		node.logger.Info("TCPFactory: ignoring configured messaging servers")
 	}
-	node.logger.Info("Connected to messaging servers")
 
 	pathutil.EnsureDir(node.dir())
 	node.closePreviousApps()
