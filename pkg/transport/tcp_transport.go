@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -18,35 +19,51 @@ var ErrUnknownRemote = errors.New("unknown remote")
 
 // TCPFactory implements Factory over TCP connection.
 type TCPFactory struct {
-	l   *net.TCPListener
-	lpk cipher.PubKey
-	pkt PubKeyTable
+	Pk      cipher.PubKey
+	PkTable PubKeyTable
+	Lsr     *net.TCPListener
 }
 
-// NewTCPFactory constructs a new TCP Factory.
-func NewTCPFactory(lpk cipher.PubKey, pkt PubKeyTable, l *net.TCPListener) Factory {
-	return &TCPFactory{l, lpk, pkt}
+// NewTCPFactory constructs a new TCP Factory
+func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string) (Factory, error) {
+
+	pkTbl, err := FilePubKeyTable(pubkeysFile)
+	if err != nil {
+		return nil, fmt.Errorf("error %v reading %v", err, pubkeysFile)
+	}
+
+	addr, err := net.ResolveTCPAddr("tcp", tcpAddr)
+	if err != nil {
+		return nil, fmt.Errorf("error %v resolving %v", err, tcpAddr)
+	}
+
+	tcpListener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("error %v listening %v", err, tcpAddr)
+	}
+
+	return &TCPFactory{pk, pkTbl, tcpListener}, nil
 }
 
 // Accept accepts a remotely-initiated Transport.
 func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
-	conn, err := f.l.AcceptTCP()
+	conn, err := f.Lsr.AcceptTCP()
 	if err != nil {
 		return nil, err
 	}
 
 	raddr := conn.RemoteAddr().(*net.TCPAddr)
-	rpk := f.pkt.RemotePK(raddr.IP)
+	rpk := f.PkTable.RemotePK(raddr.IP)
 	if rpk.Null() {
 		return nil, ErrUnknownRemote
 	}
 
-	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, rpk}}, nil
+	return &TCPTransport{conn, [2]cipher.PubKey{f.Pk, rpk}}, nil
 }
 
 // Dial initiates a Transport with a remote node.
 func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
-	raddr := f.pkt.RemoteAddr(remote)
+	raddr := f.PkTable.RemoteAddr(remote)
 	if raddr == nil {
 		return nil, ErrUnknownRemote
 	}
@@ -56,7 +73,7 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 		return nil, err
 	}
 
-	return &TCPTransport{conn, [2]cipher.PubKey{f.lpk, remote}}, nil
+	return &TCPTransport{conn, [2]cipher.PubKey{f.Pk, remote}}, nil
 }
 
 // Close implements io.Closer
@@ -64,12 +81,12 @@ func (f *TCPFactory) Close() error {
 	if f == nil {
 		return nil
 	}
-	return f.l.Close()
+	return f.Lsr.Close()
 }
 
 // Local returns the local public key.
 func (f *TCPFactory) Local() cipher.PubKey {
-	return f.lpk
+	return f.Pk
 }
 
 // Type returns the Transport type.

@@ -95,15 +95,18 @@ func TestNodeStartClose(t *testing.T) {
 				require.NoError(t, os.RemoveAll("skychat"))
 			}()
 
-			node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
+			nodeCfg := &Config{}
+			node := &Node{config: nodeCfg, router: r, executer: executer, appsConf: conf,
 				startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
-			mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
 
 			switch trType {
 			case "dmsg":
+				mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
 				node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
 			case "tcp-transport":
-				node.messenger = transport.NewTCPFactory(mConf.PubKey, nil, nil)
+				var err error
+				node.messenger, err = transport.NewTCPFactory(nodeCfg.Node.StaticPubKey, nodeCfg.PubKeysFile, nodeCfg.TCPTransportAddr)
+				require.NoError(t, err)
 			}
 
 			var err error

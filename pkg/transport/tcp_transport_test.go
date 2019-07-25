@@ -32,7 +32,7 @@ func TestTCPFactory(t *testing.T) {
 	pkt1 := transport.InMemoryPubKeyTable(map[cipher.PubKey]*net.TCPAddr{pk2: addr2})
 	pkt2 := transport.InMemoryPubKeyTable(map[cipher.PubKey]*net.TCPAddr{pk1: addr1})
 
-	f1 := transport.NewTCPFactory(pk1, pkt1, l1)
+	f1 := &transport.TCPFactory{pk1, pkt1, l1}
 	errCh := make(chan error)
 	go func() {
 		tr, err := f1.Accept(context.TODO())
@@ -49,7 +49,7 @@ func TestTCPFactory(t *testing.T) {
 		errCh <- nil
 	}()
 
-	f2 := transport.NewTCPFactory(pk2, pkt2, l2)
+	f2 := &transport.TCPFactory{pk2, pkt2, l2}
 	assert.Equal(t, "tcp", f2.Type())
 	assert.Equal(t, pk2, f2.Local())
 
