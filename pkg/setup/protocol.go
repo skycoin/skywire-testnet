@@ -8,10 +8,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skycoin/dmsg/cipher"
-
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
-
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -63,30 +59,6 @@ const (
 // Protocol defines routes setup protocol.
 type Protocol struct {
 	rw io.ReadWriter
-}
-
-func (p *Protocol) pks() string {
-	humanize := func(pk cipher.PubKey) string {
-		switch pk.String() {
-		case "02d75d089b307032a3dfd1e6808f6a4ea0011205f60e7f28f69f444c4e48b2b7c3":
-			return "1"
-		case "0217fcf0478d41aa7eab8ae023658910e76e5aeae9bf18fdd607188c290a9be649":
-			return "2"
-		case "028e90b6fcb4ce3ecdf0fff555be992ab612d85c00897af8bdabff157916468fc1":
-			return "3"
-		case "03739ff49de06eab6b26f55e658c97121457bb690a1d8b55cd892decbc95073b80":
-			return "4"
-		case "0345327088f0f34c359ecf67892fbe58a1cd7299e15a797339fa29365cc2e7c551":
-			return "s"
-		default:
-			return fmt.Sprintf("(%s)", pk)
-		}
-	}
-	tp, ok := p.rw.(*dmsg.Transport)
-	if !ok {
-		return "[~~]"
-	}
-	return fmt.Sprintf("[%s%s]", humanize(tp.LocalPK()), humanize(tp.RemotePK()))
 }
 
 // NewSetupProtocol constructs a new setup Protocol.

@@ -56,7 +56,7 @@ func TestNode(t *testing.T) {
 		for i := 0; i < n; i++ {
 			pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte{byte(i)})
 			require.NoError(t, err)
-			t.Logf("> client[%d] PK: %s\n", i, pk)
+			t.Logf("client[%d] PK: %s\n", i, pk)
 			c := dmsg.NewClient(pk, sk, discovery, dmsg.SetLogger(logging.MustGetLogger(fmt.Sprintf("client_%d:%s", i, pk))))
 			require.NoError(t, c.InitiateServerConnections(context.TODO(), 1))
 			clients[i] = c
@@ -153,7 +153,7 @@ func TestNode(t *testing.T) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, rIDs)
+			_ = proto.WritePacket(RespSuccess, rIDs) //nolint:errcheck
 		}
 
 		// CLOSURE: emulates how a visor node should react when expecting an ConfirmLoop packet.
@@ -182,7 +182,7 @@ func TestNode(t *testing.T) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil)
+			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
 		}
 
 		expectAddRules(4, routing.RuleApp)
@@ -200,98 +200,70 @@ func TestNode(t *testing.T) {
 	// TEST: Emulates the communication between 2 visor nodes and a setup nodes,
 	// where a route is already established,
 	// and the first client attempts to tear it down.
-	//t.Run("CloseLoop", func(t *testing.T) {
-	//	t.SkipNow()
-	//
-	//	// clients index 0 and 1 are for visor nodes.
-	//	// clients index 2 is for setup node.
-	//	clients, closeClients := prepClients(3)
-	//	defer closeClients()
-	//
-	//	// prepare and serve setup node.
-	//	sn, closeSetup := prepSetupNode(clients[0])
-	//	setupPK := sn.messenger.Local()
-	//	defer closeSetup()
-	//
-	//	// prepare loop data describing the loop that is to be closed.
-	//	ld := routing.LoopData{
-	//		Loop:    routing.Loop{
-	//			Local: routing.Addr{
-	//				PubKey: clients[1].Local(),
-	//				Port:   1,
-	//			},
-	//			Remote: routing.Addr{
-	//				PubKey: clients[2].Local(),
-	//				Port:   2,
-	//			},
-	//		},
-	//		RouteID: 3,
-	//	}
-	//
-	//	iTpErrs := make(chan error, 3)
-	//	var iTp transport.Transport
-	//	go func() {
-	//		tp, err := clients[1].Dial(context.TODO(), setupPK)
-	//		iTp = tp
-	//		iTpErrs <- err
-	//		iTpErrs <- CloseLoop(NewSetupProtocol(tp), ld)
-	//		iTpErrs <- iTp.Close()
-	//		close(iTpErrs)
-	//	}()
-	//	defer func() {
-	//		i := 0
-	//		for err := range iTpErrs {
-	//			require.NoError(t, err, i)
-	//			i++
-	//		}
-	//	}()
-	//})
-}
+	t.Run("CloseLoop", func(t *testing.T) {
 
-//func TestCloseLoop(t *testing.T) {
-//	dc := disc.NewMock()
-//
-//	pk1, sk1 := cipher.GenerateKeyPair()
-//	pk3, sk3 := cipher.GenerateKeyPair()
-//
-//	n3, srvErrCh := createServer(t, dc)
-//
-//	time.Sleep(100 * time.Millisecond)
-//
-//	c1 := dmsg.NewClient(pk1, sk1, dc)
-//	c3 := dmsg.NewClient(pk3, sk3, dc)
-//
-//	require.NoError(t, c1.InitiateServerConnections(context.Background(), 1))
-//	require.NoError(t, c3.InitiateServerConnections(context.Background(), 1))
-//
-//	sn := &Node{logging.MustGetLogger("setup_node"), c3, 0, metrics.NewDummy()}
-//	errChan := make(chan error)
-//	go func() {
-//		errChan <- sn.Serve(context.TODO())
-//	}()
-//
-//	tr, err := c1.Dial(context.TODO(), pk3)
-//	require.NoError(t, err)
-//
-//	proto := NewSetupProtocol(tr)
-//	require.NoError(t, CloseLoop(proto, routing.LoopData{
-//		Loop: routing.Loop{
-//			Remote: routing.Addr{
-//				PubKey: pk3,
-//				Port:   2,
-//			},
-//			Local: routing.Addr{
-//				Port: 1,
-//			},
-//		},
-//	}))
-//
-//	require.NoError(t, sn.Close())
-//	require.NoError(t, <-errChan)
-//
-//	require.NoError(t, n3.Close())
-//	require.NoError(t, errWithTimeout(srvErrCh))
-//}
+		// client index 0 is for setup node.
+		// clients index 1 and 2 are for visor nodes.
+		clients, closeClients := prepClients(3)
+		defer closeClients()
+
+		// prepare and serve setup node.
+		sn, closeSetup := prepSetupNode(clients[0])
+		setupPK := sn.messenger.Local()
+		defer closeSetup()
+
+		// prepare loop data describing the loop that is to be closed.
+		ld := routing.LoopData{
+			Loop: routing.Loop{
+				Local: routing.Addr{
+					PubKey: clients[1].Local(),
+					Port:   1,
+				},
+				Remote: routing.Addr{
+					PubKey: clients[2].Local(),
+					Port:   2,
+				},
+			},
+			RouteID: 3,
+		}
+
+		// client_1 initiates close loop with setup node.
+		iTp, err := clients[1].Dial(context.TODO(), setupPK)
+		require.NoError(t, err)
+		iTpErrs := make(chan error, 2)
+		go func() {
+			iTpErrs <- CloseLoop(NewSetupProtocol(iTp), ld)
+			iTpErrs <- iTp.Close()
+			close(iTpErrs)
+		}()
+		defer func() {
+			i := 0
+			for err := range iTpErrs {
+				require.NoError(t, err, i)
+				i++
+			}
+		}()
+
+		// client_2 accepts close request.
+		tp, err := clients[2].Accept(context.TODO())
+		require.NoError(t, err)
+		defer func() { require.NoError(t, tp.Close()) }()
+
+		proto := NewSetupProtocol(tp)
+
+		pt, pp, err := proto.ReadPacket()
+		require.NoError(t, err)
+		require.Equal(t, PacketLoopClosed, pt)
+
+		var d routing.LoopData
+		require.NoError(t, json.Unmarshal(pp, &d))
+		require.Equal(t, ld.Loop.Remote, d.Loop.Local)
+		require.Equal(t, ld.Loop.Local, d.Loop.Remote)
+
+		// TODO: This error is not checked due to a bug in dmsg.
+		_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+	})
+}
 
 func createServer(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
 	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
