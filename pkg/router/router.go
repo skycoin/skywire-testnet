@@ -88,8 +88,6 @@ func (r *Router) Serve(ctx context.Context) error {
 				if !ok {
 					return
 				}
-				r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", dTp.Accepted, false)
-				r.handleTransport(dTp, dTp.Accepted, false)
 				initStatus := "locally"
 				if dTp.Accepted {
 					initStatus = "remotely"
