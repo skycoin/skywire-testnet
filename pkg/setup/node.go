@@ -55,10 +55,13 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 		factory = dmsg.NewClient(pk, sk, disc.NewHTTP(conf.Messaging.Discovery),
 			dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
 	case "tcp-transport":
-		factory, err = transport.NewTCPFactory(pk, conf.PubKeysFile, conf.TCPTransportAddr)
-		if err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("tcp-transport forbidden for setup-node")
+
+		// TODO: remove it later
+		// factory, err = transport.NewTCPFactory(pk, conf.PubKeysFile, conf.TCPTransportAddr)
+		// if err != nil {
+		// 	return nil, err
+		// }
 	}
 
 	trDiscovery, err := trClient.NewHTTP(conf.TransportDiscovery, pk, sk)
