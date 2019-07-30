@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added 
 
-- Retry logic to messaging server for messaging client.
+- Retry logic to dmsg server for dmsg client.
 
 ### Fixed
 
-- Fixed channel collision for messaging clients.
+- Fixed channel collision for dmsg clients.
 
 ### Changed
 

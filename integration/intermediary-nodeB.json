@@ -4,8 +4,8 @@
     "static_public_key": "0372ee0a2b99b55906ac33b49704073ab90ab4f395d814d48d597b5b42c39e5c79",
     "static_secret_key": "5092f14fe18bd7dcd34479c5d26bb3bf68b708ec74a12c4557091e82dd6e6c36"
   },
-  "messaging": {
-    "discovery": "https://messaging.discovery.skywire.skycoin.net",
+  "dmsg": {
+    "discovery": "https://dmsg.discovery.skywire.skycoin.net",
     "server_count": 1
   },
   "transport": {

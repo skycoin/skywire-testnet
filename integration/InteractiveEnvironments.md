@@ -146,8 +146,8 @@ The following steps will be performed:
 
 1. copy sw*.json and start-restart-nodeB.sh into skywire directory
 2. Create 9 tmux windows:
-   1. MSGD: messaging-discovery
-   2. MSG: messaging-server
+   1. DMSGD: dmsg-discovery
+   2. DMSG: dmsg-server
    3. TRD: transport-discovery
    4. RF: route-finder
    5. SN: setup-node
@@ -156,7 +156,7 @@ The following steps will be performed:
    8. NodeC: first skywire-visor with generic/nodeC.json
    9. shell: new shell for interactive exploration
 3. ENV-vars in shell-window:
-   1. $MSG_PK, $SN_PK - public keys of messaging-server and setup-node
+   1. $DMSG_PK, $SN_PK - public keys of dmsg-server and setup-node
    2. $PK_A, $PK_B, $PK_C - public keys of node_A, node_B, node_C
    3. $RPC_A, $RPC_B, $RPC_C - `--rpc` param for ../skywire/skywire-cli
    4. $CHAT_A, $CHAT_B - addresses and ports for `skychat`-apps on node_A and node_C
