@@ -109,6 +109,8 @@ type Node struct {
 
 // NewNode constructs new Node.
 func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) {
+
+	// Node init
 	node := &Node{
 		config:      config,
 		executer:    newOSExecuter(),
@@ -120,15 +122,17 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	pk := config.Node.StaticPubKey
 	sk := config.Node.StaticSecKey
-	mConfig, err := config.MessagingConfig()
-	if err != nil {
-		return nil, fmt.Errorf("invalid messaging config: %s", err)
-	}
 
+	// switch between transport types
 	switch config.TransportType {
 	case "dmsg":
+		mConfig, err := config.MessagingConfig()
+		if err != nil {
+			return nil, fmt.Errorf("invalid messaging config: %s", err)
+		}
 		node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey,
 			mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
+
 	case "tcp-transport":
 		var err error
 		node.messenger, err = transport.NewTCPFactory(config.Node.StaticPubKey, config.PubKeysFile, config.TCPTransportAddr)
@@ -139,7 +143,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
-		return nil, fmt.Errorf("invalid MessagingConfig: %s", err)
+		return nil, fmt.Errorf("invalid TransportDiscoveryConfig: %s", err)
 	}
 	logStore, err := config.TransportLogStore()
 
@@ -152,6 +156,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		LogStore:        logStore,
 		DefaultNodes:    config.TrustedNodes,
 	}
+
 	node.tm, err = transport.NewManager(tmConfig, node.messenger)
 	if err != nil {
 		return nil, fmt.Errorf("transport manager: %s", err)
@@ -162,6 +167,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 	if err != nil {
 		return nil, fmt.Errorf("routing table: %s", err)
 	}
+
 	rConfig := &router.Config{
 		Logger:           node.Logger.PackageLogger("router"),
 		PubKey:           pk,

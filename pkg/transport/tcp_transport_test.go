@@ -17,7 +17,7 @@ import (
 )
 
 /*
-   This test requires IPs on host
+   This test requires configured IPs on host
    sudo ip addr add 192.168.1.2 dev  lo
    sudo ip addr add 192.168.1.3 dev  lo
 */
