@@ -1,0 +1,67 @@
+{
+	"version": "1.0",
+	"node": {
+		"static_public_key": "0322f66c5cac131376a2e6a20c6e31511baa7ec7bb0dccd26954c86c94af7d02b7",
+		"static_secret_key": "8300741a43bcb60e44cc407980ff2bfecd762fd59b900c98f22e5cce77476e41"		
+	},
+	"messaging": {
+		"discovery": "https://messaging.discovery.skywire.skycoin.net",
+		"server_count": 1
+	},
+	"transport": {
+		"discovery": "https://transport.discovery.skywire.skycoin.net",
+		"log_store": {
+			"type": "file",
+			"location": "./skywire/transport_logs"
+		}
+	},
+	"routing": {
+		"setup_nodes": [
+			"0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557"
+		],
+		"route_finder": "https://routefinder.skywire.skycoin.net/",
+		"route_finder_timeout": "10s",
+		"table": {
+			"type": "boltdb",
+			"location": "./skywire/routing.db"
+		}
+	},
+	"apps": [
+		{
+			"version": "1.0",
+			"app": "skychat",
+			"auto_start": true,
+			"port": 1,
+			"args": []
+		},
+		{
+			"version": "1.0",
+			"app": "SSH",
+			"auto_start": true,
+			"port": 2,
+			"args": []
+		},
+		{
+			"version": "1.0",
+			"app": "socksproxy",
+			"auto_start": true,
+			"port": 3,
+			"args": [
+				"-passcode",
+				"1yHtvMg29Zs="
+			]
+		}
+	],
+	"trusted_nodes": [],
+	"hypervisors": [],
+	"apps_path": "./apps",
+	"local_path": "./local",
+	"transport_type": "dmsg",
+	"pubkeys_file": "./local/pubkeys",
+	"tcptransport_addr": "",
+	"shutdown_timeout": "10s",
+	"interfaces": {
+		"rpc": "localhost:3435"
+	},
+	"log_level": "info"
+}
