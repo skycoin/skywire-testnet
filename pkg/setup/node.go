@@ -82,6 +82,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	}
 
 	sn.Logger.Infof("Got new Setup request with type %s: %s", sp, string(data))
+	defer sn.Logger.Infof("Completed Setup request with type %s: %s", sp, string(data))
 
 	startTime := time.Now()
 	switch sp {
@@ -256,9 +257,12 @@ func (sn *Node) remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
+	fmt.Printf(">>> BEGIN: closeLoop(%s, ld)\n", on)
+	defer fmt.Printf(">>>   END: closeLoop(%s, ld)\n", on)
 	ctx := context.Background()
 
 	tr, err := sn.messenger.Dial(ctx, on)
+	fmt.Println(">>> *****: closeLoop() dialed:", err)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}

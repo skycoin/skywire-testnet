@@ -68,7 +68,7 @@ func (am *appManager) initApp(payload []byte) error {
 		return errors.New("unexpected app version")
 	}
 
-	am.Logger.Infof("Handshaked new connection with the app %s.v%s", config.AppName, config.AppVersion)
+	am.Logger.Infof("Finished initiating app: %s.v%s", config.AppName, config.AppVersion)
 	return nil
 }
 
