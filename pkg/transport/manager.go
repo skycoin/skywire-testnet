@@ -138,7 +138,7 @@ func (tm *Manager) reconnectTransports(ctx context.Context) {
 			continue
 		}
 
-		if !tm.IsSetupPK(remote) {
+		if tm.IsSetupPK(remote) {
 			continue
 		}
 
