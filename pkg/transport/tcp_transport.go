@@ -55,7 +55,7 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 	raddr := conn.RemoteAddr().(*net.TCPAddr)
 	rpk := f.PkTable.RemotePK(raddr.String())
 	if rpk.Null() {
-		return nil, fmt.Errorf("Error: %v\n, raddr: %v\n, rpk: %v\n", ErrUnknownRemote, raddr, rpk)
+		return nil, fmt.Errorf("error: %v, raddr: %v, rpk: %v", ErrUnknownRemote, raddr.String(), rpk)
 	}
 
 	return &TCPTransport{conn, [2]cipher.PubKey{f.Pk, rpk}}, nil
@@ -77,7 +77,7 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 	if err != nil {
 		return nil, fmt.Errorf("error in resolving local address")
 	}
-	locAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%v:%v", lsnAddr.IP.String(), "9229"))
+	locAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%v:%v", lsnAddr.IP.String(), "0"))
 	if err != nil {
 		return nil, fmt.Errorf("error in constructing local address ")
 	}
@@ -130,40 +130,43 @@ type PubKeyTable interface {
 	RemotePK(address string) cipher.PubKey
 }
 
-type inMemoryPKTable struct {
+type memPKTable struct {
 	entries map[cipher.PubKey]string
 	reverse map[string]cipher.PubKey
 }
 
-func inMemoryPubKeyTable(entries map[cipher.PubKey]string) *inMemoryPKTable {
+func memoryPubKeyTable(entries map[cipher.PubKey]string) *memPKTable {
 	reverse := make(map[string]cipher.PubKey)
 	for k, v := range entries {
 		addr, err := net.ResolveTCPAddr("tcp", v)
 		if err != nil {
 			panic("error in resolving address")
 		}
-
-		reverse[fmt.Sprintf("%s:%s", addr.IP, "9229")] = k
+		reverse[addr.IP.String()] = k
 	}
-	return &inMemoryPKTable{entries, reverse}
+	return &memPKTable{entries, reverse}
 }
 
-// InMemoryPubKeyTable returns in memory implementation of the PubKeyTable.
-func InMemoryPubKeyTable(entries map[cipher.PubKey]string) PubKeyTable {
-	return inMemoryPubKeyTable(entries)
+// MemoryPKTable returns in memory implementation of the PubKeyTable.
+func MemoryPubKeyTable(entries map[cipher.PubKey]string) PubKeyTable {
+	return memoryPubKeyTable(entries)
 }
 
-func (t *inMemoryPKTable) RemoteAddr(remotePK cipher.PubKey) string {
+func (t *memPKTable) RemoteAddr(remotePK cipher.PubKey) string {
 	return t.entries[remotePK]
 }
 
-func (t *inMemoryPKTable) RemotePK(address string) cipher.PubKey {
-	return t.reverse[address]
+func (t *memPKTable) RemotePK(address string) cipher.PubKey {
+	addr, err := net.ResolveTCPAddr("tcp", address)
+	if err != nil {
+		panic("net.ResolveTCPAddr")
+	}
+	return t.reverse[addr.IP.String()]
 }
 
 type filePKTable struct {
 	dbFile string
-	*inMemoryPKTable
+	*memPKTable
 }
 
 // FilePubKeyTable returns file based implementation of the PubKeyTable.
@@ -179,7 +182,6 @@ func FilePubKeyTable(dbFile string) (PubKeyTable, error) {
 	}
 
 	entries := make(map[cipher.PubKey]string)
-
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		components := strings.Fields(scanner.Text())
@@ -200,43 +202,5 @@ func FilePubKeyTable(dbFile string) (PubKeyTable, error) {
 		entries[pk] = addr.String()
 	}
 
-	return &filePKTable{dbFile, inMemoryPubKeyTable(entries)}, nil
+	return &filePKTable{dbFile, memoryPubKeyTable(entries)}, nil
 }
-
-func (t *filePKTable) RemoteAddr(remotePK cipher.PubKey) string {
-	return t.entries[remotePK]
-}
-
-func (t *filePKTable) RemotePK(address string) cipher.PubKey {
-	return t.reverse[address]
-}
-
-// func (t *filePKTable) Seek(seekFunc func(pk cipher.PubKey, addr *net.TCPAddr) bool) {
-// 	defer func() {
-// 		if _, err := t.dbFile.Seek(0, 0); err != nil {
-// 			log.WithError(err).Warn("Failed to seek to the beginning of DB")
-// 		}
-// 	}()
-
-// 	scanner := bufio.NewScanner(t.dbFile)
-// 	for scanner.Scan() {
-// 		components := strings.Fields(scanner.Text())
-// 		if len(components) != 2 {
-// 			continue
-// 		}
-
-// 		pk := cipher.PubKey{}
-// 		if err := pk.UnmarshalText([]byte(components[0])); err != nil {
-// 			continue
-// 		}
-
-// 		addr, err := net.ResolveTCPAddr("tcp", components[1])
-// 		if err != nil {
-// 			continue
-// 		}
-
-// 		if seekFunc(pk, addr) {
-// 			return
-// 		}
-// 	}
-// }
