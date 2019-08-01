@@ -1,8 +1,8 @@
 {
 	"version": "1.0",
 	"node": {
-		"static_public_key": "0322f66c5cac131376a2e6a20c6e31511baa7ec7bb0dccd26954c86c94af7d02b7",
-		"static_secret_key": "8300741a43bcb60e44cc407980ff2bfecd762fd59b900c98f22e5cce77476e41"		
+		"static_public_key": "02fffa3ffd07630bf5565493a990f182ea7de56a9c14abbe041959a8e4667d3447",
+		"static_secret_key": "4be3f22d89d0bade8c5bf0084919f891e5e2dd0d4db0bc139318dfa576ca0237"			
 	},
 	"messaging": {
 		"discovery": "https://messaging.discovery.skywire.skycoin.net",
@@ -37,8 +37,7 @@
 			"192.168.1.2:8001"
 		  ]
 		}
-	],
-	
+	],	
 	"trusted_nodes": [],
 	"hypervisors": [],
 	"apps_path": "./apps",

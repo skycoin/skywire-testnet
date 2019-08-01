@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -44,8 +45,10 @@ type Manager struct {
 func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	entries, err := config.DiscoveryClient.GetTransportsByEdge(context.Background(), config.PubKey)
 	if err != nil {
+
 		entries = make([]*EntryWithStatus, 0)
 	}
+	log.Infof("transport.NewManager. entries: v%\n", entries)
 
 	mEntries := make(map[Entry]struct{})
 	for _, entry := range entries {
@@ -275,7 +278,8 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
-		return nil, nil, err
+
+		return nil, nil, fmt.Errorf("error %v on factory.Dial to remote %v", err, remote)
 	}
 
 	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
@@ -294,12 +298,13 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
 	factory := tm.factories[tpType]
 	if factory == nil {
-		return nil, errors.New("unknown transport type")
+
+		return nil, fmt.Errorf("unknown transport type %s", tpType)
 	}
 
 	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error on dialTransport: %v", err)
 	}
 
 	oldTr := tm.Transport(entry.ID)

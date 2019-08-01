@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -39,6 +38,7 @@ type Config struct {
 	RoutingTable     routing.Table
 	RouteFinder      routeFinder.Client
 	SetupNodes       []cipher.PubKey
+	TransportType    string
 }
 
 // Router implements node.PacketRouter. It manages routing table by
@@ -281,6 +281,7 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 }
 
 func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
+
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
 		return routing.Addr{}, err
@@ -309,7 +310,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		Forward: forwardRoute,
 		Reverse: reverseRoute,
 	}
-
+	r.Logger.Infof("Router.requestLoop 5\n")
 	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
 		return routing.Addr{}, err
@@ -320,6 +321,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		}
 	}()
 
+	r.Logger.Infof("Router.requestLoop 6\n")
 	if err := setup.CreateLoop(proto, ld); err != nil {
 		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
@@ -423,8 +425,9 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
+	trType := r.config.TransportType
 	// TODO(evanlinjin): need string constant for tp type.
-	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], dmsg.Type, false)
+	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], trType, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}

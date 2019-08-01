@@ -1,8 +1,8 @@
 {
 	"version": "1.0",
 	"node": {
-		"static_public_key": "021adbbdf76f223f6e25ffe0b5626e600a1fcbb5fbbda833147a262a61b21312f3",
-		"static_secret_key": "ec1ba10659fca5e3847347b6978244013c651f6283f736c515f003407370649f"		
+		"static_public_key": "0315852b6dba67d16c5376b40e082a1036bd17b66c67573b242625f485f605756e",
+		"static_secret_key": "55553e1fb464b557e47392caad59f94ca14dff872f43c4ee786a84df761e69e0"			
 	},
 	"messaging": {
 		"discovery": "https://messaging.discovery.skywire.skycoin.net",

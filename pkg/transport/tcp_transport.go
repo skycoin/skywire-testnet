@@ -105,7 +105,7 @@ func (f *TCPFactory) Local() cipher.PubKey {
 
 // Type returns the Transport type.
 func (f *TCPFactory) Type() string {
-	return "tcp"
+	return "tcp-transport"
 }
 
 // TCPTransport implements Transport over TCP connection.

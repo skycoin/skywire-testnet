@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -124,6 +125,11 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 	sk := config.Node.StaticSecKey
 
 	// switch between transport types
+	var (
+		rtfClient   routeFinder.Client
+		setupNodes  []cipher.PubKey
+		trDiscovery transport.DiscoveryClient
+	)
 	switch config.TransportType {
 	case "dmsg":
 		mConfig, err := config.MessagingConfig()
@@ -133,20 +139,29 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey,
 			mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
 
+		rtfClient = routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout))
+
+		setupNodes = config.Routing.SetupNodes
+
+		trDiscovery, err = config.TransportDiscovery()
+		if err != nil {
+			return nil, fmt.Errorf("invalid TransportDiscoveryConfig: %s", err)
+		}
+
 	case "tcp-transport":
 		var err error
 		node.messenger, err = transport.NewTCPFactory(config.Node.StaticPubKey, config.PubKeysFile, config.TCPTransportAddr)
 		if err != nil {
 			return nil, err
 		}
+
+		rtfClient = routeFinder.NewMock()
+		setupNodes = []cipher.PubKey{config.Node.StaticPubKey}
+
+		trDiscovery = transport.NewDiscoveryMock()
 	}
 
-	trDiscovery, err := config.TransportDiscovery()
-	if err != nil {
-		return nil, fmt.Errorf("invalid TransportDiscoveryConfig: %s", err)
-	}
 	logStore, err := config.TransportLogStore()
-
 	if err != nil {
 		return nil, fmt.Errorf("invalid TransportLogStore: %s", err)
 	}
@@ -158,6 +173,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 	}
 
 	node.tm, err = transport.NewManager(tmConfig, node.messenger)
+
 	if err != nil {
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
@@ -174,8 +190,9 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		SecKey:           sk,
 		TransportManager: node.tm,
 		RoutingTable:     node.rt,
-		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
-		SetupNodes:       config.Routing.SetupNodes,
+		RouteFinder:      rtfClient,
+		SetupNodes:       setupNodes,
+		TransportType:    config.TransportType,
 	}
 	r := router.New(rConfig)
 	node.router = r

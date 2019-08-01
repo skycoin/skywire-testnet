@@ -206,6 +206,16 @@ func pkFromSeed(seed string) cipher.PubKey {
 	return pk
 }
 
+func ExampleFile() {
+	pkA, skA, _ := cipher.GenerateDeterministicKeyPair([]byte("NodeA"))
+	pkB, skB, _ := cipher.GenerateDeterministicKeyPair([]byte("NodeB"))
+
+	fmt.Printf("%v\n%v\n\n", pkA, skA)
+	fmt.Printf("%v\n%v\n\n", pkB, skB)
+
+	// Output: AAAA
+}
+
 func Example_transport_MemoryPubKeyTable() {
 	pkA, pkB := pkFromSeed("nodeA"), pkFromSeed("nodeB")
 	ipA, ipB := "192.168.1.2:9119", "192.168.1.3:9119"
