@@ -117,6 +117,8 @@ func (sshCh *SSHChannel) Serve() error {
 			err = sshCh.Shell()
 		case RequestExec:
 			err = sshCh.Start(string(data[1:]))
+		//case RequestExecWithoutShell:
+
 		case RequestWindowChange:
 			cols := binary.BigEndian.Uint32(data[1:])
 			rows := binary.BigEndian.Uint32(data[5:])

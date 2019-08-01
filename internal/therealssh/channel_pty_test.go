@@ -40,6 +40,7 @@ func TestChannelServe(t *testing.T) {
 	assert.Equal(t, CmdChannelResponse, buf[0])
 	assert.Equal(t, ResponseConfirm, buf[5])
 
+
 	require.NotNil(t, ch.session)
 
 	ch.msgCh <- []byte{byte(RequestShell)}
