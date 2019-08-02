@@ -1,7 +1,9 @@
 package therealssh
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -75,6 +77,33 @@ func (s *Session) Start(command string) (err error) {
 
 	s.cmd = cmd
 	return cmd.Start()
+}
+
+// Run executes a command and returns it's output and error if any
+func (s *Session) Run(command string) ([]byte, error) {
+	var err error
+
+	if command == "shell" {
+		if command, err = resolveShell(s.user); err != nil {
+			return nil, err
+		}
+	}
+
+	components := strings.Split(command, " ")
+	cmd := exec.Command(components[0], components[1:]...) // nolint:gosec
+	err = cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+	errP, _ := cmd.StderrPipe()
+	stdErr, _ := ioutil.ReadAll(errP)
+	out, _ := cmd.StdoutPipe()
+	res, _ := ioutil.ReadAll(out)
+
+	if len(stdErr) > 0 {
+		return res, errors.New(string(stdErr))
+	}
+	return res, nil
 }
 
 // Wait for pty process to exit.
