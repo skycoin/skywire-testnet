@@ -244,10 +244,13 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
+
+	r.Logger.Info("Entering r.forwardAppPacket")
+
 	if packet.Loop.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
 	}
-
+	r.Logger.Info("Entering r.forwardAppPacket GetLoop")
 	l, err := r.pm.GetLoop(packet.Loop.Local.Port, packet.Loop.Remote)
 	if err != nil {
 		return err
@@ -255,8 +258,9 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 
 	tr := r.tm.Transport(l.trID)
 	if tr == nil {
-		return errors.New("unknown transport")
+		return fmt.Errorf("unknown transport id %v", l.trID)
 	}
+	r.Logger.Info("r.forwardAppPacket enter routing.MakePacket")
 
 	p := routing.MakePacket(l.routeID, packet.Payload)
 	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Loop.Local.Port, l.routeID)
@@ -310,20 +314,34 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		Forward: forwardRoute,
 		Reverse: reverseRoute,
 	}
-	r.Logger.Infof("Router.requestLoop 5\n")
-	proto, tr, err := r.setupProto(context.Background())
-	if err != nil {
-		return routing.Addr{}, err
-	}
-	defer func() {
-		if err := tr.Close(); err != nil {
-			r.Logger.Warnf("Failed to close transport: %s", err)
-		}
-	}()
 
-	r.Logger.Infof("Router.requestLoop 6\n")
-	if err := setup.CreateLoop(proto, ld); err != nil {
-		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
+	r.Logger.Infof("Router.requestLoop\n")
+	r.Logger.Infof("laddr: %v\n, raddr: %v\n", laddr, raddr)
+
+	r.Logger.Info("Attempt to r.setupProto from r.requestLoop")
+	switch r.config.TransportType {
+	case "dmsg":
+		proto, tr, err := r.setupProto(context.Background())
+		if err != nil {
+			return routing.Addr{}, err
+		}
+		defer func() {
+			if err := tr.Close(); err != nil {
+				r.Logger.Warnf("Failed to close transport: %s", err)
+			}
+		}()
+
+		r.Logger.Infof("Router.requestLoop 6\n")
+		if err := setup.CreateLoop(proto, ld); err != nil {
+			return routing.Addr{}, fmt.Errorf("route setup: %s", err)
+		}
+	case "tcp-transport":
+		r.Logger.Info("Skipping setup for tcp-transport")
+		_, err := r.tm.CreateTransport(context.Background(), raddr.PubKey, "tcp-transport", false)
+		if err != nil {
+			r.Logger.Warnf("error creating transport %s", err)
+		}
+
 	}
 
 	r.Logger.Infof("Created new loop to %s on port %d", raddr, laddr.Port)
@@ -366,7 +384,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
 	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
-
+	r.Logger.Info("Attempt to r.setupProto from r.closeLoop")
 	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
 		return err
