@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -345,9 +344,7 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 		return nil, nil, err
 	}
 
-	fmt.Printf(">>> INITIATING SETTLEMENT HANDSHAKE: local(%s) remote(%s)\n", tm.config.PubKey, remote)
 	entry, err := settlementInitiatorHandshake(public).Do(tm, tr, time.Minute)
-	fmt.Printf("<<<  COMPLETED SETTLEMENT HANDSHAKE: local(%s) remote(%s) error: %v\n", tm.config.PubKey, remote, err)
 	if err != nil {
 		go func() {
 			if err := tr.Close(); err != nil {
@@ -374,8 +371,6 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transp
 	if !ok {
 		return nil, errors.New("failed to determine remote edge of accepted transport")
 	}
-
-	fmt.Printf("{tp.Manager} Factory found tp: local(%s) remote(%s)\n", tm.config.PubKey, remotePK)
 
 	if tm.IsSetupPK(remotePK) {
 		select {

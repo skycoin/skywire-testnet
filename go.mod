@@ -15,15 +15,15 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/skycoin/dmsg v0.0.0-20190719095515-52043626400c
+	github.com/skycoin/dmsg v0.0.0-20190805065636-70f4c32a994f
 	github.com/skycoin/skycoin v0.26.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
-	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
-	golang.org/x/tools v0.0.0-20190719005602-e377ae9d6386 // indirect
+	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa // indirect
+	golang.org/x/tools v0.0.0-20190802220118-1d1727260058 // indirect
 )
 
 // Uncomment for tests with alternate branches of 'dmsg'
