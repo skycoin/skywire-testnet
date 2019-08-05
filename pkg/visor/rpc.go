@@ -207,7 +207,7 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 		defer cancel()
 	}
 
-	tp, err := r.node.tm.CreateTransport(ctx, in.RemotePK, in.TpType, in.Public)
+	tp, err := r.node.tm.CreateDataTransport(ctx, in.RemotePK, in.TpType, in.Public)
 	if err != nil {
 		return err
 	}
