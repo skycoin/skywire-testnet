@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -188,6 +189,14 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 	r := make([]*Hop, len(route))
 
 	initiator := route[0].From
+
+	// indicate errors occurred during rules setup
+	rulesSetupErrs := make(chan error, len(r))
+
+	var rulesSetupDone sync.WaitGroup
+	rulesSetupDone.Add(len(r))
+	// context to cancel rule setup in case of errors
+	ctx, cancel := context.WithCancel(context.Background())
 	for idx := len(r) - 1; idx >= 0; idx-- {
 		hop := &Hop{Hop: route[idx]}
 		r[idx] = hop
@@ -199,16 +208,46 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 			rule = routing.ForwardRule(expireAt, nextHop.routeID, nextHop.Transport)
 		}
 
-		routeID, err := sn.setupRule(hop.To, rule)
-		if err != nil {
-			return 0, fmt.Errorf("rule setup: %s", err)
-		}
+		go func(ctx context.Context, hop *Hop, rule routing.Rule) {
+			defer rulesSetupDone.Done()
 
-		hop.routeID = routeID
+			routeID, err := sn.setupRule(ctx, hop.To, rule)
+			if err != nil {
+				// filter out context cancellation errors
+				if err != context.Canceled {
+					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
+				}
+				return
+			}
+
+			hop.routeID = routeID
+
+			// put nil to avoid block
+			rulesSetupErrs <- nil
+		}(ctx, hop, rule)
+	}
+
+	var err error
+	// check for any errors occurred so far
+	for range r {
+		if err = <-rulesSetupErrs; err != nil {
+			// rules setup failed, cancel further setup
+			cancel()
+
+			// wait for setup to complete
+			rulesSetupDone.Wait()
+			break
+		}
+	}
+
+	// close chan to avoid leaks
+	close(rulesSetupErrs)
+	if err != nil {
+		return 0, err
 	}
 
 	rule := routing.ForwardRule(expireAt, r[0].routeID, r[0].Transport)
-	routeID, err := sn.setupRule(initiator, rule)
+	routeID, err := sn.setupRule(context.Background(), initiator, rule)
 	if err != nil {
 		return 0, fmt.Errorf("rule setup: %s", err)
 	}
@@ -281,9 +320,8 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 	return nil
 }
 
-func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
-	ctx := context.Background()
-
+func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey,
+	rule routing.Rule) (routeID routing.RouteID, err error) {
 	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
 	tr, err := sn.messenger.Dial(ctx, pubKey)
 	if err != nil {
