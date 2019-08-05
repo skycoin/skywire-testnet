@@ -85,6 +85,10 @@ func (tp *Transport) serve() (started bool) {
 // 4. But as, under the mutexes protecting `inCh`/`bufCh`, checking `done` comes first,
 // and we know that `done` is closed before `inCh`/`bufCh`, we can guarantee that it avoids writing to closed chan.
 func (tp *Transport) close() (closed bool) {
+	if tp == nil {
+		return false
+	}
+
 	tp.doneOnce.Do(func() {
 		closed = true
 
@@ -108,7 +112,9 @@ func (tp *Transport) close() (closed bool) {
 // Close closes the dmsg_tp.
 func (tp *Transport) Close() error {
 	if tp.close() {
-		_ = writeFrame(tp.Conn, MakeFrame(CloseType, tp.id, []byte{0})) //nolint:errcheck
+		if err := writeFrame(tp.Conn, MakeFrame(CloseType, tp.id, []byte{0})); err != nil {
+			log.WithError(err).Warn("Failed to write frame")
+		}
 	}
 	return nil
 }
@@ -200,7 +206,9 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 		return io.ErrClosedPipe
 
 	case <-ctx.Done():
-		_ = tp.Close() //nolint:errcheck
+		if err := tp.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close transport")
+		}
 		return ctx.Err()
 
 	case f, ok := <-tp.inCh:
@@ -217,7 +225,9 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 			// - use an even number with the intermediary dmsg_server.
 			initPK, respPK, ok := splitPKs(p)
 			if !ok || initPK != tp.local || respPK != tp.remote || !isInitiatorID(id) {
-				_ = tp.Close() //nolint:errcheck
+				if err := tp.Close(); err != nil {
+					log.WithError(err).Warn("Failed to close transport")
+				}
 				return ErrAcceptCheckFailed
 			}
 			return nil
@@ -227,7 +237,9 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 			return ErrRequestRejected
 
 		default:
-			_ = tp.Close() //nolint:errcheck
+			if err := tp.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close transport")
+			}
 			return ErrAcceptCheckFailed
 		}
 	}
@@ -244,7 +256,9 @@ func (tp *Transport) Serve() {
 	// also write CLOSE frame if this is the first time 'close' is triggered
 	defer func() {
 		if tp.close() {
-			_ = writeCloseFrame(tp.Conn, tp.id, 0) //nolint:errcheck
+			if err := writeCloseFrame(tp.Conn, tp.id, 0); err != nil {
+				log.WithError(err).Warn("Failed to write close frame")
+			}
 		}
 	}()
 
@@ -309,7 +323,9 @@ func (tp *Transport) Serve() {
 
 			case RequestType:
 				log.Warnln("Rejected [REQUEST]: ID already occupied, possibly malicious server.")
-				_ = tp.Conn.Close()
+				if err := tp.Conn.Close(); err != nil {
+					log.WithError(err).Warn("Failed to close connection")
+				}
 				return
 
 			default:

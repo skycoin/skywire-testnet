@@ -62,7 +62,7 @@ github.com/prometheus/procfs/internal/fs
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus/hooks/syslog
 github.com/sirupsen/logrus
-# github.com/skycoin/dmsg v0.0.0-20190708174832-eb49a4b802f7
+# github.com/skycoin/dmsg v0.0.0-20190719095515-52043626400c
 github.com/skycoin/dmsg/cipher
 github.com/skycoin/dmsg
 github.com/skycoin/dmsg/disc
@@ -95,6 +95,7 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
 # golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
+golang.org/x/net/nettest
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
 # golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb

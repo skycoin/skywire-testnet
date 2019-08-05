@@ -7,7 +7,7 @@
 .PHONY : docker-apps docker-bin docker-volume 
 .PHONY : docker-run docker-stop     
 
-OPTS?=GO111MODULE=on 
+OPTS?=GO111MODULE=on
 DOCKER_IMAGE?=skywire-runner # docker image to use for running skywire-visor.`golang`, `buildpack-deps:stretch-scm`  is OK too
 DOCKER_NETWORK?=SKYNET 
 DOCKER_NODE?=SKY01
@@ -45,7 +45,7 @@ rerun: stop
 lint: ## Run linters. Use make install-linters first	
 	${OPTS} golangci-lint run -c .golangci.yml ./...
 	# The govet version in golangci-lint is out of date and has spurious warnings, run it separately
-	${OPTS} go vet -all ./...
+	${OPTS} go vet -mod=vendor -all ./...
 
 vendorcheck:  ## Run vendorcheck
 	GO111MODULE=off vendorcheck ./internal/... 
