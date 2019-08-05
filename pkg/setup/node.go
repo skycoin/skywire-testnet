@@ -193,8 +193,6 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 	// indicate errors occurred during rules setup
 	rulesSetupErrs := make(chan error, len(r))
 
-	var rulesSetupDone sync.WaitGroup
-	rulesSetupDone.Add(len(r))
 	// context to cancel rule setup in case of errors
 	ctx, cancel := context.WithCancel(context.Background())
 	for idx := len(r) - 1; idx >= 0; idx-- {
@@ -209,12 +207,12 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 		}
 
 		go func(ctx context.Context, hop *Hop, rule routing.Rule) {
-			defer rulesSetupDone.Done()
-
 			routeID, err := sn.setupRule(ctx, hop.To, rule)
 			if err != nil {
 				// filter out context cancellation errors
-				if err != context.Canceled {
+				if err == context.Canceled {
+					rulesSetupErrs <- err
+				} else {
 					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
 				}
 				return
@@ -227,23 +225,22 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 		}(ctx, hop, rule)
 	}
 
-	var err error
+	var rulesSetupErr error
+	var cancelOnce sync.Once
 	// check for any errors occurred so far
 	for range r {
-		if err = <-rulesSetupErrs; err != nil {
+		// filter out context cancellation errors
+		if err := <-rulesSetupErrs; err != nil && err != context.Canceled {
 			// rules setup failed, cancel further setup
-			cancel()
-
-			// wait for setup to complete
-			rulesSetupDone.Wait()
-			break
+			cancelOnce.Do(cancel)
+			rulesSetupErr = err
 		}
 	}
 
 	// close chan to avoid leaks
 	close(rulesSetupErrs)
-	if err != nil {
-		return 0, err
+	if rulesSetupErr != nil {
+		return 0, rulesSetupErr
 	}
 
 	rule := routing.ForwardRule(expireAt, r[0].routeID, r[0].Transport)
