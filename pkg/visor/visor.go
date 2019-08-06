@@ -146,6 +146,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
 	node.tm.Logger = node.Logger.PackageLogger("trmanager")
+	node.tm.SetSetupNodes(config.Routing.SetupNodes)
 
 	node.rt, err = config.RoutingTable()
 	if err != nil {

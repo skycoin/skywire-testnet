@@ -243,7 +243,10 @@ func (app *App) closeConn(data []byte) error {
 	delete(app.conns, loop)
 	app.mu.Unlock()
 
-	return conn.Close()
+	if conn != nil {
+		return conn.Close()
+	}
+	return nil
 }
 
 func (app *App) confirmLoop(data []byte) error {

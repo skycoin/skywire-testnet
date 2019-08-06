@@ -79,7 +79,7 @@ func (sshCh *SSHChannel) Write(p []byte) (n int, err error) {
 
 // Request sends request message and waits for response.
 func (sshCh *SSHChannel) Request(requestType RequestType, payload []byte) ([]byte, error) {
-	debug("sending request %x", requestType)
+	log.Debugf("sending request %x", requestType)
 	req := append([]byte{byte(requestType)}, payload...)
 
 	if err := sshCh.Send(CmdChannelRequest, req); err != nil {
@@ -98,7 +98,7 @@ func (sshCh *SSHChannel) Request(requestType RequestType, payload []byte) ([]byt
 func (sshCh *SSHChannel) Serve() error {
 	for data := range sshCh.msgCh {
 		var err error
-		debug("new request %x", data[0])
+		log.Debugf("new request %x", data[0])
 		switch RequestType(data[0]) {
 		case RequestPTY:
 			var u *user.User
@@ -152,7 +152,7 @@ func (sshCh *SSHChannel) ServeSocket() error {
 		log.WithError(err).Warn("Failed to remove SSH channel socket file")
 	}
 
-	debug("waiting for new socket connections on: %s", sshCh.SocketPath())
+	log.Debugf("waiting for new socket connections on: %s", sshCh.SocketPath())
 	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: sshCh.SocketPath(), Net: "unix"})
 	if err != nil {
 		return fmt.Errorf("failed to open unix socket: %s", err)
@@ -166,7 +166,7 @@ func (sshCh *SSHChannel) ServeSocket() error {
 		return fmt.Errorf("failed to accept connection: %s", err)
 	}
 
-	debug("got new socket connection")
+	log.Debugln("got new socket connection")
 	defer func() {
 		if err := conn.Close(); err != nil {
 			log.WithError(err).Warn("Failed to close connection")
@@ -181,7 +181,7 @@ func (sshCh *SSHChannel) ServeSocket() error {
 
 	go func() {
 		if _, err := io.Copy(sshCh, conn); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			log.Println("failed to write to server:", err)
+			log.Errorf("failed to write to server:", err)
 			return
 		}
 	}()
@@ -199,7 +199,7 @@ func (sshCh *SSHChannel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
 		return errors.New("session is already started")
 	}
 
-	debug("starting new session for %s with %#v", user.Username, sz)
+	log.Debugf("starting new session for %s with %#v", user.Username, sz)
 	sshCh.session, err = OpenSession(user, sz)
 	if err != nil {
 		sshCh.session = nil
@@ -226,7 +226,7 @@ func (sshCh *SSHChannel) Start(command string) error {
 		}
 	}()
 
-	debug("starting new pty process %s", command)
+	log.Debugf("starting new pty process %s", command)
 	return sshCh.session.Start(command)
 }
 
@@ -331,14 +331,6 @@ func (sshCh *SSHChannel) closeListener() error {
 	defer sshCh.listenerMx.Unlock()
 
 	return sshCh.listener.Close()
-}
-
-func debug(format string, v ...interface{}) {
-	if !Debug {
-		return
-	}
-
-	log.Printf(format, v...)
 }
 
 func appendU32(buf []byte, n uint32) []byte {

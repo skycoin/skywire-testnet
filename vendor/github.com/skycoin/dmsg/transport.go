@@ -39,6 +39,7 @@ type Transport struct {
 	bufCh     chan struct{}          // chan for indicating whether this is a new FWD frame
 	bufSize   int                    // keeps track of the total size of 'buf'
 	bufMx     sync.Mutex             // protects fields responsible for handling FWD and ACK frames
+	rMx       sync.Mutex             // TODO: (WORKAROUND) concurrent reads seem problematic right now.
 
 	serving     chan struct{}   // chan which closes when serving begins
 	servingOnce sync.Once       // ensures 'serving' only closes once
@@ -85,6 +86,10 @@ func (tp *Transport) serve() (started bool) {
 // 4. But as, under the mutexes protecting `inCh`/`bufCh`, checking `done` comes first,
 // and we know that `done` is closed before `inCh`/`bufCh`, we can guarantee that it avoids writing to closed chan.
 func (tp *Transport) close() (closed bool) {
+	if tp == nil {
+		return false
+	}
+
 	tp.doneOnce.Do(func() {
 		closed = true
 
@@ -108,7 +113,9 @@ func (tp *Transport) close() (closed bool) {
 // Close closes the dmsg_tp.
 func (tp *Transport) Close() error {
 	if tp.close() {
-		_ = writeFrame(tp.Conn, MakeFrame(CloseType, tp.id, []byte{0})) //nolint:errcheck
+		if err := writeFrame(tp.Conn, MakeFrame(CloseType, tp.id, []byte{0})); err != nil {
+			log.WithError(err).Warn("Failed to write frame")
+		}
 	}
 	return nil
 }
@@ -200,7 +207,9 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 		return io.ErrClosedPipe
 
 	case <-ctx.Done():
-		_ = tp.Close() //nolint:errcheck
+		if err := tp.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close transport")
+		}
 		return ctx.Err()
 
 	case f, ok := <-tp.inCh:
@@ -217,7 +226,9 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 			// - use an even number with the intermediary dmsg_server.
 			initPK, respPK, ok := splitPKs(p)
 			if !ok || initPK != tp.local || respPK != tp.remote || !isInitiatorID(id) {
-				_ = tp.Close() //nolint:errcheck
+				if err := tp.Close(); err != nil {
+					log.WithError(err).Warn("Failed to close transport")
+				}
 				return ErrAcceptCheckFailed
 			}
 			return nil
@@ -227,7 +238,9 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 			return ErrRequestRejected
 
 		default:
-			_ = tp.Close() //nolint:errcheck
+			if err := tp.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close transport")
+			}
 			return ErrAcceptCheckFailed
 		}
 	}
@@ -244,7 +257,9 @@ func (tp *Transport) Serve() {
 	// also write CLOSE frame if this is the first time 'close' is triggered
 	defer func() {
 		if tp.close() {
-			_ = writeCloseFrame(tp.Conn, tp.id, 0) //nolint:errcheck
+			if err := writeCloseFrame(tp.Conn, tp.id, 0); err != nil {
+				log.WithError(err).Warn("Failed to write close frame")
+			}
 		}
 	}()
 
@@ -281,7 +296,8 @@ func (tp *Transport) Serve() {
 				}
 
 				// add payload to 'buf'
-				tp.buf = append(tp.buf, p[2:])
+				pay := p[2:]
+				tp.buf = append(tp.buf, pay)
 
 				// notify of new data via 'bufCh' (only if not closed)
 				if !tp.IsClosed() {
@@ -309,7 +325,9 @@ func (tp *Transport) Serve() {
 
 			case RequestType:
 				log.Warnln("Rejected [REQUEST]: ID already occupied, possibly malicious server.")
-				_ = tp.Conn.Close()
+				if err := tp.Conn.Close(); err != nil {
+					log.WithError(err).Warn("Failed to close connection")
+				}
 				return
 
 			default:
@@ -323,6 +341,9 @@ func (tp *Transport) Serve() {
 // TODO(evanlinjin): read deadline.
 func (tp *Transport) Read(p []byte) (n int, err error) {
 	<-tp.serving
+
+	tp.rMx.Lock()
+	defer tp.rMx.Unlock()
 
 startRead:
 	tp.bufMx.Lock()
@@ -338,14 +359,16 @@ startRead:
 	}
 	tp.bufMx.Unlock()
 
-	if tp.IsClosed() {
+	if n > 0 || len(p) == 0 {
+		if !tp.IsClosed() {
+			err = nil
+		}
 		return n, err
 	}
-	if n > 0 || len(p) == 0 {
-		return n, nil
-	}
 
-	<-tp.bufCh
+	if _, ok := <-tp.bufCh; !ok {
+		return n, err
+	}
 	goto startRead
 }
 

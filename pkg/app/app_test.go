@@ -88,7 +88,7 @@ func TestAppAccept(t *testing.T) {
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
 	in, out := net.Pipe()
-	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]routing.Addr), conns: make(map[routing.Loop]io.ReadWriteCloser)}
+	app := &App{proto: NewProtocol(in), acceptChan: make(chan [2]routing.Addr, 2), conns: make(map[routing.Loop]io.ReadWriteCloser)}
 	go app.handleProto()
 
 	proto := NewProtocol(out)

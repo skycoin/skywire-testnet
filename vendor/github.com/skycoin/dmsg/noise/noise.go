@@ -36,8 +36,6 @@ type Noise struct {
 	seq             uint32 // sequence number, used as nonce for both encrypting and decrypting
 	previousSeq     uint32 // sequence number last decrypted, check in order to avoid reply attacks
 	highestPrevious uint32 // highest sequence number received from the other end
-	//encN uint32 // counter to inform encrypting CipherState to re-key
-	//decN uint32 // counter to inform decrypting CipherState to re-key
 }
 
 // New creates a new Noise with:

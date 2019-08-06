@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/dmsg/noise"
 )
+
+var log = logging.MustGetLogger("dmsg")
 
 const (
 	clientReconnectInterval = 3 * time.Second
@@ -159,20 +160,26 @@ func (c *ClientConn) handleRequestFrame(accept chan<- *Transport, id uint16, p [
 
 	select {
 	case <-c.done:
-		_ = tp.Close() //nolint:errcheck
-		return initPK, ErrClientClosed
-
-	case accept <- tp:
-		c.setTp(tp)
-		if err := tp.WriteAccept(); err != nil {
-			return initPK, err
+		if err := tp.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close transport")
 		}
-		go tp.Serve()
-		return initPK, nil
-
+		return initPK, ErrClientClosed
 	default:
-		_ = tp.Close() //nolint:errcheck
-		return initPK, ErrClientAcceptMaxed
+		select {
+		case accept <- tp:
+			c.setTp(tp)
+			if err := tp.WriteAccept(); err != nil {
+				return initPK, err
+			}
+			go tp.Serve()
+			return initPK, nil
+
+		default:
+			if err := tp.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close transport")
+			}
+			return initPK, ErrClientAcceptMaxed
+		}
 	}
 }
 
@@ -256,17 +263,25 @@ func (c *ClientConn) DialTransport(ctx context.Context, clientPK cipher.PubKey) 
 }
 
 func (c *ClientConn) close() (closed bool) {
+	if c == nil {
+		return false
+	}
 	c.once.Do(func() {
 		closed = true
 		c.log.WithField("remoteServer", c.remoteSrv).Infoln("ClosingConnection")
 		close(c.done)
 		c.mx.Lock()
 		for _, tp := range c.tps {
-			if tp != nil {
-				go tp.Close() //nolint:errcheck
-			}
+			tp := tp
+			go func() {
+				if err := tp.Close(); err != nil {
+					log.WithError(err).Warn("Failed to close transport")
+				}
+			}()
 		}
-		_ = c.Conn.Close() //nolint:errcheck
+		if err := c.Conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 		c.mx.Unlock()
 	})
 	return closed
@@ -539,8 +554,22 @@ func (c *Client) Type() string {
 // Close closes the dms_client and associated connections.
 // TODO(evaninjin): proper error handling.
 func (c *Client) Close() error {
+	if c == nil {
+		return nil
+	}
+
 	c.once.Do(func() {
 		close(c.done)
+
+		c.mx.Lock()
+		for _, conn := range c.conns {
+			if err := conn.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close connection")
+			}
+		}
+		c.conns = make(map[cipher.PubKey]*ClientConn)
+		c.mx.Unlock()
+
 		for {
 			select {
 			case <-c.accept:
@@ -550,12 +579,5 @@ func (c *Client) Close() error {
 			}
 		}
 	})
-
-	c.mx.Lock()
-	for _, conn := range c.conns {
-		_ = conn.Close()
-	}
-	c.conns = make(map[cipher.PubKey]*ClientConn)
-	c.mx.Unlock()
 	return nil
 }

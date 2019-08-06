@@ -32,11 +32,14 @@ type Manager struct {
 	transports map[uuid.UUID]*ManagedTransport
 	entries    map[Entry]struct{}
 
-	doneChan chan struct{}
-	TrChan   chan *ManagedTransport
-	mu       sync.RWMutex
+	doneChan    chan struct{}
+	SetupTpChan chan Transport
+	DataTpChan  chan *ManagedTransport
+	mu          sync.RWMutex
 
 	mgrQty int32 // Count of spawned manageTransport goroutines
+
+	setupNodes []cipher.PubKey
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
@@ -58,14 +61,31 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	}
 
 	return &Manager{
-		Logger:     logging.MustGetLogger("trmanager"),
-		config:     config,
-		factories:  fMap,
-		transports: make(map[uuid.UUID]*ManagedTransport),
-		entries:    mEntries,
-		TrChan:     make(chan *ManagedTransport, 9), // TODO: eliminate or justify buffering here
-		doneChan:   make(chan struct{}),
+		Logger:      logging.MustGetLogger("tp_manager"),
+		config:      config,
+		factories:   fMap,
+		transports:  make(map[uuid.UUID]*ManagedTransport),
+		entries:     mEntries,
+		SetupTpChan: make(chan Transport, 9),         // TODO: eliminate or justify buffering here
+		DataTpChan:  make(chan *ManagedTransport, 9), // TODO: eliminate or justify buffering here
+		doneChan:    make(chan struct{}),
 	}, nil
+}
+
+// SetupNodes returns setup node list contained within the TransportManager.
+func (tm *Manager) SetupNodes() []cipher.PubKey {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	return tm.setupNodes
+}
+
+// SetSetupNodes sets setup node list contained within the TransportManager.
+func (tm *Manager) SetSetupNodes(nodes []cipher.PubKey) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	tm.setupNodes = nodes
 }
 
 // Factories returns all the factory types contained within the TransportManager.
@@ -98,6 +118,8 @@ func (tm *Manager) WalkTransports(walk func(tp *ManagedTransport) bool) {
 
 // reconnectTransports tries to reconnect previously established transports.
 func (tm *Manager) reconnectTransports(ctx context.Context) {
+	defer tm.Logger.Println("Finished reconnecting transports.")
+
 	tm.mu.RLock()
 	entries := make(map[Entry]struct{})
 	for tmEntry := range tm.entries {
@@ -108,13 +130,10 @@ func (tm *Manager) reconnectTransports(ctx context.Context) {
 		if tm.Transport(entry.ID) != nil {
 			continue
 		}
-
-		_, err := tm.createTransport(ctx, entry.RemotePK(), entry.Type, entry.Public)
-		if err != nil {
+		if _, err := tm.CreateDataTransport(ctx, entry.RemotePK(), entry.Type, entry.Public); err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
 		}
-
 		if _, err := tm.config.DiscoveryClient.UpdateStatuses(ctx, &Status{ID: entry.ID, IsUp: true}); err != nil {
 			tm.Logger.Warnf("Failed to change transport status: %s", err)
 		}
@@ -141,7 +160,7 @@ func (tm *Manager) createDefaultTransports(ctx context.Context) {
 		if exist {
 			continue
 		}
-		_, err := tm.CreateTransport(ctx, pk, "messaging", true)
+		_, err := tm.CreateDataTransport(ctx, pk, "dmsg", true)
 		if err != nil {
 			tm.Logger.Warnf("Failed to establish transport to a node %s: %s", pk, err)
 		}
@@ -161,33 +180,71 @@ func (tm *Manager) Serve(ctx context.Context) error {
 			for {
 				select {
 				case <-ctx.Done():
-					tm.Logger.Info("Received ctx.Done()")
 					return
 				case <-tm.doneChan:
-					tm.Logger.Info("Received tm.doneCh")
 					return
 				default:
 					if _, err := tm.acceptTransport(ctx, f); err != nil {
 						if strings.Contains(err.Error(), "closed") {
 							return
 						}
-
 						tm.Logger.Warnf("Failed to accept connection: %s", err)
 					}
 				}
-
 			}
 		}(factory)
 	}
 
-	tm.Logger.Info("Starting transport manager")
+	tm.Logger.Info("TransportManager is serving.")
 	wg.Wait()
 	return nil
 }
 
-// CreateTransport begins to attempt to establish transports to the given 'remote' node.
-func (tm *Manager) CreateTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	return tm.createTransport(ctx, remote, tpType, public)
+// CreateSetupTransport begins to attempt to establish setup transports to the given 'remote' node.
+func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKey, tpType string) (Transport, error) {
+	factory, ok := tm.factories[tpType]
+	if !ok {
+		return nil, errors.New("unknown transport type")
+	}
+	tr, err := factory.Dial(ctx, remote)
+	if err != nil {
+		return nil, err
+	}
+	tm.Logger.Infof("Dialed to setup node %s using %s factory.", remote, tpType)
+	return tr, nil
+}
+
+// CreateDataTransport begins to attempt to establish data transports to the given 'remote' node.
+func (tm *Manager) CreateDataTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
+	factory, ok := tm.factories[tpType]
+	if !ok {
+		return nil, errors.New("unknown transport type")
+	}
+
+	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
+	if err != nil {
+		return nil, err
+	}
+
+	oldTr := tm.Transport(entry.ID)
+	if oldTr != nil {
+		oldTr.killWorker()
+	}
+
+	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
+	mTr := newManagedTransport(tr, *entry, false)
+
+	tm.mu.Lock()
+	tm.transports[entry.ID] = mTr
+	tm.mu.Unlock()
+
+	select {
+	case <-tm.doneChan:
+		return nil, io.ErrClosedPipe
+	case tm.DataTpChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, remote)
+		return mTr, nil
+	}
 }
 
 // DeleteTransport disconnects and removes the Transport of Transport ID.
@@ -253,6 +310,9 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 	if tm.isClosing() {
 		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")
 	}
+	if tm.IsSetupPK(remote) {
+		return nil, nil, errors.New("cannot dial to setup node")
+	}
 
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
@@ -272,39 +332,7 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 	return tr, entry, nil
 }
 
-func (tm *Manager) createTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	factory := tm.factories[tpType]
-	if factory == nil {
-		return nil, errors.New("unknown transport type")
-	}
-
-	tr, entry, err := tm.dialTransport(ctx, factory, remote, public)
-	if err != nil {
-		return nil, err
-	}
-
-	oldTr := tm.Transport(entry.ID)
-	if oldTr != nil {
-		oldTr.killWorker()
-	}
-
-	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
-	mTr := newManagedTransport(tr, *entry, false)
-
-	tm.mu.Lock()
-	tm.transports[entry.ID] = mTr
-	tm.mu.Unlock()
-
-	select {
-	case <-tm.doneChan:
-		return nil, io.ErrClosedPipe
-	case tm.TrChan <- mTr:
-		go tm.manageTransport(ctx, mTr, factory, remote)
-		return mTr, nil
-	}
-}
-
-func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*ManagedTransport, error) {
+func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transport, error) {
 	tr, err := factory.Accept(ctx)
 	if err != nil {
 		return nil, err
@@ -314,6 +342,17 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
+	if tm.IsSetupPK(tr.RemotePK()) {
+		select {
+		case <-tm.doneChan:
+			return nil, io.ErrClosedPipe
+		default:
+			tm.SetupTpChan <- tr
+			return tr, nil
+		}
+	}
+
+	// For transports for purpose(data)...
 	entry, err := settlementResponderHandshake().Do(tm, tr, 30*time.Second)
 	if err != nil {
 		go func() {
@@ -324,12 +363,9 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 		return nil, err
 	}
 
-	remote := tr.RemotePK()
+	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), tr.RemotePK(), entry.ID)
 
-	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remote, entry.ID)
-
-	oldTr := tm.Transport(entry.ID)
-	if oldTr != nil {
+	if oldTr := tm.Transport(entry.ID); oldTr != nil {
 		oldTr.killWorker()
 	}
 
@@ -342,8 +378,8 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (*Manag
 	select {
 	case <-tm.doneChan:
 		return nil, io.ErrClosedPipe
-	case tm.TrChan <- mTr:
-		go tm.manageTransport(ctx, mTr, factory, remote)
+	case tm.DataTpChan <- mTr:
+		go tm.manageTransport(ctx, mTr, factory, tr.RemotePK())
 		return mTr, nil
 	}
 }
@@ -438,4 +474,14 @@ func (tm *Manager) manageTransport(ctx context.Context, mTr *ManagedTransport, f
 			}
 		}
 	}
+}
+
+// IsSetupPK checks whether provided `pk` is of `setup` purpose.
+func (tm *Manager) IsSetupPK(pk cipher.PubKey) bool {
+	for _, sPK := range tm.setupNodes {
+		if sPK == pk {
+			return true
+		}
+	}
+	return false
 }

@@ -4,30 +4,41 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/skycoin/dmsg/cipher"
 )
 
 const currentVersion = "0.0.1"
 
-// nolint
 var (
-	ErrKeyNotFound                = errors.New("entry of public key is not found")
-	ErrUnexpected                 = errors.New("something unexpected happened")
-	ErrUnauthorized               = errors.New("invalid signature")
-	ErrBadInput                   = errors.New("error bad input")
-	ErrValidationNonZeroSequence  = NewEntryValidationError("new entry has non-zero sequence")
-	ErrValidationNilEphemerals    = NewEntryValidationError("entry of client instance has nil ephemeral keys")
-	ErrValidationNilKeys          = NewEntryValidationError("entry Keys is nil")
+	// ErrKeyNotFound occurs in case when entry of public key is not found
+	ErrKeyNotFound = errors.New("entry of public key is not found")
+	// ErrUnexpected occurs in case when something unexpected happened
+	ErrUnexpected = errors.New("something unexpected happened")
+	// ErrUnauthorized occurs in case of invalid signature
+	ErrUnauthorized = errors.New("invalid signature")
+	// ErrBadInput occurs in case of bad input
+	ErrBadInput = errors.New("error bad input")
+	// ErrValidationNonZeroSequence occurs in case when new entry has non-zero sequence
+	ErrValidationNonZeroSequence = NewEntryValidationError("new entry has non-zero sequence")
+	// ErrValidationNilEphemerals occurs in case when entry of client instance has nil ephemeral keys
+	ErrValidationNilEphemerals = NewEntryValidationError("entry of client instance has nil ephemeral keys")
+	// ErrValidationNilKeys occurs in case when entry Keys is nil
+	ErrValidationNilKeys = NewEntryValidationError("entry Keys is nil")
+	// ErrValidationNonNilEphemerals occurs in case when entry of server instance has non nil Keys.Ephemerals field
 	ErrValidationNonNilEphemerals = NewEntryValidationError("entry of server instance has non nil Keys.Ephemerals field")
-	ErrValidationNoSignature      = NewEntryValidationError("entry has no signature")
-	ErrValidationNoVersion        = NewEntryValidationError("entry has no version")
+	// ErrValidationNoSignature occurs in case when entry has no signature
+	ErrValidationNoSignature = NewEntryValidationError("entry has no signature")
+	// ErrValidationNoVersion occurs in case when entry has no version
+	ErrValidationNoVersion = NewEntryValidationError("entry has no version")
+	// ErrValidationNoClientOrServer occurs in case when entry has neither client or server field
 	ErrValidationNoClientOrServer = NewEntryValidationError("entry has neither client or server field")
-	ErrValidationWrongSequence    = NewEntryValidationError("sequence field of new entry is not sequence of old entry + 1")
-	ErrValidationWrongTime        = NewEntryValidationError("previous entry timestamp is not set before current entry timestamp")
+	// ErrValidationWrongSequence occurs in case when sequence field of new entry is not sequence of old entry + 1
+	ErrValidationWrongSequence = NewEntryValidationError("sequence field of new entry is not sequence of old entry + 1")
+	// ErrValidationWrongTime occurs in case when previous entry timestamp is not set before current entry timestamp
+	ErrValidationWrongTime = NewEntryValidationError("previous entry timestamp is not set before current entry timestamp")
 
 	errReverseMap = map[string]error{
 		ErrKeyNotFound.Error():                ErrKeyNotFound,

@@ -60,7 +60,7 @@ func TestTransportManager(t *testing.T) {
 	var mu sync.Mutex
 	m1Observed := uint32(0)
 
-	acceptCh := m1.TrChan
+	acceptCh := m1.DataTpChan
 	go func() {
 		for tr := range acceptCh {
 			mu.Lock()
@@ -72,7 +72,7 @@ func TestTransportManager(t *testing.T) {
 	}()
 
 	m2Observed := uint32(0)
-	dialCh := m2.TrChan
+	dialCh := m2.DataTpChan
 	go func() {
 		for tr := range dialCh {
 			mu.Lock()
@@ -83,7 +83,7 @@ func TestTransportManager(t *testing.T) {
 		}
 	}()
 
-	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
+	tr2, err := m2.CreateDataTransport(context.TODO(), pk1, "mock", true)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -152,7 +152,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	m2, err := NewManager(c2, f2)
 	require.NoError(t, err)
 
-	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
+	tr2, err := m2.CreateDataTransport(context.TODO(), pk1, "mock", true)
 	require.NoError(t, err)
 
 	tr1 := m1.Transport(tr2.Entry.ID)
@@ -216,7 +216,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	m2, err := NewManager(c2, f2)
 	require.NoError(t, err)
 
-	tr2, err := m2.CreateTransport(context.TODO(), pk1, "mock", true)
+	tr2, err := m2.CreateDataTransport(context.TODO(), pk1, "mock", true)
 	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
@@ -308,7 +308,7 @@ func ExampleMakeTransportID() {
 	// uuid is different for public and private transports
 }
 
-func ExampleManager_CreateTransport() {
+func ExampleManager_CreateDataTransport() {
 	// Repetition is required here to guarantee that correctness does not depends on order of edges
 	for i := 0; i < 4; i++ {
 		pkB, mgrA, err := MockTransportManager()
@@ -317,19 +317,19 @@ func ExampleManager_CreateTransport() {
 			return
 		}
 
-		mtrAB, err := mgrA.CreateTransport(context.TODO(), pkB, "mock", true)
+		mtrAB, err := mgrA.CreateDataTransport(context.TODO(), pkB, "mock", true)
 		if err != nil {
-			fmt.Printf("Manager.CreateTransport failed on iteration %v with: %v\n", i, err)
+			fmt.Printf("Manager.CreateDataTransport failed on iteration %v with: %v\n", i, err)
 			return
 		}
 
 		if (mtrAB.Entry.ID == uuid.UUID{}) {
-			fmt.Printf("Manager.CreateTransport failed on iteration %v", i)
+			fmt.Printf("Manager.CreateDataTransport failed on iteration %v", i)
 			return
 		}
 	}
 
-	fmt.Println("Manager.CreateTransport success")
+	fmt.Println("Manager.CreateDataTransport success")
 
-	// Output: Manager.CreateTransport success
+	// Output: Manager.CreateDataTransport success
 }

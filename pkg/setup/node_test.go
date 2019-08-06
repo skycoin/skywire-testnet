@@ -4,21 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/skycoin/dmsg"
+	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/stretchr/testify/assert"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 func TestMain(m *testing.M) {
@@ -36,384 +38,253 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestCreateLoop(t *testing.T) {
-	client := transport.NewDiscoveryMock()
-	logStore := transport.InMemoryTransportLogStore()
+func TestNode(t *testing.T) {
 
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
-	pk3, sk3 := cipher.GenerateKeyPair()
-	pk4, sk4 := cipher.GenerateKeyPair()
-	pkS, skS := cipher.GenerateKeyPair()
+	// Prepare mock dmsg discovery.
+	discovery := disc.NewMock()
 
-	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
-	c2 := &transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}
-	c3 := &transport.ManagerConfig{PubKey: pk3, SecKey: sk3, DiscoveryClient: client, LogStore: logStore}
-	c4 := &transport.ManagerConfig{PubKey: pk4, SecKey: sk4, DiscoveryClient: client, LogStore: logStore}
-	cS := &transport.ManagerConfig{PubKey: pkS, SecKey: skS, DiscoveryClient: client, LogStore: logStore}
-
-	f1, f2 := transport.NewMockFactoryPair(pk1, pk2)
-	f3, f4 := transport.NewMockFactoryPair(pk2, pk3)
-	f3.SetType("mock2")
-	f4.SetType("mock2")
-
-	fs1, fs2 := transport.NewMockFactoryPair(pk1, pkS)
-	fs1.SetType(dmsg.Type)
-	fs2.SetType(dmsg.Type)
-	fs3, fs4 := transport.NewMockFactoryPair(pk2, pkS)
-	fs3.SetType(dmsg.Type)
-	fs5, fs6 := transport.NewMockFactoryPair(pk3, pkS)
-	fs5.SetType(dmsg.Type)
-	fs7, fs8 := transport.NewMockFactoryPair(pk4, pkS)
-	fs7.SetType(dmsg.Type)
-
-	fS := newMuxFactory(pkS, dmsg.Type, map[cipher.PubKey]transport.Factory{pk1: fs2, pk2: fs4, pk3: fs6, pk4: fs8})
-
-	m1, err := transport.NewManager(c1, f1, fs1)
-	require.NoError(t, err)
-
-	m2, err := transport.NewManager(c2, f2, f3, fs3)
-	require.NoError(t, err)
-
-	m3, err := transport.NewManager(c3, f4, fs5)
-	require.NoError(t, err)
-
-	m4, err := transport.NewManager(c4, fs7)
-	require.NoError(t, err)
-
-	mS, err := transport.NewManager(cS, fS)
-	require.NoError(t, err)
-
-	var serveErr1, serveErr2, serveErr3 error
-	n1 := newMockNode(m1)
-	go func() {
-		serveErr1 = n1.serve()
-	}()
-	n2 := newMockNode(m2)
-	go func() {
-		serveErr2 = n2.serve()
-	}()
-	n3 := newMockNode(m3)
-	go func() {
-		serveErr3 = n3.serve()
+	// Prepare dmsg server.
+	server, serverErr := createServer(t, discovery)
+	defer func() {
+		require.NoError(t, server.Close())
+		require.NoError(t, errWithTimeout(serverErr))
 	}()
 
-	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
-	require.NoError(t, err)
-
-	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
-	require.NoError(t, err)
-
-	lPK, _ := cipher.GenerateKeyPair()
-	rPK, _ := cipher.GenerateKeyPair()
-	ld := routing.LoopDescriptor{Loop: routing.Loop{Local: routing.Addr{PubKey: lPK, Port: 1}, Remote: routing.Addr{PubKey: rPK, Port: 2}}, Expiry: time.Now().Add(time.Hour),
-		Forward: routing.Route{
-			&routing.Hop{From: pk1, To: pk2, Transport: tr1.Entry.ID},
-			&routing.Hop{From: pk2, To: pk3, Transport: tr3.Entry.ID},
-		},
-		Reverse: routing.Route{
-			&routing.Hop{From: pk3, To: pk2, Transport: tr3.Entry.ID},
-			&routing.Hop{From: pk2, To: pk1, Transport: tr1.Entry.ID},
-		},
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	sn := &Node{logging.MustGetLogger("routesetup"), mS, nil, 0, metrics.NewDummy()}
-	errChan := make(chan error)
-	go func() {
-		errChan <- sn.Serve(context.TODO())
-	}()
-
-	tr, err := m4.CreateTransport(context.TODO(), pkS, dmsg.Type, false)
-	require.NoError(t, err)
-
-	proto := NewSetupProtocol(tr)
-	require.NoError(t, CreateLoop(proto, ld))
-
-	rules := n1.getRules()
-	require.Len(t, rules, 2)
-	rule := rules[1]
-	assert.Equal(t, routing.RuleApp, rule.Type())
-	assert.Equal(t, routing.RouteID(2), rule.RouteID())
-	assert.Equal(t, pk3, rule.RemotePK())
-	assert.Equal(t, routing.Port(2), rule.RemotePort())
-	assert.Equal(t, routing.Port(1), rule.LocalPort())
-	rule = rules[2]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr1.Entry.ID, rule.TransportID())
-	assert.Equal(t, routing.RouteID(2), rule.RouteID())
-
-	rules = n2.getRules()
-	require.Len(t, rules, 2)
-	rule = rules[1]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr1.Entry.ID, rule.TransportID())
-	assert.Equal(t, routing.RouteID(1), rule.RouteID())
-	rule = rules[2]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr3.Entry.ID, rule.TransportID())
-	assert.Equal(t, routing.RouteID(2), rule.RouteID())
-
-	rules = n3.getRules()
-	require.Len(t, rules, 2)
-	rule = rules[1]
-	assert.Equal(t, routing.RuleForward, rule.Type())
-	assert.Equal(t, tr3.Entry.ID, rule.TransportID())
-	assert.Equal(t, routing.RouteID(1), rule.RouteID())
-	rule = rules[2]
-	assert.Equal(t, routing.RuleApp, rule.Type())
-	assert.Equal(t, routing.RouteID(1), rule.RouteID())
-	assert.Equal(t, pk1, rule.RemotePK())
-	assert.Equal(t, routing.Port(1), rule.RemotePort())
-	assert.Equal(t, routing.Port(2), rule.LocalPort())
-
-	require.NoError(t, sn.Close())
-	require.NoError(t, <-errChan)
-
-	require.NoError(t, serveErr1)
-	require.NoError(t, serveErr2)
-	require.NoError(t, serveErr3)
-}
-
-func TestCloseLoop(t *testing.T) {
-	client := transport.NewDiscoveryMock()
-	logStore := transport.InMemoryTransportLogStore()
-
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk3, sk3 := cipher.GenerateKeyPair()
-	pkS, skS := cipher.GenerateKeyPair()
-
-	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}
-	c3 := &transport.ManagerConfig{PubKey: pk3, SecKey: sk3, DiscoveryClient: client, LogStore: logStore}
-	cS := &transport.ManagerConfig{PubKey: pkS, SecKey: skS, DiscoveryClient: client, LogStore: logStore}
-
-	fs1, fs2 := transport.NewMockFactoryPair(pk1, pkS)
-	fs1.SetType(dmsg.Type)
-	fs2.SetType(dmsg.Type)
-	fs5, fs6 := transport.NewMockFactoryPair(pk3, pkS)
-	fs5.SetType(dmsg.Type)
-
-	fS := newMuxFactory(pkS, dmsg.Type, map[cipher.PubKey]transport.Factory{pk1: fs2, pk3: fs6})
-
-	m1, err := transport.NewManager(c1, fs1)
-	require.NoError(t, err)
-
-	m3, err := transport.NewManager(c3, fs5)
-	require.NoError(t, err)
-
-	mS, err := transport.NewManager(cS, fS)
-	require.NoError(t, err)
-
-	n3 := newMockNode(m3)
-	var serveErr error
-	go func() {
-		serveErr = n3.serve()
-	}()
-
-	time.Sleep(100 * time.Millisecond)
-
-	sn := &Node{logging.MustGetLogger("routesetup"), mS, nil, 0, metrics.NewDummy()}
-	errChan := make(chan error)
-	go func() {
-		errChan <- sn.Serve(context.TODO())
-	}()
-
-	n3.setRule(1, routing.AppRule(time.Now(), 2, pk1, 1, 2))
-	rules := n3.getRules()
-	require.Len(t, rules, 1)
-
-	tr, err := m1.CreateTransport(context.TODO(), pkS, dmsg.Type, false)
-	require.NoError(t, err)
-
-	proto := NewSetupProtocol(tr)
-	require.NoError(t, CloseLoop(proto, routing.LoopData{
-		Loop: routing.Loop{
-			Remote: routing.Addr{
-				PubKey: pk3,
-				Port:   2,
-			},
-			Local: routing.Addr{
-				Port: 1,
-			},
-		},
-	}))
-
-	rules = n3.getRules()
-	require.Len(t, rules, 0)
-	require.Nil(t, rules[1])
-
-	require.NoError(t, sn.Close())
-	require.NoError(t, <-errChan)
-
-	require.NoError(t, serveErr)
-}
-
-type muxFactory struct {
-	pk        cipher.PubKey
-	fType     string
-	factories map[cipher.PubKey]transport.Factory
-}
-
-func newMuxFactory(pk cipher.PubKey, fType string, factories map[cipher.PubKey]transport.Factory) *muxFactory {
-	return &muxFactory{pk, fType, factories}
-}
-
-func (f *muxFactory) Accept(ctx context.Context) (transport.Transport, error) {
-	trChan := make(chan transport.Transport)
-	defer close(trChan)
-
-	errChan := make(chan error)
-
-	for _, factory := range f.factories {
-		go func(ff transport.Factory) {
-			tr, err := ff.Accept(ctx)
-			if err != nil {
-				errChan <- err
-			} else {
-				trChan <- tr
+	// CLOSURE: sets up dmsg clients.
+	prepClients := func(n int) ([]*dmsg.Client, func()) {
+		clients := make([]*dmsg.Client, n)
+		for i := 0; i < n; i++ {
+			pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte{byte(i)})
+			require.NoError(t, err)
+			t.Logf("client[%d] PK: %s\n", i, pk)
+			c := dmsg.NewClient(pk, sk, discovery, dmsg.SetLogger(logging.MustGetLogger(fmt.Sprintf("client_%d:%s", i, pk))))
+			require.NoError(t, c.InitiateServerConnections(context.TODO(), 1))
+			clients[i] = c
+		}
+		return clients, func() {
+			for _, c := range clients {
+				require.NoError(t, c.Close())
 			}
-		}(factory)
+		}
 	}
 
+	// CLOSURE: sets up setup node.
+	prepSetupNode := func(c *dmsg.Client) (*Node, func()) {
+		sn := &Node{
+			Logger:    logging.MustGetLogger("setup_node"),
+			messenger: c,
+			metrics:   metrics.NewDummy(),
+		}
+		go func() { _ = sn.Serve(context.TODO()) }() //nolint:errcheck
+		return sn, func() {
+			require.NoError(t, sn.Close())
+		}
+	}
+
+	// TEST: Emulates the communication between 4 visor nodes and a setup node,
+	// where the first client node initiates a loop to the last.
+	t.Run("CreateLoop", func(t *testing.T) {
+
+		// client index 0 is for setup node.
+		// clients index 1 to 4 are for visor nodes.
+		clients, closeClients := prepClients(5)
+		defer closeClients()
+
+		// prepare and serve setup node (using client 0).
+		sn, closeSetup := prepSetupNode(clients[0])
+		setupPK := sn.messenger.Local()
+		defer closeSetup()
+
+		// prepare loop creation (client_1 will use this to request loop creation with setup node).
+		ld := routing.LoopDescriptor{
+			Loop: routing.Loop{
+				Local:  routing.Addr{PubKey: clients[1].Local(), Port: 1},
+				Remote: routing.Addr{PubKey: clients[4].Local(), Port: 1},
+			},
+			Reverse: routing.Route{
+				&routing.Hop{From: clients[1].Local(), To: clients[2].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[2].Local(), To: clients[3].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[3].Local(), To: clients[4].Local(), Transport: uuid.New()},
+			},
+			Forward: routing.Route{
+				&routing.Hop{From: clients[4].Local(), To: clients[3].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[3].Local(), To: clients[2].Local(), Transport: uuid.New()},
+				&routing.Hop{From: clients[2].Local(), To: clients[1].Local(), Transport: uuid.New()},
+			},
+			Expiry: time.Now().Add(time.Hour),
+		}
+
+		// client_1 initiates loop creation with setup node.
+		iTp, err := clients[1].Dial(context.TODO(), setupPK)
+		require.NoError(t, err)
+		iTpErrs := make(chan error, 2)
+		go func() {
+			iTpErrs <- CreateLoop(NewSetupProtocol(iTp), ld)
+			iTpErrs <- iTp.Close()
+			close(iTpErrs)
+		}()
+		defer func() {
+			i := 0
+			for err := range iTpErrs {
+				require.NoError(t, err, i)
+				i++
+			}
+		}()
+
+		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
+		expectAddRules := func(client int, expRule routing.RuleType) {
+			tp, err := clients[client].Accept(context.TODO())
+			require.NoError(t, err)
+			defer func() { require.NoError(t, tp.Close()) }()
+
+			proto := NewSetupProtocol(tp)
+
+			pt, pp, err := proto.ReadPacket()
+			require.NoError(t, err)
+			require.Equal(t, PacketAddRules, pt)
+
+			var rs []routing.Rule
+			require.NoError(t, json.Unmarshal(pp, &rs))
+
+			rIDs := make([]routing.RouteID, len(rs))
+			for i, r := range rs {
+				rIDs[i] = r.RouteID()
+				require.Equal(t, expRule, r.Type())
+			}
+
+			// TODO: This error is not checked due to a bug in dmsg.
+			_ = proto.WritePacket(RespSuccess, rIDs) //nolint:errcheck
+		}
+
+		// CLOSURE: emulates how a visor node should react when expecting an ConfirmLoop packet.
+		expectConfirmLoop := func(client int) {
+			tp, err := clients[client].Accept(context.TODO())
+			require.NoError(t, err)
+			defer func() { require.NoError(t, tp.Close()) }()
+
+			proto := NewSetupProtocol(tp)
+
+			pt, pp, err := proto.ReadPacket()
+			require.NoError(t, err)
+			require.Equal(t, PacketConfirmLoop, pt)
+
+			var d routing.LoopData
+			require.NoError(t, json.Unmarshal(pp, &d))
+
+			switch client {
+			case 1:
+				require.Equal(t, ld.Loop, d.Loop)
+			case 4:
+				require.Equal(t, ld.Loop.Local, d.Loop.Remote)
+				require.Equal(t, ld.Loop.Remote, d.Loop.Local)
+			default:
+				t.Fatalf("We shouldn't be receiving a ConfirmLoop packet from client %d", client)
+			}
+
+			// TODO: This error is not checked due to a bug in dmsg.
+			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+		}
+
+		expectAddRules(4, routing.RuleApp)
+		expectAddRules(3, routing.RuleForward)
+		expectAddRules(2, routing.RuleForward)
+		expectAddRules(1, routing.RuleForward)
+		expectAddRules(1, routing.RuleApp)
+		expectAddRules(2, routing.RuleForward)
+		expectAddRules(3, routing.RuleForward)
+		expectAddRules(4, routing.RuleForward)
+		expectConfirmLoop(1)
+		expectConfirmLoop(4)
+	})
+
+	// TEST: Emulates the communication between 2 visor nodes and a setup nodes,
+	// where a route is already established,
+	// and the first client attempts to tear it down.
+	t.Run("CloseLoop", func(t *testing.T) {
+
+		// client index 0 is for setup node.
+		// clients index 1 and 2 are for visor nodes.
+		clients, closeClients := prepClients(3)
+		defer closeClients()
+
+		// prepare and serve setup node.
+		sn, closeSetup := prepSetupNode(clients[0])
+		setupPK := sn.messenger.Local()
+		defer closeSetup()
+
+		// prepare loop data describing the loop that is to be closed.
+		ld := routing.LoopData{
+			Loop: routing.Loop{
+				Local: routing.Addr{
+					PubKey: clients[1].Local(),
+					Port:   1,
+				},
+				Remote: routing.Addr{
+					PubKey: clients[2].Local(),
+					Port:   2,
+				},
+			},
+			RouteID: 3,
+		}
+
+		// client_1 initiates close loop with setup node.
+		iTp, err := clients[1].Dial(context.TODO(), setupPK)
+		require.NoError(t, err)
+		iTpErrs := make(chan error, 2)
+		go func() {
+			iTpErrs <- CloseLoop(NewSetupProtocol(iTp), ld)
+			iTpErrs <- iTp.Close()
+			close(iTpErrs)
+		}()
+		defer func() {
+			i := 0
+			for err := range iTpErrs {
+				require.NoError(t, err, i)
+				i++
+			}
+		}()
+
+		// client_2 accepts close request.
+		tp, err := clients[2].Accept(context.TODO())
+		require.NoError(t, err)
+		defer func() { require.NoError(t, tp.Close()) }()
+
+		proto := NewSetupProtocol(tp)
+
+		pt, pp, err := proto.ReadPacket()
+		require.NoError(t, err)
+		require.Equal(t, PacketLoopClosed, pt)
+
+		var d routing.LoopData
+		require.NoError(t, json.Unmarshal(pp, &d))
+		require.Equal(t, ld.Loop.Remote, d.Loop.Local)
+		require.Equal(t, ld.Loop.Local, d.Loop.Remote)
+
+		// TODO: This error is not checked due to a bug in dmsg.
+		_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+	})
+}
+
+func createServer(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
+	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
+	require.NoError(t, err)
+	l, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
+	require.NoError(t, err)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.Serve()
+		close(errCh)
+	}()
+	return srv, errCh
+}
+
+func errWithTimeout(ch <-chan error) error {
 	select {
-	case tr := <-trChan:
-		return tr, nil
-	case err := <-errChan:
-		return nil, err
-	}
-}
-
-func (f *muxFactory) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	return f.factories[remote].Dial(ctx, remote)
-}
-
-func (f *muxFactory) Close() error {
-	if f == nil {
-		return nil
-	}
-
-	var err error
-	for _, factory := range f.factories {
-		if fErr := factory.Close(); err == nil && fErr != nil {
-			err = fErr
-		}
-	}
-
-	return err
-}
-
-func (f *muxFactory) Local() cipher.PubKey {
-	return f.pk
-}
-
-func (f *muxFactory) Type() string {
-	return f.fType
-}
-
-type mockNode struct {
-	sync.Mutex
-	rules map[routing.RouteID]routing.Rule
-	tm    *transport.Manager
-}
-
-func newMockNode(tm *transport.Manager) *mockNode {
-	return &mockNode{tm: tm, rules: make(map[routing.RouteID]routing.Rule)}
-}
-
-func (n *mockNode) serve() error {
-	errCh := make(chan error)
-	go func() {
-		for tr := range n.tm.TrChan {
-			go func(t transport.Transport) {
-				if err := n.serveTransport(t); err != nil {
-					errCh <- err
-				}
-			}(tr)
-		}
-	}()
-
-	go func() {
-		errCh <- n.tm.Serve(context.Background())
-	}()
-
-	return <-errCh
-}
-
-func (n *mockNode) setRule(id routing.RouteID, rule routing.Rule) {
-	n.Lock()
-	n.rules[id] = rule
-	n.Unlock()
-}
-
-func (n *mockNode) getRules() map[routing.RouteID]routing.Rule {
-	res := make(map[routing.RouteID]routing.Rule)
-	n.Lock()
-	for id, rule := range n.rules {
-		res[id] = rule
-	}
-	n.Unlock()
-	return res
-}
-
-func (n *mockNode) serveTransport(tr transport.Transport) error {
-	proto := NewSetupProtocol(tr)
-	sp, data, err := proto.ReadPacket()
-	if err != nil {
+	case err := <-ch:
 		return err
+	case <-time.After(5 * time.Second):
+		return errors.New("timeout")
 	}
-
-	n.Lock()
-	var res interface{}
-	switch sp {
-	case PacketAddRules:
-		var rules []routing.Rule
-		if err = json.Unmarshal(data, &rules); err != nil {
-			return err
-		}
-		for _, rule := range rules {
-			for i := routing.RouteID(1); i < 255; i++ {
-				if n.rules[i] == nil {
-					n.rules[i] = rule
-					res = []routing.RouteID{i}
-					break
-				}
-			}
-		}
-	case PacketConfirmLoop:
-		var ld routing.LoopData
-		if err = json.Unmarshal(data, &ld); err != nil {
-			return err
-		}
-		for _, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&
-				rule.RemotePort() == ld.Loop.Remote.Port && rule.LocalPort() == ld.Loop.Local.Port {
-
-				rule.SetRouteID(ld.RouteID)
-				break
-			}
-		}
-	case PacketLoopClosed:
-		var ld routing.LoopData
-		if err = json.Unmarshal(data, &ld); err != nil {
-			return err
-		}
-		for routeID, rule := range n.rules {
-			if rule.Type() == routing.RuleApp && rule.RemotePK() == ld.Loop.Remote.PubKey &&
-				rule.RemotePort() == ld.Loop.Remote.Port && rule.LocalPort() == ld.Loop.Local.Port {
-
-				delete(n.rules, routeID)
-				break
-			}
-		}
-	default:
-		err = errors.New("unknown foundation packet")
-	}
-	n.Unlock()
-
-	if err != nil {
-		return proto.WritePacket(RespFailure, err)
-	}
-
-	return proto.WritePacket(RespSuccess, res)
 }
