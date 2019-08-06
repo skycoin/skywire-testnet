@@ -468,8 +468,7 @@ fetchRoutesAgain:
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
 func (r *Router) IsSetupTransport(tr *transport.ManagedTransport) bool {
 	for _, pk := range r.config.SetupNodes {
-		remote, ok := r.tm.Remote(tr.Edges())
-		if ok && (remote == pk) {
+		if tr.RemotePK() == pk {
 			return true
 		}
 	}

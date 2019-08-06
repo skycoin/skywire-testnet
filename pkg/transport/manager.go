@@ -130,19 +130,7 @@ func (tm *Manager) reconnectTransports(ctx context.Context) {
 		if tm.Transport(entry.ID) != nil {
 			continue
 		}
-
-		remote, ok := tm.Remote(entry.Edges())
-		if !ok {
-			tm.Logger.Warnf("Failed to re-establish transport: remote pk not found in edges")
-			continue
-		}
-
-		if tm.IsSetupPK(remote) {
-			continue
-		}
-
-		_, err := tm.CreateDataTransport(ctx, remote, entry.Type, entry.Public)
-		if err != nil {
+		if _, err := tm.CreateDataTransport(ctx, entry.RemoteEdge(tm.config.PubKey), entry.Type, entry.Public); err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
 		}
@@ -157,26 +145,13 @@ func (tm *Manager) Local() cipher.PubKey {
 	return tm.config.PubKey
 }
 
-// Remote returns the key from the edges that is not equal to Manager.config.PubKey
-// in case when both edges are different - returns  (cipher.PubKey{}, false)
-func (tm *Manager) Remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
-	if tm.config.PubKey == edges[0] {
-		return edges[1], true
-	}
-	if tm.config.PubKey == edges[1] {
-		return edges[0], true
-	}
-	return cipher.PubKey{}, false
-}
-
 // createDefaultTransports created transports to DefaultNodes if they don't exist.
 func (tm *Manager) createDefaultTransports(ctx context.Context) {
 	for _, pk := range tm.config.DefaultNodes {
 		pk := pk
 		exist := false
 		tm.WalkTransports(func(tr *ManagedTransport) bool {
-			remote, ok := tm.Remote(tr.Edges())
-			if ok && (remote == pk) {
+			if tr.RemotePK() == pk {
 				exist = true
 				return false
 			}
@@ -367,12 +342,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transp
 		return nil, errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
-	remotePK, ok := tm.Remote(tr.Edges())
-	if !ok {
-		return nil, errors.New("failed to determine remote edge of accepted transport")
-	}
-
-	if tm.IsSetupPK(remotePK) {
+	if tm.IsSetupPK(tr.RemotePK()) {
 		select {
 		case <-tm.doneChan:
 			return nil, io.ErrClosedPipe
@@ -393,7 +363,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transp
 		return nil, err
 	}
 
-	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), remotePK, entry.ID)
+	tm.Logger.Infof("Accepted new transport with type %s from %s. ID: %s", factory.Type(), tr.RemotePK(), entry.ID)
 
 	if oldTr := tm.Transport(entry.ID); oldTr != nil {
 		oldTr.killWorker()
@@ -409,7 +379,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transp
 	case <-tm.doneChan:
 		return nil, io.ErrClosedPipe
 	case tm.DataTpChan <- mTr:
-		go tm.manageTransport(ctx, mTr, factory, remotePK)
+		go tm.manageTransport(ctx, mTr, factory, tr.RemotePK())
 		return mTr, nil
 	}
 }

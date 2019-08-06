@@ -94,9 +94,6 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	case PacketCloseLoop:
 		var ld routing.LoopData
 		if err = json.Unmarshal(data, &ld); err == nil {
-			if _, ok := sn.remote(tr.Edges()); !ok {
-				return errors.New("configured PubKey not found in edges")
-			}
 			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.LoopData{
 				Loop: routing.Loop{
 					Remote: ld.Loop.Local,
@@ -243,17 +240,6 @@ func (sn *Node) Close() error {
 		return nil
 	}
 	return sn.messenger.Close()
-}
-
-func (sn *Node) remote(edges [2]cipher.PubKey) (cipher.PubKey, bool) {
-	pubKey := sn.messenger.Local()
-	if pubKey == edges[0] {
-		return edges[1], true
-	}
-	if pubKey == edges[1] {
-		return edges[0], true
-	}
-	return cipher.PubKey{}, false
 }
 
 func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {

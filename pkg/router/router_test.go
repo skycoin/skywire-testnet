@@ -361,7 +361,7 @@ func TestRouterSetup(t *testing.T) {
 
 	tr, err := m2.CreateSetupTransport(context.TODO(), pk1, "mock")
 	require.NoError(t, err)
-	trID := transport.MakeTransportID(tr.Edges()[0], tr.Edges()[1], tr.Type(), false)
+	trID := transport.MakeTransportID(tr.LocalPK(), tr.RemotePK(), tr.Type(), false)
 	sProto := setup.NewSetupProtocol(tr)
 
 	rw1, rwIn1 := net.Pipe()

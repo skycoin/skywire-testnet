@@ -93,7 +93,9 @@ func TestTransportManager(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
-	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
+	assert.Equal(t, SortEdges(pk1, pk2), dEntry.Entry.Edges)
+	//assert.Equal(t, pk2, dEntry.Entry.LocalPK())
+	//assert.Equal(t, pk1, dEntry.Entry.RemotePK())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m1.DeleteTransport(tr1.Entry.ID))
@@ -159,7 +161,9 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 
 	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
 	require.NoError(t, err)
-	assert.Equal(t, SortPubKeys(pk2, pk1), dEntry.Entry.Edges())
+	assert.Equal(t, SortEdges(pk1, pk2), dEntry.Entry.Edges)
+	//assert.Equal(t, pk2, dEntry.Entry.LocalPK())
+	//assert.Equal(t, pk1, dEntry.Entry.RemotePK())
 	assert.True(t, dEntry.IsUp)
 
 	require.NoError(t, m2.Close())
@@ -250,21 +254,21 @@ func TestTransportManagerLogs(t *testing.T) {
 	require.NoError(t, testhelpers.NoErrorWithinTimeout(writeErrCh))
 }
 
-func ExampleSortPubKeys() {
+func ExampleSortEdges() {
 	keyA, _ := cipher.GenerateKeyPair()
 	keyB, _ := cipher.GenerateKeyPair()
 
-	sortedKeysAB := SortPubKeys(keyA, keyB)
-	sortedKeysBA := SortPubKeys(keyB, keyA)
-	_ = SortPubKeys(keyA, keyA)
-	fmt.Println("SortPubKeys(keyA, keyA) is successful")
+	sortedKeysAB := SortEdges(keyA, keyB)
+	sortedKeysBA := SortEdges(keyB, keyA)
+	_ = SortEdges(keyA, keyA)
+	fmt.Println("SortEdges(keyA, keyA) is successful")
 
 	if sortedKeysAB == sortedKeysBA {
-		fmt.Println("SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)")
+		fmt.Println("SortEdges(keyA, keyB) == SortEdges(keyB, keyA)")
 	}
 
-	// Output: SortPubKeys(keyA, keyA) is successful
-	// SortPubKeys(keyA, keyB) == SortPubKeys(keyB, keyA)
+	// Output: SortEdges(keyA, keyA) is successful
+	// SortEdges(keyA, keyB) == SortEdges(keyB, keyA)
 }
 
 func ExampleMakeTransportID() {

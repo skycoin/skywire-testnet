@@ -15,7 +15,7 @@ type Entry struct {
 	ID uuid.UUID `json:"t_id"`
 
 	// Edges contains the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
-	EdgeKeys [2]cipher.PubKey `json:"edges"`
+	Edges [2]cipher.PubKey `json:"edges"`
 
 	// Type represents the transport type.
 	Type string `json:"type"`
@@ -26,24 +26,39 @@ type Entry struct {
 }
 
 // NewEntry constructs *Entry
-func NewEntry(edgeA, edgeB cipher.PubKey, tpType string, public bool) *Entry {
+func NewEntry(localPK, remotePK cipher.PubKey, tpType string, public bool) *Entry {
 	return &Entry{
-		ID:       MakeTransportID(edgeA, edgeB, tpType, public),
-		EdgeKeys: SortPubKeys(edgeA, edgeB),
-		Type:     tpType,
-		Public:   public,
+		ID:     MakeTransportID(localPK, remotePK, tpType, public),
+		Edges:  SortEdges(localPK, remotePK),
+		Type:   tpType,
+		Public: public,
 	}
 }
 
-// Edges returns the public keys of the Transport's edge nodes (should only have 2 edges and the least-significant edge should come first).
-func (e *Entry) Edges() [2]cipher.PubKey {
-	return SortPubKeys(e.EdgeKeys[0], e.EdgeKeys[1])
+// SetEdges sets edges of Entry
+func (e *Entry) SetEdges(localPK, remotePK cipher.PubKey) {
+	e.ID = MakeTransportID(localPK, remotePK, e.Type, e.Public)
+	e.Edges = SortEdges(localPK, remotePK)
 }
 
-// SetEdges sets edges of Entry
-func (e *Entry) SetEdges(edges [2]cipher.PubKey) {
-	e.ID = MakeTransportID(edges[0], edges[1], e.Type, e.Public)
-	e.EdgeKeys = SortPubKeys(edges[0], edges[1])
+// RemoteEdge returns the remote edge's public key.
+func (e *Entry) RemoteEdge(local cipher.PubKey) cipher.PubKey {
+	for _, pk := range e.Edges {
+		if pk != local {
+			return pk
+		}
+	}
+	return local
+}
+
+// HasEdge returns true if the provided edge is present in 'e.Edges' field.
+func (e *Entry) HasEdge(edge cipher.PubKey) bool {
+	for _, pk := range e.Edges {
+		if pk == edge {
+			return true
+		}
+	}
+	return false
 }
 
 // String implements stringer
@@ -57,20 +72,18 @@ func (e *Entry) String() string {
 	res += fmt.Sprintf("\ttype: %s\n", e.Type)
 	res += fmt.Sprintf("\tid: %s\n", e.ID)
 	res += fmt.Sprintf("\tedges:\n")
-	res += fmt.Sprintf("\t\tedge 1: %s\n", e.Edges()[0])
-	res += fmt.Sprintf("\t\tedge 2: %s\n", e.Edges()[1])
-
+	res += fmt.Sprintf("\t\tedge 1: %s\n", e.Edges[0])
+	res += fmt.Sprintf("\t\tedge 2: %s\n", e.Edges[1])
 	return res
 }
 
 // ToBinary returns binary representation of an Entry
 func (e *Entry) ToBinary() []byte {
-	edges := e.Edges()
-	return append(
-		append(
-			append(e.ID[:], edges[0][:]...),
-			edges[1][:]...),
-		[]byte(e.Type)...)
+	bEntry := e.ID[:]
+	for _, edge := range e.Edges {
+		bEntry = append(bEntry, edge[:]...)
+	}
+	return append(bEntry, []byte(e.Type)...)
 }
 
 // Signature returns signature for Entry calculated from binary
@@ -92,19 +105,17 @@ type SignedEntry struct {
 }
 
 // Index returns position of a given pk in edges
-func (se *SignedEntry) Index(pk cipher.PubKey) int8 {
-	if pk == se.Entry.Edges()[1] {
-		return 1
-	}
-	if pk == se.Entry.Edges()[0] {
-		return 0
+func (se *SignedEntry) Index(pk cipher.PubKey) int {
+	for i, edgePK := range se.Entry.Edges {
+		if pk == edgePK {
+			return i
+		}
 	}
 	return -1
 }
 
 // Sign sets Signature for a given PubKey in correct position
 func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) bool {
-
 	idx := se.Index(pk)
 	if idx == -1 {
 		return false
@@ -130,9 +141,8 @@ func NewSignedEntry(entry *Entry, pk cipher.PubKey, secKey cipher.SecKey) (*Sign
 
 }
 
-// Status represents the current state of a Transport from the perspective
-// from a Transport's single edge. Each Transport will have two perspectives;
-// one from each of it's edges.
+// Status represents the current state of a Transport from a Transport's single edge.
+// Each Transport will have two perspectives; one from each of it's edges.
 type Status struct {
 
 	// ID is the Transport ID that identifies the Transport that this status is regarding.

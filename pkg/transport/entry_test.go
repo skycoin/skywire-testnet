@@ -2,84 +2,41 @@ package transport_test
 
 import (
 	"fmt"
+	"testing"
 
-	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
-// ExampleNewEntry shows that with different order of edges:
-// - Entry.ID is the same
-// - Edges() call is the same
-func ExampleNewEntry() {
+func TestNewEntry(t *testing.T) {
 	pkA, _ := cipher.GenerateKeyPair()
 	pkB, _ := cipher.GenerateKeyPair()
 
 	entryAB := transport.NewEntry(pkA, pkB, "", true)
-	entryBA := transport.NewEntry(pkB, pkA, "", true)
+	entryBA := transport.NewEntry(pkA, pkB, "", true)
 
-	if entryAB.ID == entryBA.ID {
-		fmt.Println("entryAB.ID == entryBA.ID")
-	}
-	if entryAB.Edges() == entryBA.Edges() {
-		fmt.Println("entryAB.Edges() == entryBA.Edges()")
-	}
-	// Output: entryAB.ID == entryBA.ID
-	// entryAB.Edges() == entryBA.Edges()
+	assert.True(t, entryAB.Edges == entryBA.Edges)
+	assert.True(t, entryAB.ID == entryBA.ID)
+	assert.NotNil(t, entryAB.ID)
+	assert.NotNil(t, entryBA.ID)
 }
 
-func ExampleEntry_Edges() {
-	pkA, _ := cipher.GenerateKeyPair()
-	pkB, _ := cipher.GenerateKeyPair()
-
-	entryAB := transport.Entry{
-		ID:       uuid.UUID{},
-		EdgeKeys: [2]cipher.PubKey{pkA, pkB},
-		Type:     "",
-		Public:   true,
-	}
-
-	entryBA := transport.Entry{
-		ID:       uuid.UUID{},
-		EdgeKeys: [2]cipher.PubKey{pkB, pkA},
-		Type:     "",
-		Public:   true,
-	}
-
-	if entryAB.EdgeKeys != entryBA.EdgeKeys {
-		fmt.Println("entryAB.EdgeKeys != entryBA.EdgeKeys")
-	}
-
-	if entryAB.Edges() == entryBA.Edges() {
-		fmt.Println("entryAB.Edges() == entryBA.Edges()")
-	}
-
-	// Output: entryAB.EdgeKeys != entryBA.EdgeKeys
-	// entryAB.Edges() == entryBA.Edges()
-}
-
-func ExampleEntry_SetEdges() {
+func TestEntry_SetEdges(t *testing.T) {
 	pkA, _ := cipher.GenerateKeyPair()
 	pkB, _ := cipher.GenerateKeyPair()
 
 	entryAB, entryBA := transport.Entry{}, transport.Entry{}
 
-	entryAB.SetEdges([2]cipher.PubKey{pkA, pkB})
-	entryBA.SetEdges([2]cipher.PubKey{pkA, pkB})
+	entryAB.SetEdges(pkA, pkB)
+	entryBA.SetEdges(pkA, pkB)
 
-	if entryAB.EdgeKeys == entryBA.EdgeKeys {
-		fmt.Println("entryAB.EdgeKeys == entryBA.EdgeKeys")
-	}
-
-	if (entryAB.ID == entryBA.ID) && (entryAB.ID != uuid.UUID{}) {
-		fmt.Println("entryAB.ID != uuid.UUID{}")
-		fmt.Println("entryAB.ID == entryBA.ID")
-	}
-
-	// Output: entryAB.EdgeKeys == entryBA.EdgeKeys
-	// entryAB.ID != uuid.UUID{}
-	// entryAB.ID == entryBA.ID
+	assert.True(t, entryAB.Edges == entryBA.Edges)
+	assert.True(t, entryAB.ID == entryBA.ID)
+	assert.NotNil(t, entryAB.ID)
+	assert.NotNil(t, entryBA.ID)
 }
 
 func ExampleSignedEntry_Sign() {

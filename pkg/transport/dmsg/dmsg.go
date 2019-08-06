@@ -52,40 +52,15 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc disc.APIClient, opts ...Cl
 
 // Accept is a wrapper type for "github.com/skycoin/dmsg".Accept
 func (c *Client) Accept(ctx context.Context) (transport.Transport, error) {
-	tp, err := c.Client.Accept(ctx)
-	if err != nil {
-		return nil, err
-	}
-	//fmt.Printf("> Accepted: local(%s) remote(%s)\n", c.Local().String()[:6], tp.RemotePK().String()[:6])
-	return NewTransport(tp), nil
+	return c.Client.Accept(ctx)
 }
 
 // Dial is a wrapper type for "github.com/skycoin/dmsg".Dial
 func (c *Client) Dial(ctx context.Context, remote cipher.PubKey) (transport.Transport, error) {
-	//fmt.Printf("> Dialing: local(%s) remote(%s)\n", c.Local().String()[:6], remote.String()[:6])
-	tp, err := c.Client.Dial(ctx, remote)
-	if err != nil {
-		return nil, err
-	}
-	return NewTransport(tp), nil
+	return c.Client.Dial(ctx, remote)
 }
 
 // SetLogger is a wrapper type for "github.com/skycoin/dmsg".SetLogger
 func SetLogger(log *logging.Logger) ClientOption {
 	return dmsg.SetLogger(log)
-}
-
-// Transport is a wrapper type for "github.com/skycoin/dmsg".Transport
-type Transport struct {
-	*dmsg.Transport
-}
-
-// NewTransport creates a new Transport.
-func NewTransport(tp *dmsg.Transport) *Transport {
-	return &Transport{Transport: tp}
-}
-
-// Edges returns sorted edges of transport
-func (tp *Transport) Edges() [2]cipher.PubKey {
-	return transport.SortPubKeys(tp.LocalPK(), tp.RemotePK())
 }
