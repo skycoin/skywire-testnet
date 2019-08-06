@@ -1,7 +1,6 @@
 package therealssh
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -90,19 +89,18 @@ func (s *Session) Run(command string) ([]byte, error) {
 	}
 
 	components := strings.Split(command, " ")
-	cmd := exec.Command(components[0], components[1:]...) // nolint:gosec
-	err = cmd.Run()
+
+	c := exec.Command(components[0],components[1:]...)
+	ptmx, err := pty.Start(c)
 	if err != nil {
 		return nil, err
 	}
-	errP, _ := cmd.StderrPipe()
-	stdErr, _ := ioutil.ReadAll(errP)
-	out, _ := cmd.StdoutPipe()
-	res, _ := ioutil.ReadAll(out)
 
-	if len(stdErr) > 0 {
-		return res, errors.New(string(stdErr))
-	}
+	// Make sure to close the pty at the end.
+	defer func() { _ = ptmx.Close() }() // Best effort.
+
+	// as stated in https://github.com/creack/pty/issues/21#issuecomment-513069505 we can ignore this error
+	res, _ := ioutil.ReadAll(ptmx) // nolint: err
 	return res, nil
 }
 

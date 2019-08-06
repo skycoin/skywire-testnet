@@ -36,7 +36,9 @@ func TestRunInPTY(t *testing.T) {
 
 	server := NewServer(MockAuthorizer{})
 	go func() {
-		require.NoError(t, server.Serve(PipeWithRoutingAddr{acceptConn}))
+		err := server.Serve(PipeWithRoutingAddr{acceptConn})
+		fmt.Println("server.Serve finished with err: ", err)
+		require.NoError(t, err)
 	}()
 
 	_, ch, err := client.OpenChannel(cipher.PubKey{})
@@ -59,9 +61,14 @@ func TestRunInPTY(t *testing.T) {
 	require.NoError(t, err)
 	fmt.Println(res)
 
-	res, err = ch.Request(RequestExec, []byte("ls"))
+	res, err = ch.Request(RequestExecWithoutShell, []byte("ls"))
+	require.NoError(t, err)
+
+	b := make([]byte,6024)
+	_, err = ch.Read(b)
 	require.NoError(t, err)
 	fmt.Println(res)
+	fmt.Println("b: ", b)
 }
 
 type MockAuthorizer struct {}

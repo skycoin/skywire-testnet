@@ -86,7 +86,7 @@ func (sshCh *SSHChannel) Request(requestType RequestType, payload []byte) ([]byt
 		return nil, fmt.Errorf("request failure: %s", err)
 	}
 
-	data := <-sshCh.msgCh
+	data := <- sshCh.msgCh
 	if data[0] == ResponseFail {
 		return nil, fmt.Errorf("request failure: %s", string(data[1:]))
 	}
@@ -117,8 +117,8 @@ func (sshCh *SSHChannel) Serve() error {
 			err = sshCh.Shell()
 		case RequestExec:
 			err = sshCh.Start(string(data[1:]))
-		//case RequestExecWithoutShell:
-
+		case RequestExecWithoutShell:
+			err = sshCh.Run(string(data[1:]))
 		case RequestWindowChange:
 			cols := binary.BigEndian.Uint32(data[1:])
 			rows := binary.BigEndian.Uint32(data[5:])
@@ -230,6 +230,21 @@ func (sshCh *SSHChannel) Start(command string) error {
 
 	debug("starting new pty process %s", command)
 	return sshCh.session.Start(command)
+}
+
+// Run executes provided command on Channel's PTY session and returns output as []byte.
+func (sshCh *SSHChannel) Run(command string) error {
+	if sshCh.session == nil {
+		return errors.New("session is not started")
+	}
+
+	out, err := sshCh.session.Run(command)
+	if err != nil {
+		return err
+	}
+
+	_, err = sshCh.Write(out)
+	return err
 }
 
 func (sshCh *SSHChannel) serveSession() error {
