@@ -60,8 +60,8 @@ github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 # github.com/sirupsen/logrus v1.4.2
-github.com/sirupsen/logrus/hooks/syslog
 github.com/sirupsen/logrus
+github.com/sirupsen/logrus/hooks/syslog
 # github.com/skycoin/dmsg v0.0.0-20190805065636-70f4c32a994f
 github.com/skycoin/dmsg/cipher
 github.com/skycoin/dmsg
