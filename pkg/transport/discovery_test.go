@@ -2,49 +2,33 @@ package transport_test
 
 import (
 	"context"
-	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/transport"
 )
 
-func ExampleNewDiscoveryMock() {
+func TestNewDiscoveryMock(t *testing.T) {
 	dc := transport.NewDiscoveryMock()
-	pk1, _ := cipher.GenerateKeyPair()
+	pk1, _ := cipher.GenerateKeyPair() // local
 	pk2, _ := cipher.GenerateKeyPair()
-	entry := &transport.Entry{Type: "mock", LocalKey: pk1, RemoteKey: pk2}
+	entry := &transport.Entry{Type: "mock", Edges: transport.SortEdges(pk1, pk2)}
 
 	sEntry := &transport.SignedEntry{Entry: entry}
 
-	if err := dc.RegisterTransports(context.TODO(), sEntry); err == nil {
-		fmt.Println("RegisterTransport success")
-	} else {
-		fmt.Println(err.Error())
-	}
+	require.NoError(t, dc.RegisterTransports(context.TODO(), sEntry))
 
-	if entryWS, err := dc.GetTransportByID(context.TODO(), sEntry.Entry.ID); err == nil {
-		fmt.Println("GetTransportByID success")
-		fmt.Printf("entryWS.Entry.ID == sEntry.Entry.ID is %v\n", entryWS.Entry.ID == sEntry.Entry.ID)
-	} else {
-		fmt.Printf("%v", entryWS)
-	}
+	entryWS, err := dc.GetTransportByID(context.TODO(), sEntry.Entry.ID)
+	require.NoError(t, err)
+	require.True(t, entryWS.Entry.ID == sEntry.Entry.ID)
 
-	if entriesWS, err := dc.GetTransportsByEdge(context.TODO(), entry.LocalPK()); err == nil {
-		fmt.Println("GetTransportsByEdge success")
-		fmt.Printf("entriesWS[0].Entry.LocalPK() == entry.LocalPK() is %v\n", entriesWS[0].Entry.LocalPK() == entry.LocalPK())
-	}
+	entriesWS, err := dc.GetTransportsByEdge(context.TODO(), pk1)
+	require.NoError(t, err)
+	require.Equal(t, entry.Edges, entriesWS[0].Entry.Edges)
 
-	if _, err := dc.UpdateStatuses(context.TODO(), &transport.Status{}); err == nil {
-		fmt.Println("UpdateStatuses success")
-	} else {
-		fmt.Println(err.Error())
-	}
-
-	// Output: RegisterTransport success
-	// GetTransportByID success
-	// entryWS.Entry.ID == sEntry.Entry.ID is true
-	// GetTransportsByEdge success
-	// entriesWS[0].Entry.LocalPK() == entry.LocalPK() is true
-	// UpdateStatuses success
+	_, err = dc.UpdateStatuses(context.TODO(), &transport.Status{})
+	require.NoError(t, err)
 }

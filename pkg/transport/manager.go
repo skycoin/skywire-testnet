@@ -130,7 +130,7 @@ func (tm *Manager) reconnectTransports(ctx context.Context) {
 		if tm.Transport(entry.ID) != nil {
 			continue
 		}
-		if _, err := tm.CreateDataTransport(ctx, entry.RemotePK(), entry.Type, entry.Public); err != nil {
+		if _, err := tm.CreateDataTransport(ctx, entry.RemoteEdge(tm.config.PubKey), entry.Type, entry.Public); err != nil {
 			tm.Logger.Warnf("Failed to re-establish transport: %s", err)
 			continue
 		}

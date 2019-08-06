@@ -30,27 +30,23 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 
 func makeEntry(tp Transport, public bool) *Entry {
 	return &Entry{
-		ID:        MakeTransportID(tp.LocalPK(), tp.RemotePK(), tp.Type(), public),
-		LocalKey:  tp.LocalPK(),
-		RemoteKey: tp.RemotePK(),
-		Type:      tp.Type(),
-		Public:    public,
+		ID:     MakeTransportID(tp.LocalPK(), tp.RemotePK(), tp.Type(), public),
+		Edges:  SortEdges(tp.LocalPK(), tp.RemotePK()),
+		Type:   tp.Type(),
+		Public: public,
 	}
 }
 
 func compareEntries(expected, received *Entry, checkPublic bool) error {
 	if !checkPublic {
 		expected.Public = received.Public
-		expected.ID = MakeTransportID(expected.LocalKey, expected.RemoteKey, expected.Type, expected.Public)
+		expected.ID = MakeTransportID(expected.Edges[0], expected.Edges[1], expected.Type, expected.Public)
 	}
 	if expected.ID != received.ID {
 		return errors.New("received entry's 'tp_id' is not of expected")
 	}
-	if expected.LocalKey != received.LocalKey {
-		return errors.New("received entry's 'local_pk' is not of expected")
-	}
-	if expected.RemoteKey != received.RemoteKey {
-		return errors.New("received entry's 'remote_pk' is not of expected")
+	if expected.Edges != received.Edges {
+		return errors.New("received entry's 'edges' is not of expected")
 	}
 	if expected.Type != received.Type {
 		return errors.New("received entry's 'type' is not of expected")
@@ -100,7 +96,6 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 func settlementResponderHandshake() settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		expectedEntry := makeEntry(tr, false)
-		expectedEntry.LocalKey, expectedEntry.RemoteKey = expectedEntry.RemoteKey, expectedEntry.LocalKey
 		recvSignedEntry, err := receiveAndVerifyEntry(tr, expectedEntry, tr.RemotePK(), false)
 		if err != nil {
 			return nil, err
