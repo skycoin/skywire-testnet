@@ -67,14 +67,17 @@ func (sn *Node) Serve(ctx context.Context) error {
 			return err
 		}
 		go func(tp transport.Transport) {
-			if err := sn.serveTransport(tp); err != nil {
+			if err := sn.serveTransport(ctx, tp); err != nil {
 				sn.Logger.Warnf("Failed to serve Transport: %s", err)
 			}
 		}(tp)
 	}
 }
 
-func (sn *Node) serveTransport(tr transport.Transport) error {
+func (sn *Node) serveTransport(ctx context.Context, tr transport.Transport) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
 	proto := NewSetupProtocol(tr)
 	sp, data, err := proto.ReadPacket()
 	if err != nil {
@@ -89,12 +92,12 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	case PacketCreateLoop:
 		var ld routing.LoopDescriptor
 		if err = json.Unmarshal(data, &ld); err == nil {
-			err = sn.createLoop(ld)
+			err = sn.createLoop(ctx, ld)
 		}
 	case PacketCloseLoop:
 		var ld routing.LoopData
 		if err = json.Unmarshal(data, &ld); err == nil {
-			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.LoopData{
+			err = sn.closeLoop(ctx, ld.Loop.Remote.PubKey, routing.LoopData{
 				Loop: routing.Loop{
 					Remote: ld.Loop.Local,
 					Local:  ld.Loop.Remote,
@@ -114,14 +117,14 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	return proto.WritePacket(RespSuccess, nil)
 }
 
-func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
+func (sn *Node) createLoop(ctx context.Context, ld routing.LoopDescriptor) error {
 	sn.Logger.Infof("Creating new Loop %s", ld)
-	rRouteID, err := sn.createRoute(ld.Expiry, ld.Reverse, ld.Loop.Local.Port, ld.Loop.Remote.Port)
+	rRouteID, err := sn.createRoute(ctx, ld.Expiry, ld.Reverse, ld.Loop.Local.Port, ld.Loop.Remote.Port)
 	if err != nil {
 		return err
 	}
 
-	fRouteID, err := sn.createRoute(ld.Expiry, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
+	fRouteID, err := sn.createRoute(ctx, ld.Expiry, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	if err != nil {
 		return err
 	}
@@ -146,7 +149,7 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 		},
 		RouteID: rRouteID,
 	}
-	if err := sn.connectLoop(responder, ldR); err != nil {
+	if err := sn.connectLoop(ctx, responder, ldR); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
@@ -164,9 +167,9 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 		},
 		RouteID: fRouteID,
 	}
-	if err := sn.connectLoop(initiator, ldI); err != nil {
+	if err := sn.connectLoop(ctx, initiator, ldI); err != nil {
 		sn.Logger.Warnf("Failed to confirm loop with initiator: %s", err)
-		if err := sn.closeLoop(responder, ldR); err != nil {
+		if err := sn.closeLoop(ctx, responder, ldR); err != nil {
 			sn.Logger.Warnf("Failed to close loop: %s", err)
 		}
 		return fmt.Errorf("loop connect: %s", err)
@@ -176,7 +179,7 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 	return nil
 }
 
-func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lport routing.Port) (routing.RouteID, error) {
+func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routing.Route, rport, lport routing.Port) (routing.RouteID, error) {
 	if len(route) == 0 {
 		return 0, nil
 	}
@@ -196,7 +199,7 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 			rule = routing.ForwardRule(expireAt, nextHop.routeID, nextHop.Transport)
 		}
 
-		routeID, err := sn.setupRule(hop.To, rule)
+		routeID, err := sn.setupRule(ctx, hop.To, rule)
 		if err != nil {
 			return 0, fmt.Errorf("rule setup: %s", err)
 		}
@@ -205,7 +208,7 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 	}
 
 	rule := routing.ForwardRule(expireAt, r[0].routeID, r[0].Transport)
-	routeID, err := sn.setupRule(initiator, rule)
+	routeID, err := sn.setupRule(ctx, initiator, rule)
 	if err != nil {
 		return 0, fmt.Errorf("rule setup: %s", err)
 	}
@@ -213,9 +216,7 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 	return routeID, nil
 }
 
-func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
-	ctx := context.Background()
-
+func (sn *Node) connectLoop(ctx context.Context, on cipher.PubKey, ld routing.LoopData) error {
 	tr, err := sn.messenger.Dial(ctx, on)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
@@ -226,7 +227,7 @@ func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
 		}
 	}()
 
-	if err := ConfirmLoop(NewSetupProtocol(tr), ld); err != nil {
+	if err := ConfirmLoop(ctx, NewSetupProtocol(tr), ld); err != nil {
 		return err
 	}
 
@@ -242,10 +243,9 @@ func (sn *Node) Close() error {
 	return sn.messenger.Close()
 }
 
-func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
+func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.LoopData) error {
 	fmt.Printf(">>> BEGIN: closeLoop(%s, ld)\n", on)
 	defer fmt.Printf(">>>   END: closeLoop(%s, ld)\n", on)
-	ctx := context.Background()
 
 	tr, err := sn.messenger.Dial(ctx, on)
 	fmt.Println(">>> *****: closeLoop() dialed:", err)
@@ -259,7 +259,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 	}()
 
 	proto := NewSetupProtocol(tr)
-	if err := LoopClosed(proto, ld); err != nil {
+	if err := LoopClosed(ctx, proto, ld); err != nil {
 		return err
 	}
 
@@ -267,9 +267,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 	return nil
 }
 
-func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
-	ctx := context.Background()
-
+func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
 	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
 	tr, err := sn.messenger.Dial(ctx, pubKey)
 	if err != nil {
@@ -283,7 +281,7 @@ func (sn *Node) setupRule(pubKey cipher.PubKey, rule routing.Rule) (routeID rout
 	}()
 
 	proto := NewSetupProtocol(tr)
-	routeID, err = AddRule(proto, rule)
+	routeID, err = AddRule(ctx, proto, rule)
 	if err != nil {
 		return
 	}

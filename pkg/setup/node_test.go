@@ -119,7 +119,7 @@ func TestNode(t *testing.T) {
 		require.NoError(t, err)
 		iTpErrs := make(chan error, 2)
 		go func() {
-			iTpErrs <- CreateLoop(NewSetupProtocol(iTp), ld)
+			iTpErrs <- CreateLoop(context.TODO(), NewSetupProtocol(iTp), ld)
 			iTpErrs <- iTp.Close()
 			close(iTpErrs)
 		}()
@@ -232,7 +232,7 @@ func TestNode(t *testing.T) {
 		require.NoError(t, err)
 		iTpErrs := make(chan error, 2)
 		go func() {
-			iTpErrs <- CloseLoop(NewSetupProtocol(iTp), ld)
+			iTpErrs <- CloseLoop(context.TODO(), NewSetupProtocol(iTp), ld)
 			iTpErrs <- iTp.Close()
 			close(iTpErrs)
 		}()

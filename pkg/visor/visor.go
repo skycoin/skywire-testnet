@@ -125,7 +125,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("invalid Messaging config: %s", err)
 	}
 
-	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery, dmsg.SetLogger(node.Logger.PackageLogger(dmsg.Type)))
+	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery)
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
@@ -146,7 +146,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
 	node.tm.Logger = node.Logger.PackageLogger("trmanager")
-	node.tm.SetSetupNodes(config.Routing.SetupNodes)
+	node.tm.SetSetupPKs(config.Routing.SetupNodes)
 
 	node.rt, err = config.RoutingTable()
 	if err != nil {

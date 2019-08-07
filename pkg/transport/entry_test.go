@@ -86,8 +86,8 @@ func ExampleSignedEntry_Signature() {
 		fmt.Println("Error signing sEntry with (pkB,skB)")
 	}
 
-	idxA := sEntry.Index(pkA)
-	idxB := sEntry.Index(pkB)
+	idxA := sEntry.Entry.EdgeIndex(pkA)
+	idxB := sEntry.Entry.EdgeIndex(pkB)
 
 	sigA, okA := sEntry.Signature(pkA)
 	sigB, okB := sEntry.Signature(pkB)
