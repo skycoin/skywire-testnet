@@ -198,16 +198,14 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 	for idx := len(r) - 1; idx >= 0; idx-- {
 		hop := &Hop{Hop: route[idx]}
 		r[idx] = hop
-		var rule routing.Rule
-		if idx == len(r)-1 {
-			rule = routing.AppRule(expireAt, 0, initiator, lport, rport)
-		} else {
-			nextHop := r[idx+1]
-			rule = routing.ForwardRule(expireAt, nextHop.routeID, nextHop.Transport)
+
+		var nextHop *Hop
+		if idx != len(r)-1 {
+			nextHop = r[idx+1]
 		}
 
-		go func(ctx context.Context, hop *Hop, rule routing.Rule) {
-			routeID, err := sn.setupRule(ctx, hop.To, rule)
+		go func(idx int, hop, nextHop *Hop) {
+			routeID, err := sn.requestRouteID(ctx, hop.To)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
@@ -220,9 +218,27 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 
 			hop.routeID = routeID
 
+			var rule routing.Rule
+			if nextHop == nil {
+				rule = routing.AppRule(expireAt, 0, initiator, lport, rport, routeID)
+			} else {
+				rule = routing.ForwardRule(expireAt, nextHop.routeID, nextHop.Transport, routeID)
+			}
+
+			err = sn.setupRule(ctx, hop.To, rule)
+			if err != nil {
+				// filter out context cancellation errors
+				if err == context.Canceled {
+					rulesSetupErrs <- err
+				} else {
+					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
+				}
+				return
+			}
+
 			// put nil to avoid block
 			rulesSetupErrs <- nil
-		}(ctx, hop, rule)
+		}(idx, hop, nextHop)
 	}
 
 	var rulesSetupErr error
@@ -243,9 +259,13 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 		return 0, rulesSetupErr
 	}
 
-	rule := routing.ForwardRule(expireAt, r[0].routeID, r[0].Transport)
-	routeID, err := sn.setupRule(context.Background(), initiator, rule)
+	routeID, err := sn.requestRouteID(context.Background(), initiator)
 	if err != nil {
+		return 0, fmt.Errorf("request route id: %s", err)
+	}
+
+	rule := routing.ForwardRule(expireAt, r[0].routeID, r[0].Transport, routeID)
+	if err := sn.setupRule(context.Background(), initiator, rule); err != nil {
 		return 0, fmt.Errorf("rule setup: %s", err)
 	}
 
@@ -317,7 +337,7 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 	return nil
 }
 
-func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (uint32, error) {
+func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (routing.RouteID, error) {
 	sn.Logger.Debugf("dialing to %s to request route ID\n", pubKey)
 	tr, err := sn.messenger.Dial(ctx, pubKey)
 	if err != nil {
@@ -339,13 +359,11 @@ func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (uint3
 	return routeID, nil
 }
 
-func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey,
-	rule routing.Rule) (routeID routing.RouteID, err error) {
+func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule) error {
 	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
 	tr, err := sn.messenger.Dial(ctx, pubKey)
 	if err != nil {
-		err = fmt.Errorf("transport: %s", err)
-		return
+		return fmt.Errorf("transport: %s", err)
 	}
 	defer func() {
 		if err := tr.Close(); err != nil {
@@ -354,11 +372,10 @@ func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey,
 	}()
 
 	proto := NewSetupProtocol(tr)
-	routeID, err = AddRule(proto, rule)
-	if err != nil {
-		return
+	if err := AddRule(proto, rule); err != nil {
+		return err
 	}
 
-	sn.Logger.Infof("Set rule of type %s on %s with ID %d", rule.Type(), pubKey, routeID)
-	return routeID, nil
+	sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), pubKey)
+	return nil
 }

@@ -102,11 +102,11 @@ func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
 }
 
 // RequestRouteID sends RequestRouteID request.
-func RequestRouteID(p *Protocol) (uint32, error) {
+func RequestRouteID(p *Protocol) (routing.RouteID, error) {
 	if err := p.WritePacket(PacketRequestRouteID, nil); err != nil {
 		return 0, err
 	}
-	var res []uint32
+	var res []routing.RouteID
 	if err := readAndDecodePacket(p, &res); err != nil {
 		return 0, err
 	}
@@ -117,18 +117,11 @@ func RequestRouteID(p *Protocol) (uint32, error) {
 }
 
 // AddRule sends AddRule setup request.
-func AddRule(p *Protocol, rule routing.Rule) (routeID routing.RouteID, err error) {
-	if err = p.WritePacket(PacketAddRules, []routing.Rule{rule}); err != nil {
-		return 0, err
+func AddRule(p *Protocol, rule routing.Rule) error {
+	if err := p.WritePacket(PacketAddRules, []routing.Rule{rule}); err != nil {
+		return err
 	}
-	var res []routing.RouteID
-	if err = readAndDecodePacket(p, &res); err != nil {
-		return 0, err
-	}
-	if len(res) == 0 {
-		return 0, errors.New("empty response")
-	}
-	return res[0], nil
+	return readAndDecodePacket(p, nil)
 }
 
 // DeleteRule sends DeleteRule setup request.
