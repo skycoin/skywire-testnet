@@ -317,6 +317,28 @@ func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
 	return nil
 }
 
+func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (uint32, error) {
+	sn.Logger.Debugf("dialing to %s to request route ID\n", pubKey)
+	tr, err := sn.messenger.Dial(ctx, pubKey)
+	if err != nil {
+		return 0, fmt.Errorf("transport: %s", err)
+	}
+	defer func() {
+		if err := tr.Close(); err != nil {
+			sn.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
+
+	proto := NewSetupProtocol(tr)
+	routeID, err := RequestRouteID(proto)
+	if err != nil {
+		return 0, err
+	}
+
+	sn.Logger.Infof("Received route ID %d from %s", routeID, pubKey)
+	return routeID, nil
+}
+
 func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey,
 	rule routing.Rule) (routeID routing.RouteID, err error) {
 	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)

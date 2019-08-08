@@ -49,6 +49,8 @@ const (
 	PacketCloseLoop
 	// PacketLoopClosed represents LoopClosed foundation packet.
 	PacketLoopClosed
+	// PacketRequestRouteID represents RequestRouteID foundation packet.
+	PacketRequestRouteID
 
 	// RespFailure represents failure response for a foundation packet.
 	RespFailure = 0xfe
@@ -97,6 +99,21 @@ func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
 	copy(raw[3:], pay)
 	_, err = p.rw.Write(raw)
 	return err
+}
+
+// RequestRouteID sends RequestRouteID request.
+func RequestRouteID(p *Protocol) (uint32, error) {
+	if err := p.WritePacket(PacketRequestRouteID, nil); err != nil {
+		return 0, err
+	}
+	var res []uint32
+	if err := readAndDecodePacket(p, &res); err != nil {
+		return 0, err
+	}
+	if len(res) == 0 {
+		return 0, errors.New("empty response")
+	}
+	return res[0], nil
 }
 
 // AddRule sends AddRule setup request.
