@@ -57,18 +57,16 @@ func TestRunInPTY(t *testing.T) {
 			Y:    100,
 		},
 	}
-	res, err := ch.Request(RequestPTY, args.ToBinary())
+	_, err = ch.Request(RequestPTY, args.ToBinary())
 	require.NoError(t, err)
-	fmt.Println(res)
 
-	res, err = ch.Request(RequestExecWithoutShell, []byte("ls"))
+	_, err = ch.Request(RequestExecWithoutShell, []byte("ls"))
 	require.NoError(t, err)
 
 	b := make([]byte,6024)
 	_, err = ch.Read(b)
 	require.NoError(t, err)
-	fmt.Println(res)
-	fmt.Println("b: ", b)
+	require.Contains(t, string(b), "pty_test.go")
 }
 
 type MockAuthorizer struct {}

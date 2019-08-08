@@ -243,7 +243,12 @@ func (sshCh *SSHChannel) Run(command string) error {
 		return err
 	}
 
-	_, err = sshCh.Write(out)
+	go func() {
+		_, err = sshCh.Write(out)
+		if err != nil {
+			log.Warn("error writing to channel: ", err)
+		}
+	}()
 	return err
 }
 
