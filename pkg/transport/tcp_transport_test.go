@@ -117,11 +117,11 @@ func TestTCPFactory(t *testing.T) {
 	fmt.Println(addr2.String())
 
 	f1 := &transport.TCPFactory{pk1, pkt1, l1}
-	assert.Equal(t, "tcp", f1.Type())
+	assert.Equal(t, "tcp-transport", f1.Type())
 	assert.Equal(t, pk1, f1.Local())
 
 	f2 := &transport.TCPFactory{pk2, pkt2, l2}
-	assert.Equal(t, "tcp", f2.Type())
+	assert.Equal(t, "tcp-transport", f2.Type())
 	assert.Equal(t, pk2, f2.Local())
 
 	var wg sync.WaitGroup
@@ -206,16 +206,6 @@ func pkFromSeed(seed string) cipher.PubKey {
 	return pk
 }
 
-func ExampleFile() {
-	pkA, skA, _ := cipher.GenerateDeterministicKeyPair([]byte("NodeA"))
-	pkB, skB, _ := cipher.GenerateDeterministicKeyPair([]byte("NodeB"))
-
-	fmt.Printf("%v\n%v\n\n", pkA, skA)
-	fmt.Printf("%v\n%v\n\n", pkB, skB)
-
-	// Output: AAAA
-}
-
 func Example_transport_MemoryPubKeyTable() {
 	pkA, pkB := pkFromSeed("nodeA"), pkFromSeed("nodeB")
 	ipA, ipB := "192.168.1.2:9119", "192.168.1.3:9119"
@@ -252,8 +242,6 @@ func Example_transport_FilePubKeyTable() {
 	fmt.Printf("Write file success: %v\n", err == nil)
 
 	pkt, err := transport.FilePubKeyTable(tmpfile.Name())
-	// pkt.RemoteAddr(pkFromSeed("nodeA"))
-	// pkt.RemoteAddr()
 
 	fmt.Printf("Opening FilePubKeyTable success: %v\n", err == nil)
 

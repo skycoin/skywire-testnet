@@ -79,53 +79,65 @@ func New(config *Config) *Router {
 
 // Serve starts transport listening loop.
 func (r *Router) Serve(ctx context.Context) error {
-
-	go func() {
-		for tp := range r.tm.TrChan {
-			r.mu.Lock()
-			isAccepted, isSetup := tp.Accepted, r.IsSetupTransport(tp)
-			r.mu.Unlock()
-
-			r.Logger.Infof("New transport: isAccepted: %v, isSetup: %v", isAccepted, isSetup)
-
-			var serve func(io.ReadWriter) error
-			switch {
-			case isAccepted && isSetup:
-				serve = r.rm.Serve
-			case !isSetup:
-				serve = r.serveTransport
-			default:
-				continue
-			}
-
-			go func(tp transport.Transport) {
-				defer func() {
-					if err := tp.Close(); err != nil {
-						r.Logger.Warnf("Failed to close transport: %s", err)
-					}
-				}()
-				for {
-					if err := serve(tp); err != nil {
-						if err != io.EOF {
-							r.Logger.Warnf("Stopped serving Transport: %s", err)
-						}
-						return
-					}
-				}
-			}(tp)
-		}
-	}()
-
-	go func() {
-		for range r.expiryTicker.C {
-			if err := r.rm.rt.Cleanup(); err != nil {
-				r.Logger.Warnf("Failed to expiry routes: %s", err)
-			}
-		}
-	}()
-
 	r.Logger.Info("Starting router")
+
+	go func() {
+		for {
+			select {
+			case dTp, ok := <-r.tm.DataTpChan:
+				if !ok {
+					return
+				}
+				initStatus := "locally"
+				if dTp.Accepted {
+					initStatus = "remotely"
+				}
+				r.Logger.Infof("New %s-initiated transport: purpose(data)", initStatus)
+				r.handleTransport(dTp, dTp.Accepted, false)
+
+			case sTp, ok := <-r.tm.SetupTpChan:
+				if !ok {
+					return
+				}
+				r.Logger.Infof("New remotely-initiated transport: purpose(setup)")
+				r.handleTransport(sTp, true, true)
+
+			case <-r.expiryTicker.C:
+				if err := r.rm.rt.Cleanup(); err != nil {
+					r.Logger.Warnf("Failed to expiry routes: %s", err)
+				}
+			}
+		}
+	}()
 	return r.tm.Serve(ctx)
+}
+
+func (r *Router) handleTransport(tp transport.Transport, isAccepted, isSetup bool) {
+	var serve func(io.ReadWriter) error
+	switch {
+	case isAccepted && isSetup:
+		serve = r.rm.Serve
+	case !isSetup:
+		serve = r.serveTransport
+	default:
+		return
+	}
+
+	go func(tp transport.Transport) {
+		defer func() {
+			if err := tp.Close(); err != nil {
+				r.Logger.Warnf("Failed to close transport: %s", err)
+			}
+		}()
+		for {
+			if err := serve(tp); err != nil {
+				if err != io.EOF {
+					r.Logger.Warnf("Stopped serving Transport: %s", err)
+				}
+				return
+			}
+		}
+	}(tp)
 }
 
 // ServeApp handles App packets from the App connection on provided port.
@@ -337,7 +349,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		}
 	case "tcp-transport":
 		r.Logger.Info("Skipping setup for tcp-transport")
-		_, err := r.tm.CreateTransport(context.Background(), raddr.PubKey, "tcp-transport", false)
+		_, err := r.tm.CreateSetupTransport(context.Background(), raddr.PubKey, "tcp-transport")
 		if err != nil {
 			r.Logger.Warnf("error creating transport %s", err)
 		}
@@ -445,7 +457,7 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 
 	trType := r.config.TransportType
 	// TODO(evanlinjin): need string constant for tp type.
-	tr, err := r.tm.CreateTransport(ctx, r.config.SetupNodes[0], trType, false)
+	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], trType)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
@@ -478,8 +490,7 @@ fetchRoutesAgain:
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
 func (r *Router) IsSetupTransport(tr *transport.ManagedTransport) bool {
 	for _, pk := range r.config.SetupNodes {
-		remote, ok := r.tm.Remote(tr.Edges())
-		if ok && (remote == pk) {
+		if tr.RemotePK() == pk {
 			return true
 		}
 	}

@@ -60,9 +60,9 @@ github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 # github.com/sirupsen/logrus v1.4.2
-github.com/sirupsen/logrus/hooks/syslog
 github.com/sirupsen/logrus
-# github.com/skycoin/dmsg v0.0.0-20190719095515-52043626400c
+github.com/sirupsen/logrus/hooks/syslog
+# github.com/skycoin/dmsg v0.0.0-20190805065636-70f4c32a994f
 github.com/skycoin/dmsg/cipher
 github.com/skycoin/dmsg
 github.com/skycoin/dmsg/disc
@@ -98,7 +98,7 @@ golang.org/x/net/context
 golang.org/x/net/nettest
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
-# golang.org/x/sys v0.0.0-20190726091711-fc99dfbffb4e
+# golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc/eventlog

@@ -95,7 +95,7 @@ func Example_newHsMock() {
 //
 //	entryInvalidEdges := &SignedEntry{
 //		Entry: &Entry{Type: "mock",
-//			EdgeKeys: SortPubKeys(pk2, pk3),
+//			EdgeKeys: SortEdges(pk2, pk3),
 //		}}
 //	if err := validateSignedEntry(entryInvalidEdges, tr, pk1); err != nil {
 //		fmt.Println(err.Error())
@@ -119,7 +119,7 @@ func Example_newHsMock() {
 //	pk3, _ := cipher.GenerateKeyPair()
 //	tr := NewMockTransport(nil, pk1, pk2)
 //
-//	entry := &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk2, pk1)}
+//	entry := &Entry{Type: "mock", EdgeKeys: SortEdges(pk2, pk1)}
 //	tcs := []struct {
 //		sEntry *SignedEntry
 //		err    string
@@ -129,11 +129,11 @@ func Example_newHsMock() {
 //			"invalid entry type",
 //		},
 //		{
-//			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk1, pk3)}},
+//			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortEdges(pk1, pk3)}},
 //			"invalid entry edges",
 //		},
 //		{
-//			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortPubKeys(pk2, pk1)}},
+//			&SignedEntry{Entry: &Entry{Type: "mock", EdgeKeys: SortEdges(pk2, pk1)}},
 //			"invalid entry signature",
 //		},
 //		{
@@ -232,10 +232,10 @@ func TestSettlementHandshakeExistingTransport(t *testing.T) {
 
 	tpType := "mock"
 	entry := &Entry{
-		ID:       MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType, true),
-		EdgeKeys: SortPubKeys(mockEnv.pk1, mockEnv.pk2),
-		Type:     tpType,
-		Public:   true,
+		ID:     MakeTransportID(mockEnv.pk1, mockEnv.pk2, tpType, true),
+		Edges:  SortEdges(mockEnv.pk1, mockEnv.pk2),
+		Type:   tpType,
+		Public: true,
 	}
 
 	mockEnv.m1.entries[*entry] = struct{}{}

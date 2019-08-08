@@ -62,7 +62,7 @@ func NewServerConn(log *logging.Logger, conn net.Conn, remoteClient cipher.PubKe
 
 func (c *ServerConn) delNext(id uint16) {
 	c.mx.Lock()
-	c.nextConns[id] = nil
+	delete(c.nextConns, id)
 	c.mx.Unlock()
 }
 
@@ -111,15 +111,33 @@ type getConnFunc func(pk cipher.PubKey) (*ServerConn, bool)
 
 // Serve handles (and forwards when necessary) incoming frames.
 func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error) {
+	log := c.log.WithField("srcClient", c.remoteClient)
+
+	// Only manually close the underlying net.Conn when the done signal is context-initiated.
+	done := make(chan struct{})
+	defer close(done)
 	go func() {
-		<-ctx.Done()
-		if err := c.Conn.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close connection")
+		select {
+		case <-done:
+		case <-ctx.Done():
+			if err := c.Conn.Close(); err != nil {
+				log.WithError(err).Warn("failed to close underlying connection")
+			}
 		}
 	}()
 
-	log := c.log.WithField("srcClient", c.remoteClient)
 	defer func() {
+		// Send CLOSE frames to all transports which are established with this dmsg.Client
+		// This ensures that all parties are informed about the transport closing.
+		c.mx.Lock()
+		for _, conn := range c.nextConns {
+			why := byte(0)
+			if err := conn.writeFrame(CloseType, []byte{why}); err != nil {
+				log.WithError(err).Warnf("failed to write frame: %s", err)
+			}
+		}
+		c.mx.Unlock()
+
 		log.WithError(err).WithField("connCount", decrementServeCount()).Infoln("ClosingConn")
 		if err := c.Conn.Close(); err != nil {
 			log.WithError(err).Warn("Failed to close connection")

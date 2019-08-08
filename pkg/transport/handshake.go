@@ -30,22 +30,22 @@ func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.
 
 func makeEntry(tp Transport, public bool) *Entry {
 	return &Entry{
-		ID:       MakeTransportID(tp.Edges()[0], tp.Edges()[1], tp.Type(), public),
-		EdgeKeys: tp.Edges(),
-		Type:     tp.Type(),
-		Public:   public,
+		ID:     MakeTransportID(tp.LocalPK(), tp.RemotePK(), tp.Type(), public),
+		Edges:  SortEdges(tp.LocalPK(), tp.RemotePK()),
+		Type:   tp.Type(),
+		Public: public,
 	}
 }
 
 func compareEntries(expected, received *Entry, checkPublic bool) error {
 	if !checkPublic {
 		expected.Public = received.Public
-		expected.ID = MakeTransportID(expected.EdgeKeys[0], expected.EdgeKeys[1], expected.Type, expected.Public)
+		expected.ID = MakeTransportID(expected.Edges[0], expected.Edges[1], expected.Type, expected.Public)
 	}
 	if expected.ID != received.ID {
 		return errors.New("received entry's 'tp_id' is not of expected")
 	}
-	if expected.EdgeKeys != received.EdgeKeys {
+	if expected.Edges != received.Edges {
 		return errors.New("received entry's 'edges' is not of expected")
 	}
 	if expected.Type != received.Type {
@@ -85,11 +85,7 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 		if err := json.NewEncoder(tp).Encode(se); err != nil {
 			return nil, fmt.Errorf("failed to write entry: %v", err)
 		}
-		remotePK, ok := tm.Remote(tp.Edges())
-		if !ok {
-			return nil, errors.New("invalid public key")
-		}
-		if _, err := receiveAndVerifyEntry(tp, entry, remotePK, true); err != nil {
+		if _, err := receiveAndVerifyEntry(tp, entry, tp.RemotePK(), true); err != nil {
 			return nil, err
 		}
 		tm.addEntry(entry)
@@ -100,11 +96,7 @@ func settlementInitiatorHandshake(public bool) settlementHandshake {
 func settlementResponderHandshake() settlementHandshake {
 	return func(tm *Manager, tr Transport) (*Entry, error) {
 		expectedEntry := makeEntry(tr, false)
-		remotePK, ok := tm.Remote(tr.Edges())
-		if !ok {
-			return nil, errors.New("invalid public key")
-		}
-		recvSignedEntry, err := receiveAndVerifyEntry(tr, expectedEntry, remotePK, false)
+		recvSignedEntry, err := receiveAndVerifyEntry(tr, expectedEntry, tr.RemotePK(), false)
 		if err != nil {
 			return nil, err
 		}
