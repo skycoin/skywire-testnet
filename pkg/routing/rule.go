@@ -64,7 +64,7 @@ func (r Rule) TransportID() uuid.UUID {
 	if r.Type() != RuleForward {
 		panic("invalid rule")
 	}
-	return uuid.Must(uuid.FromBytes(r[13:]))
+	return uuid.Must(uuid.FromBytes(r[13:29]))
 }
 
 // RemotePK returns remove PK for an app rule.
@@ -183,7 +183,7 @@ func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remo
 	rule[8] = byte(RuleApp)
 	binary.BigEndian.PutUint32(rule[9:], uint32(respRoute))
 	rule = append(rule, remotePK[:]...)
-	rule = append(rule, 0, 0, 0, 0)
+	rule = append(rule, 0, 0, 0, 0, 0, 0, 0, 0)
 	binary.BigEndian.PutUint16(rule[46:], uint16(remotePort))
 	binary.BigEndian.PutUint16(rule[48:], uint16(localPort))
 	binary.BigEndian.PutUint32(rule[50:], uint32(registrationID))
@@ -202,7 +202,7 @@ func ForwardRule(expireAt time.Time, nextRoute RouteID, nextTrID uuid.UUID, regi
 	rule[8] = byte(RuleForward)
 	binary.BigEndian.PutUint32(rule[9:], uint32(nextRoute))
 	rule = append(rule, nextTrID[:]...)
-	rule = append(rule, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+	rule = append(rule, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 	binary.BigEndian.PutUint32(rule[50:], uint32(registrationID))
 	return Rule(rule)
 }

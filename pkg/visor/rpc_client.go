@@ -211,14 +211,20 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		}
 		lp := routing.Port(binary.BigEndian.Uint16(lpRaw[:]))
 		rp := routing.Port(binary.BigEndian.Uint16(rpRaw[:]))
-		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
-		fwdRID, err := rt.AddRule(fwdRule)
+		fwdRID, err := rt.AddRule(nil)
 		if err != nil {
 			panic(err)
 		}
-		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp)
-		appRID, err := rt.AddRule(appRule)
+		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New(), fwdRID)
+		if err := rt.SetRule(fwdRID, fwdRule); err != nil {
+			panic(err)
+		}
+		appRID, err := rt.AddRule(nil)
 		if err != nil {
+			panic(err)
+		}
+		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp, appRID)
+		if err := rt.SetRule(appRID, appRule); err != nil {
 			panic(err)
 		}
 		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)

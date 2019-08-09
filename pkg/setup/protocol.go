@@ -32,6 +32,8 @@ func (sp PacketType) String() string {
 		return "Success"
 	case RespFailure:
 		return "Failure"
+	case PacketRequestRouteID:
+		return "RequestRouteID"
 	}
 	return fmt.Sprintf("Unknown(%d)", sp)
 }

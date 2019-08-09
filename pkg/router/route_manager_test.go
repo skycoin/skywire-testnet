@@ -19,11 +19,11 @@ func TestRouteManagerGetRule(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
 
-	expiredRule := routing.ForwardRule(time.Now().Add(-10*time.Minute), 3, uuid.New())
+	expiredRule := routing.ForwardRule(time.Now().Add(-10*time.Minute), 3, uuid.New(), 1)
 	expiredID, err := rt.AddRule(expiredRule)
 	require.NoError(t, err)
 
-	rule := routing.ForwardRule(time.Now().Add(10*time.Minute), 3, uuid.New())
+	rule := routing.ForwardRule(time.Now().Add(10*time.Minute), 3, uuid.New(), 2)
 	id, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -43,7 +43,7 @@ func TestRouteManagerRemoveLoopRule(t *testing.T) {
 	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
 
 	pk, _ := cipher.GenerateKeyPair()
-	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
+	rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 1)
 	_, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -73,15 +73,19 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 	rm := &routeManager{logging.MustGetLogger("routesetup"), rt, nil}
 
 	in, out := net.Pipe()
-	errCh := make(chan error)
+	errCh := make(chan error, 2)
 	go func() {
+		errCh <- rm.Serve(out)
 		errCh <- rm.Serve(out)
 	}()
 
 	proto := setup.NewSetupProtocol(in)
 
-	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
-	id, err := setup.AddRule(proto, rule)
+	id, err := setup.RequestRouteID(proto)
+	require.NoError(t, err)
+
+	rule := routing.ForwardRule(time.Now(), 3, uuid.New(), id)
+	err = setup.AddRule(proto, rule)
 	require.NoError(t, err)
 	assert.Equal(t, routing.RouteID(1), id)
 
@@ -91,6 +95,7 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 	assert.Equal(t, rule, r)
 
 	require.NoError(t, in.Close())
+	require.NoError(t, <-errCh)
 	require.NoError(t, <-errCh)
 }
 
@@ -106,7 +111,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 
 	proto := setup.NewSetupProtocol(in)
 
-	rule := routing.ForwardRule(time.Now(), 3, uuid.New())
+	rule := routing.ForwardRule(time.Now(), 3, uuid.New(), 1)
 	id, err := rt.AddRule(rule)
 	require.NoError(t, err)
 	assert.Equal(t, 1, rt.Count())
@@ -139,10 +144,10 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 
 	proto := setup.NewSetupProtocol(in)
 	pk, _ := cipher.GenerateKeyPair()
-	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
+	rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 2)
 	require.NoError(t, rt.SetRule(2, rule))
 
-	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
+	rule = routing.ForwardRule(time.Now(), 3, uuid.New(), 1)
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := routing.LoopData{
@@ -189,10 +194,10 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 
 	pk, _ := cipher.GenerateKeyPair()
 
-	rule := routing.AppRule(time.Now(), 3, pk, 3, 2)
+	rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 0)
 	require.NoError(t, rt.SetRule(2, rule))
 
-	rule = routing.ForwardRule(time.Now(), 3, uuid.New())
+	rule = routing.ForwardRule(time.Now(), 3, uuid.New(), 1)
 	require.NoError(t, rt.SetRule(1, rule))
 
 	ld := routing.LoopData{

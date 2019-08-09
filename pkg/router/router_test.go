@@ -86,7 +86,7 @@ func TestRouterForwarding(t *testing.T) {
 	tr3, err := m3.CreateDataTransport(context.TODO(), pk2, "mock2", true)
 	require.NoError(t, err)
 
-	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.Entry.ID)
+	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.Entry.ID, 1)
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -207,7 +207,7 @@ func TestRouterApp(t *testing.T) {
 	tr, err := m1.CreateDataTransport(context.TODO(), pk2, "mock", true)
 	require.NoError(t, err)
 
-	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk2, 5, 6)
+	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk2, 5, 6, 1)
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -397,7 +397,10 @@ func TestRouterSetup(t *testing.T) {
 
 	var routeID routing.RouteID
 	t.Run("add rule", func(t *testing.T) {
-		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, trID))
+		routeID, err := setup.RequestRouteID(sProto)
+		require.NoError(t, err)
+
+		err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, trID, routeID))
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(routeID)
@@ -407,7 +410,10 @@ func TestRouterSetup(t *testing.T) {
 	})
 
 	t.Run("confirm loop - responder", func(t *testing.T) {
-		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
+		appRouteID, err := setup.RequestRouteID(sProto)
+		require.NoError(t, err)
+
+		err = setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2, appRouteID))
 		require.NoError(t, err)
 
 		err = setup.ConfirmLoop(sProto, routing.LoopData{
@@ -449,7 +455,10 @@ func TestRouterSetup(t *testing.T) {
 
 		require.NoError(t, r.pm.SetLoop(4, routing.Addr{PubKey: pk2, Port: 3}, &loop{}))
 
-		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4))
+		appRouteID, err := setup.RequestRouteID(sProto)
+		require.NoError(t, err)
+
+		err = setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 3, 4, appRouteID))
 		require.NoError(t, err)
 
 		err = setup.ConfirmLoop(sProto, routing.LoopData{
@@ -677,7 +686,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	}()
 
 	rt := routing.InMemoryRoutingTable()
-	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5)
+	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5, 1)
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -780,7 +789,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	}()
 
 	rt := routing.InMemoryRoutingTable()
-	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5)
+	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk3, 6, 5, 1)
 	routeID, err := rt.AddRule(rule)
 	require.NoError(t, err)
 
@@ -865,7 +874,7 @@ func TestRouterRouteExpiration(t *testing.T) {
 	require.NoError(t, err)
 
 	rt := routing.InMemoryRoutingTable()
-	_, err = rt.AddRule(routing.AppRule(time.Now().Add(-time.Hour), 4, pk, 6, 5))
+	_, err = rt.AddRule(routing.AppRule(time.Now().Add(-time.Hour), 4, pk, 6, 5, 1))
 	require.NoError(t, err)
 	assert.Equal(t, 1, rt.Count())
 

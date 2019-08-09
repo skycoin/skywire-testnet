@@ -84,13 +84,15 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 	var respBody interface{}
 	switch t {
 	case setup.PacketAddRules:
-		respBody, err = rm.addRoutingRules(body)
+		err = rm.setRoutingRules(body)
 	case setup.PacketDeleteRules:
 		respBody, err = rm.deleteRoutingRules(body)
 	case setup.PacketConfirmLoop:
 		err = rm.confirmLoop(body)
 	case setup.PacketLoopClosed:
 		err = rm.loopClosed(body)
+	case setup.PacketRequestRouteID:
+		respBody, err = rm.bookRouteID()
 	default:
 		err = errors.New("unknown foundation packet")
 	}
@@ -101,27 +103,24 @@ func (rm *routeManager) Serve(rw io.ReadWriter) error {
 	}
 
 	return proto.WritePacket(setup.RespSuccess, respBody)
-
 }
 
-func (rm *routeManager) addRoutingRules(data []byte) ([]routing.RouteID, error) {
+func (rm *routeManager) setRoutingRules(data []byte) error {
 	var rules []routing.Rule
 	if err := json.Unmarshal(data, &rules); err != nil {
-		return nil, err
+		return err
 	}
 
-	res := make([]routing.RouteID, len(rules))
-	for idx, rule := range rules {
-		routeID, err := rm.rt.AddRule(rule)
-		if err != nil {
-			return nil, fmt.Errorf("routing table: %s", err)
+	for _, rule := range rules {
+		routeID := rule.RegistrationID()
+		if err := rm.rt.SetRule(routeID, rule); err != nil {
+			return fmt.Errorf("routing table: %s", err)
 		}
 
-		res[idx] = routeID
-		rm.Logger.Infof("Added new Routing Rule with ID %d %s", routeID, rule)
+		rm.Logger.Infof("Set new Routing Rule with ID %d %s", routeID, rule)
 	}
 
-	return res, nil
+	return nil
 }
 
 func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, error) {
@@ -196,4 +195,13 @@ func (rm *routeManager) loopClosed(data []byte) error {
 	}
 
 	return rm.callbacks.LoopClosed(ld.Loop)
+}
+
+func (rm *routeManager) bookRouteID() ([]routing.RouteID, error) {
+	routeID, err := rm.rt.AddRule(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return []routing.RouteID{routeID}, nil
 }
