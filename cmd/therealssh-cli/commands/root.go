@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 
-	ssh "github.com/skycoin/skywire/internal/therealssh"
+	ssh "github.com/skycoin/skywire/pkg/therealssh"
 )
 
 var rpcAddr string

@@ -8,8 +8,8 @@ import (
 	"log"
 	"net/http"
 
-	ssh "github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
+	ssh "github.com/skycoin/skywire/pkg/therealssh"
 )
 
 func main() {
