@@ -86,7 +86,7 @@ func (sshCh *SSHChannel) Request(requestType RequestType, payload []byte) ([]byt
 		return nil, fmt.Errorf("request failure: %s", err)
 	}
 
-	data := <- sshCh.msgCh
+	data := <-sshCh.msgCh
 	if data[0] == ResponseFail {
 		return nil, fmt.Errorf("request failure: %s", string(data[1:]))
 	}

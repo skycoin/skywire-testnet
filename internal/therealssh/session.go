@@ -90,14 +90,19 @@ func (s *Session) Run(command string) ([]byte, error) {
 
 	components := strings.Split(command, " ")
 
-	c := exec.Command(components[0],components[1:]...)
+	c := exec.Command(components[0], components[1:]...) // nolint:gosec
 	ptmx, err := pty.Start(c)
 	if err != nil {
 		return nil, err
 	}
 
 	// Make sure to close the pty at the end.
-	defer func() { _ = ptmx.Close() }() // Best effort.
+	defer func() {
+		err = ptmx.Close()
+		if err != nil {
+			log.Warn("unable to close pty")
+		}
+	}() // Best effort.
 
 	// as stated in https://github.com/creack/pty/issues/21#issuecomment-513069505 we can ignore this error
 	res, _ := ioutil.ReadAll(ptmx) // nolint: err

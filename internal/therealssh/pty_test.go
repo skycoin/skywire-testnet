@@ -2,37 +2,22 @@ package therealssh
 
 import (
 	"fmt"
-	"github.com/creack/pty"
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/stretchr/testify/require"
-	"io/ioutil"
 	"net"
-	"os/exec"
 	"os/user"
 	"testing"
+
+	"github.com/creack/pty"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/routing"
 )
-
-func runInPTY(command string) ([]byte, error) {
-	c := exec.Command(command)
-	ptmx, err := pty.Start(c)
-	if err != nil {
-		return nil, err
-	}
-
-	// Make sure to close the pty at the end.
-	defer func() { _ = ptmx.Close() }() // Best effort.
-
-	// as stated in https://github.com/creack/pty/issues/21#issuecomment-513069505 we can ignore this error
-	res, _ := ioutil.ReadAll(ptmx) // nolint: err
-	return res, nil
-}
 
 func TestRunInPTY(t *testing.T) {
 	dialConn, acceptConn := net.Pipe()
 	pd := PipeDialer{PipeWithRoutingAddr{dialConn}, acceptConn}
 	_, client, err := NewClient(":9999", pd)
-	require.NoError(t,err)
+	require.NoError(t, err)
 
 	server := NewServer(MockAuthorizer{})
 	go func() {
@@ -50,7 +35,7 @@ func TestRunInPTY(t *testing.T) {
 	args := RequestPTYArgs{
 		Username: cuser.Username,
 		RemotePK: cipher.PubKey{},
-		Size:     &pty.Winsize{
+		Size: &pty.Winsize{
 			Rows: 100,
 			Cols: 100,
 			X:    100,
@@ -63,13 +48,13 @@ func TestRunInPTY(t *testing.T) {
 	_, err = ch.Request(RequestExecWithoutShell, []byte("ls"))
 	require.NoError(t, err)
 
-	b := make([]byte,6024)
+	b := make([]byte, 6024)
 	_, err = ch.Read(b)
 	require.NoError(t, err)
 	require.Contains(t, string(b), "pty_test.go")
 }
 
-type MockAuthorizer struct {}
+type MockAuthorizer struct{}
 
 func (MockAuthorizer) Authorize(pk cipher.PubKey) error {
 	return nil
