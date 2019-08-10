@@ -24,8 +24,8 @@ var mTpCount int32
 // ErrNotServing is the error returned when a transport is no longer served.
 var ErrNotServing = errors.New("transport is no longer being served")
 
-// ManagedTransport is a wrapper transport. It stores status and ID of
-// the Transport and can notify about network errors.
+// ManagedTransport manages a direct line of communication between two visor nodes.
+// It is made up of two underlying uni-directional connections.
 type ManagedTransport struct {
 	log *logging.Logger
 
@@ -40,11 +40,11 @@ type ManagedTransport struct {
 	LogEntry   *LogEntry
 	logUpdates uint32
 
-	readTp   Transport
-	writeTp  Transport
-	acceptCh chan Transport
-	acceptMx sync.RWMutex
-	dialMx   sync.Mutex
+	readConn  Transport
+	writeConn Transport
+	acceptCh  chan Transport
+	acceptMx  sync.RWMutex
+	dialMx    sync.Mutex
 
 	done chan struct{}
 	once sync.Once
@@ -97,17 +97,17 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet) {
 		mt.acceptMx.Lock()
 		close(mt.acceptCh)
 		mt.acceptCh = nil
-		if mt.readTp != nil {
-			_ = mt.readTp.Close() //nolint:errcheck
-			mt.readTp = nil
+		if mt.readConn != nil {
+			_ = mt.readConn.Close() //nolint:errcheck
+			mt.readConn = nil
 		}
 		mt.acceptMx.Unlock()
 
 		// End writing connection.
 		mt.dialMx.Lock()
-		if mt.writeTp != nil {
-			_ = mt.writeTp.Close() //nolint:errcheck
-			mt.writeTp = nil
+		if mt.writeConn != nil {
+			_ = mt.writeConn.Close() //nolint:errcheck
+			mt.writeConn = nil
 		}
 		mt.dialMx.Unlock()
 	}()
@@ -146,7 +146,7 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet) {
 			} else {
 				// If there has not been any activity, ensure underlying 'write' tp is still up.
 				mt.dialMx.Lock()
-				if mt.writeTp == nil {
+				if mt.writeConn == nil {
 					if !mt.isServing() {
 						return
 					}
@@ -188,7 +188,7 @@ func (mt *ManagedTransport) close() (closed bool) {
 	return closed
 }
 
-// Accept accepts a new underlying 'read' transport (and close/replace the old one).
+// Accept accepts a new underlying 'read' connection (and close/replace the old one).
 func (mt *ManagedTransport) Accept(ctx context.Context, tp Transport) error {
 	mt.acceptMx.RLock()
 	defer mt.acceptMx.RUnlock()
@@ -218,7 +218,7 @@ func (mt *ManagedTransport) Accept(ctx context.Context, tp Transport) error {
 	}
 }
 
-// Dial dials a new underlying 'write' transport (and close/replace the old one).
+// Dial dials a new underlying 'write' connection (and close/replace the old one).
 func (mt *ManagedTransport) Dial(ctx context.Context) error {
 	mt.dialMx.Lock()
 	defer mt.dialMx.Unlock()
@@ -227,8 +227,8 @@ func (mt *ManagedTransport) Dial(ctx context.Context) error {
 		return ErrNotServing
 	}
 
-	if mt.writeTp != nil {
-		_ = mt.writeTp.Close() //nolint:errcheck
+	if mt.writeConn != nil {
+		_ = mt.writeConn.Close() //nolint:errcheck
 	}
 	return mt.dial(ctx)
 }
@@ -243,7 +243,7 @@ func (mt *ManagedTransport) dial(ctx context.Context) error {
 	if err := MakeSettlementHS(true).Do(ctx, mt.dc, tp, mt.lSK); err != nil {
 		return fmt.Errorf("settlement handshake failed: %v", err)
 	}
-	mt.writeTp = tp
+	mt.writeConn = tp
 	return nil
 }
 
@@ -256,18 +256,18 @@ func (mt *ManagedTransport) WritePacket(ctx context.Context, rtID routing.RouteI
 		return ErrNotServing
 	}
 
-	if mt.writeTp == nil { // TODO: race condition
+	if mt.writeConn == nil { // TODO: race condition
 		if err := mt.dial(ctx); err != nil {
 			return fmt.Errorf("failed to redial transport: %v", err)
 		}
 	}
 
-	n, err := mt.writeTp.Write(routing.MakePacket(rtID, payload))
+	n, err := mt.writeConn.Write(routing.MakePacket(rtID, payload))
 	if err != nil {
 		if _, err := mt.dc.UpdateStatuses(context.Background(), &Status{ID: mt.Entry.ID, IsUp: false}); err != nil {
 			mt.log.Warnf("Failed to change transport status: %s", err)
 		}
-		mt.writeTp = nil
+		mt.writeConn = nil
 		return err
 	}
 	if n > 0 {
@@ -280,8 +280,8 @@ func (mt *ManagedTransport) latestReadTp() (Transport, error) {
 	mt.acceptMx.RLock()
 	defer mt.acceptMx.RUnlock()
 
-	if mt.readTp != nil {
-		return mt.readTp, nil
+	if mt.readConn != nil {
+		return mt.readConn, nil
 	}
 
 	select {
@@ -292,8 +292,8 @@ func (mt *ManagedTransport) latestReadTp() (Transport, error) {
 		if !ok {
 			return nil, ErrNotServing
 		}
-		mt.readTp = tp
-		return mt.readTp, nil
+		mt.readConn = tp
+		return mt.readConn, nil
 	}
 }
 
@@ -307,7 +307,7 @@ func (mt *ManagedTransport) readPacket() (packet routing.Packet, err error) {
 	defer func() {
 		if err != nil && mt.isServing() {
 			mt.acceptMx.RLock()
-			mt.readTp = nil
+			mt.readConn = nil
 			mt.acceptMx.RUnlock()
 		}
 	}()
