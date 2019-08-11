@@ -3,6 +3,8 @@ package therealssh
 import (
 	"fmt"
 	"net"
+	"net/http"
+	"net/rpc"
 	"os/user"
 	"testing"
 
@@ -50,6 +52,65 @@ func TestRunInPTY(t *testing.T) {
 
 	b := make([]byte, 6024)
 	_, err = ch.Read(b)
+	require.NoError(t, err)
+	require.Contains(t, string(b), "pty_test.go")
+}
+
+func TestRunRPC(t *testing.T) {
+	dialConn, acceptConn := net.Pipe()
+	pd := PipeDialer{PipeWithRoutingAddr{dialConn}, acceptConn}
+	rpcC, client, err := NewClient(":9999", pd)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, client.Close())
+	}()
+
+	server := NewServer(MockAuthorizer{})
+	go func() {
+		err := server.Serve(PipeWithRoutingAddr{acceptConn})
+		fmt.Println("server.Serve finished with err: ", err)
+		require.NoError(t, err)
+	}()
+
+	go func() {
+		err = http.Serve(rpcC, nil)
+		require.NoError(t, err)
+	}()
+
+	rpcD, err := rpc.DialHTTP("tcp", ":9999")
+	require.NoError(t, err)
+
+	cuser, err := user.Current()
+	require.NoError(t, err)
+
+	ptyArgs := &RequestPTYArgs{
+		Username: cuser.Username,
+		RemotePK: cipher.PubKey{},
+		Size: &pty.Winsize{
+			Rows: 100,
+			Cols: 100,
+			X:    100,
+			Y:    100,
+		},
+	}
+	var channel uint32
+	err = rpcD.Call("RPCClient.RequestPTY", ptyArgs, &channel)
+	require.NoError(t, err)
+
+	var socketPath string
+	execArgs := &ExecArgs{
+		ChannelID:       channel,
+		CommandWithArgs: []string{"ls"},
+	}
+
+	err = rpcD.Call("RPCClient.Run", execArgs, &socketPath)
+	require.NoError(t, err)
+
+	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"})
+	require.NoError(t, err)
+
+	b := make([]byte, 6024)
+	_, err = conn.Read(b)
 	require.NoError(t, err)
 	require.Contains(t, string(b), "pty_test.go")
 }

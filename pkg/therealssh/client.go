@@ -212,6 +212,33 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 	return nil
 }
 
+// Run defines new remote shell-less execution RPC request.
+func (rpc *RPCClient) Run(args *ExecArgs, socketPath *string) error {
+	sshCh := rpc.c.chans.getChannel(args.ChannelID)
+	if sshCh == nil {
+		return errors.New("unknown channel")
+	}
+
+	debug("requesting shell-less process execution")
+	if _, err := sshCh.Request(RequestExecWithoutShell, args.ToBinary()); err != nil {
+		return fmt.Errorf("run command request failure: %s", err)
+	}
+
+	waitCh := make(chan bool)
+	go func() {
+		debug("starting socket listener")
+		waitCh <- true
+		if err := sshCh.ServeSocket(); err != nil {
+			log.Error("Session failure:", err)
+		}
+	}()
+
+	*socketPath = sshCh.SocketPath()
+
+	<-waitCh
+	return nil
+}
+
 // WindowChange defines window size change RPC request.
 func (rpc *RPCClient) WindowChange(args *WindowChangeArgs, _ *int) error {
 	sshCh := rpc.c.chans.getChannel(args.ChannelID)
