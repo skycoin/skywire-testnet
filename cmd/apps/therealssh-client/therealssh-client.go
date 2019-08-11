@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/app"
 	ssh "github.com/skycoin/skywire/pkg/therealssh"
 )
@@ -29,6 +32,9 @@ func main() {
 	}()
 
 	ssh.Debug = *debug
+	if !ssh.Debug {
+		logging.SetLevel(logrus.InfoLevel)
+	}
 
 	rpc, client, err := ssh.NewClient(*rpcAddr, sshApp)
 	if err != nil {

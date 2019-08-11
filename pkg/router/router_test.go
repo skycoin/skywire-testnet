@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -32,7 +33,8 @@ func TestMain(m *testing.M) {
 		}
 		logging.SetLevel(lvl)
 	} else {
-		logging.Disable()
+		logging.SetLevel(logrus.TraceLevel)
+		//logging.Disable()
 	}
 
 	os.Exit(m.Run())
@@ -66,7 +68,7 @@ func TestRouterForwarding(t *testing.T) {
 
 	rt := routing.InMemoryRoutingTable()
 	conf := &Config{
-		Logger:           logging.MustGetLogger("routesetup"),
+		Logger:           logging.MustGetLogger("router"),
 		PubKey:           pk2,
 		SecKey:           sk2,
 		TransportManager: m2,
@@ -78,10 +80,10 @@ func TestRouterForwarding(t *testing.T) {
 		errCh <- r.Serve(context.TODO())
 	}()
 
-	tr1, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
+	tr1, err := m1.CreateDataTransport(context.TODO(), pk2, "mock", true)
 	require.NoError(t, err)
 
-	tr3, err := m3.CreateTransport(context.TODO(), pk2, "mock2", true)
+	tr3, err := m3.CreateDataTransport(context.TODO(), pk2, "mock2", true)
 	require.NoError(t, err)
 
 	rule := routing.ForwardRule(time.Now().Add(time.Hour), 4, tr3.Entry.ID)
@@ -95,6 +97,7 @@ func TestRouterForwarding(t *testing.T) {
 
 	packet := make(routing.Packet, 9)
 	_, err = tr3.Read(packet)
+
 	require.NoError(t, err)
 	assert.Equal(t, uint16(3), packet.Size())
 	assert.Equal(t, routing.RouteID(4), packet.RouteID())
@@ -201,7 +204,7 @@ func TestRouterApp(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	tr, err := m1.CreateTransport(context.TODO(), pk2, "mock", true)
+	tr, err := m1.CreateDataTransport(context.TODO(), pk2, "mock", true)
 	require.NoError(t, err)
 
 	rule := routing.AppRule(time.Now().Add(time.Hour), 4, pk2, 5, 6)
@@ -339,6 +342,8 @@ func TestRouterSetup(t *testing.T) {
 	m2, err := transport.NewManager(c2, f2)
 	require.NoError(t, err)
 
+	m1.SetSetupNodes([]cipher.PubKey{pk2})
+
 	rt := routing.InMemoryRoutingTable()
 	conf := &Config{
 		Logger:           logging.MustGetLogger("routesetup"),
@@ -354,8 +359,9 @@ func TestRouterSetup(t *testing.T) {
 		errCh <- r.Serve(context.TODO())
 	}()
 
-	tr, err := m2.CreateTransport(context.TODO(), pk1, "mock", false)
+	tr, err := m2.CreateSetupTransport(context.TODO(), pk1, "mock")
 	require.NoError(t, err)
+	trID := transport.MakeTransportID(tr.LocalPK(), tr.RemotePK(), tr.Type(), false)
 	sProto := setup.NewSetupProtocol(tr)
 
 	rw1, rwIn1 := net.Pipe()
@@ -390,17 +396,17 @@ func TestRouterSetup(t *testing.T) {
 	}()
 
 	var routeID routing.RouteID
-	t.Run("add route", func(t *testing.T) {
-		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, tr.Entry.ID))
+	t.Run("add rule", func(t *testing.T) {
+		routeID, err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, trID))
 		require.NoError(t, err)
 
 		rule, err := rt.Rule(routeID)
 		require.NoError(t, err)
 		assert.Equal(t, routing.RouteID(2), rule.RouteID())
-		assert.Equal(t, tr.Entry.ID, rule.TransportID())
+		assert.Equal(t, trID, rule.TransportID())
 	})
 
-	t.Run("`confirm loop - responder", func(t *testing.T) {
+	t.Run("confirm loop - responder", func(t *testing.T) {
 		appRouteID, err := setup.AddRule(sProto, routing.AppRule(time.Now().Add(time.Hour), 0, pk2, 1, 2))
 		require.NoError(t, err)
 
@@ -426,7 +432,7 @@ func TestRouterSetup(t *testing.T) {
 		loop, err := r.pm.GetLoop(2, routing.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, loop)
-		assert.Equal(t, tr.Entry.ID, loop.trID)
+		assert.Equal(t, trID, loop.trID)
 		assert.Equal(t, routing.RouteID(2), loop.routeID)
 
 		var addrs [2]routing.Addr
@@ -466,7 +472,7 @@ func TestRouterSetup(t *testing.T) {
 		l, err := r.pm.GetLoop(2, routing.Addr{PubKey: pk2, Port: 1})
 		require.NoError(t, err)
 		require.NotNil(t, l)
-		assert.Equal(t, tr.Entry.ID, l.trID)
+		assert.Equal(t, trID, l.trID)
 		assert.Equal(t, routing.RouteID(2), l.routeID)
 
 		var addrs [2]routing.Addr
@@ -534,9 +540,12 @@ func TestRouterSetupLoop(t *testing.T) {
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
+	m1.SetSetupNodes([]cipher.PubKey{pk2})
 
 	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
+	m2.SetSetupNodes([]cipher.PubKey{pk1})
+
 	serveErrCh := make(chan error, 1)
 	go func() {
 		serveErrCh <- m2.Serve(context.TODO())
@@ -554,12 +563,7 @@ func TestRouterSetupLoop(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		var tr *transport.ManagedTransport
-		for tr = range m2.TrChan {
-			if tr.Accepted {
-				break
-			}
-		}
+		tr := <-m2.SetupTpChan
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
@@ -661,9 +665,12 @@ func TestRouterCloseLoop(t *testing.T) {
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
+	m1.SetSetupNodes([]cipher.PubKey{pk2})
 
 	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
+	m2.SetSetupNodes([]cipher.PubKey{pk1})
+
 	serveErrCh := make(chan error, 1)
 	go func() {
 		serveErrCh <- m2.Serve(context.TODO())
@@ -685,14 +692,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		// acceptCh, _ := m2.Observe()
-		// tr := <-acceptCh
-		var tr *transport.ManagedTransport
-		for tr = range m2.TrChan {
-			if tr.Accepted {
-				break
-			}
-		}
+		tr := <-m2.SetupTpChan
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()
@@ -768,9 +768,12 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 
 	m1, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore}, f1)
 	require.NoError(t, err)
+	m1.SetSetupNodes([]cipher.PubKey{pk2})
 
 	m2, err := transport.NewManager(&transport.ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: client, LogStore: logStore}, f2)
 	require.NoError(t, err)
+	m2.SetSetupNodes([]cipher.PubKey{pk1})
+
 	serveErrCh := make(chan error, 1)
 	go func() {
 		serveErrCh <- m2.Serve(context.TODO())
@@ -792,12 +795,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	r := New(conf)
 	errCh := make(chan error)
 	go func() {
-		var tr *transport.ManagedTransport
-		for tr = range m2.TrChan {
-			if tr.Accepted {
-				break
-			}
-		}
+		tr := <-m2.SetupTpChan
 
 		proto := setup.NewSetupProtocol(tr)
 		p, data, err := proto.ReadPacket()

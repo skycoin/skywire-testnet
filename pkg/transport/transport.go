@@ -25,8 +25,11 @@ type Transport interface {
 	// Close implements io.Closer
 	Close() error
 
-	// Edges returns sorted edges of transport
-	Edges() [2]cipher.PubKey
+	// LocalPK returns local public key of transport
+	LocalPK() cipher.PubKey
+
+	// RemotePK returns remote public key of transport
+	RemotePK() cipher.PubKey
 
 	// SetDeadline functions the same as that from net.Conn
 	// With a Transport, we don't have a distinction between write and read timeouts.
@@ -60,7 +63,7 @@ type Factory interface {
 // - always the same for a given pair
 // - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
 func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
-	keys := SortPubKeys(keyA, keyB)
+	keys := SortEdges(keyA, keyB)
 	if public {
 		return uuid.NewSHA1(uuid.UUID{},
 			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
@@ -69,8 +72,8 @@ func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.
 		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
 }
 
-// SortPubKeys sorts keys so that least-significant comes first
-func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
+// SortEdges sorts keys so that least-significant comes first
+func SortEdges(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
 	for i := 0; i < 33; i++ {
 		if keyA[i] != keyB[i] {
 			if keyA[i] < keyB[i] {
@@ -80,9 +83,4 @@ func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
 		}
 	}
 	return [2]cipher.PubKey{keyA, keyB}
-}
-
-// SortEdges sorts edges so that list-significant comes firs
-func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
-	return SortPubKeys(edges[0], edges[1])
 }

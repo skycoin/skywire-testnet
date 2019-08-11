@@ -112,7 +112,7 @@ func TestRPC(t *testing.T) {
 		require.NoError(t, <-errCh)
 	}()
 
-	_, err = tm2.CreateTransport(context.TODO(), pk1, "mock", true)
+	_, err = tm2.CreateDataTransport(context.TODO(), pk1, "mock", true)
 	require.NoError(t, err)
 
 	apps := []AppConfig{

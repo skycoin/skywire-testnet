@@ -15,7 +15,7 @@ type Loop struct {
 
 // TODO: discuss if we should add local PK to the output
 func (l Loop) String() string {
-	return fmt.Sprintf(":%d <-> %s:%d", l.Local.Port, l.Remote.PubKey, l.Remote.Port)
+	return fmt.Sprintf("%s:%d <-> %s:%d", l.Local.PubKey, l.Local.Port, l.Remote.PubKey, l.Remote.Port)
 }
 
 // LoopDescriptor defines a loop over a pair of routes.
