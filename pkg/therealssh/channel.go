@@ -244,7 +244,7 @@ func (sshCh *SSHChannel) Run(command string) error {
 	}
 
 	go func() {
-		_, err = sshCh.Write(out)
+		_, err := sshCh.Write(out)
 		if err != nil {
 			log.Warn("error writing to channel: ", err)
 		}
