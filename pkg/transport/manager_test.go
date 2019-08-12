@@ -58,6 +58,7 @@ func TestNewManager(t *testing.T) {
 		require.NoError(t, m1.Close())
 		require.NoError(t, <-m1Err)
 	}()
+	fmt.Println("tp manager 1 prepared")
 
 	// Prepare tp manager 2.
 	pk2, sk2 := keys[1].PK, keys[1].SK
@@ -75,12 +76,15 @@ func TestNewManager(t *testing.T) {
 		require.NoError(t, m2.Close())
 		require.NoError(t, <-m2Err)
 	}()
+	fmt.Println("tp manager 2 prepared")
 
 	// Create data transport between manager 1 & manager 2.
 	tp2, err := m2.SaveTransport(context.TODO(), pk1, "dmsg")
 	require.NoError(t, err)
 	tp1 := m1.Transport(transport.MakeTransportID(pk1, pk2, "dmsg"))
 	require.NotNil(t, tp1)
+
+	fmt.Println("transports created")
 
 	totalSent2 := 0
 	totalSent1 := 0

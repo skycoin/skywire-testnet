@@ -43,6 +43,8 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	log := logging.MustGetLogger("tp_manager")
 	ctx := context.Background()
 
+	done := make(chan struct{})
+
 	fMap := make(map[string]Factory)
 	for _, factory := range factories {
 		fMap[factory.Type()] = factory
@@ -62,7 +64,7 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 			continue
 		}
 		mTp := NewManagedTransport(fac, config.DiscoveryClient, config.LogStore, entry.Entry.RemoteEdge(config.PubKey), config.SecKey)
-		go mTp.Serve(rCh)
+		go mTp.Serve(rCh, done)
 		tpMap[entry.Entry.ID] = mTp
 	}
 
@@ -73,7 +75,7 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 		tps:     tpMap,
 		setupCh: make(chan Transport, 9), // TODO: eliminate or justify buffering here
 		readCh:  rCh,
-		done:    make(chan struct{}),
+		done:    done,
 	}, nil
 }
 
@@ -159,10 +161,7 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) error {
 		if err := mTp.Accept(ctx, tr); err != nil {
 			return err
 		}
-		if err := mTp.Dial(ctx); err != nil {
-			return err
-		}
-		go mTp.Serve(tm.readCh)
+		go mTp.Serve(tm.readCh, tm.done)
 		tm.tps[tpID] = mTp
 
 	} else {
@@ -199,7 +198,7 @@ func (tm *Manager) SaveTransport(ctx context.Context, remote cipher.PubKey, tpTy
 	if err := mTp.Dial(ctx); err != nil {
 		tm.Logger.Warnf("underlying 'write' tp failed, will retry: %v", err)
 	}
-	go mTp.Serve(tm.readCh)
+	go mTp.Serve(tm.readCh, tm.done)
 	tm.tps[tpID] = mTp
 
 	tm.Logger.Infof("saved transport: remote(%s) type(%s) tpID(%s)", remote, tpType, tpID)

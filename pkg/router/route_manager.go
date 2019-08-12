@@ -35,6 +35,10 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 		return nil, errors.New("unknown RouteID")
 	}
 
+	if len(rule) < 13 {
+		return nil, errors.New("corrupted rule")
+	}
+
 	if rule.Expiry().Before(time.Now()) {
 		return nil, errors.New("expired routing rule")
 	}

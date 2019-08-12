@@ -43,7 +43,7 @@ func (r Rule) Expiry() time.Time {
 }
 
 // Type returns type of a rule.
-func (r Rule) Type() RuleType {
+func (r Rule) Type() RuleType { // TODO: segfault
 	return RuleType(r[8])
 }
 
