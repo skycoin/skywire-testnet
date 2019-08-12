@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,7 +40,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestNode(t *testing.T) {
-
 	// Prepare mock dmsg discovery.
 	discovery := disc.NewMock()
 
@@ -131,6 +131,7 @@ func TestNode(t *testing.T) {
 			}
 		}()
 
+		var nextRouteID uint32
 		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
 		expectAddRules := func(client int, expRule routing.RuleType) {
 			tp, err := clients[client].Accept(context.TODO())
@@ -139,6 +140,15 @@ func TestNode(t *testing.T) {
 
 			proto := NewSetupProtocol(tp)
 
+			pt, _, err := proto.ReadPacket()
+			require.NoError(t, err)
+			require.Equal(t, PacketRequestRouteID, pt)
+
+			routeID := atomic.AddUint32(&nextRouteID, 1)
+
+			err = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)})
+			require.NoError(t, err)
+
 			pt, pp, err := proto.ReadPacket()
 			require.NoError(t, err)
 			require.Equal(t, PacketAddRules, pt)
@@ -146,14 +156,12 @@ func TestNode(t *testing.T) {
 			var rs []routing.Rule
 			require.NoError(t, json.Unmarshal(pp, &rs))
 
-			rIDs := make([]routing.RouteID, len(rs))
-			for i, r := range rs {
-				rIDs[i] = r.RouteID()
+			for _, r := range rs {
 				require.Equal(t, expRule, r.Type())
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, rIDs) //nolint:errcheck
+			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
 		}
 
 		// CLOSURE: emulates how a visor node should react when expecting an ConfirmLoop packet.
