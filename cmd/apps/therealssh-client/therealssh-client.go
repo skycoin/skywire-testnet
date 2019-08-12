@@ -11,8 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	ssh "github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
+	ssh "github.com/skycoin/skywire/pkg/therealssh"
 )
 
 func main() {

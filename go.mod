@@ -4,12 +4,13 @@ go 1.12
 
 require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
+	github.com/creack/pty v1.1.7
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
-	github.com/kr/pty v1.1.5
+	github.com/kr/pty v1.1.5 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/profile v1.3.0
 	github.com/prometheus/client_golang v1.0.0

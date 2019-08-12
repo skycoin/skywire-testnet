@@ -2,6 +2,7 @@ package therealssh
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -9,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/kr/pty"
+	"github.com/creack/pty"
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
@@ -75,6 +76,37 @@ func (s *Session) Start(command string) (err error) {
 
 	s.cmd = cmd
 	return cmd.Start()
+}
+
+// Run executes a command and returns it's output and error if any
+func (s *Session) Run(command string) ([]byte, error) {
+	var err error
+
+	if command == "shell" {
+		if command, err = resolveShell(s.user); err != nil {
+			return nil, err
+		}
+	}
+
+	components := strings.Split(command, " ")
+
+	c := exec.Command(components[0], components[1:]...) // nolint:gosec
+	ptmx, err := pty.Start(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make sure to close the pty at the end.
+	defer func() {
+		err = ptmx.Close()
+		if err != nil {
+			log.Warn("unable to close pty")
+		}
+	}() // Best effort.
+
+	// as stated in https://github.com/creack/pty/issues/21#issuecomment-513069505 we can ignore this error
+	res, _ := ioutil.ReadAll(ptmx) // nolint: err
+	return res, nil
 }
 
 // Wait for pty process to exit.

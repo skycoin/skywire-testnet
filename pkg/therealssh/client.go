@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kr/pty"
+	"github.com/creack/pty"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/internal/netutil"
@@ -208,6 +208,33 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 	}()
 
 	*socketPath = sshCh.SocketPath()
+	<-waitCh
+	return nil
+}
+
+// Run defines new remote shell-less execution RPC request.
+func (rpc *RPCClient) Run(args *ExecArgs, socketPath *string) error {
+	sshCh := rpc.c.chans.getChannel(args.ChannelID)
+	if sshCh == nil {
+		return errors.New("unknown channel")
+	}
+
+	log.Debugln("requesting shell-less process execution")
+	if _, err := sshCh.Request(RequestExecWithoutShell, args.ToBinary()); err != nil {
+		return fmt.Errorf("run command request failure: %s", err)
+	}
+
+	waitCh := make(chan bool)
+	go func() {
+		log.Debugln("starting socket listener")
+		waitCh <- true
+		if err := sshCh.ServeSocket(); err != nil {
+			log.Error("Session failure:", err)
+		}
+	}()
+
+	*socketPath = sshCh.SocketPath()
+
 	<-waitCh
 	return nil
 }
