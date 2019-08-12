@@ -397,7 +397,7 @@ func TestRouterSetup(t *testing.T) {
 
 	var routeID routing.RouteID
 	t.Run("add rule", func(t *testing.T) {
-		routeID, err := setup.RequestRouteID(sProto)
+		routeID, err = setup.RequestRouteID(sProto)
 		require.NoError(t, err)
 
 		err = setup.AddRule(sProto, routing.ForwardRule(time.Now().Add(time.Hour), 2, trID, routeID))
