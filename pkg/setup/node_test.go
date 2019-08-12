@@ -84,7 +84,6 @@ func TestNode(t *testing.T) {
 	// TEST: Emulates the communication between 4 visor nodes and a setup node,
 	// where the first client node initiates a loop to the last.
 	t.Run("CreateLoop", func(t *testing.T) {
-
 		// client index 0 is for setup node.
 		// clients index 1 to 4 are for visor nodes.
 		clients, closeClients := prepClients(5)
@@ -160,8 +159,8 @@ func TestNode(t *testing.T) {
 				require.Equal(t, expRule, r.Type())
 			}
 
-			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			err = proto.WritePacket(RespSuccess, nil)
+			require.NoError(t, err)
 		}
 
 		// CLOSURE: emulates how a visor node should react when expecting an ConfirmLoop packet.
