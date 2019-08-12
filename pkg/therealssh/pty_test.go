@@ -1,3 +1,5 @@
+// +build dragonfly freebsd linux netbsd openbsd
+
 package therealssh
 
 import (
