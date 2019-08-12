@@ -87,7 +87,7 @@ func (r *Router) Serve(ctx context.Context) error {
 			if err != nil {
 				return
 			}
-			if err := r.handlePacket(ctx, packet); err != nil { // TODO: race
+			if err := r.handlePacket(ctx, packet); err != nil {
 				if err == transport.ErrNotServing {
 					r.Logger.WithError(err).Warnf("Stopped serving Transport.")
 					return
@@ -214,7 +214,7 @@ func (r *Router) forwardPacket(ctx context.Context, payload []byte, rule routing
 	if err := tp.WritePacket(ctx, rule.RouteID(), payload); err != nil {
 		return err
 	}
-	r.Logger.Infof("Forwarded packet via Transport %s using rule %d", rule.TransportID(), rule.RouteID()) // TODO: race TransportID()
+	r.Logger.Infof("Forwarded packet via Transport %s using rule %d", rule.TransportID(), rule.RouteID())
 	return nil
 }
 

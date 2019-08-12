@@ -360,7 +360,7 @@ func (tm *Manager) Close() error {
 	}
 
 	close(tm.setupCh)
-	close(tm.readCh) // TODO: data race
+	close(tm.readCh)
 	return nil
 }
 
