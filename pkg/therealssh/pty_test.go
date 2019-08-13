@@ -1,4 +1,4 @@
-// +build dragonfly freebsd linux netbsd openbsd
+// +build !no_ci
 
 package therealssh
 
@@ -15,47 +15,6 @@ import (
 
 	"github.com/skycoin/skywire/pkg/routing"
 )
-
-/* func TestRunInPTY(t *testing.T) {
-	dialConn, acceptConn := net.Pipe()
-	pd := PipeDialer{PipeWithRoutingAddr{dialConn}, acceptConn}
-	_, client, err := NewClient(":9999", pd)
-	require.NoError(t, err)
-
-	server := NewServer(MockAuthorizer{})
-
-	go func() {
-		server.Serve(PipeWithRoutingAddr{acceptConn}) // nolint
-	}()
-
-	_, ch, err := client.OpenChannel(cipher.PubKey{})
-	require.NoError(t, err)
-
-	cuser, err := user.Current()
-	require.NoError(t, err)
-
-	args := RequestPTYArgs{
-		Username: cuser.Username,
-		RemotePK: cipher.PubKey{},
-		Size: &pty.Winsize{
-			Rows: 100,
-			Cols: 100,
-			X:    100,
-			Y:    100,
-		},
-	}
-	_, err = ch.Request(RequestPTY, args.ToBinary())
-	require.NoError(t, err)
-
-	_, err = ch.Request(RequestExecWithoutShell, []byte("ls"))
-	require.NoError(t, err)
-
-	b := make([]byte, 6024)
-	_, err = ch.Read(b)
-	require.NoError(t, err)
-	require.Contains(t, string(b), "pty_test.go")
-}
-*/
 
 func TestRunRPC(t *testing.T) {
 	dialConn, acceptConn := net.Pipe()
