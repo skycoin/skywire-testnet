@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -54,7 +55,7 @@ func cfgPool(baseCfg Config, ipTmplt, localPathTmplt string, n uint) []Config {
 		baseCfg.LocalPath = localPath
 		baseCfg.Interfaces.RPCAddress = fmt.Sprintf("%s:3435", ip)
 		baseCfg.Transport.LogStore.Location = fmt.Sprintf("%s/transport_logs", localPath)
-		baseCfg.Routing.Table.Location = fmt.Sprintf("%s/routing.db", localPath)
+
 		baseCfg.Apps = []AppConfig{
 			AppConfig{
 				App:       "skychat",
@@ -141,32 +142,34 @@ func stopMultiHead(nodes []*Node) chan error {
 	return errs
 }
 
+type multiheadWriter struct {
+	logRecords []string
+}
+
+func (mhw *multiheadWriter) Write(p []byte) (n int, err error) {
+	mhw.logRecords = append(mhw.logRecords, string(p))
+	return len(p), nil
+}
+
 func Example_startMultiHead() {
 
-	_ = os.MkdirAll("/tmp/multihead", 0777)
-	f, err := os.OpenFile("/tmp/multihead/multihead.log", os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-	masterLogger.Out = f
+	mhw := multiheadWriter{logRecords: []string{}}
+	masterLogger.Out = &mhw
 
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
 	baseCfg, err := readConfig(cfgFile)
 	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys")
 	baseCfg.AppsPath, _ = filepath.Abs("../../apps")
+	baseCfg.Routing.Table.Type = "memory"
 	fmt.Printf("baseCfg success: %v\n", err == nil)
 
-	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "/tmp/multihead/node_%03d", 128)
+	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "/tmp/multihead/node_%03d", 1)
 	nodes := nodePool(nodeCfgs)
 
 	errsOnStart := startMultiHead(nodes)
-
 	time.Sleep(time.Second * 5)
-
 	errsOnStop := stopMultiHead(nodes)
-
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 5)
 
 	close(errsOnStart)
 	close(errsOnStop)
@@ -174,5 +177,8 @@ func Example_startMultiHead() {
 	fmt.Printf("errsOnStart: %v\n", len(errsOnStart))
 	fmt.Printf("errsOnStop: %v\n", len(errsOnStop))
 
+	fmt.Printf("log: %v\n", mhw.logRecords)
+
+	strings.Contains(mhw.logRecords, "ZZZ")
 	// Output: ZZZZ
 }
