@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -125,10 +127,14 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 		return err
 	}
 
+	fmt.Println("FINISHED SETUP OF REVERSE ROUTE")
+
 	fRouteID, err := sn.createRoute(ld.Expiry, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("FINISHED SETUP OF FORWARD ROUTE")
 
 	if len(ld.Forward) == 0 || len(ld.Reverse) == 0 {
 		return nil
@@ -154,6 +160,8 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
+
+	fmt.Println("FINISHED CONNECTLOOP REQUEST")
 
 	ldI := routing.LoopData{
 		Loop: routing.Loop{
@@ -192,19 +200,32 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 
 	// indicate errors occurred during rules setup
 	rulesSetupErrs := make(chan error, len(r))
+	routeIDsCh := make([]chan routing.RouteID, 0, len(r))
+	for range r {
+		routeIDsCh = append(routeIDsCh, make(chan routing.RouteID))
+	}
 
 	// context to cancel rule setup in case of errors
 	ctx, cancel := context.WithCancel(context.Background())
-	for idx := len(r) - 1; idx >= 0; idx-- {
+	/*for idx := len(r) - 1; idx >= 0; idx-- {
 		hop := &Hop{Hop: route[idx]}
 		r[idx] = hop
 
-		var nextHop *Hop
-		if idx != len(r)-1 {
-			nextHop = r[idx+1]
-		}
+		toPK := hop.To.Hex()
 
-		go func(idx int, hop, nextHop *Hop) {
+		var routeIDChIn, routeIDChOut chan routing.RouteID
+		if idx > 0 {
+			routeIDChOut = routeIDsCh[idx-1]
+		}
+		if idx != len(r)-1 {
+			routeIDChIn = routeIDsCh[idx]
+		}
+		var nextTransport uuid.UUID
+		if idx != len(r)-1 {
+			nextTransport = route[idx+1].Transport
+		}
+		go func(idx int, hop *Hop, routeIDChIn, routeIDChOut chan routing.RouteID, nextTransport uuid.UUID) {
+			fmt.Printf("Sending RequestRouteID to %v\n", toPK)
 			routeID, err := sn.requestRouteID(ctx, hop.To)
 			if err != nil {
 				// filter out context cancellation errors
@@ -215,17 +236,83 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 				}
 				return
 			}
+			fmt.Printf("Got RouteID %v from %v\n", routeID, toPK)
 
 			hop.routeID = routeID
 
+			if routeIDChOut != nil {
+				routeIDChOut <- routeID
+			}
+			var nextRouteID routing.RouteID
+			if routeIDChIn != nil {
+				nextRouteID = <-routeIDChIn
+			}
+			fmt.Printf("Got nextRouteID %v from chan by goroutine communicating with %v\n", nextRouteID, toPK)
+
 			var rule routing.Rule
-			if nextHop == nil {
-				rule = routing.AppRule(expireAt, 0, initiator, lport, rport, routeID)
+			if idx == len(r)-1 {
+				rule = routing.AppRule(expireAt, 0, initiator, lport, rport, hop.routeID)
 			} else {
-				rule = routing.ForwardRule(expireAt, nextHop.routeID, nextHop.Transport, routeID)
+				rule = routing.ForwardRule(expireAt, nextRouteID, nextTransport, hop.routeID)
 			}
 
+			fmt.Printf("Sending AddRule with RouteID %v to %v\n", routeID, toPK)
 			err = sn.setupRule(ctx, hop.To, rule)
+			if err != nil {
+				// filter out context cancellation errors
+				if err == context.Canceled {
+					rulesSetupErrs <- err
+				} else {
+					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
+				}
+				return
+				//break
+			}
+			fmt.Printf("Got response from AddRule from %v\n", toPK)
+
+			// put nil to avoid block
+			rulesSetupErrs <- nil
+		}(idx, hop, routeIDChIn, routeIDChOut, nextTransport)
+	}*/
+
+	for idx := len(r) - 1; idx >= 0; idx-- {
+		hop := &Hop{Hop: route[idx]}
+		r[idx] = hop
+
+		toPK := hop.To.Hex()
+
+		var routeIDChIn, routeIDChOut chan routing.RouteID
+		if idx > 0 {
+			routeIDChOut = routeIDsCh[idx-1]
+		}
+		if idx != len(r)-1 {
+			routeIDChIn = routeIDsCh[idx]
+		}
+		var nextTransport uuid.UUID
+		if idx != len(r)-1 {
+			nextTransport = route[idx+1].Transport
+		}
+		go func(idx int, hop *Hop, routeIDChIn, routeIDChOut chan routing.RouteID, nextTransport uuid.UUID) {
+			fmt.Printf("Sending RequestRouteID to %v\n", toPK)
+			sn.Logger.Debugf("dialing to %s to request route ID\n", toPK)
+			tr, err := sn.messenger.Dial(ctx, hop.To)
+			if err != nil {
+				// filter out context cancellation errors
+				if err == context.Canceled {
+					rulesSetupErrs <- err
+				} else {
+					rulesSetupErrs <- fmt.Errorf("rule setup: transport: %s", err)
+				}
+				return
+			}
+			defer func() {
+				if err := tr.Close(); err != nil {
+					sn.Logger.Warnf("Failed to close transport: %s", err)
+				}
+			}()
+
+			proto := NewSetupProtocol(tr)
+			routeID, err := RequestRouteID(proto)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
@@ -236,9 +323,47 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 				return
 			}
 
+			sn.Logger.Infof("Received route ID %d from %s", routeID, hop.To)
+
+			fmt.Printf("Got RouteID %v from %v\n", routeID, toPK)
+
+			hop.routeID = routeID
+
+			if routeIDChOut != nil {
+				routeIDChOut <- routeID
+			}
+			var nextRouteID routing.RouteID
+			if routeIDChIn != nil {
+				nextRouteID = <-routeIDChIn
+			}
+			fmt.Printf("Got nextRouteID %v from chan by goroutine communicating with %v\n", nextRouteID, toPK)
+
+			var rule routing.Rule
+			if idx == len(r)-1 {
+				rule = routing.AppRule(expireAt, 0, initiator, lport, rport, hop.routeID)
+			} else {
+				rule = routing.ForwardRule(expireAt, nextRouteID, nextTransport, hop.routeID)
+			}
+
+			fmt.Printf("Sending AddRule with RouteID %v to %v\n", routeID, toPK)
+			sn.Logger.Debugf("dialing to %s to setup rule: %v\n", hop.To, rule)
+
+			if err := AddRule(proto, rule); err != nil {
+				// filter out context cancellation errors
+				if err == context.Canceled {
+					rulesSetupErrs <- err
+				} else {
+					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
+				}
+				return
+			}
+
+			sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), hop.To)
+			fmt.Printf("Got response from AddRule from %v\n", toPK)
+
 			// put nil to avoid block
 			rulesSetupErrs <- nil
-		}(idx, hop, nextHop)
+		}(idx, hop, routeIDChIn, routeIDChOut, nextTransport)
 	}
 
 	var rulesSetupErr error
@@ -255,19 +380,48 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 
 	// close chan to avoid leaks
 	close(rulesSetupErrs)
+	for _, ch := range routeIDsCh {
+		close(ch)
+	}
 	if rulesSetupErr != nil {
 		return 0, rulesSetupErr
 	}
 
-	routeID, err := sn.requestRouteID(context.Background(), initiator)
+	fmt.Println("FINISHED ASYNC SETUP")
+
+	/*routeID, err := sn.requestRouteID(context.Background(), initiator)
 	if err != nil {
 		return 0, fmt.Errorf("request route id: %s", err)
+	}*/
+
+	sn.Logger.Debugf("dialing to %s to request route ID\n", initiator)
+	tr, err := sn.messenger.Dial(ctx, initiator)
+	if err != nil {
+		return 0, fmt.Errorf("transport: %s", err)
+	}
+	defer func() {
+		if err := tr.Close(); err != nil {
+			sn.Logger.Warnf("Failed to close transport: %s", err)
+		}
+	}()
+
+	proto := NewSetupProtocol(tr)
+	routeID, err := RequestRouteID(proto)
+	if err != nil {
+		return 0, err
 	}
 
+	fmt.Println("FINISHED LAST STEP ROUTE ID REQUEST")
+
 	rule := routing.ForwardRule(expireAt, r[0].routeID, r[0].Transport, routeID)
-	if err := sn.setupRule(context.Background(), initiator, rule); err != nil {
+	/*if err := sn.setupRule(context.Background(), initiator, rule); err != nil {
+		return 0, fmt.Errorf("rule setup: %s", err)
+	}*/
+	if err := AddRule(proto, rule); err != nil {
 		return 0, fmt.Errorf("rule setup: %s", err)
 	}
+
+	fmt.Println("FINISHED LAST STEP SETUP RULE REQUEST")
 
 	return routeID, nil
 }
