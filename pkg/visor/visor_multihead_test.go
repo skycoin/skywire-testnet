@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -85,7 +86,6 @@ func Example_cfgPool() {
 
 func nodePool(cfgs []Config) []*Node {
 	nodes := make([]*Node, len(cfgs))
-	// loggers := make([])
 
 	var err error
 	for i := 0; i < len(cfgs); i++ {
@@ -105,6 +105,7 @@ func Example_nodePool() {
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
 	baseCfg, err := readConfig(cfgFile)
 	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys")
+	baseCfg.AppsPath, _ = filepath.Abs("../../apps")
 
 	fmt.Printf("readConfig success: %v\n", err == nil)
 	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "./local/node_%03d", 16)
@@ -116,30 +117,62 @@ func Example_nodePool() {
 	// Nodes: 12.12.12.1 - 12.12.12.16
 }
 
-func startMultiHead(nodes []*Node) []error {
-	errs := []error{}
+func startMultiHead(nodes []*Node) chan error {
+	errs := make(chan error, len(nodes))
 	for i := 0; i < len(nodes); i++ {
-		if err := nodes[i].Start(); err != nil {
-			errs = append(errs, fmt.Errorf("error %v starting node %v", err, i))
-		}
+		go func(n int) {
+			if err := nodes[n].Start(); err != nil {
+				errs <- fmt.Errorf("error %v starting node %v", err, n)
+			}
+		}(i)
+	}
+	return errs
+}
+
+func stopMultiHead(nodes []*Node) chan error {
+	errs := make(chan error, len(nodes))
+	for i := 0; i < len(nodes); i++ {
+		go func(n int) {
+			if err := nodes[n].Close(); err != nil {
+				errs <- fmt.Errorf("error %v starting node %v", err, n)
+			}
+		}(i)
 	}
 	return errs
 }
 
 func Example_startMultiHead() {
+
+	_ = os.MkdirAll("/tmp/multihead", 0777)
+	f, err := os.OpenFile("/tmp/multihead/multihead.log", os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+	masterLogger.Out = f
+
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
 	baseCfg, err := readConfig(cfgFile)
 	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys")
+	baseCfg.AppsPath, _ = filepath.Abs("../../apps")
 	fmt.Printf("baseCfg success: %v\n", err == nil)
 
-	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "./local/node_%03d", 1)
+	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "/tmp/multihead/node_%03d", 128)
 	nodes := nodePool(nodeCfgs)
 
-	_ = nodes
-	var errs []error
-	errs = startMultiHead(nodes)
+	errsOnStart := startMultiHead(nodes)
 
-	fmt.Printf("errors: %v\n", errs)
+	time.Sleep(time.Second * 5)
+
+	errsOnStop := stopMultiHead(nodes)
+
+	time.Sleep(time.Second * 15)
+
+	close(errsOnStart)
+	close(errsOnStop)
+
+	fmt.Printf("errsOnStart: %v\n", len(errsOnStart))
+	fmt.Printf("errsOnStop: %v\n", len(errsOnStop))
 
 	// Output: ZZZZ
 }
