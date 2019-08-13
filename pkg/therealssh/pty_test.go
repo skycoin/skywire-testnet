@@ -1,4 +1,4 @@
-// +build !no_ci
+// +build dragonfly freebsd linux netbsd openbsd
 
 package therealssh
 

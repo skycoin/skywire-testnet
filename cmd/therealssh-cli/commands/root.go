@@ -77,15 +77,7 @@ var rootCmd = &cobra.Command{
 			log.Fatal("Failed to start shell:", err)
 		}
 
-		var conn net.Conn
-		for i := 0; i < 5; i++ {
-			conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"})
-			if err == nil {
-				break
-			}
-
-			time.Sleep(time.Second)
-		}
+		conn, err := dialUnix(socketPath)
 		if err != nil {
 			log.Fatal("Failed dial ssh socket:", err)
 		}
@@ -127,6 +119,22 @@ var rootCmd = &cobra.Command{
 			log.Fatal("Failed to read from ssh socket:", err)
 		}
 	},
+}
+
+func dialUnix(socketPath string) (net.Conn, error) {
+	var conn net.Conn
+	var err error
+
+	for i := 0; i < 5; i++ {
+		conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"})
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	return conn, err
 }
 
 func runInPTY(args []string) {
@@ -172,7 +180,7 @@ func runInPTY(args []string) {
 		log.Fatal(err)
 	}
 
-	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"})
+	conn, err := dialUnix(socketPath)
 	if err != nil {
 		log.Fatal(err)
 	}
