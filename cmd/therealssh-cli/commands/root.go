@@ -22,12 +22,13 @@ import (
 )
 
 var (
-	rpcAddr string
-	ptyMode bool
-	ptyRows uint16
-	ptyCols uint16
-	ptyX    uint16
-	ptyY    uint16
+	rpcAddr       string
+	ptyMode       bool
+	ptyRows       uint16
+	ptyCols       uint16
+	ptyX          uint16
+	ptyY          uint16
+	ptyBufferSize uint32
 )
 
 var rootCmd = &cobra.Command{
@@ -176,7 +177,7 @@ func runInPTY(args []string) {
 		log.Fatal(err)
 	}
 
-	b := make([]byte, 6024)
+	b := make([]byte, ptyBufferSize)
 	_, err = conn.Read(b) // nolint
 	if err != nil {
 		log.Fatal(err)
@@ -210,6 +211,7 @@ func init() {
 	rootCmd.Flags().Uint16VarP(&ptyCols, "ptycols", "", 100, "PTY Cols. Applicable if run with pty flag")
 	rootCmd.Flags().Uint16VarP(&ptyX, "ptyx", "", 100, "PTY X. Applicable if run with pty flag")
 	rootCmd.Flags().Uint16VarP(&ptyY, "ptyy", "", 100, "PTY Y. Applicable if run with pty flag")
+	rootCmd.Flags().Uint32VarP(&ptyBufferSize, "ptybuffer", "", 1024, "PTY Buffer size to store command output")
 }
 
 // Execute executes root CLI command.
