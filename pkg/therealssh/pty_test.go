@@ -16,7 +16,6 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-
 func TestRunRPC(t *testing.T) {
 	dialConn, acceptConn := net.Pipe()
 	pd := PipeDialer{PipeWithRoutingAddr{dialConn}, acceptConn}
