@@ -178,7 +178,7 @@ func runInPTY(args []string) {
 	}
 
 	b := make([]byte, ptyBufferSize)
-	_, err = conn.Read(b) // nolint
+	_, err = conn.Read(b)
 	if err != nil {
 		log.Fatal(err)
 	}
