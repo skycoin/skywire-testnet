@@ -39,7 +39,7 @@ type Config struct {
 
 var rootCmd = &cobra.Command{
 	Use:   "dmsg-server [config.json]",
-	Short: "DMSG Server for skywire",
+	Short: "Dmsg Server for skywire",
 	Run: func(_ *cobra.Command, args []string) {
 		// Config
 		configFile := "config.json"
@@ -80,7 +80,7 @@ var rootCmd = &cobra.Command{
 		// Start
 		srv, err := dmsg.NewServer(conf.PubKey, conf.SecKey, conf.PublicAddress, l, disc.NewHTTP(conf.Discovery))
 		if err != nil {
-			logger.Fatalf("Error creating DMSG server instance: %v", err)
+			logger.Fatalf("Error creating dmsg server instance: %v", err)
 		}
 
 		log.Fatal(srv.Serve())

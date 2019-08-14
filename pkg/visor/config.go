@@ -25,7 +25,7 @@ type Config struct {
 		StaticSecKey cipher.SecKey `json:"static_secret_key"`
 	} `json:"node"`
 
-	DMSG struct {
+	Dmsg struct {
 		Discovery   string `json:"discovery"`
 		ServerCount int    `json:"server_count"`
 	} `json:"dmsg"`
@@ -66,9 +66,9 @@ type Config struct {
 	Interfaces InterfaceConfig `json:"interfaces"`
 }
 
-// DMSGConfig returns config for dmsg client.
-func (c *Config) DMSGConfig() (*DmsgConfig, error) {
-	msgConfig := c.DMSG
+// DmsgConfig returns config for dmsg client.
+func (c *Config) DmsgConfig() (*DmsgConfig, error) {
+	msgConfig := c.Dmsg
 
 	if msgConfig.Discovery == "" {
 		return nil, errors.New("empty discovery")

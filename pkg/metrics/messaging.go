@@ -5,15 +5,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// DMSGMetrics record dmsg metrics
-type DMSGMetrics struct {
+// DmsgMetrics record dmsg metrics
+type DmsgMetrics struct {
 	ClientConns prometheus.Gauge
 	Bandwidth   prometheus.Summary
 }
 
-// NewDMSGMetrics construct new DMSGMetrics.
-func NewDMSGMetrics(service string) *DMSGMetrics {
-	return &DMSGMetrics{
+// NewDmsgMetrics construct new DmsgMetrics.
+func NewDmsgMetrics(service string) *DmsgMetrics {
+	return &DmsgMetrics{
 		ClientConns: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: service + "_clients_total",
 			Help: "The total number of connected clients",
