@@ -190,7 +190,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 	for i := range tps {
 		remotePK, _ := cipher.GenerateKeyPair()
 		tps[i] = &TransportSummary{
-			ID:     transport.MakeTransportID(localPK, remotePK, types[r.Int()%len(types)], true),
+			ID:     transport.MakeTransportID(localPK, remotePK, types[r.Int()%len(types)]),
 			Local:  localPK,
 			Remote: remotePK,
 			Type:   types[r.Int()%len(types)],
@@ -365,7 +365,7 @@ func (mc *mockRPCClient) Transport(tid uuid.UUID) (*TransportSummary, error) {
 // AddTransport implements RPCClient.
 func (mc *mockRPCClient) AddTransport(remote cipher.PubKey, tpType string, public bool, _ time.Duration) (*TransportSummary, error) {
 	summary := &TransportSummary{
-		ID:     transport.MakeTransportID(mc.s.PubKey, remote, tpType, public),
+		ID:     transport.MakeTransportID(mc.s.PubKey, remote, tpType),
 		Local:  mc.s.PubKey,
 		Remote: remote,
 		Type:   tpType,

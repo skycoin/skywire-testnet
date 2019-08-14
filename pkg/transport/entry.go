@@ -22,13 +22,13 @@ type Entry struct {
 
 	// Public determines whether the transport is to be exposed to other nodes or not.
 	// Public transports are to be registered in the Transport Discovery.
-	Public bool `json:"public"`
+	Public bool `json:"public"` // TODO: remove this.
 }
 
 // NewEntry constructs *Entry
 func NewEntry(localPK, remotePK cipher.PubKey, tpType string, public bool) *Entry {
 	return &Entry{
-		ID:     MakeTransportID(localPK, remotePK, tpType, public),
+		ID:     MakeTransportID(localPK, remotePK, tpType),
 		Edges:  SortEdges(localPK, remotePK),
 		Type:   tpType,
 		Public: public,
@@ -37,7 +37,7 @@ func NewEntry(localPK, remotePK cipher.PubKey, tpType string, public bool) *Entr
 
 // SetEdges sets edges of Entry
 func (e *Entry) SetEdges(localPK, remotePK cipher.PubKey) {
-	e.ID = MakeTransportID(localPK, remotePK, e.Type, e.Public)
+	e.ID = MakeTransportID(localPK, remotePK, e.Type)
 	e.Edges = SortEdges(localPK, remotePK)
 }
 
@@ -49,6 +49,17 @@ func (e *Entry) RemoteEdge(local cipher.PubKey) cipher.PubKey {
 		}
 	}
 	return local
+}
+
+// EdgeIndex returns the index location of the given public key.
+// Returns -1 if the edge is not found.
+func (e *Entry) EdgeIndex(pk cipher.PubKey) int {
+	for i, edgePK := range e.Edges {
+		if pk == edgePK {
+			return i
+		}
+	}
+	return -1
 }
 
 // HasEdge returns true if the provided edge is present in 'e.Edges' field.
@@ -104,19 +115,9 @@ type SignedEntry struct {
 	Registered int64         `json:"registered,omitempty"`
 }
 
-// Index returns position of a given pk in edges
-func (se *SignedEntry) Index(pk cipher.PubKey) int {
-	for i, edgePK := range se.Entry.Edges {
-		if pk == edgePK {
-			return i
-		}
-	}
-	return -1
-}
-
 // Sign sets Signature for a given PubKey in correct position
 func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) bool {
-	idx := se.Index(pk)
+	idx := se.Entry.EdgeIndex(pk)
 	if idx == -1 {
 		return false
 	}
@@ -127,7 +128,7 @@ func (se *SignedEntry) Sign(pk cipher.PubKey, secKey cipher.SecKey) bool {
 
 // Signature gets Signature for a given PubKey from correct position
 func (se *SignedEntry) Signature(pk cipher.PubKey) (cipher.Sig, bool) {
-	idx := se.Index(pk)
+	idx := se.Entry.EdgeIndex(pk)
 	if idx == -1 {
 		return cipher.Sig{}, false
 	}

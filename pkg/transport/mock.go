@@ -50,12 +50,14 @@ func (f *MockFactory) SetType(fType string) {
 func (f *MockFactory) Accept(ctx context.Context) (Transport, error) {
 	select {
 	case conn, ok := <-f.in:
-		if ok {
-			return NewMockTransport(conn, f.local, conn.PubKey), nil
+		if !ok {
+			return nil, errors.New("factory: closed")
 		}
+		return NewMockTransport(conn, f.local, conn.PubKey), nil
+
 	case <-f.inDone:
+		return nil, errors.New("factory: closed")
 	}
-	return nil, errors.New("factory: closed")
 }
 
 // Dial creates pair of net.Conn via net.Pipe and passes one end to another MockFactory.
@@ -177,10 +179,10 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
 
-	if m1, err = NewManager(c1, f1); err != nil {
+	if m1, err = NewManager(c1, nil, f1); err != nil {
 		return
 	}
-	if m2, err = NewManager(c2, f2); err != nil {
+	if m2, err = NewManager(c2, nil, f2); err != nil {
 		return
 	}
 

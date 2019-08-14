@@ -53,7 +53,7 @@ func newTransportSummary(tm *transport.Manager, tp *transport.ManagedTransport,
 	summary := &TransportSummary{
 		ID:      tp.Entry.ID,
 		Local:   tm.Local(),
-		Remote:  tp.RemotePK(),
+		Remote:  tp.Remote(),
 		Type:    tp.Type(),
 		IsSetup: isSetup,
 	}
@@ -165,7 +165,7 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 		return true
 	}
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-		if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), tp.RemotePK()) {
+		if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), tp.Remote()) {
 			*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs, r.node.router.IsSetupTransport(tp)))
 		}
 		return true
@@ -200,7 +200,7 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 		defer cancel()
 	}
 
-	tp, err := r.node.tm.CreateDataTransport(ctx, in.RemotePK, in.TpType, in.Public)
+	tp, err := r.node.tm.SaveTransport(ctx, in.RemotePK, in.TpType)
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,8 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 
 // RemoveTransport removes a Transport from the node.
 func (r *RPC) RemoveTransport(tid *uuid.UUID, _ *struct{}) error {
-	return r.node.tm.DeleteTransport(*tid)
+	r.node.tm.DeleteTransport(*tid)
+	return nil
 }
 
 /*

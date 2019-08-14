@@ -4,6 +4,8 @@ package transport
 
 import (
 	"context"
+	"crypto/sha256"
+	"math/big"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,25 +64,21 @@ type Factory interface {
 // Generated uuid is:
 // - always the same for a given pair
 // - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
-func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
+func MakeTransportID(keyA, keyB cipher.PubKey, tpType string) uuid.UUID {
 	keys := SortEdges(keyA, keyB)
-	if public {
-		return uuid.NewSHA1(uuid.UUID{},
-			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
-	}
-	return uuid.NewSHA1(uuid.UUID{},
-		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
+	b := make([]byte, 33*2+len(tpType))
+	i := 0
+	i += copy(b[i:], keys[0][:])
+	i += copy(b[i:], keys[1][:])
+	copy(b[i:], tpType)
+	return uuid.NewHash(sha256.New(), uuid.UUID{}, b, 0)
 }
 
 // SortEdges sorts keys so that least-significant comes first
 func SortEdges(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
-	for i := 0; i < 33; i++ {
-		if keyA[i] != keyB[i] {
-			if keyA[i] < keyB[i] {
-				return [2]cipher.PubKey{keyA, keyB}
-			}
-			return [2]cipher.PubKey{keyB, keyA}
-		}
+	var a, b big.Int
+	if a.SetBytes(keyA[:]).Cmp(b.SetBytes(keyB[:])) < 0 {
+		return [2]cipher.PubKey{keyA, keyB}
 	}
-	return [2]cipher.PubKey{keyA, keyB}
+	return [2]cipher.PubKey{keyB, keyA}
 }

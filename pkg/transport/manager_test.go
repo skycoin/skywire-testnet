@@ -1,21 +1,23 @@
-package transport
+package transport_test
 
 import (
 	"context"
 	"fmt"
-	"io"
+	"log"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
+
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/internal/testhelpers"
 )
 
 func TestMain(m *testing.M) {
@@ -33,305 +35,172 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestTransportManager(t *testing.T) {
-	client := NewDiscoveryMock()
-	logStore := InMemoryTransportLogStore()
+func TestNewManager(t *testing.T) {
+	tpDisc := transport.NewDiscoveryMock()
 
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
+	keys := dmsg.GenKeyPairs(2)
+	dmsgEnv := dmsg.SetupTestEnv(t, keys)
+	defer dmsgEnv.TearDown()
 
-	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
-	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
-
-	f1, f2 := NewMockFactoryPair(pk1, pk2)
-	m1, err := NewManager(c1, f1)
+	// Prepare tp manager 1.
+	pk1, sk1 := keys[0].PK, keys[0].SK
+	ls1 := transport.InMemoryTransportLogStore()
+	c1 := &transport.ManagerConfig{pk1, sk1, tpDisc, ls1, nil}
+	f1 := dmsgEnv.Clients[0]
+	m1, err := transport.NewManager(c1, nil, f1)
 	require.NoError(t, err)
-
-	assert.Equal(t, []string{"mock"}, m1.Factories())
-
-	errCh := make(chan error)
+	m1Err := make(chan error, 1)
 	go func() {
-		errCh <- m1.Serve(context.TODO())
+		m1Err <- m1.Serve(context.TODO())
+		close(m1Err)
 	}()
+	defer func() {
+		require.NoError(t, m1.Close())
+		require.NoError(t, <-m1Err)
+	}()
+	fmt.Println("tp manager 1 prepared")
 
-	m2, err := NewManager(c2, f2)
+	// Prepare tp manager 2.
+	pk2, sk2 := keys[1].PK, keys[1].SK
+	ls2 := transport.InMemoryTransportLogStore()
+	c2 := &transport.ManagerConfig{pk2, sk2, tpDisc, ls2, nil}
+	f2 := dmsgEnv.Clients[1]
+	m2, err := transport.NewManager(c2, nil, f2)
 	require.NoError(t, err)
-
-	var mu sync.Mutex
-	m1Observed := uint32(0)
-
-	acceptCh := m1.DataTpChan
+	m2Err := make(chan error, 1)
 	go func() {
-		for tr := range acceptCh {
-			mu.Lock()
-			if tr.Accepted {
-				m1Observed++
-			}
-			mu.Unlock()
+		m2Err <- m2.Serve(context.TODO())
+		close(m2Err)
+	}()
+	defer func() {
+		require.NoError(t, m2.Close())
+		require.NoError(t, <-m2Err)
+	}()
+	fmt.Println("tp manager 2 prepared")
+
+	// Create data transport between manager 1 & manager 2.
+	tp2, err := m2.SaveTransport(context.TODO(), pk1, "dmsg")
+	require.NoError(t, err)
+	tp1 := m1.Transport(transport.MakeTransportID(pk1, pk2, "dmsg"))
+	require.NotNil(t, tp1)
+
+	fmt.Println("transports created")
+
+	totalSent2 := 0
+	totalSent1 := 0
+
+	// Check read/writes are of expected.
+	t.Run("check_read_write", func(t *testing.T) {
+
+		for i := 0; i < 10; i++ {
+			totalSent2 += i
+			rID := routing.RouteID(i)
+			payload := cipher.RandByte(i)
+			require.NoError(t, tp2.WritePacket(context.TODO(), rID, payload))
+
+			recv, err := m1.ReadPacket()
+			require.NoError(t, err)
+			require.Equal(t, rID, recv.RouteID())
+			require.Equal(t, uint16(i), recv.Size())
+			require.Equal(t, payload, recv.Payload())
 		}
-	}()
 
-	m2Observed := uint32(0)
-	dialCh := m2.DataTpChan
-	go func() {
-		for tr := range dialCh {
-			mu.Lock()
-			if !tr.Accepted {
-				m2Observed++
-			}
-			mu.Unlock()
+		for i := 0; i < 20; i++ {
+			totalSent1 += i
+			rID := routing.RouteID(i)
+			payload := cipher.RandByte(i)
+			require.NoError(t, tp1.WritePacket(context.TODO(), rID, payload))
+
+			recv, err := m2.ReadPacket()
+			require.NoError(t, err)
+			require.Equal(t, rID, recv.RouteID())
+			require.Equal(t, uint16(i), recv.Size())
+			require.Equal(t, payload, recv.Payload())
 		}
-	}()
+	})
 
-	tr2, err := m2.CreateDataTransport(context.TODO(), pk1, "mock", true)
-	require.NoError(t, err)
+	// Ensure tp log entries are of expected.
+	t.Run("check_tp_logs", func(t *testing.T) {
 
-	time.Sleep(time.Second)
+		// 1.5x log write interval just to be safe.
+		time.Sleep(time.Second * 9 / 2)
 
-	tr1 := m1.Transport(tr2.Entry.ID)
-	require.NotNil(t, tr1)
+		entry1, err := ls1.Entry(tp1.Entry.ID)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(totalSent1), entry1.SentBytes)
+		assert.Equal(t, uint64(totalSent2), entry1.RecvBytes)
 
-	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
-	require.NoError(t, err)
-	assert.Equal(t, SortEdges(pk1, pk2), dEntry.Entry.Edges)
-	//assert.Equal(t, pk2, dEntry.Entry.LocalPK())
-	//assert.Equal(t, pk1, dEntry.Entry.RemotePK())
-	assert.True(t, dEntry.IsUp)
+		entry2, err := ls2.Entry(tp2.Entry.ID)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(totalSent2), entry2.SentBytes)
+		assert.Equal(t, uint64(totalSent1), entry2.RecvBytes)
+	})
 
-	require.NoError(t, m1.DeleteTransport(tr1.Entry.ID))
-	dEntry, err = client.GetTransportByID(context.TODO(), tr1.Entry.ID)
-	require.NoError(t, err)
-	assert.False(t, dEntry.IsUp)
+	// Ensure deleting a transport works as expected.
+	t.Run("check_delete_tp", func(t *testing.T) {
 
-	buf := make([]byte, 3)
-	_, err = tr2.Read(buf)
-	require.Equal(t, io.EOF, err)
+		// Make transport ID.
+		tpID := transport.MakeTransportID(pk1, pk2, "dmsg")
 
-	time.Sleep(time.Second)
+		// Ensure transports are registered properly in tp discovery.
+		entry, err := tpDisc.GetTransportByID(context.TODO(), tpID)
+		require.NoError(t, err)
+		assert.Equal(t, transport.SortEdges(pk1, pk2), entry.Entry.Edges)
+		assert.True(t, entry.IsUp)
 
-	dEntry, err = client.GetTransportByID(context.TODO(), tr1.Entry.ID)
-	require.NoError(t, err)
-	assert.True(t, dEntry.IsUp)
-
-	require.NoError(t, m2.DeleteTransport(tr2.Entry.ID))
-	dEntry, err = client.GetTransportByID(context.TODO(), tr2.Entry.ID)
-	require.NoError(t, err)
-	assert.False(t, dEntry.IsUp)
-
-	require.NoError(t, m2.Close())
-	require.NoError(t, m1.Close())
-	require.NoError(t, <-errCh)
-
-	time.Sleep(100 * time.Millisecond)
-
-	mu.Lock()
-	assert.Equal(t, uint32(2), m1Observed)
-	assert.Equal(t, uint32(1), m2Observed)
-	mu.Unlock()
+		m2.DeleteTransport(tp2.Entry.ID)
+		entry, err = tpDisc.GetTransportByID(context.TODO(), tpID)
+		require.NoError(t, err)
+		assert.False(t, entry.IsUp)
+	})
 }
 
-func TestTransportManagerReEstablishTransports(t *testing.T) {
-	client := NewDiscoveryMock()
-	logStore := InMemoryTransportLogStore()
-
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
-
-	c1 := &ManagerConfig{pk1, sk1, client, logStore, nil}
-	c2 := &ManagerConfig{pk2, sk2, client, logStore, nil}
-
-	f1, f2 := NewMockFactoryPair(pk1, pk2)
-	m1, err := NewManager(c1, f1)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"mock"}, m1.Factories())
-
-	m1.reconnectTransports(context.TODO())
-
-	m1errCh := make(chan error, 1)
-	go func() { m1errCh <- m1.Serve(context.TODO()) }()
-
-	m2, err := NewManager(c2, f2)
-	require.NoError(t, err)
-
-	tr2, err := m2.CreateDataTransport(context.TODO(), pk1, "mock", true)
-	require.NoError(t, err)
-
-	tr1 := m1.Transport(tr2.Entry.ID)
-	require.NotNil(t, tr1)
-
-	dEntry, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
-	require.NoError(t, err)
-	assert.Equal(t, SortEdges(pk1, pk2), dEntry.Entry.Edges)
-	//assert.Equal(t, pk2, dEntry.Entry.LocalPK())
-	//assert.Equal(t, pk1, dEntry.Entry.RemotePK())
-	assert.True(t, dEntry.IsUp)
-
-	require.NoError(t, m2.Close())
-
-	dEntry2, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
-	require.NoError(t, err)
-	assert.False(t, dEntry2.IsUp)
-
-	m2, err = NewManager(c2, f2)
-	require.NoError(t, err)
-
-	m2.reconnectTransports(context.TODO())
-
-	m2errCh := make(chan error, 1)
-	go func() { m2errCh <- m2.Serve(context.TODO()) }()
-
-	// time.Sleep(time.Second * 1) // TODO: this time.Sleep looks fishy - figure out later
-	dEntry3, err := client.GetTransportByID(context.TODO(), tr2.Entry.ID)
-	require.NoError(t, err)
-
-	assert.True(t, dEntry3.IsUp)
-
-	require.NoError(t, m2.Close())
-	require.NoError(t, m1.Close())
-
-	require.NoError(t, <-m1errCh)
-	require.NoError(t, <-m2errCh)
-}
-
-func TestTransportManagerLogs(t *testing.T) {
-	client := NewDiscoveryMock()
-	logStore1 := InMemoryTransportLogStore()
-	logStore2 := InMemoryTransportLogStore()
-
-	pk1, sk1 := cipher.GenerateKeyPair()
-	pk2, sk2 := cipher.GenerateKeyPair()
-
-	c1 := &ManagerConfig{pk1, sk1, client, logStore1, nil}
-	c2 := &ManagerConfig{pk2, sk2, client, logStore2, nil}
-
-	f1, f2 := NewMockFactoryPair(pk1, pk2)
-	m1, err := NewManager(c1, f1)
-	require.NoError(t, err)
-
-	assert.Equal(t, []string{"mock"}, m1.Factories())
-
-	errCh := make(chan error)
-	go func() {
-		errCh <- m1.Serve(context.TODO())
-	}()
-
-	m2, err := NewManager(c2, f2)
-	require.NoError(t, err)
-
-	tr2, err := m2.CreateDataTransport(context.TODO(), pk1, "mock", true)
-	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
-
-	tr1 := m1.Transport(tr2.Entry.ID)
-	require.NotNil(t, tr1)
-
-	writeErrCh := make(chan error, 1)
-	go func() {
-		_, writeErr := tr1.Write([]byte("foo"))
-		writeErrCh <- writeErr
-	}()
-	buf := make([]byte, 3)
-	_, err = tr2.Read(buf)
-	require.NoError(t, err)
-
-	// 2x log write interval just to be safe.
-	time.Sleep(logWriteInterval * 2)
-
-	entry1, err := logStore1.Entry(tr1.Entry.ID)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(3), entry1.SentBytes)
-	assert.Equal(t, uint64(0), entry1.RecvBytes)
-
-	entry2, err := logStore2.Entry(tr1.Entry.ID)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(0), entry2.SentBytes)
-	assert.Equal(t, uint64(3), entry2.RecvBytes)
-
-	require.NoError(t, m2.Close())
-	require.NoError(t, m1.Close())
-	require.NoError(t, <-errCh)
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(writeErrCh))
-}
-
-func ExampleSortEdges() {
-	keyA, _ := cipher.GenerateKeyPair()
-	keyB, _ := cipher.GenerateKeyPair()
-
-	sortedKeysAB := SortEdges(keyA, keyB)
-	sortedKeysBA := SortEdges(keyB, keyA)
-	_ = SortEdges(keyA, keyA)
-	fmt.Println("SortEdges(keyA, keyA) is successful")
-
-	if sortedKeysAB == sortedKeysBA {
-		fmt.Println("SortEdges(keyA, keyB) == SortEdges(keyB, keyA)")
+func TestSortEdges(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		keyA, _ := cipher.GenerateKeyPair()
+		keyB, _ := cipher.GenerateKeyPair()
+		require.Equal(t, transport.SortEdges(keyA, keyB), transport.SortEdges(keyB, keyA))
 	}
-
-	// Output: SortEdges(keyA, keyA) is successful
-	// SortEdges(keyA, keyB) == SortEdges(keyB, keyA)
 }
 
-func ExampleMakeTransportID() {
-	keyA, _ := cipher.GenerateKeyPair()
-	keyB, _ := cipher.GenerateKeyPair()
-
-	uuidAB := MakeTransportID(keyA, keyB, "type", true)
-
-	for i := 0; i < 256; i++ {
-		if MakeTransportID(keyA, keyB, "type", true) != uuidAB {
-			fmt.Println("uuid is unstable")
-			break
+func TestMakeTransportID(t *testing.T) {
+	t.Run("id_is_stable", func(t *testing.T) {
+		for i := 0; i < 100; i++ {
+			keyA, _ := cipher.GenerateKeyPair()
+			keyB, _ := cipher.GenerateKeyPair()
+			idAB := transport.MakeTransportID(keyA, keyB, "type")
+			idBA := transport.MakeTransportID(keyB, keyA, "type")
+			require.Equal(t, idAB, idBA)
 		}
-	}
-	fmt.Printf("uuid is stable\n")
-
-	uuidBA := MakeTransportID(keyB, keyA, "type", true)
-	if uuidAB == uuidBA {
-		fmt.Println("uuid is bidirectional")
-	} else {
-		fmt.Printf("keyA = %v\n keyB=%v\n uuidAB=%v\n uuidBA=%v\n", keyA, keyB, uuidAB, uuidBA)
-	}
-
-	_ = MakeTransportID(keyA, keyA, "type", true) // works for equal keys
-	fmt.Println("works for equal keys")
-
-	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "another_type", true) {
-		fmt.Println("uuid is different for different types")
-	}
-
-	if MakeTransportID(keyA, keyB, "type", true) != MakeTransportID(keyA, keyB, "type", false) {
-		fmt.Println("uuid is different for public and private transports")
-	}
-
-	// Output: uuid is stable
-	// uuid is bidirectional
-	// works for equal keys
-	// uuid is different for different types
-	// uuid is different for public and private transports
+	})
+	t.Run("tpType_changes_id", func(t *testing.T) {
+		keyA, _ := cipher.GenerateKeyPair()
+		require.NotEqual(t, transport.MakeTransportID(keyA, keyA, "a"), transport.MakeTransportID(keyA, keyA, "b"))
+	})
 }
 
-func ExampleManager_CreateDataTransport() {
+func ExampleManager_SaveTransport() {
 	// Repetition is required here to guarantee that correctness does not depends on order of edges
 	for i := 0; i < 4; i++ {
-		pkB, mgrA, err := MockTransportManager()
+		pkB, mgrA, err := transport.MockTransportManager()
 		if err != nil {
 			fmt.Printf("MockTransportManager failed on iteration %v with: %v\n", i, err)
 			return
 		}
 
-		mtrAB, err := mgrA.CreateDataTransport(context.TODO(), pkB, "mock", true)
+		mtrAB, err := mgrA.SaveTransport(context.TODO(), pkB, "mock")
 		if err != nil {
-			fmt.Printf("Manager.CreateDataTransport failed on iteration %v with: %v\n", i, err)
+			fmt.Printf("Manager.SaveTransport failed on iteration %v with: %v\n", i, err)
 			return
 		}
 
 		if (mtrAB.Entry.ID == uuid.UUID{}) {
-			fmt.Printf("Manager.CreateDataTransport failed on iteration %v", i)
+			fmt.Printf("Manager.SaveTransport failed on iteration %v", i)
 			return
 		}
 	}
 
-	fmt.Println("Manager.CreateDataTransport success")
+	fmt.Println("Manager.SaveTransport success")
 
-	// Output: Manager.CreateDataTransport success
+	// Output: Manager.SaveTransport success
 }
