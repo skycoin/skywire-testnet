@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -130,6 +131,7 @@ func TestNode(t *testing.T) {
 			}
 		}()
 
+		var addRuleDone sync.WaitGroup
 		var nextRouteID uint32
 		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
 		expectAddRules := func(client int, expRule routing.RuleType) {
@@ -137,33 +139,25 @@ func TestNode(t *testing.T) {
 			fmt.Printf("Client %v has PK %v\n", client, clientPK)
 			tp, err := clients[client].Accept(context.TODO())
 			require.NoError(t, err)
-			fmt.Printf("Accepted 1st time by %v\n", clientPK)
+			fmt.Printf("Accepted 1st time by %v : %v\n", client, clientPK)
 
 			proto := NewSetupProtocol(tp)
 
 			pt, _, err := proto.ReadPacket()
 			require.NoError(t, err)
 			require.Equal(t, PacketRequestRouteID, pt)
-			fmt.Printf("Received RequestRouteID by %v\n", clientPK)
+			fmt.Printf("Received RequestRouteID by %v : %v\n", client, clientPK)
 
 			routeID := atomic.AddUint32(&nextRouteID, 1)
 
 			err = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)})
 			require.NoError(t, err)
-			fmt.Printf("Sent RespSuccess for RequestRouteID with RouteID %v by %v\n", routeID, clientPK)
-
-			/*require.NoError(t, tp.Close())
-
-			tp, err = clients[client].Accept(context.TODO())
-			require.NoError(t, err)
-			fmt.Printf("Called Accept for second time by %v\n", clientPK)
-
-			proto = NewSetupProtocol(tp)*/
+			fmt.Printf("Sent RespSuccess for RequestRouteID with RouteID %v by %v : %v\n", routeID, client, clientPK)
 
 			pt, pp, err := proto.ReadPacket()
 			require.NoError(t, err)
 			require.Equal(t, PacketAddRules, pt)
-			fmt.Printf("Received AddRules by %v\n", clientPK)
+			fmt.Printf("Received AddRules by %v: %v\n", client, clientPK)
 
 			var rs []routing.Rule
 			require.NoError(t, json.Unmarshal(pp, &rs))
@@ -172,11 +166,13 @@ func TestNode(t *testing.T) {
 				require.Equal(t, expRule, r.Type())
 			}
 
-			err = proto.WritePacket(RespSuccess, nil)
-			require.NoError(t, err)
-			fmt.Printf("Sent RespSuccess for AddRules by %v\n", clientPK)
+			// TODO: This error is not checked due to a bug in dmsg.
+			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			fmt.Printf("Sent RespSuccess for AddRules by %v : %v\n", client, clientPK)
 
 			require.NoError(t, tp.Close())
+
+			addRuleDone.Done()
 		}
 
 		// CLOSURE: emulates how a visor node should react when expecting an ConfirmLoop packet.
@@ -208,20 +204,20 @@ func TestNode(t *testing.T) {
 			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
 		}
 
+		addRuleDone.Add(4)
 		go expectAddRules(4, routing.RuleApp)
 		go expectAddRules(3, routing.RuleForward)
 		go expectAddRules(2, routing.RuleForward)
 		go expectAddRules(1, routing.RuleForward)
-		time.Sleep(4000 * time.Millisecond)
+		addRuleDone.Wait()
+		addRuleDone.Add(4)
 		go expectAddRules(1, routing.RuleApp)
 		go expectAddRules(2, routing.RuleForward)
 		go expectAddRules(3, routing.RuleForward)
 		go expectAddRules(4, routing.RuleForward)
-		time.Sleep(4 * time.Second)
-		go expectConfirmLoop(1)
-		time.Sleep(4 * time.Second)
-		go expectConfirmLoop(4)
-		time.Sleep(4 * time.Second)
+		addRuleDone.Wait()
+		expectConfirmLoop(1)
+		expectConfirmLoop(4)
 	})
 
 	// TEST: Emulates the communication between 2 visor nodes and a setup nodes,
