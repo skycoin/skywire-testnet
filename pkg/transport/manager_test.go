@@ -47,7 +47,7 @@ func TestNewManager(t *testing.T) {
 	ls1 := transport.InMemoryTransportLogStore()
 	c1 := &transport.ManagerConfig{pk1, sk1, tpDisc, ls1, nil}
 	f1 := dmsgEnv.Clients[0]
-	m1, err := transport.NewManager(c1, f1)
+	m1, err := transport.NewManager(c1, nil, f1)
 	require.NoError(t, err)
 	m1Err := make(chan error, 1)
 	go func() {
@@ -65,7 +65,7 @@ func TestNewManager(t *testing.T) {
 	ls2 := transport.InMemoryTransportLogStore()
 	c2 := &transport.ManagerConfig{pk2, sk2, tpDisc, ls2, nil}
 	f2 := dmsgEnv.Clients[1]
-	m2, err := transport.NewManager(c2, f2)
+	m2, err := transport.NewManager(c2, nil, f2)
 	require.NoError(t, err)
 	m2Err := make(chan error, 1)
 	go func() {

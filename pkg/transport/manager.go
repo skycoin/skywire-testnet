@@ -39,50 +39,28 @@ type Manager struct {
 
 // NewManager creates a Manager with the provided configuration and transport factories.
 // 'factories' should be ordered by preference.
-func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
-	log := logging.MustGetLogger("tp_manager")
-	ctx := context.Background()
-
-	done := make(chan struct{})
-
-	fMap := make(map[string]Factory)
+func NewManager(config *ManagerConfig, setupPKs []cipher.PubKey, factories ...Factory) (*Manager, error) {
+	tm := &Manager{
+		Logger:   logging.MustGetLogger("tp_manager"),
+		conf:     config,
+		setupPKS: setupPKs,
+		facs:     make(map[string]Factory),
+		tps:      make(map[uuid.UUID]*ManagedTransport),
+		setupCh:  make(chan Transport, 9), // TODO: eliminate or justify buffering here
+		readCh:   make(chan routing.Packet, 20),
+		done:     make(chan struct{}),
+	}
 	for _, factory := range factories {
-		fMap[factory.Type()] = factory
+		tm.facs[factory.Type()] = factory
 	}
-
-	entries, err := config.DiscoveryClient.GetTransportsByEdge(ctx, config.PubKey)
-	if err != nil {
-		log.Warnf("No transports found for local node: %v", err)
-	}
-
-	rCh := make(chan routing.Packet, 20)
-	tpMap := make(map[uuid.UUID]*ManagedTransport)
-	for _, entry := range entries {
-		fac, ok := fMap[entry.Entry.Type]
-		if !ok {
-			log.Warnf("cannot revive transport entry: factory of type '%s' not supported", entry.Entry.Type)
-			continue
-		}
-		mTp := NewManagedTransport(fac, config.DiscoveryClient, config.LogStore, entry.Entry.RemoteEdge(config.PubKey), config.SecKey)
-		go mTp.Serve(rCh, done)
-		tpMap[entry.Entry.ID] = mTp
-	}
-
-	return &Manager{
-		Logger:  log,
-		conf:    config,
-		facs:    fMap,
-		tps:     tpMap,
-		setupCh: make(chan Transport, 9), // TODO: eliminate or justify buffering here
-		readCh:  rCh,
-		done:    done,
-	}, nil
+	return tm, nil
 }
 
 // Serve runs listening loop across all registered factories.
 func (tm *Manager) Serve(ctx context.Context) error {
-	tm.initDefaultTransports(ctx)
-	tm.Logger.Infof("Default transports created.")
+	tm.mx.Lock()
+	tm.initTransports(ctx)
+	tm.mx.Unlock()
 
 	var wg sync.WaitGroup
 	for _, factory := range tm.facs {
@@ -112,24 +90,19 @@ func (tm *Manager) Serve(ctx context.Context) error {
 	return nil
 }
 
-// initDefaultTransports created transports to DefaultNodes if they don't exist.
-func (tm *Manager) initDefaultTransports(ctx context.Context) {
-	for _, pk := range tm.conf.DefaultNodes {
-		pk := pk
-		exist := false
-		tm.WalkTransports(func(tr *ManagedTransport) bool {
-			if tr.Remote() == pk {
-				exist = true
-				return false
-			}
-			return true
-		})
-		if exist {
-			continue
-		}
-		_, err := tm.SaveTransport(ctx, pk, "dmsg")
-		if err != nil {
-			tm.Logger.Warnf("Failed to establish transport to a node %s: %s", pk, err)
+func (tm *Manager) initTransports(ctx context.Context) {
+	entries, err := tm.conf.DiscoveryClient.GetTransportsByEdge(ctx, tm.conf.PubKey)
+	if err != nil {
+		log.Warnf("No transports found for local node: %v", err)
+	}
+	for _, entry := range entries {
+		var (
+			tpType = entry.Entry.Type
+			remote = entry.Entry.RemoteEdge(tm.conf.PubKey)
+			tpID   = entry.Entry.ID
+		)
+		if _, err := tm.saveTransport(remote, tpType); err != nil {
+			tm.Logger.Warnf("INIT: failed to init tp: type(%s) remote(%s) tpID(%s)", tpType, remote, tpID)
 		}
 	}
 }
@@ -181,7 +154,17 @@ func (tm *Manager) SaveTransport(ctx context.Context, remote cipher.PubKey, tpTy
 	if tm.isClosing() {
 		return nil, io.ErrClosedPipe
 	}
+	mTp, err := tm.saveTransport(remote, tpType)
+	if err != nil {
+		return nil, err
+	}
+	if err := mTp.Dial(ctx); err != nil {
+		tm.Logger.Warnf("underlying 'write' tp failed, will retry: %v", err)
+	}
+	return mTp, nil
+}
 
+func (tm *Manager) saveTransport(remote cipher.PubKey, tpType string) (*ManagedTransport, error) {
 	factory, ok := tm.facs[tpType]
 	if !ok {
 		return nil, errors.New("unknown transport type")
@@ -195,9 +178,6 @@ func (tm *Manager) SaveTransport(ctx context.Context, remote cipher.PubKey, tpTy
 	}
 
 	mTp := NewManagedTransport(factory, tm.conf.DiscoveryClient, tm.conf.LogStore, remote, tm.conf.SecKey)
-	if err := mTp.Dial(ctx); err != nil {
-		tm.Logger.Warnf("underlying 'write' tp failed, will retry: %v", err)
-	}
 	go mTp.Serve(tm.readCh, tm.done)
 	tm.tps[tpID] = mTp
 
@@ -235,10 +215,7 @@ func (tm *Manager) ReadPacket() (routing.Packet, error) {
 
 // SetupPKs returns setup node list contained within the TransportManager.
 func (tm *Manager) SetupPKs() []cipher.PubKey {
-	tm.mx.RLock()
-	pks := tm.setupPKS
-	tm.mx.RUnlock()
-	return pks
+	return tm.setupPKS
 }
 
 // IsSetupPK checks whether provided `pk` is of `setup` purpose.
@@ -249,13 +226,6 @@ func (tm *Manager) IsSetupPK(pk cipher.PubKey) bool {
 		}
 	}
 	return false
-}
-
-// SetSetupPKs sets setup node list contained within the TransportManager.
-func (tm *Manager) SetSetupPKs(nodes []cipher.PubKey) {
-	tm.mx.Lock()
-	tm.setupPKS = nodes
-	tm.mx.Unlock()
 }
 
 // DialSetupConn dials to a remote setup node.

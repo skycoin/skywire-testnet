@@ -247,10 +247,16 @@ func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn Transport) er
 		return ErrConnAlreadyExists
 	}
 
-	if _, err := mt.dc.UpdateStatuses(ctx, &Status{ID: mt.Entry.ID, IsUp: true}); err != nil {
-		mt.log.Warnf("Failed to update transport status: %s", err)
+	var err error
+	for i := 0; i < 3; i++ {
+		if _, err = mt.dc.UpdateStatuses(ctx, &Status{ID: mt.Entry.ID, IsUp: true}); err != nil {
+			mt.log.Warnf("Failed to update transport status: %s, retrying...", err)
+			continue
+		}
+		mt.log.Infoln("Status updated: UP")
+		break
 	}
-	mt.log.Infoln("Status updated: UP")
+
 	mt.conn = conn
 	select {
 	case mt.connCh <- struct{}{}:
@@ -260,11 +266,14 @@ func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn Transport) er
 }
 
 func (mt *ManagedTransport) clearConn(ctx context.Context) {
+	if mt.conn != nil {
+		_ = mt.conn.Close() //nolint:errcheck
+		mt.conn = nil
+	}
 	if _, err := mt.dc.UpdateStatuses(ctx, &Status{ID: mt.Entry.ID, IsUp: false}); err != nil {
 		mt.log.Warnf("Failed to update transport status: %s", err)
 	}
 	mt.log.Infoln("Status updated: DOWN")
-	mt.conn = nil
 }
 
 // WritePacket writes a packet to the remote.
