@@ -35,7 +35,9 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 		return nil, errors.New("unknown RouteID")
 	}
 
-	if len(rule) < 13 {
+	// TODO(evanlinjin): This is a workaround for ensuring the read-in rule is of the correct size.
+	// Sometimes it is not, causing a segfault later down the line.
+	if len(rule) < routing.RuleHeaderSize {
 		return nil, errors.New("corrupted rule")
 	}
 

@@ -1,7 +1,15 @@
 package setup
 
 import (
+	"time"
+
 	"github.com/skycoin/dmsg/cipher"
+)
+
+// Various timeouts for setup node.
+const (
+	ServeTransportTimeout = time.Second * 30
+	ReadTimeout           = time.Second * 10
 )
 
 // Config defines configuration parameters for setup Node.

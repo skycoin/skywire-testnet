@@ -10,6 +10,11 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 )
 
+// RuleHeaderSize represents the base size of a rule.
+// All rules should be at-least this size.
+// TODO(evanlinjin): Document the format of rules in comments.
+const RuleHeaderSize = 13
+
 // RuleType defines type of a routing rule
 type RuleType byte
 
@@ -164,7 +169,7 @@ func (r Rule) Summary() *RuleSummary {
 
 // AppRule constructs a new consume RoutingRule.
 func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remotePort, localPort Port) Rule {
-	rule := make([]byte, 13)
+	rule := make([]byte, RuleHeaderSize)
 	if expireAt.Unix() <= time.Now().Unix() {
 		binary.BigEndian.PutUint64(rule[0:], 0)
 	} else {
@@ -182,7 +187,7 @@ func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remo
 
 // ForwardRule constructs a new forward RoutingRule.
 func ForwardRule(expireAt time.Time, nextRoute RouteID, nextTrID uuid.UUID) Rule {
-	rule := make([]byte, 13)
+	rule := make([]byte, RuleHeaderSize)
 	if expireAt.Unix() <= time.Now().Unix() {
 		binary.BigEndian.PutUint64(rule[0:], 0)
 	} else {

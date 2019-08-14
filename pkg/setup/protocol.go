@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -164,7 +163,7 @@ func LoopClosed(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 }
 
 func readAndDecodePacketWithTimeout(ctx context.Context, p *Protocol, v interface{}) error {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, ReadTimeout)
 	defer cancel()
 
 	done := make(chan struct{})

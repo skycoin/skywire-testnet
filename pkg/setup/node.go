@@ -75,7 +75,7 @@ func (sn *Node) Serve(ctx context.Context) error {
 }
 
 func (sn *Node) serveTransport(ctx context.Context, tr transport.Transport) error {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	ctx, cancel := context.WithTimeout(ctx, ServeTransportTimeout)
 	defer cancel()
 
 	proto := NewSetupProtocol(tr)

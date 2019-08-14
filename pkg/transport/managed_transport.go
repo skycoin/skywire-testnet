@@ -296,8 +296,8 @@ func (mt *ManagedTransport) WritePacket(ctx context.Context, rtID routing.RouteI
 		mt.clearConn(ctx)
 		return err
 	}
-	if n > 6 {
-		mt.logSent(uint64(n - 6))
+	if n > routing.PacketHeaderSize {
+		mt.logSent(uint64(n - routing.PacketHeaderSize))
 	}
 	return nil
 }
@@ -316,7 +316,7 @@ func (mt *ManagedTransport) readPacket() (packet routing.Packet, err error) {
 		}
 	}
 
-	h := make(routing.Packet, 6)
+	h := make(routing.Packet, routing.PacketHeaderSize)
 	if _, err = io.ReadFull(conn, h); err != nil {
 		return nil, err
 	}
@@ -325,8 +325,8 @@ func (mt *ManagedTransport) readPacket() (packet routing.Packet, err error) {
 		return nil, err
 	}
 	packet = append(h, p...)
-	if n := len(packet); n > 6 {
-		mt.logRecv(uint64(n - 6))
+	if n := len(packet); n > routing.PacketHeaderSize {
+		mt.logRecv(uint64(n - routing.PacketHeaderSize))
 	}
 	mt.log.Infof("recv packet: rtID(%d) size(%d)", packet.RouteID(), packet.Size())
 	return packet, nil
