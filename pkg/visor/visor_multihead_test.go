@@ -3,50 +3,111 @@
 package visor
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-func readConfig(cfgFile string) (Config, error) {
+type multiheadLog struct {
+	mx      sync.Mutex
+	records []string
+}
+
+func (mhl *multiheadLog) Write(p []byte) (n int, err error) {
+	mhl.mx.Lock()
+	defer mhl.mx.Unlock()
+	mhl.records = append(mhl.records, string(p))
+	return len(p), nil
+}
+
+/* Prepare IP aliases:
+$ for ((i=1; i<=16; i++)){_ ip addr add 12.12.12.$i/32 dev lo}
+*/
+
+type MultiHead struct {
+	baseCfg    Config
+	ipTemplate string
+	ipPool     []string
+	cfgPool    []Config
+	nodes      []*Node
+
+	Log *multiheadLog
+}
+
+func initMultiHead() *MultiHead {
+	mhLog := multiheadLog{records: []string{}}
+	masterLogger.Out = &mhLog
+	return &MultiHead{Log: &mhLog}
+}
+
+func Example_initMultiHead() {
+	mh := initMultiHead()
+	mh.Log.Write([]byte("initMultiHead success"))
+	fmt.Printf("%v\n", mh.Log.records)
+
+	// Output: [initMultiHead success]
+}
+
+func (mh *MultiHead) readBaseConfig(cfgFile string) error {
 	rdr, err := os.Open(filepath.Clean(cfgFile))
 	if err != nil {
-		return Config{}, err
+		return err
 	}
-	conf := Config{}
-	if err := json.NewDecoder(rdr).Decode(&conf); err != nil {
-		return Config{}, err
+	baseCfg := Config{}
+	if err := json.NewDecoder(rdr).Decode(&baseCfg); err != nil {
+		return err
 	}
-	return conf, err
+	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys")
+	baseCfg.AppsPath, _ = filepath.Abs("../../apps")
+	baseCfg.Routing.Table.Type = "memory"
+
+	mh.baseCfg = baseCfg
+	return nil
 }
 
-func ipPool(addrTemplate string, n uint) []string {
-	ipAddrs := make([]string, n)
+func Example_readBaseConfig() {
+	mh := initMultiHead()
+	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
+	err = mh.readBaseConfig(cfgFile)
+	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
+
+	// Output: mh.ReadBaseConfig success: true
+}
+
+func (mh *MultiHead) initIPPool(ipTemplate string, n uint) {
+	ipPool := make([]string, n)
 	for i := uint(1); i < n+1; i++ {
-		ipAddrs[i-1] = fmt.Sprintf(addrTemplate, i)
+		ipPool[i-1] = fmt.Sprintf(ipTemplate, i)
 	}
-	return ipAddrs
+	mh.ipTemplate = ipTemplate
+	mh.ipPool = ipPool
+
 }
 
-func Example_ipPool() {
+func ExampleMultiHead_initIPPool() {
+	mh := initMultiHead()
+	mh.initIPPool("12.12.12.%d", 16)
 
-	ipAddrs := ipPool("12.12.12.%d", 1)
-	fmt.Printf("%v\n", ipAddrs)
+	fmt.Printf("IP pool length: %v\n", len(mh.ipPool))
 
-	// Output: ZZZZ
+	// Output: IP pool length: 16
 }
 
-func cfgPool(baseCfg Config, ipTmplt, localPathTmplt string, n uint) []Config {
-	nodeCfgs := make([]Config, n)
+func (mh *MultiHead) initCfgPool() {
+	mh.cfgPool = make([]Config, len(mh.ipPool))
+	localPathTmplt := "/tmp/multihead"
+	baseCfg := mh.baseCfg
 
-	for i := uint(0); i < n; i++ {
-		ip := fmt.Sprintf(ipTmplt, i+1)
+	for i := 0; i < len(mh.ipPool); i++ {
+		ip := fmt.Sprintf(mh.ipTemplate, i+1)
 		localPath := fmt.Sprintf(localPathTmplt, i+1)
 		pk, sk, _ := cipher.GenerateDeterministicKeyPair([]byte(ip))
 
@@ -68,61 +129,63 @@ func cfgPool(baseCfg Config, ipTmplt, localPathTmplt string, n uint) []Config {
 			}}
 		baseCfg.TCPTransportAddr = fmt.Sprintf("%v:9119", ip)
 
-		nodeCfgs[i] = baseCfg
+		mh.cfgPool[i] = baseCfg
 	}
-	return nodeCfgs
+
 }
 
-func Example_cfgPool() {
+func Example_initCfgPool() {
+	mh := initMultiHead()
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	baseCfg, err := readConfig(cfgFile)
-	fmt.Printf("readConfig success: %v\n", err == nil)
+	err = mh.readBaseConfig(cfgFile)
+	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
+	mh.initIPPool("12.12.12.%d", 16)
+	mh.initCfgPool()
 
-	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "./local/node_%03d", 3)
-	fmt.Printf("len(nodeCfgs): %v\n", len(nodeCfgs))
+	fmt.Printf("len(mh.cfgPool): %v\n", len(mh.cfgPool))
 
-	// Output: readConfig success: true
-	// len(nodeCfgs): 3
+	// Output: mh.ReadBaseConfig success: true
+	// len(mh.cfgPool): 16
 }
 
-func nodePool(cfgs []Config) []*Node {
-	nodes := make([]*Node, len(cfgs))
+func (mh *MultiHead) initNodes() chan error {
+	mh.nodes = make([]*Node, len(mh.cfgPool))
+	errs := make(chan error, len(mh.cfgPool))
 
 	var err error
-	for i := 0; i < len(cfgs); i++ {
-		nodes[i], err = NewNode(&cfgs[i], masterLogger)
+	for i := 0; i < len(mh.nodes); i++ {
+		mh.nodes[i], err = NewNode(&mh.cfgPool[i], masterLogger)
 		if err != nil {
-			panic(err)
+			errs <- fmt.Errorf("error %v starting node %v", err, i)
 		}
 	}
-	return nodes
+	return errs
 }
 
-/* Run in shell:
-$ for ((i=1; i<=16; i++)){_ ip addr add 12.12.12.$i/32 dev lo}
-*/
-
-func Example_nodePool() {
+func ExampleMultiHead_initNodes() {
+	mh := initMultiHead()
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	baseCfg, err := readConfig(cfgFile)
-	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys")
-	baseCfg.AppsPath, _ = filepath.Abs("../../apps")
+	err = mh.readBaseConfig(cfgFile)
+	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
+	mh.initIPPool("12.12.12.%d", 16)
+	mh.initCfgPool()
+	initErrs := mh.initNodes()
+	close(initErrs)
 
-	fmt.Printf("readConfig success: %v\n", err == nil)
-	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "./local/node_%03d", 16)
+	for err := range initErrs {
+		fmt.Printf("%v\n", err)
+	}
+	fmt.Printf("Errors on initNodes: %v\n", len(initErrs))
 
-	nodes := nodePool(nodeCfgs)
-	fmt.Printf("Nodes: 12.12.12.1 - 12.12.12.%d", len(nodes))
-
-	// Output: readConfig success: true
-	// Nodes: 12.12.12.1 - 12.12.12.16
+	// Output: mh.ReadBaseConfig success: true
+	// Errors on initNodes: 0
 }
 
-func startMultiHead(nodes []*Node) chan error {
-	errs := make(chan error, len(nodes))
-	for i := 0; i < len(nodes); i++ {
+func (mh *MultiHead) startNodes() chan error {
+	errs := make(chan error, len(mh.nodes))
+	for i := 0; i < len(mh.nodes); i++ {
 		go func(n int) {
-			if err := nodes[n].Start(); err != nil {
+			if err := mh.nodes[n].Start(); err != nil {
 				errs <- fmt.Errorf("error %v starting node %v", err, n)
 			}
 		}(i)
@@ -130,11 +193,11 @@ func startMultiHead(nodes []*Node) chan error {
 	return errs
 }
 
-func stopMultiHead(nodes []*Node) chan error {
-	errs := make(chan error, len(nodes))
-	for i := 0; i < len(nodes); i++ {
+func (mh *MultiHead) stopNodes() chan error {
+	errs := make(chan error, len(mh.nodes))
+	for i := 0; i < len(mh.nodes); i++ {
 		go func(n int) {
-			if err := nodes[n].Close(); err != nil {
+			if err := mh.nodes[n].Close(); err != nil {
 				errs <- fmt.Errorf("error %v starting node %v", err, n)
 			}
 		}(i)
@@ -142,43 +205,102 @@ func stopMultiHead(nodes []*Node) chan error {
 	return errs
 }
 
-type multiheadWriter struct {
-	logRecords []string
-}
-
-func (mhw *multiheadWriter) Write(p []byte) (n int, err error) {
-	mhw.logRecords = append(mhw.logRecords, string(p))
-	return len(p), nil
-}
-
-func Example_startMultiHead() {
-
-	mhw := multiheadWriter{logRecords: []string{}}
-	masterLogger.Out = &mhw
-
+func makeMultiHeadN(n uint) *MultiHead {
+	mh := initMultiHead()
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	baseCfg, err := readConfig(cfgFile)
-	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys")
-	baseCfg.AppsPath, _ = filepath.Abs("../../apps")
-	baseCfg.Routing.Table.Type = "memory"
-	fmt.Printf("baseCfg success: %v\n", err == nil)
+	err = mh.readBaseConfig(cfgFile)
+	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
+	mh.initIPPool("12.12.12.%d", n)
+	mh.initCfgPool()
 
-	nodeCfgs := cfgPool(baseCfg, "12.12.12.%d", "/tmp/multihead/node_%03d", 1)
-	nodes := nodePool(nodeCfgs)
+	return mh
+}
 
-	errsOnStart := startMultiHead(nodes)
+func ExampleMultiHead_startNodes() {
+	mh := initMultiHead()
+	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
+	err = mh.readBaseConfig(cfgFile)
+	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
+	mh.initIPPool("12.12.12.%d", 16)
+	mh.initCfgPool()
+	initErrs := mh.initNodes()
+	close(initErrs)
+
+	startErrs := mh.startNodes()
 	time.Sleep(time.Second * 5)
-	errsOnStop := stopMultiHead(nodes)
+	stopErrs := mh.stopNodes()
 	time.Sleep(time.Second * 5)
 
-	close(errsOnStart)
-	close(errsOnStop)
+	close(startErrs)
+	close(stopErrs)
 
-	fmt.Printf("errsOnStart: %v\n", len(errsOnStart))
-	fmt.Printf("errsOnStop: %v\n", len(errsOnStop))
+	for err := range initErrs {
+		fmt.Printf("%v\n", err)
+	}
+	fmt.Printf("Errors on initNodes: %v\n", len(initErrs))
 
-	fmt.Printf("log: %v\n", mhw.logRecords)
+	for err := range startErrs {
+		fmt.Printf("%v\n", err)
+	}
+	fmt.Printf("Errors on startNodes: %v\n", len(startErrs))
 
-	strings.Contains(mhw.logRecords, "ZZZ")
-	// Output: ZZZZ
+	for err := range stopErrs {
+		fmt.Printf("%v\n", err)
+	}
+	fmt.Printf("Errors on stopNodes: %v\n", len(stopErrs))
+
+	// Output: mh.ReadBaseConfig success: true
+	// Errors on initNodes: 0
+	// Errors on startNodes: 0
+	// Errors on stopNodes: 0
+}
+
+func (mh *MultiHead) sendMessage(sender, reciever uint, message string) (*http.Response, error) {
+	url := fmt.Sprintf("http://%s:8001/message", mh.ipPool[sender])
+	msgData := map[string]string{
+		"recipient": fmt.Sprintf("%s", mh.cfgPool[reciever].Node.StaticPubKey),
+		"message":   "Hello",
+	}
+	data, _ := json.Marshal(msgData)                                 // nolint: errcheck
+	return http.Post(url, "application/json", bytes.NewBuffer(data)) // nolint: gosec
+
+}
+
+func ExampleMultiHead_sendMessage() {
+	mh := makeMultiHeadN(2)
+
+	initErrs := mh.initNodes()
+	startErrs := mh.startNodes()
+	time.Sleep(time.Second * 2)
+
+	// fmt.Printf("resp: %v, err: %v\n", resp, err)
+
+	resp, err := mh.sendMessage(0, 1, "Hello")
+	fmt.Printf("resp: %v, err: %v\n ", resp, err)
+
+	stopErrs := mh.stopNodes()
+	time.Sleep(time.Second * 5)
+
+	close(initErrs)
+	close(startErrs)
+	close(stopErrs)
+
+	for err := range initErrs {
+		fmt.Printf("%v\n", err)
+	}
+	fmt.Printf("Errors on initNodes: %v\n", len(initErrs))
+
+	for err := range startErrs {
+		fmt.Printf("%v\n", err)
+	}
+	fmt.Printf("Errors on startNodes: %v\n", len(startErrs))
+
+	for err := range stopErrs {
+		fmt.Printf("%v\n", err)
+	}
+	fmt.Printf("Errors on stopNodes: %v\n", len(stopErrs))
+
+	fmt.Printf("%v\n", mh.Log.records)
+
+	// Output: ZZZ
 }
