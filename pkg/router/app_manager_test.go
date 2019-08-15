@@ -139,7 +139,7 @@ func TestAppManagerForward(t *testing.T) {
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			Forward: func(conn *app.Protocol, packet *app.Packet) error {
+			ForwardAppPacket: func(conn *app.Protocol, packet *app.Packet) error {
 				inPacket = packet
 				return nil
 			},

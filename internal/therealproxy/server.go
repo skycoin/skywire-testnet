@@ -36,7 +36,7 @@ func (s *Server) Serve(l net.Listener) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			return fmt.Errorf("accept: %s", err)
+			return fmt.Errorf("proxyserver Accept: %s", err)
 		}
 
 		session, err := yamux.Server(conn, nil)
@@ -46,7 +46,7 @@ func (s *Server) Serve(l net.Listener) error {
 
 		go func() {
 			if err := s.socks.Serve(session); err != nil {
-				log.Error("Failed to start SOCKS5 server:", err)
+				Logger.Error("Failed to start SOCKS5 server:", err)
 			}
 		}()
 	}

@@ -155,9 +155,9 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 	r.mu.Unlock()
 
 	callbacks := &appCallbacks{
-		CreateLoop: r.requestLoop,
-		CloseLoop:  r.closeLoop,
-		Forward:    r.forwardAppPacket,
+		CreateLoop:       r.requestLoop,
+		CloseLoop:        r.closeLoop,
+		ForwardAppPacket: r.forwardAppPacket,
 	}
 	am := &appManager{r.Logger, appProto, appConf, callbacks}
 	err := am.Serve()
@@ -257,7 +257,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 
 func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
 
-	r.Logger.Info("Entering r.forwardAppPacket")
+	r.Logger.WithField("packet.Loop", packet.Loop).Info("Entering r.forwardAppPacket")
 
 	if packet.Loop.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
@@ -268,10 +268,12 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 		return err
 	}
 
+	r.Logger.WithField("trID", l.trID).Infof("Entering r.forwardAppPacket r.tm.Transport(l.trID)")
 	tr := r.tm.Transport(l.trID)
 	if tr == nil {
 		return fmt.Errorf("unknown transport id %v", l.trID)
 	}
+
 	r.Logger.Info("r.forwardAppPacket enter routing.MakePacket")
 
 	p := routing.MakePacket(l.routeID, packet.Payload)
@@ -281,18 +283,21 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 }
 
 func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
+	r.Logger.Info("entering r.forwardLocalAppPacket ")
 	b, err := r.pm.Get(packet.Loop.Remote.Port)
 	if err != nil {
 		return nil
 	}
-
+	// r.Logger.WithField("Local", ).Info("entering r.forwardLocalAppPacket app.Packet")
 	p := &app.Packet{
 		Loop: routing.Loop{
-			Local:  routing.Addr{Port: packet.Loop.Remote.Port},
+			Local:  routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Remote.Port},
 			Remote: routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Local.Port},
 		},
 		Payload: packet.Payload,
 	}
+
+	r.Logger.WithField("packet", p).Info("entering r.forwardLocalAppPacket Send")
 	return b.conn.Send(app.FrameSend, p, nil)
 }
 

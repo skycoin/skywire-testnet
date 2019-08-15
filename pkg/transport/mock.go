@@ -172,8 +172,8 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	pk1, sk1 = cipher.GenerateKeyPair()
 	pk2, sk2 = cipher.GenerateKeyPair()
 
-	c1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
-	c2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
+	c1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs, Logger: log}
+	c2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs, Logger: log}
 
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
 

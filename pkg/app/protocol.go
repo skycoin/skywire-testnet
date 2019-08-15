@@ -8,6 +8,8 @@ import (
 	"io"
 	"strings"
 	"sync"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 // Frame defines type for all App frames.
@@ -25,6 +27,10 @@ func (f Frame) String() string {
 		return "Send"
 	case FrameClose:
 		return "Close"
+	case FrameFailure:
+		return "Failure"
+	case FrameSuccess:
+		return "Success"
 	}
 
 	return fmt.Sprintf("Unknown(%d)", f)
@@ -48,6 +54,9 @@ const (
 	FrameSuccess = 0xff
 )
 
+// Logger is PackageLogger for app
+var Logger = logging.MustGetLogger("app")
+
 // Protocol implements full-duplex protocol for App to Node communication.
 type Protocol struct {
 	rw    io.ReadWriteCloser
@@ -61,6 +70,7 @@ func NewProtocol(rw io.ReadWriteCloser) *Protocol {
 
 // Send sends command Frame with payload and awaits for response.
 func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
+	Logger.WithField("frame", cmd).Info("Sending from Protocol.Send")
 	id, resChan := p.chans.add()
 	if err := p.writeFrame(cmd, id, payload); err != nil {
 		return err
@@ -140,6 +150,7 @@ func (p *Protocol) Close() error {
 }
 
 func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err error) {
+	Logger.WithField("tcp-transport", "debug").WithField("payload", payload).Info("writeFrame")
 	var data []byte
 	if err, ok := payload.(error); ok {
 		data = []byte(err.Error())

@@ -57,7 +57,7 @@ func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, sshCh *SSH
 	}
 
 	sshCh = OpenClientChannel(0, remotePK, conn)
-	log.Debugln("sending channel open command")
+	Logger.Debugln("sending channel open command")
 	localID = c.chans.add(sshCh)
 	req := appendU32([]byte{byte(CmdChannelOpen)}, localID)
 	if _, err := conn.Write(req); err != nil {
@@ -67,13 +67,13 @@ func (c *Client) OpenChannel(remotePK cipher.PubKey) (localID uint32, sshCh *SSH
 
 	go func() {
 		if err := c.serveConn(conn); err != nil {
-			log.Error(err)
+			Logger.Error(err)
 		}
 	}()
 
-	log.Debugln("waiting for channel open response")
+	Logger.Debugln("waiting for channel open response")
 	data := <-sshCh.msgCh
-	log.Debugln("got channel open response")
+	Logger.Debugln("got channel open response")
 	if data[0] == ResponseFail {
 		cErr = fmt.Errorf("failed to open channel: %s", string(data[1:]))
 		return
@@ -121,7 +121,7 @@ func (c *Client) serveConn(conn net.Conn) error {
 		}
 
 		data := payload[5:]
-		log.Debugf("got new command: %x", payload[0])
+		Logger.Debugf("got new command: %x", payload[0])
 		switch CommandType(payload[0]) {
 		case CmdChannelOpenResponse, CmdChannelResponse:
 			sshCh.msgCh <- data
@@ -151,7 +151,7 @@ func (c *Client) Close() error {
 
 	for _, sshCh := range c.chans.dropAll() {
 		if err := sshCh.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close SSH channel")
+			Logger.WithError(err).Warn("Failed to close SSH channel")
 		}
 	}
 
@@ -165,13 +165,13 @@ type RPCClient struct {
 
 // RequestPTY defines RPC request for a new PTY session.
 func (rpc *RPCClient) RequestPTY(args *RequestPTYArgs, channelID *uint32) error {
-	log.Debugln("requesting SSH channel")
+	Logger.Debugln("requesting SSH channel")
 	localID, channel, err := rpc.c.OpenChannel(args.RemotePK)
 	if err != nil {
 		return err
 	}
 
-	log.Debugln("requesting PTY session")
+	Logger.Debugln("requesting PTY session")
 	if _, err := channel.Request(RequestPTY, args.ToBinary()); err != nil {
 		return fmt.Errorf("PTY request failure: %s", err)
 	}
@@ -187,7 +187,7 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 		return errors.New("unknown channel")
 	}
 
-	log.Debugln("requesting shell process")
+	Logger.Debugln("requesting shell process")
 	if args.CommandWithArgs == nil {
 		if _, err := sshCh.Request(RequestShell, nil); err != nil {
 			return fmt.Errorf("shell request failure: %s", err)
@@ -200,10 +200,10 @@ func (rpc *RPCClient) Exec(args *ExecArgs, socketPath *string) error {
 
 	waitCh := make(chan bool)
 	go func() {
-		log.Debugln("starting socket listener")
+		Logger.Debugln("starting socket listener")
 		waitCh <- true
 		if err := sshCh.ServeSocket(); err != nil {
-			log.Error("Session failure:", err)
+			Logger.Error("Session failure:", err)
 		}
 	}()
 

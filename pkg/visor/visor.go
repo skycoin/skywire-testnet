@@ -23,7 +23,10 @@ import (
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/internal/therealproxy"
+	"github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
+	appProto "github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -54,6 +57,15 @@ const Version = "0.0.1"
 const supportedProtocolVersion = "0.0.1"
 
 var reservedPorts = map[routing.Port]string{0: "router", 1: "skychat", 2: "SSH", 3: "socksproxy"}
+
+// MasterLogger interface
+// type MasterLogger interface {
+// 	PackageLogger(string) *logging.Logger
+
+// 	SetLevel(logrus.Level)
+// 	WithError(err error) *logrus.Entry
+// 	WithField(key string, value interface{}) *logrus.Entry
+// }
 
 // AppState defines state parameters for a registered App.
 type AppState struct {
@@ -170,7 +182,12 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
 		DefaultNodes:    config.TrustedNodes,
+		Logger:          masterLogger.PackageLogger("tr-manager"),
 	}
+
+	appProto.Logger = masterLogger.PackageLogger("app")
+	therealssh.Logger = masterLogger.PackageLogger("therealssh")
+	therealproxy.Logger = masterLogger.PackageLogger("therealproxy")
 
 	node.tm, err = transport.NewManager(tmConfig, node.messenger)
 

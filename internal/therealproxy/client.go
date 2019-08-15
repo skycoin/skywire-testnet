@@ -9,7 +9,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
-var log = logging.MustGetLogger("therealproxy")
+var Logger = logging.MustGetLogger("therealproxy")
 
 // Client implement multiplexing proxy client using yamux.
 type Client struct {
@@ -42,7 +42,7 @@ func (c *Client) ListenAndServe(addr string) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			return fmt.Errorf("accept: %s", err)
+			return fmt.Errorf("proxyclient Accept: %s", err)
 		}
 
 		stream, err = c.session.Open()
@@ -64,14 +64,14 @@ func (c *Client) ListenAndServe(addr string) error {
 
 			for err := range errCh {
 				if err := conn.Close(); err != nil {
-					log.WithError(err).Warn("Failed to close connection")
+					Logger.WithError(err).Warn("Failed to close connection")
 				}
 				if err := stream.Close(); err != nil {
-					log.WithError(err).Warn("Failed to close stream")
+					Logger.WithError(err).Warn("Failed to close stream")
 				}
 
 				if err != nil {
-					log.Error("Copy error:", err)
+					Logger.Error("Copy error:", err)
 				}
 			}
 		}()

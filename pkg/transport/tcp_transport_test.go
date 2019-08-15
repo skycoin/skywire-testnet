@@ -18,15 +18,15 @@ import (
 
 /*
    This test requires configured IPs on host
-   sudo ip addr add 192.168.1.2 dev  lo
-   sudo ip addr add 192.168.1.3 dev  lo
+   sudo ip addr add 12.12.12.2 dev  lo
+   sudo ip addr add 12.12.12.3 dev  lo
 */
 
 func Example_transport_TCPFactory() {
-	pkA := pkFromSeed("nodeA")
-	pkB := pkFromSeed("nodeB")
-	ipA := "192.168.1.2:9119"
-	ipB := "192.168.1.3:9119"
+	pkA := pkFromSeed("skyhost_001")
+	pkB := pkFromSeed("skyhost_002")
+	ipA := "skyhost_001:9119"
+	ipB := "skyhost_002:9119"
 
 	addrA, _ := net.ResolveTCPAddr("tcp", ipA)
 	lsnA, err := net.ListenTCP("tcp", addrA)
@@ -208,8 +208,8 @@ func pkFromSeed(seed string) cipher.PubKey {
 
 func Example_transport_MemoryPubKeyTable() {
 	pkA, pkB := pkFromSeed("nodeA"), pkFromSeed("nodeB")
-	ipA, ipB := "192.168.1.2:9119", "192.168.1.3:9119"
-	ipAA := "192.168.1.2:54312"
+	ipA, ipB := "skyhost_001:9119", "skyhost_003:9119"
+	ipAA := "skyhost_001:54312"
 	entries := map[cipher.PubKey]string{
 		pkA: ipA,
 		pkB: ipB,
@@ -220,15 +220,15 @@ func Example_transport_MemoryPubKeyTable() {
 	fmt.Printf("pkB in: %v\n", pkt.RemotePK(ipA))
 	fmt.Printf("pkA out: %v\n", pkt.RemotePK(ipAA))
 
-	// Output: ipA: 192.168.1.2:9119
+	// Output: ipA: skyhost_001:9119
 	// pkB in: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
 	// pkA out: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
 }
 
 func Example_transport_FilePubKeyTable() {
 	pkA, pkB := pkFromSeed("nodeA"), pkFromSeed("nodeB")
-	ipA, ipB := "192.168.1.2:9119", "192.168.1.3:9119"
-	ipAA := "192.168.1.2:54312"
+	ipA, ipB := "skyhost_001:9119", "skyhost_002:9119"
+	ipAA := "skyhost_001:54312"
 
 	pkFileContent :=
 		fmt.Sprintf("%v%v",
@@ -251,11 +251,11 @@ func Example_transport_FilePubKeyTable() {
 	fmt.Printf("PK for ipB: %v\n", pkt.RemotePK(ipB))
 
 	// Output: pubkeys:
-	// 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab	192.168.1.2:9119
-	// 033978326862c191eaa39e33bb556a6296466facfe36bfb81e6b4c99d9c510e09f	192.168.1.3:9119
+	// 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab	skyhost_001:9119
+	// 033978326862c191eaa39e33bb556a6296466facfe36bfb81e6b4c99d9c510e09f	skyhost_002:9119
 	// Write file success: true
 	// Opening FilePubKeyTable success: true
-	// ipA: 192.168.1.2:9119
+	// ipA: 12.12.12.1:9119
 	// PK for ipA: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
 	// PK for ipAA: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
 	// PK for ipB: 033978326862c191eaa39e33bb556a6296466facfe36bfb81e6b4c99d9c510e09f

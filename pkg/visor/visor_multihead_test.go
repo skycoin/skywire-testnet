@@ -9,8 +9,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -39,16 +44,20 @@ type MultiHead struct {
 	cfgPool    []Config
 	nodes      []*Node
 
-	Log *multiheadLog
+	Log       *multiheadLog
+	initErrs  chan error
+	startErrs chan error
+	stopErrs  chan error
+	sync.Once
 }
 
 func initMultiHead() *MultiHead {
 	mhLog := multiheadLog{records: []string{}}
-	masterLogger.Out = &mhLog
 	return &MultiHead{Log: &mhLog}
 }
 
 func Example_initMultiHead() {
+
 	mh := initMultiHead()
 	mh.Log.Write([]byte("initMultiHead success"))
 	fmt.Printf("%v\n", mh.Log.records)
@@ -148,18 +157,52 @@ func Example_initCfgPool() {
 	// len(mh.cfgPool): 16
 }
 
-func (mh *MultiHead) initNodes() chan error {
+type TaggedFormatter struct {
+	tag []byte
+	*logging.TextFormatter
+}
+
+func (tf *TaggedFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	data, err := tf.TextFormatter.Format(entry)
+	return append(tf.tag, data...), err
+}
+
+// NewTaggedMasterLogger creates MasterLogger that prepends records with tag
+func NewTaggedMasterLogger(tag string) *logging.MasterLogger {
+	hooks := make(logrus.LevelHooks)
+	return &logging.MasterLogger{
+		Logger: &logrus.Logger{
+			Out: os.Stdout,
+			Formatter: &TaggedFormatter{
+				[]byte(tag),
+				&logging.TextFormatter{
+					FullTimestamp:      true,
+					AlwaysQuoteStrings: true,
+					QuoteEmptyFields:   true,
+					ForceFormatting:    true,
+					DisableColors:      false,
+					ForceColors:        false,
+				},
+			},
+			Hooks: hooks,
+			Level: logrus.DebugLevel,
+		},
+	}
+}
+
+func (mh *MultiHead) initNodes() {
 	mh.nodes = make([]*Node, len(mh.cfgPool))
-	errs := make(chan error, len(mh.cfgPool))
+	mh.initErrs = make(chan error, len(mh.cfgPool))
 
 	var err error
 	for i := 0; i < len(mh.nodes); i++ {
-		mh.nodes[i], err = NewNode(&mh.cfgPool[i], masterLogger)
+		logger := NewTaggedMasterLogger(fmt.Sprintf("[node_%03d]", i+1))
+		logger.Out = mh.Log
+		mh.nodes[i], err = NewNode(&mh.cfgPool[i], logger)
 		if err != nil {
-			errs <- fmt.Errorf("error %v starting node %v", err, i)
+			mh.initErrs <- fmt.Errorf("error %v starting node %v", err, i)
 		}
 	}
-	return errs
 }
 
 func ExampleMultiHead_initNodes() {
@@ -167,92 +210,90 @@ func ExampleMultiHead_initNodes() {
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
 	err = mh.readBaseConfig(cfgFile)
 	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
-	mh.initIPPool("12.12.12.%d", 16)
+	mh.initIPPool("skyhost_%03d", 16)
 	mh.initCfgPool()
-	initErrs := mh.initNodes()
-	close(initErrs)
+	mh.initNodes()
 
-	for err := range initErrs {
+	close(mh.initErrs)
+	for err := range mh.initErrs {
 		fmt.Printf("%v\n", err)
 	}
-	fmt.Printf("Errors on initNodes: %v\n", len(initErrs))
+	fmt.Printf("Errors on initNodes: %v\n", len(mh.initErrs))
 
 	// Output: mh.ReadBaseConfig success: true
 	// Errors on initNodes: 0
 }
 
-func (mh *MultiHead) startNodes() chan error {
-	errs := make(chan error, len(mh.nodes))
+func (mh *MultiHead) startNodes(postdelay time.Duration) {
+	mh.startErrs = make(chan error, len(mh.nodes))
 	for i := 0; i < len(mh.nodes); i++ {
 		go func(n int) {
 			if err := mh.nodes[n].Start(); err != nil {
-				errs <- fmt.Errorf("error %v starting node %v", err, n)
+				mh.startErrs <- fmt.Errorf("error %v starting node %v", err, n)
 			}
 		}(i)
 	}
-	return errs
+	time.Sleep(postdelay)
 }
 
-func (mh *MultiHead) stopNodes() chan error {
-	errs := make(chan error, len(mh.nodes))
+func (mh *MultiHead) stopNodes(predelay time.Duration) {
+	time.Sleep(predelay)
+	mh.stopErrs = make(chan error, len(mh.nodes))
 	for i := 0; i < len(mh.nodes); i++ {
 		go func(n int) {
 			if err := mh.nodes[n].Close(); err != nil {
-				errs <- fmt.Errorf("error %v starting node %v", err, n)
+				mh.stopErrs <- fmt.Errorf("error %v starting node %v", err, n)
 			}
 		}(i)
 	}
-	return errs
 }
 
 func makeMultiHeadN(n uint) *MultiHead {
 	mh := initMultiHead()
 	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
 	err = mh.readBaseConfig(cfgFile)
-	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
-	mh.initIPPool("12.12.12.%d", n)
+	if err != nil {
+		panic(err)
+	}
+	mh.initIPPool("skyhost_%03d", n)
 	mh.initCfgPool()
-
+	mh.initNodes()
 	return mh
 }
 
+func (mh *MultiHead) errReport() string {
+	mh.Do(func() {
+		close(mh.initErrs)
+		close(mh.startErrs)
+		close(mh.stopErrs)
+	})
+	collectErrs := func(tmplt string, errs chan error) string {
+		recs := make([]string, len(errs)+1)
+		for err := range errs {
+			recs = append(recs, fmt.Sprintf("%v", err))
+		}
+		recs = append(recs, fmt.Sprintf(tmplt, len(errs)))
+		return strings.Join(recs, "\n")
+	}
+	return strings.Join([]string{
+		collectErrs("init errors: %v", mh.initErrs),
+		collectErrs("start errors: %v", mh.startErrs),
+		collectErrs("stop errors: %v", mh.stopErrs),
+	}, "")
+}
+
 func ExampleMultiHead_startNodes() {
-	mh := initMultiHead()
-	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	err = mh.readBaseConfig(cfgFile)
-	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
-	mh.initIPPool("12.12.12.%d", 16)
-	mh.initCfgPool()
-	initErrs := mh.initNodes()
-	close(initErrs)
+	delay := time.Second
+	n := uint(32)
+	mh := makeMultiHeadN(n)
+	mh.startNodes(delay)
 
-	startErrs := mh.startNodes()
-	time.Sleep(time.Second * 5)
-	stopErrs := mh.stopNodes()
-	time.Sleep(time.Second * 5)
-
-	close(startErrs)
-	close(stopErrs)
-
-	for err := range initErrs {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("Errors on initNodes: %v\n", len(initErrs))
-
-	for err := range startErrs {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("Errors on startNodes: %v\n", len(startErrs))
-
-	for err := range stopErrs {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("Errors on stopNodes: %v\n", len(stopErrs))
-
-	// Output: mh.ReadBaseConfig success: true
-	// Errors on initNodes: 0
-	// Errors on startNodes: 0
-	// Errors on stopNodes: 0
+	mh.stopNodes(delay)
+	fmt.Printf("%v\n", mh.errReport())
+	fmt.Printf("records: %v,  %v\n", len(mh.Log.records), len(mh.Log.records) >= int(n*12))
+	// Output: init errors: 0
+	// start errors: 0
+	// stop errors: 0
 }
 
 func (mh *MultiHead) sendMessage(sender, reciever uint, message string) (*http.Response, error) {
@@ -266,41 +307,20 @@ func (mh *MultiHead) sendMessage(sender, reciever uint, message string) (*http.R
 
 }
 
+// WIP
 func ExampleMultiHead_sendMessage() {
-	mh := makeMultiHeadN(2)
+	mh := makeMultiHeadN(1)
+	mh.startNodes(time.Second)
 
-	initErrs := mh.initNodes()
-	startErrs := mh.startNodes()
-	time.Sleep(time.Second * 2)
+	_, err := mh.sendMessage(0, 0, "Hello")
+	fmt.Printf("err: %v", err)
 
-	// fmt.Printf("resp: %v, err: %v\n", resp, err)
+	mh.stopNodes(time.Second * 3)
+	fmt.Printf("%v\n", mh.errReport())
+	// fmt.Printf("%v\n", mh.Log.records)
 
-	resp, err := mh.sendMessage(0, 1, "Hello")
-	fmt.Printf("resp: %v, err: %v\n ", resp, err)
-
-	stopErrs := mh.stopNodes()
-	time.Sleep(time.Second * 5)
-
-	close(initErrs)
-	close(startErrs)
-	close(stopErrs)
-
-	for err := range initErrs {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("Errors on initNodes: %v\n", len(initErrs))
-
-	for err := range startErrs {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("Errors on startNodes: %v\n", len(startErrs))
-
-	for err := range stopErrs {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("Errors on stopNodes: %v\n", len(stopErrs))
-
-	fmt.Printf("%v\n", mh.Log.records)
-
-	// Output: ZZZ
+	// Output: err: <nil>
+	// init errors: 0
+	// start errors: 0
+	// stop errors: 0
 }

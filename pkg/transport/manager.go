@@ -22,6 +22,7 @@ type ManagerConfig struct {
 	DiscoveryClient DiscoveryClient
 	LogStore        LogStore
 	DefaultNodes    []cipher.PubKey // Nodes to automatically connect to
+	Logger          *logging.Logger
 }
 
 // Manager manages Transports.
@@ -51,7 +52,8 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 
 		entries = make([]*EntryWithStatus, 0)
 	}
-	log.Infof("transport.NewManager. entries: v%\n", entries)
+
+	// log.Infof("transport.NewManager. entries: v%\n", entries)
 
 	mEntries := make(map[Entry]struct{})
 	for _, entry := range entries {
@@ -64,7 +66,7 @@ func NewManager(config *ManagerConfig, factories ...Factory) (*Manager, error) {
 	}
 
 	return &Manager{
-		Logger:      logging.MustGetLogger("tp_manager"),
+		Logger:      config.Logger,
 		config:      config,
 		factories:   fMap,
 		transports:  make(map[uuid.UUID]*ManagedTransport),

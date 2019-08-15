@@ -13,7 +13,8 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
-var log = logging.MustGetLogger("therealssh")
+// Logger is PackageLogger for therealssh
+var Logger = logging.MustGetLogger("therealssh")
 
 // Session represents PTY sessions. Channel normally handles Session's lifecycle.
 type Session struct {
@@ -38,7 +39,7 @@ func OpenSession(user *user.User, sz *pty.Winsize) (s *Session, err error) {
 
 	if err = pty.Setsize(s.pty, sz); err != nil {
 		if closeErr := s.Close(); closeErr != nil {
-			log.WithError(closeErr).Warn("Failed to close session")
+			Logger.WithError(closeErr).Warn("Failed to close session")
 		}
 		err = fmt.Errorf("failed to set PTY size: %s", err)
 	}
@@ -50,7 +51,7 @@ func OpenSession(user *user.User, sz *pty.Winsize) (s *Session, err error) {
 func (s *Session) Start(command string) (err error) {
 	defer func() {
 		if err := s.tty.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close TTY")
+			Logger.WithError(err).Warn("Failed to close TTY")
 		}
 	}()
 

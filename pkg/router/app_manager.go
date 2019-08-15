@@ -13,9 +13,9 @@ import (
 const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
-	CreateLoop func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
-	CloseLoop  func(conn *app.Protocol, loop routing.Loop) error
-	Forward    func(conn *app.Protocol, packet *app.Packet) error
+	CreateLoop       func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
+	CloseLoop        func(conn *app.Protocol, loop routing.Loop) error
+	ForwardAppPacket func(conn *app.Protocol, packet *app.Packet) error
 }
 
 type appManager struct {
@@ -28,7 +28,8 @@ type appManager struct {
 
 func (am *appManager) Serve() error {
 	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
-		am.Logger.Infof("Got new App request with type %s: %s", frame, string(payload))
+		am.Logger.WithField("frame", frame).WithField("payload", payload).Infof("Got new request in appManager.Serve")
+
 		switch frame {
 		case app.FrameInit:
 			err = am.initApp(payload)
@@ -96,5 +97,6 @@ func (am *appManager) forwardAppPacket(payload []byte) error {
 		return err
 	}
 
-	return am.callbacks.Forward(am.proto, packet)
+	am.Logger.WithField("packet", packet).Info("appMananger.forwardAppPacket")
+	return am.callbacks.ForwardAppPacket(am.proto, packet)
 }
