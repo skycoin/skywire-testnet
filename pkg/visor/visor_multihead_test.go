@@ -13,10 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -157,46 +153,18 @@ func Example_initCfgPool() {
 	// len(mh.cfgPool): 16
 }
 
-type TaggedFormatter struct {
-	tag []byte
-	*logging.TextFormatter
-}
-
-func (tf *TaggedFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	data, err := tf.TextFormatter.Format(entry)
-	return append(tf.tag, data...), err
-}
-
-// NewTaggedMasterLogger creates MasterLogger that prepends records with tag
-func NewTaggedMasterLogger(tag string) *logging.MasterLogger {
-	hooks := make(logrus.LevelHooks)
-	return &logging.MasterLogger{
-		Logger: &logrus.Logger{
-			Out: os.Stdout,
-			Formatter: &TaggedFormatter{
-				[]byte(tag),
-				&logging.TextFormatter{
-					FullTimestamp:      true,
-					AlwaysQuoteStrings: true,
-					QuoteEmptyFields:   true,
-					ForceFormatting:    true,
-					DisableColors:      false,
-					ForceColors:        false,
-				},
-			},
-			Hooks: hooks,
-			Level: logrus.DebugLevel,
-		},
-	}
-}
-
 func (mh *MultiHead) initNodes() {
 	mh.nodes = make([]*Node, len(mh.cfgPool))
 	mh.initErrs = make(chan error, len(mh.cfgPool))
 
+	subs := []struct{ old, new string }{
+		{"000000000000000000000000000000000000000000000000000000000000000000", "PubKey{}"},
+		{"024195ae0d46eb0195c9ddabcaf62bc894316594ea2e92570f269238c5b5f817d1", "PK(skyhost_001)"},
+	}
+
 	var err error
 	for i := 0; i < len(mh.nodes); i++ {
-		logger := NewTaggedMasterLogger(fmt.Sprintf("[node_%03d]", i+1))
+		logger := NewTaggedMasterLogger(fmt.Sprintf("[node_%03d]", i+1), subs)
 		logger.Out = mh.Log
 		mh.nodes[i], err = NewNode(&mh.cfgPool[i], logger)
 		if err != nil {
@@ -309,7 +277,7 @@ func (mh *MultiHead) sendMessage(sender, reciever uint, message string) (*http.R
 
 // WIP
 func ExampleMultiHead_sendMessage() {
-	mh := makeMultiHeadN(1)
+	mh := makeMultiHeadN(2)
 	mh.startNodes(time.Second)
 
 	_, err := mh.sendMessage(0, 0, "Hello")
@@ -317,10 +285,11 @@ func ExampleMultiHead_sendMessage() {
 
 	mh.stopNodes(time.Second * 3)
 	fmt.Printf("%v\n", mh.errReport())
-	// fmt.Printf("%v\n", mh.Log.records)
+	fmt.Printf("%v\n", mh.Log.records)
 
 	// Output: err: <nil>
 	// init errors: 0
 	// start errors: 0
 	// stop errors: 0
+
 }
