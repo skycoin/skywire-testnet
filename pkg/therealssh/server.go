@@ -41,6 +41,8 @@ const (
 	RequestShell
 	// RequestExec represents request for new process.
 	RequestExec
+	// RequestExecWithoutShell for use in integration testing.
+	RequestExecWithoutShell
 	// RequestWindowChange represents request for PTY size change.
 	RequestWindowChange
 )

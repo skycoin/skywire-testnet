@@ -1,8 +1,10 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -13,9 +15,9 @@ import (
 const supportedProtocolVersion = "0.0.1"
 
 type appCallbacks struct {
-	CreateLoop func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
-	CloseLoop  func(conn *app.Protocol, loop routing.Loop) error
-	Forward    func(conn *app.Protocol, packet *app.Packet) error
+	CreateLoop func(ctx context.Context, conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
+	CloseLoop  func(ctx context.Context, conn *app.Protocol, loop routing.Loop) error
+	Forward    func(ctx context.Context, conn *app.Protocol, packet *app.Packet) error
 }
 
 type appManager struct {
@@ -29,15 +31,19 @@ type appManager struct {
 func (am *appManager) Serve() error {
 	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
 		am.Logger.Infof("Got new App request with type %s: %s", frame, string(payload))
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+
 		switch frame {
 		case app.FrameInit:
 			err = am.initApp(payload)
 		case app.FrameCreateLoop:
-			res, err = am.setupLoop(payload)
+			res, err = am.setupLoop(ctx, payload)
 		case app.FrameClose:
-			err = am.handleCloseLoop(payload)
+			err = am.handleCloseLoop(ctx, payload)
 		case app.FrameSend:
-			err = am.forwardAppPacket(payload)
+			err = am.forwardAppPacket(ctx, payload)
 		default:
 			err = errors.New("unexpected frame")
 		}
@@ -72,29 +78,26 @@ func (am *appManager) initApp(payload []byte) error {
 	return nil
 }
 
-func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
+func (am *appManager) setupLoop(ctx context.Context, payload []byte) (routing.Addr, error) {
 	var raddr routing.Addr
 	if err := json.Unmarshal(payload, &raddr); err != nil {
 		return routing.Addr{}, err
 	}
-
-	return am.callbacks.CreateLoop(am.proto, raddr)
+	return am.callbacks.CreateLoop(ctx, am.proto, raddr)
 }
 
-func (am *appManager) handleCloseLoop(payload []byte) error {
+func (am *appManager) handleCloseLoop(ctx context.Context, payload []byte) error {
 	var loop routing.Loop
 	if err := json.Unmarshal(payload, &loop); err != nil {
 		return err
 	}
-
-	return am.callbacks.CloseLoop(am.proto, loop)
+	return am.callbacks.CloseLoop(ctx, am.proto, loop)
 }
 
-func (am *appManager) forwardAppPacket(payload []byte) error {
+func (am *appManager) forwardAppPacket(ctx context.Context, payload []byte) error {
 	packet := &app.Packet{}
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err
 	}
-
-	return am.callbacks.Forward(am.proto, packet)
+	return am.callbacks.Forward(ctx, am.proto, packet)
 }

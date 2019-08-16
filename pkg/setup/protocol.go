@@ -2,6 +2,7 @@
 package setup
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -104,12 +105,12 @@ func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
 }
 
 // RequestRouteID sends RequestRouteID request.
-func RequestRouteID(p *Protocol) (routing.RouteID, error) {
+func RequestRouteID(ctx context.Context, p *Protocol) (routing.RouteID, error) {
 	if err := p.WritePacket(PacketRequestRouteID, nil); err != nil {
 		return 0, err
 	}
 	var res []routing.RouteID
-	if err := readAndDecodePacket(p, &res); err != nil {
+	if err := readAndDecodePacketWithTimeout(ctx, p, &res); err != nil {
 		return 0, err
 	}
 	if len(res) == 0 {
@@ -119,20 +120,20 @@ func RequestRouteID(p *Protocol) (routing.RouteID, error) {
 }
 
 // AddRule sends AddRule setup request.
-func AddRule(p *Protocol, rule routing.Rule) error {
+func AddRule(ctx context.Context, p *Protocol, rule routing.Rule) error {
 	if err := p.WritePacket(PacketAddRules, []routing.Rule{rule}); err != nil {
 		return err
 	}
-	return readAndDecodePacket(p, nil)
+	return readAndDecodePacketWithTimeout(ctx, p, nil)
 }
 
 // DeleteRule sends DeleteRule setup request.
-func DeleteRule(p *Protocol, routeID routing.RouteID) error {
+func DeleteRule(ctx context.Context, p *Protocol, routeID routing.RouteID) error {
 	if err := p.WritePacket(PacketDeleteRules, []routing.RouteID{routeID}); err != nil {
 		return err
 	}
 	var res []routing.RouteID
-	if err := readAndDecodePacket(p, &res); err != nil {
+	if err := readAndDecodePacketWithTimeout(ctx, p, &res); err != nil {
 		return err
 	}
 	if len(res) == 0 {
@@ -142,35 +143,53 @@ func DeleteRule(p *Protocol, routeID routing.RouteID) error {
 }
 
 // CreateLoop sends CreateLoop setup request.
-func CreateLoop(p *Protocol, ld routing.LoopDescriptor) error {
+func CreateLoop(ctx context.Context, p *Protocol, ld routing.LoopDescriptor) error {
 	if err := p.WritePacket(PacketCreateLoop, ld); err != nil {
 		return err
 	}
-	return readAndDecodePacket(p, nil) // TODO: data race.
+	return readAndDecodePacketWithTimeout(ctx, p, nil) // TODO: data race.
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func ConfirmLoop(p *Protocol, ld routing.LoopData) error {
+func ConfirmLoop(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketConfirmLoop, ld); err != nil {
 		return err
 	}
-	return readAndDecodePacket(p, nil)
+	return readAndDecodePacketWithTimeout(ctx, p, nil)
 }
 
 // CloseLoop sends CloseLoop setup request.
-func CloseLoop(p *Protocol, ld routing.LoopData) error {
+func CloseLoop(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketCloseLoop, ld); err != nil {
 		return err
 	}
-	return readAndDecodePacket(p, nil)
+	return readAndDecodePacketWithTimeout(ctx, p, nil)
 }
 
 // LoopClosed sends LoopClosed setup request.
-func LoopClosed(p *Protocol, ld routing.LoopData) error {
+func LoopClosed(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketLoopClosed, ld); err != nil {
 		return err
 	}
-	return readAndDecodePacket(p, nil)
+	return readAndDecodePacketWithTimeout(ctx, p, nil)
+}
+
+func readAndDecodePacketWithTimeout(ctx context.Context, p *Protocol, v interface{}) error {
+	ctx, cancel := context.WithTimeout(ctx, ReadTimeout)
+	defer cancel()
+
+	done := make(chan struct{})
+	var err error
+	go func() {
+		err = readAndDecodePacket(p, v)
+		close(done)
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-done:
+		return err
+	}
 }
 
 func readAndDecodePacket(p *Protocol, v interface{}) error {

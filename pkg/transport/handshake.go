@@ -6,46 +6,28 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/skycoin/dmsg/cipher"
 )
 
-type settlementHandshake func(tm *Manager, tr Transport) (*Entry, error)
-
-func (handshake settlementHandshake) Do(tm *Manager, tr Transport, timeout time.Duration) (entry *Entry, err error) {
-	done := make(chan struct{})
-	go func() {
-		entry, err = handshake(tm, tr)
-		close(done)
-	}()
-	select {
-	case <-done:
-		return entry, err
-	case <-time.After(timeout):
-		tm.Logger.Infof("handshake.Do timeout exceeded for value: %v", timeout)
-		return nil, errors.New("deadline exceeded on handshake")
+func makeEntry(pk1, pk2 cipher.PubKey, tpType string) Entry {
+	return Entry{
+		ID:     MakeTransportID(pk1, pk2, tpType),
+		Edges:  SortEdges(pk1, pk2),
+		Type:   tpType,
+		Public: true,
 	}
 }
 
-func makeEntry(tp Transport, public bool) *Entry {
-	return &Entry{
-		ID:       MakeTransportID(tp.Edges()[0], tp.Edges()[1], tp.Type(), public),
-		EdgeKeys: tp.Edges(),
-		Type:     tp.Type(),
-		Public:   public,
-	}
+func makeEntryFromTp(tp Transport) Entry {
+	return makeEntry(tp.LocalPK(), tp.RemotePK(), tp.Type())
 }
 
-func compareEntries(expected, received *Entry, checkPublic bool) error {
-	if !checkPublic {
-		expected.Public = received.Public
-		expected.ID = MakeTransportID(expected.EdgeKeys[0], expected.EdgeKeys[1], expected.Type, expected.Public)
-	}
+func compareEntries(expected, received *Entry) error {
 	if expected.ID != received.ID {
 		return errors.New("received entry's 'tp_id' is not of expected")
 	}
-	if expected.EdgeKeys != received.EdgeKeys {
+	if expected.Edges != received.Edges {
 		return errors.New("received entry's 'edges' is not of expected")
 	}
 	if expected.Type != received.Type {
@@ -57,12 +39,12 @@ func compareEntries(expected, received *Entry, checkPublic bool) error {
 	return nil
 }
 
-func receiveAndVerifyEntry(r io.Reader, expected *Entry, remotePK cipher.PubKey, checkPublic bool) (*SignedEntry, error) {
+func receiveAndVerifyEntry(r io.Reader, expected *Entry, remotePK cipher.PubKey) (*SignedEntry, error) {
 	var recvSE SignedEntry
 	if err := json.NewDecoder(r).Decode(&recvSE); err != nil {
 		return nil, fmt.Errorf("failed to read entry: %s", err)
 	}
-	if err := compareEntries(expected, recvSE.Entry, checkPublic); err != nil {
+	if err := compareEntries(expected, recvSE.Entry); err != nil {
 		return nil, err
 	}
 	sig, ok := recvSE.Signature(remotePK)
@@ -75,53 +57,81 @@ func receiveAndVerifyEntry(r io.Reader, expected *Entry, remotePK cipher.PubKey,
 	return &recvSE, nil
 }
 
-func settlementInitiatorHandshake(public bool) settlementHandshake {
-	return func(tm *Manager, tp Transport) (*Entry, error) {
-		entry := makeEntry(tp, public)
-		se, ok := NewSignedEntry(entry, tm.config.PubKey, tm.config.SecKey)
-		if !ok {
-			return nil, errors.New("failed to sign entry")
-		}
-		if err := json.NewEncoder(tp).Encode(se); err != nil {
-			return nil, fmt.Errorf("failed to write entry: %v", err)
-		}
-		remotePK, ok := tm.Remote(tp.Edges())
-		if !ok {
-			return nil, errors.New("invalid public key")
-		}
-		if _, err := receiveAndVerifyEntry(tp, entry, remotePK, true); err != nil {
-			return nil, err
-		}
-		tm.addEntry(entry)
-		return entry, nil
+// SettlementHS represents a settlement handshake.
+// This is the handshake responsible for registering a transport to transport discovery.
+type SettlementHS func(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) error
+
+// Do performs the settlement handshake.
+func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) (err error) {
+	done := make(chan struct{})
+	go func() {
+		err = hs(ctx, dc, tp, sk)
+		close(done)
+	}()
+	select {
+	case <-done:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
-func settlementResponderHandshake() settlementHandshake {
-	return func(tm *Manager, tr Transport) (*Entry, error) {
-		expectedEntry := makeEntry(tr, false)
-		remotePK, ok := tm.Remote(tr.Edges())
+// MakeSettlementHS creates a settlement handshake.
+// `init` determines whether the local side is initiating or responding.
+func MakeSettlementHS(init bool) SettlementHS {
+
+	// initiating logic.
+	initHS := func(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) (err error) {
+		entry := makeEntryFromTp(tp)
+
+		defer func() { _, _ = dc.UpdateStatuses(ctx, &Status{ID: entry.ID, IsUp: err == nil}) }() //nolint:errcheck
+
+		// create signed entry and send it to responding visor node.
+		se, ok := NewSignedEntry(&entry, tp.LocalPK(), sk)
 		if !ok {
-			return nil, errors.New("invalid public key")
+			return errors.New("failed to sign entry")
 		}
-		recvSignedEntry, err := receiveAndVerifyEntry(tr, expectedEntry, remotePK, false)
-		if err != nil {
-			return nil, err
+		if err := json.NewEncoder(tp).Encode(se); err != nil {
+			return fmt.Errorf("failed to write entry: %v", err)
 		}
-		if ok := recvSignedEntry.Sign(tm.Local(), tm.config.SecKey); !ok {
-			return nil, errors.New("failed to sign received entry")
+
+		// await okay signal.
+		accepted := make([]byte, 1)
+		if _, err := io.ReadFull(tp, accepted); err != nil {
+			return fmt.Errorf("failed to read response: %v", err)
 		}
-		if isNew := tm.addIfNotExist(expectedEntry); !isNew {
-			_, err = tm.config.DiscoveryClient.UpdateStatuses(context.Background(), &Status{ID: recvSignedEntry.Entry.ID, IsUp: true})
-		} else {
-			err = tm.config.DiscoveryClient.RegisterTransports(context.Background(), recvSignedEntry)
+		if accepted[0] == 0 {
+			return fmt.Errorf("transport settlement rejected by remote")
 		}
-		if err != nil {
-			return nil, err
-		}
-		if err := json.NewEncoder(tr).Encode(recvSignedEntry); err != nil {
-			return nil, fmt.Errorf("failed to write entry: %s", err)
-		}
-		return expectedEntry, nil
+		return nil
 	}
+
+	// responding logic.
+	respHS := func(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) error {
+		entry := makeEntryFromTp(tp)
+
+		// receive, verify and sign entry.
+		recvSE, err := receiveAndVerifyEntry(tp, &entry, tp.RemotePK())
+		if err != nil {
+			return err
+		}
+		if ok := recvSE.Sign(tp.LocalPK(), sk); !ok {
+			return errors.New("failed to sign received entry")
+		}
+		entry = *recvSE.Entry
+
+		// Ensure transport is registered.
+		_ = dc.RegisterTransports(ctx, recvSE) //nolint:errcheck
+
+		// inform initiating visor node.
+		if _, err := tp.Write([]byte{1}); err != nil {
+			return fmt.Errorf("failed to accept transport settlement: write failed: %v", err)
+		}
+		return nil
+	}
+
+	if init {
+		return initHS
+	}
+	return respHS
 }

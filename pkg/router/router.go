@@ -83,61 +83,68 @@ func (r *Router) Serve(ctx context.Context) error {
 
 	go func() {
 		for {
-			select {
-			case dTp, ok := <-r.tm.DataTpChan:
-				if !ok {
+			packet, err := r.tm.ReadPacket()
+			if err != nil {
+				return
+			}
+			if err := r.handlePacket(ctx, packet); err != nil {
+				if err == transport.ErrNotServing {
+					r.Logger.WithError(err).Warnf("Stopped serving Transport.")
 					return
 				}
-				initStatus := "locally"
-				if dTp.Accepted {
-					initStatus = "remotely"
-				}
-				r.Logger.Infof("New %s-initiated transport: purpose(data)", initStatus)
-				r.handleTransport(dTp, dTp.Accepted, false)
-
-			case sTp, ok := <-r.tm.SetupTpChan:
-				if !ok {
-					return
-				}
-				r.Logger.Infof("New remotely-initiated transport: purpose(setup)")
-				r.handleTransport(sTp, true, true)
-
-			case <-r.expiryTicker.C:
-				if err := r.rm.rt.Cleanup(); err != nil {
-					r.Logger.Warnf("Failed to expiry routes: %s", err)
-				}
+				r.Logger.Warnf("Failed to handle transport frame: %v", err)
 			}
 		}
 	}()
+
+	go func() {
+		for {
+			conn, err := r.tm.AcceptSetupConn()
+			if err != nil {
+				return
+			}
+			r.Logger.Infof("New remotely-initiated transport: purpose(setup)")
+			go r.serveSetup(conn)
+		}
+	}()
+
+	go func() {
+		for range r.expiryTicker.C {
+			if err := r.rm.rt.Cleanup(); err != nil {
+				r.Logger.Warnf("Failed to expiry routes: %s", err)
+			}
+		}
+	}()
+
 	return r.tm.Serve(ctx)
 }
 
-func (r *Router) handleTransport(tp transport.Transport, isAccepted, isSetup bool) {
-	var serve func(io.ReadWriter) error
-	switch {
-	case isAccepted && isSetup:
-		serve = r.rm.Serve
-	case !isSetup:
-		serve = r.serveTransport
-	default:
-		return
-	}
-
-	go func(tp transport.Transport) {
-		defer func() {
-			if err := tp.Close(); err != nil {
-				r.Logger.Warnf("Failed to close transport: %s", err)
-			}
-		}()
-		for {
-			if err := serve(tp); err != nil {
-				if err != io.EOF {
-					r.Logger.Warnf("Stopped serving Transport: %s", err)
-				}
-				return
-			}
+func (r *Router) serveSetup(conn io.ReadWriteCloser) {
+	defer func() {
+		if err := conn.Close(); err != nil {
+			r.Logger.Warnf("Failed to close transport: %s", err)
 		}
-	}(tp)
+	}()
+	for {
+		if err := r.rm.Serve(conn); err != nil {
+			if err != io.EOF {
+				r.Logger.Warnf("Stopped serving Transport: %s", err)
+			}
+			return
+		}
+	}
+}
+
+func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error {
+	rule, err := r.rm.GetRule(packet.RouteID())
+	if err != nil {
+		return err
+	}
+	r.Logger.Infof("Got new remote packet with route ID %d. Using rule: %s", packet.RouteID(), rule)
+	if rule.Type() == routing.RuleForward {
+		return r.forwardPacket(ctx, packet.Payload(), rule)
+	}
+	return r.consumePacket(packet.Payload(), rule)
 }
 
 // ServeApp handles App packets from the App connection on provided port.
@@ -164,7 +171,7 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 
 	for _, port := range r.pm.AppPorts(appProto) {
 		for _, addr := range r.pm.Close(port) {
-			if err := r.closeLoop(appProto, routing.Loop{Local: routing.Addr{Port: port}, Remote: addr}); err != nil {
+			if err := r.closeLoop(context.TODO(), appProto, routing.Loop{Local: routing.Addr{Port: port}, Remote: addr}); err != nil {
 				log.WithError(err).Warn("Failed to close loop")
 			}
 		}
@@ -199,41 +206,14 @@ func (r *Router) Close() error {
 	return r.tm.Close()
 }
 
-func (r *Router) serveTransport(rw io.ReadWriter) error {
-	packet := make(routing.Packet, 6)
-	if _, err := io.ReadFull(rw, packet); err != nil {
-		return err
-	}
-
-	payload := make([]byte, packet.Size())
-	if _, err := io.ReadFull(rw, payload); err != nil {
-		return err
-	}
-
-	rule, err := r.rm.GetRule(packet.RouteID())
-	if err != nil {
-		return err
-	}
-
-	r.Logger.Infof("Got new remote packet with route ID %d. Using rule: %s", packet.RouteID(), rule)
-	if rule.Type() == routing.RuleForward {
-		return r.forwardPacket(payload, rule)
-	}
-
-	return r.consumePacket(payload, rule)
-}
-
-func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
-	packet := routing.MakePacket(rule.RouteID(), payload)
-	tr := r.tm.Transport(rule.TransportID())
-	if tr == nil {
+func (r *Router) forwardPacket(ctx context.Context, payload []byte, rule routing.Rule) error {
+	tp := r.tm.Transport(rule.TransportID())
+	if tp == nil {
 		return errors.New("unknown transport")
 	}
-
-	if _, err := tr.Write(packet); err != nil {
+	if err := tp.WritePacket(ctx, rule.RouteID(), payload); err != nil {
 		return err
 	}
-
 	r.Logger.Infof("Forwarded packet via Transport %s using rule %d", rule.TransportID(), rule.RouteID())
 	return nil
 }
@@ -255,7 +235,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	return nil
 }
 
-func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
+func (r *Router) forwardAppPacket(ctx context.Context, appConn *app.Protocol, packet *app.Packet) error {
 	if packet.Loop.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
 	}
@@ -270,10 +250,8 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 		return errors.New("unknown transport")
 	}
 
-	p := routing.MakePacket(l.routeID, packet.Payload)
 	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Loop.Local.Port, l.routeID)
-	_, err = tr.Write(p)
-	return err
+	return tr.WritePacket(ctx, l.routeID, packet.Payload)
 }
 
 func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
@@ -292,7 +270,7 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 	return b.conn.Send(app.FrameSend, p, nil)
 }
 
-func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
+func (r *Router) requestLoop(ctx context.Context, appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
 		return routing.Addr{}, err
@@ -322,7 +300,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		Reverse: reverseRoute,
 	}
 
-	proto, tr, err := r.setupProto(context.Background())
+	proto, tr, err := r.setupProto(ctx)
 	if err != nil {
 		return routing.Addr{}, err
 	}
@@ -332,7 +310,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		}
 	}()
 
-	if err := setup.CreateLoop(proto, ld); err != nil {
+	if err := setup.CreateLoop(ctx, proto, ld); err != nil {
 		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
 
@@ -372,15 +350,16 @@ func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
 	return nil
 }
 
-func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
+func (r *Router) closeLoop(ctx context.Context, appConn *app.Protocol, loop routing.Loop) error {
 	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
-	proto, tr, err := r.setupProto(context.Background())
+	proto, tr, err := r.setupProto(ctx)
 	if err != nil {
 		return err
 	}
+
 	defer func() {
 		if err := tr.Close(); err != nil {
 			r.Logger.Warnf("Failed to close transport: %s", err)
@@ -388,7 +367,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
 	}()
 
 	ld := routing.LoopData{Loop: loop}
-	if err := setup.CloseLoop(proto, ld); err != nil {
+	if err := setup.CloseLoop(ctx, proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
 
@@ -435,7 +414,7 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type)
+	tr, err := r.tm.DialSetupConn(ctx, r.config.SetupNodes[0], dmsg.Type)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
@@ -466,13 +445,11 @@ fetchRoutesAgain:
 }
 
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
-func (r *Router) IsSetupTransport(tr *transport.ManagedTransport) bool {
+func (r *Router) IsSetupTransport(mTp *transport.ManagedTransport) bool {
 	for _, pk := range r.config.SetupNodes {
-		remote, ok := r.tm.Remote(tr.Edges())
-		if ok && (remote == pk) {
+		if mTp.Remote() == pk {
 			return true
 		}
 	}
-
 	return false
 }

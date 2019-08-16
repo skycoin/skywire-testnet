@@ -5,6 +5,11 @@ import (
 	"math"
 )
 
+// PacketHeaderSize represents the base size of a packet.
+// All rules should have at-least this size.
+// TODO(evanlinjin): Document the format of packets in comments.
+const PacketHeaderSize = 6
+
 // RouteID represents ID of a Route in a Packet.
 type RouteID uint32
 
@@ -18,7 +23,7 @@ func MakePacket(id RouteID, payload []byte) Packet {
 		panic("packet size exceeded")
 	}
 
-	packet := make([]byte, 6)
+	packet := make([]byte, PacketHeaderSize)
 	binary.BigEndian.PutUint16(packet, uint16(len(payload)))
 	binary.BigEndian.PutUint32(packet[2:], uint32(id))
 	return Packet(append(packet, payload...))
@@ -36,5 +41,5 @@ func (p Packet) RouteID() RouteID {
 
 // Payload returns payload from a Packet.
 func (p Packet) Payload() []byte {
-	return p[6:]
+	return p[PacketHeaderSize:]
 }

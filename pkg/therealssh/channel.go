@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kr/pty"
+	"github.com/creack/pty"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/routing"
@@ -117,6 +117,8 @@ func (sshCh *SSHChannel) Serve() error {
 			err = sshCh.Shell()
 		case RequestExec:
 			err = sshCh.Start(string(data[1:]))
+		case RequestExecWithoutShell:
+			err = sshCh.Run(string(data[1:]))
 		case RequestWindowChange:
 			cols := binary.BigEndian.Uint32(data[1:])
 			rows := binary.BigEndian.Uint32(data[5:])
@@ -228,6 +230,26 @@ func (sshCh *SSHChannel) Start(command string) error {
 
 	log.Debugf("starting new pty process %s", command)
 	return sshCh.session.Start(command)
+}
+
+// Run executes provided command on Channel's PTY session and returns output as []byte.
+func (sshCh *SSHChannel) Run(command string) error {
+	if sshCh.session == nil {
+		return errors.New("session is not started")
+	}
+
+	out, err := sshCh.session.Run(command)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		_, err := sshCh.Write(out)
+		if err != nil {
+			log.Warn("error writing to channel: ", err)
+		}
+	}()
+	return err
 }
 
 func (sshCh *SSHChannel) serveSession() error {

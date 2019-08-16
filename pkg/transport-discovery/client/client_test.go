@@ -40,11 +40,11 @@ var testPubKey, testSecKey = cipher.GenerateKeyPair()
 func newTestEntry() *transport.Entry {
 	pk1, _ := cipher.GenerateKeyPair()
 	entry := &transport.Entry{
-		ID:     transport.MakeTransportID(pk1, testPubKey, "messaging", false),
+		ID:     transport.MakeTransportID(pk1, testPubKey, "messaging"),
 		Type:   "messaging",
 		Public: true,
 	}
-	entry.SetEdges([2]cipher.PubKey{pk1, testPubKey})
+	entry.SetEdges(pk1, testPubKey)
 
 	return entry
 }
@@ -203,14 +203,14 @@ func TestGetTransportByID(t *testing.T) {
 func TestGetTransportsByEdge(t *testing.T) {
 	entry := &transport.EntryWithStatus{Entry: newTestEntry(), IsUp: true}
 	srv := httptest.NewServer(authHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, fmt.Sprintf("/transports/edge:%s", entry.Entry.Edges()[0]), r.URL.String())
+		assert.Equal(t, fmt.Sprintf("/transports/edge:%s", entry.Entry.Edges[0]), r.URL.String())
 		require.NoError(t, json.NewEncoder(w).Encode([]*transport.EntryWithStatus{entry}))
 	})))
 	defer srv.Close()
 
 	c, err := NewHTTP(srv.URL, testPubKey, testSecKey)
 	require.NoError(t, err)
-	entries, err := c.GetTransportsByEdge(context.Background(), entry.Entry.Edges()[0])
+	entries, err := c.GetTransportsByEdge(context.Background(), entry.Entry.Edges[0])
 	require.NoError(t, err)
 
 	require.Len(t, entries, 1)

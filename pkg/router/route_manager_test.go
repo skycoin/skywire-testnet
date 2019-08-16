@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"net"
 	"testing"
 	"time"
@@ -81,11 +82,11 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 
 	proto := setup.NewSetupProtocol(in)
 
-	id, err := setup.RequestRouteID(proto)
+	id, err := setup.RequestRouteID(context.TODO(), proto)
 	require.NoError(t, err)
 
 	rule := routing.ForwardRule(time.Now(), 3, uuid.New(), id)
-	err = setup.AddRule(proto, rule)
+	err = setup.AddRule(context.TODO(), proto, rule)
 	require.NoError(t, err)
 	assert.Equal(t, routing.RouteID(1), id)
 
@@ -116,7 +117,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, rt.Count())
 
-	require.NoError(t, setup.DeleteRule(proto, id))
+	require.NoError(t, setup.DeleteRule(context.TODO(), proto, id))
 	assert.Equal(t, 0, rt.Count())
 
 	require.NoError(t, in.Close())
@@ -162,7 +163,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 		},
 		RouteID: 1,
 	}
-	err := setup.ConfirmLoop(proto, ld)
+	err := setup.ConfirmLoop(context.TODO(), proto, ld)
 	require.NoError(t, err)
 	assert.Equal(t, rule, inRule)
 	assert.Equal(t, routing.Port(2), inLoop.Local.Port)
@@ -212,7 +213,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 		},
 		RouteID: 1,
 	}
-	require.NoError(t, setup.LoopClosed(proto, ld))
+	require.NoError(t, setup.LoopClosed(context.TODO(), proto, ld))
 	assert.Equal(t, routing.Port(2), inLoop.Local.Port)
 	assert.Equal(t, routing.Port(3), inLoop.Remote.Port)
 	assert.Equal(t, pk, inLoop.Remote.PubKey)

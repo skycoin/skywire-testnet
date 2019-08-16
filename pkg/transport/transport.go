@@ -4,6 +4,8 @@ package transport
 
 import (
 	"context"
+	"crypto/sha256"
+	"math/big"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,8 +27,11 @@ type Transport interface {
 	// Close implements io.Closer
 	Close() error
 
-	// Edges returns sorted edges of transport
-	Edges() [2]cipher.PubKey
+	// LocalPK returns local public key of transport
+	LocalPK() cipher.PubKey
+
+	// RemotePK returns remote public key of transport
+	RemotePK() cipher.PubKey
 
 	// SetDeadline functions the same as that from net.Conn
 	// With a Transport, we don't have a distinction between write and read timeouts.
@@ -59,30 +64,21 @@ type Factory interface {
 // Generated uuid is:
 // - always the same for a given pair
 // - GenTransportUUID(keyA,keyB) == GenTransportUUID(keyB, keyA)
-func MakeTransportID(keyA, keyB cipher.PubKey, tpType string, public bool) uuid.UUID {
-	keys := SortPubKeys(keyA, keyB)
-	if public {
-		return uuid.NewSHA1(uuid.UUID{},
-			append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 1))
-	}
-	return uuid.NewSHA1(uuid.UUID{},
-		append(append(append(keys[0][:], keys[1][:]...), []byte(tpType)...), 0))
+func MakeTransportID(keyA, keyB cipher.PubKey, tpType string) uuid.UUID {
+	keys := SortEdges(keyA, keyB)
+	b := make([]byte, 33*2+len(tpType))
+	i := 0
+	i += copy(b[i:], keys[0][:])
+	i += copy(b[i:], keys[1][:])
+	copy(b[i:], tpType)
+	return uuid.NewHash(sha256.New(), uuid.UUID{}, b, 0)
 }
 
-// SortPubKeys sorts keys so that least-significant comes first
-func SortPubKeys(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
-	for i := 0; i < 33; i++ {
-		if keyA[i] != keyB[i] {
-			if keyA[i] < keyB[i] {
-				return [2]cipher.PubKey{keyA, keyB}
-			}
-			return [2]cipher.PubKey{keyB, keyA}
-		}
+// SortEdges sorts keys so that least-significant comes first
+func SortEdges(keyA, keyB cipher.PubKey) [2]cipher.PubKey {
+	var a, b big.Int
+	if a.SetBytes(keyA[:]).Cmp(b.SetBytes(keyB[:])) < 0 {
+		return [2]cipher.PubKey{keyA, keyB}
 	}
-	return [2]cipher.PubKey{keyA, keyB}
-}
-
-// SortEdges sorts edges so that list-significant comes firs
-func SortEdges(edges [2]cipher.PubKey) [2]cipher.PubKey {
-	return SortPubKeys(edges[0], edges[1])
+	return [2]cipher.PubKey{keyB, keyA}
 }

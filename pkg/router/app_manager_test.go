@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"net"
 	"testing"
 
@@ -66,7 +67,7 @@ func TestAppManagerSetupLoop(t *testing.T) {
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			CreateLoop: func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
+			CreateLoop: func(ctx context.Context, conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
 				return raddr, nil
 			},
 		},
@@ -102,7 +103,7 @@ func TestAppManagerCloseLoop(t *testing.T) {
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			CloseLoop: func(conn *app.Protocol, loop routing.Loop) error {
+			CloseLoop: func(ctx context.Context, conn *app.Protocol, loop routing.Loop) error {
 				inLoop = loop
 				return nil
 			},
@@ -139,7 +140,7 @@ func TestAppManagerForward(t *testing.T) {
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		&appCallbacks{
-			Forward: func(conn *app.Protocol, packet *app.Packet) error {
+			Forward: func(ctx context.Context, conn *app.Protocol, packet *app.Packet) error {
 				inPacket = packet
 				return nil
 			},
