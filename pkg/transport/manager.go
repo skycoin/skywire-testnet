@@ -37,6 +37,7 @@ type Manager struct {
 
 	readCh chan routing.Packet
 	mx     sync.RWMutex
+	wg     sync.WaitGroup
 	done   chan struct{}
 }
 
@@ -62,7 +63,6 @@ func NewManager(n *network.Network, config *ManagerConfig) (*Manager, error) {
 // Serve runs listening loop across all registered factories.
 func (tm *Manager) Serve(ctx context.Context) error {
 	var listeners []*network.Listener
-	var wg sync.WaitGroup
 
 	for _, netName := range tm.conf.Networks {
 		lis, err := tm.n.Listen(netName, network.TransportPort)
@@ -73,9 +73,9 @@ func (tm *Manager) Serve(ctx context.Context) error {
 		tm.Logger.Infof("listening on network: %s", netName)
 		listeners = append(listeners, lis)
 
-		wg.Add(1)
+		tm.wg.Add(1)
 		go func(netName string) {
-			defer wg.Done()
+			defer tm.wg.Done()
 			for {
 				select {
 				case <-ctx.Done():
@@ -108,8 +108,6 @@ func (tm *Manager) Serve(ctx context.Context) error {
 		}
 	}
 
-	wg.Wait()
-	close(tm.readCh)
 	return nil
 }
 
@@ -275,15 +273,18 @@ func (tm *Manager) Close() error {
 
 	close(tm.done)
 
-	i, statuses := 0, make([]*Status, len(tm.tps))
+	statuses := make([]*Status, 0, len(tm.tps))
 	for _, tr := range tm.tps {
-		tr.close()
-		statuses[i] = &Status{ID: tr.Entry.ID, IsUp: false}
-		i++
+		if closed := tr.close(); closed {
+			statuses = append(statuses[0:], &Status{ID: tr.Entry.ID, IsUp: false})
+		}
 	}
 	if _, err := tm.conf.DiscoveryClient.UpdateStatuses(context.Background(), statuses...); err != nil {
 		tm.Logger.Warnf("failed to update transport statuses: %v", err)
 	}
+
+	tm.wg.Wait()
+	close(tm.readCh)
 	return nil
 }
 

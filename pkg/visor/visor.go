@@ -6,9 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skywire/pkg/network"
 	"io"
 	"net"
 	"net/rpc"
@@ -21,6 +18,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
+
+	"github.com/skycoin/skywire/pkg/network"
 
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -86,12 +88,12 @@ type PacketRouter interface {
 // Node provides messaging runtime for Apps by setting up all
 // necessary connections and performing messaging gateway functions.
 type Node struct {
-	config    *Config
-	router    PacketRouter
-	n         *network.Network
-	tm        *transport.Manager
-	rt        routing.Table
-	executer  appExecuter
+	config   *Config
+	router   PacketRouter
+	n        *network.Network
+	tm       *transport.Manager
+	rt       routing.Table
+	executer appExecuter
 
 	Logger *logging.MasterLogger
 	logger *logging.Logger
@@ -127,11 +129,11 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	fmt.Println("min servers:", config.Messaging.ServerCount)
 	node.n = network.New(network.Config{
-		PubKey: pk,
-		SecKey: sk,
-		TpNetworks: []string{dmsg.Type}, // TODO: Have some way to configure this.
+		PubKey:       pk,
+		SecKey:       sk,
+		TpNetworks:   []string{dmsg.Type}, // TODO: Have some way to configure this.
 		DmsgDiscAddr: config.Messaging.Discovery,
-		DmsgMinSrvs: config.Messaging.ServerCount,
+		DmsgMinSrvs:  config.Messaging.ServerCount,
 	})
 	if err := node.n.Init(ctx); err != nil {
 		return nil, fmt.Errorf("failed to init network: %v", err)
@@ -146,10 +148,10 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("invalid TransportLogStore: %s", err)
 	}
 	tmConfig := &transport.ManagerConfig{
-		PubKey: pk,
-		SecKey: sk,
+		PubKey:          pk,
+		SecKey:          sk,
 		DefaultNodes:    config.TrustedNodes,
-		Networks: []string{dmsg.Type}, // TODO: Have some way to configure this.
+		Networks:        []string{dmsg.Type}, // TODO: Have some way to configure this.
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
 	}

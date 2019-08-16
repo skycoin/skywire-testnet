@@ -125,6 +125,7 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet, done <-chan stru
 			}
 			select {
 			case <-done:
+				return
 			case readCh <- p:
 			}
 		}

@@ -4,10 +4,11 @@ package transport
 
 import (
 	"crypto/sha256"
+	"math/big"
+
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"math/big"
 )
 
 var log = logging.MustGetLogger("transport")

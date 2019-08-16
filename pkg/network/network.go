@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/skycoin/skycoin/src/util/logging"
 	"net"
 	"strings"
 	"sync"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
@@ -49,7 +50,7 @@ type Network struct {
 func New(conf Config) *Network {
 	dmsgC := dmsg.NewClient(conf.PubKey, conf.SecKey, disc.NewHTTP(conf.DmsgDiscAddr), dmsg.SetLogger(logging.MustGetLogger("network.dmsgC")))
 	return &Network{
-		conf: conf,
+		conf:  conf,
 		dmsgC: dmsgC,
 	}
 }
@@ -165,8 +166,10 @@ func disassembleAddr(addr net.Addr) (pk cipher.PubKey, port uint16) {
 	if err := pk.Set(strs[0]); err != nil {
 		panic(fmt.Errorf("network.disassembleAddr: %v %s", err, addr.String()))
 	}
-	if _, err := fmt.Sscanf(strs[1], "%d", &port); err != nil {
-		panic(fmt.Errorf("network.disassembleAddr: %v", err))
+	if strs[1] != "~" {
+		if _, err := fmt.Sscanf(strs[1], "%d", &port); err != nil {
+			panic(fmt.Errorf("network.disassembleAddr: %v", err))
+		}
 	}
 	return
 }

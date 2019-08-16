@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/skywire/pkg/network"
 	"time"
+
+	"github.com/skycoin/dmsg"
+
+	"github.com/skycoin/skywire/pkg/network"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
@@ -75,7 +77,6 @@ func (sn *Node) Serve(ctx context.Context) error {
 		return fmt.Errorf("messaging: %s", err)
 	}
 	sn.Logger.Info("Connected to messaging servers")
-
 
 	sn.Logger.Info("Starting Setup Node")
 
