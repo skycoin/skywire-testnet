@@ -10,7 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/dmsg"
+	"github.com/skycoin/skywire/pkg/network"
+
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -47,34 +48,41 @@ type Config struct {
 type Router struct {
 	Logger *logging.Logger
 
-	config *Config
-	tm     *transport.Manager
-	pm     *portManager
-	rm     *routeManager
-
-	expiryTicker *time.Ticker
-	wg           sync.WaitGroup
-
+	conf        *Config
 	staticPorts map[routing.Port]struct{}
-	mu          sync.Mutex
+
+	n  *network.Network
+	tm *transport.Manager
+	pm *portManager
+	rm *routeManager
+
+	wg sync.WaitGroup
+	mx sync.Mutex
 }
 
 // New constructs a new Router.
-func New(config *Config) *Router {
+func New(n *network.Network, config *Config) (*Router, error) {
 	r := &Router{
-		Logger:       config.Logger,
-		tm:           config.TransportManager,
-		pm:           newPortManager(10),
-		config:       config,
-		expiryTicker: time.NewTicker(10 * time.Minute),
-		staticPorts:  make(map[routing.Port]struct{}),
+		Logger:      config.Logger,
+		n:           n,
+		tm:          config.TransportManager,
+		pm:          newPortManager(10),
+		conf:        config,
+		staticPorts: make(map[routing.Port]struct{}),
 	}
-	callbacks := &setupCallbacks{
-		ConfirmLoop: r.confirmLoop,
-		LoopClosed:  r.loopClosed,
+
+	// Prepare route manager.
+	rm, err := newRouteManager(n, config.RoutingTable, setupConfig{
+		SetupPKs:      config.SetupNodes,
+		OnConfirmLoop: r.confirmLoop,
+		OnLoopClosed:  r.loopClosed,
+	})
+	if err != nil {
+		return nil, err
 	}
-	r.rm = &routeManager{r.Logger, manageRoutingTable(config.RoutingTable), callbacks}
-	return r
+	r.rm = rm
+
+	return r, nil
 }
 
 // Serve starts transport listening loop.
@@ -97,42 +105,13 @@ func (r *Router) Serve(ctx context.Context) error {
 		}
 	}()
 
+	r.wg.Add(1)
 	go func() {
-		for {
-			conn, err := r.tm.AcceptSetupConn()
-			if err != nil {
-				return
-			}
-			r.Logger.Infof("New remotely-initiated transport: purpose(setup)")
-			go r.serveSetup(conn)
-		}
-	}()
-
-	go func() {
-		for range r.expiryTicker.C {
-			if err := r.rm.rt.Cleanup(); err != nil {
-				r.Logger.Warnf("Failed to expiry routes: %s", err)
-			}
-		}
+		r.rm.Serve()
+		r.wg.Done()
 	}()
 
 	return r.tm.Serve(ctx)
-}
-
-func (r *Router) serveSetup(conn io.ReadWriteCloser) {
-	defer func() {
-		if err := conn.Close(); err != nil {
-			r.Logger.Warnf("Failed to close transport: %s", err)
-		}
-	}()
-	for {
-		if err := r.rm.Serve(conn); err != nil {
-			if err != io.EOF {
-				r.Logger.Warnf("Stopped serving Transport: %s", err)
-			}
-			return
-		}
-	}
 }
 
 func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error {
@@ -157,9 +136,9 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 		return err
 	}
 
-	r.mu.Lock()
+	r.mx.Lock()
 	r.staticPorts[port] = struct{}{}
-	r.mu.Unlock()
+	r.mx.Unlock()
 
 	callbacks := &appCallbacks{
 		CreateLoop: r.requestLoop,
@@ -177,9 +156,9 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 		}
 	}
 
-	r.mu.Lock()
+	r.mx.Lock()
 	delete(r.staticPorts, port)
-	r.mu.Unlock()
+	r.mx.Unlock()
 
 	if err == io.EOF {
 		return nil
@@ -192,17 +171,19 @@ func (r *Router) Close() error {
 	if r == nil {
 		return nil
 	}
-
 	r.Logger.Info("Closing all App connections and Loops")
-	r.expiryTicker.Stop()
 
 	for _, conn := range r.pm.AppConns() {
 		if err := conn.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close connection")
+			r.Logger.WithError(err).Warn("Failed to close connection")
 		}
 	}
 
+	if err := r.rm.Close(); err != nil {
+		r.Logger.WithError(err).Warnf("closing route_manager returned error")
+	}
 	r.wg.Wait()
+
 	return r.tm.Close()
 }
 
@@ -236,7 +217,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) forwardAppPacket(ctx context.Context, appConn *app.Protocol, packet *app.Packet) error {
-	if packet.Loop.Remote.PubKey == r.config.PubKey {
+	if packet.Loop.Remote.PubKey == r.conf.PubKey {
 		return r.forwardLocalAppPacket(packet)
 	}
 
@@ -276,8 +257,8 @@ func (r *Router) requestLoop(ctx context.Context, appConn *app.Protocol, raddr r
 		return routing.Addr{}, err
 	}
 
-	laddr := routing.Addr{PubKey: r.config.PubKey, Port: lport}
-	if raddr.PubKey == r.config.PubKey {
+	laddr := routing.Addr{PubKey: r.conf.PubKey, Port: lport}
+	if raddr.PubKey == r.conf.PubKey {
 		if err := r.confirmLocalLoop(laddr, raddr); err != nil {
 			return routing.Addr{}, fmt.Errorf("confirm: %s", err)
 		}
@@ -300,17 +281,16 @@ func (r *Router) requestLoop(ctx context.Context, appConn *app.Protocol, raddr r
 		Reverse: reverseRoute,
 	}
 
-	proto, tr, err := r.setupProto(ctx)
+	sConn, err := r.rm.dialSetupConn(ctx)
 	if err != nil {
 		return routing.Addr{}, err
 	}
 	defer func() {
-		if err := tr.Close(); err != nil {
+		if err := sConn.Close(); err != nil {
 			r.Logger.Warnf("Failed to close transport: %s", err)
 		}
 	}()
-
-	if err := setup.CreateLoop(ctx, proto, ld); err != nil {
+	if err := setup.CreateLoop(ctx, setup.NewSetupProtocol(sConn), ld); err != nil {
 		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
 
@@ -342,7 +322,7 @@ func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
 		return err
 	}
 
-	addrs := [2]routing.Addr{{PubKey: r.config.PubKey, Port: l.Local.Port}, l.Remote}
+	addrs := [2]routing.Addr{{PubKey: r.conf.PubKey, Port: l.Local.Port}, l.Remote}
 	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
 		r.Logger.Warnf("Failed to notify App about new loop: %s", err)
 	}
@@ -355,22 +335,18 @@ func (r *Router) closeLoop(ctx context.Context, appConn *app.Protocol, loop rout
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
-	proto, tr, err := r.setupProto(ctx)
+	sConn, err := r.rm.dialSetupConn(ctx)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		if err := tr.Close(); err != nil {
+		if err := sConn.Close(); err != nil {
 			r.Logger.Warnf("Failed to close transport: %s", err)
 		}
 	}()
-
-	ld := routing.LoopData{Loop: loop}
-	if err := setup.CloseLoop(ctx, proto, ld); err != nil {
+	if err := setup.CloseLoop(ctx, setup.NewSetupProtocol(sConn), routing.LoopData{Loop: loop}); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}
-
 	r.Logger.Infof("Closed loop %s", loop)
 	return nil
 }
@@ -394,9 +370,9 @@ func (r *Router) loopClosed(loop routing.Loop) error {
 }
 
 func (r *Router) destroyLoop(loop routing.Loop) error {
-	r.mu.Lock()
+	r.mx.Lock()
 	_, ok := r.staticPorts[loop.Local.Port]
-	r.mu.Unlock()
+	r.mx.Unlock()
 
 	if ok {
 		if err := r.pm.RemoveLoop(loop.Local.Port, loop.Remote); err != nil {
@@ -409,20 +385,6 @@ func (r *Router) destroyLoop(loop routing.Loop) error {
 	return r.rm.RemoveLoopRule(loop)
 }
 
-func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
-	if len(r.config.SetupNodes) == 0 {
-		return nil, nil, errors.New("route setup: no nodes")
-	}
-
-	tr, err := r.tm.DialSetupConn(ctx, r.config.SetupNodes[0], dmsg.Type)
-	if err != nil {
-		return nil, nil, fmt.Errorf("setup transport: %s", err)
-	}
-
-	sProto := setup.NewSetupProtocol(tr)
-	return sProto, tr, nil
-}
-
 func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Route, rev routing.Route, err error) {
 	r.Logger.Infof("Requesting new routes from %s to %s", source, destination)
 
@@ -430,7 +392,7 @@ func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing
 	defer timer.Stop()
 
 fetchRoutesAgain:
-	fwdRoutes, revRoutes, err := r.config.RouteFinder.PairedRoutes(source, destination, minHops, maxHops)
+	fwdRoutes, revRoutes, err := r.conf.RouteFinder.PairedRoutes(source, destination, minHops, maxHops)
 	if err != nil {
 		select {
 		case <-timer.C:
@@ -444,12 +406,6 @@ fetchRoutesAgain:
 	return fwdRoutes[0], revRoutes[0], nil
 }
 
-// IsSetupTransport checks whether `tr` is running in the `setup` mode.
-func (r *Router) IsSetupTransport(mTp *transport.ManagedTransport) bool {
-	for _, pk := range r.config.SetupNodes {
-		if mTp.Remote() == pk {
-			return true
-		}
-	}
-	return false
+func (r *Router) SetupIsTrusted(sPK cipher.PubKey) bool {
+	return r.rm.conf.SetupIsTrusted(sPK)
 }

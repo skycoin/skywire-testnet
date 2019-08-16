@@ -71,9 +71,9 @@ func TestNode(t *testing.T) {
 	// CLOSURE: sets up setup node.
 	prepSetupNode := func(c *dmsg.Client) (*Node, func()) {
 		sn := &Node{
-			Logger:    logging.MustGetLogger("setup_node"),
-			messenger: c,
-			metrics:   metrics.NewDummy(),
+			Logger:  logging.MustGetLogger("setup_node"),
+			dmsgC:   c,
+			metrics: metrics.NewDummy(),
 		}
 		go func() { _ = sn.Serve(context.TODO()) }() //nolint:errcheck
 		return sn, func() {
@@ -92,7 +92,7 @@ func TestNode(t *testing.T) {
 
 		// prepare and serve setup node (using client 0).
 		sn, closeSetup := prepSetupNode(clients[0])
-		setupPK := sn.messenger.Local()
+		setupPK := sn.dmsgC.Local()
 		defer closeSetup()
 
 		// prepare loop creation (client_1 will use this to request loop creation with setup node).
@@ -156,7 +156,7 @@ func TestNode(t *testing.T) {
 			_ = proto.WritePacket(RespSuccess, rIDs) //nolint:errcheck
 		}
 
-		// CLOSURE: emulates how a visor node should react when expecting an ConfirmLoop packet.
+		// CLOSURE: emulates how a visor node should react when expecting an OnConfirmLoop packet.
 		expectConfirmLoop := func(client int) {
 			tp, err := clients[client].Accept(context.TODO())
 			require.NoError(t, err)
@@ -178,7 +178,7 @@ func TestNode(t *testing.T) {
 				require.Equal(t, ld.Loop.Local, d.Loop.Remote)
 				require.Equal(t, ld.Loop.Remote, d.Loop.Local)
 			default:
-				t.Fatalf("We shouldn't be receiving a ConfirmLoop packet from client %d", client)
+				t.Fatalf("We shouldn't be receiving a OnConfirmLoop packet from client %d", client)
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
@@ -209,7 +209,7 @@ func TestNode(t *testing.T) {
 
 		// prepare and serve setup node.
 		sn, closeSetup := prepSetupNode(clients[0])
-		setupPK := sn.messenger.Local()
+		setupPK := sn.dmsgC.Local()
 		defer closeSetup()
 
 		// prepare loop data describing the loop that is to be closed.

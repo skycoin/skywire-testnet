@@ -76,7 +76,7 @@ func TestRouteManagerAddRemoveRule(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- rm.Serve(out)
+		errCh <- rm.handleSetupConn(out)
 	}()
 
 	proto := setup.NewSetupProtocol(in)
@@ -102,7 +102,7 @@ func TestRouteManagerDeleteRules(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- rm.Serve(out)
+		errCh <- rm.handleSetupConn(out)
 	}()
 
 	proto := setup.NewSetupProtocol(in)
@@ -123,8 +123,8 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 	var inLoop routing.Loop
 	var inRule routing.Rule
-	callbacks := &setupCallbacks{
-		ConfirmLoop: func(loop routing.Loop, rule routing.Rule) (err error) {
+	callbacks := &setupConfig{
+		OnConfirmLoop: func(loop routing.Loop, rule routing.Rule) (err error) {
 			inLoop = loop
 			inRule = rule
 			return nil
@@ -135,7 +135,7 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- rm.Serve(out)
+		errCh <- rm.handleSetupConn(out)
 	}()
 
 	proto := setup.NewSetupProtocol(in)
@@ -172,8 +172,8 @@ func TestRouteManagerConfirmLoop(t *testing.T) {
 func TestRouteManagerLoopClosed(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 	var inLoop routing.Loop
-	callbacks := &setupCallbacks{
-		LoopClosed: func(loop routing.Loop) error {
+	callbacks := &setupConfig{
+		OnLoopClosed: func(loop routing.Loop) error {
 			inLoop = loop
 			return nil
 		},
@@ -183,7 +183,7 @@ func TestRouteManagerLoopClosed(t *testing.T) {
 	in, out := net.Pipe()
 	errCh := make(chan error)
 	go func() {
-		errCh <- rm.Serve(out)
+		errCh <- rm.handleSetupConn(out)
 	}()
 
 	proto := setup.NewSetupProtocol(in)

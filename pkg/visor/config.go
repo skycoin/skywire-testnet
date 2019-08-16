@@ -14,7 +14,6 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
 // Config defines configuration parameters for Node.
@@ -64,7 +63,7 @@ type Config struct {
 }
 
 // MessagingConfig returns config for dmsg client.
-func (c *Config) MessagingConfig() (*dmsg.Config, error) {
+func (c *Config) MessagingConfig() (*DmsgConfig, error) {
 
 	msgConfig := c.Messaging
 
@@ -72,7 +71,7 @@ func (c *Config) MessagingConfig() (*dmsg.Config, error) {
 		return nil, errors.New("empty discovery")
 	}
 
-	return &dmsg.Config{
+	return &DmsgConfig{
 		PubKey:     c.Node.StaticPubKey,
 		SecKey:     c.Node.StaticSecKey,
 		Discovery:  disc.NewHTTP(msgConfig.Discovery),
@@ -162,6 +161,14 @@ func ensureDir(path string) (string, error) {
 type HypervisorConfig struct {
 	PubKey cipher.PubKey `json:"public_key"`
 	Addr   string        `json:"address"`
+}
+
+type DmsgConfig struct {
+	PubKey     cipher.PubKey
+	SecKey     cipher.SecKey
+	Discovery  disc.APIClient
+	Retries    int
+	RetryDelay time.Duration
 }
 
 // AppConfig defines app startup parameters.

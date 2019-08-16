@@ -6,6 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skywire/pkg/network"
 	"io"
 	"net"
 	"net/rpc"
@@ -27,7 +30,6 @@ import (
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
@@ -78,7 +80,7 @@ type PacketRouter interface {
 	io.Closer
 	Serve(ctx context.Context) error
 	ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error
-	IsSetupTransport(tr *transport.ManagedTransport) bool
+	SetupIsTrusted(sPK cipher.PubKey) bool
 }
 
 // Node provides messaging runtime for Apps by setting up all
@@ -86,7 +88,7 @@ type PacketRouter interface {
 type Node struct {
 	config    *Config
 	router    PacketRouter
-	messenger *dmsg.Client
+	n         *network.Network
 	tm        *transport.Manager
 	rt        routing.Table
 	executer  appExecuter
@@ -109,6 +111,8 @@ type Node struct {
 
 // NewNode constructs new Node.
 func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) {
+	ctx := context.Background()
+
 	node := &Node{
 		config:      config,
 		executer:    newOSExecuter(),
@@ -120,12 +124,18 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	pk := config.Node.StaticPubKey
 	sk := config.Node.StaticSecKey
-	mConfig, err := config.MessagingConfig()
-	if err != nil {
-		return nil, fmt.Errorf("invalid Messaging config: %s", err)
-	}
 
-	node.messenger = dmsg.NewClient(mConfig.PubKey, mConfig.SecKey, mConfig.Discovery)
+	fmt.Println("min servers:", config.Messaging.ServerCount)
+	node.n = network.New(network.Config{
+		PubKey: pk,
+		SecKey: sk,
+		TpNetworks: []string{dmsg.Type}, // TODO: Have some way to configure this.
+		DmsgDiscAddr: config.Messaging.Discovery,
+		DmsgMinSrvs: config.Messaging.ServerCount,
+	})
+	if err := node.n.Init(ctx); err != nil {
+		return nil, fmt.Errorf("failed to init network: %v", err)
+	}
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
@@ -136,12 +146,14 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("invalid TransportLogStore: %s", err)
 	}
 	tmConfig := &transport.ManagerConfig{
-		PubKey: pk, SecKey: sk,
+		PubKey: pk,
+		SecKey: sk,
+		DefaultNodes:    config.TrustedNodes,
+		Networks: []string{dmsg.Type}, // TODO: Have some way to configure this.
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
-		DefaultNodes:    config.TrustedNodes,
 	}
-	node.tm, err = transport.NewManager(tmConfig, config.Routing.SetupNodes, node.messenger)
+	node.tm, err = transport.NewManager(node.n, tmConfig)
 	if err != nil {
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
@@ -159,7 +171,10 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
 		SetupNodes:       config.Routing.SetupNodes,
 	}
-	r := router.New(rConfig)
+	r, err := router.New(node.n, rConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup router: %v", err)
+	}
 	node.router = r
 
 	node.appsConf, err = config.AppsConfig()
@@ -204,11 +219,6 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
 	ctx := context.Background()
-	err := node.messenger.InitiateServerConnections(ctx, node.config.Messaging.ServerCount)
-	if err != nil {
-		return fmt.Errorf("%s: %s", dmsg.Type, err)
-	}
-	node.logger.Info("Connected to messaging servers")
 
 	pathutil.EnsureDir(node.dir())
 	node.closePreviousApps()

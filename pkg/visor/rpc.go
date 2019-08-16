@@ -78,7 +78,7 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	var summaries []*TransportSummary
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
 		summaries = append(summaries,
-			newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp)))
+			newTransportSummary(r.node.tm, tp, false, r.node.router.SetupIsTrusted(tp.Remote())))
 		return true
 	})
 	*out = Summary{
@@ -129,7 +129,7 @@ func (r *RPC) SetAutoStart(in *SetAutoStartIn, _ *struct{}) error {
 
 // TransportTypes lists all transport types supported by the Node.
 func (r *RPC) TransportTypes(_ *struct{}, out *[]string) error {
-	*out = r.node.tm.Factories()
+	*out = r.node.tm.Networks()
 	return nil
 }
 
@@ -166,7 +166,7 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 	}
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
 		if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), tp.Remote()) {
-			*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs, r.node.router.IsSetupTransport(tp)))
+			*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs, r.node.router.SetupIsTrusted(tp.Remote())))
 		}
 		return true
 	})
@@ -179,7 +179,7 @@ func (r *RPC) Transport(in *uuid.UUID, out *TransportSummary) error {
 	if tp == nil {
 		return ErrNotFound
 	}
-	*out = *newTransportSummary(r.node.tm, tp, true, r.node.router.IsSetupTransport(tp))
+	*out = *newTransportSummary(r.node.tm, tp, true, r.node.router.SetupIsTrusted(tp.Remote()))
 	return nil
 }
 
@@ -204,7 +204,7 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 	if err != nil {
 		return err
 	}
-	*out = *newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp))
+	*out = *newTransportSummary(r.node.tm, tp, false, r.node.router.SetupIsTrusted(tp.Remote()))
 	return nil
 }
 
