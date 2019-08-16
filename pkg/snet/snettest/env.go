@@ -1,7 +1,10 @@
-package testsnet
+package snettest
 
 import (
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
@@ -42,60 +45,49 @@ type Env struct {
 // NewEnv creates a `network.Network` test environment.
 // `nPairs` is the public/private key pairs of all the `network.Network`s to be created.
 func NewEnv(t *testing.T, nPairs []KeyPair) *Env {
-	return nil
 
-	//// Prepare `dmsg`.
-	//dmsgD := disc.NewMock()
-	//dmsgS, dmsgSErr := createDmsgSrv(t, dmsgD)
-	//
-	//ns := make([]*snet.Network, len(nPairs))
-	//for i, pairs := range nPairs {
-	//
-	//}
-	//
-	//// Prepare teardown closure.
-	//teardown := func() {
-	//	require.NoError(t, <-dmsgSErr)
-	//}
+	// Prepare `dmsg`.
+	dmsgD := disc.NewMock()
+	dmsgS, dmsgSErr := createDmsgSrv(t, dmsgD)
 
+	// Prepare `snets`.
+	ns := make([]*snet.Network, len(nPairs))
+	for i, pairs := range nPairs {
+		n := snet.NewRaw(
+			snet.Config{
+				PubKey:      pairs.PK,
+				SecKey:      pairs.SK,
+				TpNetworks:  []string{dmsg.Type},
+				DmsgMinSrvs: 1,
+			},
+			dmsg.NewClient(pairs.PK, pairs.SK, dmsgD),
+		)
+		require.NoError(t, n.Init(context.TODO()))
+		ns[i] = n
+	}
+
+	// Prepare teardown closure.
+	teardown := func() {
+		for _, n := range ns {
+			assert.NoError(t, n.Close())
+		}
+		assert.NoError(t, dmsgS.Close())
+		for err := range dmsgSErr {
+			assert.NoError(t, err)
+		}
+	}
+
+	return &Env{
+		DmsgD:    dmsgD,
+		DmsgS:    dmsgS,
+		Nets:     ns,
+		teardown: teardown,
+	}
 }
 
-//// SetupTestEnv creates a dmsg TestEnv.
-//func SetupTestEnv(t *testing.T, keyPairs []KeyPair) *TestEnv {
-//	discovery := disc.NewMock()
-//
-//	srv, srvErr := createServer(t, discovery)
-//
-//	clients := make([]*Client, len(keyPairs))
-//	for i, pair := range keyPairs {
-//		t.Logf("dmsg_client[%d] PK: %s\n", i, pair.PK)
-//		c := NewClient(pair.PK, pair.SK, discovery,
-//			SetLogger(logging.MustGetLogger(fmt.Sprintf("client_%d:%s", i, pair.PK.String()[:6]))))
-//		require.NoError(t, c.InitiateServerConnections(context.TODO(), 1))
-//		clients[i] = c
-//	}
-//
-//	teardown := func() {
-//		for _, c := range clients {
-//			require.NoError(t, c.Close())
-//		}
-//		require.NoError(t, srv.Close())
-//		for err := range srvErr {
-//			require.NoError(t, err)
-//		}
-//	}
-//
-//	return &TestEnv{
-//		Disc:     discovery,
-//		Srv:      srv,
-//		Clients:  clients,
-//		teardown: teardown,
-//	}
-//}
-//
-//// TearDown shutdowns the TestEnv.
-//func (e *TestEnv) TearDown() { e.teardown() }
-//
+// TearDown shutdowns the Env.
+func (e *Env) Teardown() { e.teardown() }
+
 func createDmsgSrv(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
 	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
 	require.NoError(t, err)

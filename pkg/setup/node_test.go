@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/dmsg"
+
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
@@ -18,7 +20,6 @@ import (
 
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 )

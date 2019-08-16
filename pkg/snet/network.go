@@ -55,6 +55,13 @@ func New(conf Config) *Network {
 	}
 }
 
+func NewRaw(conf Config, dmsgC *dmsg.Client) *Network {
+	return &Network{
+		conf:  conf,
+		dmsgC: dmsgC,
+	}
+}
+
 func (n *Network) Init(ctx context.Context) error {
 	fmt.Println("dmsg: min_servers:", n.conf.DmsgMinSrvs)
 	if err := n.dmsgC.InitiateServerConnections(ctx, n.conf.DmsgMinSrvs); err != nil {

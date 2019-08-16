@@ -72,7 +72,7 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 	}
 
 	// Prepare route manager.
-	rm, err := newRouteManager(n, config.RoutingTable, setupConfig{
+	rm, err := NewRouteManager(n, config.RoutingTable, RMConfig{
 		SetupPKs:      config.SetupNodes,
 		OnConfirmLoop: r.confirmLoop,
 		OnLoopClosed:  r.loopClosed,

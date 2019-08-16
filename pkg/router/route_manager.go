@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/skycoin/skywire/pkg/snet"
@@ -22,13 +23,13 @@ const (
 	rtGarbageCollectDuration = time.Minute * 5
 )
 
-type setupConfig struct {
+type RMConfig struct {
 	SetupPKs      []cipher.PubKey // Trusted setup PKs.
 	OnConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
 	OnLoopClosed  func(loop routing.Loop) error
 }
 
-func (sc setupConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
+func (sc RMConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
 	for _, pk := range sc.SetupPKs {
 		if sPK == pk {
 			return true
@@ -39,14 +40,15 @@ func (sc setupConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
 
 type routeManager struct {
 	Logger *logging.Logger
-	conf   setupConfig
+	conf   RMConfig
 	n      *snet.Network
 	sl     *snet.Listener // Listens for setup node requests.
 	rt     *managedRoutingTable
 	done   chan struct{}
 }
 
-func newRouteManager(n *snet.Network, rt routing.Table, config setupConfig) (*routeManager, error) {
+// NewRouteManager creates a new route manager.
+func NewRouteManager(n *snet.Network, rt routing.Table, config RMConfig) (*routeManager, error) {
 	sl, err := n.Listen(snet.DmsgType, snet.AwaitSetupPort)
 	if err != nil {
 		return nil, err
@@ -73,43 +75,36 @@ func (rm *routeManager) Serve() {
 
 	// Accept setup node request loop.
 	for {
-		conn, err := rm.sl.AcceptConn()
-		if err != nil {
+		if err := rm.serveConn(); err != nil {
 			rm.Logger.WithError(err).Warnf("stopped serving")
 			return
 		}
-		if !rm.conf.SetupIsTrusted(conn.RemotePK()) {
-			rm.Logger.Warnf("closing conn from untrusted setup node: %v", conn.Close())
-			continue
-		}
-		go func(conn *snet.Conn) {
-			rm.Logger.Infof("handling setup request: setupPK(%s)", conn.RemotePK())
-			defer func() { _ = conn.Close() }() //nolint:errcheck
-
-			if err := rm.handleSetupConn(conn); err != nil {
-				rm.Logger.WithError(err).Warnf("setup request failed: setupPK(%s)", conn.RemotePK())
-			}
-			rm.Logger.Infof("successfully handled setup request: setupPK(%s)", conn.RemotePK())
-		}(conn)
 	}
 }
 
-func (rm *routeManager) rtGarbageCollectLoop() {
-	ticker := time.NewTicker(rtGarbageCollectDuration)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-rm.done:
-			return
-		case <-ticker.C:
-			if err := rm.rt.Cleanup(); err != nil {
-				rm.Logger.WithError(err).Warnf("routing table cleanup returned error")
-			}
-		}
+func (rm *routeManager) serveConn() error {
+	conn, err := rm.sl.AcceptConn()
+	if err != nil {
+		rm.Logger.WithError(err).Warnf("stopped serving")
+		return err
 	}
+	if !rm.conf.SetupIsTrusted(conn.RemotePK()) {
+		rm.Logger.Warnf("closing conn from untrusted setup node: %v", conn.Close())
+		return nil
+	}
+	go func() {
+		rm.Logger.Infof("handling setup request: setupPK(%s)", conn.RemotePK())
+		if err := rm.handleSetupConn(conn); err != nil {
+			rm.Logger.WithError(err).Warnf("setup request failed: setupPK(%s)", conn.RemotePK())
+		}
+		rm.Logger.Infof("successfully handled setup request: setupPK(%s)", conn.RemotePK())
+	}()
+	return nil
 }
 
-func (rm *routeManager) handleSetupConn(conn *snet.Conn) error {
+func (rm *routeManager) handleSetupConn(conn net.Conn) error {
+	defer func() { _ = conn.Close() }() //nolint:errcheck
+
 	proto := setup.NewSetupProtocol(conn)
 	t, body, err := proto.ReadPacket()
 
@@ -137,6 +132,21 @@ func (rm *routeManager) handleSetupConn(conn *snet.Conn) error {
 		return proto.WritePacket(setup.RespFailure, err.Error())
 	}
 	return proto.WritePacket(setup.RespSuccess, respBody)
+}
+
+func (rm *routeManager) rtGarbageCollectLoop() {
+	ticker := time.NewTicker(rtGarbageCollectDuration)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-rm.done:
+			return
+		case <-ticker.C:
+			if err := rm.rt.Cleanup(); err != nil {
+				rm.Logger.WithError(err).Warnf("routing table cleanup returned error")
+			}
+		}
+	}
 }
 
 func (rm *routeManager) dialSetupConn(ctx context.Context) (*snet.Conn, error) {
