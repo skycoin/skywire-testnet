@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skycoin/skywire/pkg/network"
+	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/dmsg/cipher"
 )
@@ -21,7 +21,7 @@ func makeEntry(pk1, pk2 cipher.PubKey, tpType string) Entry {
 	}
 }
 
-func makeEntryFromTpConn(conn *network.Conn) Entry {
+func makeEntryFromTpConn(conn *snet.Conn) Entry {
 	return makeEntry(conn.LocalPK(), conn.RemotePK(), conn.Network())
 }
 
@@ -61,10 +61,10 @@ func receiveAndVerifyEntry(r io.Reader, expected *Entry, remotePK cipher.PubKey)
 
 // SettlementHS represents a settlement handshake.
 // This is the handshake responsible for registering a transport to transport discovery.
-type SettlementHS func(ctx context.Context, dc DiscoveryClient, conn *network.Conn, sk cipher.SecKey) error
+type SettlementHS func(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) error
 
 // Do performs the settlement handshake.
-func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, conn *network.Conn, sk cipher.SecKey) (err error) {
+func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) (err error) {
 	done := make(chan struct{})
 	go func() {
 		err = hs(ctx, dc, conn, sk)
@@ -83,7 +83,7 @@ func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, conn *network
 func MakeSettlementHS(init bool) SettlementHS {
 
 	// initiating logic.
-	initHS := func(ctx context.Context, dc DiscoveryClient, conn *network.Conn, sk cipher.SecKey) (err error) {
+	initHS := func(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) (err error) {
 		entry := makeEntryFromTpConn(conn)
 
 		defer func() { _, _ = dc.UpdateStatuses(ctx, &Status{ID: entry.ID, IsUp: err == nil}) }() //nolint:errcheck
@@ -109,7 +109,7 @@ func MakeSettlementHS(init bool) SettlementHS {
 	}
 
 	// responding logic.
-	respHS := func(ctx context.Context, dc DiscoveryClient, conn *network.Conn, sk cipher.SecKey) error {
+	respHS := func(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) error {
 		entry := makeEntryFromTpConn(conn)
 
 		// receive, verify and sign entry.

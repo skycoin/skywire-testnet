@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/skycoin/skywire/pkg/network"
+	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/skywire/pkg/routing"
 
@@ -33,7 +33,7 @@ type Manager struct {
 	conf   *ManagerConfig
 	nets   map[string]struct{}
 	tps    map[uuid.UUID]*ManagedTransport
-	n      *network.Network
+	n      *snet.Network
 
 	readCh chan routing.Packet
 	mx     sync.RWMutex
@@ -43,7 +43,7 @@ type Manager struct {
 
 // NewManager creates a Manager with the provided configuration and transport factories.
 // 'factories' should be ordered by preference.
-func NewManager(n *network.Network, config *ManagerConfig) (*Manager, error) {
+func NewManager(n *snet.Network, config *ManagerConfig) (*Manager, error) {
 	nets := make(map[string]struct{})
 	for _, n := range config.Networks {
 		nets[n] = struct{}{}
@@ -62,13 +62,13 @@ func NewManager(n *network.Network, config *ManagerConfig) (*Manager, error) {
 
 // Serve runs listening loop across all registered factories.
 func (tm *Manager) Serve(ctx context.Context) error {
-	var listeners []*network.Listener
+	var listeners []*snet.Listener
 
 	for _, netName := range tm.conf.Networks {
-		lis, err := tm.n.Listen(netName, network.TransportPort)
+		lis, err := tm.n.Listen(netName, snet.TransportPort)
 		if err != nil {
 			return fmt.Errorf("failed to listen on network '%s' of port '%d': %v",
-				netName, network.TransportPort, err)
+				netName, snet.TransportPort, err)
 		}
 		tm.Logger.Infof("listening on network: %s", netName)
 		listeners = append(listeners, lis)
@@ -131,7 +131,7 @@ func (tm *Manager) initTransports(ctx context.Context) {
 	}
 }
 
-func (tm *Manager) acceptTransport(ctx context.Context, lis *network.Listener) error {
+func (tm *Manager) acceptTransport(ctx context.Context, lis *snet.Listener) error {
 	conn, err := lis.AcceptConn()
 	if err != nil {
 		return err

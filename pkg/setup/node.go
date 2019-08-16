@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skycoin/dmsg"
+	"github.com/skycoin/skywire/pkg/snet"
 
-	"github.com/skycoin/skywire/pkg/network"
+	"github.com/skycoin/dmsg"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
@@ -56,9 +56,9 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	}
 	log.Info("connected to dmsg servers")
 
-	dmsgL, err := dmsgC.Listen(network.SetupPort)
+	dmsgL, err := dmsgC.Listen(snet.SetupPort)
 	if err != nil {
-		return nil, fmt.Errorf("failed to listen on dmsg port %d: %v", network.SetupPort, dmsgL)
+		return nil, fmt.Errorf("failed to listen on dmsg port %d: %v", snet.SetupPort, dmsgL)
 	}
 	log.Info("started listening for dmsg connections")
 
@@ -236,7 +236,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 }
 
 func (sn *Node) connectLoop(ctx context.Context, on cipher.PubKey, ld routing.LoopData) error {
-	tr, err := sn.dmsgC.Dial(ctx, on, network.AwaitSetupPort)
+	tr, err := sn.dmsgC.Dial(ctx, on, snet.AwaitSetupPort)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
 	}
@@ -266,7 +266,7 @@ func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.Loop
 	fmt.Printf(">>> BEGIN: closeLoop(%s, ld)\n", on)
 	defer fmt.Printf(">>>   END: closeLoop(%s, ld)\n", on)
 
-	tr, err := sn.dmsgC.Dial(ctx, on, network.AwaitSetupPort)
+	tr, err := sn.dmsgC.Dial(ctx, on, snet.AwaitSetupPort)
 	fmt.Println(">>> *****: closeLoop() dialed:", err)
 	if err != nil {
 		return fmt.Errorf("transport: %s", err)
@@ -288,7 +288,7 @@ func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.Loop
 
 func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule) (routeID routing.RouteID, err error) {
 	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
-	tr, err := sn.dmsgC.Dial(ctx, pubKey, network.AwaitSetupPort)
+	tr, err := sn.dmsgC.Dial(ctx, pubKey, snet.AwaitSetupPort)
 	if err != nil {
 		err = fmt.Errorf("transport: %s", err)
 		return

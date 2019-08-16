@@ -1,4 +1,4 @@
-package network
+package snet
 
 import (
 	"context"
@@ -23,9 +23,9 @@ const (
 	TransportPort  = uint16(45)  // Listening port of a visor node for incoming transports.
 )
 
-// Networks.
+// Network types.
 const (
-	DmsgNet = "dmsg"
+	DmsgType = "dmsg"
 )
 
 var (
@@ -48,7 +48,7 @@ type Network struct {
 }
 
 func New(conf Config) *Network {
-	dmsgC := dmsg.NewClient(conf.PubKey, conf.SecKey, disc.NewHTTP(conf.DmsgDiscAddr), dmsg.SetLogger(logging.MustGetLogger("network.dmsgC")))
+	dmsgC := dmsg.NewClient(conf.PubKey, conf.SecKey, disc.NewHTTP(conf.DmsgDiscAddr), dmsg.SetLogger(logging.MustGetLogger("snet.dmsgC")))
 	return &Network{
 		conf:  conf,
 		dmsgC: dmsgC,
@@ -89,7 +89,7 @@ func (n *Network) Dmsg() *dmsg.Client { return n.dmsgC }
 func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, error) {
 	ctx := context.Background()
 	switch network {
-	case DmsgNet:
+	case DmsgType:
 		conn, err := n.dmsgC.Dial(ctx, pk, port)
 		if err != nil {
 			return nil, err
@@ -102,7 +102,7 @@ func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, er
 
 func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 	switch network {
-	case DmsgNet:
+	case DmsgType:
 		lis, err := n.dmsgC.Listen(port)
 		if err != nil {
 			return nil, err

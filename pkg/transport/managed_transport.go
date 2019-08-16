@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/network"
+	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/skywire/pkg/routing"
 
@@ -44,8 +44,8 @@ type ManagedTransport struct {
 	dc DiscoveryClient
 	ls LogStore
 
-	n      *network.Network
-	conn   *network.Conn
+	n      *snet.Network
+	conn   *snet.Conn
 	connCh chan struct{}
 	connMx sync.Mutex
 
@@ -55,7 +55,7 @@ type ManagedTransport struct {
 }
 
 // NewManagedTransport creates a new ManagedTransport.
-func NewManagedTransport(n *network.Network, dc DiscoveryClient, ls LogStore, rPK cipher.PubKey, netName string) *ManagedTransport {
+func NewManagedTransport(n *snet.Network, dc DiscoveryClient, ls LogStore, rPK cipher.PubKey, netName string) *ManagedTransport {
 	mt := &ManagedTransport{
 		log:      logging.MustGetLogger(fmt.Sprintf("tp:%s", rPK.String()[:6])),
 		rPK:      rPK,
@@ -184,7 +184,7 @@ func (mt *ManagedTransport) close() (closed bool) {
 }
 
 // Accept accepts a new underlying connection.
-func (mt *ManagedTransport) Accept(ctx context.Context, conn *network.Conn) error {
+func (mt *ManagedTransport) Accept(ctx context.Context, conn *snet.Conn) error {
 	mt.connMx.Lock()
 	defer mt.connMx.Unlock()
 
@@ -223,7 +223,7 @@ func (mt *ManagedTransport) Dial(ctx context.Context) error {
 
 // TODO: Figure out where this fella is called.
 func (mt *ManagedTransport) dial(ctx context.Context) error {
-	tp, err := mt.n.Dial(mt.netName, mt.rPK, network.TransportPort)
+	tp, err := mt.n.Dial(mt.netName, mt.rPK, snet.TransportPort)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func (mt *ManagedTransport) dial(ctx context.Context) error {
 	return mt.setIfConnNil(ctx, tp)
 }
 
-func (mt *ManagedTransport) getConn() *network.Conn {
+func (mt *ManagedTransport) getConn() *snet.Conn {
 	mt.connMx.Lock()
 	conn := mt.conn
 	mt.connMx.Unlock()
@@ -246,7 +246,7 @@ func (mt *ManagedTransport) getConn() *network.Conn {
 
 // sets conn if `mt.conn` is nil otherwise, closes the conn.
 // TODO: Add logging here.
-func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn *network.Conn) error {
+func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn *snet.Conn) error {
 	if mt.conn != nil {
 		_ = conn.Close() //nolint:errcheck
 		return ErrConnAlreadyExists
@@ -309,7 +309,7 @@ func (mt *ManagedTransport) WritePacket(ctx context.Context, rtID routing.RouteI
 
 // WARNING: Not thread safe.
 func (mt *ManagedTransport) readPacket() (packet routing.Packet, err error) {
-	var conn *network.Conn
+	var conn *snet.Conn
 	for {
 		if conn = mt.getConn(); conn != nil {
 			break

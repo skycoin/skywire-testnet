@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/network"
+	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -51,7 +51,7 @@ type Router struct {
 	conf        *Config
 	staticPorts map[routing.Port]struct{}
 
-	n  *network.Network
+	n  *snet.Network
 	tm *transport.Manager
 	pm *portManager
 	rm *routeManager
@@ -61,7 +61,7 @@ type Router struct {
 }
 
 // New constructs a new Router.
-func New(n *network.Network, config *Config) (*Router, error) {
+func New(n *snet.Network, config *Config) (*Router, error) {
 	r := &Router{
 		Logger:      config.Logger,
 		n:           n,

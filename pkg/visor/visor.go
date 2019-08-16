@@ -19,10 +19,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/snet"
+
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
-
-	"github.com/skycoin/skywire/pkg/network"
 
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -90,7 +90,7 @@ type PacketRouter interface {
 type Node struct {
 	config   *Config
 	router   PacketRouter
-	n        *network.Network
+	n        *snet.Network
 	tm       *transport.Manager
 	rt       routing.Table
 	executer appExecuter
@@ -128,7 +128,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 	sk := config.Node.StaticSecKey
 
 	fmt.Println("min servers:", config.Messaging.ServerCount)
-	node.n = network.New(network.Config{
+	node.n = snet.New(snet.Config{
 		PubKey:       pk,
 		SecKey:       sk,
 		TpNetworks:   []string{dmsg.Type}, // TODO: Have some way to configure this.

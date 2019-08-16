@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/snet"
+
 	"github.com/skycoin/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/network"
 	"github.com/skycoin/skywire/pkg/setup"
 
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -39,14 +40,14 @@ func (sc setupConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
 type routeManager struct {
 	Logger *logging.Logger
 	conf   setupConfig
-	n      *network.Network
-	sl     *network.Listener // Listens for setup node requests.
+	n      *snet.Network
+	sl     *snet.Listener // Listens for setup node requests.
 	rt     *managedRoutingTable
 	done   chan struct{}
 }
 
-func newRouteManager(n *network.Network, rt routing.Table, config setupConfig) (*routeManager, error) {
-	sl, err := n.Listen(network.DmsgNet, network.AwaitSetupPort)
+func newRouteManager(n *snet.Network, rt routing.Table, config setupConfig) (*routeManager, error) {
+	sl, err := n.Listen(snet.DmsgType, snet.AwaitSetupPort)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +82,7 @@ func (rm *routeManager) Serve() {
 			rm.Logger.Warnf("closing conn from untrusted setup node: %v", conn.Close())
 			continue
 		}
-		go func(conn *network.Conn) {
+		go func(conn *snet.Conn) {
 			rm.Logger.Infof("handling setup request: setupPK(%s)", conn.RemotePK())
 			defer func() { _ = conn.Close() }() //nolint:errcheck
 
@@ -108,7 +109,7 @@ func (rm *routeManager) rtGarbageCollectLoop() {
 	}
 }
 
-func (rm *routeManager) handleSetupConn(conn *network.Conn) error {
+func (rm *routeManager) handleSetupConn(conn *snet.Conn) error {
 	proto := setup.NewSetupProtocol(conn)
 	t, body, err := proto.ReadPacket()
 
@@ -138,9 +139,9 @@ func (rm *routeManager) handleSetupConn(conn *network.Conn) error {
 	return proto.WritePacket(setup.RespSuccess, respBody)
 }
 
-func (rm *routeManager) dialSetupConn(ctx context.Context) (*network.Conn, error) {
+func (rm *routeManager) dialSetupConn(ctx context.Context) (*snet.Conn, error) {
 	for _, sPK := range rm.conf.SetupPKs {
-		conn, err := rm.n.Dial(network.DmsgNet, sPK, network.SetupPort)
+		conn, err := rm.n.Dial(snet.DmsgType, sPK, snet.SetupPort)
 		if err != nil {
 			rm.Logger.WithError(err).Warnf("failed to dial to setup node: setupPK(%s)", sPK)
 			continue
