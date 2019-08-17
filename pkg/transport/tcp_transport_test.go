@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,6 +22,7 @@ import (
    sudo ip addr add 12.12.12.2 dev  lo
    sudo ip addr add 12.12.12.3 dev  lo
 */
+var testLogger = logging.MustGetLogger("tcp-transport")
 
 func Example_transport_TCPFactory() {
 	pkA := pkFromSeed("skyhost_001")
@@ -52,7 +54,7 @@ func Example_transport_TCPFactory() {
 	go func() {
 		defer wg.Done()
 
-		fA := &transport.TCPFactory{pkA, pkt, lsnA}
+		fA := &transport.TCPFactory{pkA, pkt, lsnA, testLogger}
 		tr, err := fA.Accept(context.TODO())
 		if err != nil {
 			fmt.Printf("Accept err: %v\n", err)
@@ -70,7 +72,7 @@ func Example_transport_TCPFactory() {
 
 	go func() {
 		defer wg.Done()
-		fB := &transport.TCPFactory{pkB, pkt, lsnB}
+		fB := &transport.TCPFactory{pkB, pkt, lsnB, testLogger}
 		tr, err := fB.Dial(context.TODO(), pkA)
 		if err != nil {
 			fmt.Printf("Dial err: %v\n", err)
@@ -116,11 +118,11 @@ func TestTCPFactory(t *testing.T) {
 	fmt.Println(addr1.String())
 	fmt.Println(addr2.String())
 
-	f1 := &transport.TCPFactory{pk1, pkt1, l1}
+	f1 := &transport.TCPFactory{pk1, pkt1, l1, testLogger}
 	assert.Equal(t, "tcp-transport", f1.Type())
 	assert.Equal(t, pk1, f1.Local())
 
-	f2 := &transport.TCPFactory{pk2, pkt2, l2}
+	f2 := &transport.TCPFactory{pk2, pkt2, l2, testLogger}
 	assert.Equal(t, "tcp-transport", f2.Type())
 	assert.Equal(t, pk2, f2.Local())
 
@@ -190,6 +192,7 @@ func TestFilePKTable(t *testing.T) {
 
 	pkt, err := transport.FilePubKeyTable(tmpfile.Name())
 	require.NoError(t, err)
+	require.Equal(t, pkt.Count(), 1)
 
 	raddr := pkt.RemoteAddr(pk)
 	assert.Equal(t, addr.String(), raddr)

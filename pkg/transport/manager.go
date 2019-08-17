@@ -193,7 +193,7 @@ func (tm *Manager) Serve(ctx context.Context) error {
 						if strings.Contains(err.Error(), "closed") {
 							return
 						}
-						tm.Logger.Warnf("Failed to accept connection: %s", err)
+						tm.Logger.Warnf("Manager.Serve tm.acceptTransport failed to accept connection: %s", err)
 					}
 				}
 			}
@@ -209,10 +209,12 @@ func (tm *Manager) Serve(ctx context.Context) error {
 func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKey, tpType string) (Transport, error) {
 	factory, ok := tm.factories[tpType]
 	if !ok {
+		tm.Logger.Warn("Manager.CreateSetupTransport err: unknown transport type")
 		return nil, errors.New("unknown transport type")
 	}
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
+		tm.Logger.Warnf("Manager.CreateSetupTransport factory.Dial err: %v\n", err)
 		return nil, err
 	}
 	tm.Logger.Infof("Dialed to setup node %s using %s factory.", remote, tpType)
@@ -341,6 +343,7 @@ func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote ci
 func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) (Transport, error) {
 	tr, err := factory.Accept(ctx)
 	if err != nil {
+		tm.Logger.Warnf("Manager.acceptTransport  factory.Accept err: %s", err)
 		return nil, err
 	}
 

@@ -157,11 +157,15 @@ func (mh *MultiHead) initNodes() {
 	mh.nodes = make([]*Node, len(mh.cfgPool))
 	mh.initErrs = make(chan error, len(mh.cfgPool))
 
-	subs := []struct{ old, new string }{
-		{"000000000000000000000000000000000000000000000000000000000000000000", "PK{NULL}"},
-		{"024195ae0d46eb0195c9ddabcaf62bc894316594ea2e92570f269238c5b5f817d1", "PK(skyhost_001)"},
-		{"037dfc42ae5ca494f5646d09e6532ea39bea7954a915409925277f4604a34968b3", "PK(skyhost_002)"},
+	subs := make([]struct{ old, new string }, len(mh.cfgPool)+1)
+	for i := 0; i < len(mh.cfgPool); i++ {
+		subs[i] = struct{ old, new string }{
+			old: fmt.Sprintf("%v", mh.cfgPool[i].Node.StaticPubKey),
+			new: fmt.Sprintf("PK(%v)", mh.ipPool[i]),
+		}
 	}
+	subs = append(subs, struct{ old, new string }{
+		"000000000000000000000000000000000000000000000000000000000000000000", "PK{NULL}"})
 
 	var err error
 	for i := 0; i < len(mh.nodes); i++ {
@@ -276,19 +280,55 @@ func (mh *MultiHead) sendMessage(sender, reciever uint, message string) (*http.R
 
 }
 
-// WIP
-func ExampleMultiHead_sendMessage() {
-	mh := makeMultiHeadN(2)
+func (mh *MultiHead) genPubKeysFile() string {
+	recs := make([]string, len(mh.cfgPool))
+	for i := 0; i < len(mh.cfgPool); i++ {
+		recs[i] = fmt.Sprintf("%s\t%s\n", mh.cfgPool[i].Node.StaticPubKey, mh.ipPool[i])
+	}
+	return strings.Join(recs, "")
+}
+
+func Example_genPubKeysFile() {
+
+	mh := makeMultiHeadN(128)
+	fmt.Printf("%v\n", mh.genPubKeysFile())
+
+	// Output: ZZZ
+}
+
+func ExampleMultiHead_sendMessage_local() {
+	mh := makeMultiHeadN(1)
 	mh.startNodes(time.Second)
 
-	_, err := mh.sendMessage(0, 1, "Hello")
+	_, err := mh.sendMessage(0, 0, "Hello")
 	fmt.Printf("err: %v", err)
 
 	mh.stopNodes(time.Second * 3)
 	fmt.Printf("%v\n", mh.errReport())
 	// printLogger := logging.MustGetLogger("test")
 	// printLogger.Infof("%v\n", mh.Log.records)
-	// fmt.Printf("%v\n", mh.Log.records)
+	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
+
+	// Output: err: <nil>
+	// init errors: 0
+	// start errors: 0
+	// stop errors: 0
+
+}
+
+// WIP
+func ExampleMultiHead_sendMessage_remote() {
+	mh := makeMultiHeadN(2)
+	mh.startNodes(time.Second)
+
+	_, err := mh.sendMessage(0, 1, "Hello")
+	fmt.Printf("err: %v", err)
+
+	mh.stopNodes(time.Second)
+	fmt.Printf("%v\n", mh.errReport())
+	// printLogger := logging.MustGetLogger("test")
+	// printLogger.Infof("%v\n", mh.Log.records)
+	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
 
 	// Output: err: <nil>
 	// init errors: 0

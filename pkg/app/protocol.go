@@ -72,6 +72,7 @@ func NewProtocol(rw io.ReadWriteCloser) *Protocol {
 func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 	id, resChan := p.chans.add()
 	if err := p.writeFrame(cmd, id, payload); err != nil {
+		log.Warnf("Protocol.Send writeFrame err: %v\n", err)
 		return err
 	}
 
@@ -149,7 +150,7 @@ func (p *Protocol) Close() error {
 }
 
 func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err error) {
-
+	Logger.Info("[Protocol.writeFrame] enter")
 	var data []byte
 	if err, ok := payload.(error); ok {
 		data = []byte(err.Error())
@@ -159,12 +160,17 @@ func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err er
 			return err
 		}
 	}
-	Logger.WithField("payload", Payload{frame, data}).Info("Protocol.writeFrame")
+	Logger.WithField("payload", Payload{frame, data}).Info("[Protocol.writeFrame]")
 
 	packet := append([]byte{byte(frame), id}, data...)
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, uint16(len(packet)))
 	_, err = p.rw.Write(append(buf, packet...))
+
+	if err != nil {
+		Logger.Warnf("[Protocol.writeFrame] p.rw.Write err: %v\n", err)
+	}
+	Logger.Infof("[Protocol.writeFrame] success: %v\n", err == nil)
 	return err
 }
 

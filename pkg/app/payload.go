@@ -30,9 +30,9 @@ func (p Payload) String() string {
 	case FrameSend:
 		packet := &Packet{}
 		if err := json.Unmarshal(p.Data, packet); err != nil {
-			return fmt.Sprintf("{FrameSend. Error: %v, data: %v}", err, p.Data)
+			return fmt.Sprintf("{FrameSend. Error: %v, data: %s}", err, p.Data)
 		}
-		return fmt.Sprintf("{FrameSend: %v}", packet)
+		return fmt.Sprintf("{FrameSend: %s}", packet)
 	case FrameClose:
 		var loop routing.Loop
 		if err := json.Unmarshal(p.Data, &loop); err != nil {

@@ -12,11 +12,11 @@ import (
 
 const supportedProtocolVersion = "0.0.1"
 
-type appCallbacks struct {
-	CreateLoop       func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
-	CloseLoop        func(conn *app.Protocol, loop routing.Loop) error
-	ForwardAppPacket func(conn *app.Protocol, packet *app.Packet) error
-}
+// type appCallbacks struct {
+// 	CreateLoop       func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
+// 	CloseLoop        func(conn *app.Protocol, loop routing.Loop) error
+// 	ForwardAppPacket func(conn *app.Protocol, packet *app.Packet) error
+// }
 
 type appManager struct {
 	Logger  *logging.Logger
@@ -28,7 +28,8 @@ type appManager struct {
 
 func (am *appManager) Serve() error {
 	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
-		am.Logger.WithField("payload", app.Payload{frame, payload}).Infof("Got new request in appManager.Serve")
+		am.Logger.WithField("payload", app.Payload{frame, payload}).
+			Infof("[appManager.Serve] Got new request")
 
 		switch frame {
 		case app.FrameInit:
@@ -44,7 +45,7 @@ func (am *appManager) Serve() error {
 		}
 
 		if err != nil {
-			am.Logger.Infof("App request with type %s failed: %s", frame, err)
+			am.Logger.Warnf("[appManager.Serve]: App request with type %s failed: %s", frame, err)
 		}
 
 		return res, err
@@ -92,11 +93,12 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {
+	am.Logger.Info("[appMananger.forwardAppPacket] enter")
 	packet := &app.Packet{}
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err
 	}
 
-	am.Logger.WithField("packet", packet).Info("appMananger.forwardAppPacket")
+	am.Logger.WithField("packet", packet).Info("[appMananger.forwardAppPacket] exit")
 	return am.router.ForwardAppPacket(am.proto, packet)
 }

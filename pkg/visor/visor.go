@@ -153,8 +153,14 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	case "tcp-transport":
 		var err error
-		node.messenger, err = transport.NewTCPFactory(config.Node.StaticPubKey, config.PubKeysFile, config.TCPTransportAddr)
+		node.messenger, err = transport.NewTCPFactory(
+			config.Node.StaticPubKey,
+			config.PubKeysFile,
+			config.TCPTransportAddr,
+			masterLogger.PackageLogger("TCPFactory"))
+
 		if err != nil {
+			node.Logger.Warnf("NewNode transport.NewTCPFactory err: %v\n", err)
 			return nil, err
 		}
 

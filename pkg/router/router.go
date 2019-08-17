@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -285,6 +284,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
+	r.Logger.Info("[Router.forwardAppPacket] enter")
 	if r == nil {
 		return nil
 	}
@@ -294,23 +294,32 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 
 	l, err := r.pm.GetLoop(packet.Loop.Local.Port, packet.Loop.Remote)
 	if err != nil {
+		r.Logger.Warnf("[Router.forwardAppPacket] r.pm.GetLoop: %v", err)
 		return err
 	}
 
 	tr := r.tm.Transport(l.trID)
 	if tr == nil {
+		r.Logger.Warnf("[Router.forwardAppPacket] r.tm.Transport: tr==nil")
 		return errors.New("unknown transport")
 	}
 
 	p := routing.MakePacket(l.routeID, packet.Payload)
-	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Loop.Local.Port, l.routeID)
+	r.Logger.Infof("[Router.forwardAppPacket] Forwarded App packet from LocalPort %d using route ID %d", packet.Loop.Local.Port, l.routeID)
 	_, err = tr.Write(p)
+
+	if err != nil {
+		r.Logger.Warnf("[Router.forwardAppPacket] tr.Write: %v", err)
+	}
+	r.Logger.Info("[Router.forwardAppPacket] success")
 	return err
 }
 
 func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
+	r.Logger.Info("[Router.forwardLocalAppPacket] enter")
 	b, err := r.pm.Get(packet.Loop.Remote.Port)
 	if err != nil {
+		r.Logger.Warnf("[Router.forwardLocalAppPacket] r.pm.Get: %v\n", err)
 		return nil
 	}
 
@@ -321,29 +330,39 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 		},
 		Payload: packet.Payload,
 	}
-	return b.conn.Send(app.FrameSend, p, nil)
+	errSend := b.conn.Send(app.FrameSend, p, nil)
+	if errSend != nil {
+		r.Logger.Warnf("[Router.forwardLocalAppPacket] b.conn.Send: %v\n", err)
+	}
+	r.Logger.Warnf("[Router.forwardLocalAppPacket] success: %v\n", err == nil)
+	return errSend
 }
 
 func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
+	r.Logger.Infof("[Router.requestLoop] enter")
 	if r == nil {
 		return raddr, nil
 	}
+
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
+		r.Logger.Warnf("[Router.requestLoop] r.pm.SetLoop err: %v", err)
 		return routing.Addr{}, err
 	}
 
 	laddr := routing.Addr{PubKey: r.config.PubKey, Port: lport}
 	if raddr.PubKey == r.config.PubKey {
 		if err := r.confirmLocalLoop(laddr, raddr); err != nil {
+			r.Logger.Warnf("[Router.requestLoop] r.ConfirmLocalLoop err: %v", err)
 			return routing.Addr{}, fmt.Errorf("confirm: %s", err)
 		}
-		r.Logger.Infof("Created local loop on port %d", laddr.Port)
+		r.Logger.Infof("[Router.requestLoop] r.confirmLocalLoop Created local loop on port %d", laddr.Port)
 		return laddr, nil
 	}
 
 	forwardRoute, reverseRoute, err := r.fetchBestRoutes(laddr.PubKey, raddr.PubKey)
 	if err != nil {
+		r.Logger.Warnf("[Router.requestLoop] r.fetchBestRoutes err: %v\n", err)
 		return routing.Addr{}, fmt.Errorf("route finder: %s", err)
 	}
 
@@ -359,11 +378,13 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 
 	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
+		r.Logger.Warnf("[Router.requestLoop] r.setupProto err: %v\n", err)
 		return routing.Addr{}, err
 	}
+
 	defer func() {
 		if err := tr.Close(); err != nil {
-			r.Logger.Warnf("Failed to close transport: %s", err)
+			r.Logger.Warnf("[Router.requestLoop] Failed to close transport: %s", err)
 		}
 	}()
 
@@ -371,7 +392,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
 
-	r.Logger.Infof("Created new loop to %s on port %d", raddr, laddr.Port)
+	r.Logger.Infof("[Router.requestLoop] success. Created new loop to %s on port %d", raddr, laddr.Port)
 	return laddr, nil
 }
 
@@ -469,21 +490,26 @@ func (r *Router) destroyLoop(loop routing.Loop) error {
 }
 
 func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
+	r.Logger.Infof("[Router.setupProto] for %v enter\n", r.config.TransportType)
+
 	if len(r.config.SetupNodes) == 0 {
+		r.Logger.Warn("[Router.setupProto] r.setupProto: route setup: no nodes ")
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type)
+	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], r.config.TransportType)
 	if err != nil {
+		r.Logger.Warnf("[Router.setupProto] r.setupProto  r.tm.CreateSetupTransport error:%v\n", err)
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
 
 	sProto := setup.NewSetupProtocol(tr)
+	r.Logger.Infof("[Router.setupProto] success")
 	return sProto, tr, nil
 }
 
 func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Route, rev routing.Route, err error) {
-	r.Logger.Infof("Requesting new routes from %s to %s", source, destination)
+	r.Logger.Infof("[Router.fetchBestRoutes] Requesting new routes from %s to %s", source, destination)
 
 	timer := time.NewTimer(time.Second * 10)
 	defer timer.Stop()
@@ -499,7 +525,7 @@ fetchRoutesAgain:
 		}
 	}
 
-	r.Logger.Infof("Found routes Forward: %s. Reverse %s", fwdRoutes, revRoutes)
+	r.Logger.Infof("[Router.fetchBestRoutes] Found routes Forward: %s. Reverse %s success", fwdRoutes, revRoutes)
 	return fwdRoutes[0], revRoutes[0], nil
 }
 

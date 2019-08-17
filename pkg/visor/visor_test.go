@@ -104,7 +104,11 @@ func TestNodeStartClose(t *testing.T) {
 				node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
 			case "tcp-transport":
 				var err error
-				node.messenger, err = transport.NewTCPFactory(nodeCfg.Node.StaticPubKey, nodeCfg.PubKeysFile, nodeCfg.TCPTransportAddr)
+				node.messenger, err = transport.NewTCPFactory(
+					nodeCfg.Node.StaticPubKey,
+					nodeCfg.PubKeysFile,
+					nodeCfg.TCPTransportAddr,
+					node.Logger.PackageLogger("TCPFactory.test"))
 				require.NoError(t, err)
 			}
 

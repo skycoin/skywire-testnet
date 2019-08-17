@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 // ErrUnknownRemote returned for connection attempts for remotes
@@ -22,10 +23,11 @@ type TCPFactory struct {
 	Pk      cipher.PubKey
 	PkTable PubKeyTable
 	Lsr     *net.TCPListener
+	Logger  *logging.Logger
 }
 
 // NewTCPFactory constructs a new TCP Factory
-func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string) (Factory, error) {
+func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string, logger *logging.Logger) (Factory, error) {
 
 	pkTbl, err := FilePubKeyTable(pubkeysFile)
 	if err != nil {
@@ -42,21 +44,26 @@ func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string) (Factor
 		return nil, fmt.Errorf("error %v listening %v", err, tcpAddr)
 	}
 
-	return &TCPFactory{pk, pkTbl, tcpListener}, nil
+	logger.Infof("NewTCPFactory: success, records in pubkeys file: %v\n", pkTbl.Count())
+	return &TCPFactory{pk, pkTbl, tcpListener, logger}, nil
 }
 
 // Accept accepts a remotely-initiated Transport.
 func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
+	f.Logger.Info("[TCPFactory.Accept] enter")
 	conn, err := f.Lsr.AcceptTCP()
 	if err != nil {
+		f.Logger.Warnf("[TCPFactory.Accept] f.Lsr.AcceptTCP err: %v\n", err)
 		return nil, err
 	}
 
 	raddr := conn.RemoteAddr().(*net.TCPAddr)
 	rpk := f.PkTable.RemotePK(raddr.String())
 	if rpk.Null() {
+		f.Logger.Infof("[TCPFactory.Accept] f.PkTable.RemotePK rpk.Null() for %v\n", raddr)
 		return nil, fmt.Errorf("error: %v, raddr: %v, rpk: %v", ErrUnknownRemote, raddr.String(), rpk)
 	}
+	f.Logger.Info("[TCPFactory.Accept] success")
 
 	// return &TCPTransport{conn, [2]cipher.PubKey{f.Pk, rpk}}, nil
 	return &TCPTransport{conn, f.Pk, rpk}, nil
@@ -64,30 +71,37 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 
 // Dial initiates a Transport with a remote node.
 func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
+	f.Logger.Info("[TCPFactory.Dial] enter")
 	addr := f.PkTable.RemoteAddr(remote)
 	if addr == "" {
+		f.Logger.Warnf("[TCPFactory.Dial] f.PkTable.RemoteAddr(remote) is empty for %v\n", remote)
 		return nil, ErrUnknownRemote
 	}
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
+		f.Logger.Warnf("[TCPFactory.Dial] net.ResolveTCPAddr_tcpAddr err: %v\n", err)
 		return nil, err
 	}
 
 	lsnAddr, err := net.ResolveTCPAddr("tcp", f.Lsr.Addr().String())
 	if err != nil {
+		f.Logger.Warnf("[TCPFactory.Dial] net.ResolveTCPAddr_lsnAddr err: %v\n", err)
 		return nil, fmt.Errorf("error in resolving local address")
 	}
 	locAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%v:%v", lsnAddr.IP.String(), "0"))
 	if err != nil {
+		f.Logger.Warnf("[TCPFactory.Dial] net.ResolveTCPAddr_locAddr err: %v\n", err)
+		net.ResolveTCPAddr("tcp", f.Lsr.Addr().String())
 		return nil, fmt.Errorf("error in constructing local address ")
 	}
 
 	conn, err := net.DialTCP("tcp", locAddr, tcpAddr)
 	if err != nil {
+		f.Logger.Warnf("[TCPFactory.Dial] net.DialTCP err: %v\n", err)
 		return nil, err
 	}
-
+	f.Logger.Info("[TCPFactory.Dial] success")
 	return &TCPTransport{conn, f.Pk, remote}, nil
 }
 
@@ -135,6 +149,7 @@ func (tr *TCPTransport) Type() string {
 type PubKeyTable interface {
 	RemoteAddr(remotePK cipher.PubKey) string
 	RemotePK(address string) cipher.PubKey
+	Count() int
 }
 
 type memPKTable struct {
@@ -157,6 +172,11 @@ func memoryPubKeyTable(entries map[cipher.PubKey]string) *memPKTable {
 // MemoryPKTable returns in memory implementation of the PubKeyTable.
 func MemoryPubKeyTable(entries map[cipher.PubKey]string) PubKeyTable {
 	return memoryPubKeyTable(entries)
+}
+
+// Count returns number of Table records
+func (t *memPKTable) Count() int {
+	return len(t.entries)
 }
 
 func (t *memPKTable) RemoteAddr(remotePK cipher.PubKey) string {
