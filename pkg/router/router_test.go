@@ -113,7 +113,12 @@ func TestRouterAppInit(t *testing.T) {
 	logStore := transport.InMemoryTransportLogStore()
 
 	pk1, sk1 := cipher.GenerateKeyPair()
-	c1 := &transport.ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: client, LogStore: logStore, Logger: log}
+	c1 := &transport.ManagerConfig{
+		PubKey:          pk1,
+		SecKey:          sk1,
+		DiscoveryClient: client,
+		LogStore:        logStore,
+		Logger:          log}
 
 	m1, err := transport.NewManager(c1)
 	require.NoError(t, err)
@@ -141,9 +146,8 @@ func TestRouterAppInit(t *testing.T) {
 	require.Error(t, proto.Send(app.FrameInit, &app.Config{AppName: "foo1", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil))
 
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 	require.NoError(t, r.Close())
-	require.NoError(t, <-errCh)
+	require.NoError(t, testhelpers.NoErrorWithinTimeoutN(serveErrCh, errCh))
 }
 
 func TestRouterApp(t *testing.T) {
@@ -240,13 +244,9 @@ func TestRouterApp(t *testing.T) {
 
 	require.NoError(t, m2.Close())
 
-	// require.NoError(t,
-	// 	testhelpers.NoErrorWithinTimeoutN(trServeErrCh, protoServeErrCh, sendErrCh, serveAppErrCh))
+	require.NoError(t,
+		testhelpers.NoErrorWithinTimeoutN(trServeErrCh, protoServeErrCh, sendErrCh, serveAppErrCh))
 
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(trServeErrCh))
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErrCh))
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(sendErrCh))
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErrCh))
 }
 
 func TestRouterLocalApp(t *testing.T) {
@@ -316,11 +316,43 @@ func TestRouterLocalApp(t *testing.T) {
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, r.Close())
-	require.NoError(t, <-errCh)
+	require.NoError(t,
+		testhelpers.NoErrorWithinTimeoutN(errCh, protoServeErr1Ch, protoServeErr2Ch, sendErrCh, serveAppErr1Ch, serveAppErr2Ch))
+}
 
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErr1Ch))
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(protoServeErr2Ch))
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(sendErrCh))
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErr1Ch))
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveAppErr2Ch))
+func TestRouterRouteExpiration(t *testing.T) {
+	client := transport.NewDiscoveryMock()
+	logStore := transport.InMemoryTransportLogStore()
+
+	pk, sk := cipher.GenerateKeyPair()
+	m, err := transport.NewManager(
+		&transport.ManagerConfig{PubKey: pk, SecKey: sk,
+			DiscoveryClient: client, LogStore: logStore, Logger: log})
+	require.NoError(t, err)
+
+	rt := routing.InMemoryRoutingTable()
+	_, err = rt.AddRule(routing.AppRule(time.Now().Add(-time.Hour), 4, pk, 6, 5))
+	require.NoError(t, err)
+	assert.Equal(t, 1, rt.Count())
+
+	conf := &Config{
+		Logger:           logging.MustGetLogger("routesetup"),
+		PubKey:           pk,
+		SecKey:           sk,
+		TransportManager: m,
+		RoutingTable:     rt,
+	}
+	r := New(conf)
+	r.expiryTicker = time.NewTicker(100 * time.Millisecond)
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- r.Serve(context.TODO())
+	}()
+
+	time.Sleep(110 * time.Millisecond)
+
+	assert.Equal(t, 0, rt.Count())
+	require.NoError(t, r.Close())
+
+	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
 }

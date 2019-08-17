@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/rpc"
 	"os"
@@ -86,19 +85,11 @@ type appBind struct {
 	pid  int
 }
 
-// PacketRouter performs routing of the skywire packets.
-type PacketRouter interface {
-	io.Closer
-	Serve(ctx context.Context) error
-	ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error
-	IsSetupTransport(tr *transport.ManagedTransport) bool
-}
-
 // Node provides messaging runtime for Apps by setting up all
 // necessary connections and performing messaging gateway functions.
 type Node struct {
 	config    *Config
-	router    PacketRouter
+	router    router.PacketRouter
 	messenger transport.Factory
 	tm        *transport.Manager
 	rt        routing.Table

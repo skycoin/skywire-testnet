@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
@@ -48,9 +49,11 @@ func TestListApps(t *testing.T) {
 	assert.Equal(t, AppStatusRunning, app2.Status)
 }
 
+var rtr router.Router
+
 func TestStartStopApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	router := new(mockRouter)
+	router := new(router.MockRouter)
 	executer := new(MockExecuter)
 	defer func() {
 		require.NoError(t, os.RemoveAll("skychat"))
@@ -97,7 +100,7 @@ func TestStartStopApp(t *testing.T) {
 }
 
 func TestRPC(t *testing.T) {
-	r := new(mockRouter)
+	r := new(router.MockRouter)
 	executer := new(MockExecuter)
 	defer func() {
 		require.NoError(t, os.RemoveAll("skychat"))

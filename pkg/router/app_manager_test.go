@@ -18,9 +18,9 @@ func TestAppManagerInit(t *testing.T) {
 	in, out := net.Pipe()
 	am := &appManager{
 		logging.MustGetLogger("routesetup"),
+		nil,
 		app.NewProtocol(out),
 		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
-		nil,
 	}
 
 	srvCh := make(chan error)
@@ -62,14 +62,10 @@ func TestAppManagerInit(t *testing.T) {
 func TestAppManagerSetupLoop(t *testing.T) {
 	in, out := net.Pipe()
 	am := &appManager{
-		logging.MustGetLogger("routesetup"),
-		app.NewProtocol(out),
-		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
-		&appCallbacks{
-			CreateLoop: func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
-				return raddr, nil
-			},
-		},
+		Logger:  logging.MustGetLogger("routesetup"),
+		router:  new(MockRouter),
+		proto:   app.NewProtocol(out),
+		appConf: &app.Config{AppName: "foo", AppVersion: "0.0.1"},
 	}
 
 	srvCh := make(chan error)
@@ -96,17 +92,19 @@ func TestAppManagerSetupLoop(t *testing.T) {
 
 func TestAppManagerCloseLoop(t *testing.T) {
 	in, out := net.Pipe()
-	var inLoop routing.Loop
+	// var inLoop routing.Loop
+	r := new(MockRouter)
 	am := &appManager{
-		logging.MustGetLogger("routesetup"),
-		app.NewProtocol(out),
-		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
-		&appCallbacks{
-			CloseLoop: func(conn *app.Protocol, loop routing.Loop) error {
-				inLoop = loop
-				return nil
-			},
-		},
+		Logger:  logging.MustGetLogger("routesetup"),
+		router:  r,
+		proto:   app.NewProtocol(out),
+		appConf: &app.Config{AppName: "foo", AppVersion: "0.0.1"},
+		// &appCallbacks{
+		// 	CloseLoop: func(conn *app.Protocol, loop routing.Loop) error {
+		// 		inLoop = loop
+		// 		return nil
+		// 	},
+		// },
 	}
 
 	srvCh := make(chan error)
@@ -120,10 +118,12 @@ func TestAppManagerCloseLoop(t *testing.T) {
 
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
-	loop := routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}
+	loop := routing.Loop{
+		Local:  routing.Addr{PubKey: lpk, Port: 2},
+		Remote: routing.Addr{PubKey: rpk, Port: 3}}
 	err := proto.Send(app.FrameClose, loop, nil)
 	require.NoError(t, err)
-	assert.Equal(t, loop, inLoop)
+	assert.Equal(t, loop, r.inLoop)
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
@@ -133,17 +133,12 @@ func TestAppManagerCloseLoop(t *testing.T) {
 
 func TestAppManagerForward(t *testing.T) {
 	in, out := net.Pipe()
-	var inPacket *app.Packet
+	r := new(MockRouter)
 	am := &appManager{
-		logging.MustGetLogger("routesetup"),
-		app.NewProtocol(out),
-		&app.Config{AppName: "foo", AppVersion: "0.0.1"},
-		&appCallbacks{
-			ForwardAppPacket: func(conn *app.Protocol, packet *app.Packet) error {
-				inPacket = packet
-				return nil
-			},
-		},
+		Logger:  logging.MustGetLogger("routesetup"),
+		router:  r,
+		proto:   app.NewProtocol(out),
+		appConf: &app.Config{AppName: "foo", AppVersion: "0.0.1"},
 	}
 
 	srvCh := make(chan error)
@@ -157,10 +152,13 @@ func TestAppManagerForward(t *testing.T) {
 
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
-	packet := &app.Packet{Payload: []byte("foo"), Loop: routing.Loop{Local: routing.Addr{PubKey: lpk, Port: 2}, Remote: routing.Addr{PubKey: rpk, Port: 3}}}
+	packet := &app.Packet{Payload: []byte("foo"),
+		Loop: routing.Loop{
+			Local:  routing.Addr{PubKey: lpk, Port: 2},
+			Remote: routing.Addr{PubKey: rpk, Port: 3}}}
 	err := proto.Send(app.FrameSend, packet, nil)
 	require.NoError(t, err)
-	assert.Equal(t, packet, inPacket)
+	assert.Equal(t, packet, r.inPacket)
 
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -41,7 +42,18 @@ type Config struct {
 	TransportType    string
 }
 
-// Router implements node.PacketRouter. It manages routing table by
+// PacketRouter performs routing of the skywire packets.
+type PacketRouter interface {
+	io.Closer
+	Serve(ctx context.Context) error
+	ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error
+	IsSetupTransport(tr *transport.ManagedTransport) bool
+	CreateLoop(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
+	CloseLoop(conn *app.Protocol, loop routing.Loop) error
+	ForwardAppPacket(conn *app.Protocol, packet *app.Packet) error
+}
+
+// Router implements PacketRouter. It manages routing table by
 // communicating with setup nodes, forward packets according to local
 // rules and manages loops for apps.
 type Router struct {
@@ -154,12 +166,7 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 	r.staticPorts[port] = struct{}{}
 	r.mu.Unlock()
 
-	callbacks := &appCallbacks{
-		CreateLoop:       r.requestLoop,
-		CloseLoop:        r.closeLoop,
-		ForwardAppPacket: r.forwardAppPacket,
-	}
-	am := &appManager{r.Logger, appProto, appConf, callbacks}
+	am := &appManager{r.Logger, r, appProto, appConf}
 	err := am.Serve()
 
 	for _, port := range r.pm.AppPorts(appProto) {
@@ -178,6 +185,27 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 		return nil
 	}
 	return err
+}
+
+// callbacks := &appCallbacks{
+// 	CreateLoop:       r.requestLoop,
+// 	CloseLoop:        r.closeLoop,
+// 	ForwardAppPacket: r.forwardAppPacket,
+// }
+
+// CreateLoop implements PactetRouter.CreateLoop
+func (r *Router) CreateLoop(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
+	return r.requestLoop(conn, raddr)
+}
+
+// CloseLoop implements PactetRouter.CloseLoop
+func (r *Router) CloseLoop(conn *app.Protocol, loop routing.Loop) error {
+	return r.closeLoop(conn, loop)
+}
+
+// ForwardAppPacket implements PactetRouter.ForwardAppPacket
+func (r *Router) ForwardAppPacket(conn *app.Protocol, packet *app.Packet) error {
+	return r.forwardAppPacket(conn, packet)
 }
 
 // Close safely stops Router.
@@ -217,13 +245,14 @@ func (r *Router) serveTransport(rw io.ReadWriter) error {
 
 	r.Logger.Infof("Got new remote packet with route ID %d. Using rule: %s", packet.RouteID(), rule)
 	if rule.Type() == routing.RuleForward {
-		return r.forwardPacket(payload, rule)
+		return r.ForwardPacket(payload, rule)
 	}
 
 	return r.consumePacket(payload, rule)
 }
 
-func (r *Router) forwardPacket(payload []byte, rule routing.Rule) error {
+// ForwardPacket forwards payload according to rule
+func (r *Router) ForwardPacket(payload []byte, rule routing.Rule) error {
 	packet := routing.MakePacket(rule.RouteID(), payload)
 	tr := r.tm.Transport(rule.TransportID())
 	if tr == nil {
@@ -256,25 +285,22 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
-
-	r.Logger.WithField("packet.Loop", packet.Loop).Info("Entering r.forwardAppPacket")
-
+	if r == nil {
+		return nil
+	}
 	if packet.Loop.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
 	}
-	r.Logger.Info("Entering r.forwardAppPacket GetLoop")
+
 	l, err := r.pm.GetLoop(packet.Loop.Local.Port, packet.Loop.Remote)
 	if err != nil {
 		return err
 	}
 
-	r.Logger.WithField("trID", l.trID).Infof("Entering r.forwardAppPacket r.tm.Transport(l.trID)")
 	tr := r.tm.Transport(l.trID)
 	if tr == nil {
-		return fmt.Errorf("unknown transport id %v", l.trID)
+		return errors.New("unknown transport")
 	}
-
-	r.Logger.Info("r.forwardAppPacket enter routing.MakePacket")
 
 	p := routing.MakePacket(l.routeID, packet.Payload)
 	r.Logger.Infof("Forwarded App packet from LocalPort %d using route ID %d", packet.Loop.Local.Port, l.routeID)
@@ -283,26 +309,25 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 }
 
 func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
-	r.Logger.Info("entering r.forwardLocalAppPacket ")
 	b, err := r.pm.Get(packet.Loop.Remote.Port)
 	if err != nil {
 		return nil
 	}
-	// r.Logger.WithField("Local", ).Info("entering r.forwardLocalAppPacket app.Packet")
+
 	p := &app.Packet{
 		Loop: routing.Loop{
-			Local:  routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Remote.Port},
+			Local:  routing.Addr{Port: packet.Loop.Remote.Port},
 			Remote: routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Local.Port},
 		},
 		Payload: packet.Payload,
 	}
-
-	r.Logger.WithField("packet", p).Info("entering r.forwardLocalAppPacket Send")
 	return b.conn.Send(app.FrameSend, p, nil)
 }
 
 func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
-
+	if r == nil {
+		return raddr, nil
+	}
 	lport := r.pm.Alloc(appConn)
 	if err := r.pm.SetLoop(lport, raddr, &loop{}); err != nil {
 		return routing.Addr{}, err
@@ -332,33 +357,18 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		Reverse: reverseRoute,
 	}
 
-	r.Logger.Infof("Router.requestLoop\n")
-	r.Logger.Infof("laddr: %v\n, raddr: %v\n", laddr, raddr)
-
-	r.Logger.Info("Attempt to r.setupProto from r.requestLoop")
-	switch r.config.TransportType {
-	case "dmsg":
-		proto, tr, err := r.setupProto(context.Background())
-		if err != nil {
-			return routing.Addr{}, err
+	proto, tr, err := r.setupProto(context.Background())
+	if err != nil {
+		return routing.Addr{}, err
+	}
+	defer func() {
+		if err := tr.Close(); err != nil {
+			r.Logger.Warnf("Failed to close transport: %s", err)
 		}
-		defer func() {
-			if err := tr.Close(); err != nil {
-				r.Logger.Warnf("Failed to close transport: %s", err)
-			}
-		}()
+	}()
 
-		r.Logger.Infof("Router.requestLoop 6\n")
-		if err := setup.CreateLoop(proto, ld); err != nil {
-			return routing.Addr{}, fmt.Errorf("route setup: %s", err)
-		}
-	case "tcp-transport":
-		r.Logger.Info("Skipping setup for tcp-transport")
-		_, err := r.tm.CreateSetupTransport(context.Background(), raddr.PubKey, "tcp-transport")
-		if err != nil {
-			r.Logger.Warnf("error creating transport %s", err)
-		}
-
+	if err := setup.CreateLoop(proto, ld); err != nil {
+		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
 
 	r.Logger.Infof("Created new loop to %s on port %d", raddr, laddr.Port)
@@ -401,7 +411,7 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
 	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
-	r.Logger.Info("Attempt to r.setupProto from r.closeLoop")
+
 	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
 		return err
@@ -440,6 +450,9 @@ func (r *Router) loopClosed(loop routing.Loop) error {
 }
 
 func (r *Router) destroyLoop(loop routing.Loop) error {
+	if r == nil {
+		return nil
+	}
 	r.mu.Lock()
 	_, ok := r.staticPorts[loop.Local.Port]
 	r.mu.Unlock()
@@ -460,9 +473,7 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	trType := r.config.TransportType
-	// TODO(evanlinjin): need string constant for tp type.
-	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], trType)
+	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}

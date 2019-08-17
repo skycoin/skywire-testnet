@@ -1,7 +1,6 @@
 package visor
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -21,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/internal/httpauth"
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
@@ -84,7 +83,7 @@ func TestNodeStartClose(t *testing.T) {
 
 	for _, trType := range []string{"dmsg", "tcp-transport"} {
 		t.Run(trType, func(t *testing.T) {
-			r := new(mockRouter)
+			r := new(router.MockRouter)
 			executer := &MockExecuter{}
 			conf := []AppConfig{
 				{App: "skychat", Version: "1.0", AutoStart: true, Port: 1},
@@ -121,7 +120,7 @@ func TestNodeStartClose(t *testing.T) {
 
 			time.Sleep(100 * time.Millisecond)
 			require.NoError(t, node.Close())
-			require.True(t, r.didClose)
+			require.True(t, r.DidClose)
 			require.NoError(t, <-errCh)
 
 			require.Len(t, executer.cmds, 1)
@@ -133,7 +132,7 @@ func TestNodeStartClose(t *testing.T) {
 
 func TestNodeSpawnApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	r := new(mockRouter)
+	r := new(router.MockRouter)
 	executer := &MockExecuter{}
 	defer func() {
 		require.NoError(t, os.RemoveAll("skychat"))
@@ -168,7 +167,7 @@ func TestNodeSpawnApp(t *testing.T) {
 
 func TestNodeSpawnAppValidations(t *testing.T) {
 	conn, _ := net.Pipe()
-	r := new(mockRouter)
+	r := new(router.MockRouter)
 	executer := &MockExecuter{err: errors.New("foo")}
 	defer func() {
 		require.NoError(t, os.RemoveAll("skychat"))
@@ -248,62 +247,4 @@ func (exc *MockExecuter) Stop(pid int) error {
 func (exc *MockExecuter) Wait(cmd *exec.Cmd) error {
 	<-exc.stopCh
 	return nil
-}
-
-type mockRouter struct {
-	sync.Mutex
-
-	ports []routing.Port
-
-	didStart bool
-	didClose bool
-
-	errChan chan error
-}
-
-func (r *mockRouter) Ports() []routing.Port {
-	r.Lock()
-	p := r.ports
-	r.Unlock()
-	return p
-}
-
-func (r *mockRouter) Serve(_ context.Context) error {
-	r.didStart = true
-	return nil
-}
-
-func (r *mockRouter) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
-	r.Lock()
-	if r.ports == nil {
-		r.ports = []routing.Port{}
-	}
-
-	r.ports = append(r.ports, port)
-	r.Unlock()
-
-	if r.errChan == nil {
-		r.Lock()
-		r.errChan = make(chan error)
-		r.Unlock()
-	}
-
-	return <-r.errChan
-}
-
-func (r *mockRouter) Close() error {
-	if r == nil {
-		return nil
-	}
-	r.didClose = true
-	r.Lock()
-	if r.errChan != nil {
-		close(r.errChan)
-	}
-	r.Unlock()
-	return nil
-}
-
-func (r *mockRouter) IsSetupTransport(tr *transport.ManagedTransport) bool {
-	return false
 }

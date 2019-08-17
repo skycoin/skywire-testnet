@@ -70,7 +70,6 @@ func NewProtocol(rw io.ReadWriteCloser) *Protocol {
 
 // Send sends command Frame with payload and awaits for response.
 func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
-	Logger.WithField("frame", cmd).Info("Sending from Protocol.Send")
 	id, resChan := p.chans.add()
 	if err := p.writeFrame(cmd, id, payload); err != nil {
 		return err
@@ -150,7 +149,7 @@ func (p *Protocol) Close() error {
 }
 
 func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err error) {
-	Logger.WithField("tcp-transport", "debug").WithField("payload", payload).Info("writeFrame")
+
 	var data []byte
 	if err, ok := payload.(error); ok {
 		data = []byte(err.Error())
@@ -160,6 +159,7 @@ func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err er
 			return err
 		}
 	}
+	Logger.WithField("payload", Payload{frame, data}).Info("Protocol.writeFrame")
 
 	packet := append([]byte{byte(frame), id}, data...)
 	buf := make([]byte, 2)

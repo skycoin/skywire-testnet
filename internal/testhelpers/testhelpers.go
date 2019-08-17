@@ -13,7 +13,10 @@ func joinErrChannels(errChans []<-chan error) chan error {
 	joinedCh := make(chan error)
 	for _, ch := range errChans {
 		go func(errCh <-chan error) {
-			joinedCh <- <-errCh
+			err := <-errCh
+			if err != nil {
+				joinedCh <- err
+			}
 		}(ch)
 	}
 	return joinedCh

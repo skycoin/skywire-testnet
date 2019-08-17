@@ -19,16 +19,16 @@ type appCallbacks struct {
 }
 
 type appManager struct {
-	Logger *logging.Logger
-
-	proto     *app.Protocol
-	appConf   *app.Config
-	callbacks *appCallbacks
+	Logger  *logging.Logger
+	router  PacketRouter
+	proto   *app.Protocol
+	appConf *app.Config
+	// callbacks *appCallbacks
 }
 
 func (am *appManager) Serve() error {
 	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
-		am.Logger.WithField("frame", frame).WithField("payload", payload).Infof("Got new request in appManager.Serve")
+		am.Logger.WithField("payload", app.Payload{frame, payload}).Infof("Got new request in appManager.Serve")
 
 		switch frame {
 		case app.FrameInit:
@@ -79,7 +79,7 @@ func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
 		return routing.Addr{}, err
 	}
 
-	return am.callbacks.CreateLoop(am.proto, raddr)
+	return am.router.CreateLoop(am.proto, raddr)
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {
@@ -88,7 +88,7 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 		return err
 	}
 
-	return am.callbacks.CloseLoop(am.proto, loop)
+	return am.router.CloseLoop(am.proto, loop)
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {
@@ -98,5 +98,5 @@ func (am *appManager) forwardAppPacket(payload []byte) error {
 	}
 
 	am.Logger.WithField("packet", packet).Info("appMananger.forwardAppPacket")
-	return am.callbacks.ForwardAppPacket(am.proto, packet)
+	return am.router.ForwardAppPacket(am.proto, packet)
 }

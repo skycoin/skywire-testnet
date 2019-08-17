@@ -374,39 +374,3 @@ func TestRouterSetupLoopLocal(t *testing.T) {
 
 }
 
-func TestRouterRouteExpiration(t *testing.T) {
-	client := transport.NewDiscoveryMock()
-	logStore := transport.InMemoryTransportLogStore()
-
-	pk, sk := cipher.GenerateKeyPair()
-	m, err := transport.NewManager(
-		&transport.ManagerConfig{PubKey: pk, SecKey: sk,
-			DiscoveryClient: client, LogStore: logStore, Logger: log})
-	require.NoError(t, err)
-
-	rt := routing.InMemoryRoutingTable()
-	_, err = rt.AddRule(routing.AppRule(time.Now().Add(-time.Hour), 4, pk, 6, 5))
-	require.NoError(t, err)
-	assert.Equal(t, 1, rt.Count())
-
-	conf := &Config{
-		Logger:           logging.MustGetLogger("routesetup"),
-		PubKey:           pk,
-		SecKey:           sk,
-		TransportManager: m,
-		RoutingTable:     rt,
-	}
-	r := New(conf)
-	r.expiryTicker = time.NewTicker(100 * time.Millisecond)
-	serveErrCh := make(chan error, 1)
-	go func() {
-		serveErrCh <- r.Serve(context.TODO())
-	}()
-
-	time.Sleep(110 * time.Millisecond)
-
-	assert.Equal(t, 0, rt.Count())
-	require.NoError(t, r.Close())
-
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
-}
