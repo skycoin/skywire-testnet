@@ -194,7 +194,13 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 	}
 
 	sn.Logger.Infof("Creating new Route %s", route)
-	r := make([]*Hop, len(route))
+
+	r := make(routing.Route, len(route)+1)
+	r[0] = &routing.Hop{
+		Transport: route[0].Transport,
+		To:        route[0].From,
+	}
+	copy(r[1:], route)
 
 	initiator := route[0].From
 
@@ -205,24 +211,28 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		routeIDsCh = append(routeIDsCh, make(chan routing.RouteID, 2))
 	}
 
+	resultingRouteIDCh := make(chan routing.RouteID, 2)
+
 	// context to cancel rule setup in case of errors
 	ctx, cancel := context.WithCancel(context.Background())
 	for idx := len(r) - 1; idx >= 0; idx-- {
-		hop := &Hop{Hop: route[idx]}
-		r[idx] = hop
-
 		var routeIDChIn, routeIDChOut chan routing.RouteID
 		if idx > 0 {
 			routeIDChOut = routeIDsCh[idx-1]
 		}
 		var nextTransport uuid.UUID
+		var rule routing.Rule
 		if idx != len(r)-1 {
 			routeIDChIn = routeIDsCh[idx]
-			nextTransport = route[idx+1].Transport
+			nextTransport = r[idx+1].Transport
+			rule = routing.ForwardRule(expireAt, 0, nextTransport, 0)
+		} else {
+			rule = routing.AppRule(expireAt, 0, initiator, lport, rport, 0)
 		}
 
-		go func(idx int, hop *Hop, routeIDChIn, routeIDChOut chan routing.RouteID, nextTransport uuid.UUID) {
-			proto, err := sn.dialAndCreateProto(ctx, hop.To)
+		go func(idx int, pubKey cipher.PubKey, rule routing.Rule, routeIDChIn <-chan routing.RouteID,
+			routeIDChOut chan<- routing.RouteID) {
+			routeID, err := sn.addRule(ctx, pubKey, rule, routeIDChIn, routeIDChOut)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
@@ -230,57 +240,16 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 				} else {
 					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
 				}
-				return
-			}
-			defer sn.closeProto(proto)
 
-			routeID, err := RequestRouteID(ctx, proto)
-			if err != nil {
-				// filter out context cancellation errors
-				if err == context.Canceled {
-					rulesSetupErrs <- err
-				} else {
-					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
-				}
 				return
 			}
 
-			sn.Logger.Infof("Received route ID %d from %s", routeID, hop.To)
-
-			hop.routeID = routeID
-
-			if routeIDChOut != nil {
-				routeIDChOut <- routeID
-			}
-			var nextRouteID routing.RouteID
-			if routeIDChIn != nil {
-				nextRouteID = <-routeIDChIn
+			if idx == 0 {
+				resultingRouteIDCh <- routeID
 			}
 
-			var rule routing.Rule
-			if idx == len(r)-1 {
-				rule = routing.AppRule(expireAt, 0, initiator, lport, rport, hop.routeID)
-			} else {
-				rule = routing.ForwardRule(expireAt, nextRouteID, nextTransport, hop.routeID)
-			}
-
-			sn.Logger.Debugf("dialing to %s to setup rule: %v\n", hop.To, rule)
-
-			if err := AddRule(ctx, proto, rule); err != nil {
-				// filter out context cancellation errors
-				if err == context.Canceled {
-					rulesSetupErrs <- err
-				} else {
-					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
-				}
-				return
-			}
-
-			sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), hop.To)
-
-			// put nil to avoid block
 			rulesSetupErrs <- nil
-		}(idx, hop, routeIDChIn, routeIDChOut, nextTransport)
+		}(idx, r[idx].To, rule, routeIDChIn, routeIDChOut)
 	}
 
 	var rulesSetupErr error
@@ -304,21 +273,8 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		return 0, rulesSetupErr
 	}
 
-	proto, err := sn.dialAndCreateProto(ctx, initiator)
-	if err != nil {
-		return 0, err
-	}
-	defer sn.closeProto(proto)
-
-	routeID, err := RequestRouteID(ctx, proto)
-	if err != nil {
-		return 0, err
-	}
-
-	rule := routing.ForwardRule(expireAt, r[0].routeID, r[0].Transport, routeID)
-	if err := AddRule(ctx, proto, rule); err != nil {
-		return 0, fmt.Errorf("rule setup: %s", err)
-	}
+	routeID := <-resultingRouteIDCh
+	close(resultingRouteIDCh)
 
 	return routeID, nil
 }
@@ -359,6 +315,43 @@ func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.Loop
 
 	sn.Logger.Infof("Closed loop on %s. LocalPort: %d", on, ld.Loop.Local.Port)
 	return nil
+}
+
+func (sn *Node) addRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule,
+	routeIDChIn <-chan routing.RouteID, routeIDChOut chan<- routing.RouteID) (routing.RouteID, error) {
+	proto, err := sn.dialAndCreateProto(ctx, pubKey)
+	if err != nil {
+		return 0, err
+	}
+	defer sn.closeProto(proto)
+
+	registrationID, err := RequestRouteID(ctx, proto)
+	if err != nil {
+		return 0, err
+	}
+
+	sn.Logger.Infof("Received route ID %d from %s", registrationID, pubKey)
+
+	if routeIDChOut != nil {
+		routeIDChOut <- registrationID
+	}
+	var nextRouteID routing.RouteID
+	if routeIDChIn != nil {
+		nextRouteID = <-routeIDChIn
+		rule.SetRouteID(nextRouteID)
+	}
+
+	rule.SetRegistrationID(registrationID)
+
+	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
+
+	if err := AddRule(ctx, proto, rule); err != nil {
+		return 0, err
+	}
+
+	sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), pubKey)
+
+	return registrationID, nil
 }
 
 func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (routing.RouteID, error) {

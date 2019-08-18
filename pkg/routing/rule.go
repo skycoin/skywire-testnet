@@ -107,6 +107,12 @@ func (r Rule) RegistrationID() RouteID {
 	return RouteID(binary.BigEndian.Uint32(r[50:]))
 }
 
+// SetRegistrationID sets the route ID which will be used to register this rule within
+// the visor node.
+func (r Rule) SetRegistrationID(id RouteID) {
+	binary.BigEndian.PutUint32(r[50:], uint32(id))
+}
+
 func (r Rule) String() string {
 	if r.Type() == RuleApp {
 		return fmt.Sprintf("App: <resp-rid: %d><remote-pk: %s><remote-port: %d><local-port: %d>",
