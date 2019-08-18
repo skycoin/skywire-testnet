@@ -211,8 +211,6 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		hop := &Hop{Hop: route[idx]}
 		r[idx] = hop
 
-		toPK := hop.To.Hex()
-
 		var routeIDChIn, routeIDChOut chan routing.RouteID
 		if idx > 0 {
 			routeIDChOut = routeIDsCh[idx-1]
@@ -224,24 +222,18 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		}
 
 		go func(idx int, hop *Hop, routeIDChIn, routeIDChOut chan routing.RouteID, nextTransport uuid.UUID) {
-			sn.Logger.Debugf("dialing to %s to request route ID\n", toPK)
-			tr, err := sn.messenger.Dial(ctx, hop.To)
+			proto, err := sn.dialAndCreateProto(ctx, hop.To)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
 					rulesSetupErrs <- err
 				} else {
-					rulesSetupErrs <- fmt.Errorf("rule setup: transport: %s", err)
+					rulesSetupErrs <- fmt.Errorf("rule setup: %s", err)
 				}
 				return
 			}
-			defer func() {
-				if err := tr.Close(); err != nil {
-					sn.Logger.Warnf("Failed to close transport: %s", err)
-				}
-			}()
+			defer sn.closeProto(proto)
 
-			proto := NewSetupProtocol(tr)
 			routeID, err := RequestRouteID(ctx, proto)
 			if err != nil {
 				// filter out context cancellation errors
@@ -312,18 +304,12 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		return 0, rulesSetupErr
 	}
 
-	sn.Logger.Debugf("dialing to %s to request route ID\n", initiator)
-	tr, err := sn.messenger.Dial(ctx, initiator)
+	proto, err := sn.dialAndCreateProto(ctx, initiator)
 	if err != nil {
-		return 0, fmt.Errorf("transport: %s", err)
+		return 0, err
 	}
-	defer func() {
-		if err := tr.Close(); err != nil {
-			sn.Logger.Warnf("Failed to close transport: %s", err)
-		}
-	}()
+	defer sn.closeProto(proto)
 
-	proto := NewSetupProtocol(tr)
 	routeID, err := RequestRouteID(ctx, proto)
 	if err != nil {
 		return 0, err
@@ -338,17 +324,13 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 }
 
 func (sn *Node) connectLoop(ctx context.Context, on cipher.PubKey, ld routing.LoopData) error {
-	tr, err := sn.messenger.Dial(ctx, on)
+	proto, err := sn.dialAndCreateProto(ctx, on)
 	if err != nil {
-		return fmt.Errorf("transport: %s", err)
+		return err
 	}
-	defer func() {
-		if err := tr.Close(); err != nil {
-			sn.Logger.Warnf("Failed to close transport: %s", err)
-		}
-	}()
+	defer sn.closeProto(proto)
 
-	if err := ConfirmLoop(ctx, NewSetupProtocol(tr), ld); err != nil {
+	if err := ConfirmLoop(ctx, proto, ld); err != nil {
 		return err
 	}
 
@@ -365,21 +347,12 @@ func (sn *Node) Close() error {
 }
 
 func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.LoopData) error {
-	fmt.Printf(">>> BEGIN: closeLoop(%s, ld)\n", on)
-	defer fmt.Printf(">>>   END: closeLoop(%s, ld)\n", on)
-
-	tr, err := sn.messenger.Dial(ctx, on)
-	fmt.Println(">>> *****: closeLoop() dialed:", err)
+	proto, err := sn.dialAndCreateProto(ctx, on)
 	if err != nil {
-		return fmt.Errorf("transport: %s", err)
+		return err
 	}
-	defer func() {
-		if err := tr.Close(); err != nil {
-			sn.Logger.Warnf("Failed to close transport: %s", err)
-		}
-	}()
+	defer sn.closeProto(proto)
 
-	proto := NewSetupProtocol(tr)
 	if err := LoopClosed(ctx, proto, ld); err != nil {
 		return err
 	}
@@ -389,18 +362,13 @@ func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.Loop
 }
 
 func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (routing.RouteID, error) {
-	sn.Logger.Debugf("dialing to %s to request route ID\n", pubKey)
-	tr, err := sn.messenger.Dial(ctx, pubKey)
+	proto, err := sn.dialAndCreateProto(ctx, pubKey)
 	if err != nil {
-		return 0, fmt.Errorf("transport: %s", err)
+		return 0, err
 	}
-	defer func() {
-		if err := tr.Close(); err != nil {
-			sn.Logger.Warnf("Failed to close transport: %s", err)
-		}
-	}()
+	defer sn.closeProto(proto)
 
-	proto := NewSetupProtocol(tr)
+	sn.Logger.Infof("Requesting route ID from %s", pubKey)
 	routeID, err := RequestRouteID(ctx, proto)
 	if err != nil {
 		return 0, err
@@ -411,22 +379,33 @@ func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (routi
 }
 
 func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule) error {
-	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
-	tr, err := sn.messenger.Dial(ctx, pubKey)
+	proto, err := sn.dialAndCreateProto(ctx, pubKey)
 	if err != nil {
-		return fmt.Errorf("transport: %s", err)
+		return err
 	}
-	defer func() {
-		if err := tr.Close(); err != nil {
-			sn.Logger.Warnf("Failed to close transport: %s", err)
-		}
-	}()
+	defer sn.closeProto(proto)
 
-	proto := NewSetupProtocol(tr)
+	sn.Logger.Infof("Setting rule of type %s on %s with ID %d", rule.Type(), pubKey, rule.RegistrationID())
 	if err := AddRule(ctx, proto, rule); err != nil {
 		return err
 	}
 
-	sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), pubKey)
+	sn.Logger.Infof("Setting rule of type %s on %s with ID %d", rule.Type(), pubKey, rule.RegistrationID())
 	return nil
+}
+
+func (sn *Node) dialAndCreateProto(ctx context.Context, pubKey cipher.PubKey) (*Protocol, error) {
+	sn.Logger.Debugf("dialing to %s\n", pubKey)
+	tr, err := sn.messenger.Dial(ctx, pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("transport: %s", err)
+	}
+
+	return NewSetupProtocol(tr), nil
+}
+
+func (sn *Node) closeProto(proto *Protocol) {
+	if err := proto.Close(); err != nil {
+		sn.Logger.Warn(err)
+	}
 }

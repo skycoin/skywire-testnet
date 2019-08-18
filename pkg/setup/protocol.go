@@ -63,23 +63,23 @@ const (
 
 // Protocol defines routes setup protocol.
 type Protocol struct {
-	rw io.ReadWriter
+	rwc io.ReadWriteCloser
 }
 
 // NewSetupProtocol constructs a new setup Protocol.
-func NewSetupProtocol(rw io.ReadWriter) *Protocol {
-	return &Protocol{rw}
+func NewSetupProtocol(rwc io.ReadWriteCloser) *Protocol {
+	return &Protocol{rwc}
 }
 
 // ReadPacket reads a single setup packet.
 func (p *Protocol) ReadPacket() (PacketType, []byte, error) {
 	h := make([]byte, 3)
-	if _, err := io.ReadFull(p.rw, h); err != nil {
+	if _, err := io.ReadFull(p.rwc, h); err != nil {
 		return 0, nil, err
 	}
 	t := PacketType(h[0])
 	pay := make([]byte, binary.BigEndian.Uint16(h[1:3]))
-	if _, err := io.ReadFull(p.rw, pay); err != nil {
+	if _, err := io.ReadFull(p.rwc, pay); err != nil {
 		return 0, nil, err
 	}
 	if len(pay) == 0 {
@@ -100,8 +100,16 @@ func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
 	raw[0] = byte(t)
 	binary.BigEndian.PutUint16(raw[1:3], uint16(len(pay)))
 	copy(raw[3:], pay)
-	_, err = p.rw.Write(raw)
+	_, err = p.rwc.Write(raw)
 	return err
+}
+
+func (p *Protocol) Close() error {
+	if err := p.rwc.Close(); err != nil {
+		return fmt.Errorf("failed to close transport: %v", err)
+	}
+
+	return nil
 }
 
 // RequestRouteID sends RequestRouteID request.
