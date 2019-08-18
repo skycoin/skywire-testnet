@@ -135,29 +135,23 @@ func TestNode(t *testing.T) {
 		var nextRouteID uint32
 		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
 		expectAddRules := func(client int, expRule routing.RuleType) {
-			clientPK := clients[client].Local().Hex()
-			fmt.Printf("Client %v has PK %v\n", client, clientPK)
 			tp, err := clients[client].Accept(context.TODO())
 			require.NoError(t, err)
-			fmt.Printf("Accepted 1st time by %v : %v\n", client, clientPK)
 
 			proto := NewSetupProtocol(tp)
 
 			pt, _, err := proto.ReadPacket()
 			require.NoError(t, err)
 			require.Equal(t, PacketRequestRouteID, pt)
-			fmt.Printf("Received RequestRouteID by %v : %v\n", client, clientPK)
 
 			routeID := atomic.AddUint32(&nextRouteID, 1)
 
 			err = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)})
 			require.NoError(t, err)
-			fmt.Printf("Sent RespSuccess for RequestRouteID with RouteID %v by %v : %v\n", routeID, client, clientPK)
 
 			pt, pp, err := proto.ReadPacket()
 			require.NoError(t, err)
 			require.Equal(t, PacketAddRules, pt)
-			fmt.Printf("Received AddRules by %v: %v\n", client, clientPK)
 
 			var rs []routing.Rule
 			require.NoError(t, json.Unmarshal(pp, &rs))
@@ -168,7 +162,6 @@ func TestNode(t *testing.T) {
 
 			// TODO: This error is not checked due to a bug in dmsg.
 			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
-			fmt.Printf("Sent RespSuccess for AddRules by %v : %v\n", client, clientPK)
 
 			require.NoError(t, tp.Close())
 
@@ -204,6 +197,8 @@ func TestNode(t *testing.T) {
 			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
 		}
 
+		// since the route establishment is asynchronous,
+		// we must expect all the messages in parallel
 		addRuleDone.Add(4)
 		go expectAddRules(4, routing.RuleApp)
 		go expectAddRules(3, routing.RuleForward)

@@ -127,14 +127,10 @@ func (sn *Node) createLoop(ctx context.Context, ld routing.LoopDescriptor) error
 		return err
 	}
 
-	fmt.Println("FINISHED SETUP OF REVERSE ROUTE")
-
 	fRouteID, err := sn.createRoute(ctx, ld.Expiry, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("FINISHED SETUP OF FORWARD ROUTE")
 
 	if len(ld.Forward) == 0 || len(ld.Reverse) == 0 {
 		return nil
@@ -160,8 +156,6 @@ func (sn *Node) createLoop(ctx context.Context, ld routing.LoopDescriptor) error
 		sn.Logger.Warnf("Failed to confirm loop with responder: %s", err)
 		return fmt.Errorf("loop connect: %s", err)
 	}
-
-	fmt.Println("FINISHED CONNECTLOOP REQUEST")
 
 	ldI := routing.LoopData{
 		Loop: routing.Loop{
@@ -206,11 +200,17 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 
 	// indicate errors occurred during rules setup
 	rulesSetupErrs := make(chan error, len(r))
+	// routeIDsCh is an array of chans used to pass the requested route IDs around the gorouines.
+	// We do it in a fan fashion here. We create as many goroutines as there are rules to be applied.
+	// Goroutine[idx] requests visor node for a route ID. It passes this route ID through a chan to a goroutine[idx-1].
+	// In turn, goroutine[idx] waits for a route ID from chan[idx]. Thus, goroutine[len(r)] doesn't get a route ID and
+	// uses 0 instead, goroutine[0] doesn't pass its route ID to anyone
 	routeIDsCh := make([]chan routing.RouteID, 0, len(r))
 	for range r {
 		routeIDsCh = append(routeIDsCh, make(chan routing.RouteID, 2))
 	}
 
+	// chan to receive the resulting route ID from a goroutine
 	resultingRouteIDCh := make(chan routing.RouteID, 2)
 
 	// context to cancel rule setup in case of errors
@@ -244,6 +244,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 				return
 			}
 
+			// adding rule for initiator must result with a route ID
 			if idx == 0 {
 				resultingRouteIDCh <- routeID
 			}
@@ -352,39 +353,6 @@ func (sn *Node) addRule(ctx context.Context, pubKey cipher.PubKey, rule routing.
 	sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), pubKey)
 
 	return registrationID, nil
-}
-
-func (sn *Node) requestRouteID(ctx context.Context, pubKey cipher.PubKey) (routing.RouteID, error) {
-	proto, err := sn.dialAndCreateProto(ctx, pubKey)
-	if err != nil {
-		return 0, err
-	}
-	defer sn.closeProto(proto)
-
-	sn.Logger.Infof("Requesting route ID from %s", pubKey)
-	routeID, err := RequestRouteID(ctx, proto)
-	if err != nil {
-		return 0, err
-	}
-
-	sn.Logger.Infof("Received route ID %d from %s", routeID, pubKey)
-	return routeID, nil
-}
-
-func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule) error {
-	proto, err := sn.dialAndCreateProto(ctx, pubKey)
-	if err != nil {
-		return err
-	}
-	defer sn.closeProto(proto)
-
-	sn.Logger.Infof("Setting rule of type %s on %s with ID %d", rule.Type(), pubKey, rule.RegistrationID())
-	if err := AddRule(ctx, proto, rule); err != nil {
-		return err
-	}
-
-	sn.Logger.Infof("Setting rule of type %s on %s with ID %d", rule.Type(), pubKey, rule.RegistrationID())
-	return nil
 }
 
 func (sn *Node) dialAndCreateProto(ctx context.Context, pubKey cipher.PubKey) (*Protocol, error) {
