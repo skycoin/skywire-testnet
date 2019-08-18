@@ -246,7 +246,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 
 		go func(idx int, pubKey cipher.PubKey, rule routing.Rule, regIDChIn <-chan routing.RouteID,
 			regIDChOut chan<- routing.RouteID) {
-			routeID, err := sn.addRule(ctx, pubKey, rule, regIDChIn, regIDChOut)
+			routeID, err := sn.setupRule(ctx, pubKey, rule, regIDChIn, regIDChOut)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
