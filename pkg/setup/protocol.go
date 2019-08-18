@@ -24,11 +24,11 @@ func (sp PacketType) String() string {
 	case PacketCreateLoop:
 		return "CreateLoop"
 	case PacketConfirmLoop:
-		return "ConfirmLoop"
+		return "OnConfirmLoop"
 	case PacketCloseLoop:
 		return "CloseLoop"
 	case PacketLoopClosed:
-		return "LoopClosed"
+		return "OnLoopClosed"
 	case RespSuccess:
 		return "Success"
 	case RespFailure:
@@ -46,11 +46,11 @@ const (
 	PacketDeleteRules
 	// PacketCreateLoop represents CreateLoop foundation packet.
 	PacketCreateLoop
-	// PacketConfirmLoop represents ConfirmLoop foundation packet.
+	// PacketConfirmLoop represents OnConfirmLoop foundation packet.
 	PacketConfirmLoop
 	// PacketCloseLoop represents CloseLoop foundation packet.
 	PacketCloseLoop
-	// PacketLoopClosed represents LoopClosed foundation packet.
+	// PacketLoopClosed represents OnLoopClosed foundation packet.
 	PacketLoopClosed
 	// PacketRequestRegistrationID represents RequestRouteID foundation packet.
 	PacketRequestRegistrationID
@@ -159,7 +159,7 @@ func CreateLoop(ctx context.Context, p *Protocol, ld routing.LoopDescriptor) err
 	return readAndDecodePacketWithTimeout(ctx, p, nil) // TODO: data race.
 }
 
-// ConfirmLoop sends ConfirmLoop setup request.
+// OnConfirmLoop sends OnConfirmLoop setup request.
 func ConfirmLoop(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketConfirmLoop, ld); err != nil {
 		return err
@@ -175,7 +175,7 @@ func CloseLoop(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	return readAndDecodePacketWithTimeout(ctx, p, nil)
 }
 
-// LoopClosed sends LoopClosed setup request.
+// OnLoopClosed sends OnLoopClosed setup request.
 func LoopClosed(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketLoopClosed, ld); err != nil {
 		return err

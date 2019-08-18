@@ -47,7 +47,7 @@ func (f *MockFactory) SetType(fType string) {
 }
 
 // Accept waits for new net.Conn notification from another MockFactory.
-func (f *MockFactory) Accept(ctx context.Context) (Transport, error) {
+func (f *MockFactory) Accept(ctx context.Context) (*MockTransport, error) {
 	select {
 	case conn, ok := <-f.in:
 		if !ok {
@@ -61,7 +61,7 @@ func (f *MockFactory) Accept(ctx context.Context) (Transport, error) {
 }
 
 // Dial creates pair of net.Conn via net.Pipe and passes one end to another MockFactory.
-func (f *MockFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
+func (f *MockFactory) Dial(ctx context.Context, remote cipher.PubKey) (*MockTransport, error) {
 	in, out := net.Pipe()
 	select {
 	case <-f.outDone:
@@ -177,12 +177,12 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	c1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
 	c2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
 
-	f1, f2 := NewMockFactoryPair(pk1, pk2)
+	//f1, f2 := NewMockFactoryPair(pk1, pk2)
 
-	if m1, err = NewManager(c1, nil, f1); err != nil {
+	if m1, err = NewManager(nil, c1); err != nil {
 		return
 	}
-	if m2, err = NewManager(c2, nil, f2); err != nil {
+	if m2, err = NewManager(nil, c2); err != nil {
 		return
 	}
 

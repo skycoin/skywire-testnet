@@ -9,9 +9,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/skycoin/skywire/pkg/snet"
+
 	"github.com/skycoin/skywire/pkg/routing"
 
-	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 )
@@ -34,18 +35,17 @@ var (
 type ManagedTransport struct {
 	log *logging.Logger
 
-	lSK cipher.SecKey
-	rPK cipher.PubKey
-
-	fac Factory
-	dc  DiscoveryClient
-	ls  LogStore
-
+	rPK        cipher.PubKey
+	netName    string
 	Entry      Entry
 	LogEntry   *LogEntry
 	logUpdates uint32
 
-	conn   Transport
+	dc DiscoveryClient
+	ls LogStore
+
+	n      *snet.Network
+	conn   *snet.Conn
 	connCh chan struct{}
 	connMx sync.Mutex
 
@@ -55,15 +55,15 @@ type ManagedTransport struct {
 }
 
 // NewManagedTransport creates a new ManagedTransport.
-func NewManagedTransport(fac Factory, dc DiscoveryClient, ls LogStore, rPK cipher.PubKey, lSK cipher.SecKey) *ManagedTransport {
+func NewManagedTransport(n *snet.Network, dc DiscoveryClient, ls LogStore, rPK cipher.PubKey, netName string) *ManagedTransport {
 	mt := &ManagedTransport{
 		log:      logging.MustGetLogger(fmt.Sprintf("tp:%s", rPK.String()[:6])),
-		lSK:      lSK,
 		rPK:      rPK,
-		fac:      fac,
+		netName:  netName,
+		n:        n,
 		dc:       dc,
 		ls:       ls,
-		Entry:    makeEntry(fac.Local(), rPK, dmsg.Type),
+		Entry:    makeEntry(n.LocalPK(), rPK, netName),
 		LogEntry: new(LogEntry),
 		connCh:   make(chan struct{}, 1),
 		done:     make(chan struct{}),
@@ -125,6 +125,7 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet, done <-chan stru
 			}
 			select {
 			case <-done:
+				return
 			case readCh <- p:
 			}
 		}
@@ -183,22 +184,26 @@ func (mt *ManagedTransport) close() (closed bool) {
 }
 
 // Accept accepts a new underlying connection.
-func (mt *ManagedTransport) Accept(ctx context.Context, tp Transport) error {
+func (mt *ManagedTransport) Accept(ctx context.Context, conn *snet.Conn) error {
 	mt.connMx.Lock()
 	defer mt.connMx.Unlock()
 
+	if conn.Network() != mt.netName {
+		return errors.New("wrong network") // TODO: Make global var.
+	}
+
 	if !mt.isServing() {
-		_ = tp.Close() //nolint:errcheck
+		_ = conn.Close() //nolint:errcheck
 		return ErrNotServing
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	defer cancel()
-	if err := MakeSettlementHS(false).Do(ctx, mt.dc, tp, mt.lSK); err != nil {
+	if err := MakeSettlementHS(false).Do(ctx, mt.dc, conn, mt.n.LocalSK()); err != nil {
 		return fmt.Errorf("settlement handshake failed: %v", err)
 	}
 
-	return mt.setIfConnNil(ctx, tp)
+	return mt.setIfConnNil(ctx, conn)
 }
 
 // Dial dials a new underlying connection.
@@ -218,21 +223,21 @@ func (mt *ManagedTransport) Dial(ctx context.Context) error {
 
 // TODO: Figure out where this fella is called.
 func (mt *ManagedTransport) dial(ctx context.Context) error {
-	tp, err := mt.fac.Dial(ctx, mt.rPK)
+	tp, err := mt.n.Dial(mt.netName, mt.rPK, snet.TransportPort)
 	if err != nil {
 		return err
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	defer cancel()
-	if err := MakeSettlementHS(true).Do(ctx, mt.dc, tp, mt.lSK); err != nil {
+	if err := MakeSettlementHS(true).Do(ctx, mt.dc, tp, mt.n.LocalSK()); err != nil {
 		return fmt.Errorf("settlement handshake failed: %v", err)
 	}
 
 	return mt.setIfConnNil(ctx, tp)
 }
 
-func (mt *ManagedTransport) getConn() Transport {
+func (mt *ManagedTransport) getConn() *snet.Conn {
 	mt.connMx.Lock()
 	conn := mt.conn
 	mt.connMx.Unlock()
@@ -241,7 +246,7 @@ func (mt *ManagedTransport) getConn() Transport {
 
 // sets conn if `mt.conn` is nil otherwise, closes the conn.
 // TODO: Add logging here.
-func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn Transport) error {
+func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn *snet.Conn) error {
 	if mt.conn != nil {
 		_ = conn.Close() //nolint:errcheck
 		return ErrConnAlreadyExists
@@ -304,7 +309,7 @@ func (mt *ManagedTransport) WritePacket(ctx context.Context, rtID routing.RouteI
 
 // WARNING: Not thread safe.
 func (mt *ManagedTransport) readPacket() (packet routing.Packet, err error) {
-	var conn Transport
+	var conn *snet.Conn
 	for {
 		if conn = mt.getConn(); conn != nil {
 			break
@@ -358,4 +363,4 @@ func (mt *ManagedTransport) logMod() bool {
 func (mt *ManagedTransport) Remote() cipher.PubKey { return mt.rPK }
 
 // Type returns the transport type.
-func (mt *ManagedTransport) Type() string { return mt.fac.Type() }
+func (mt *ManagedTransport) Type() string { return mt.netName }

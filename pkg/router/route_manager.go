@@ -1,28 +1,164 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"net"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/snet"
+
+	"github.com/skycoin/dmsg/cipher"
+
+	"github.com/skycoin/skywire/pkg/setup"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/setup"
 )
 
-type setupCallbacks struct {
-	ConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
-	LoopClosed  func(loop routing.Loop) error
+const (
+	rtGarbageCollectDuration = time.Minute * 5
+)
+
+type RMConfig struct {
+	SetupPKs      []cipher.PubKey // Trusted setup PKs.
+	OnConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
+	OnLoopClosed  func(loop routing.Loop) error
+}
+
+func (sc RMConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
+	for _, pk := range sc.SetupPKs {
+		if sPK == pk {
+			return true
+		}
+	}
+	return false
 }
 
 type routeManager struct {
 	Logger *logging.Logger
+	conf   RMConfig
+	n      *snet.Network
+	sl     *snet.Listener // Listens for setup node requests.
+	rt     *managedRoutingTable
+	done   chan struct{}
+}
 
-	rt        *managedRoutingTable
-	callbacks *setupCallbacks
+// NewRouteManager creates a new route manager.
+func NewRouteManager(n *snet.Network, rt routing.Table, config RMConfig) (*routeManager, error) {
+	sl, err := n.Listen(snet.DmsgType, snet.AwaitSetupPort)
+	if err != nil {
+		return nil, err
+	}
+	return &routeManager{
+		Logger: logging.MustGetLogger("route_manager"),
+		conf:   config,
+		n:      n,
+		sl:     sl,
+		rt:     manageRoutingTable(rt),
+		done:   make(chan struct{}),
+	}, nil
+}
+
+func (rm *routeManager) Close() error {
+	close(rm.done)
+	return rm.sl.Close()
+}
+
+func (rm *routeManager) Serve() {
+
+	// Routing table garbage collect loop.
+	go rm.rtGarbageCollectLoop()
+
+	// Accept setup node request loop.
+	for {
+		if err := rm.serveConn(); err != nil {
+			rm.Logger.WithError(err).Warnf("stopped serving")
+			return
+		}
+	}
+}
+
+func (rm *routeManager) serveConn() error {
+	conn, err := rm.sl.AcceptConn()
+	if err != nil {
+		rm.Logger.WithError(err).Warnf("stopped serving")
+		return err
+	}
+	if !rm.conf.SetupIsTrusted(conn.RemotePK()) {
+		rm.Logger.Warnf("closing conn from untrusted setup node: %v", conn.Close())
+		return nil
+	}
+	go func() {
+		rm.Logger.Infof("handling setup request: setupPK(%s)", conn.RemotePK())
+		if err := rm.handleSetupConn(conn); err != nil {
+			rm.Logger.WithError(err).Warnf("setup request failed: setupPK(%s)", conn.RemotePK())
+		}
+		rm.Logger.Infof("successfully handled setup request: setupPK(%s)", conn.RemotePK())
+	}()
+	return nil
+}
+
+func (rm *routeManager) handleSetupConn(conn net.Conn) error {
+	defer func() { _ = conn.Close() }() //nolint:errcheck
+
+	proto := setup.NewSetupProtocol(conn)
+	t, body, err := proto.ReadPacket()
+
+	if err != nil {
+		return err
+	}
+	rm.Logger.Infof("Got new Setup request with type %s", t)
+
+	var respBody interface{}
+	switch t {
+	case setup.PacketAddRules:
+		respBody, err = rm.addRoutingRules(body)
+	case setup.PacketDeleteRules:
+		respBody, err = rm.deleteRoutingRules(body)
+	case setup.PacketConfirmLoop:
+		err = rm.confirmLoop(body)
+	case setup.PacketLoopClosed:
+		err = rm.loopClosed(body)
+	default:
+		err = errors.New("unknown foundation packet")
+	}
+
+	if err != nil {
+		rm.Logger.Infof("Setup request with type %s failed: %s", t, err)
+		return proto.WritePacket(setup.RespFailure, err.Error())
+	}
+	return proto.WritePacket(setup.RespSuccess, respBody)
+}
+
+func (rm *routeManager) rtGarbageCollectLoop() {
+	ticker := time.NewTicker(rtGarbageCollectDuration)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-rm.done:
+			return
+		case <-ticker.C:
+			if err := rm.rt.Cleanup(); err != nil {
+				rm.Logger.WithError(err).Warnf("routing table cleanup returned error")
+			}
+		}
+	}
+}
+
+func (rm *routeManager) dialSetupConn(ctx context.Context) (*snet.Conn, error) {
+	for _, sPK := range rm.conf.SetupPKs {
+		conn, err := rm.n.Dial(snet.DmsgType, sPK, snet.SetupPort)
+		if err != nil {
+			rm.Logger.WithError(err).Warnf("failed to dial to setup node: setupPK(%s)", sPK)
+			continue
+		}
+		return conn, nil
+	}
+	return nil, errors.New("failed to dial to a setup node")
 }
 
 func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
@@ -78,6 +214,7 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	return nil
 }
 
+<<<<<<< HEAD
 func (rm *routeManager) Serve(rwc io.ReadWriteCloser) error {
 	proto := setup.NewSetupProtocol(rwc)
 	t, body, err := proto.ReadPacket()
@@ -180,7 +317,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return errors.New("reverse rule is not forward")
 	}
 
-	if err = rm.callbacks.ConfirmLoop(ld.Loop, rule); err != nil {
+	if err = rm.conf.OnConfirmLoop(ld.Loop, rule); err != nil {
 		return fmt.Errorf("confirm: %s", err)
 	}
 
@@ -200,7 +337,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 		return err
 	}
 
-	return rm.callbacks.LoopClosed(ld.Loop)
+	return rm.conf.OnLoopClosed(ld.Loop)
 }
 
 func (rm *routeManager) occupyRegistrationID() ([]routing.RouteID, error) {

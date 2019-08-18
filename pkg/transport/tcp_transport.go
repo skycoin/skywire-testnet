@@ -24,12 +24,12 @@ type TCPFactory struct {
 }
 
 // NewTCPFactory constructs a new TCP Factory.
-func NewTCPFactory(lpk cipher.PubKey, pkt PubKeyTable, l *net.TCPListener) Factory {
+func NewTCPFactory(lpk cipher.PubKey, pkt PubKeyTable, l *net.TCPListener) *TCPFactory {
 	return &TCPFactory{l, lpk, pkt}
 }
 
 // Accept accepts a remotely-initiated Transport.
-func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
+func (f *TCPFactory) Accept(ctx context.Context) (*TCPTransport, error) {
 	conn, err := f.l.AcceptTCP()
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 }
 
 // Dial initiates a Transport with a remote node.
-func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
+func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (*TCPTransport, error) {
 	raddr := f.pkt.RemoteAddr(remote)
 	if raddr == nil {
 		return nil, ErrUnknownRemote

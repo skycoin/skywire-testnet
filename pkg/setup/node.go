@@ -10,68 +10,87 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/skycoin/skywire/pkg/snet"
+
+	"github.com/skycoin/dmsg"
+
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
 // Node performs routes setup operations over messaging channel.
 type Node struct {
-	Logger    *logging.Logger
-	messenger *dmsg.Client
-	srvCount  int
-	metrics   metrics.Recorder
+	Logger   *logging.Logger
+	dmsgC    *dmsg.Client
+	dmsgL    *dmsg.Listener
+	srvCount int
+	metrics  metrics.Recorder
 }
 
 // NewNode constructs a new SetupNode.
 func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
-	pk := conf.PubKey
-	sk := conf.SecKey
+	ctx := context.Background()
 
 	logger := logging.NewMasterLogger()
 	if lvl, err := logging.LevelFromString(conf.LogLevel); err == nil {
 		logger.SetLevel(lvl)
 	}
-	messenger := dmsg.NewClient(pk, sk, disc.NewHTTP(conf.Messaging.Discovery), dmsg.SetLogger(logger.PackageLogger(dmsg.Type)))
+	log := logger.PackageLogger("setup_node")
+
+	// Prepare dmsg.
+	dmsgC := dmsg.NewClient(
+		conf.PubKey,
+		conf.SecKey,
+		disc.NewHTTP(conf.Messaging.Discovery),
+		dmsg.SetLogger(logger.PackageLogger(dmsg.Type)),
+	)
+	if err := dmsgC.InitiateServerConnections(ctx, conf.Messaging.ServerCount); err != nil {
+		return nil, fmt.Errorf("failed to init dmsg: %s", err)
+	}
+	log.Info("connected to dmsg servers")
+
+	dmsgL, err := dmsgC.Listen(snet.SetupPort)
+	if err != nil {
+		return nil, fmt.Errorf("failed to listen on dmsg port %d: %v", snet.SetupPort, dmsgL)
+	}
+	log.Info("started listening for dmsg connections")
 
 	return &Node{
-		Logger:    logger.PackageLogger("routesetup"),
-		metrics:   metrics,
-		messenger: messenger,
-		srvCount:  conf.Messaging.ServerCount,
+		Logger:   log,
+		dmsgC:    dmsgC,
+		dmsgL:    dmsgL,
+		srvCount: conf.Messaging.ServerCount,
+		metrics:  metrics,
 	}, nil
 }
 
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
-	if sn.srvCount > 0 {
-		if err := sn.messenger.InitiateServerConnections(ctx, sn.srvCount); err != nil {
-			return fmt.Errorf("messaging: %s", err)
-		}
-		sn.Logger.Info("Connected to messaging servers")
+	if err := sn.dmsgC.InitiateServerConnections(ctx, sn.srvCount); err != nil {
+		return fmt.Errorf("messaging: %s", err)
 	}
+	sn.Logger.Info("Connected to messaging servers")
 
 	sn.Logger.Info("Starting Setup Node")
 
 	for {
-		tp, err := sn.messenger.Accept(ctx)
+		conn, err := sn.dmsgL.AcceptTransport()
 		if err != nil {
 			return err
 		}
-		go func(tp transport.Transport) {
-			if err := sn.serveTransport(ctx, tp); err != nil {
+		go func(conn *dmsg.Transport) {
+			if err := sn.serveTransport(ctx, conn); err != nil {
 				sn.Logger.Warnf("Failed to serve Transport: %s", err)
 			}
-		}(tp)
+		}(conn)
 	}
 }
 
-func (sn *Node) serveTransport(ctx context.Context, tr transport.Transport) error {
+func (sn *Node) serveTransport(ctx context.Context, tr *dmsg.Transport) error {
 	ctx, cancel := context.WithTimeout(ctx, ServeTransportTimeout)
 	defer cancel()
 
@@ -295,11 +314,15 @@ func (sn *Node) Close() error {
 	if sn == nil {
 		return nil
 	}
-	return sn.messenger.Close()
+	return sn.dmsgC.Close()
 }
 
 func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.LoopData) error {
+	fmt.Printf(">>> BEGIN: closeLoop(%s, ld)\n", on)
+	defer fmt.Printf(">>>   END: closeLoop(%s, ld)\n", on)
+
 	proto, err := sn.dialAndCreateProto(ctx, on)
+	fmt.Println(">>> *****: closeLoop() dialed:", err)
 	if err != nil {
 		return err
 	}
@@ -313,8 +336,9 @@ func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.Loop
 	return nil
 }
 
-func (sn *Node) addRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule,
+func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule,
 	regIDChIn <-chan routing.RouteID, regIDChOut chan<- routing.RouteID) (routing.RouteID, error) {
+	sn.Logger.Debugf("trying to setup setup rule: %v with %s\n", rule, pubKey)
 	proto, err := sn.dialAndCreateProto(ctx, pubKey)
 	if err != nil {
 		return 0, err
@@ -352,7 +376,7 @@ func (sn *Node) addRule(ctx context.Context, pubKey cipher.PubKey, rule routing.
 
 func (sn *Node) dialAndCreateProto(ctx context.Context, pubKey cipher.PubKey) (*Protocol, error) {
 	sn.Logger.Debugf("dialing to %s\n", pubKey)
-	tr, err := sn.messenger.Dial(ctx, pubKey)
+	tr, err := sn.dmsgC.Dial(ctx, pubKey, snet.AwaitSetupPort)
 	if err != nil {
 		return nil, fmt.Errorf("transport: %s", err)
 	}

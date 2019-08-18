@@ -34,6 +34,6 @@ func TestManagedRoutingTableCleanup(t *testing.T) {
 	assert.Equal(t, 2, rt.Count())
 
 	rule, err := rt.Rule(id2)
-	require.NoError(t, err)
+	require.Error(t, err)
 	assert.Nil(t, rule)
 }
