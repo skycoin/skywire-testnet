@@ -78,8 +78,8 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	return nil
 }
 
-func (rm *routeManager) Serve(rw io.ReadWriter) error {
-	proto := setup.NewSetupProtocol(rw)
+func (rm *routeManager) Serve(rwc io.ReadWriteCloser) error {
+	proto := setup.NewSetupProtocol(rwc)
 	t, body, err := proto.ReadPacket()
 
 	if err != nil {
