@@ -194,14 +194,15 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 
 	// indicate errors occurred during rules setup
 	rulesSetupErrs := make(chan error, len(r))
-	// routeIDsCh is an array of chans used to pass the requested route IDs around the gorouines.
+	// regIDsCh is an array of chans used to pass the requested registration IDs around the goroutines.
 	// We do it in a fan fashion here. We create as many goroutines as there are rules to be applied.
-	// Goroutine[idx] requests visor node for a route ID. It passes this route ID through a chan to a goroutine[idx-1].
-	// In turn, goroutine[idx] waits for a route ID from chan[idx]. Thus, goroutine[len(r)] doesn't get a route ID and
-	// uses 0 instead, goroutine[0] doesn't pass its route ID to anyone
-	routeIDsCh := make([]chan routing.RouteID, 0, len(r))
+	// Goroutine[idx] requests visor node for a registration ID. It passes this registration ID through a chan to
+	// a goroutine[idx-1]. In turn, goroutine[idx-1] waits for a registration ID from chan[idx].
+	// Thus, goroutine[len(r)] doesn't get a registration ID and uses 0 instead, goroutine[0] doesn't pass
+	// its route ID to anyone
+	regIDsCh := make([]chan routing.RouteID, 0, len(r))
 	for range r {
-		routeIDsCh = append(routeIDsCh, make(chan routing.RouteID, 2))
+		regIDsCh = append(regIDsCh, make(chan routing.RouteID, 2))
 	}
 
 	// chan to receive the resulting route ID from a goroutine
@@ -210,23 +211,23 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 	// context to cancel rule setup in case of errors
 	ctx, cancel := context.WithCancel(context.Background())
 	for idx := len(r) - 1; idx >= 0; idx-- {
-		var routeIDChIn, routeIDChOut chan routing.RouteID
+		var regIDChIn, regIDChOut chan routing.RouteID
 		if idx > 0 {
-			routeIDChOut = routeIDsCh[idx-1]
+			regIDChOut = regIDsCh[idx-1]
 		}
 		var nextTransport uuid.UUID
 		var rule routing.Rule
 		if idx != len(r)-1 {
-			routeIDChIn = routeIDsCh[idx]
+			regIDChIn = regIDsCh[idx]
 			nextTransport = r[idx+1].Transport
 			rule = routing.ForwardRule(expireAt, 0, nextTransport, 0)
 		} else {
 			rule = routing.AppRule(expireAt, 0, initiator, lport, rport, 0)
 		}
 
-		go func(idx int, pubKey cipher.PubKey, rule routing.Rule, routeIDChIn <-chan routing.RouteID,
-			routeIDChOut chan<- routing.RouteID) {
-			routeID, err := sn.addRule(ctx, pubKey, rule, routeIDChIn, routeIDChOut)
+		go func(idx int, pubKey cipher.PubKey, rule routing.Rule, regIDChIn <-chan routing.RouteID,
+			regIDChOut chan<- routing.RouteID) {
+			routeID, err := sn.addRule(ctx, pubKey, rule, regIDChIn, regIDChOut)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
@@ -244,7 +245,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 			}
 
 			rulesSetupErrs <- nil
-		}(idx, r[idx].To, rule, routeIDChIn, routeIDChOut)
+		}(idx, r[idx].To, rule, regIDChIn, regIDChOut)
 	}
 
 	var rulesSetupErr error
@@ -261,7 +262,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 
 	// close chan to avoid leaks
 	close(rulesSetupErrs)
-	for _, ch := range routeIDsCh {
+	for _, ch := range regIDsCh {
 		close(ch)
 	}
 	if rulesSetupErr != nil {
@@ -313,26 +314,26 @@ func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.Loop
 }
 
 func (sn *Node) addRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule,
-	routeIDChIn <-chan routing.RouteID, routeIDChOut chan<- routing.RouteID) (routing.RouteID, error) {
+	regIDChIn <-chan routing.RouteID, regIDChOut chan<- routing.RouteID) (routing.RouteID, error) {
 	proto, err := sn.dialAndCreateProto(ctx, pubKey)
 	if err != nil {
 		return 0, err
 	}
 	defer sn.closeProto(proto)
 
-	registrationID, err := RequestRouteID(ctx, proto)
+	registrationID, err := RequestRegistrationID(ctx, proto)
 	if err != nil {
 		return 0, err
 	}
 
 	sn.Logger.Infof("Received route ID %d from %s", registrationID, pubKey)
 
-	if routeIDChOut != nil {
-		routeIDChOut <- registrationID
+	if regIDChOut != nil {
+		regIDChOut <- registrationID
 	}
 	var nextRouteID routing.RouteID
-	if routeIDChIn != nil {
-		nextRouteID = <-routeIDChIn
+	if regIDChIn != nil {
+		nextRouteID = <-regIDChIn
 		rule.SetRouteID(nextRouteID)
 	}
 

@@ -33,8 +33,8 @@ func (sp PacketType) String() string {
 		return "Success"
 	case RespFailure:
 		return "Failure"
-	case PacketRequestRouteID:
-		return "RequestRouteID"
+	case PacketRequestRegistrationID:
+		return "RequestRegistrationID"
 	}
 	return fmt.Sprintf("Unknown(%d)", sp)
 }
@@ -52,8 +52,8 @@ const (
 	PacketCloseLoop
 	// PacketLoopClosed represents LoopClosed foundation packet.
 	PacketLoopClosed
-	// PacketRequestRouteID represents RequestRouteID foundation packet.
-	PacketRequestRouteID
+	// PacketRequestRegistrationID represents RequestRouteID foundation packet.
+	PacketRequestRegistrationID
 
 	// RespFailure represents failure response for a foundation packet.
 	RespFailure = 0xfe
@@ -113,9 +113,9 @@ func (p *Protocol) Close() error {
 	return nil
 }
 
-// RequestRouteID sends RequestRouteID request.
-func RequestRouteID(ctx context.Context, p *Protocol) (routing.RouteID, error) {
-	if err := p.WritePacket(PacketRequestRouteID, nil); err != nil {
+// RequestRegistrationID sends RequestRegistrationID request.
+func RequestRegistrationID(ctx context.Context, p *Protocol) (routing.RouteID, error) {
+	if err := p.WritePacket(PacketRequestRegistrationID, nil); err != nil {
 		return 0, err
 	}
 	var res []routing.RouteID

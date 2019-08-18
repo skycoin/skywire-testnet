@@ -142,7 +142,7 @@ func TestNode(t *testing.T) {
 
 			pt, _, err := proto.ReadPacket()
 			require.NoError(t, err)
-			require.Equal(t, PacketRequestRouteID, pt)
+			require.Equal(t, PacketRequestRegistrationID, pt)
 
 			routeID := atomic.AddUint32(&nextRouteID, 1)
 

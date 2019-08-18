@@ -97,8 +97,8 @@ func (rm *routeManager) Serve(rwc io.ReadWriteCloser) error {
 		err = rm.confirmLoop(body)
 	case setup.PacketLoopClosed:
 		err = rm.loopClosed(body)
-	case setup.PacketRequestRouteID:
-		respBody, err = rm.bookRouteID()
+	case setup.PacketRequestRegistrationID:
+		respBody, err = rm.occupyRegistrationID()
 	default:
 		err = errors.New("unknown foundation packet")
 	}
@@ -203,7 +203,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 	return rm.callbacks.LoopClosed(ld.Loop)
 }
 
-func (rm *routeManager) bookRouteID() ([]routing.RouteID, error) {
+func (rm *routeManager) occupyRegistrationID() ([]routing.RouteID, error) {
 	routeID, err := rm.rt.AddRule(nil)
 	if err != nil {
 		return nil, err
