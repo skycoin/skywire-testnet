@@ -104,6 +104,7 @@ func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
 	return err
 }
 
+// Close closes the underlying `ReadWriteCloser`.
 func (p *Protocol) Close() error {
 	if err := p.rwc.Close(); err != nil {
 		return fmt.Errorf("failed to close transport: %v", err)

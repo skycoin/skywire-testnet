@@ -20,12 +20,6 @@ import (
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
-// Hop is a wrapper around transport hop to add functionality
-type Hop struct {
-	*routing.Hop
-	routeID routing.RouteID
-}
-
 // Node performs routes setup operations over messaging channel.
 type Node struct {
 	Logger    *logging.Logger
