@@ -143,7 +143,6 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 			log.WithError(err).Warn("Failed to close connection")
 		}
 	}()
-
 	log.WithField("connCount", incrementServeCount()).Infoln("ServingConn")
 
 	err = c.writeOK()
@@ -156,7 +155,7 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 		if err != nil {
 			return fmt.Errorf("read failed: %s", err)
 		}
-		log := log.WithField("received", f)
+		log = log.WithField("received", f)
 
 		ft, id, p := f.Disassemble()
 
@@ -201,7 +200,7 @@ func (c *ServerConn) Serve(ctx context.Context, getConn getConnFunc) (err error)
 
 func (c *ServerConn) delChan(id uint16, why byte) error {
 	c.delNext(id)
-	if err := writeCloseFrame(c.Conn, id, why); err != nil {
+	if err := writeFrame(c.Conn, MakeFrame(CloseType, id, []byte{why})); err != nil {
 		return fmt.Errorf("failed to write frame: %s", err)
 	}
 	return nil
@@ -228,11 +227,11 @@ func (c *ServerConn) forwardFrame(ft FrameType, id uint16, p []byte) (*NextConn,
 
 // nolint:unparam
 func (c *ServerConn) handleRequest(ctx context.Context, getLink getConnFunc, id uint16, p []byte) (*NextConn, byte, bool) {
-	payload, err := unmarshalHandshakePayload(p)
-	if err != nil || payload.InitPK != c.PK() {
+	initPK, respPK, ok := splitPKs(p)
+	if !ok || initPK != c.PK() {
 		return nil, 0, false
 	}
-	respL, ok := getLink(payload.RespPK)
+	respL, ok := getLink(respPK)
 	if !ok {
 		return nil, 0, false
 	}
