@@ -186,9 +186,8 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 		return
 	}
 
-	errCh = make(chan error)
-	go func() { errCh <- m1.Serve(context.TODO()) }()
-	go func() { errCh <- m2.Serve(context.TODO()) }()
+	go m1.Serve(context.TODO())
+	go m2.Serve(context.TODO())
 
 	return
 }

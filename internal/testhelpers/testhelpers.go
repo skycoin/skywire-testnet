@@ -7,9 +7,9 @@ import (
 
 const timeout = 5 * time.Second
 
-// NoErrorWithinTimeout tries to read an error from error channel within timeout and returns it.
+// WithinTimeout tries to read an error from error channel within timeout and returns it.
 // If timeout exceeds, nil value is returned.
-func NoErrorWithinTimeout(ch <-chan error) error {
+func WithinTimeout(ch <-chan error) error {
 	select {
 	case err := <-ch:
 		return err
