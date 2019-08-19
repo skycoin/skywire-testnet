@@ -69,7 +69,6 @@ func (rm *routeManager) Close() error {
 }
 
 func (rm *routeManager) Serve() {
-
 	// Routing table garbage collect loop.
 	go rm.rtGarbageCollectLoop()
 
@@ -116,13 +115,15 @@ func (rm *routeManager) handleSetupConn(conn net.Conn) error {
 	var respBody interface{}
 	switch t {
 	case setup.PacketAddRules:
-		respBody, err = rm.addRoutingRules(body)
+		err = rm.setRoutingRules(body)
 	case setup.PacketDeleteRules:
 		respBody, err = rm.deleteRoutingRules(body)
 	case setup.PacketConfirmLoop:
 		err = rm.confirmLoop(body)
 	case setup.PacketLoopClosed:
 		err = rm.loopClosed(body)
+	case setup.PacketRequestRegistrationID:
+		respBody, err = rm.occupyRegistrationID()
 	default:
 		err = errors.New("unknown foundation packet")
 	}
@@ -212,40 +213,6 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	}
 
 	return nil
-}
-
-<<<<<<< HEAD
-func (rm *routeManager) Serve(rwc io.ReadWriteCloser) error {
-	proto := setup.NewSetupProtocol(rwc)
-	t, body, err := proto.ReadPacket()
-
-	if err != nil {
-		return err
-	}
-	rm.Logger.Infof("Got new Setup request with type %s", t)
-
-	var respBody interface{}
-	switch t {
-	case setup.PacketAddRules:
-		err = rm.setRoutingRules(body)
-	case setup.PacketDeleteRules:
-		respBody, err = rm.deleteRoutingRules(body)
-	case setup.PacketConfirmLoop:
-		err = rm.confirmLoop(body)
-	case setup.PacketLoopClosed:
-		err = rm.loopClosed(body)
-	case setup.PacketRequestRegistrationID:
-		respBody, err = rm.occupyRegistrationID()
-	default:
-		err = errors.New("unknown foundation packet")
-	}
-
-	if err != nil {
-		rm.Logger.Infof("Setup request with type %s failed: %s", t, err)
-		return proto.WritePacket(setup.RespFailure, err.Error())
-	}
-
-	return proto.WritePacket(setup.RespSuccess, respBody)
 }
 
 func (rm *routeManager) setRoutingRules(data []byte) error {
