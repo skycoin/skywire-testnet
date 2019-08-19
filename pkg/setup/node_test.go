@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/dmsg"
 
@@ -24,7 +28,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
-/*func TestMain(m *testing.M) {
+func TestMain(m *testing.M) {
 	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
 	if ok {
 		lvl, err := logging.LevelFromString(loggingLevel)
@@ -37,7 +41,7 @@ import (
 	}
 
 	os.Exit(m.Run())
-}*/
+}
 
 func TestNode(t *testing.T) {
 	// Prepare mock dmsg discovery.
@@ -60,7 +64,13 @@ func TestNode(t *testing.T) {
 	prepClients := func(n int) ([]clientWithDMSGAddrAndListener, func()) {
 		clients := make([]clientWithDMSGAddrAndListener, n)
 		for i := 0; i < n; i++ {
-			port := uint16(15678 + i)
+			var port uint16
+			// setup node
+			if i == 0 {
+				port = snet.SetupPort
+			} else {
+				port = snet.AwaitSetupPort
+			}
 			pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte{byte(i)})
 			require.NoError(t, err)
 			t.Logf("client[%d] PK: %s\n", i, pk)
@@ -156,27 +166,37 @@ func TestNode(t *testing.T) {
 			conn, err := clients[client].Listener.Accept()
 			require.NoError(t, err)
 
+			fmt.Printf("client %v:%v accepted\n", client, clients[client].Addr)
+
 			proto := NewSetupProtocol(conn)
 
 			pt, _, err := proto.ReadPacket()
 			require.NoError(t, err)
 			require.Equal(t, PacketRequestRegistrationID, pt)
 
+			fmt.Printf("client %v:%v got PacketRequestRegistrationID\n", client, clients[client].Addr)
+
 			routeID := atomic.AddUint32(&nextRouteID, 1)
 
 			err = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)})
 			require.NoError(t, err)
+
+			fmt.Printf("client %v:%v responded to with registration ID: %v\n", client, clients[client].Addr, routeID)
 
 			require.NoError(t, conn.Close())
 
 			conn, err = clients[client].Listener.Accept()
 			require.NoError(t, err)
 
+			fmt.Printf("client %v:%v accepted 2nd time\n", client, clients[client].Addr)
+
 			proto = NewSetupProtocol(conn)
 
 			pt, pp, err := proto.ReadPacket()
 			require.NoError(t, err)
 			require.Equal(t, PacketAddRules, pt)
+
+			fmt.Printf("client %v:%v got PacketAddRules\n", client, clients[client].Addr)
 
 			var rs []routing.Rule
 			require.NoError(t, json.Unmarshal(pp, &rs))
@@ -187,6 +207,8 @@ func TestNode(t *testing.T) {
 
 			// TODO: This error is not checked due to a bug in dmsg.
 			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+
+			fmt.Printf("client %v:%v responded for PacketAddRules\n", client, clients[client].Addr)
 
 			require.NoError(t, conn.Close())
 
@@ -231,12 +253,14 @@ func TestNode(t *testing.T) {
 		go expectAddRules(2, routing.RuleForward)
 		go expectAddRules(1, routing.RuleForward)
 		addRuleDone.Wait()
+		fmt.Println("FORWARD ROUTE DONE")
 		addRuleDone.Add(4)
 		go expectAddRules(1, routing.RuleApp)
 		go expectAddRules(2, routing.RuleForward)
 		go expectAddRules(3, routing.RuleForward)
 		go expectAddRules(4, routing.RuleForward)
 		addRuleDone.Wait()
+		fmt.Println("REVERSE ROUTE DONE")
 		expectConfirmLoop(1)
 		expectConfirmLoop(4)
 	})
