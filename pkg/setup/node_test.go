@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -26,7 +24,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
-func TestMain(m *testing.M) {
+/*func TestMain(m *testing.M) {
 	loggingLevel, ok := os.LookupEnv("TEST_LOGGING_LEVEL")
 	if ok {
 		lvl, err := logging.LevelFromString(loggingLevel)
@@ -39,7 +37,7 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(m.Run())
-}
+}*/
 
 func TestNode(t *testing.T) {
 	// Prepare mock dmsg discovery.
@@ -52,39 +50,43 @@ func TestNode(t *testing.T) {
 		require.NoError(t, errWithTimeout(serverErr))
 	}()
 
-	type clientWithDMSGAddr struct {
+	type clientWithDMSGAddrAndListener struct {
 		*dmsg.Client
-		Addr dmsg.Addr
+		Addr     dmsg.Addr
+		Listener *dmsg.Listener
 	}
 
 	// CLOSURE: sets up dmsg clients.
-	prepClients := func(n int) ([]clientWithDMSGAddr, func()) {
-		clients := make([]clientWithDMSGAddr, n)
+	prepClients := func(n int) ([]clientWithDMSGAddrAndListener, func()) {
+		clients := make([]clientWithDMSGAddrAndListener, n)
 		for i := 0; i < n; i++ {
+			port := uint16(15678 + i)
 			pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte{byte(i)})
 			require.NoError(t, err)
 			t.Logf("client[%d] PK: %s\n", i, pk)
-			c := dmsg.NewClient(pk, sk, discovery, dmsg.SetLogger(logging.MustGetLogger(fmt.Sprintf("client_%d:%s", i, pk))))
+			c := dmsg.NewClient(pk, sk, discovery, dmsg.SetLogger(logging.MustGetLogger(fmt.Sprintf("client_%d:%s:%d", i, pk, port))))
 			require.NoError(t, c.InitiateServerConnections(context.TODO(), 1))
-			clients[i] = clientWithDMSGAddr{
+			listener, err := c.Listen(port)
+			require.NoError(t, err)
+			clients[i] = clientWithDMSGAddrAndListener{
 				Client: c,
 				Addr: dmsg.Addr{
 					PK:   pk,
-					Port: uint16(15678 + i),
+					Port: port,
 				},
+				Listener: listener,
 			}
 		}
 		return clients, func() {
 			for _, c := range clients {
+				require.NoError(t, c.Listener.Close())
 				require.NoError(t, c.Close())
 			}
 		}
 	}
 
 	// CLOSURE: sets up setup node.
-	prepSetupNode := func(c *dmsg.Client, listeningPort uint16) (*Node, func()) {
-		listener, err := c.Listen(listeningPort)
-		require.NoError(t, err)
+	prepSetupNode := func(c *dmsg.Client, listener *dmsg.Listener) (*Node, func()) {
 		sn := &Node{
 			Logger:  logging.MustGetLogger("setup_node"),
 			dmsgC:   c,
@@ -106,7 +108,7 @@ func TestNode(t *testing.T) {
 		defer closeClients()
 
 		// prepare and serve setup node (using client 0).
-		_, closeSetup := prepSetupNode(clients[0].Client, clients[0].Addr.Port)
+		_, closeSetup := prepSetupNode(clients[0].Client, clients[0].Listener)
 		setupPK := clients[0].Addr.PK
 		setupPort := clients[0].Addr.Port
 		defer closeSetup()
@@ -151,13 +153,10 @@ func TestNode(t *testing.T) {
 		var nextRouteID uint32
 		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
 		expectAddRules := func(client int, expRule routing.RuleType) {
-			listener, err := clients[client].Listen(clients[client].Addr.Port)
+			conn, err := clients[client].Listener.Accept()
 			require.NoError(t, err)
 
-			tp, err := listener.AcceptTransport()
-			require.NoError(t, err)
-
-			proto := NewSetupProtocol(tp)
+			proto := NewSetupProtocol(conn)
 
 			pt, _, err := proto.ReadPacket()
 			require.NoError(t, err)
@@ -167,6 +166,13 @@ func TestNode(t *testing.T) {
 
 			err = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)})
 			require.NoError(t, err)
+
+			require.NoError(t, conn.Close())
+
+			conn, err = clients[client].Listener.Accept()
+			require.NoError(t, err)
+
+			proto = NewSetupProtocol(conn)
 
 			pt, pp, err := proto.ReadPacket()
 			require.NoError(t, err)
@@ -182,19 +188,14 @@ func TestNode(t *testing.T) {
 			// TODO: This error is not checked due to a bug in dmsg.
 			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
 
-			require.NoError(t, tp.Close())
-			require.NoError(t, listener.Close())
+			require.NoError(t, conn.Close())
 
 			addRuleDone.Done()
 		}
 
 		// CLOSURE: emulates how a visor node should react when expecting an OnConfirmLoop packet.
 		expectConfirmLoop := func(client int) {
-			listener, err := clients[client].Listen(clients[client].Addr.Port)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, listener.Close()) }()
-
-			tp, err := listener.AcceptTransport()
+			tp, err := clients[client].Listener.AcceptTransport()
 			require.NoError(t, err)
 
 			proto := NewSetupProtocol(tp)
@@ -244,14 +245,13 @@ func TestNode(t *testing.T) {
 	// where a route is already established,
 	// and the first client attempts to tear it down.
 	t.Run("CloseLoop", func(t *testing.T) {
-
 		// client index 0 is for setup node.
 		// clients index 1 and 2 are for visor nodes.
 		clients, closeClients := prepClients(3)
 		defer closeClients()
 
 		// prepare and serve setup node.
-		_, closeSetup := prepSetupNode(clients[0].Client, clients[0].Addr.Port)
+		_, closeSetup := prepSetupNode(clients[0].Client, clients[0].Listener)
 		setupPK := clients[0].Addr.PK
 		setupPort := clients[0].Addr.Port
 		defer closeSetup()
