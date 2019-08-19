@@ -13,12 +13,6 @@ import (
 
 const supportedProtocolVersion = "0.0.1"
 
-// type appCallbacks struct {
-// 	CreateLoop       func(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
-// 	CloseLoop        func(conn *app.Protocol, loop routing.Loop) error
-// 	ForwardAppPacket func(conn *app.Protocol, packet *app.Packet) error
-// }
-
 type appManager struct {
 	Logger  *logging.Logger
 	router  PacketRouter
@@ -27,35 +21,35 @@ type appManager struct {
 	// callbacks *appCallbacks
 }
 
+func (am *appManager) serveHandler(frame app.Frame, payload []byte) (res interface{}, err error) {
+	am.Logger.WithField("payload", app.Payload{frame, payload}).
+		Info(testhelpers.Trace("ENTER"))
+	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+
+	switch frame {
+	case app.FrameInit:
+		err = am.initApp(payload)
+	case app.FrameCreateLoop:
+		res, err = am.setupLoop(payload)
+	case app.FrameClose:
+		err = am.handleCloseLoop(payload)
+	case app.FrameSend:
+		err = am.forwardAppPacket(payload)
+	default:
+		err = errors.New("unexpected frame")
+	}
+
+	if err != nil {
+		am.Logger.Warnf("%v: App request with type %s failed: %+v\n", testhelpers.GetCaller(), frame, err)
+	}
+
+	return res, err
+}
+
 func (am *appManager) Serve() error {
 	am.Logger.Info(testhelpers.Trace("EXIT"))
 	defer am.Logger.Info(testhelpers.Trace("EXIT"))
-
-	// Protocol.Serve loop start
-	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
-		am.Logger.WithField("payload", app.Payload{frame, payload}).
-			Info(testhelpers.Trace("ENTER"))
-		defer am.Logger.Info(testhelpers.Trace("EXIT"))
-
-		switch frame {
-		case app.FrameInit:
-			err = am.initApp(payload)
-		case app.FrameCreateLoop:
-			res, err = am.setupLoop(payload)
-		case app.FrameClose:
-			err = am.handleCloseLoop(payload)
-		case app.FrameSend:
-			err = am.forwardAppPacket(payload)
-		default:
-			err = errors.New("unexpected frame")
-		}
-
-		if err != nil {
-			am.Logger.Warnf("%v: App request with type %s failed: %+v\n", testhelpers.GetCaller(), frame, err)
-		}
-
-		return res, err
-	})
+	return am.proto.Serve(am.serveHandler)
 }
 
 func (am *appManager) initApp(payload []byte) error {
@@ -96,7 +90,7 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 	am.Logger.Info(testhelpers.Trace("ENTER"))
 	defer am.Logger.Info(testhelpers.Trace("EXIT"))
 
-	var loop routing.Loop
+	var loop routing.AddrLoop
 	if err := json.Unmarshal(payload, &loop); err != nil {
 		return err
 	}

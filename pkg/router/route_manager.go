@@ -14,8 +14,8 @@ import (
 )
 
 type setupCallbacks struct {
-	ConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
-	LoopClosed  func(loop routing.Loop) error
+	ConfirmLoop func(loop routing.AddrLoop, rule routing.Rule) (err error)
+	LoopClosed  func(loop routing.AddrLoop) error
 }
 
 type routeManager struct {
@@ -42,7 +42,7 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 	return rule, nil
 }
 
-func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
+func (rm *routeManager) RemoveLoopRule(loop routing.AddrLoop) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {

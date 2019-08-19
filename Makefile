@@ -98,6 +98,10 @@ bin: ## Build `skywire-visor`, `skywire-cli`, `hypervisor`, `SSH-cli`
 	${OPTS} go build ${BUILD_OPTS} -o ./hypervisor ./cmd/hypervisor
 	${OPTS} go build ${BUILD_OPTS} -o ./SSH-cli ./cmd/therealssh-cli
 
+minibuild:
+	${OPTS} go build ${BUILD_OPTS} -o ./apps/skychat.v1.0 ./cmd/apps/skychat	
+	${OPTS} go build ${BUILD_OPTS} -o ./skywire-visor ./cmd/skywire-visor
+
 
 release: ## Build `skywire-visor`, `skywire-cli`, `hypervisor`, `SSH-cli` and apps without -race flag
 	${OPTS} go build -o ./skywire-visor ./cmd/skywire-visor

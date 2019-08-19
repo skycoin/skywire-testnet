@@ -3,7 +3,6 @@ package visor
 import (
 	"bytes"
 	"os"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -51,7 +50,7 @@ func NewTaggedMasterLogger(tag string, ssubs []struct{ old, new string }) *loggi
 					ForceFormatting:    true,
 					DisableColors:      false,
 					ForceColors:        false,
-					TimestampFormat:    time.StampMicro,
+					TimestampFormat:    "05.000000",
 				},
 			},
 			Hooks:        hooks,

@@ -87,6 +87,7 @@ func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 	}
 
 	if Frame(frame[0]) == FrameFailure {
+		log.Warnf("%v writeFrame err: %v\n", testhelpers.GetCaller(), string(frame[2:]))
 		return errors.New(string(frame[2:]))
 	}
 

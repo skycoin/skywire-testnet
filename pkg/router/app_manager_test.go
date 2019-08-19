@@ -92,7 +92,7 @@ func TestAppManagerSetupLoop(t *testing.T) {
 
 func TestAppManagerCloseLoop(t *testing.T) {
 	in, out := net.Pipe()
-	// var inLoop routing.Loop
+	// var inLoop routing.AddrLoop
 	r := new(MockRouter)
 	am := &appManager{
 		Logger:  logging.MustGetLogger("routesetup"),
@@ -100,7 +100,7 @@ func TestAppManagerCloseLoop(t *testing.T) {
 		proto:   app.NewProtocol(out),
 		appConf: &app.Config{AppName: "foo", AppVersion: "0.0.1"},
 		// &appCallbacks{
-		// 	CloseLoop: func(conn *app.Protocol, loop routing.Loop) error {
+		// 	CloseLoop: func(conn *app.Protocol, loop routing.AddrLoop) error {
 		// 		inLoop = loop
 		// 		return nil
 		// 	},
@@ -118,7 +118,7 @@ func TestAppManagerCloseLoop(t *testing.T) {
 
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
-	loop := routing.Loop{
+	loop := routing.AddrLoop{
 		Local:  routing.Addr{PubKey: lpk, Port: 2},
 		Remote: routing.Addr{PubKey: rpk, Port: 3}}
 	err := proto.Send(app.FrameClose, loop, nil)
@@ -153,7 +153,7 @@ func TestAppManagerForward(t *testing.T) {
 	lpk, _ := cipher.GenerateKeyPair()
 	rpk, _ := cipher.GenerateKeyPair()
 	packet := &app.Packet{Payload: []byte("foo"),
-		Loop: routing.Loop{
+		Loop: routing.AddrLoop{
 			Local:  routing.Addr{PubKey: lpk, Port: 2},
 			Remote: routing.Addr{PubKey: rpk, Port: 3}}}
 	err := proto.Send(app.FrameSend, packet, nil)

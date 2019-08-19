@@ -95,7 +95,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 		var ld routing.LoopData
 		if err = json.Unmarshal(data, &ld); err == nil {
 			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.LoopData{
-				Loop: routing.Loop{
+				Loop: routing.AddrLoop{
 					Remote: ld.Loop.Local,
 					Local:  ld.Loop.Remote,
 				},
@@ -134,7 +134,7 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 	responder := ld.Responder()
 
 	ldR := routing.LoopData{
-		Loop: routing.Loop{
+		Loop: routing.AddrLoop{
 			Remote: routing.Addr{
 				PubKey: initiator,
 				Port:   ld.Loop.Local.Port,
@@ -152,7 +152,7 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 	}
 
 	ldI := routing.LoopData{
-		Loop: routing.Loop{
+		Loop: routing.AddrLoop{
 			Remote: routing.Addr{
 				PubKey: responder,
 				Port:   ld.Loop.Remote.Port,

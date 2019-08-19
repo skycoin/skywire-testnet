@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -48,7 +49,7 @@ type App struct {
 	acceptChan chan [2]routing.Addr
 	doneChan   chan struct{}
 
-	conns map[routing.Loop]io.ReadWriteCloser
+	conns map[routing.AddrLoop]io.ReadWriteCloser
 	mu    sync.Mutex
 }
 
@@ -80,7 +81,7 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 		proto:      NewProtocol(pipeConn),
 		acceptChan: make(chan [2]routing.Addr),
 		doneChan:   make(chan struct{}),
-		conns:      make(map[routing.Loop]io.ReadWriteCloser),
+		conns:      make(map[routing.AddrLoop]io.ReadWriteCloser),
 	}
 
 	go app.handleProto()
@@ -141,8 +142,8 @@ func (app *App) Accept() (net.Conn, error) {
 	raddr := addrs[1]
 
 	// TODO: Why is that?
-	loop := routing.Loop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
-	// loop := routing.Loop{laddr, raddr}
+	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
@@ -161,7 +162,11 @@ func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	loop := routing.Loop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+
+	// TODO: Why is that way?
+	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
+
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
@@ -175,26 +180,36 @@ func (app *App) Addr() net.Addr {
 	return routing.Addr{}
 }
 
+func (app *App) protoHandler(frame Frame, payload []byte) (res interface{}, err error) {
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
+	switch frame {
+	case FrameConfirmLoop:
+		err = app.confirmLoop(payload)
+	case FrameSend:
+		err = app.forwardPacket(payload)
+	case FrameClose:
+		err = app.closeConn(payload)
+	default:
+		err = errors.New("unexpected frame")
+	}
+	return res, err
+}
+
 func (app *App) handleProto() {
-	err := app.proto.Serve(func(frame Frame, payload []byte) (res interface{}, err error) {
-		switch frame {
-		case FrameConfirmLoop:
-			err = app.confirmLoop(payload)
-		case FrameSend:
-			err = app.forwardPacket(payload)
-		case FrameClose:
-			err = app.closeConn(payload)
-		default:
-			err = errors.New("unexpected frame")
-		}
-		return res, err
-	})
+	err := app.proto.Serve(app.protoHandler)
 	if err != nil {
 		return
 	}
 }
 
-func (app *App) serveConn(loop routing.Loop, conn io.ReadWriteCloser) {
+func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
+	var cntr uint64
+
 	defer func() {
 		if err := conn.Close(); err != nil {
 			log.WithError(err).Warn("failed to close connection")
@@ -202,6 +217,9 @@ func (app *App) serveConn(loop routing.Loop, conn io.ReadWriteCloser) {
 	}()
 
 	for {
+		atomic.AddUint64(&cntr, 1)
+		log.Debugf("%v CYCLE %03d START", testhelpers.GetCaller(), cntr)
+
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
 		if err != nil {
@@ -225,6 +243,9 @@ func (app *App) serveConn(loop routing.Loop, conn io.ReadWriteCloser) {
 }
 
 func (app *App) forwardPacket(data []byte) error {
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
 	packet := &Packet{}
 	if err := json.Unmarshal(data, packet); err != nil {
 		return err
@@ -243,7 +264,10 @@ func (app *App) forwardPacket(data []byte) error {
 }
 
 func (app *App) closeConn(data []byte) error {
-	var loop routing.Loop
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
+	var loop routing.AddrLoop
 	if err := json.Unmarshal(data, &loop); err != nil {
 		return err
 	}
@@ -272,7 +296,7 @@ func (app *App) confirmLoop(data []byte) error {
 	raddr := addrs[1]
 
 	app.mu.Lock()
-	conn := app.conns[routing.Loop{Local: laddr, Remote: raddr}]
+	conn := app.conns[routing.AddrLoop{Local: laddr, Remote: raddr}]
 	app.mu.Unlock()
 
 	if conn != nil {

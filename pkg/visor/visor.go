@@ -22,6 +22,7 @@ import (
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
@@ -253,6 +254,9 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
+	node.logger.Debug(testhelpers.Trace("ENTER"))
+	defer node.logger.Debug(testhelpers.Trace("ENTER"))
+
 	ctx := context.Background()
 
 	switch factory := node.messenger.(type) {

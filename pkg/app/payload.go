@@ -34,7 +34,7 @@ func (p Payload) String() string {
 		}
 		return fmt.Sprintf("{FrameSend: %s}", packet)
 	case FrameClose:
-		var loop routing.Loop
+		var loop routing.AddrLoop
 		if err := json.Unmarshal(p.Data, &loop); err != nil {
 			return fmt.Sprintf("{FrameClose. Error: %v, data: %v}", err, p.Data)
 		}

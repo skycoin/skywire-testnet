@@ -7,20 +7,20 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 )
 
-// Loop defines a loop over a pair of addresses.
-type Loop struct {
+// AddrLoop defines a loop over a pair of addresses.
+type AddrLoop struct {
 	Local  Addr
 	Remote Addr
 }
 
 // TODO: discuss if we should add local PK to the output
-func (l Loop) String() string {
+func (l AddrLoop) String() string {
 	return fmt.Sprintf("%s:%d <-> %s:%d", l.Local.PubKey, l.Local.Port, l.Remote.PubKey, l.Remote.Port)
 }
 
 // LoopDescriptor defines a loop over a pair of routes.
 type LoopDescriptor struct {
-	Loop    Loop
+	Loop    AddrLoop
 	Forward Route
 	Reverse Route
 	Expiry  time.Time
@@ -51,6 +51,6 @@ func (l LoopDescriptor) String() string {
 
 // LoopData stores loop confirmation request data.
 type LoopData struct {
-	Loop    Loop    `json:"loop"`
-	RouteID RouteID `json:"resp-rid,omitempty"`
+	Loop    AddrLoop `json:"loop"`
+	RouteID RouteID  `json:"resp-rid,omitempty"`
 }

@@ -108,9 +108,6 @@ func TestRouterForwarding(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
-
-
-
 func TestRouterAppInit(t *testing.T) {
 	client := transport.NewDiscoveryMock()
 	logStore := transport.InMemoryTransportLogStore()
@@ -220,7 +217,7 @@ func TestRouterApp(t *testing.T) {
 	tr2 := m2.Transport(tr.Entry.ID)
 	sendErrCh := make(chan error, 1)
 	go func() {
-		sendErrCh <- proto.Send(app.FrameSend, &app.Packet{Loop: routing.Loop{Local: routing.Addr{Port: 6}, Remote: raddr}, Payload: []byte("bar")}, nil)
+		sendErrCh <- proto.Send(app.FrameSend, &app.Packet{Loop: routing.AddrLoop{Local: routing.Addr{Port: 6}, Remote: raddr}, Payload: []byte("bar")}, nil)
 	}()
 
 	packet := make(routing.Packet, 9)
@@ -303,7 +300,7 @@ func TestRouterLocalApp(t *testing.T) {
 	sendErrCh := make(chan error, 1)
 	go func() {
 		packet := &app.Packet{
-			Loop: routing.Loop{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo"),
+			Loop: routing.AddrLoop{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo"),
 		}
 		sendErrCh <- proto1.Send(app.FrameSend, packet, nil)
 	}()
