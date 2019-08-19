@@ -89,7 +89,7 @@ func TestNode(t *testing.T) {
 		}
 		return clients, func() {
 			for _, c := range clients {
-				require.NoError(t, c.Listener.Close())
+				//require.NoError(t, c.Listener.Close())
 				require.NoError(t, c.Close())
 			}
 		}
