@@ -195,6 +195,31 @@ func (sn *Node) createLoop(ctx context.Context, ld routing.LoopDescriptor) error
 	return nil
 }
 
+// createRoute setups the route. Route setup involves applying routing rules to each visor node along the route.
+// Each rule applying procedure consists of two steps:
+// 1. Request free route ID from the visor node
+// 2. Apply the rule, using route ID from the step 1 to register this rule inside the visor node
+//
+// Route ID received as a response after 1st step is used in two rules. 1st, it's used in the rule being applied
+// to the current visor node as a route ID to register this rule within the visor node.
+// 2nd, it's used in the rule being applied to the previous visor node along the route as a `respRouteID/nextRouteID`.
+// For this reason, each 2nd step must wait for completion of its 1st step and the 1st step of the next visor node
+// along the route to be able to obtain route ID from there. IDs serving as `respRouteID/nextRouteID` are being
+// passed in a fan-like fashion.
+//
+// Example. Let's say, we have N visor nodes along the route. Visor[0] is the initiator. Setup node sends N requests to
+// each visor along the route according to the 1st step and gets N route IDs in response. Then we assemble N rules to
+// be applied. We construct each rule as the following:
+// - Rule[0..N-1] are of type `ForwardRule`;
+// - Rule[N] is of type `AppRule`;
+// - For i = 0..N-1 rule[i] takes `nextTransportID` from the rule[i+1];
+// - For i = 0..N-1 rule[i] takes `respRouteID/nextRouteID` from rule[i+1] (after [i+1] request for free route ID
+// completes;
+// - Rule[N] has `respRouteID/nextRouteID` equal to 0;
+// Rule[0..N] use their route ID retrieved from the 1st step to be registered within the corresponding visor node.
+//
+// During the setup process each error received along the way causes all the procedure to be cancelled. RouteID received
+// from the 1st step connecting to the initiating node is used as the ID for the overall rule, thus being returned.
 func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routing.Route, rport, lport routing.Port) (routing.RouteID, error) {
 	if len(route) == 0 {
 		return 0, nil
@@ -202,6 +227,8 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 
 	sn.Logger.Infof("Creating new Route %s", route)
 
+	// add the initiating node to the start of the route. We need to loop over all the visor nodes
+	// along the route to apply rules including the initating one
 	r := make(routing.Route, len(route)+1)
 	r[0] = &routing.Hop{
 		Transport: route[0].Transport,
@@ -209,15 +236,15 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 	}
 	copy(r[1:], route)
 
-	initiator := route[0].From
+	init := route[0].From
 
 	// indicate errors occurred during rules setup
 	rulesSetupErrs := make(chan error, len(r))
-	// regIDsCh is an array of chans used to pass the requested registration IDs around the goroutines.
+	// regIDsCh is an array of chans used to pass the requested route IDs around the goroutines.
 	// We do it in a fan fashion here. We create as many goroutines as there are rules to be applied.
-	// Goroutine[idx] requests visor node for a registration ID. It passes this registration ID through a chan to
-	// a goroutine[idx-1]. In turn, goroutine[idx-1] waits for a registration ID from chan[idx].
-	// Thus, goroutine[len(r)] doesn't get a registration ID and uses 0 instead, goroutine[0] doesn't pass
+	// Goroutine[i] requests visor node for a free route ID. It passes this route ID through a chan to
+	// a goroutine[i-1]. In turn, goroutine[i-1] waits for a route ID from chan[i].
+	// Thus, goroutine[len(r)] doesn't get a route ID and uses 0 instead, goroutine[0] doesn't pass
 	// its route ID to anyone
 	regIDsCh := make([]chan routing.RouteID, 0, len(r))
 	for range r {
@@ -229,24 +256,28 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 
 	// context to cancel rule setup in case of errors
 	ctx, cancel := context.WithCancel(context.Background())
-	for idx := len(r) - 1; idx >= 0; idx-- {
+	for i := len(r) - 1; i >= 0; i-- {
 		var regIDChIn, regIDChOut chan routing.RouteID
-		if idx > 0 {
-			regIDChOut = regIDsCh[idx-1]
+		// goroutine[0] doesn't need to pass the route ID from the 1st step to anyone
+		if i > 0 {
+			regIDChOut = regIDsCh[i-1]
 		}
-		var nextTransport uuid.UUID
-		var rule routing.Rule
-		if idx != len(r)-1 {
-			regIDChIn = regIDsCh[idx]
-			nextTransport = r[idx+1].Transport
-			rule = routing.ForwardRule(expireAt, 0, nextTransport, 0)
+		var (
+			nextTpID uuid.UUID
+			rule     routing.Rule
+		)
+		// goroutine[len(r)-1] uses 0 as the route ID from the 1st step
+		if i != len(r)-1 {
+			regIDChIn = regIDsCh[i]
+			nextTpID = r[i+1].Transport
+			rule = routing.ForwardRule(expireAt, 0, nextTpID, 0)
 		} else {
-			rule = routing.AppRule(expireAt, 0, initiator, lport, rport, 0)
+			rule = routing.AppRule(expireAt, 0, init, lport, rport, 0)
 		}
 
-		go func(idx int, pubKey cipher.PubKey, rule routing.Rule, regIDChIn <-chan routing.RouteID,
+		go func(idx int, pk cipher.PubKey, rule routing.Rule, regIDChIn <-chan routing.RouteID,
 			regIDChOut chan<- routing.RouteID) {
-			routeID, err := sn.setupRule(ctx, pubKey, rule, regIDChIn, regIDChOut)
+			routeID, err := sn.setupRule(ctx, pk, rule, regIDChIn, regIDChOut)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
@@ -258,13 +289,13 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 				return
 			}
 
-			// adding rule for initiator must result with a route ID
+			// adding rule for initiator must result with a route ID for the overall route
 			if idx == 0 {
 				resultingRouteIDCh <- routeID
 			}
 
 			rulesSetupErrs <- nil
-		}(idx, r[idx].To, rule, regIDChIn, regIDChOut)
+		}(i, r[i].To, rule, regIDChIn, regIDChOut)
 	}
 
 	var rulesSetupErr error
@@ -336,10 +367,10 @@ func (sn *Node) closeLoop(ctx context.Context, on cipher.PubKey, ld routing.Loop
 	return nil
 }
 
-func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule,
+func (sn *Node) setupRule(ctx context.Context, pk cipher.PubKey, rule routing.Rule,
 	regIDChIn <-chan routing.RouteID, regIDChOut chan<- routing.RouteID) (routing.RouteID, error) {
-	sn.Logger.Debugf("trying to setup setup rule: %v with %s\n", rule, pubKey)
-	registrationID, err := sn.requestRegistrationID(ctx, pubKey)
+	sn.Logger.Debugf("trying to setup setup rule: %v with %s\n", rule, pk)
+	registrationID, err := sn.requestRegistrationID(ctx, pk)
 	if err != nil {
 		return 0, err
 	}
@@ -355,19 +386,19 @@ func (sn *Node) setupRule(ctx context.Context, pubKey cipher.PubKey, rule routin
 
 	rule.SetRegistrationID(registrationID)
 
-	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pubKey, rule)
+	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pk, rule)
 
-	if err := sn.addRule(ctx, pubKey, rule); err != nil {
+	if err := sn.addRule(ctx, pk, rule); err != nil {
 		return 0, err
 	}
 
-	sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), pubKey)
+	sn.Logger.Infof("Set rule of type %s on %s", rule.Type(), pk)
 
 	return registrationID, nil
 }
 
-func (sn *Node) requestRegistrationID(ctx context.Context, pubKey cipher.PubKey) (routing.RouteID, error) {
-	proto, err := sn.dialAndCreateProto(ctx, pubKey)
+func (sn *Node) requestRegistrationID(ctx context.Context, pk cipher.PubKey) (routing.RouteID, error) {
+	proto, err := sn.dialAndCreateProto(ctx, pk)
 	if err != nil {
 		return 0, err
 	}
@@ -378,13 +409,13 @@ func (sn *Node) requestRegistrationID(ctx context.Context, pubKey cipher.PubKey)
 		return 0, err
 	}
 
-	sn.Logger.Infof("Received route ID %d from %s", registrationID, pubKey)
+	sn.Logger.Infof("Received route ID %d from %s", registrationID, pk)
 
 	return registrationID, nil
 }
 
-func (sn *Node) addRule(ctx context.Context, pubKey cipher.PubKey, rule routing.Rule) error {
-	proto, err := sn.dialAndCreateProto(ctx, pubKey)
+func (sn *Node) addRule(ctx context.Context, pk cipher.PubKey, rule routing.Rule) error {
+	proto, err := sn.dialAndCreateProto(ctx, pk)
 	if err != nil {
 		return err
 	}
@@ -393,9 +424,9 @@ func (sn *Node) addRule(ctx context.Context, pubKey cipher.PubKey, rule routing.
 	return AddRule(ctx, proto, rule)
 }
 
-func (sn *Node) dialAndCreateProto(ctx context.Context, pubKey cipher.PubKey) (*Protocol, error) {
-	sn.Logger.Debugf("dialing to %s\n", pubKey)
-	tr, err := sn.dmsgC.Dial(ctx, pubKey, snet.AwaitSetupPort)
+func (sn *Node) dialAndCreateProto(ctx context.Context, pk cipher.PubKey) (*Protocol, error) {
+	sn.Logger.Debugf("dialing to %s\n", pk)
+	tr, err := sn.dmsgC.Dial(ctx, pk, snet.AwaitSetupPort)
 	if err != nil {
 		return nil, fmt.Errorf("transport: %s", err)
 	}
