@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"net/http"
 	"net/rpc"
 	"os"
 	"testing"
@@ -18,6 +19,26 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
+
+func TestHealth(t *testing.T) {
+	sPK, _ := cipher.GenerateKeyPair()
+
+	c := &Config{}
+	c.Transport.Discovery = "foo"
+	c.Routing.SetupNodes = []cipher.PubKey{sPK}
+	c.Routing.RouteFinder = "foo"
+
+	t.Run("Report all the services as available", func(t *testing.T) {
+		rpc := &RPC{&Node{config: c}}
+		h := &HealthInfo{}
+		err := rpc.Health(&struct{}{}, h)
+		require.NoError(t, err)
+
+		assert.Equal(t, h.TransportDiscovery, http.StatusOK)
+		assert.Equal(t, h.SetupNode, http.StatusOK)
+		assert.Equal(t, h.RouteFinder, http.StatusOK)
+	})
+}
 
 func TestListApps(t *testing.T) {
 	apps := []AppConfig{

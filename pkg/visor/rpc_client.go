@@ -20,6 +20,8 @@ import (
 type RPCClient interface {
 	Summary() (*Summary, error)
 
+	Health() (*HealthInfo, error)
+
 	Apps() ([]*AppState, error)
 	StartApp(appName string) error
 	StopApp(appName string) error
@@ -62,6 +64,13 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 	out := new(Summary)
 	err := rc.Call("Summary", &struct{}{}, out)
 	return out, err
+}
+
+// Health calls Health
+func (rc *rpcClient) Health() (*HealthInfo, error) {
+	hi := &HealthInfo{}
+	err := rc.Call("Health", &struct{}{}, hi)
+	return hi, err
 }
 
 // Apps calls Apps.

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 
@@ -31,6 +33,39 @@ var (
 // RPC defines RPC methods for Node.
 type RPC struct {
 	node *Node
+}
+
+/*
+	<<< NODE HEALTH >>>
+*/
+
+// HealthInfo carries information about visor's external services health represented as http status codes
+type HealthInfo struct {
+	TransportDiscovery int `json:"transport_discovery"`
+	RouteFinder        int `json:"route_finder"`
+	SetupNode          int `json:"setup_node"`
+}
+
+// Health returns health information about the visor
+func (r *RPC) Health(_ *struct{}, out *HealthInfo) error {
+	out.TransportDiscovery = http.StatusOK
+	out.RouteFinder = http.StatusOK
+	out.SetupNode = http.StatusOK
+
+	_, err := r.node.config.TransportDiscovery()
+	if err != nil {
+		out.TransportDiscovery = http.StatusNotFound
+	}
+
+	if r.node.config.Routing.RouteFinder == "" {
+		out.RouteFinder = http.StatusNotFound
+	}
+
+	if len(r.node.config.Routing.SetupNodes) == 0 {
+		out.SetupNode = http.StatusNotFound
+	}
+
+	return nil
 }
 
 /*

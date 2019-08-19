@@ -130,6 +130,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
 			r.Get("/nodes", m.getNodes())
+			r.Get("/health", m.getHealth())
 			r.Get("/nodes/{pk}", m.getNode())
 			r.Get("/nodes/{pk}/apps", m.getApps())
 			r.Get("/nodes/{pk}/apps/{app}", m.getApp())
@@ -148,6 +149,34 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		})
 	})
 	r.ServeHTTP(w, req)
+}
+
+// VisorHealth represents a node's health report attached to it's pk for identification
+type VisorHealth struct {
+	PK cipher.PubKey `json:"pk"`
+	*visor.HealthInfo
+}
+
+// provides summary of health information for every visor
+func (m *Node) getHealth() http.HandlerFunc {
+	healthStatuses := make([]*VisorHealth, len(m.nodes))
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		m.mu.RLock()
+		for pk, c := range m.nodes {
+			vh := &VisorHealth{PK: pk}
+
+			hi, err := c.Client.Health()
+			if err != nil {
+				httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+				return
+			}
+
+			vh.HealthInfo = hi
+			healthStatuses = append(healthStatuses, vh)
+		}
+
+	}
 }
 
 type summaryResp struct {
