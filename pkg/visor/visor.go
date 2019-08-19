@@ -207,7 +207,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		RoutingTable:     node.rt,
 		RouteFinder:      rtfClient,
 		SetupNodes:       setupNodes,
-		TransportType:    config.TransportType,
+		// TransportType:    config.TransportType,
 	}
 	r := router.New(rConfig)
 	node.router = r

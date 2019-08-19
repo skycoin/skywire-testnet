@@ -8,8 +8,10 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/internal/testhelpers"
 )
 
 // Frame defines type for all App frames.
@@ -70,6 +72,9 @@ func NewProtocol(rw io.ReadWriteCloser) *Protocol {
 
 // Send sends command Frame with payload and awaits for response.
 func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
+	Logger.Info(testhelpers.Trace("ENTER"))
+	defer Logger.Infof(testhelpers.Trace("EXIT"))
+
 	id, resChan := p.chans.add()
 	if err := p.writeFrame(cmd, id, payload); err != nil {
 		log.Warnf("Protocol.Send writeFrame err: %v\n", err)
@@ -94,7 +99,13 @@ func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 
 // Serve reads incoming frame, passes it to the handleFunc and writes results.
 func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) error {
+	Logger.Info(testhelpers.Trace("ENTER"))
+	defer Logger.Infof(testhelpers.Trace("EXIT"))
+	var cntr uint64
+
 	for {
+		atomic.AddUint64(&cntr, 1)
+		Logger.Debugf("%v CYCLE %03d START", testhelpers.GetCaller(), cntr)
 		frame, err := p.readFrame()
 		if err != nil {
 			if err == io.EOF || strings.Contains(err.Error(), "closed") {
@@ -142,6 +153,9 @@ func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) er
 
 // Close closes underlying ReadWriter.
 func (p *Protocol) Close() error {
+	Logger.Info(testhelpers.Trace("ENTER"))
+	defer Logger.Infof(testhelpers.Trace("EXIT"))
+
 	if p == nil {
 		return nil
 	}
@@ -150,7 +164,9 @@ func (p *Protocol) Close() error {
 }
 
 func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err error) {
-	Logger.Info("[Protocol.writeFrame] enter")
+	Logger.Info(testhelpers.Trace("ENTER"))
+	defer Logger.Infof(testhelpers.Trace("EXIT"))
+
 	var data []byte
 	if err, ok := payload.(error); ok {
 		data = []byte(err.Error())
@@ -160,7 +176,7 @@ func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err er
 			return err
 		}
 	}
-	Logger.WithField("payload", Payload{frame, data}).Info("[Protocol.writeFrame]")
+	Logger.WithField("payload", Payload{frame, data}).Info(testhelpers.GetCaller())
 
 	packet := append([]byte{byte(frame), id}, data...)
 	buf := make([]byte, 2)
@@ -168,9 +184,9 @@ func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err er
 	_, err = p.rw.Write(append(buf, packet...))
 
 	if err != nil {
-		Logger.Warnf("[Protocol.writeFrame] p.rw.Write err: %v\n", err)
+		Logger.Warnf("% p.rw.Write err: %v\n", testhelpers.GetCaller(), err)
 	}
-	Logger.Infof("[Protocol.writeFrame] success: %v\n", err == nil)
+
 	return err
 }
 

@@ -13,11 +13,13 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/internal/netutil"
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -79,8 +81,15 @@ func listenLoop() {
 }
 
 func handleConn(conn net.Conn) {
+	log.Printf(testhelpers.Trace("ENTER"))
+	defer log.Printf(testhelpers.Trace("EXIT"))
+	var cntr uint64
+
 	raddr := conn.RemoteAddr().(routing.Addr)
+
 	for {
+		atomic.AddUint64(&cntr, 1)
+		log.Printf(testhelpers.Trace(fmt.Sprintf("CYCLE %03d START", cntr)))
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
 		if err != nil {
@@ -98,6 +107,7 @@ func handleConn(conn net.Conn) {
 		default:
 			log.Printf("received and trashed: %s\n", clientMsg)
 		}
+		log.Printf(testhelpers.Trace(fmt.Sprintf("CYCLE %03d END", cntr)))
 	}
 }
 

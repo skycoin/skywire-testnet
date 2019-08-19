@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -169,8 +170,10 @@ func (mh *MultiHead) initNodes() {
 
 	var err error
 	for i := 0; i < len(mh.nodes); i++ {
-		logger := NewTaggedMasterLogger(fmt.Sprintf("[node_%03d]", i+1), subs)
+		logger := NewTaggedMasterLogger(mh.ipPool[i], subs)
 		logger.Out = mh.Log
+		logger.SetReportCaller(true)
+		// logger.SetFormatter(new(logrus.JSONFormatter))
 		mh.nodes[i], err = NewNode(&mh.cfgPool[i], logger)
 		if err != nil {
 			mh.initErrs <- fmt.Errorf("error %v starting node %v", err, i)
@@ -296,18 +299,57 @@ func Example_genPubKeysFile() {
 	// Output: ZZZ
 }
 
-func ExampleMultiHead_sendMessage_local() {
+func (mhl *multiheadLog) filter(pattern string, match bool) []string {
+	var result []string
+	r := regexp.MustCompile(pattern)
+
+	for _, line := range mhl.records {
+		matched := r.MatchString(line)
+		if (matched && match) || (!matched && !match) {
+			result = append(result, line)
+		}
+	}
+	return result
+}
+
+func ExampleMultiHead_sendMessage_msg001() {
 	mh := makeMultiHeadN(1)
 	mh.startNodes(time.Second)
 
-	_, err := mh.sendMessage(0, 0, "Hello")
+	_, err := mh.sendMessage(0, 0, "Hello001")
 	fmt.Printf("err: %v", err)
 
 	mh.stopNodes(time.Second * 3)
 	fmt.Printf("%v\n", mh.errReport())
-	// printLogger := logging.MustGetLogger("test")
-	// printLogger.Infof("%v\n", mh.Log.records)
-	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
+
+	recs := mh.Log.filter(`skyhost_001.*received.*"message"`, true)
+	if len(recs) == 1 {
+		fmt.Println("skyhost_001 recieved message")
+	}
+
+	// Output: err: <nil>
+	// init errors: 0
+	// start errors: 0
+	// stop errors: 0
+	// skyhost_001 recieved message
+
+}
+
+// WIP
+func ExampleMultiHead_sendMessage_msg002() {
+	mh := makeMultiHeadN(2)
+	mh.startNodes(time.Second)
+
+	_, err := mh.sendMessage(0, 1, "Hello002")
+	fmt.Printf("err: %v", err)
+
+	mh.stopNodes(time.Second)
+	fmt.Printf("%v\n", mh.errReport())
+
+	fmt.Printf("%v", mh.Log.filter(`skychat`, false))
+	// fmt.Printf("%v\n", strings.Join(mh.Log.records[20:], ""))
+
+	// fmt.Printf("%v", mh.Log.filter(`skychat`, true))
 
 	// Output: err: <nil>
 	// init errors: 0
@@ -316,18 +358,15 @@ func ExampleMultiHead_sendMessage_local() {
 
 }
 
-// WIP
-func ExampleMultiHead_sendMessage_remote() {
-	mh := makeMultiHeadN(2)
+func ExampleMultiHead_sendMessage_msg003() {
+	mh := makeMultiHeadN(1)
 	mh.startNodes(time.Second)
 
-	_, err := mh.sendMessage(0, 1, "Hello")
+	_, err := mh.sendMessage(0, 0, "Hello003")
 	fmt.Printf("err: %v", err)
 
 	mh.stopNodes(time.Second)
 	fmt.Printf("%v\n", mh.errReport())
-	// printLogger := logging.MustGetLogger("test")
-	// printLogger.Infof("%v\n", mh.Log.records)
 	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
 
 	// Output: err: <nil>

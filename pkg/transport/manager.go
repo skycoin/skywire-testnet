@@ -93,8 +93,13 @@ func (tm *Manager) SetSetupNodes(nodes []cipher.PubKey) {
 	tm.setupNodes = nodes
 }
 
-// Factories returns all the factory types contained within the TransportManager.
-func (tm *Manager) Factories() []string {
+// Factories returns all factories
+func (tm *Manager) Factories() map[string]Factory {
+	return tm.factories
+}
+
+// FactoryTypes returns all the factory types contained within the TransportManager.
+func (tm *Manager) FactoryTypes() []string {
 	fTypes, i := make([]string, len(tm.factories)), 0
 	for _, f := range tm.factories {
 		fTypes[i], i = f.Type(), i+1

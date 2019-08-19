@@ -129,7 +129,7 @@ func (r *RPC) SetAutoStart(in *SetAutoStartIn, _ *struct{}) error {
 
 // TransportTypes lists all transport types supported by the Node.
 func (r *RPC) TransportTypes(_ *struct{}, out *[]string) error {
-	*out = r.node.tm.Factories()
+	*out = r.node.tm.FactoryTypes()
 	return nil
 }
 

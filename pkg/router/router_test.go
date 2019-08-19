@@ -108,6 +108,9 @@ func TestRouterForwarding(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
+
+
+
 func TestRouterAppInit(t *testing.T) {
 	client := transport.NewDiscoveryMock()
 	logStore := transport.InMemoryTransportLogStore()

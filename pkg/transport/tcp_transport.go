@@ -12,6 +12,7 @@ import (
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/internal/testhelpers"
 )
 
 // ErrUnknownRemote returned for connection attempts for remotes
@@ -28,6 +29,8 @@ type TCPFactory struct {
 
 // NewTCPFactory constructs a new TCP Factory
 func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string, logger *logging.Logger) (Factory, error) {
+	logger.Debug(testhelpers.Trace("ENTER"))
+	defer logger.Debug(testhelpers.Trace("EXIT"))
 
 	pkTbl, err := FilePubKeyTable(pubkeysFile)
 	if err != nil {
@@ -48,9 +51,13 @@ func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string, logger 
 	return &TCPFactory{pk, pkTbl, tcpListener, logger}, nil
 }
 
+var _TR = testhelpers.Trace
+
 // Accept accepts a remotely-initiated Transport.
 func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
-	f.Logger.Info("[TCPFactory.Accept] enter")
+	f.Logger.Info(_TR("ENTER"))
+	defer f.Logger.Info(_TR("EXIT"))
+
 	conn, err := f.Lsr.AcceptTCP()
 	if err != nil {
 		f.Logger.Warnf("[TCPFactory.Accept] f.Lsr.AcceptTCP err: %v\n", err)
@@ -71,7 +78,9 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 
 // Dial initiates a Transport with a remote node.
 func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
-	f.Logger.Info("[TCPFactory.Dial] enter")
+	f.Logger.Info(_TR("ENTER"))
+	defer f.Logger.Info(_TR("EXIT"))
+
 	addr := f.PkTable.RemoteAddr(remote)
 	if addr == "" {
 		f.Logger.Warnf("[TCPFactory.Dial] f.PkTable.RemoteAddr(remote) is empty for %v\n", remote)
@@ -101,12 +110,15 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 		f.Logger.Warnf("[TCPFactory.Dial] net.DialTCP err: %v\n", err)
 		return nil, err
 	}
-	f.Logger.Info("[TCPFactory.Dial] success")
+
 	return &TCPTransport{conn, f.Pk, remote}, nil
 }
 
 // Close implements io.Closer
 func (f *TCPFactory) Close() error {
+	f.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer f.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	if f == nil {
 		return nil
 	}
@@ -132,6 +144,7 @@ type TCPTransport struct {
 
 // LocalPK returns the TCPTransport local public key.
 func (tr *TCPTransport) LocalPK() cipher.PubKey {
+
 	return tr.localKey
 }
 
@@ -142,7 +155,7 @@ func (tr *TCPTransport) RemotePK() cipher.PubKey {
 
 // Type returns the string representation of the transport type.
 func (tr *TCPTransport) Type() string {
-	return "tcp"
+	return "tcp-transport"
 }
 
 // PubKeyTable provides translation between remote PubKey and TCPAddr.
@@ -169,7 +182,7 @@ func memoryPubKeyTable(entries map[cipher.PubKey]string) *memPKTable {
 	return &memPKTable{entries, reverse}
 }
 
-// MemoryPKTable returns in memory implementation of the PubKeyTable.
+// MemoryPubKeyTable returns in memory implementation of the PubKeyTable.
 func MemoryPubKeyTable(entries map[cipher.PubKey]string) PubKeyTable {
 	return memoryPubKeyTable(entries)
 }

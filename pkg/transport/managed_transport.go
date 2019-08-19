@@ -53,6 +53,7 @@ func (tr *ManagedTransport) Read(p []byte) (n int, err error) {
 
 // Write writes to an underlying transport.
 func (tr *ManagedTransport) Write(p []byte) (n int, err error) {
+	
 	tr.mu.RLock()
 	n, err = tr.Transport.Write(p)
 	if n > 0 {

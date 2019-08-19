@@ -3,9 +3,11 @@ package visor
 import (
 	"bytes"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/internal/testhelpers"
 )
 
 // TaggedFormatter appends tag to log records and substitutes text
@@ -21,7 +23,8 @@ func (tf *TaggedFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	for _, sub := range tf.subs {
 		data = bytes.ReplaceAll(data, sub.old, sub.new)
 	}
-	return append(tf.tag, data...), err
+	prepend := bytes.Repeat([]byte(" "), testhelpers.CallerDepth())
+	return bytes.Join([][]byte{tf.tag, prepend, data}, []byte(" ")), err
 }
 
 // NewTaggedMasterLogger creates MasterLogger that prepends records with tag
@@ -42,16 +45,18 @@ func NewTaggedMasterLogger(tag string, ssubs []struct{ old, new string }) *loggi
 				[]byte(tag),
 				bsubs,
 				&logging.TextFormatter{
-					FullTimestamp:      true,
 					AlwaysQuoteStrings: true,
 					QuoteEmptyFields:   true,
+					FullTimestamp:      true,
 					ForceFormatting:    true,
 					DisableColors:      false,
 					ForceColors:        false,
+					TimestampFormat:    time.StampMicro,
 				},
 			},
-			Hooks: hooks,
-			Level: logrus.DebugLevel,
+			Hooks:        hooks,
+			Level:        logrus.DebugLevel,
+			ReportCaller: true,
 		},
 	}
 }

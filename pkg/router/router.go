@@ -13,11 +13,13 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
 	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
 const (
@@ -31,14 +33,15 @@ var log = logging.MustGetLogger("router")
 
 // Config configures Router.
 type Config struct {
-	Logger           *logging.Logger
-	PubKey           cipher.PubKey
-	SecKey           cipher.SecKey
+	Logger *logging.Logger
+	PubKey cipher.PubKey
+	SecKey cipher.SecKey
+
 	TransportManager *transport.Manager
 	RoutingTable     routing.Table
 	RouteFinder      routeFinder.Client
 	SetupNodes       []cipher.PubKey
-	TransportType    string
+	// TransportType    string
 }
 
 // PacketRouter performs routing of the skywire packets.
@@ -62,6 +65,7 @@ type Router struct {
 	tm     *transport.Manager
 	pm     *portManager
 	rm     *routeManager
+	msgr   transport.Factory
 
 	expiryTicker *time.Ticker
 	wg           sync.WaitGroup
@@ -91,6 +95,8 @@ func New(config *Config) *Router {
 // Serve starts transport listening loop.
 func (r *Router) Serve(ctx context.Context) error {
 	r.Logger.Info("Starting router")
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
 
 	go func() {
 		for {
@@ -153,6 +159,9 @@ func (r *Router) handleTransport(tp transport.Transport, isAccepted, isSetup boo
 
 // ServeApp handles App packets from the App connection on provided port.
 func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	r.wg.Add(1)
 	defer r.wg.Done()
 
@@ -186,12 +195,6 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 	return err
 }
 
-// callbacks := &appCallbacks{
-// 	CreateLoop:       r.requestLoop,
-// 	CloseLoop:        r.closeLoop,
-// 	ForwardAppPacket: r.forwardAppPacket,
-// }
-
 // CreateLoop implements PactetRouter.CreateLoop
 func (r *Router) CreateLoop(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
 	return r.requestLoop(conn, raddr)
@@ -209,6 +212,9 @@ func (r *Router) ForwardAppPacket(conn *app.Protocol, packet *app.Packet) error 
 
 // Close safely stops Router.
 func (r *Router) Close() error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	if r == nil {
 		return nil
 	}
@@ -227,6 +233,9 @@ func (r *Router) Close() error {
 }
 
 func (r *Router) serveTransport(rw io.ReadWriter) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	packet := make(routing.Packet, 6)
 	if _, err := io.ReadFull(rw, packet); err != nil {
 		return err
@@ -252,6 +261,9 @@ func (r *Router) serveTransport(rw io.ReadWriter) error {
 
 // ForwardPacket forwards payload according to rule
 func (r *Router) ForwardPacket(payload []byte, rule routing.Rule) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	packet := routing.MakePacket(rule.RouteID(), payload)
 	tr := r.tm.Transport(rule.TransportID())
 	if tr == nil {
@@ -267,6 +279,9 @@ func (r *Router) ForwardPacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	laddr := routing.Addr{Port: rule.LocalPort()}
 	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
@@ -284,12 +299,30 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) error {
-	r.Logger.Info("[Router.forwardAppPacket] enter")
+	r.Logger.Info(testhelpers.Trace("ENTER"))
+	defer r.Logger.Info(testhelpers.Trace("EXIT"))
+
 	if r == nil {
-		return nil
+		return errors.New("router not initialized")
 	}
+
 	if packet.Loop.Remote.PubKey == r.config.PubKey {
 		return r.forwardLocalAppPacket(packet)
+	}
+
+	// TODO: Check if exists TCPFactory in r.tm.Factories() and if raddr.PubKey exists in TCPFactory.PKTable
+
+	r.Logger.Infof("%v ATTEMPT TO FIND %v", testhelpers.GetCaller(), packet.Loop.Remote.PubKey)
+
+	for _, fct := range r.tm.Factories() {
+		switch tfct := fct.(type) {
+		case *transport.TCPFactory:
+			if ipAddr := tfct.PkTable.RemoteAddr(packet.Loop.Remote.PubKey); ipAddr != "" {
+				r.Logger.Infof("%v PK %v FOUND", testhelpers.GetCaller(), packet.Loop.Remote.PubKey)
+				return r.forwardTCPAppPacket(packet)
+			}
+
+		}
 	}
 
 	l, err := r.pm.GetLoop(packet.Loop.Local.Port, packet.Loop.Remote)
@@ -311,15 +344,17 @@ func (r *Router) forwardAppPacket(appConn *app.Protocol, packet *app.Packet) err
 	if err != nil {
 		r.Logger.Warnf("[Router.forwardAppPacket] tr.Write: %v", err)
 	}
-	r.Logger.Info("[Router.forwardAppPacket] success")
+
 	return err
 }
 
 func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
-	r.Logger.Info("[Router.forwardLocalAppPacket] enter")
+	r.Logger.Info(testhelpers.Trace("ENTER"))
+	defer r.Logger.Info(testhelpers.Trace("EXIT"))
+
 	b, err := r.pm.Get(packet.Loop.Remote.Port)
 	if err != nil {
-		r.Logger.Warnf("[Router.forwardLocalAppPacket] r.pm.Get: %v\n", err)
+		r.Logger.Warnf("%v r.pm.Get: %v\n", testhelpers.GetCaller(), err)
 		return nil
 	}
 
@@ -332,14 +367,39 @@ func (r *Router) forwardLocalAppPacket(packet *app.Packet) error {
 	}
 	errSend := b.conn.Send(app.FrameSend, p, nil)
 	if errSend != nil {
-		r.Logger.Warnf("[Router.forwardLocalAppPacket] b.conn.Send: %v\n", err)
+		r.Logger.Warnf("%v b.conn.Send: %v\n", testhelpers.GetCaller(), err)
 	}
-	r.Logger.Warnf("[Router.forwardLocalAppPacket] success: %v\n", err == nil)
+	return errSend
+}
+
+func (r *Router) forwardTCPAppPacket(packet *app.Packet) error {
+	r.Logger.Info(testhelpers.Trace("ENTER"))
+	defer r.Logger.Info(testhelpers.Trace("EXIT"))
+
+	b, err := r.pm.Get(packet.Loop.Remote.Port)
+	if err != nil {
+		r.Logger.Warnf("%v r.pm.Get: %v\n", testhelpers.GetCaller(), err)
+		return nil
+	}
+
+	p := &app.Packet{
+		Loop: routing.Loop{
+			Local:  routing.Addr{Port: packet.Loop.Remote.Port},
+			Remote: routing.Addr{PubKey: packet.Loop.Remote.PubKey, Port: packet.Loop.Local.Port},
+		},
+		Payload: packet.Payload,
+	}
+	errSend := b.conn.Send(app.FrameSend, p, nil)
+	if errSend != nil {
+		r.Logger.Info("%v b.conn.Send: %v\n", testhelpers.GetCaller(), err)
+	}
 	return errSend
 }
 
 func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
-	r.Logger.Infof("[Router.requestLoop] enter")
+	r.Logger.Info(testhelpers.Trace("ENTER"))
+	defer r.Logger.Info(testhelpers.Trace("EXIT"))
+
 	if r == nil {
 		return raddr, nil
 	}
@@ -376,6 +436,20 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		Reverse: reverseRoute,
 	}
 
+	r.Logger.Infof("%v ATTEMPT TO FIND %v", testhelpers.GetCaller(), raddr.PubKey)
+	for _, fct := range r.tm.Factories() {
+		switch tfct := fct.(type) {
+		case *transport.TCPFactory:
+			if ipAddr := tfct.PkTable.RemoteAddr(raddr.PubKey); ipAddr != "" {
+				r.Logger.Infof("%v PK %v FOUND", testhelpers.GetCaller(), raddr.PubKey)
+				if err := r.confirmTCPLoop(laddr, raddr); err != nil {
+					r.Logger.Warnf("%v r.ConfirmTCPLoop err: %v", testhelpers.GetCaller(), err)
+				}
+			}
+			return laddr, nil
+		}
+	}
+
 	proto, tr, err := r.setupProto(context.Background())
 	if err != nil {
 		r.Logger.Warnf("[Router.requestLoop] r.setupProto err: %v\n", err)
@@ -392,11 +466,31 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		return routing.Addr{}, fmt.Errorf("route setup: %s", err)
 	}
 
-	r.Logger.Infof("[Router.requestLoop] success. Created new loop to %s on port %d", raddr, laddr.Port)
+	r.Logger.Infof("%v success. Created new loop to %s on port %d", testhelpers.GetCaller(), raddr, laddr.Port)
 	return laddr, nil
 }
 
 func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
+	r.Logger.Info(testhelpers.Trace("ENTER"))
+	defer r.Logger.Info(testhelpers.Trace("EXIT"))
+
+	b, err := r.pm.Get(raddr.Port)
+	if err != nil {
+		return err
+	}
+
+	addrs := [2]routing.Addr{raddr, laddr}
+	if err = b.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Router) confirmTCPLoop(laddr, raddr routing.Addr) error {
+	r.Logger.Info(testhelpers.Trace("ENTER"))
+	defer r.Logger.Info(testhelpers.Trace("EXIT"))
+
 	b, err := r.pm.Get(raddr.Port)
 	if err != nil {
 		return err
@@ -411,6 +505,9 @@ func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
 }
 
 func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	b, err := r.pm.Get(l.Local.Port)
 	if err != nil {
 		return err
@@ -429,6 +526,9 @@ func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
 }
 
 func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
@@ -453,6 +553,9 @@ func (r *Router) closeLoop(appConn *app.Protocol, loop routing.Loop) error {
 }
 
 func (r *Router) loopClosed(loop routing.Loop) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	b, err := r.pm.Get(loop.Local.Port)
 	if err != nil {
 		return nil
@@ -471,6 +574,9 @@ func (r *Router) loopClosed(loop routing.Loop) error {
 }
 
 func (r *Router) destroyLoop(loop routing.Loop) error {
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
+
 	if r == nil {
 		return nil
 	}
@@ -490,21 +596,21 @@ func (r *Router) destroyLoop(loop routing.Loop) error {
 }
 
 func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
-	r.Logger.Infof("[Router.setupProto] for %v enter\n", r.config.TransportType)
+	r.Logger.Debug(testhelpers.Trace("ENTER"))
+	defer r.Logger.Debug(testhelpers.Trace("EXIT"))
 
 	if len(r.config.SetupNodes) == 0 {
 		r.Logger.Warn("[Router.setupProto] r.setupProto: route setup: no nodes ")
 		return nil, nil, errors.New("route setup: no nodes")
 	}
 
-	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], r.config.TransportType)
+	tr, err := r.tm.CreateSetupTransport(ctx, r.config.SetupNodes[0], dmsg.Type)
 	if err != nil {
 		r.Logger.Warnf("[Router.setupProto] r.setupProto  r.tm.CreateSetupTransport error:%v\n", err)
 		return nil, nil, fmt.Errorf("setup transport: %s", err)
 	}
 
 	sProto := setup.NewSetupProtocol(tr)
-	r.Logger.Infof("[Router.setupProto] success")
 	return sProto, tr, nil
 }
 

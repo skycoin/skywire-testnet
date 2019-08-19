@@ -16,6 +16,7 @@ import (
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -101,6 +102,9 @@ func Setup(config *Config) (*App, error) {
 
 // Close implements io.Closer for an App.
 func (app *App) Close() error {
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
 	if app == nil {
 		return nil
 	}
@@ -129,11 +133,16 @@ func (app *App) Close() error {
 // Accept awaits for incoming loop confirmation request from a Node and
 // returns net.Conn for received loop.
 func (app *App) Accept() (net.Conn, error) {
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
 	addrs := <-app.acceptChan
 	laddr := addrs[0]
 	raddr := addrs[1]
 
+	// TODO: Why is that?
 	loop := routing.Loop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	// loop := routing.Loop{laddr, raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
@@ -144,6 +153,9 @@ func (app *App) Accept() (net.Conn, error) {
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
 func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
 	var laddr routing.Addr
 	err := app.proto.Send(FrameCreateLoop, raddr, &laddr)
 	if err != nil {
@@ -175,10 +187,8 @@ func (app *App) handleProto() {
 		default:
 			err = errors.New("unexpected frame")
 		}
-
 		return res, err
 	})
-
 	if err != nil {
 		return
 	}
@@ -250,6 +260,9 @@ func (app *App) closeConn(data []byte) error {
 }
 
 func (app *App) confirmLoop(data []byte) error {
+	log.Debug(testhelpers.Trace("ENTER"))
+	defer log.Debug(testhelpers.Trace("EXIT"))
+
 	var addrs [2]routing.Addr
 	if err := json.Unmarshal(data, &addrs); err != nil {
 		return err

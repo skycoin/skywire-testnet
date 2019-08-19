@@ -47,7 +47,7 @@ func TestTransportManager(t *testing.T) {
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"mock"}, m1.Factories())
+	assert.Equal(t, []string{"mock"}, m1.FactoryTypes())
 
 	errCh := make(chan error)
 	go func() {
@@ -143,7 +143,7 @@ func TestTransportManagerReEstablishTransports(t *testing.T) {
 	f1, f2 := NewMockFactoryPair(pk1, pk2)
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"mock"}, m1.Factories())
+	assert.Equal(t, []string{"mock"}, m1.FactoryTypes())
 
 	m1.reconnectTransports(context.TODO())
 
@@ -208,7 +208,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	m1, err := NewManager(c1, f1)
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"mock"}, m1.Factories())
+	assert.Equal(t, []string{"mock"}, m1.FactoryTypes())
 
 	errCh := make(chan error)
 	go func() {

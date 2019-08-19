@@ -28,6 +28,7 @@ type MockFactory struct {
 	fType   string
 }
 
+
 // NewMockFactoryPair constructs a pair of MockFactories.
 func NewMockFactoryPair(local, remote cipher.PubKey) (*MockFactory, *MockFactory) {
 	var (

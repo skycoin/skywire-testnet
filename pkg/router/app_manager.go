@@ -6,6 +6,7 @@ import (
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -27,9 +28,14 @@ type appManager struct {
 }
 
 func (am *appManager) Serve() error {
+	am.Logger.Info(testhelpers.Trace("EXIT"))
+	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+
+	// Protocol.Serve loop start
 	return am.proto.Serve(func(frame app.Frame, payload []byte) (res interface{}, err error) {
 		am.Logger.WithField("payload", app.Payload{frame, payload}).
-			Infof("[appManager.Serve] Got new request")
+			Info(testhelpers.Trace("ENTER"))
+		defer am.Logger.Info(testhelpers.Trace("EXIT"))
 
 		switch frame {
 		case app.FrameInit:
@@ -45,7 +51,7 @@ func (am *appManager) Serve() error {
 		}
 
 		if err != nil {
-			am.Logger.Warnf("[appManager.Serve]: App request with type %s failed: %s", frame, err)
+			am.Logger.Warnf("%v: App request with type %s failed: %+v\n", testhelpers.GetCaller(), frame, err)
 		}
 
 		return res, err
@@ -75,6 +81,9 @@ func (am *appManager) initApp(payload []byte) error {
 }
 
 func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
+	am.Logger.Info(testhelpers.Trace("ENTER"))
+	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+
 	var raddr routing.Addr
 	if err := json.Unmarshal(payload, &raddr); err != nil {
 		return routing.Addr{}, err
@@ -84,6 +93,9 @@ func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {
+	am.Logger.Info(testhelpers.Trace("ENTER"))
+	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+
 	var loop routing.Loop
 	if err := json.Unmarshal(payload, &loop); err != nil {
 		return err
@@ -93,12 +105,13 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {
-	am.Logger.Info("[appMananger.forwardAppPacket] enter")
+	am.Logger.Info(testhelpers.Trace("ENTER"))
+	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+
 	packet := &app.Packet{}
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err
 	}
 
-	am.Logger.WithField("packet", packet).Info("[appMananger.forwardAppPacket] exit")
 	return am.router.ForwardAppPacket(am.proto, packet)
 }
