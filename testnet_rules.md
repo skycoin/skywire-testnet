@@ -286,6 +286,9 @@ The following hardware is accepted in the Skywire testnet:
      
 #### X96 Android TV Box
      - X96 mini
+     
+#### Dolamee 
+     - A95X F1 Smart TV Box
 
 **If you like to use other boards please contact the team first to be approved before you buy them, only the boards on the list are guaranteed to be whitelisted.**
 
