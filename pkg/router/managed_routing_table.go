@@ -34,11 +34,11 @@ func (rt *managedRoutingTable) Cleanup() error {
 	expiredIDs := make([]routing.RouteID, 0)
 	rt.mu.Lock()
 	err := rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Expiry().Before(time.Now()) {
-			if lastActivity, ok := rt.activity[routeID]; !ok || time.Since(lastActivity) > routeKeepalive {
-				expiredIDs = append(expiredIDs, routeID)
-			}
+		//if rule.Expiry().Before(time.Now()) {
+		if lastActivity, ok := rt.activity[routeID]; !ok || time.Since(lastActivity) > routeKeepalive {
+			expiredIDs = append(expiredIDs, routeID)
 		}
+		//}
 		return true
 	})
 	rt.mu.Unlock()
