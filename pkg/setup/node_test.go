@@ -172,9 +172,9 @@ func TestNode(t *testing.T) {
 
 			pt, _, err := proto.ReadPacket()
 			require.NoError(t, err)
-			require.Equal(t, PacketRequestRegistrationID, pt)
+			require.Equal(t, PacketRequestRouteID, pt)
 
-			fmt.Printf("client %v:%v got PacketRequestRegistrationID\n", client, clients[client].Addr)
+			fmt.Printf("client %v:%v got PacketRequestRouteID\n", client, clients[client].Addr)
 
 			routeID := atomic.AddUint32(&nextRouteID, 1)
 
