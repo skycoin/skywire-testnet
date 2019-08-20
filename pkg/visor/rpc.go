@@ -69,6 +69,16 @@ func (r *RPC) Health(_ *struct{}, out *HealthInfo) error {
 }
 
 /*
+	<<< NODE UPTIME >>>
+*/
+
+// Uptime returns for how long the visor has been running in seconds
+func (r *RPC) Uptime(_ *struct{}, out *float64) error {
+	*out = time.Since(r.node.startedAt).Seconds()
+	return nil
+}
+
+/*
 	<<< NODE SUMMARY >>>
 */
 

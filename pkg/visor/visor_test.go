@@ -24,7 +24,6 @@ import (
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 

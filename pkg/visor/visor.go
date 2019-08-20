@@ -105,6 +105,8 @@ type Node struct {
 	startedMu   sync.RWMutex
 	startedApps map[string]*appBind
 
+	startedAt time.Time
+
 	pidMu sync.Mutex
 
 	rpcListener net.Listener
@@ -221,6 +223,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
 	ctx := context.Background()
+	node.startedAt = time.Now()
 
 	pathutil.EnsureDir(node.dir())
 	node.closePreviousApps()

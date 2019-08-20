@@ -33,29 +33,30 @@ func (l *Listener) Accept() (net.Conn, error) {
 
 // Close closes the listener.
 func (l *Listener) Close() error {
-	closed := false
-	l.once.Do(func() {
-		closed = true
-		l.close()
-	})
-	if !closed {
-		return ErrClientClosed
+	if l.close() {
+		return nil
 	}
-	return nil
+	return ErrClientClosed
 }
 
-func (l *Listener) close() {
-	l.mx.Lock()
-	defer l.mx.Unlock()
-	close(l.done)
-	for {
-		select {
-		case <-l.accept:
-		default:
-			close(l.accept)
-			return
+func (l *Listener) close() (closed bool) {
+	l.once.Do(func() {
+		closed = true
+
+		l.mx.Lock()
+		defer l.mx.Unlock()
+
+		close(l.done)
+		for {
+			select {
+			case <-l.accept:
+			default:
+				close(l.accept)
+				return
+			}
 		}
-	}
+	})
+	return closed
 }
 
 func (l *Listener) isClosed() bool {

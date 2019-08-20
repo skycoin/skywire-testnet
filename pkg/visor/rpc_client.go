@@ -73,6 +73,13 @@ func (rc *rpcClient) Health() (*HealthInfo, error) {
 	return hi, err
 }
 
+// Uptime calls Uptime
+func (rc *rpcClient) Uptime() (float64, error) {
+	var out float64
+	err := rc.Call("Uptime", &struct{}{}, &out)
+	return out, err
+}
+
 // Apps calls Apps.
 func (rc *rpcClient) Apps() ([]*AppState, error) {
 	states := make([]*AppState, 0)
@@ -180,9 +187,10 @@ func (rc *rpcClient) Loops() ([]LoopInfo, error) {
 
 // MockRPCClient mocks RPCClient.
 type mockRPCClient struct {
-	s       *Summary
-	tpTypes []string
-	rt      routing.Table
+	startedAt time.Time
+	s         *Summary
+	tpTypes   []string
+	rt        routing.Table
 	sync.RWMutex
 }
 
@@ -278,6 +286,22 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 		return nil
 	})
 	return &out, err
+}
+
+// Health implements RPCClient
+func (mc *mockRPCClient) Health() (*HealthInfo, error) {
+	hi := &HealthInfo{
+		TransportDiscovery: 200,
+		RouteFinder:        200,
+		SetupNode:          200,
+	}
+
+	return hi, nil
+}
+
+// Uptime implements RPCClient
+func (mc *mockRPCClient) Uptime() (float64, error) {
+	return time.Since(mc.startedAt).Seconds(), nil
 }
 
 // Apps implements RPCClient.

@@ -38,6 +38,27 @@ func TestHealth(t *testing.T) {
 		assert.Equal(t, h.SetupNode, http.StatusOK)
 		assert.Equal(t, h.RouteFinder, http.StatusOK)
 	})
+
+	t.Run("Report as unavailable", func(t *testing.T) {
+		rpc := &RPC{&Node{config: &Config{}}}
+		h := &HealthInfo{}
+		err := rpc.Health(&struct{}{}, h)
+		require.NoError(t, err)
+
+		assert.Equal(t, h.TransportDiscovery, http.StatusInternalServerError)
+		assert.Equal(t, h.SetupNode, http.StatusInternalServerError)
+		assert.Equal(t, h.RouteFinder, http.StatusInternalServerError)
+	})
+}
+
+func TestUptime(t *testing.T) {
+	rpc := &RPC{&Node{startedAt: time.Now()}}
+	time.Sleep(time.Second)
+	var res float64
+	err := rpc.Uptime(&struct{}{}, &res)
+	require.NoError(t, err)
+
+	assert.Equal(t, res, time.Second)
 }
 
 func TestListApps(t *testing.T) {

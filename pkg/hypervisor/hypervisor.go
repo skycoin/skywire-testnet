@@ -131,6 +131,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.Post("/change-password", m.users.ChangePassword())
 			r.Get("/nodes", m.getNodes())
 			r.Get("/health", m.getHealth())
+			r.Get("/uptime", m.getUptime())
 			r.Get("/nodes/{pk}", m.getNode())
 			r.Get("/nodes/{pk}/apps", m.getApps())
 			r.Get("/nodes/{pk}/apps/{app}", m.getApp())
@@ -153,7 +154,8 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // VisorHealth represents a node's health report attached to it's pk for identification
 type VisorHealth struct {
-	PK cipher.PubKey `json:"pk"`
+	PK     cipher.PubKey `json:"pk"`
+	Status int           `json:"status"`
 	*visor.HealthInfo
 }
 
@@ -168,14 +170,26 @@ func (m *Node) getHealth() http.HandlerFunc {
 
 			hi, err := c.Client.Health()
 			if err != nil {
-				httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
-				return
+				vh.Status = http.StatusInternalServerError
+			} else {
+				vh.HealthInfo = hi
+				vh.Status = http.StatusOK
+				healthStatuses = append(healthStatuses, vh)
 			}
-
-			vh.HealthInfo = hi
-			healthStatuses = append(healthStatuses, vh)
 		}
+		m.mu.RUnlock()
+		httputil.WriteJSON(w, r, http.StatusOK, healthStatuses)
+	}
+}
 
+func (m *Node) getUptime() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m.mu.RLock()
+		for pk, c := range m.nodes {
+
+		}
+		m.mu.RUnlock()
+		httputil.WriteJSON(w, r, http.StatusOK, uptim)
 	}
 }
 

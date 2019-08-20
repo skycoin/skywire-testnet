@@ -80,8 +80,8 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
 # github.com/stretchr/testify v1.3.0
-github.com/stretchr/testify/require
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
 # go.etcd.io/bbolt v1.3.3
 go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
