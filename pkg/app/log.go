@@ -3,9 +3,9 @@ package app
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"time"
 
+	"encoding/binary"
 	"go.etcd.io/bbolt"
 )
 
@@ -13,7 +13,7 @@ import (
 type LogStore interface {
 
 	// Store saves given log in db
-	Store(t time.Time, string) error
+	Store(t time.Time, s string) error
 
 	// LogSince returns the logs since given timestamp. For optimal performance,
 	// the timestamp should exist in the store (you can get it from previous logs),
@@ -47,18 +47,30 @@ func newBoltDB(path, appName string) (LogStore, error) {
 	return &boltDBappLogs{db, b}, nil
 }
 
+// Store implements LogStore
+func (l *boltDBappLogs) Store(t time.Time, s string) error {
+	parsedTime := make([]byte, 16)
+	binary.BigEndian.PutUint64(parsedTime, uint64(t.UnixNano()))
+
+	return l.db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(l.bucket)
+		return b.Put(parsedTime, []byte(s))
+	})
+}
+
 // LogSince implements LogStore
 func (l *boltDBappLogs) LogsSince(t time.Time) ([]string, error) {
 	logs := make([]string, 0)
 
 	err := l.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(l.bucket)
-
+		parsedTime := make([]byte, 16)
+		binary.BigEndian.PutUint64(parsedTime, uint64(t.UnixNano()))
 		c := b.Cursor()
-		if k, _ := c.Seek([]byte(t.Format(time.RFC3339))); k != nil {
-			iterateFromKey(c, logs)
+		if k, _ := c.Seek(parsedTime); k != nil {
+			iterateFromKey(c, &logs)
 		} else {
-			iterateFromBeginning(c, t, logs)
+			iterateFromBeginning(c, parsedTime, &logs)
 		}
 
 		return nil
@@ -67,20 +79,22 @@ func (l *boltDBappLogs) LogsSince(t time.Time) ([]string, error) {
 	return logs, err
 }
 
-func iterateFromKey(c *bbolt.Cursor, logs []string) {
+func iterateFromKey(c *bbolt.Cursor, logs *[]string) {
 	for k, v := c.Next(); k != nil; k, v = c.Next() {
-		logs = append(logs, fmt.Sprintf("%s-%s", string(k), string(v)))
+		*logs = append(*logs, fmt.Sprintf("%s-%s", bytesToTime(k).UTC().Format(time.RFC3339Nano), string(v)))
 	}
 }
 
-func iterateFromBeginning(c *bbolt.Cursor, t time.Time, logs []string) {
-	parsedT := []byte(t.UTC().Format(time.RFC3339))
-
+func iterateFromBeginning(c *bbolt.Cursor, parsedTime []byte, logs *[]string) {
 	for k, v := c.First(); k != nil; k, v = c.Next() {
-		if bytes.Compare(parsedT, k) < 0 {
+		if bytes.Compare(parsedTime, k) < 0 {
 			continue
 		}
 
-		logs = append(logs, fmt.Sprintf("%s-%s", string(k), string(v)))
+		*logs = append(*logs, fmt.Sprintf("%s-%s", bytesToTime(k).UTC().Format(time.RFC3339Nano), string(v)))
 	}
+}
+
+func bytesToTime(b []byte) time.Time {
+	return time.Unix(int64(binary.BigEndian.Uint64(b)), 0)
 }
