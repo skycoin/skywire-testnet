@@ -278,6 +278,11 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		go func(i int, pk cipher.PubKey, rule routing.Rule, reqIDChIn <-chan routing.RouteID,
 			reqIDChOut chan<- routing.RouteID) {
 			routeID, err := sn.setupRule(cancellableCtx, pk, rule, reqIDChIn, reqIDChOut)
+			// adding rule for initiator must result with a route ID for the overall route
+			// it doesn't matter for now if there was an error, this result will be fetched only if there wasn't one
+			if i == 0 {
+				resultingRouteIDCh <- routeID
+			}
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
@@ -287,11 +292,6 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 				}
 
 				return
-			}
-
-			// adding rule for initiator must result with a route ID for the overall route
-			if i == 0 {
-				resultingRouteIDCh <- routeID
 			}
 
 			rulesSetupErrs <- nil
