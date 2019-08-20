@@ -122,8 +122,8 @@ func (rm *routeManager) handleSetupConn(conn net.Conn) error {
 		err = rm.confirmLoop(body)
 	case setup.PacketLoopClosed:
 		err = rm.loopClosed(body)
-	case setup.PacketRequestRegistrationID:
-		respBody, err = rm.occupyRegistrationID()
+	case setup.PacketRequestRouteID:
+		respBody, err = rm.occupyRouteID()
 	default:
 		err = errors.New("unknown foundation packet")
 	}
@@ -222,7 +222,7 @@ func (rm *routeManager) setRoutingRules(data []byte) error {
 	}
 
 	for _, rule := range rules {
-		routeID := rule.RegistrationID()
+		routeID := rule.RequestRouteID()
 		if err := rm.rt.SetRule(routeID, rule); err != nil {
 			return fmt.Errorf("routing table: %s", err)
 		}
@@ -307,7 +307,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 	return rm.conf.OnLoopClosed(ld.Loop)
 }
 
-func (rm *routeManager) occupyRegistrationID() ([]routing.RouteID, error) {
+func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
 	routeID, err := rm.rt.AddRule(nil)
 	if err != nil {
 		return nil, err

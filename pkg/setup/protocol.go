@@ -52,8 +52,8 @@ const (
 	PacketCloseLoop
 	// PacketLoopClosed represents OnLoopClosed foundation packet.
 	PacketLoopClosed
-	// PacketRequestRegistrationID represents RequestRouteID foundation packet.
-	PacketRequestRegistrationID
+	// PacketRequestRouteID represents RequestRouteID foundation packet.
+	PacketRequestRouteID
 
 	// RespFailure represents failure response for a foundation packet.
 	RespFailure = 0xfe
@@ -113,9 +113,9 @@ func (p *Protocol) Close() error {
 	return nil
 }
 
-// RequestRegistrationID sends RequestRegistrationID request.
-func RequestRegistrationID(ctx context.Context, p *Protocol) (routing.RouteID, error) {
-	if err := p.WritePacket(PacketRequestRegistrationID, nil); err != nil {
+// RequestRouteID sends RequestRouteID request.
+func RequestRouteID(ctx context.Context, p *Protocol) (routing.RouteID, error) {
+	if err := p.WritePacket(PacketRequestRouteID, nil); err != nil {
 		return 0, err
 	}
 	var res []routing.RouteID

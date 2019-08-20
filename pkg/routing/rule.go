@@ -101,15 +101,15 @@ func (r Rule) LocalPort() Port {
 	return Port(binary.BigEndian.Uint16(r[48:]))
 }
 
-// RegistrationID returns route ID which will be used to register this rule within
+// RequestRouteID returns route ID which will be used to register this rule within
 // the visor node.
-func (r Rule) RegistrationID() RouteID {
+func (r Rule) RequestRouteID() RouteID {
 	return RouteID(binary.BigEndian.Uint32(r[50:]))
 }
 
-// SetRegistrationID sets the route ID which will be used to register this rule within
+// SetRequestRouteID sets the route ID which will be used to register this rule within
 // the visor node.
-func (r Rule) SetRegistrationID(id RouteID) {
+func (r Rule) SetRequestRouteID(id RouteID) {
 	binary.BigEndian.PutUint32(r[50:], uint32(id))
 }
 
@@ -142,18 +142,18 @@ type RuleSummary struct {
 	Type           RuleType           `json:"rule_type"`
 	AppFields      *RuleAppFields     `json:"app_fields,omitempty"`
 	ForwardFields  *RuleForwardFields `json:"forward_fields,omitempty"`
-	RegistrationID RouteID            `json:"registration_id"`
+	RequestRouteID RouteID            `json:"request_route_id"`
 }
 
 // ToRule converts RoutingRuleSummary to RoutingRule.
 func (rs *RuleSummary) ToRule() (Rule, error) {
 	if rs.Type == RuleApp && rs.AppFields != nil && rs.ForwardFields == nil {
 		f := rs.AppFields
-		return AppRule(rs.ExpireAt, f.RespRID, f.RemotePK, f.RemotePort, f.LocalPort, rs.RegistrationID), nil
+		return AppRule(rs.ExpireAt, f.RespRID, f.RemotePK, f.RemotePort, f.LocalPort, rs.RequestRouteID), nil
 	}
 	if rs.Type == RuleForward && rs.AppFields == nil && rs.ForwardFields != nil {
 		f := rs.ForwardFields
-		return ForwardRule(rs.ExpireAt, f.NextRID, f.NextTID, rs.RegistrationID), nil
+		return ForwardRule(rs.ExpireAt, f.NextRID, f.NextTID, rs.RequestRouteID), nil
 	}
 	return nil, errors.New("invalid routing rule summary")
 }
@@ -163,7 +163,7 @@ func (r Rule) Summary() *RuleSummary {
 	summary := RuleSummary{
 		ExpireAt:       r.Expiry(),
 		Type:           r.Type(),
-		RegistrationID: r.RegistrationID(),
+		RequestRouteID: r.RequestRouteID(),
 	}
 	if summary.Type == RuleApp {
 		summary.AppFields = &RuleAppFields{
@@ -183,7 +183,7 @@ func (r Rule) Summary() *RuleSummary {
 
 // AppRule constructs a new consume RoutingRule.
 func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remotePort, localPort Port,
-	registrationID RouteID) Rule {
+	requestRouteID RouteID) Rule {
 	rule := make([]byte, RuleHeaderSize)
 	if expireAt.Unix() <= time.Now().Unix() {
 		binary.BigEndian.PutUint64(rule[0:], 0)
@@ -197,12 +197,12 @@ func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remo
 	rule = append(rule, 0, 0, 0, 0, 0, 0, 0, 0)
 	binary.BigEndian.PutUint16(rule[46:], uint16(remotePort))
 	binary.BigEndian.PutUint16(rule[48:], uint16(localPort))
-	binary.BigEndian.PutUint32(rule[50:], uint32(registrationID))
+	binary.BigEndian.PutUint32(rule[50:], uint32(requestRouteID))
 	return Rule(rule)
 }
 
 // ForwardRule constructs a new forward RoutingRule.
-func ForwardRule(expireAt time.Time, nextRoute RouteID, nextTrID uuid.UUID, registrationID RouteID) Rule {
+func ForwardRule(expireAt time.Time, nextRoute RouteID, nextTrID uuid.UUID, requestRouteID RouteID) Rule {
 	rule := make([]byte, RuleHeaderSize)
 	if expireAt.Unix() <= time.Now().Unix() {
 		binary.BigEndian.PutUint64(rule[0:], 0)
@@ -214,6 +214,6 @@ func ForwardRule(expireAt time.Time, nextRoute RouteID, nextTrID uuid.UUID, regi
 	binary.BigEndian.PutUint32(rule[9:], uint32(nextRoute))
 	rule = append(rule, nextTrID[:]...)
 	rule = append(rule, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-	binary.BigEndian.PutUint32(rule[50:], uint32(registrationID))
+	binary.BigEndian.PutUint32(rule[50:], uint32(requestRouteID))
 	return Rule(rule)
 }

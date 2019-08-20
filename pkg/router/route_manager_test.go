@@ -108,7 +108,7 @@ func TestNewRouteManager(t *testing.T) {
 			}()
 
 			// Emulate SetupNode sending RequestRegistrationID request.
-			id, err := setup.RequestRegistrationID(context.TODO(), setup.NewSetupProtocol(requestIDIn))
+			id, err := setup.RequestRouteID(context.TODO(), setup.NewSetupProtocol(requestIDIn))
 			require.NoError(t, err)
 
 			// Emulate SetupNode sending AddRule request.
