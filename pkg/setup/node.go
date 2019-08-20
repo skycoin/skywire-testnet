@@ -255,7 +255,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 	resultingRouteIDCh := make(chan routing.RouteID, 2)
 
 	// context to cancel rule setup in case of errors
-	ctx, cancel := context.WithCancel(context.Background())
+	cancellableCtx, cancel := context.WithCancel(ctx)
 	for i := len(r) - 1; i >= 0; i-- {
 		var reqIDChIn, reqIDChOut chan routing.RouteID
 		// goroutine[0] doesn't need to pass the route ID from the 1st step to anyone
@@ -277,7 +277,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 
 		go func(i int, pk cipher.PubKey, rule routing.Rule, reqIDChIn <-chan routing.RouteID,
 			reqIDChOut chan<- routing.RouteID) {
-			routeID, err := sn.setupRule(ctx, pk, rule, reqIDChIn, reqIDChOut)
+			routeID, err := sn.setupRule(cancellableCtx, pk, rule, reqIDChIn, reqIDChOut)
 			if err != nil {
 				// filter out context cancellation errors
 				if err == context.Canceled {
