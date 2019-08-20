@@ -218,7 +218,7 @@ func (sn *Node) createLoop(ctx context.Context, ld routing.LoopDescriptor) error
 // - Rule[N] has `respRouteID/nextRouteID` equal to 0;
 // Rule[0..N] use their route ID retrieved from the 1st step to be registered within the corresponding visor node.
 //
-// During the setup process each error received along the way causes all the procedure to be cancelled. RouteID received
+// During the setup process each error received along the way causes all the procedure to be canceled. RouteID received
 // from the 1st step connecting to the initiating node is used as the ID for the overall rule, thus being returned.
 func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routing.Route, rport, lport routing.Port) (routing.RouteID, error) {
 	if len(route) == 0 {

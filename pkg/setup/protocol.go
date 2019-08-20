@@ -159,7 +159,7 @@ func CreateLoop(ctx context.Context, p *Protocol, ld routing.LoopDescriptor) err
 	return readAndDecodePacketWithTimeout(ctx, p, nil) // TODO: data race.
 }
 
-// OnConfirmLoop sends OnConfirmLoop setup request.
+// ConfirmLoop sends OnConfirmLoop setup request.
 func ConfirmLoop(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketConfirmLoop, ld); err != nil {
 		return err
@@ -175,7 +175,7 @@ func CloseLoop(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	return readAndDecodePacketWithTimeout(ctx, p, nil)
 }
 
-// OnLoopClosed sends OnLoopClosed setup request.
+// LoopClosed sends LoopClosed setup request.
 func LoopClosed(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketLoopClosed, ld); err != nil {
 		return err
