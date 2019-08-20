@@ -319,6 +319,9 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		return 0, rulesSetupErr
 	}
 
+	// value gets passed to the chan only if no errors occurred during the route establishment
+	// errors are being filtered above, so at the moment we get to this part, the value is
+	// guaranteed to be in the channel
 	routeID := <-resultingRouteIDCh
 	close(resultingRouteIDCh)
 
