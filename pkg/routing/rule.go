@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unsafe"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
@@ -36,14 +37,59 @@ const (
 	RuleForward
 )
 
+var bigEndian bool
+
+func init() {
+	var x uint32 = 0x01020304
+	if *(*byte)(unsafe.Pointer(&x)) == 0x04 {
+		bigEndian = false
+	}
+}
+
+func putInt64BigEndian(b []byte, v int64) {
+	_ = b[7] // bounds check hint to compiler; see golang.org/issue/14808
+
+	data := *(*[8]byte)(unsafe.Pointer(&v))
+
+	if !bigEndian {
+		b[0] = data[7]
+		b[1] = data[6]
+		b[2] = data[5]
+		b[3] = data[4]
+		b[4] = data[3]
+		b[5] = data[2]
+		b[6] = data[1]
+		b[7] = data[0]
+	} else {
+		b[0] = data[0]
+		b[1] = data[1]
+		b[2] = data[2]
+		b[3] = data[3]
+		b[4] = data[4]
+		b[5] = data[5]
+		b[6] = data[6]
+		b[7] = data[7]
+	}
+}
+
+func readInt64BigEndian(b []byte) int64 {
+	_ = b[7] // bounds check hint to compiler; see golang.org/issue/14808
+
+	if bigEndian {
+		return *(*int64)(unsafe.Pointer(&b[0]))
+	} else {
+		bRev := [8]byte{b[7], b[6], b[5], b[4], b[3], b[2], b[1], b[0]}
+		return *(*int64)(unsafe.Pointer(&bRev[0]))
+	}
+}
+
 // Rule represents a routing rule.
 // There are two types of routing rules; App and Forward.
 //
 type Rule []byte
 
-// Expiry returns rule's expiration time.
-func (r Rule) Expiry() time.Time {
-	ts := binary.BigEndian.Uint64(r)
+// KeepAlive returns rule's keep-alive timeout.
+func (r Rule) KeepAlive() time.Duration {
 	return time.Unix(int64(ts), 0)
 }
 
