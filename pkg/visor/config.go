@@ -48,6 +48,10 @@ type Config struct {
 		} `json:"table"`
 	} `json:"routing"`
 
+	Uptime struct {
+		Tracker string `json:"tracker"`
+	} `json:"uptime"`
+
 	Apps []AppConfig `json:"apps"`
 
 	TrustedNodes []cipher.PubKey    `json:"trusted_nodes"`
