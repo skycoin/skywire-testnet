@@ -346,7 +346,7 @@ func (node *Node) Close() (err error) {
 // Exec executes a shell command. It returns combined stdout and stderr output and an error.
 func (node *Node) Exec(command string) ([]byte, error) {
 	args := strings.Split(command, " ")
-	cmd := exec.Command(args[0], args[1:]...)
+	cmd := exec.Command(args[0], args[1:]...) // nolint: gosec
 	return cmd.CombinedOutput()
 }
 
