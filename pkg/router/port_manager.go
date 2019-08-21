@@ -4,24 +4,44 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
+
+	th "github.com/skycoin/skywire/internal/testhelpers"
 )
 
+// var (
+// 	logger = logging.MustGetLogger("router")
+// 	debug  = logger.Debug
+// )
+
 type portManager struct {
-	ports *portList
+	ports  *portList
+	logger *logging.Logger
 }
 
-func newPortManager(minPort routing.Port) *portManager {
-	return &portManager{newPortList(minPort)}
+func (pm *portManager) debug(args ...interface{}) {
+	pm.logger.Debug(args)
+}
+
+func newPortManager(minPort routing.Port, logger *logging.Logger) *portManager {
+	return &portManager{newPortList(minPort), logger}
 }
 
 func (pm *portManager) Alloc(conn *app.Protocol) routing.Port {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	b := &portBind{conn, newLoopList()}
 	return pm.ports.add(b)
 }
 
 func (pm *portManager) Open(port routing.Port, proto *app.Protocol) error {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	if pm.ports.get(port) != nil {
 		return fmt.Errorf("port %d is already bound", port)
 	}
@@ -31,6 +51,9 @@ func (pm *portManager) Open(port routing.Port, proto *app.Protocol) error {
 }
 
 func (pm *portManager) SetLoop(port routing.Port, raddr routing.Addr, l *loop) error {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	b := pm.ports.get(port)
 	if b == nil {
 		return errors.New("port is not bound")
@@ -41,6 +64,9 @@ func (pm *portManager) SetLoop(port routing.Port, raddr routing.Addr, l *loop) e
 }
 
 func (pm *portManager) AppConns() []*app.Protocol {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	res := make([]*app.Protocol, 0)
 	set := map[*app.Protocol]struct{}{}
 	for _, bind := range pm.ports.all() {
@@ -53,6 +79,9 @@ func (pm *portManager) AppConns() []*app.Protocol {
 }
 
 func (pm *portManager) AppPorts(appConn *app.Protocol) []routing.Port {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	res := make([]routing.Port, 0)
 	for port, bind := range pm.ports.all() {
 		if bind.conn == appConn {
@@ -63,6 +92,9 @@ func (pm *portManager) AppPorts(appConn *app.Protocol) []routing.Port {
 }
 
 func (pm *portManager) Close(port routing.Port) []routing.Addr {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	if pm == nil {
 		return nil
 	}
@@ -76,6 +108,9 @@ func (pm *portManager) Close(port routing.Port) []routing.Addr {
 }
 
 func (pm *portManager) RemoveLoop(port routing.Port, raddr routing.Addr) error {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	b, err := pm.Get(port)
 	if err != nil {
 		return err
@@ -86,6 +121,9 @@ func (pm *portManager) RemoveLoop(port routing.Port, raddr routing.Addr) error {
 }
 
 func (pm *portManager) Get(port routing.Port) (*portBind, error) {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	b := pm.ports.get(port)
 	if b == nil {
 		return nil, errors.New("port is not bound")
@@ -95,6 +133,9 @@ func (pm *portManager) Get(port routing.Port) (*portBind, error) {
 }
 
 func (pm *portManager) GetLoop(localPort routing.Port, remoteAddr routing.Addr) (*loop, error) {
+	pm.debug(th.Trace("ENTER"))
+	defer pm.debug(th.Trace("EXIT"))
+
 	b, err := pm.Get(localPort)
 	if err != nil {
 		return nil, err

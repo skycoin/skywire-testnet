@@ -30,13 +30,13 @@ func Example_transport_TCPFactory() {
 	ipA := "skyhost_001:9119"
 	ipB := "skyhost_002:9119"
 
-	addrA, _ := net.ResolveTCPAddr("tcp", ipA)
+	addrA, _ := net.ResolveTCPAddr("tcp", ipA) //nolint: errcheck
 	lsnA, err := net.ListenTCP("tcp", addrA)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	addrB, _ := net.ResolveTCPAddr("tcp", ipB)
+	addrB, _ := net.ResolveTCPAddr("tcp", ipB) //nolint: errcheck
 	lsnB, err := net.ListenTCP("tcp", addrB)
 	if err != nil {
 		fmt.Println(err)
@@ -67,7 +67,6 @@ func Example_transport_TCPFactory() {
 			return
 		}
 		fmt.Printf("Write success: %v\n", err == nil)
-		return
 	}()
 
 	go func() {
@@ -85,7 +84,7 @@ func Example_transport_TCPFactory() {
 			fmt.Printf("Read err: %v\n", err)
 		}
 
-		fmt.Printf("Message recieved: %s\n", buf)
+		fmt.Printf("Message received: %s\n", buf)
 	}()
 	wg.Wait()
 
@@ -94,7 +93,7 @@ func Example_transport_TCPFactory() {
 	// Unordered output: Accept success: true
 	// Write success: true
 	// Dial success: true
-	// Message recieved: Hallo!
+	// Message received: Hallo!
 	// Finish
 }
 
@@ -239,7 +238,7 @@ func Example_transport_FilePubKeyTable() {
 			fmt.Sprintf("%s\t%s\n", pkB, ipB))
 	fmt.Printf("pubkeys:\n%v", pkFileContent)
 
-	tmpfile, _ := ioutil.TempFile("", "pktable")
+	tmpfile, _ := ioutil.TempFile("", "pktable") //nolint: errcheck
 
 	_, err := tmpfile.Write([]byte(pkFileContent))
 	fmt.Printf("Write file success: %v\n", err == nil)

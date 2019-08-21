@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+
+	th "github.com/skycoin/skywire/internal/testhelpers"
 )
 
 // ManagerConfig configures a Manager.
@@ -212,14 +214,17 @@ func (tm *Manager) Serve(ctx context.Context) error {
 
 // CreateSetupTransport begins to attempt to establish setup transports to the given 'remote' node.
 func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKey, tpType string) (Transport, error) {
+	tm.Logger.Debug(th.Trace("ENTER"))
+	defer tm.Logger.Debug(th.Trace("EXIT"))
+
 	factory, ok := tm.factories[tpType]
 	if !ok {
-		tm.Logger.Warn("Manager.CreateSetupTransport err: unknown transport type")
-		return nil, errors.New("unknown transport type")
+		tm.Logger.Warnf("%v err: unknown transport type: %v", th.GetCaller(), tpType)
+		return nil, fmt.Errorf("unknown transport type %v", tpType)
 	}
 	tr, err := factory.Dial(ctx, remote)
 	if err != nil {
-		tm.Logger.Warnf("Manager.CreateSetupTransport factory.Dial err: %v\n", err)
+		tm.Logger.Warnf("%v factory.Dial err: %v\n", th.GetCaller(), err)
 		return nil, err
 	}
 	tm.Logger.Infof("Dialed to setup node %s using %s factory.", remote, tpType)
@@ -228,6 +233,9 @@ func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKe
 
 // CreateDataTransport begins to attempt to establish data transports to the given 'remote' node.
 func (tm *Manager) CreateDataTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
+	tm.Logger.Debug(th.Trace("ENTER"))
+	defer tm.Logger.Debug(th.Trace("EXIT"))
+
 	factory, ok := tm.factories[tpType]
 	if !ok {
 		return nil, errors.New("unknown transport type")
@@ -243,7 +251,7 @@ func (tm *Manager) CreateDataTransport(ctx context.Context, remote cipher.PubKey
 		oldTr.killWorker()
 	}
 
-	tm.Logger.Infof("Dialed to %s using %s factory. Transport ID: %s", remote, tpType, entry.ID)
+	tm.Logger.Infof("%v: Dialed to %s using %s factory. Transport ID: %s", th.GetCaller(), remote, tpType, entry.ID)
 	mTr := newManagedTransport(tr, *entry, false)
 
 	tm.mu.Lock()
@@ -319,6 +327,9 @@ func (tm *Manager) Close() error {
 }
 
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
+	tm.Logger.Debug(th.Trace("ENTER"))
+	defer tm.Logger.Debug(th.Trace("EXIT"))
+
 	if tm.isClosing() {
 		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/setup"
@@ -120,7 +120,7 @@ func TestRouterCloseLoop(t *testing.T) {
 	require.Nil(t, rule)
 
 	require.NoError(t,
-		testhelpers.NoErrorWithinTimeoutN(serveErrCh, serveAppErrCh, protoServeErrCh))
+		th.NoErrorWithinTimeoutN(serveErrCh, serveAppErrCh, protoServeErrCh))
 }
 
 func TestRouterCloseLoopOnAppClose(t *testing.T) {
@@ -218,5 +218,9 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, rule)
 
-	require.NoError(t, testhelpers.NoErrorWithinTimeoutN(serveErrCh, serveAppErrCh, protoServeErrCh))
+	require.NoError(t,
+		th.NoErrorWithinTimeoutN(
+			serveErrCh,
+			serveAppErrCh,
+			protoServeErrCh))
 }

@@ -22,7 +22,7 @@ import (
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
@@ -107,6 +107,7 @@ type Node struct {
 	startedApps map[string]*appBind
 
 	pidMu sync.Mutex
+	once  sync.Once
 
 	rpcListener net.Listener
 	rpcDialers  []*noise.RPCClientDialer
@@ -180,7 +181,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
 		DefaultNodes:    config.TrustedNodes,
-		Logger:          masterLogger.PackageLogger("tr-manager"),
+		Logger:          masterLogger.PackageLogger("trmanager"),
 	}
 
 	appProto.Logger = masterLogger.PackageLogger("app")
@@ -192,7 +193,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 	if err != nil {
 		return nil, fmt.Errorf("transport manager: %s", err)
 	}
-	node.tm.Logger = node.Logger.PackageLogger("trmanager")
+	// node.tm.Logger = node.Logger.PackageLogger("trmanager")
 	node.tm.SetSetupNodes(config.Routing.SetupNodes)
 
 	node.rt, err = config.RoutingTable()
@@ -254,8 +255,8 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
-	node.logger.Debug(testhelpers.Trace("ENTER"))
-	defer node.logger.Debug(testhelpers.Trace("ENTER"))
+	node.logger.Debug(th.Trace("ENTER"))
+	defer node.logger.Debug(th.Trace("ENTER"))
 
 	ctx := context.Background()
 
@@ -372,35 +373,39 @@ func (node *Node) Close() (err error) {
 	if node == nil {
 		return nil
 	}
-	if node.rpcListener != nil {
-		if err = node.rpcListener.Close(); err != nil {
-			node.logger.WithError(err).Error("failed to stop RPC interface")
-		} else {
-			node.logger.Info("RPC interface stopped successfully")
+	var closeErr error
+	node.once.Do(func() {
+		if node.rpcListener != nil {
+			if err = node.rpcListener.Close(); err != nil {
+				node.logger.WithError(err).Error("failed to stop RPC interface")
+			} else {
+				node.logger.Info("RPC interface stopped successfully")
+			}
 		}
-	}
-	for i, dialer := range node.rpcDialers {
-		if err = dialer.Close(); err != nil {
-			node.logger.WithError(err).Errorf("(%d) failed to stop RPC dialer", i)
-		} else {
-			node.logger.Infof("(%d) RPC dialer closed successfully", i)
+		for i, dialer := range node.rpcDialers {
+			if err = dialer.Close(); err != nil {
+				node.logger.WithError(err).Errorf("(%d) failed to stop RPC dialer", i)
+			} else {
+				node.logger.Infof("(%d) RPC dialer closed successfully", i)
+			}
 		}
-	}
-	node.startedMu.Lock()
-	for a, bind := range node.startedApps {
-		if err = node.stopApp(a, bind); err != nil {
-			node.logger.WithError(err).Errorf("(%s) failed to stop app", a)
-		} else {
-			node.logger.Infof("(%s) app stopped successfully", a)
+		node.startedMu.Lock()
+		for a, bind := range node.startedApps {
+			if err = node.stopApp(a, bind); err != nil {
+				node.logger.WithError(err).Errorf("(%s) failed to stop app", a)
+			} else {
+				node.logger.Infof("(%s) app stopped successfully", a)
+			}
 		}
-	}
-	node.startedMu.Unlock()
-	if err = node.router.Close(); err != nil {
-		node.logger.WithError(err).Error("failed to stop router")
-	} else {
-		node.logger.Info("router stopped successfully")
-	}
-	return err
+		node.startedMu.Unlock()
+		if closeErr = node.router.Close(); closeErr != nil {
+			node.logger.WithError(err).Error("failed to stop router")
+		} else {
+			node.logger.Info("router stopped successfully")
+		}
+
+	})
+	return closeErr
 }
 
 // Apps returns list of AppStates for all registered apps.

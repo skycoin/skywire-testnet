@@ -17,7 +17,7 @@ import (
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -56,6 +56,9 @@ type App struct {
 // Command setups pipe connection and returns *exec.Cmd for an App
 // with initialized connection.
 func Command(config *Config, appsPath string, args []string) (net.Conn, *exec.Cmd, error) {
+	log.Printf(th.Trace("ENTER"))
+	defer log.Printf(th.Trace("EXIT"))
+
 	srvConn, clientConn, err := OpenPipeConn()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open piped connection: %s", err)
@@ -103,8 +106,8 @@ func Setup(config *Config) (*App, error) {
 
 // Close implements io.Closer for an App.
 func (app *App) Close() error {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
 
 	if app == nil {
 		return nil
@@ -134,16 +137,16 @@ func (app *App) Close() error {
 // Accept awaits for incoming loop confirmation request from a Node and
 // returns net.Conn for received loop.
 func (app *App) Accept() (net.Conn, error) {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
 
 	addrs := <-app.acceptChan
 	laddr := addrs[0]
 	raddr := addrs[1]
 
 	// TODO: Why is that?
-	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
-	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
+	// loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	loop := routing.AddrLoop{Local: laddr, Remote: raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
@@ -154,8 +157,10 @@ func (app *App) Accept() (net.Conn, error) {
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
 func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
+
+	log.Debugf("%v CALLERS: %v\n", th.GetCaller(), th.GetCallers(3))
 
 	var laddr routing.Addr
 	err := app.proto.Send(FrameCreateLoop, raddr, &laddr)
@@ -164,8 +169,8 @@ func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
 	}
 
 	// TODO: Why is that way?
-	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
-	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
+	// loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	loop := routing.AddrLoop{Local: laddr, Remote: raddr}
 
 	conn, out := net.Pipe()
 	app.mu.Lock()
@@ -181,8 +186,8 @@ func (app *App) Addr() net.Addr {
 }
 
 func (app *App) protoHandler(frame Frame, payload []byte) (res interface{}, err error) {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
 
 	switch frame {
 	case FrameConfirmLoop:
@@ -198,6 +203,9 @@ func (app *App) protoHandler(frame Frame, payload []byte) (res interface{}, err 
 }
 
 func (app *App) handleProto() {
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
+
 	err := app.proto.Serve(app.protoHandler)
 	if err != nil {
 		return
@@ -205,8 +213,10 @@ func (app *App) handleProto() {
 }
 
 func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
+
+	log.Debugf("%v  loop: %v conn: %T\n", th.GetCaller(), loop, conn)
 
 	var cntr uint64
 
@@ -218,7 +228,7 @@ func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
 
 	for {
 		atomic.AddUint64(&cntr, 1)
-		log.Debugf("%v CYCLE %03d START", testhelpers.GetCaller(), cntr)
+		log.Debugf("%v CYCLE %03d START", th.GetCaller(), cntr)
 
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
@@ -243,8 +253,8 @@ func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
 }
 
 func (app *App) forwardPacket(data []byte) error {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
 
 	packet := &Packet{}
 	if err := json.Unmarshal(data, packet); err != nil {
@@ -264,8 +274,8 @@ func (app *App) forwardPacket(data []byte) error {
 }
 
 func (app *App) closeConn(data []byte) error {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
 
 	var loop routing.AddrLoop
 	if err := json.Unmarshal(data, &loop); err != nil {
@@ -284,8 +294,8 @@ func (app *App) closeConn(data []byte) error {
 }
 
 func (app *App) confirmLoop(data []byte) error {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("EXIT"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
 
 	var addrs [2]routing.Addr
 	if err := json.Unmarshal(data, &addrs); err != nil {

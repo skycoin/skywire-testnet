@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,7 +15,7 @@ import (
 )
 
 func TestPortManager(t *testing.T) {
-	pm := newPortManager(10)
+	pm := newPortManager(10, logging.MustGetLogger("portmanager"))
 
 	in, _ := net.Pipe()
 	proto := app.NewProtocol(in)

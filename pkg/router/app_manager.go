@@ -6,7 +6,7 @@ import (
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -18,13 +18,12 @@ type appManager struct {
 	router  PacketRouter
 	proto   *app.Protocol
 	appConf *app.Config
-	// callbacks *appCallbacks
 }
 
 func (am *appManager) serveHandler(frame app.Frame, payload []byte) (res interface{}, err error) {
-	am.Logger.WithField("payload", app.Payload{frame, payload}).
-		Info(testhelpers.Trace("ENTER"))
-	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+	am.Logger.WithField("payload", app.Payload{Frame: frame, Data: payload}).
+		Debug(th.Trace("ENTER"))
+	defer am.Logger.Debug(th.Trace("EXIT"))
 
 	switch frame {
 	case app.FrameInit:
@@ -40,19 +39,23 @@ func (am *appManager) serveHandler(frame app.Frame, payload []byte) (res interfa
 	}
 
 	if err != nil {
-		am.Logger.Warnf("%v: App request with type %s failed: %+v\n", testhelpers.GetCaller(), frame, err)
+		am.Logger.Warnf("%v: App request with type %s failed: %+v\n", th.GetCaller(), frame, err)
 	}
 
 	return res, err
 }
 
 func (am *appManager) Serve() error {
-	am.Logger.Info(testhelpers.Trace("EXIT"))
-	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+	am.Logger.Debug(th.Trace("ENTER"))
+	defer am.Logger.Debug(th.Trace("EXIT"))
+
 	return am.proto.Serve(am.serveHandler)
 }
 
 func (am *appManager) initApp(payload []byte) error {
+	am.Logger.Debug(th.Trace("ENTER"))
+	defer am.Logger.Debug(th.Trace("EXIT"))
+
 	var config app.Config
 	if err := json.Unmarshal(payload, &config); err != nil {
 		return errors.New("invalid Init payload")
@@ -75,8 +78,8 @@ func (am *appManager) initApp(payload []byte) error {
 }
 
 func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
-	am.Logger.Info(testhelpers.Trace("ENTER"))
-	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+	am.Logger.Debug(th.Trace("ENTER"))
+	defer am.Logger.Debug(th.Trace("EXIT"))
 
 	var raddr routing.Addr
 	if err := json.Unmarshal(payload, &raddr); err != nil {
@@ -87,8 +90,8 @@ func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {
-	am.Logger.Info(testhelpers.Trace("ENTER"))
-	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+	am.Logger.Debug(th.Trace("ENTER"))
+	defer am.Logger.Debug(th.Trace("EXIT"))
 
 	var loop routing.AddrLoop
 	if err := json.Unmarshal(payload, &loop); err != nil {
@@ -99,13 +102,14 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {
-	am.Logger.Info(testhelpers.Trace("ENTER"))
-	defer am.Logger.Info(testhelpers.Trace("EXIT"))
+	am.Logger.Debug(th.Trace("ENTER"))
+	defer am.Logger.Debug(th.Trace("EXIT"))
 
 	packet := &app.Packet{}
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err
 	}
+	am.Logger.Debugf("%v: %v\n", th.GetCaller(), packet)
 
 	return am.router.ForwardAppPacket(am.proto, packet)
 }

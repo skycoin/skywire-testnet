@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -147,7 +147,7 @@ func TestRouterAppInit(t *testing.T) {
 
 	require.NoError(t, proto.Close())
 	require.NoError(t, r.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeoutN(serveErrCh, errCh))
+	require.NoError(t, th.NoErrorWithinTimeoutN(serveErrCh, errCh))
 }
 
 func TestRouterApp(t *testing.T) {
@@ -241,11 +241,13 @@ func TestRouterApp(t *testing.T) {
 
 	require.NoError(t, r.Close())
 	require.NoError(t, <-errCh)
-
 	require.NoError(t, m2.Close())
-
 	require.NoError(t,
-		testhelpers.NoErrorWithinTimeoutN(trServeErrCh, protoServeErrCh, sendErrCh, serveAppErrCh))
+		th.NoErrorWithinTimeoutN(
+			trServeErrCh,
+			protoServeErrCh,
+			sendErrCh,
+			serveAppErrCh))
 
 }
 
@@ -317,7 +319,13 @@ func TestRouterLocalApp(t *testing.T) {
 
 	require.NoError(t, r.Close())
 	require.NoError(t,
-		testhelpers.NoErrorWithinTimeoutN(errCh, protoServeErr1Ch, protoServeErr2Ch, sendErrCh, serveAppErr1Ch, serveAppErr2Ch))
+		th.NoErrorWithinTimeoutN(
+			errCh,
+			protoServeErr1Ch,
+			protoServeErr2Ch,
+			sendErrCh,
+			serveAppErr1Ch,
+			serveAppErr2Ch))
 }
 
 func TestRouterRouteExpiration(t *testing.T) {
@@ -354,5 +362,5 @@ func TestRouterRouteExpiration(t *testing.T) {
 	assert.Equal(t, 0, rt.Count())
 	require.NoError(t, r.Close())
 
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, th.NoErrorWithinTimeout(serveErrCh))
 }

@@ -12,7 +12,8 @@ import (
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/internal/testhelpers"
+
+	th "github.com/skycoin/skywire/internal/testhelpers"
 )
 
 // ErrUnknownRemote returned for connection attempts for remotes
@@ -29,8 +30,8 @@ type TCPFactory struct {
 
 // NewTCPFactory constructs a new TCP Factory
 func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string, logger *logging.Logger) (Factory, error) {
-	logger.Debug(testhelpers.Trace("ENTER"))
-	defer logger.Debug(testhelpers.Trace("EXIT"))
+	logger.Debug(th.Trace("ENTER"))
+	defer logger.Debug(th.Trace("EXIT"))
 
 	pkTbl, err := FilePubKeyTable(pubkeysFile)
 	if err != nil {
@@ -51,12 +52,10 @@ func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string, logger 
 	return &TCPFactory{pk, pkTbl, tcpListener, logger}, nil
 }
 
-var _TR = testhelpers.Trace
-
 // Accept accepts a remotely-initiated Transport.
 func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
-	f.Logger.Info(_TR("ENTER"))
-	defer f.Logger.Info(_TR("EXIT"))
+	f.Logger.Debug(th.Trace("ENTER"))
+	defer f.Logger.Debug(th.Trace("EXIT"))
 
 	conn, err := f.Lsr.AcceptTCP()
 	if err != nil {
@@ -78,8 +77,8 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 
 // Dial initiates a Transport with a remote node.
 func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
-	f.Logger.Info(_TR("ENTER"))
-	defer f.Logger.Info(_TR("EXIT"))
+	f.Logger.Debug(th.Trace("ENTER"))
+	defer f.Logger.Debug(th.Trace("EXIT"))
 
 	addr := f.PkTable.RemoteAddr(remote)
 	if addr == "" {
@@ -101,7 +100,7 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 	locAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%v:%v", lsnAddr.IP.String(), "0"))
 	if err != nil {
 		f.Logger.Warnf("[TCPFactory.Dial] net.ResolveTCPAddr_locAddr err: %v\n", err)
-		net.ResolveTCPAddr("tcp", f.Lsr.Addr().String())
+		// net.ResolveTCPAddr("tcp", f.Lsr.Addr().String())
 		return nil, fmt.Errorf("error in constructing local address ")
 	}
 
@@ -116,8 +115,8 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 
 // Close implements io.Closer
 func (f *TCPFactory) Close() error {
-	f.Logger.Debug(testhelpers.Trace("ENTER"))
-	defer f.Logger.Debug(testhelpers.Trace("EXIT"))
+	f.Logger.Debug(th.Trace("ENTER"))
+	defer f.Logger.Debug(th.Trace("EXIT"))
 
 	if f == nil {
 		return nil
@@ -211,6 +210,9 @@ type filePKTable struct {
 
 // FilePubKeyTable returns file based implementation of the PubKeyTable.
 func FilePubKeyTable(dbFile string) (PubKeyTable, error) {
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("EXIT"))
+
 	path, err := filepath.Abs(dbFile)
 	if err != nil {
 		return nil, err

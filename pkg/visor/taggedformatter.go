@@ -6,15 +6,18 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/internal/testhelpers"
+
+	th "github.com/skycoin/skywire/internal/testhelpers"
 )
 
 // TaggedFormatter appends tag to log records and substitutes text
 type TaggedFormatter struct {
 	tag  []byte
-	subs []struct{ old, new []byte }
+	subs []bytesub
 	*logging.TextFormatter
 }
+type strsub struct{ old, new string }
+type bytesub struct{ old, new []byte }
 
 // Format executes formatting of TaggedFormatter
 func (tf *TaggedFormatter) Format(entry *logrus.Entry) ([]byte, error) {
@@ -22,18 +25,16 @@ func (tf *TaggedFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	for _, sub := range tf.subs {
 		data = bytes.ReplaceAll(data, sub.old, sub.new)
 	}
-	prepend := bytes.Repeat([]byte(" "), testhelpers.CallerDepth())
+	prepend := bytes.Repeat([]byte(" "), th.CallerDepth())
 	return bytes.Join([][]byte{tf.tag, prepend, data}, []byte(" ")), err
 }
 
 // NewTaggedMasterLogger creates MasterLogger that prepends records with tag
-func NewTaggedMasterLogger(tag string, ssubs []struct{ old, new string }) *logging.MasterLogger {
-	s2bsub := func(s struct{ old, new string }) struct{ old, new []byte } {
-		return struct{ old, new []byte }{[]byte(s.old), []byte(s.new)}
-	}
-	bsubs := make([]struct{ old, new []byte }, len(ssubs))
-	for i := 0; i < len(ssubs); i++ {
-		bsubs[i] = s2bsub(ssubs[i])
+func NewTaggedMasterLogger(tag string, subs []strsub) *logging.MasterLogger {
+
+	bsubs := make([]bytesub, len(subs))
+	for i := 0; i < len(subs); i++ {
+		bsubs[i] = bytesub{[]byte(subs[i].old), []byte(subs[i].new)}
 	}
 
 	hooks := make(logrus.LevelHooks)

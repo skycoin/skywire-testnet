@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"math"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 )
 
 // RouteID represents ID of a Route in a Packet.
@@ -16,8 +16,8 @@ type Packet []byte
 // MakePacket constructs a new Packet. If payload size is more than
 // uint16, MakePacket will panic.
 func MakePacket(id RouteID, payload []byte) Packet {
-	log.Debug(testhelpers.Trace("ENTER"))
-	defer log.Debug(testhelpers.Trace("ENTER"))
+	log.Debug(th.Trace("ENTER"))
+	defer log.Debug(th.Trace("ENTER"))
 
 	if len(payload) > math.MaxUint16 {
 		panic("packet size exceeded")

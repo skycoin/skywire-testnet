@@ -25,8 +25,6 @@ type MockRouter struct {
 	inLoop   routing.AddrLoop
 }
 
-var n *MockRouter
-
 // Ports implements PacketRouter.Ports
 func (r *MockRouter) Ports() []routing.Port {
 	r.Lock()

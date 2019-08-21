@@ -4,6 +4,7 @@ package visor
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
+
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -45,7 +48,10 @@ type MultiHead struct {
 	initErrs  chan error
 	startErrs chan error
 	stopErrs  chan error
-	sync.Once
+
+	repOnce   sync.Once
+	startOnce sync.Once
+	stopOnce  sync.Once
 }
 
 func initMultiHead() *MultiHead {
@@ -56,7 +62,7 @@ func initMultiHead() *MultiHead {
 func Example_initMultiHead() {
 
 	mh := initMultiHead()
-	mh.Log.Write([]byte("initMultiHead success"))
+	_, _ = mh.Log.Write([]byte("initMultiHead success")) //nolint: errcheck
 	fmt.Printf("%v\n", mh.Log.records)
 
 	// Output: [initMultiHead success]
@@ -71,8 +77,8 @@ func (mh *MultiHead) readBaseConfig(cfgFile string) error {
 	if err := json.NewDecoder(rdr).Decode(&baseCfg); err != nil {
 		return err
 	}
-	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys")
-	baseCfg.AppsPath, _ = filepath.Abs("../../apps")
+	baseCfg.PubKeysFile, _ = filepath.Abs("../../integration/tcp-tr/hosts.pubkeys") // nolint: errcheck
+	baseCfg.AppsPath, _ = filepath.Abs("../../apps")                                // nolint: errcheck
 	baseCfg.Routing.Table.Type = "memory"
 
 	mh.baseCfg = baseCfg
@@ -81,14 +87,15 @@ func (mh *MultiHead) readBaseConfig(cfgFile string) error {
 
 func Example_readBaseConfig() {
 	mh := initMultiHead()
-	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	err = mh.readBaseConfig(cfgFile)
+	cfgFile, _ := filepath.Abs("../../integration/tcp-tr/nodeA.json") //nolint: errcheck
+	err := mh.readBaseConfig(cfgFile)
 	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
 
 	// Output: mh.ReadBaseConfig success: true
 }
 
 func (mh *MultiHead) initIPPool(ipTemplate string, n uint) {
+
 	ipPool := make([]string, n)
 	for i := uint(1); i < n+1; i++ {
 		ipPool[i-1] = fmt.Sprintf(ipTemplate, i)
@@ -101,7 +108,6 @@ func (mh *MultiHead) initIPPool(ipTemplate string, n uint) {
 func ExampleMultiHead_initIPPool() {
 	mh := initMultiHead()
 	mh.initIPPool("12.12.12.%d", 16)
-
 	fmt.Printf("IP pool length: %v\n", len(mh.ipPool))
 
 	// Output: IP pool length: 16
@@ -115,7 +121,7 @@ func (mh *MultiHead) initCfgPool() {
 	for i := 0; i < len(mh.ipPool); i++ {
 		ip := fmt.Sprintf(mh.ipTemplate, i+1)
 		localPath := fmt.Sprintf(localPathTmplt, i+1)
-		pk, sk, _ := cipher.GenerateDeterministicKeyPair([]byte(ip))
+		pk, sk, _ := cipher.GenerateDeterministicKeyPair([]byte(ip)) //nolint: errcheck
 
 		baseCfg.Node.StaticPubKey = pk
 		baseCfg.Node.StaticSecKey = sk
@@ -142,38 +148,41 @@ func (mh *MultiHead) initCfgPool() {
 
 func Example_initCfgPool() {
 	mh := initMultiHead()
-	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	err = mh.readBaseConfig(cfgFile)
+	cfgFile, _ := filepath.Abs("../../integration/tcp-tr/nodeA.json") //nolint: errcheck
+	err := mh.readBaseConfig(cfgFile)
 	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
-	mh.initIPPool("12.12.12.%d", 16)
+	mh.initIPPool("skyhost%03d", 16)
 	mh.initCfgPool()
-
 	fmt.Printf("len(mh.cfgPool): %v\n", len(mh.cfgPool))
 
 	// Output: mh.ReadBaseConfig success: true
 	// len(mh.cfgPool): 16
 }
 
-func (mh *MultiHead) initNodes() {
-	mh.nodes = make([]*Node, len(mh.cfgPool))
-	mh.initErrs = make(chan error, len(mh.cfgPool))
-
-	subs := make([]struct{ old, new string }, len(mh.cfgPool)+1)
+func (mh *MultiHead) pkAliases() []strsub {
+	subs := make([]strsub, len(mh.cfgPool)+1)
 	for i := 0; i < len(mh.cfgPool); i++ {
-		subs[i] = struct{ old, new string }{
+		subs[i] = strsub{
 			old: fmt.Sprintf("%v", mh.cfgPool[i].Node.StaticPubKey),
 			new: fmt.Sprintf("PK(%v)", mh.ipPool[i]),
 		}
 	}
-	subs = append(subs, struct{ old, new string }{
-		"000000000000000000000000000000000000000000000000000000000000000000", "PK{NULL}"})
+	return append(subs, strsub{
+		fmt.Sprintf("%v", cipher.PubKey{}), "PK{NULL}"})
+}
+
+func (mh *MultiHead) initNodes() {
+	mh.nodes = make([]*Node, len(mh.cfgPool))
+	mh.initErrs = make(chan error, len(mh.cfgPool))
+	mh.startErrs = make(chan error, len(mh.cfgPool))
+	mh.stopErrs = make(chan error, len(mh.cfgPool))
 
 	var err error
 	for i := 0; i < len(mh.nodes); i++ {
-		logger := NewTaggedMasterLogger(mh.ipPool[i], subs)
+		logger := NewTaggedMasterLogger(mh.ipPool[i], mh.pkAliases())
 		logger.Out = mh.Log
 		logger.SetReportCaller(true)
-		// logger.SetFormatter(new(logrus.JSONFormatter))
+
 		mh.nodes[i], err = NewNode(&mh.cfgPool[i], logger)
 		if err != nil {
 			mh.initErrs <- fmt.Errorf("error %v starting node %v", err, i)
@@ -183,51 +192,54 @@ func (mh *MultiHead) initNodes() {
 
 func ExampleMultiHead_initNodes() {
 	mh := initMultiHead()
-	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	err = mh.readBaseConfig(cfgFile)
+	cfgFile, _ := filepath.Abs("../../integration/tcp-tr/nodeA.json") //nolint: errcheck
+	err := mh.readBaseConfig(cfgFile)
 	fmt.Printf("mh.ReadBaseConfig success: %v\n", err == nil)
 	mh.initIPPool("skyhost_%03d", 16)
 	mh.initCfgPool()
 	mh.initNodes()
 
-	close(mh.initErrs)
-	for err := range mh.initErrs {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("Errors on initNodes: %v\n", len(mh.initErrs))
+	fmt.Print(mh.errReport())
 
 	// Output: mh.ReadBaseConfig success: true
-	// Errors on initNodes: 0
+
+	// init errors: 0
+	// start errors: 0
+	// stop errors: 0
 }
 
 func (mh *MultiHead) startNodes(postdelay time.Duration) {
-	mh.startErrs = make(chan error, len(mh.nodes))
-	for i := 0; i < len(mh.nodes); i++ {
-		go func(n int) {
-			if err := mh.nodes[n].Start(); err != nil {
-				mh.startErrs <- fmt.Errorf("error %v starting node %v", err, n)
-			}
-		}(i)
-	}
-	time.Sleep(postdelay)
+	mh.startOnce.Do(func() {
+		mh.startErrs = make(chan error, len(mh.nodes))
+		for i := 0; i < len(mh.nodes); i++ {
+			go func(n int) {
+				if err := mh.nodes[n].Start(); err != nil {
+					mh.startErrs <- fmt.Errorf("error %v starting node %v", err, n)
+				}
+			}(i)
+		}
+		time.Sleep(postdelay)
+	})
 }
 
 func (mh *MultiHead) stopNodes(predelay time.Duration) {
-	time.Sleep(predelay)
-	mh.stopErrs = make(chan error, len(mh.nodes))
-	for i := 0; i < len(mh.nodes); i++ {
-		go func(n int) {
-			if err := mh.nodes[n].Close(); err != nil {
-				mh.stopErrs <- fmt.Errorf("error %v starting node %v", err, n)
-			}
-		}(i)
-	}
+	mh.stopOnce.Do(func() {
+		time.Sleep(predelay)
+		mh.stopErrs = make(chan error, len(mh.nodes))
+		for i := 0; i < len(mh.nodes); i++ {
+			go func(n int) {
+				if err := mh.nodes[n].Close(); err != nil {
+					mh.stopErrs <- fmt.Errorf("error %v stopping node %v", err, n)
+				}
+			}(i)
+		}
+	})
 }
 
 func makeMultiHeadN(n uint) *MultiHead {
 	mh := initMultiHead()
-	cfgFile, err := filepath.Abs("../../integration/tcp-tr/nodeA.json")
-	err = mh.readBaseConfig(cfgFile)
+	cfgFile, _ := filepath.Abs("../../integration/tcp-tr/nodeA.json") //nolint: errcheck
+	err := mh.readBaseConfig(cfgFile)
 	if err != nil {
 		panic(err)
 	}
@@ -238,7 +250,7 @@ func makeMultiHeadN(n uint) *MultiHead {
 }
 
 func (mh *MultiHead) errReport() string {
-	mh.Do(func() {
+	mh.repOnce.Do(func() {
 		close(mh.initErrs)
 		close(mh.startErrs)
 		close(mh.stopErrs)
@@ -272,11 +284,11 @@ func ExampleMultiHead_startNodes() {
 	// stop errors: 0
 }
 
-func (mh *MultiHead) sendMessage(sender, reciever uint, message string) (*http.Response, error) {
+func (mh *MultiHead) sendMessage(sender, receiver uint, message string) (*http.Response, error) {
 	url := fmt.Sprintf("http://%s:8001/message", mh.ipPool[sender])
 	msgData := map[string]string{
-		"recipient": fmt.Sprintf("%s", mh.cfgPool[reciever].Node.StaticPubKey),
-		"message":   "Hello",
+		"recipient": mh.cfgPool[receiver].Node.StaticPubKey.String(),
+		"message":   message,
 	}
 	data, _ := json.Marshal(msgData)                                 // nolint: errcheck
 	return http.Post(url, "application/json", bytes.NewBuffer(data)) // nolint: gosec
@@ -292,11 +304,12 @@ func (mh *MultiHead) genPubKeysFile() string {
 }
 
 func Example_genPubKeysFile() {
-
 	mh := makeMultiHeadN(128)
-	fmt.Printf("%v\n", mh.genPubKeysFile())
+	pkFile := mh.genPubKeysFile()
 
-	// Output: ZZZ
+	fmt.Printf("pkFile generated with %v records\n", len(strings.Split(pkFile, "\n")))
+	_, _ = os.Stderr.WriteString(pkFile) //nolint: errcheck
+	// Output: pkFile generated with 129 records
 }
 
 func (mhl *multiheadLog) filter(pattern string, match bool) []string {
@@ -324,32 +337,28 @@ func ExampleMultiHead_sendMessage_msg001() {
 
 	recs := mh.Log.filter(`skyhost_001.*received.*"message"`, true)
 	if len(recs) == 1 {
-		fmt.Println("skyhost_001 recieved message")
+		fmt.Println("skyhost_001 received message")
 	}
 
 	// Output: err: <nil>
 	// init errors: 0
 	// start errors: 0
 	// stop errors: 0
-	// skyhost_001 recieved message
+	// skyhost_001 received message
 
 }
 
-// WIP
 func ExampleMultiHead_sendMessage_msg002() {
 	mh := makeMultiHeadN(2)
-	mh.startNodes(time.Second)
+	mh.RunExample(func(mh *MultiHead) {
+		_, err := mh.sendMessage(0, 1, "Hello002")
+		fmt.Printf("err: %v", err)
+	})
 
-	_, err := mh.sendMessage(0, 1, "Hello002")
-	fmt.Printf("err: %v", err)
-
-	mh.stopNodes(time.Second)
-	fmt.Printf("%v\n", mh.errReport())
-
-	fmt.Printf("%v", mh.Log.filter(`skychat`, false))
-	// fmt.Printf("%v\n", strings.Join(mh.Log.records[20:], ""))
-
-	// fmt.Printf("%v", mh.Log.filter(`skychat`, true))
+	// fmt.Printf("%v\n", mh.errReport())
+	// fmt.Printf("%v", mh.Log.filter(`skychat`, false))
+	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
+	// fmt.Printf("%v", mh.Log.filter(`skychat`, false))
 
 	// Output: err: <nil>
 	// init errors: 0
@@ -358,14 +367,75 @@ func ExampleMultiHead_sendMessage_msg002() {
 
 }
 
+func (mh *MultiHead) RunExample(example func(mh *MultiHead)) {
+	mh.startNodes(time.Second)
+	example(mh)
+	mh.stopNodes(time.Second)
+}
+
+func ExampleMultiHead_confirmAppPacket() {
+	mh := makeMultiHeadN(2)
+
+	mh.RunExample(func(mh *MultiHead) {
+		fmt.Printf("HHIIII!")
+	})
+
+	fmt.Printf("%v\n", mh.errReport())
+	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
+
+	// Output: ZZZZ
+}
+
+func ExampleMultihead_forwardAppPacket() {
+	mh := makeMultiHeadN(2)
+	mh.RunExample(func(mh *MultiHead) {
+		cfgA, _ := mh.cfgPool[0], mh.cfgPool[1]
+		nodeA, nodeB := mh.nodes[0], mh.nodes[1]
+		pkA, _ := nodeA.config.Node.StaticPubKey, nodeB.config.Node.StaticPubKey
+		tmA, _ := nodeA.tm, nodeB.tm
+
+		rA, ok := nodeA.router.(*router.Router)
+		fmt.Printf("rA is %T %v\n", rA, ok)
+		rB, ok := nodeB.router.(*router.Router)
+		fmt.Printf("rB is %T %v\n", rB, ok)
+
+		rtA, err := cfgA.RoutingTable()
+		fmt.Printf("rtA is %T %v\n", rtA, err)
+		rtB, err := cfgA.RoutingTable()
+		fmt.Printf("rtB is %T %v\n", rtB, err)
+
+		trA, err := tmA.CreateDataTransport(context.TODO(), pkA, "tcp-transport", true)
+		fmt.Printf("CreateDataTransport trA %T success: %v\n", trA, err == nil)
+
+		ruleA := routing.ForwardRule(time.Now().Add(time.Hour), 4, trA.Entry.ID)
+		fmt.Printf("ruleA: %v\n", ruleA)
+
+		routeA, err := rtA.AddRule(ruleA)
+		fmt.Printf("routeA: %v, err: %v\n", routeA, err)
+
+		// time.Sleep(100 * time.Millisecond)
+		packetA := routing.MakePacket(routeA, []byte("Hello"))
+		fmt.Printf("packetA: %v\n", packetA)
+
+		n, err := trA.Write(packetA)
+		fmt.Printf("trA.Write(packetA): %v %v\n", n, err)
+	})
+
+	_, _ = os.Stderr.WriteString(fmt.Sprintf("%v\n", mh.errReport()))                   //nolint: errcheck
+	_, _ = os.Stderr.WriteString(fmt.Sprintf("%v\n", strings.Join(mh.Log.records, ""))) //nolint: errcheck
+	// fmt.Printf("%v\n", mh.Log.filter(`skychat`, false))
+
+	// Output: ZZZZ
+}
+
 func ExampleMultiHead_sendMessage_msg003() {
 	mh := makeMultiHeadN(1)
-	mh.startNodes(time.Second)
+	mh.RunExample(func(mh *MultiHead) {
+		_, err := mh.sendMessage(0, 0, "Hello003")
+		fmt.Printf("err: %v", err)
 
-	_, err := mh.sendMessage(0, 0, "Hello003")
-	fmt.Printf("err: %v", err)
+	})
 
-	mh.stopNodes(time.Second)
 	fmt.Printf("%v\n", mh.errReport())
 	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
 
@@ -373,5 +443,4 @@ func ExampleMultiHead_sendMessage_msg003() {
 	// init errors: 0
 	// start errors: 0
 	// stop errors: 0
-
 }

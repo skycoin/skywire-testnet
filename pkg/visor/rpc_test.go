@@ -49,8 +49,6 @@ func TestListApps(t *testing.T) {
 	assert.Equal(t, AppStatusRunning, app2.Status)
 }
 
-var rtr router.Router
-
 func TestStartStopApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	router := new(router.MockRouter)

@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 )
 
 func TestMain(m *testing.M) {
@@ -251,7 +251,7 @@ func TestTransportManagerLogs(t *testing.T) {
 	require.NoError(t, m2.Close())
 	require.NoError(t, m1.Close())
 	require.NoError(t, <-errCh)
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(writeErrCh))
+	require.NoError(t, th.NoErrorWithinTimeout(writeErrCh))
 }
 
 func ExampleSortEdges() {

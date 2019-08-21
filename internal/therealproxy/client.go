@@ -9,6 +9,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
+// Logger for therealproxy
 var Logger = logging.MustGetLogger("therealproxy")
 
 // Client implement multiplexing proxy client using yamux.

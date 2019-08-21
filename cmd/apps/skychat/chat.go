@@ -17,33 +17,43 @@ import (
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/netutil"
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-var addr = flag.String("addr", ":8000", "address to bind")
-var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)
-
 var (
+	addr   = flag.String("addr", ":8000", "address to bind")
+	logger = logging.NewMasterLogger().PackageLogger("chat")
+	r      = netutil.NewRetrier(50*time.Millisecond, 0, 2)
+
 	chatApp   *app.App
 	clientCh  chan string
 	chatConns map[cipher.PubKey]net.Conn
 	connsMu   sync.Mutex
+
+	trcLog = logger.WithField("_module", th.GetCallerN(4))
 )
+
+func trStart() error { // nolint:unparam
+	logger.Debug(th.Trace("ENTER"))
+	return nil
+}
+func trFinish(_ error) { logger.Debug(th.Trace("EXIT")) }
 
 func main() {
 	flag.Parse()
 
 	a, err := app.Setup(&app.Config{AppName: "skychat", AppVersion: "1.0", ProtocolVersion: "0.0.1"})
 	if err != nil {
-		log.Fatal("Setup failure: ", err)
+		trcLog.Fatal("Setup failure", err)
 	}
 	defer func() {
 		if err := a.Close(); err != nil {
-			log.Println("Failed to close app:", err)
+			trcLog.Info("Failed to close app:", err)
 		}
 	}()
 
@@ -59,11 +69,13 @@ func main() {
 	http.HandleFunc("/message", messageHandler)
 	http.HandleFunc("/sse", sseHandler)
 
-	log.Println("Serving HTTP on", *addr)
-	log.Fatal(http.ListenAndServe(*addr, nil))
+	trcLog.Info("Serving HTTP on", *addr)
+	trcLog.Info(http.ListenAndServe(*addr, nil))
 }
 
 func listenLoop() {
+	defer trFinish(trStart())
+
 	for {
 		conn, err := chatApp.Accept()
 		if err != nil {
@@ -81,37 +93,38 @@ func listenLoop() {
 }
 
 func handleConn(conn net.Conn) {
-	log.Printf(testhelpers.Trace("ENTER"))
-	defer log.Printf(testhelpers.Trace("EXIT"))
+	defer trFinish(trStart())
 	var cntr uint64
-
 	raddr := conn.RemoteAddr().(routing.Addr)
 
 	for {
 		atomic.AddUint64(&cntr, 1)
-		log.Printf(testhelpers.Trace(fmt.Sprintf("CYCLE %03d START", cntr)))
+
+		trcLog.Debugf("CYCLE %03d START", cntr)
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Println("failed to read packet:", err)
+			trcLog.Debug("failed to read packet:", err)
 			return
 		}
 
 		clientMsg, err := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])})
 		if err != nil {
-			log.Printf("Failed to marshal json: %v", err)
+			trcLog.Debug("Failed to marshal json: ", err)
 		}
 		select {
 		case clientCh <- string(clientMsg):
-			log.Printf("received and sent to ui: %s\n", clientMsg)
+			trcLog.Debugf("received and sent to ui: %s\n", clientMsg)
 		default:
-			log.Printf("received and trashed: %s\n", clientMsg)
+			trcLog.Debugf("received and trashed: %s\n", clientMsg)
 		}
-		log.Printf(testhelpers.Trace(fmt.Sprintf("CYCLE %03d END", cntr)))
+		trcLog.Debugf("CYCLE %03d END", cntr)
 	}
 }
 
 func messageHandler(w http.ResponseWriter, req *http.Request) {
+	defer trFinish(trStart())
+
 	data := map[string]string{}
 	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -125,17 +138,25 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	addr := routing.Addr{PubKey: pk, Port: 1}
+	trcLog.Debug("addr: ", addr)
+
 	connsMu.Lock()
 	conn, ok := chatConns[pk]
 	connsMu.Unlock()
+	trcLog.Debugf("chatConn: %v  pk:%v\n", chatConns, pk)
+
+	var cntr uint64
 
 	if !ok {
 		var err error
 		err = r.Do(func() error {
+			atomic.AddUint64(&cntr, 1)
+			trcLog.Debugf("dial %v  addr:%v\n", cntr, addr)
 			conn, err = chatApp.Dial(addr)
 			return err
 		})
 		if err != nil {
+			trcLog.Debug("err: ", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -159,6 +180,8 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func sseHandler(w http.ResponseWriter, req *http.Request) {
+	defer trFinish(trStart())
+
 	f, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported!", http.StatusBadRequest)

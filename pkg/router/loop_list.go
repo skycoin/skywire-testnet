@@ -1,15 +1,21 @@
 package router
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
+
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
 type loop struct {
 	trID    uuid.UUID
 	routeID routing.RouteID
+}
+
+func (l loop) String() string {
+	return fmt.Sprintf("{trId: %v, routeID: %v}", l.trID, l.routeID)
 }
 
 type loopList struct {

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -52,11 +52,10 @@ func TestAppManagerInit(t *testing.T) {
 
 	err := proto.Send(app.FrameInit, &app.Config{AppName: "foo", AppVersion: "0.0.1", ProtocolVersion: "0.0.1"}, nil)
 	require.NoError(t, err)
-
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, th.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppManagerSetupLoop(t *testing.T) {
@@ -87,7 +86,7 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, th.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppManagerCloseLoop(t *testing.T) {
@@ -128,7 +127,7 @@ func TestAppManagerCloseLoop(t *testing.T) {
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, th.NoErrorWithinTimeout(serveErrCh))
 }
 
 func TestAppManagerForward(t *testing.T) {
@@ -163,5 +162,5 @@ func TestAppManagerForward(t *testing.T) {
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, th.NoErrorWithinTimeout(serveErrCh))
 }

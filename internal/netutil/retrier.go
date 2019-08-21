@@ -48,6 +48,7 @@ func (r *Retrier) WithErrWhitelist(errors ...error) *Retrier {
 // Do takes a RetryFunc and attempts to execute it, if it fails with an error it will be retried a maximum of given times with an exponentialBackoff, until it returns
 // nil or an error that is whitelisted
 func (r Retrier) Do(f RetryFunc) error {
+
 	if r.times == 0 {
 		return r.retryUntilSuccess(f)
 	}

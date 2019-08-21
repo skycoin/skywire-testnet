@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
+	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -126,5 +126,5 @@ func TestChannelServeSocket(t *testing.T) {
 	assert.Equal(t, []byte("bar"), buf)
 
 	require.NoError(t, ch.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErr))
+	require.NoError(t, th.NoErrorWithinTimeout(serveErr))
 }
