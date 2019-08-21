@@ -67,10 +67,14 @@ func (l *boltDBappLogs) LogsSince(t time.Time) ([]string, error) {
 		parsedTime := make([]byte, 16)
 		binary.BigEndian.PutUint64(parsedTime, uint64(t.UnixNano()))
 		c := b.Cursor()
+
+		v := b.Get(parsedTime)
+		if v == nil {
+			iterateFromBeginning(c, parsedTime, &logs)
+			return nil
+		}
 		if k, _ := c.Seek(parsedTime); k != nil {
 			iterateFromKey(c, &logs)
-		} else {
-			iterateFromBeginning(c, parsedTime, &logs)
 		}
 
 		return nil
@@ -87,7 +91,7 @@ func iterateFromKey(c *bbolt.Cursor, logs *[]string) {
 
 func iterateFromBeginning(c *bbolt.Cursor, parsedTime []byte, logs *[]string) {
 	for k, v := c.First(); k != nil; k, v = c.Next() {
-		if bytes.Compare(parsedTime, k) < 0 {
+		if bytes.Compare(k, parsedTime) < 0 {
 			continue
 		}
 
