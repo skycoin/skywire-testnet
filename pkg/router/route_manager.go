@@ -19,14 +19,11 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-const (
-	rtGarbageCollectDuration = time.Minute * 5
-)
-
 type RMConfig struct {
-	SetupPKs      []cipher.PubKey // Trusted setup PKs.
-	OnConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
-	OnLoopClosed  func(loop routing.Loop) error
+	SetupPKs               []cipher.PubKey // Trusted setup PKs.
+	GarbageCollectDuration time.Duration
+	OnConfirmLoop          func(loop routing.Loop, rule routing.Rule) (err error)
+	OnLoopClosed           func(loop routing.Loop) error
 }
 
 func (sc RMConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
@@ -135,7 +132,10 @@ func (rm *routeManager) handleSetupConn(conn net.Conn) error {
 }
 
 func (rm *routeManager) rtGarbageCollectLoop() {
-	ticker := time.NewTicker(rtGarbageCollectDuration)
+	if rm.conf.GarbageCollectDuration <= 0 {
+		return
+	}
+	ticker := time.NewTicker(rm.conf.GarbageCollectDuration)
 	defer ticker.Stop()
 	for {
 		select {

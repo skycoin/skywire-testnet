@@ -38,21 +38,22 @@ func GenKeyPairs(n int) []KeyPair {
 type Env struct {
 	DmsgD    disc.APIClient
 	DmsgS    *dmsg.Server
+	Keys     []KeyPair
 	Nets     []*snet.Network
 	teardown func()
 }
 
 // NewEnv creates a `network.Network` test environment.
 // `nPairs` is the public/private key pairs of all the `network.Network`s to be created.
-func NewEnv(t *testing.T, nPairs []KeyPair) *Env {
+func NewEnv(t *testing.T, keys []KeyPair) *Env {
 
 	// Prepare `dmsg`.
 	dmsgD := disc.NewMock()
 	dmsgS, dmsgSErr := createDmsgSrv(t, dmsgD)
 
 	// Prepare `snets`.
-	ns := make([]*snet.Network, len(nPairs))
-	for i, pairs := range nPairs {
+	ns := make([]*snet.Network, len(keys))
+	for i, pairs := range keys {
 		n := snet.NewRaw(
 			snet.Config{
 				PubKey:      pairs.PK,
@@ -80,6 +81,7 @@ func NewEnv(t *testing.T, nPairs []KeyPair) *Env {
 	return &Env{
 		DmsgD:    dmsgD,
 		DmsgS:    dmsgS,
+		Keys:     keys,
 		Nets:     ns,
 		teardown: teardown,
 	}

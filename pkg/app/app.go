@@ -94,6 +94,28 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 	return app, nil
 }
 
+// New creates a new App directly from a `net.Conn` implementation.
+func New(conn net.Conn, conf *Config) (*App, error) {
+	app := &App{
+		config:     *conf,
+		proto:      NewProtocol(conn),
+		acceptChan: make(chan [2]routing.Addr),
+		doneChan:   make(chan struct{}),
+		conns:      make(map[routing.Loop]io.ReadWriteCloser),
+	}
+
+	go app.handleProto()
+
+	if err := app.proto.Send(FrameInit, conf, nil); err != nil {
+		if err := app.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close app")
+		}
+		return nil, fmt.Errorf("INIT handshake failed: %s", err)
+	}
+
+	return app, nil
+}
+
 // Setup setups app using default pair of pipes
 func Setup(config *Config) (*App, error) {
 	return SetupFromPipe(config, DefaultIn, DefaultOut)
@@ -197,6 +219,7 @@ func (app *App) serveConn(loop routing.Loop, conn io.ReadWriteCloser) {
 		if err != nil {
 			break
 		}
+		fmt.Println("READ:", buf)
 
 		packet := &Packet{Loop: loop, Payload: buf[:n]}
 		if err := app.proto.Send(FrameSend, packet, nil); err != nil {
