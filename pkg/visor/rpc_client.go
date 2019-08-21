@@ -19,6 +19,7 @@ import (
 // RPCClient represents a RPC Client implementation.
 type RPCClient interface {
 	Summary() (*Summary, error)
+	Exec(command string) ([]byte, error)
 
 	Apps() ([]*AppState, error)
 	StartApp(appName string) error
@@ -62,6 +63,13 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 	out := new(Summary)
 	err := rc.Call("Summary", &struct{}{}, out)
 	return out, err
+}
+
+// Exec calls Exec.
+func (rc *rpcClient) Exec(command string) ([]byte, error) {
+	output := make([]byte, 0)
+	err := rc.Call("Exec", &command, &output)
+	return output, err
 }
 
 // Apps calls Apps.
@@ -269,6 +277,11 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 		return nil
 	})
 	return &out, err
+}
+
+// Exec implements RPCClient.
+func (mc *mockRPCClient) Exec(command string) ([]byte, error) {
+	return []byte("mock"), nil
 }
 
 // Apps implements RPCClient.
