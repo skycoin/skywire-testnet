@@ -64,10 +64,10 @@ var rmRuleCmd = &cobra.Command{
 	},
 }
 
-var expire time.Duration
+var keepAlive time.Duration
 
 func init() {
-	addRuleCmd.PersistentFlags().DurationVar(&expire, "expire", router.RouteTTL, "duration after which routing rule will expire")
+	addRuleCmd.PersistentFlags().DurationVar(&keepAlive, "keep-alive", router.RouteKeepAlive, "duration after which routing rule will expire if no activity is present")
 }
 
 var addRuleCmd = &cobra.Command{
@@ -100,13 +100,13 @@ var addRuleCmd = &cobra.Command{
 				remotePort = routing.Port(parseUint("remote-port", args[3], 16))
 				localPort  = routing.Port(parseUint("local-port", args[4], 16))
 			)
-			rule = routing.AppRule(time.Now().Add(expire), routeID, remotePK, remotePort, localPort, 0)
+			rule = routing.AppRule(keepAlive, routeID, remotePK, remotePort, localPort, 0)
 		case "fwd":
 			var (
 				nextRouteID = routing.RouteID(parseUint("next-route-id", args[1], 32))
 				nextTpID    = internal.ParseUUID("next-transport-id", args[2])
 			)
-			rule = routing.ForwardRule(time.Now().Add(expire), nextRouteID, nextTpID, 0)
+			rule = routing.ForwardRule(keepAlive, nextRouteID, nextTpID, 0)
 		}
 		rIDKey, err := rpcClient().AddRoutingRule(rule)
 		internal.Catch(err)
@@ -117,12 +117,12 @@ var addRuleCmd = &cobra.Command{
 func printRoutingRules(rules ...*visor.RoutingEntry) {
 	printAppRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
 		_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%d\t%s\t%s\t%s\n", id, s.Type, s.AppFields.LocalPort,
-			s.AppFields.RemotePort, s.AppFields.RemotePK, s.AppFields.RespRID, "-", "-", s.ExpireAt)
+			s.AppFields.RemotePort, s.AppFields.RemotePK, s.AppFields.RespRID, "-", "-", s.KeepAlive)
 		internal.Catch(err)
 	}
 	printFwdRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
 		_, err := fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\n", id, s.Type, "-",
-			"-", "-", "-", s.ForwardFields.NextRID, s.ForwardFields.NextTID, s.ExpireAt)
+			"-", "-", "-", s.ForwardFields.NextRID, s.ForwardFields.NextTID, s.KeepAlive)
 		internal.Catch(err)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)

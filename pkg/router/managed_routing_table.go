@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	// ErrRuleTimedOut is being returned while trying to access the rule which timed out
 	ErrRuleTimedOut = errors.New("rule keep-alive timeout exceeded")
 )
 
