@@ -1,13 +1,16 @@
 package router
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-var routeKeepalive = 10 * time.Minute // interval to keep active expired routes
+var (
+	ErrRuleTimedOut = errors.New("rule keep-alive timeout exceeded")
+)
 
 type managedRoutingTable struct {
 	routing.Table
@@ -23,18 +26,40 @@ func manageRoutingTable(rt routing.Table) *managedRoutingTable {
 	}
 }
 
-func (rt *managedRoutingTable) Rule(routeID routing.RouteID) (routing.Rule, error) {
+func (rt *managedRoutingTable) AddRule(rule routing.Rule) (routing.RouteID, error) {
+	routeID, err := rt.Table.AddRule(rule)
+	if err != nil {
+		return 0, err
+	}
+
 	rt.mu.Lock()
+	// set the initial activity for rule not to be timed out instantly
 	rt.activity[routeID] = time.Now()
 	rt.mu.Unlock()
-	return rt.Table.Rule(routeID)
+
+	return routeID, nil
+}
+
+func (rt *managedRoutingTable) Rule(routeID routing.RouteID) (routing.Rule, error) {
+	rule, err := rt.Table.Rule(routeID)
+	if err != nil {
+		return nil, err
+	}
+
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+	if rt.ruleIsTimedOut(routeID, rule) {
+		return nil, ErrRuleTimedOut
+	}
+
+	return rule, nil
 }
 
 func (rt *managedRoutingTable) Cleanup() error {
 	expiredIDs := make([]routing.RouteID, 0)
 	rt.mu.Lock()
 	err := rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if lastActivity, ok := rt.activity[routeID]; !ok || time.Since(lastActivity) > routeKeepalive {
+		if rt.ruleIsTimedOut(routeID, rule) {
 			expiredIDs = append(expiredIDs, routeID)
 		}
 		return true
@@ -46,4 +71,11 @@ func (rt *managedRoutingTable) Cleanup() error {
 	}
 
 	return rt.DeleteRules(expiredIDs...)
+}
+
+// ruleIsExpired checks whether rule's keep alive timeout is exceeded.
+// NOTE: for internal use, is NOT thread-safe, object lock should be acquired outside
+func (rt *managedRoutingTable) ruleIsTimedOut(routeID routing.RouteID, rule routing.Rule) bool {
+	lastActivity, ok := rt.activity[routeID]
+	return !ok || time.Since(lastActivity) > rule.KeepAlive()
 }
