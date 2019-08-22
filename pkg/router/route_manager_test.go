@@ -44,11 +44,11 @@ func TestNewRouteManager(t *testing.T) {
 		defer clearRules()
 
 		expiredRule := routing.ForwardRule(-10*time.Minute, 3, uuid.New(), 1)
-		expiredID, err := rt.AddRule(expiredRule)
+		expiredID, err := rm.rt.AddRule(expiredRule)
 		require.NoError(t, err)
 
 		rule := routing.ForwardRule(10*time.Minute, 3, uuid.New(), 2)
-		id, err := rt.AddRule(rule)
+		id, err := rm.rt.AddRule(rule)
 		require.NoError(t, err)
 
 		// rule should already be expired at this point due to the execution time.
