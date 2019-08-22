@@ -12,7 +12,7 @@ import (
 func TestAppRule(t *testing.T) {
 	expireAt := time.Now().Add(2 * time.Minute)
 	pk, _ := cipher.GenerateKeyPair()
-	rule := AppRule(expireAt, 2, pk, 3, 4)
+	rule := AppRule(expireAt, 2, pk, 3, 4, 1)
 
 	assert.Equal(t, expireAt.Unix(), rule.Expiry().Unix())
 	assert.Equal(t, RuleApp, rule.Type())
@@ -28,7 +28,7 @@ func TestAppRule(t *testing.T) {
 func TestForwardRule(t *testing.T) {
 	trID := uuid.New()
 	expireAt := time.Now().Add(2 * time.Minute)
-	rule := ForwardRule(expireAt, 2, trID)
+	rule := ForwardRule(expireAt, 2, trID, 1)
 
 	assert.Equal(t, expireAt.Unix(), rule.Expiry().Unix())
 	assert.Equal(t, RuleForward, rule.Type())

@@ -142,10 +142,10 @@ func (tp *Transport) RemotePK() cipher.PubKey {
 	return tp.remote.PK
 }
 
-// Local returns local address in from <public-key>:<port>
+// LocalAddr returns local address in from <public-key>:<port>
 func (tp *Transport) LocalAddr() net.Addr { return tp.local }
 
-// Remote returns remote address in form <public-key>:<port>
+// RemoteAddr returns remote address in form <public-key>:<port>
 func (tp *Transport) RemoteAddr() net.Addr { return tp.remote }
 
 // Type returns the transport type.

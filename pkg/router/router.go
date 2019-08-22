@@ -25,21 +25,36 @@ import (
 const (
 	// RouteTTL is the default expiration interval for routes
 	RouteTTL = 2 * time.Hour
-	minHops  = 0
-	maxHops  = 50
+
+	// DefaultGarbageCollectDuration is the default duration for garbage collection of routing rules.
+	DefaultGarbageCollectDuration = time.Second * 5
+
+	minHops = 0
+	maxHops = 50
 )
 
 var log = logging.MustGetLogger("router")
 
 // Config configures Router.
 type Config struct {
-	Logger           *logging.Logger
-	PubKey           cipher.PubKey
-	SecKey           cipher.SecKey
-	TransportManager *transport.Manager
-	RoutingTable     routing.Table
-	RouteFinder      routeFinder.Client
-	SetupNodes       []cipher.PubKey
+	Logger                 *logging.Logger
+	PubKey                 cipher.PubKey
+	SecKey                 cipher.SecKey
+	TransportManager       *transport.Manager
+	RoutingTable           routing.Table
+	RouteFinder            routeFinder.Client
+	SetupNodes             []cipher.PubKey
+	GarbageCollectDuration time.Duration
+}
+
+// SetDefaults sets default values for certain empty values.
+func (c *Config) SetDefaults() {
+	if c.Logger == nil {
+		c.Logger = log
+	}
+	if c.GarbageCollectDuration <= 0 {
+		c.GarbageCollectDuration = DefaultGarbageCollectDuration
+	}
 }
 
 // Router implements node.PacketRouter. It manages routing table by
@@ -62,6 +77,8 @@ type Router struct {
 
 // New constructs a new Router.
 func New(n *snet.Network, config *Config) (*Router, error) {
+	config.SetDefaults()
+
 	r := &Router{
 		Logger:      config.Logger,
 		n:           n,
@@ -73,9 +90,10 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 
 	// Prepare route manager.
 	rm, err := NewRouteManager(n, config.RoutingTable, RMConfig{
-		SetupPKs:      config.SetupNodes,
-		OnConfirmLoop: r.confirmLoop,
-		OnLoopClosed:  r.loopClosed,
+		SetupPKs:               config.SetupNodes,
+		GarbageCollectDuration: config.GarbageCollectDuration,
+		OnConfirmLoop:          r.confirmLoop,
+		OnLoopClosed:           r.loopClosed,
 	})
 	if err != nil {
 		return nil, err
@@ -111,7 +129,8 @@ func (r *Router) Serve(ctx context.Context) error {
 		r.wg.Done()
 	}()
 
-	return r.tm.Serve(ctx)
+	r.tm.Serve(ctx)
+	return nil
 }
 
 func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error {
@@ -208,9 +227,12 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	if err != nil {
 		return err
 	}
-	if err := b.conn.Send(app.FrameSend, p, nil); err != nil {
+	fmt.Println("got it!")
+	if err := b.conn.Send(app.FrameSend, p, nil); err != nil { // TODO: Stuck here.
+		fmt.Println("err:", err)
 		return err
 	}
+	fmt.Println("done")
 
 	r.Logger.Infof("Forwarded packet to App on Port %d", rule.LocalPort())
 	return nil
