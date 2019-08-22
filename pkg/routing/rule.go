@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"unsafe"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
@@ -37,52 +36,6 @@ const (
 	RuleForward
 )
 
-var bigEndian bool
-
-func init() {
-	var x uint32 = 0x01020304
-	if *(*byte)(unsafe.Pointer(&x)) == 0x04 {
-		bigEndian = false
-	}
-}
-
-func putInt64BigEndian(b []byte, v int64) {
-	_ = b[7] // bounds check hint to compiler; see golang.org/issue/14808
-
-	data := *(*[8]byte)(unsafe.Pointer(&v))
-
-	if !bigEndian {
-		b[0] = data[7]
-		b[1] = data[6]
-		b[2] = data[5]
-		b[3] = data[4]
-		b[4] = data[3]
-		b[5] = data[2]
-		b[6] = data[1]
-		b[7] = data[0]
-	} else {
-		b[0] = data[0]
-		b[1] = data[1]
-		b[2] = data[2]
-		b[3] = data[3]
-		b[4] = data[4]
-		b[5] = data[5]
-		b[6] = data[6]
-		b[7] = data[7]
-	}
-}
-
-func readInt64BigEndian(b []byte) int64 {
-	_ = b[7] // bounds check hint to compiler; see golang.org/issue/14808
-
-	if bigEndian {
-		return *(*int64)(unsafe.Pointer(&b[0]))
-	} else {
-		bRev := [8]byte{b[7], b[6], b[5], b[4], b[3], b[2], b[1], b[0]}
-		return *(*int64)(unsafe.Pointer(&bRev[0]))
-	}
-}
-
 // Rule represents a routing rule.
 // There are two types of routing rules; App and Forward.
 //
@@ -90,7 +43,7 @@ type Rule []byte
 
 // KeepAlive returns rule's keep-alive timeout.
 func (r Rule) KeepAlive() time.Duration {
-	return time.Unix(int64(ts), 0)
+	return time.Duration(binary.BigEndian.Uint64(r))
 }
 
 // Type returns type of a rule.
@@ -184,7 +137,7 @@ type RuleForwardFields struct {
 
 // RuleSummary provides a summary of a RoutingRule.
 type RuleSummary struct {
-	ExpireAt       time.Time          `json:"expire_at"`
+	KeepAlive      time.Duration      `json:"keep_alive"`
 	Type           RuleType           `json:"rule_type"`
 	AppFields      *RuleAppFields     `json:"app_fields,omitempty"`
 	ForwardFields  *RuleForwardFields `json:"forward_fields,omitempty"`
@@ -195,11 +148,11 @@ type RuleSummary struct {
 func (rs *RuleSummary) ToRule() (Rule, error) {
 	if rs.Type == RuleApp && rs.AppFields != nil && rs.ForwardFields == nil {
 		f := rs.AppFields
-		return AppRule(rs.ExpireAt, f.RespRID, f.RemotePK, f.RemotePort, f.LocalPort, rs.RequestRouteID), nil
+		return AppRule(rs.KeepAlive, f.RespRID, f.RemotePK, f.RemotePort, f.LocalPort, rs.RequestRouteID), nil
 	}
 	if rs.Type == RuleForward && rs.AppFields == nil && rs.ForwardFields != nil {
 		f := rs.ForwardFields
-		return ForwardRule(rs.ExpireAt, f.NextRID, f.NextTID, rs.RequestRouteID), nil
+		return ForwardRule(rs.KeepAlive, f.NextRID, f.NextTID, rs.RequestRouteID), nil
 	}
 	return nil, errors.New("invalid routing rule summary")
 }
@@ -207,7 +160,7 @@ func (rs *RuleSummary) ToRule() (Rule, error) {
 // Summary returns the RoutingRule's summary.
 func (r Rule) Summary() *RuleSummary {
 	summary := RuleSummary{
-		ExpireAt:       r.Expiry(),
+		KeepAlive:      r.KeepAlive(),
 		Type:           r.Type(),
 		RequestRouteID: r.RequestRouteID(),
 	}
@@ -228,14 +181,15 @@ func (r Rule) Summary() *RuleSummary {
 }
 
 // AppRule constructs a new consume RoutingRule.
-func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remotePort, localPort Port,
+func AppRule(keepAlive time.Duration, respRoute RouteID, remotePK cipher.PubKey, remotePort, localPort Port,
 	requestRouteID RouteID) Rule {
 	rule := make([]byte, RuleHeaderSize)
-	if expireAt.Unix() <= time.Now().Unix() {
-		binary.BigEndian.PutUint64(rule[0:], 0)
-	} else {
-		binary.BigEndian.PutUint64(rule[0:], uint64(expireAt.Unix()))
+
+	if keepAlive < 0 {
+		keepAlive = 0
 	}
+
+	binary.BigEndian.PutUint64(rule, uint64(keepAlive))
 
 	rule[8] = byte(RuleApp)
 	binary.BigEndian.PutUint32(rule[9:], uint32(respRoute))
@@ -248,13 +202,14 @@ func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remo
 }
 
 // ForwardRule constructs a new forward RoutingRule.
-func ForwardRule(expireAt time.Time, nextRoute RouteID, nextTrID uuid.UUID, requestRouteID RouteID) Rule {
+func ForwardRule(keepAlive time.Duration, nextRoute RouteID, nextTrID uuid.UUID, requestRouteID RouteID) Rule {
 	rule := make([]byte, RuleHeaderSize)
-	if expireAt.Unix() <= time.Now().Unix() {
-		binary.BigEndian.PutUint64(rule[0:], 0)
-	} else {
-		binary.BigEndian.PutUint64(rule[0:], uint64(expireAt.Unix()))
+
+	if keepAlive < 0 {
+		keepAlive = 0
 	}
+
+	binary.BigEndian.PutUint64(rule, uint64(keepAlive))
 
 	rule[8] = byte(RuleForward)
 	binary.BigEndian.PutUint32(rule[9:], uint32(nextRoute))
