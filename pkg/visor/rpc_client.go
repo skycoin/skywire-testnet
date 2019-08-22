@@ -12,6 +12,7 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
@@ -26,6 +27,7 @@ type RPCClient interface {
 	StartApp(appName string) error
 	StopApp(appName string) error
 	SetAutoStart(appName string, autostart bool) error
+	LogsSince(timestamp time.Time, appName string) ([]string, error)
 
 	TransportTypes() ([]string, error)
 	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
@@ -103,6 +105,21 @@ func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
 		AppName:   appName,
 		AutoStart: autostart,
 	}, &struct{}{})
+}
+
+// LogsSince calls LogsSince
+func (rc *rpcClient) LogsSince(timestamp time.Time, appName string) ([]string, error) {
+	res := make([]string, 0)
+
+	err := rc.Call("LogsSince", &AppLogsRequest{
+		TimeStamp: timestamp,
+		AppName:   appName,
+	}, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 // TransportTypes calls TransportTypes.
@@ -191,6 +208,7 @@ type mockRPCClient struct {
 	s         *Summary
 	tpTypes   []string
 	rt        routing.Table
+	appls     app.LogStore
 	sync.RWMutex
 }
 
@@ -337,6 +355,11 @@ func (mc *mockRPCClient) SetAutoStart(appName string, autostart bool) error {
 		}
 		return fmt.Errorf("app of name '%s' does not exist", appName)
 	})
+}
+
+// LogsSince implements RPCClient. Manually set (*mockRPPClient).appls before calling this function
+func (mc *mockRPCClient) LogsSince(timestamp time.Time, _ string) ([]string, error) {
+	return mc.appls.LogsSince(timestamp)
 }
 
 // TransportTypes implements RPCClient.

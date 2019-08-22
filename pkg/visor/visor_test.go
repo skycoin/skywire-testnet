@@ -12,6 +12,31 @@ import (
 	"os/exec"
 	"sync"
 	"testing"
+
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/internal/httpauth"
+	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/transport"
+)
+
+/*
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/exec"
+	"sync"
+	"testing"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -26,7 +51,7 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
-
+*/
 var masterLogger *logging.MasterLogger
 
 func TestMain(m *testing.M) {
@@ -77,6 +102,7 @@ func TestNewNode(t *testing.T) {
 	assert.NotNil(t, node.startedApps)
 }
 
+/*
 func TestNodeStartClose(t *testing.T) {
 	r := new(mockRouter)
 	executer := &MockExecuter{}
@@ -186,7 +212,7 @@ func TestNodeSpawnAppValidations(t *testing.T) {
 		})
 	}
 }
-
+*/
 type MockExecuter struct {
 	sync.Mutex
 	err    error

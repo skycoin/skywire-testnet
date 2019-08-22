@@ -400,7 +400,7 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) (err erro
 	conn, cmd, err := app.Command(
 		&app.Config{ProtocolVersion: supportedProtocolVersion, AppName: config.App, AppVersion: config.Version},
 		node.appsPath,
-		config.Args,
+		append([]string{filepath.Join(node.dir(), config.App)}, config.Args...),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize App server: %s", err)

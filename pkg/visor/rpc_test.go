@@ -1,6 +1,21 @@
 package visor
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skywire/pkg/app"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+/*
+import (
 	"context"
 	"encoding/json"
 	"net"
@@ -19,6 +34,7 @@ import (
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
+*/
 
 func TestHealth(t *testing.T) {
 	sPK, _ := cipher.GenerateKeyPair()
@@ -58,9 +74,37 @@ func TestUptime(t *testing.T) {
 	err := rpc.Uptime(&struct{}{}, &res)
 	require.NoError(t, err)
 
-	assert.Equal(t, res, time.Second)
+	assert.Contains(t, fmt.Sprintf("%f", res), "1.0")
 }
 
+func TestLogsSince(t *testing.T) {
+	p, err := ioutil.TempFile("", "test-db")
+	require.NoError(t, err)
+	defer os.Remove(p.Name())
+
+	ls, err := app.NewLogStore(p.Name(), "foo", "bbolt")
+	require.NoError(t, err)
+
+	t1, err := time.Parse(time.RFC3339, "2000-01-01T00:00:00Z")
+	require.NoError(t, err)
+	err = ls.Store(t1, "bar")
+	require.NoError(t, err)
+
+	rpc := &RPC{
+		&Node{config: &Config{}},
+	}
+
+	res := make([]string, 0)
+	err = rpc.LogsSince(&AppLogsRequest{
+		TimeStamp: t1,
+		AppName:   "foo",
+	}, &res)
+	require.NoError(t, err)
+	require.Len(t, res, 1)
+	require.Contains(t, res[0], "foo")
+}
+
+/*
 func TestListApps(t *testing.T) {
 	apps := []AppConfig{
 		{App: "foo", AutoStart: false, Port: 10},
@@ -314,3 +358,4 @@ func TestRPC(t *testing.T) {
 
 	// TODO: Test add/remove transports
 }
+*/

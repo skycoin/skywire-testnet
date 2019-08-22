@@ -131,7 +131,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.Post("/change-password", m.users.ChangePassword())
 			r.Get("/nodes", m.getNodes())
 			r.Get("/health", m.getHealth())
-			r.Get("/uptime", m.getUptime())
+			//r.Get("/uptime", m.getUptime())
 			r.Get("/nodes/{pk}", m.getNode())
 			r.Get("/nodes/{pk}/apps", m.getApps())
 			r.Get("/nodes/{pk}/apps/{app}", m.getApp())
@@ -182,6 +182,7 @@ func (m *Node) getHealth() http.HandlerFunc {
 	}
 }
 
+/*
 func (m *Node) getUptime() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m.mu.RLock()
@@ -189,9 +190,10 @@ func (m *Node) getUptime() http.HandlerFunc {
 
 		}
 		m.mu.RUnlock()
-		httputil.WriteJSON(w, r, http.StatusOK, uptim)
+		httputil.WriteJSON(w, r, http.StatusOK, uptime)
 	}
 }
+*/
 
 type summaryResp struct {
 	TCPAddr string `json:"tcp_addr"`

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -28,6 +29,7 @@ func TestLogStore(t *testing.T) {
 	require.NoError(t, err)
 
 	err = ls.Store(t1, "bar")
+	fmt.Println("original: ", t1.Format(time.RFC3339Nano))
 	require.NoError(t, err)
 
 	t2, err := time.Parse(time.RFC3339, "2000-02-01T00:00:00Z")
@@ -48,6 +50,7 @@ func TestLogStore(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, res, 3)
 	require.Contains(t, res[0], "bar")
+	fmt.Println("b_ :", res[0])
 	require.Contains(t, res[1], "middle")
 	require.Contains(t, res[2], "foo")
 }

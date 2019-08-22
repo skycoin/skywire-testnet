@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -80,5 +81,23 @@ var setAppAutostartCmd = &cobra.Command{
 		}
 		internal.Catch(rpcClient().SetAutoStart(args[0], autostart))
 		fmt.Println("OK")
+	},
+}
+
+var appLogsSince = &cobra.Command{
+	Use:   "app-logs-since <name> <timestamp>",
+	Short: "Gets logs from given app since RFC3339Nano-formated timestamp",
+	Args:  cobra.MinimumNArgs(2),
+	Run: func(_ *cobra.Command, args []string) {
+		strTime := args[1]
+		t, err := time.Parse(time.RFC3339Nano, strTime)
+		internal.Catch(err)
+		logs, err := rpcClient().LogsSince(t, args[0])
+		internal.Catch(err)
+		if len(logs) > 0 {
+			fmt.Println(logs)
+		} else {
+			fmt.Println("no logs")
+		}
 	},
 }
