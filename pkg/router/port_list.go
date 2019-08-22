@@ -1,7 +1,9 @@
 package router
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"sync"
 
 	"github.com/skycoin/skywire/pkg/app"
@@ -18,6 +20,14 @@ type portList struct {
 
 	minPort routing.Port
 	ports   map[routing.Port]*portBind
+}
+
+func (pl *portList) String() string {
+	var result []string
+	for k, v := range pl.ports {
+		result = append(result, fmt.Sprintf("routingPort: %v portBind:%v", k, v))
+	}
+	return fmt.Sprintf("portList %v\n portBind: %v", pl.minPort, strings.Join(result, "\n"))
 }
 
 func newPortList(minPort routing.Port) *portList {

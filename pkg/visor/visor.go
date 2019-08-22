@@ -22,7 +22,6 @@ import (
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/internal/therealproxy"
 	"github.com/skycoin/skywire/internal/therealssh"
 	"github.com/skycoin/skywire/pkg/app"
@@ -255,8 +254,12 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
-	node.logger.Debug(th.Trace("ENTER"))
-	defer node.logger.Debug(th.Trace("ENTER"))
+	if node == nil {
+		return errors.New("not initialized node")
+	}
+	// node.logger.Debug(th.Trace("ENTER"))
+	// defer node.logger.Debug(th.Trace("ENTER"))
+	node.logger.Info("started node")
 
 	ctx := context.Background()
 
@@ -288,7 +291,9 @@ func (node *Node) Start() error {
 	rpcSvr := rpc.NewServer()
 	if err := rpcSvr.RegisterName(RPCPrefix, &RPC{node: node}); err != nil {
 		return fmt.Errorf("rpc server created failed: %s", err)
+
 	}
+
 	if node.rpcListener != nil {
 		node.logger.Info("Starting RPC interface on ", node.rpcListener.Addr())
 		go rpcSvr.Accept(node.rpcListener)

@@ -1,0 +1,53 @@
+{
+	"version": "1.0",
+	"node": {
+		"static_public_key": "02fffa3ffd07630bf5565493a990f182ea7de56a9c14abbe041959a8e4667d3447",
+		"static_secret_key": "4be3f22d89d0bade8c5bf0084919f891e5e2dd0d4db0bc139318dfa576ca0237"			
+	},
+	"messaging": {
+		"discovery": "https://messaging.discovery.skywire.skycoin.net",
+		"server_count": 1
+	},
+	"transport": {
+		"discovery": "https://transport.discovery.skywire.skycoin.net",
+		"log_store": {
+			"type": "file",
+			"location": "./local/tcp-tr/nodeA/transport-logs"
+		}
+	},
+	"routing": {
+		"setup_nodes": [
+			"0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557"
+		],
+		"route_finder": "https://routefinder.skywire.skycoin.net/",
+		"route_finder_timeout": "10s",
+		"table": {
+			"type": "boltdb",
+			"location": "./local/tcp-tr/nodeA/routing.db" 
+		}
+	},
+	"apps": [
+		{
+		  "app": "skychat",
+		  "version": "1.0",
+		  "auto_start": true,
+		  "port": 1,
+		  "args": [
+			"-addr",
+			"192.168.1.2:8001"
+		  ]
+		}
+	],	
+	"trusted_nodes": [],
+	"hypervisors": [],
+	"apps_path": "./apps",
+	"local_path": "./local",
+	"transport_type": "tcp-transport",
+	"pubkeys_file": "./integration/tcp-tr/hosts.pubkeys",
+	"tcptransport_addr": "192.168.1.2:9119",
+	"shutdown_timeout": "10s",
+	"interfaces": {
+		"rpc": "192.168.1.2:3435"
+	},
+	"log_level": "info"
+}

@@ -510,3 +510,8 @@ func (tm *Manager) IsSetupPK(pk cipher.PubKey) bool {
 	}
 	return false
 }
+
+// Transports returns map of transports
+func (tm *Manager) Transports() map[uuid.UUID]*ManagedTransport {
+	return tm.transports
+}

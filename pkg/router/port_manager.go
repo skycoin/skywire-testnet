@@ -138,13 +138,22 @@ func (pm *portManager) GetLoop(localPort routing.Port, remoteAddr routing.Addr) 
 
 	b, err := pm.Get(localPort)
 	if err != nil {
+		fmt.Println("pm.Get err:", err)
 		return nil, err
 	}
 
 	l := b.loops.get(remoteAddr)
 	if l == nil {
+		fmt.Println("b.loops.get err:", err)
 		return nil, errors.New("unknown loop")
 	}
 
 	return l, nil
+}
+
+// Portlist - debug only
+type Portlist = portList
+
+func (pm *portManager) Ports() *portList {
+	return pm.ports
 }

@@ -75,10 +75,7 @@ func NewProtocol(rw io.ReadWriteCloser) *Protocol {
 func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 	Logger.Debug(th.Trace("ENTER"))
 	Logger.Debugf("%v cmd: %v, payload: %v\n", th.GetCaller(), cmd, payload)
-
 	Logger.Debugf("%v CALLERS: %v\n", th.GetCaller(), th.GetCallers(3))
-
-	defer Logger.Debug(th.Trace("EXIT"))
 
 	id, resChan := p.chans.add()
 	if err := p.writeFrame(cmd, id, payload); err != nil {
@@ -93,6 +90,7 @@ func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 		return io.EOF
 	}
 	Logger.Debugf("%v received %v\n", th.GetCaller(), Frame(frame[0]))
+	Logger.Debugf("Received %v\n", Payload{Frame(frame[0]), frame[2:]})
 
 	if Frame(frame[0]) == FrameFailure {
 		Logger.Warnf("%v writeFrame err: %v\n", th.GetCaller(), string(frame[2:]))

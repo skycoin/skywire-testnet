@@ -102,7 +102,7 @@ func (r *Router) trFinish(_ error) {
 }
 
 func (r *Router) trLog() *logrus.Entry {
-	return r.Logger.WithField("M", th.GetCallerN(3))
+	return r.Logger.WithField("_module", th.GetCallerN(3))
 }
 
 // Serve starts transport listening loop.
@@ -329,12 +329,15 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 	}
 
 	if appPacket.Loop.Remote.PubKey == r.config.PubKey {
-		r.trLog().Infof("r.config.PubKey: ", r.config.PubKey)
+		r.trLog().Info("r.config.PubKey: ", r.config.PubKey)
 		return r.forwardLocalAppPacket(appPacket)
 	}
 
 	loop, err := r.pm.GetLoop(appPacket.Loop.Local.Port, appPacket.Loop.Remote)
 	r.trLog().Error("r.pm.GetLoop: ", err)
+
+	r.trLog().Warn("loop: ", loop)
+	r.trLog().Errorf("ALL LOOPS: %v\n", r.pm.Ports())
 
 	if err != nil {
 		return err
@@ -343,6 +346,17 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 	// r.Logger.Debugf("%v found loop: %v", th.GetCaller(), loop)
 
 	tr := r.tm.Transport(loop.trID)
+	r.trLog().Info("trID %v ERRROR %v\n", loop.trID, err)
+	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
+
+	// 9df41ada-be66-5640-bce2-917988069706
+	// trID := uuid.MustParse("9df41ada-be66-5640-bce2-917988069706")
+	// trID := uuid.MustParse("9e566688-8717-5855-b1b7-92586ffc8c9b")
+	// fmt.Printf("trID %v ERRROR %v\n", trID, err)
+	trID := transport.MakeTransportID(r.config.PubKey, appPacket.Loop.Remote.PubKey, "tcp-transport", true)
+
+	tr = r.tm.Transport(trID)
+	fmt.Print("TRANSPORT: ", tr)
 	if tr == nil {
 		r.trLog().Error("Loop: ", loop)
 		r.trLog().Error("OOOOOOO")

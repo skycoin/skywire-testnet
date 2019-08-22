@@ -145,8 +145,8 @@ func (app *App) Accept() (net.Conn, error) {
 	raddr := addrs[1]
 
 	// TODO: Why is that?
-	// loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
-	loop := routing.AddrLoop{Local: laddr, Remote: raddr}
+	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
@@ -169,8 +169,8 @@ func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
 	}
 
 	// TODO: Why is that way?
-	// loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
-	loop := routing.AddrLoop{Local: laddr, Remote: raddr}
+	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
 
 	conn, out := net.Pipe()
 	app.mu.Lock()

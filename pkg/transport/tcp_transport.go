@@ -210,8 +210,6 @@ type filePKTable struct {
 
 // FilePubKeyTable returns file based implementation of the PubKeyTable.
 func FilePubKeyTable(dbFile string) (PubKeyTable, error) {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
 
 	path, err := filepath.Abs(dbFile)
 	if err != nil {
