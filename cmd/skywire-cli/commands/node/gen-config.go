@@ -82,8 +82,8 @@ func defaultConfig() *visor.Config {
 	conf.Node.StaticPubKey = pk
 	conf.Node.StaticSecKey = sk
 
-	conf.Messaging.Discovery = "https://messaging.discovery.skywire.skycoin.net"
-	conf.Messaging.ServerCount = 1
+	conf.Dmsg.Discovery = "https://dmsg.discovery.skywire.skycoin.net"
+	conf.Dmsg.ServerCount = 1
 
 	passcode := base64.StdEncoding.EncodeToString(cipher.RandByte(8))
 	conf.Apps = []visor.AppConfig{

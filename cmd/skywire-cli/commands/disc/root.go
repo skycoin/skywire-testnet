@@ -1,4 +1,4 @@
-package mdisc
+package disc
 
 import (
 	"context"
@@ -16,13 +16,13 @@ import (
 var mdAddr string
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&mdAddr, "addr", "https://messaging.discovery.skywire.skycoin.net", "address of messaging discovery server")
+	RootCmd.PersistentFlags().StringVar(&mdAddr, "addr", "https://dmsg.discovery.skywire.skycoin.net", "address of dmsg discovery server")
 }
 
-// RootCmd is the command that contains sub-commands which interacts with messaging services.
+// RootCmd is the command that contains sub-commands which interacts with dmsg services.
 var RootCmd = &cobra.Command{
-	Use:   "mdisc",
-	Short: "Contains sub-commands that interact with a remote Messaging Discovery",
+	Use:   "disc",
+	Short: "Contains sub-commands that interact with a remote dmsg discovery",
 }
 
 func init() {
@@ -34,7 +34,7 @@ func init() {
 
 var entryCmd = &cobra.Command{
 	Use:   "entry <node-public-key>",
-	Short: "fetches an entry from messaging-discovery",
+	Short: "fetches an entry from dmsg-discovery",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -48,7 +48,7 @@ var entryCmd = &cobra.Command{
 
 var availableServersCmd = &cobra.Command{
 	Use:   "available-servers",
-	Short: "fetch available servers from messaging-discovery",
+	Short: "fetch available servers from dmsg-discovery",
 	Run: func(_ *cobra.Command, _ []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()

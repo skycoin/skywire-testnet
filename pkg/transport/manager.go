@@ -7,9 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/skycoin/skywire/pkg/snet"
-
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"

@@ -21,7 +21,7 @@ type Error struct {
 	Error string `json:"error"`
 }
 
-// APIClient implements messaging discovery API client.
+// APIClient implements uptime tracker API client.
 type APIClient interface {
 	UpdateNodeUptime(context.Context) error
 }

@@ -1,7 +1,7 @@
 {
   "public_key": "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
   "secret_key": "42bca4df2f3189b28872d40e6c61aacd5e85b8e91f8fea65780af27c142419e5",
-  "messaging": {
+  "dmsg": {
     "discovery": "http://skywire.skycoin.net:8001",
     "server_count": 1
   },

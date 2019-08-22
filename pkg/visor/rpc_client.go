@@ -181,7 +181,7 @@ type mockRPCClient struct {
 func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RPCClient, error) {
 	log := logging.MustGetLogger("mock-rpc-client")
 
-	types := []string{"messaging", "native"}
+	types := []string{"dmsg", "native"}
 	localPK, _ := cipher.GenerateKeyPair()
 
 	log.Infof("generating mock client with: localPK(%s) maxTps(%d) maxRules(%d)", localPK, maxTps, maxRules)

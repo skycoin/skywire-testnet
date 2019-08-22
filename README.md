@@ -58,7 +58,7 @@ On the basis of this information the route finder calculates the most efficient 
 
 This information is sent from a node to the Setup Node, which sets the routing rules in all nodes along a route. Skywire visors determine, which nodes they accept routing rules from, so only a whitelisted node can send routing rules to a node in the network. The only information the Skywire visor gets for routing is a Routing ID and an associated rule that defines which transport to send a packet to (or to consume the packet). Therefore nodes along a route only know the last and next hop along the route, but not where the packet originates from and where it is sent to. Skywire supports source routing, so nodes can specify a path that a packet is supposed to take in the network. 
 
-There are currently two types of transports that nodes can use. The messaging transport is a transport between two nodes that uses an intermediary messaging server to relay packets between them. The connection to a specific node and the connection to a messaging server is facilitated by a discovery service, that allows nodes to advertise the messaging servers over which they can be contacted. This transport is used by the setup node to send routing rules and can be used for other applications as well. It allows nodes behind NATs to communicate. The second transport type is TCP, which sets up a connection between two servers with a public IP. More transport types will be supported in the future and custom transport implementations can be written for specific use cases.
+There are currently two types of transports that nodes can use. The data transport is a transport between two nodes that uses an intermediary dmsg server to relay packets between them. The connection to a specific node and the connection to a dmsg server is facilitated by a discovery service, that allows nodes to advertise the dmsg servers over which they can be contacted. This transport is used by the setup node to send routing rules and can be used for other applications as well. It allows nodes behind NATs to communicate. The second transport type is TCP, which sets up a connection between two servers with a public IP. More transport types will be supported in the future and custom transport implementations can be written for specific use cases.
 
 ## Build and run
 
@@ -131,8 +131,8 @@ $ skywire-cli -h
 #
 # Available Commands:
 #   help        Help about any command
-#   mdisc       Contains sub-commands that interact with a remote Messaging Discovery
-#   node        Contains sub-commands that interact with the local Skywire Visor
+#   disc        Contains sub-commands that interact with a remote Dmsg Discovery
+#   visor       Contains sub-commands that interact with the local Skywire Visor
 #   rtfind      Queries the Route Finder for available routes between two nodes
 #   tpdisc      Queries the Transport Discovery to find transport(s) of given transport ID or edge public key
 #
@@ -400,7 +400,7 @@ $ tree /tmp/SKYNODE
 $ docker run -it -v /tmp/SKYNODE:/sky --network=SKYNET --name=SKYNODE skywire-runner bash -c "cd /sky && ./skywire-visor"
 # [2019-03-15T13:55:08Z] INFO [messenger]: Opened new link with the server # 02a49bc0aa1b5b78f638e9189be4ed095bac5d6839c828465a8350f80ac07629c0
 # [2019-03-15T13:55:08Z] INFO [messenger]: Updating discovery entry
-# [2019-03-15T13:55:10Z] INFO [skywire]: Connected to messaging servers
+# [2019-03-15T13:55:10Z] INFO [skywire]: Connected to dmsg servers
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting skychat.v1.0
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting RPC interface on 127.0.0.1:3435
 # [2019-03-15T13:55:10Z] INFO [skywire]: Starting socksproxy.v1.0

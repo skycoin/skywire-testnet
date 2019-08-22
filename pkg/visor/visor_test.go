@@ -55,8 +55,8 @@ func TestNewNode(t *testing.T) {
 	conf := Config{Version: "1.0", LocalPath: "local", AppsPath: "apps"}
 	conf.Node.StaticPubKey = pk
 	conf.Node.StaticSecKey = sk
-	conf.Messaging.Discovery = "http://skywire.skycoin.net:8001"
-	conf.Messaging.ServerCount = 10
+	conf.Dmsg.Discovery = "http://skywire.skycoin.net:8001"
+	conf.Dmsg.ServerCount = 10
 	conf.Transport.Discovery = srv.URL
 	conf.Apps = []AppConfig{
 		{App: "foo", Version: "1.1", Port: 1},
@@ -92,12 +92,12 @@ func TestNodeStartClose(t *testing.T) {
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
 	mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
-	node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
+	node.dmsg = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
 
 	var err error
 
 	tmConf := &transport.ManagerConfig{PubKey: cipher.PubKey{}, DiscoveryClient: transport.NewDiscoveryMock()}
-	node.tm, err = transport.NewManager(tmConf, nil, node.messenger)
+	node.tm, err = transport.NewManager(tmConf, nil, node.dmsg)
 	require.NoError(t, err)
 
 	errCh := make(chan error)

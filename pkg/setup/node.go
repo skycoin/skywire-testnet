@@ -7,16 +7,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/snet"
-
 	"github.com/skycoin/dmsg"
-
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/snet"
 )
 
 // Hop is a wrapper around transport hop to add functionality
@@ -25,7 +23,7 @@ type Hop struct {
 	routeID routing.RouteID
 }
 
-// Node performs routes setup operations over messaging channel.
+// Node performs routes setup operations over dmsg channel.
 type Node struct {
 	Logger   *logging.Logger
 	dmsgC    *dmsg.Client
@@ -48,10 +46,10 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 	dmsgC := dmsg.NewClient(
 		conf.PubKey,
 		conf.SecKey,
-		disc.NewHTTP(conf.Messaging.Discovery),
+		disc.NewHTTP(conf.Dmsg.Discovery),
 		dmsg.SetLogger(logger.PackageLogger(dmsg.Type)),
 	)
-	if err := dmsgC.InitiateServerConnections(ctx, conf.Messaging.ServerCount); err != nil {
+	if err := dmsgC.InitiateServerConnections(ctx, conf.Dmsg.ServerCount); err != nil {
 		return nil, fmt.Errorf("failed to init dmsg: %s", err)
 	}
 	log.Info("connected to dmsg servers")
@@ -66,7 +64,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 		Logger:   log,
 		dmsgC:    dmsgC,
 		dmsgL:    dmsgL,
-		srvCount: conf.Messaging.ServerCount,
+		srvCount: conf.Dmsg.ServerCount,
 		metrics:  metrics,
 	}, nil
 }
@@ -74,9 +72,9 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
 	if err := sn.dmsgC.InitiateServerConnections(ctx, sn.srvCount); err != nil {
-		return fmt.Errorf("messaging: %s", err)
+		return fmt.Errorf("dmsg: %s", err)
 	}
-	sn.Logger.Info("Connected to messaging servers")
+	sn.Logger.Info("Connected to dmsg servers")
 
 	sn.Logger.Info("Starting Setup Node")
 

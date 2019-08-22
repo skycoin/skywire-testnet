@@ -4,7 +4,7 @@
     "static_public_key": "024ec47420176680816e0406250e7156465e4531f5b26057c9f6297bb0303558c7",
     "static_secret_key": "42bca4df2f3189b28872d40e6c61aacd5e85b8e91f8fea65780af27c142419e5"
   },
-  "messaging": {
+  "dmsg": {
     "server": false,
     "public": true,
     "discovery": "http://skywire.skycoin.net:8001",
@@ -36,7 +36,7 @@
   "apps_path": "./apps",
   "local_path": "./local",
   "interfaces": {
-    "messaging": ":3434",
+    "dmsg": ":3434",
     "http": ":80",
     "https": false,
     "rpc": ":3435"

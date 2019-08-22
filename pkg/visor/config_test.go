@@ -23,10 +23,10 @@ func TestMessagingDiscovery(t *testing.T) {
 	conf := Config{}
 	conf.Node.StaticPubKey = pk
 	conf.Node.StaticSecKey = sk
-	conf.Messaging.Discovery = "skywire.skycoin.net:8001"
-	conf.Messaging.ServerCount = 10
+	conf.Dmsg.Discovery = "skywire.skycoin.net:8001"
+	conf.Dmsg.ServerCount = 10
 
-	c, err := conf.MessagingConfig()
+	c, err := conf.DmsgConfig()
 	require.NoError(t, err)
 
 	assert.NotNil(t, c.Discovery)

@@ -19,11 +19,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/snet"
-
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
-
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -31,6 +28,7 @@ import (
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/snet"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
@@ -85,8 +83,8 @@ type PacketRouter interface {
 	SetupIsTrusted(sPK cipher.PubKey) bool
 }
 
-// Node provides messaging runtime for Apps by setting up all
-// necessary connections and performing messaging gateway functions.
+// Node provides dmsg runtime for Apps by setting up all
+// necessary connections and performing dmsg gateway functions.
 type Node struct {
 	config   *Config
 	router   PacketRouter
@@ -127,13 +125,13 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 	pk := config.Node.StaticPubKey
 	sk := config.Node.StaticSecKey
 
-	fmt.Println("min servers:", config.Messaging.ServerCount)
+	fmt.Println("min servers:", config.Dmsg.ServerCount)
 	node.n = snet.New(snet.Config{
 		PubKey:       pk,
 		SecKey:       sk,
 		TpNetworks:   []string{dmsg.Type}, // TODO: Have some way to configure this.
-		DmsgDiscAddr: config.Messaging.Discovery,
-		DmsgMinSrvs:  config.Messaging.ServerCount,
+		DmsgDiscAddr: config.Dmsg.Discovery,
+		DmsgMinSrvs:  config.Dmsg.ServerCount,
 	})
 	if err := node.n.Init(ctx); err != nil {
 		return nil, fmt.Errorf("failed to init network: %v", err)
@@ -141,7 +139,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	trDiscovery, err := config.TransportDiscovery()
 	if err != nil {
-		return nil, fmt.Errorf("invalid MessagingConfig: %s", err)
+		return nil, fmt.Errorf("invalid transport discovery config: %s", err)
 	}
 	logStore, err := config.TransportLogStore()
 	if err != nil {
@@ -319,7 +317,7 @@ func (node *Node) stopUnhandledApp(name string, pid int) {
 	node.logger.Infof("Found and killed hanged app %s with pid %d previously ran by this node", name, pid)
 }
 
-// Close safely stops spawned Apps and messaging Node.
+// Close safely stops spawned Apps and dmsg Node.
 func (node *Node) Close() (err error) {
 	if node == nil {
 		return nil
