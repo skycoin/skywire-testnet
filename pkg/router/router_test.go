@@ -77,7 +77,7 @@ func TestRouter_Serve(t *testing.T) {
 		defer clearRules(r0, r1)
 
 		// Add a FWD rule for r0.
-		fwdRule := routing.ForwardRule(time.Now().Add(time.Hour), routing.RouteID(5), tp1.Entry.ID)
+		fwdRule := routing.ForwardRule(time.Now().Add(time.Hour), routing.RouteID(5), tp1.Entry.ID, routing.RouteID(0))
 		fwdRtID, err := r0.rm.rt.AddRule(fwdRule)
 		require.NoError(t, err)
 
