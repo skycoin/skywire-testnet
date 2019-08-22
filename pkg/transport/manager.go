@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -22,7 +21,6 @@ type ManagerConfig struct {
 	PubKey          cipher.PubKey
 	SecKey          cipher.SecKey
 	DefaultNodes    []cipher.PubKey // Nodes to automatically connect to
-	Networks        []string        // Networks to use.
 	DiscoveryClient DiscoveryClient
 	LogStore        LogStore
 }
@@ -35,18 +33,20 @@ type Manager struct {
 	tps    map[uuid.UUID]*ManagedTransport
 	n      *snet.Network
 
-	readCh chan routing.Packet
-	mx     sync.RWMutex
-	wg     sync.WaitGroup
-	done   chan struct{}
+	readCh    chan routing.Packet
+	mx        sync.RWMutex
+	wg        sync.WaitGroup
+	serveOnce sync.Once // ensure we only serve once.
+	closeOnce sync.Once // ensure we only close once.
+	done      chan struct{}
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
 // 'factories' should be ordered by preference.
 func NewManager(n *snet.Network, config *ManagerConfig) (*Manager, error) {
 	nets := make(map[string]struct{})
-	for _, n := range config.Networks {
-		nets[n] = struct{}{}
+	for _, netType := range n.TransportNetworks() {
+		nets[netType] = struct{}{}
 	}
 	tm := &Manager{
 		Logger: logging.MustGetLogger("tp_manager"),
@@ -61,16 +61,23 @@ func NewManager(n *snet.Network, config *ManagerConfig) (*Manager, error) {
 }
 
 // Serve runs listening loop across all registered factories.
-func (tm *Manager) Serve(ctx context.Context) error {
+func (tm *Manager) Serve(ctx context.Context) {
+	tm.serveOnce.Do(func() {
+		tm.serve(ctx)
+	})
+}
+
+func (tm *Manager) serve(ctx context.Context) {
 	var listeners []*snet.Listener
 
-	for _, netName := range tm.conf.Networks {
-		lis, err := tm.n.Listen(netName, snet.TransportPort)
+	for _, netType := range tm.n.TransportNetworks() {
+		lis, err := tm.n.Listen(netType, snet.TransportPort)
 		if err != nil {
-			return fmt.Errorf("failed to listen on network '%s' of port '%d': %v",
-				netName, snet.TransportPort, err)
+			tm.Logger.WithError(err).Fatalf("failed to listen on network '%s' of port '%d'",
+				netType, snet.TransportPort)
+			continue
 		}
-		tm.Logger.Infof("listening on network: %s", netName)
+		tm.Logger.Infof("listening on network: %s", netType)
 		listeners = append(listeners, lis)
 
 		tm.wg.Add(1)
@@ -91,7 +98,7 @@ func (tm *Manager) Serve(ctx context.Context) error {
 					}
 				}
 			}
-		}(netName)
+		}(netType)
 	}
 	tm.Logger.Info("transport manager is serving.")
 
@@ -107,8 +114,6 @@ func (tm *Manager) Serve(ctx context.Context) error {
 			tm.Logger.Warnf("listener %d of network '%s' closed with error: %v", i, lis.Network(), err)
 		}
 	}
-
-	return nil
 }
 
 func (tm *Manager) initTransports(ctx context.Context) {
@@ -235,7 +240,7 @@ func (tm *Manager) ReadPacket() (routing.Packet, error) {
 
 // Networks returns all the network types contained within the TransportManager.
 func (tm *Manager) Networks() []string {
-	return tm.conf.Networks
+	return tm.n.TransportNetworks()
 }
 
 // Transport obtains a Transport via a given Transport ID.
@@ -263,7 +268,14 @@ func (tm *Manager) Local() cipher.PubKey {
 }
 
 // Close closes opened transports and registered factories.
-func (tm *Manager) Close() error {
+func (tm *Manager) Close() (err error) {
+	tm.closeOnce.Do(func() {
+		err = tm.close()
+	})
+	return err
+}
+
+func (tm *Manager) close() error {
 	if tm == nil {
 		return nil
 	}
