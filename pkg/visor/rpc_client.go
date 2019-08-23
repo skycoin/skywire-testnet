@@ -3,6 +3,7 @@ package visor
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/skycoin/skywire/pkg/router"
 	"math/rand"
 	"net/rpc"
 	"sync"
@@ -199,7 +200,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		log.Infof("tp[%2d]: %v", i, tps[i])
 	}
 	rt := routing.InMemoryRoutingTable()
-	ruleKeepAlive := 24 * time.Hour
+	ruleKeepAlive := router.DefaultRouteKeepAlive
 	for i := 0; i < r.Intn(maxRules+1); i++ {
 		remotePK, _ := cipher.GenerateKeyPair()
 		var lpRaw, rpRaw [2]byte
