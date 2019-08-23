@@ -28,15 +28,16 @@ func manageRoutingTable(rt routing.Table) *managedRoutingTable {
 }
 
 func (rt *managedRoutingTable) AddRule(rule routing.Rule) (routing.RouteID, error) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+
 	routeID, err := rt.Table.AddRule(rule)
 	if err != nil {
 		return 0, err
 	}
 
-	rt.mu.Lock()
 	// set the initial activity for rule not to be timed out instantly
 	rt.activity[routeID] = time.Now()
-	rt.mu.Unlock()
 
 	return routeID, nil
 }
