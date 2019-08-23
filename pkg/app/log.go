@@ -1,9 +1,10 @@
 package app
 
 import (
-	"github.com/skycoin/skycoin/src/util/logging"
 	"io"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 // NewLogger is like (a *App) LoggerFromArguments but with appName as parameter, instead of

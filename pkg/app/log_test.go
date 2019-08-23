@@ -2,13 +2,14 @@ package app
 
 import (
 	"fmt"
-	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWriteLog(t *testing.T) {

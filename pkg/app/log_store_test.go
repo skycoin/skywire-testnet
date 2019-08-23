@@ -5,9 +5,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestLogStore(t *testing.T) {
