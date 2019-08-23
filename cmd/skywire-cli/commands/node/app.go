@@ -19,6 +19,7 @@ func init() {
 		startAppCmd,
 		stopAppCmd,
 		setAppAutostartCmd,
+		appLogsSinceCmd,
 	)
 }
 
@@ -84,14 +85,21 @@ var setAppAutostartCmd = &cobra.Command{
 	},
 }
 
-var appLogsSince = &cobra.Command{
+var appLogsSinceCmd = &cobra.Command{
 	Use:   "app-logs-since <name> <timestamp>",
-	Short: "Gets logs from given app since RFC3339Nano-formated timestamp",
+	Short: "Gets logs from given app since RFC3339Nano-formated timestamp. \"beginning\" is a special timestamp to fetch all the logs",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(_ *cobra.Command, args []string) {
-		strTime := args[1]
-		t, err := time.Parse(time.RFC3339Nano, strTime)
-		internal.Catch(err)
+		var t time.Time
+
+		if args[1] == "beginning" {
+			t = time.Unix(0, 0)
+		} else {
+			var err error
+			strTime := args[1]
+			t, err = time.Parse(time.RFC3339Nano, strTime)
+			internal.Catch(err)
+		}
 		logs, err := rpcClient().LogsSince(t, args[0])
 		internal.Catch(err)
 		if len(logs) > 0 {

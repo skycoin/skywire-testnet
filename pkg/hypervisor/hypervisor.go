@@ -20,6 +20,7 @@ import (
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/httputil"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/visor"
@@ -130,12 +131,13 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
 			r.Get("/nodes", m.getNodes())
-			r.Get("/health", m.getHealth())
-			//r.Get("/uptime", m.getUptime())
+			r.Get("/nodes/{pk}/health", m.getHealth())
+			r.Get("/nodes/{pk}/uptime", m.getUptime())
 			r.Get("/nodes/{pk}", m.getNode())
 			r.Get("/nodes/{pk}/apps", m.getApps())
 			r.Get("/nodes/{pk}/apps/{app}", m.getApp())
 			r.Put("/nodes/{pk}/apps/{app}", m.putApp())
+			r.Get("/nodes/{pk}/apps/{app}/logs", m.appLogsSince())
 			r.Get("/nodes/{pk}/transport-types", m.getTransportTypes())
 			r.Get("/nodes/{pk}/transports", m.getTransports())
 			r.Post("/nodes/{pk}/transports", m.postTransport())
@@ -154,46 +156,38 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // VisorHealth represents a node's health report attached to it's pk for identification
 type VisorHealth struct {
-	PK     cipher.PubKey `json:"pk"`
-	Status int           `json:"status"`
+	Status int `json:"status"`
 	*visor.HealthInfo
 }
 
 // provides summary of health information for every visor
 func (m *Node) getHealth() http.HandlerFunc {
-	healthStatuses := make([]*VisorHealth, len(m.nodes))
+	healthStatuses := make([]*VisorHealth, 0, len(m.nodes))
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		m.mu.RLock()
-		for pk, c := range m.nodes {
-			vh := &VisorHealth{PK: pk}
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		vh := &VisorHealth{}
 
-			hi, err := c.Client.Health()
-			if err != nil {
-				vh.Status = http.StatusInternalServerError
-			} else {
-				vh.HealthInfo = hi
-				vh.Status = http.StatusOK
-				healthStatuses = append(healthStatuses, vh)
-			}
+		hi, err := ctx.RPC.Health()
+		if err != nil {
+			vh.Status = http.StatusInternalServerError
+		} else {
+			vh.HealthInfo = hi
+			vh.Status = http.StatusOK
+			healthStatuses = append(healthStatuses, vh)
 		}
-		m.mu.RUnlock()
 		httputil.WriteJSON(w, r, http.StatusOK, healthStatuses)
-	}
+	})
 }
 
-/*
 func (m *Node) getUptime() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		m.mu.RLock()
-		for pk, c := range m.nodes {
-
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		u, err := ctx.RPC.Uptime()
+		if err != nil {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 		}
-		m.mu.RUnlock()
-		httputil.WriteJSON(w, r, http.StatusOK, uptime)
-	}
+		httputil.WriteJSON(w, r, http.StatusOK, u)
+	})
 }
-*/
 
 type summaryResp struct {
 	TCPAddr string `json:"tcp_addr"`
@@ -292,6 +286,39 @@ func (m *Node) putApp() http.HandlerFunc {
 			}
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, ctx.App)
+	})
+}
+
+// LogsRes parses logs as json, along with the last obtained timestamp for use on subsequent requests
+type LogsRes struct {
+	LastLogTimestamp string   `json:"last_log_timestamp"`
+	Logs             []string `json:"logs"`
+}
+
+func (m *Node) appLogsSince() http.HandlerFunc {
+	return m.withCtx(m.appCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		since := r.URL.Query().Get("since")
+
+		// if time is not parseable or empty default to return all logs
+		t, err := time.Parse(time.RFC3339Nano, since)
+		if err != nil {
+			t = time.Unix(0, 0)
+		}
+		logs, err := ctx.RPC.LogsSince(t, ctx.App.Name)
+		if err != nil {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		if len(logs) == 0 {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, fmt.Errorf("no new available logs"))
+			return
+		}
+
+		httputil.WriteJSON(w, r, http.StatusOK, &LogsRes{
+			LastLogTimestamp: app.TimestampFromLog(logs[len(logs)-1]),
+			Logs:             logs,
+		})
 	})
 }
 

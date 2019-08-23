@@ -3,10 +3,9 @@ package visor
 import (
 	"context"
 	"errors"
+	"net/http"
 	"path/filepath"
 	"time"
-
-	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"

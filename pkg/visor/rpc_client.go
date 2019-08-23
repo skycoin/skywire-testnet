@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"net/rpc"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ type RPCClient interface {
 	Summary() (*Summary, error)
 
 	Health() (*HealthInfo, error)
+	Uptime() (float64, error)
 
 	Apps() ([]*AppState, error)
 	StartApp(appName string) error
@@ -309,9 +311,9 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 // Health implements RPCClient
 func (mc *mockRPCClient) Health() (*HealthInfo, error) {
 	hi := &HealthInfo{
-		TransportDiscovery: 200,
-		RouteFinder:        200,
-		SetupNode:          200,
+		TransportDiscovery: http.StatusOK,
+		RouteFinder:        http.StatusOK,
+		SetupNode:          http.StatusOK,
 	}
 
 	return hi, nil

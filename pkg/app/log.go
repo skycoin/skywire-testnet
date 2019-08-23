@@ -2,35 +2,32 @@ package app
 
 import (
 	"io"
+	"os"
 	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
-// NewLogger is like (a *App) LoggerFromArguments but with appName as parameter, instead of
-// getting it from app config
-func NewLogger(appName string, args []string) (*logging.MasterLogger, []string) {
-	db, err := newBoltDB(args[1], appName)
+// NewLogger returns a logger which persists app logs. This logger should be passed down
+// for use on any other function used by the app. It's configured from an additional app argument.
+// It modifies os.Args stripping from it such value. Should be called before using os.Args inside the app
+func NewLogger(appName string) *logging.MasterLogger {
+	db, err := newBoltDB(os.Args[1], appName)
 	if err != nil {
 		panic(err)
 	}
 
 	l := newAppLogger()
 	l.SetOutput(io.MultiWriter(l.Out, db))
+	os.Args = append([]string{os.Args[0]}, os.Args[2:]...)
 
-	return l, append([]string{args[0]}, args[2:]...)
+	return l
 }
 
-// LoggerFromArguments returns a logger which persists app logs. This logger should be passed down
-// for use on any other function used by the app. It's configured from an additional app argument.
-// It also returns the args list with such argument stripped from it, for convenience
-func (a *App) LoggerFromArguments(args []string) (*logging.MasterLogger, []string) {
-	l, _, err := a.newPersistentLogger(args[1])
-	if err != nil {
-		panic(err)
-	}
-
-	return l, append([]string{args[0]}, args[2:]...)
+// TimestampFromLog is an utility function for retrieving the timestamp from a log. This function should be modified
+// if the time layout is changed
+func TimestampFromLog(log string) string {
+	return log[1:36]
 }
 
 func (a *App) newPersistentLogger(path string) (*logging.MasterLogger, LogStore, error) {

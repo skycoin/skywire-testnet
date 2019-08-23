@@ -34,7 +34,7 @@ func NewLogStore(path, appName, kind string) (LogStore, error) {
 }
 
 type boltDBappLogs struct {
-	db     *bbolt.DB
+	dbpath string
 	bucket []byte
 }
 
@@ -43,6 +43,12 @@ func newBoltDB(path, appName string) (LogStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	b := []byte(appName)
 	err = db.Update(func(tx *bbolt.Tx) error {
@@ -56,15 +62,26 @@ func newBoltDB(path, appName string) (LogStore, error) {
 		return nil, err
 	}
 
-	return &boltDBappLogs{db, b}, nil
+	return &boltDBappLogs{path, b}, nil
 }
 
 // Write implements io.Writer
 func (l *boltDBappLogs) Write(p []byte) (int, error) {
+	db, err := bbolt.Open(l.dbpath, 0600, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	// time in RFC3339Nano is between the bytes 1 and 36. This will change if other time layout is in use
 	t := p[1:36]
 
-	err := l.db.Update(func(tx *bbolt.Tx) error {
+	err = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(l.bucket)
 		return b.Put(t, p)
 	})
@@ -78,8 +95,19 @@ func (l *boltDBappLogs) Write(p []byte) (int, error) {
 
 // Store implements LogStore
 func (l *boltDBappLogs) Store(t time.Time, s string) error {
+	db, err := bbolt.Open(l.dbpath, 0600, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	parsedTime := []byte(t.Format(time.RFC3339Nano))
-	return l.db.Update(func(tx *bbolt.Tx) error {
+	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(l.bucket)
 		return b.Put(parsedTime, []byte(s))
 	})
@@ -87,9 +115,20 @@ func (l *boltDBappLogs) Store(t time.Time, s string) error {
 
 // LogSince implements LogStore
 func (l *boltDBappLogs) LogsSince(t time.Time) ([]string, error) {
+	db, err := bbolt.Open(l.dbpath, 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	logs := make([]string, 0)
 
-	err := l.db.View(func(tx *bbolt.Tx) error {
+	err = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(l.bucket)
 		parsedTime := []byte(t.Format(time.RFC3339Nano))
 		c := b.Cursor()
@@ -107,12 +146,7 @@ func (l *boltDBappLogs) LogsSince(t time.Time) ([]string, error) {
 
 func iterateFromKey(c *bbolt.Cursor, logs *[]string) error {
 	for k, v := c.Next(); k != nil; k, v = c.Next() {
-		t, err := bytesToTime(k)
-		if err != nil {
-
-			return err
-		}
-		*logs = append(*logs, fmt.Sprintf("%s-%s", t.Format(time.RFC3339Nano), string(v)))
+		*logs = append(*logs, string(v))
 	}
 	return nil
 }
@@ -122,11 +156,7 @@ func iterateFromBeginning(c *bbolt.Cursor, parsedTime []byte, logs *[]string) er
 		if bytes.Compare(k, parsedTime) < 0 {
 			continue
 		}
-		t, err := bytesToTime(k)
-		if err != nil {
-			return err
-		}
-		*logs = append(*logs, t.Format(time.RFC3339Nano), string(v))
+		*logs = append(*logs, string(v))
 	}
 
 	return nil

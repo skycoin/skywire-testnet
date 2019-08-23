@@ -2,11 +2,10 @@ package app
 
 import (
 	"fmt"
-	"os"
-	"time"
-
 	"io/ioutil"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
