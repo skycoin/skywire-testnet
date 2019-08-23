@@ -42,13 +42,14 @@ func (rt *managedRoutingTable) AddRule(rule routing.Rule) (routing.RouteID, erro
 }
 
 func (rt *managedRoutingTable) Rule(routeID routing.RouteID) (routing.Rule, error) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+
 	rule, err := rt.Table.Rule(routeID)
 	if err != nil {
 		return nil, err
 	}
 
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	if rt.ruleIsTimedOut(routeID, rule) {
 		return nil, ErrRuleTimedOut
 	}
@@ -59,14 +60,14 @@ func (rt *managedRoutingTable) Rule(routeID routing.RouteID) (routing.Rule, erro
 func (rt *managedRoutingTable) Cleanup() error {
 	expiredIDs := make([]routing.RouteID, 0)
 	rt.mu.Lock()
+	defer rt.mu.Unlock()
+
 	err := rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rt.ruleIsTimedOut(routeID, rule) {
 			expiredIDs = append(expiredIDs, routeID)
 		}
 		return true
 	})
-	rt.mu.Unlock()
-
 	if err != nil {
 		return err
 	}
