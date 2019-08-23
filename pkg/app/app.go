@@ -30,7 +30,9 @@ const (
 )
 
 var (
-	log = logging.MustGetLogger("app")
+	log      = logging.MustGetLogger("app")
+	trStart  = func() (_ error) { log.Debug(th.Trace("ENTER")); return }
+	trFinish = func(_ error) { log.Debug("FINISH"); return }
 )
 
 // Config defines configuration parameters for App
@@ -56,8 +58,7 @@ type App struct {
 // Command setups pipe connection and returns *exec.Cmd for an App
 // with initialized connection.
 func Command(config *Config, appsPath string, args []string) (net.Conn, *exec.Cmd, error) {
-	log.Printf(th.Trace("ENTER"))
-	defer log.Printf(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	srvConn, clientConn, err := OpenPipeConn()
 	if err != nil {
@@ -74,6 +75,8 @@ func Command(config *Config, appsPath string, args []string) (net.Conn, *exec.Cm
 // SetupFromPipe connects to a pipe, starts protocol loop and performs
 // initialization request with the Server.
 func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
+	defer trFinish(trStart())
+
 	pipeConn, err := NewPipeConn(inFD, outFD)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open pipe: %s", err)
@@ -101,13 +104,14 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 
 // Setup setups app using default pair of pipes
 func Setup(config *Config) (*App, error) {
+	defer trFinish(trStart())
+
 	return SetupFromPipe(config, DefaultIn, DefaultOut)
 }
 
 // Close implements io.Closer for an App.
 func (app *App) Close() error {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	if app == nil {
 		return nil
@@ -137,8 +141,7 @@ func (app *App) Close() error {
 // Accept awaits for incoming loop confirmation request from a Node and
 // returns net.Conn for received loop.
 func (app *App) Accept() (net.Conn, error) {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	addrs := <-app.acceptChan
 	laddr := addrs[0]
@@ -157,8 +160,7 @@ func (app *App) Accept() (net.Conn, error) {
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
 func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	log.Debugf("%v CALLERS: %v\n", th.GetCaller(), th.GetCallers(3))
 
@@ -186,8 +188,7 @@ func (app *App) Addr() net.Addr {
 }
 
 func (app *App) protoHandler(frame Frame, payload []byte) (res interface{}, err error) {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	switch frame {
 	case FrameConfirmLoop:
@@ -203,8 +204,7 @@ func (app *App) protoHandler(frame Frame, payload []byte) (res interface{}, err 
 }
 
 func (app *App) handleProto() {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	err := app.proto.Serve(app.protoHandler)
 	if err != nil {
@@ -213,8 +213,7 @@ func (app *App) handleProto() {
 }
 
 func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	log.Debugf("%v  loop: %v conn: %T\n", th.GetCaller(), loop, conn)
 
@@ -253,8 +252,7 @@ func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
 }
 
 func (app *App) forwardPacket(data []byte) error {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	packet := &Packet{}
 	if err := json.Unmarshal(data, packet); err != nil {
@@ -274,8 +272,7 @@ func (app *App) forwardPacket(data []byte) error {
 }
 
 func (app *App) closeConn(data []byte) error {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	var loop routing.AddrLoop
 	if err := json.Unmarshal(data, &loop); err != nil {
@@ -294,8 +291,7 @@ func (app *App) closeConn(data []byte) error {
 }
 
 func (app *App) confirmLoop(data []byte) error {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("EXIT"))
+	defer trFinish(trStart())
 
 	var addrs [2]routing.Addr
 	if err := json.Unmarshal(data, &addrs); err != nil {

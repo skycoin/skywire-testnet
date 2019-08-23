@@ -23,26 +23,25 @@ import (
 	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/util/env"
 )
 
 var (
-	addr   = flag.String("addr", ":8000", "address to bind")
-	logger = logging.NewMasterLogger().PackageLogger("chat")
-	r      = netutil.NewRetrier(50*time.Millisecond, 0, 2)
-
+	addr    = flag.String("addr", ":8000", "address to bind")
+	logger  = logging.NewMasterLogger().PackageLogger("chat")
+	retrier = netutil.NewRetrier(
+		env.Duration("SKYWIRE_CHAT_RETRY_BACKOFF", 50*time.Millisecond),
+		env.UInt32("SKYWIRE_CHAT_RETRY_TIMES", 5),
+		env.UInt32("SKYWIRE_CHAT_RETRY_FACTOR", 2))
 	chatApp   *app.App
 	clientCh  chan string
 	chatConns map[cipher.PubKey]net.Conn
 	connsMu   sync.Mutex
 
-	trcLog = logger.WithField("_module", th.GetCallerN(4))
+	trcLog   = logger.WithField("_module", th.GetCallerN(3))
+	trStart  = func() error { trcLog.Debug("ENTER"); return nil }
+	trFinish = func(_ error) { trcLog.Debug(th.Trace("EXIT")) }
 )
-
-func trStart() error { // nolint:unparam
-	logger.Debug(th.Trace("ENTER"))
-	return nil
-}
-func trFinish(_ error) { logger.Debug(th.Trace("EXIT")) }
 
 func main() {
 	flag.Parse()
@@ -74,8 +73,6 @@ func main() {
 }
 
 func listenLoop() {
-	defer trFinish(trStart())
-
 	for {
 		conn, err := chatApp.Accept()
 		if err != nil {
@@ -93,7 +90,8 @@ func listenLoop() {
 }
 
 func handleConn(conn net.Conn) {
-	defer trFinish(trStart())
+	// defer trFinish(trStart())
+
 	var cntr uint64
 	raddr := conn.RemoteAddr().(routing.Addr)
 
@@ -123,7 +121,7 @@ func handleConn(conn net.Conn) {
 }
 
 func messageHandler(w http.ResponseWriter, req *http.Request) {
-	defer trFinish(trStart())
+	// defer trFinish(trStart())
 
 	data := map[string]string{}
 	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
@@ -149,7 +147,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 
 	if !ok {
 		var err error
-		err = r.Do(func() error {
+		err = retrier.Do(func() error {
 			atomic.AddUint64(&cntr, 1)
 			trcLog.Debugf("dial %v  addr:%v\n", cntr, addr)
 			conn, err = chatApp.Dial(addr)
@@ -180,7 +178,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func sseHandler(w http.ResponseWriter, req *http.Request) {
-	defer trFinish(trStart())
+	// defer trFinish(trStart())
 
 	f, ok := w.(http.Flusher)
 	if !ok {

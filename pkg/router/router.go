@@ -9,10 +9,13 @@ import (
 	"net"
 	"sync"
 	"time"
+	"bytes"
 
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/alecthomas/repr"
 
 	th "github.com/skycoin/skywire/internal/testhelpers"
 	"github.com/skycoin/skywire/pkg/app"
@@ -21,6 +24,7 @@ import (
 	"github.com/skycoin/skywire/pkg/setup"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
+	
 )
 
 const (
@@ -92,6 +96,9 @@ func New(config *Config) *Router {
 	return r
 }
 
+func (r *Router) trLog() *logrus.Entry {
+	return r.Logger.WithField("_module", th.GetCallerN(3))
+}
 func (r *Router) trStart() (_ error) {
 	r.trLog().Debug("ENTER")
 	return
@@ -99,10 +106,6 @@ func (r *Router) trStart() (_ error) {
 func (r *Router) trFinish(_ error) {
 	r.trLog().Debug("EXIT")
 	return
-}
-
-func (r *Router) trLog() *logrus.Entry {
-	return r.Logger.WithField("_module", th.GetCallerN(3))
 }
 
 // Serve starts transport listening loop.
@@ -227,8 +230,7 @@ func (r *Router) ForwardAppPacket(_ *app.Protocol, packet *app.Packet) error {
 
 // Close safely stops Router.
 func (r *Router) Close() error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	defer r.trFinish(r.trStart())
 
 	if r == nil {
 		return nil
@@ -248,8 +250,7 @@ func (r *Router) Close() error {
 }
 
 func (r *Router) serveTransport(rw io.ReadWriter) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	defer r.trFinish(r.trStart())
 
 	packet := make(routing.Packet, 6)
 	if _, err := io.ReadFull(rw, packet); err != nil {
@@ -276,8 +277,8 @@ func (r *Router) serveTransport(rw io.ReadWriter) error {
 
 // ForwardPacket forwards payload according to rule
 func (r *Router) ForwardPacket(payload []byte, rule routing.Rule) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	defer r.trFinish(r.trStart())
+
 	r.Logger.Debugf("%v %v %v\n", th.GetCaller(), payload, rule)
 
 	packet := routing.MakePacket(rule.RouteID(), payload)
@@ -298,8 +299,7 @@ func (r *Router) ForwardPacket(payload []byte, rule routing.Rule) error {
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	defer r.trFinish(r.trStart())
 
 	laddr := routing.Addr{Port: rule.LocalPort()}
 	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
@@ -315,6 +315,16 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 
 	r.Logger.Infof("Forwarded packet to App on Port %d", rule.LocalPort())
 	return nil
+}
+
+func reprS(v interface{}) string {
+	w := bytes.NewBuffer(nil)
+	
+	options := []repr.Option{repr.OmitEmpty(true), repr.IgnoreGoStringer()} 
+	// options = []Option{repr.NoIndent()}
+	p := repr.New(w, options...)
+	p.Print(v)
+	return w.String()
 }
 
 func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
@@ -337,7 +347,8 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 	r.trLog().Error("r.pm.GetLoop: ", err)
 
 	r.trLog().Warn("loop: ", loop)
-	r.trLog().Errorf("ALL LOOPS: %v\n", r.pm.Ports())
+	r.trLog().Errorf("ALL LOOPS: %v\n", reprS(r.pm.Ports()))
+	// repr.Print(r.pm.Ports())
 
 	if err != nil {
 		return err
@@ -346,7 +357,7 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 	// r.Logger.Debugf("%v found loop: %v", th.GetCaller(), loop)
 
 	tr := r.tm.Transport(loop.trID)
-	r.trLog().Info("trID %v ERRROR %v\n", loop.trID, err)
+	
 	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
 
 	// 9df41ada-be66-5640-bce2-917988069706

@@ -15,9 +15,13 @@ import (
 
 	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/util/env"
 )
 
-var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)
+var r = netutil.NewRetrier(
+	env.Duration("SKYWIRE_SSH_RETRY_BACKOFF", 50*time.Millisecond),
+	env.UInt32("SKYWIRE_SSH_RETRY_TIMES", 5),
+	env.UInt32("SKYWIRE_SSH_RETRY_FACTOR", 2))
 
 // Client proxies CLI's requests to a remote server. Control messages
 // are sent via RPC interface. PTY data is exchanged via unix socket.

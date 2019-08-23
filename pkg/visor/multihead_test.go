@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/stretchr/testify/require"
 )
 
 /* Prepare IP aliases:
@@ -49,19 +50,20 @@ func ExampleMultiHead_RunExample_logrus() {
 	// stop errors: 0
 }
 
-func ExampleMultiHead_sendMessage_msg001() {
+func ExampleMultiHead_sendMessage_Local() {
 	mh := makeMultiHeadN(2)
 	mh.RunExample(func(mh *MultiHead) {
-		_, err := mh.sendMessage(0, 0, "Hello001")
-		_, err = mh.sendMessage(1, 1, "Hello001")
-		fmt.Printf("err: %v", err)
+		resp, err := mh.sendMessage(0, 0, "Hello001")
+		fmt.Printf("resp.Status: %v err: %v", resp.StatusCode, err)
+		resp2, err2 := mh.sendMessage(1, 1, "Hello002")
+		fmt.Printf("resp.Status: %v err: %v", resp2.StatusCode, err2)
 	})
 
 	fmt.Printf("%v\n", mh.errReport())
 
 	recs := mh.Log.filter(`.*received.*"message"`, true)
-	if len(recs) == 1 {
-		fmt.Println("skyhost_001 received message")
+	if len(recs) == 2 {
+		fmt.Println("received message")
 	}
 	fmt.Println(mh.Log.records)
 	fmt.Println(recs)
@@ -73,10 +75,10 @@ func ExampleMultiHead_sendMessage_msg001() {
 	// skyhost_001 received message
 }
 
-func TestMultiHead_sendMessage_msg001(t *testing.T) {
+func TestMultiHead_sendMessage_Local(t *testing.T) {
 	mh := makeMultiHeadN(1)
-	mh.RunTest(t, "msg001", func(mh *MultiHead) {
-		resp, err := mh.sendMessage(0, 0, "Hello001")
+	mh.RunTest(t, "Local", func(mh *MultiHead) {
+		resp, err := mh.sendMessage(1, 1, "Hello001")
 		require.NoError(t, err)
 		require.Equal(t, resp.StatusCode, 200)
 	})
@@ -95,8 +97,8 @@ func TestMultiHead_sendMessage_msg001(t *testing.T) {
 	// skyhost_001 received message
 }
 
-func ExampleMultiHead_sendMessage_msg002() {
-	mh := makeMultiHeadN(128)
+func ExampleMultiHead_sendMessage_msg255() {
+	mh := makeMultiHeadN(2)
 	mh.RunExample(func(mh *MultiHead) {
 		for i := uint(2); i < 120; i++ {
 			resp, err := mh.sendMessage(i, i+1, fmt.Sprintf("Hello%03d-%03d", i, i+1))
@@ -106,6 +108,24 @@ func ExampleMultiHead_sendMessage_msg002() {
 			time.Sleep(time.Millisecond * 10)
 		}
 		time.Sleep(time.Second * 60)
+	})
+
+	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))
+	fmt.Println(mh.Log.filter(`.*received.*`, true))
+
+	// Output: err: <nil>
+	// init errors: 0
+	// start errors: 0
+	// stop errors: 0
+
+}
+
+func ExampleMultiHead_sendMessage_TCP() {
+	mh := makeMultiHeadN(3)
+	mh.RunExample(func(mh *MultiHead) {
+		resp, err := mh.sendMessage(1, 2, "Hello")
+		fmt.Printf("resp: %v \nerr: %v\n", resp, err)
+		time.Sleep(time.Second)
 	})
 
 	fmt.Printf("%v\n", strings.Join(mh.Log.records, ""))

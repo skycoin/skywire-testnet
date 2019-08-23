@@ -18,6 +18,7 @@ import (
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -150,13 +151,12 @@ func (mh *MultiHead) initNodes() {
 	logging.DisableColors()
 	logging.SetOutputTo(mh.Log)
 	stdlog.SetOutput(mh.Log)
+	stdlog.SetPrefix("[package-level]")
 
 	var err error
 	for i := 0; i < len(mh.nodes); i++ {
 		logger := NewTaggedMasterLogger(mh.ipPool[i], mh.pkAliases())
 		logger.Out = mh.Log
-		// logger.SetReportCaller(true)
-		stdlog.SetPrefix(mh.ipPool[i])
 
 		mh.nodes[i], err = NewNode(&mh.cfgPool[i], logger)
 		if err != nil {
