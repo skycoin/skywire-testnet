@@ -92,6 +92,13 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	return nil
 }
 
+// Exec executes a given command in cmd and writes its output to out.
+func (r *RPC) Exec(cmd *string, out *[]byte) error {
+	var err error
+	*out, err = r.node.Exec(*cmd)
+	return err
+}
+
 /*
 	<<< APP MANAGEMENT >>>
 */
