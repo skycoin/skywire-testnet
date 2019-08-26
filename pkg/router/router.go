@@ -96,14 +96,14 @@ func New(config *Config) *Router {
 }
 
 func (r *Router) trLog() *logrus.Entry {
-	return r.Logger.WithField("func", th.GetCallerN(3))
+	return r.Logger.WithField("func", th.GetCallerN(4))
 }
 func (r *Router) trStart() (_ error) {
-	r.trLog().Debug("ENTER")
+	r.trLog().Info("ENTER")
 	return
 }
 func (r *Router) trFinish(_ error) {
-	r.trLog().Debug("EXIT")
+	r.trLog().Info("EXIT")
 	return
 }
 
@@ -176,8 +176,10 @@ func (r *Router) handleTransport(tp transport.Transport, isAccepted, isSetup boo
 
 // ServeApp handles App packets from the App connection on provided port.
 func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
-	defer r.trFinish(r.trStart())
-	r.Logger.Info("Starting router")
+	r.Logger.Infof("%v ENTER", th.GetCaller())
+	defer r.Logger.Infof("%v EXIT", th.GetCaller())
+
+	r.Logger.Infof("%v Starting router", th.GetCaller())
 
 	r.wg.Add(1)
 	defer r.wg.Done()
@@ -214,7 +216,7 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 
 // CreateLoop implements PactetRouter.CreateLoop
 func (r *Router) CreateLoop(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
-	r.Logger.Debug("CreateLoop ENTER")
+	r.Logger.Info("CreateLoop ENTER")
 	return r.requestLoop(conn, raddr)
 }
 
@@ -279,12 +281,12 @@ func (r *Router) serveTransport(rw io.ReadWriter) error {
 func (r *Router) ForwardPacket(payload []byte, rule routing.Rule) error {
 	defer r.trFinish(r.trStart())
 
-	r.Logger.Debugf("%v %v %v\n", th.GetCaller(), payload, rule)
+	r.Logger.Infof("%v %v %v\n", th.GetCaller(), payload, rule)
 
 	packet := routing.MakePacket(rule.RouteID(), payload)
 	tr := r.tm.Transport(rule.TransportID())
 	if tr == nil {
-		r.Logger.Debugf("%v: packet %v \n", th.GetCaller(), packet)
+		r.Logger.Infof("%v: packet %v \n", th.GetCaller(), packet)
 
 		// tr = r.tm.CreateDataTransport(context.Background(), ra)
 		return errors.New("unknown transport")
@@ -349,7 +351,7 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 	}
 	tr := r.tm.Transport(loop.trID)
 	if tr == nil {
-		r.trLog().Debug("unknown transport")
+		r.trLog().Info("unknown transport")
 		return errors.New("unknown transport")
 	}
 	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
@@ -370,7 +372,7 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 
 	// }
 
-	// r.Logger.Debugf("%v ATTEMPT TO FIND %v", th.GetCaller(), appPacket.Loop.Remote.PubKey)
+	// r.Logger.Infof("%v ATTEMPT TO FIND %v", th.GetCaller(), appPacket.Loop.Remote.PubKey)
 	// if r.isPubKeyLocal(appPacket.Loop.Remote.PubKey) {
 	// 	r.Logger.Infof("%v isPubKeyLocal = true", th.GetCaller())
 	// 	// return r.forwardTCPAppPacket(packet)
@@ -419,7 +421,7 @@ func (r *Router) forwardTCPAppPacket(appPacket *app.Packet) error {
 	trID := transport.MakeTransportID(r.config.PubKey, appPacket.Loop.Remote.PubKey, "tcp-transport", true)
 	tr := r.tm.Transport(trID)
 	if tr == nil {
-		r.trLog().Debug("unknown transport")
+		r.trLog().Info("unknown transport")
 		return errors.New("unknown transport")
 	}
 	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
@@ -449,8 +451,8 @@ func (r *Router) isPubKeyLocal(pk cipher.PubKey) bool {
 }
 
 func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	if r == nil {
 		return raddr, nil
@@ -489,12 +491,12 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 	}
 
 	if r.isPubKeyLocal(raddr.PubKey) {
-		r.Logger.Debugf("%v laddr: %v raddr: %v \n", th.GetCaller(), laddr, raddr)
+		r.Logger.Infof("%v laddr: %v raddr: %v \n", th.GetCaller(), laddr, raddr)
 		if err := r.confirmTCPLoop(laddr, raddr); err != nil {
 			r.Logger.Warnf("%v r.ConfirmTCPLoop err: %v", th.GetCaller(), err)
 
 		}
-		r.trLog().Debugf("laddr: %v raddr: %v \n", th.GetCaller(), raddr)
+		r.trLog().Infof("laddr: %v raddr: %v \n", th.GetCaller(), raddr)
 		return laddr, err
 	}
 
@@ -519,12 +521,12 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 }
 
 func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	b, err := r.pm.Get(raddr.Port)
 	if err != nil {
-		r.Logger.Debugf("%v r.pm.Get %v", th.GetCaller(), err)
+		r.Logger.Infof("%v r.pm.Get %v", th.GetCaller(), err)
 		return err
 	}
 
@@ -538,10 +540,10 @@ func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
 }
 
 func (r *Router) confirmTCPLoop(laddr, raddr routing.Addr) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
-	r.trLog().Debugf("%v: laddr: %v, raddr: %v", th.GetCaller(), laddr, raddr)
+	r.trLog().Infof("%v: laddr: %v, raddr: %v", th.GetCaller(), laddr, raddr)
 
 	// portBind
 	pb, err := r.pm.Get(raddr.Port)
@@ -560,15 +562,15 @@ func (r *Router) confirmTCPLoop(laddr, raddr routing.Addr) error {
 	if err != nil {
 		r.trLog().Warnf("r.tm.CreateDataTransport err: %v\n", th.GetCaller(), err)
 	}
-	r.trLog().Debugf("r.tm.CreateDataTransport  tr: %T  success: %v\n", tr, err == nil)
+	r.trLog().Infof("r.tm.CreateDataTransport  tr: %T  success: %v\n", tr, err == nil)
 
 	return nil
 
 }
 
 func (r *Router) confirmLoop(l routing.AddrLoop, rule routing.Rule) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	b, err := r.pm.Get(l.Local.Port)
 	if err != nil {
@@ -588,15 +590,15 @@ func (r *Router) confirmLoop(l routing.AddrLoop, rule routing.Rule) error {
 }
 
 func (r *Router) closeLoop(loop routing.AddrLoop) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	if err := r.destroyLoop(loop); err != nil {
 		r.Logger.Warnf("Failed to remove loop: %s", err)
 	}
 
 	if r.isPubKeyLocal(loop.Remote.PubKey) {
-		r.Logger.Debug("%v isPubKeyLocal() == true", th.GetCaller())
+		r.Logger.Info("%v isPubKeyLocal() == true", th.GetCaller())
 		return nil
 	}
 	proto, tr, err := r.setupProto(context.Background())
@@ -619,8 +621,8 @@ func (r *Router) closeLoop(loop routing.AddrLoop) error {
 }
 
 func (r *Router) loopClosed(loop routing.AddrLoop) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	b, err := r.pm.Get(loop.Local.Port)
 	if err != nil {
@@ -640,8 +642,8 @@ func (r *Router) loopClosed(loop routing.AddrLoop) error {
 }
 
 func (r *Router) destroyLoop(loop routing.AddrLoop) error {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	if r == nil {
 		return nil
@@ -662,8 +664,8 @@ func (r *Router) destroyLoop(loop routing.AddrLoop) error {
 }
 
 func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Transport, error) {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	if len(r.config.SetupNodes) == 0 {
 		r.Logger.Warnf("%v : route setup: no nodes", th.GetCaller())
@@ -681,8 +683,8 @@ func (r *Router) setupProto(ctx context.Context) (*setup.Protocol, transport.Tra
 }
 
 func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Route, rev routing.Route, err error) {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	r.Logger.Infof("[Router.fetchBestRoutes] Requesting new routes from %s to %s", source, destination)
 	timer := time.NewTimer(time.Second * 10)
@@ -705,8 +707,8 @@ fetchRoutesAgain:
 
 // IsSetupTransport checks whether `tr` is running in the `setup` mode.
 func (r *Router) IsSetupTransport(tr *transport.ManagedTransport) bool {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	r.Logger.Info(th.Trace("ENTER"))
+	defer r.Logger.Info(th.Trace("EXIT"))
 
 	for _, pk := range r.config.SetupNodes {
 		if tr.RemotePK() == pk {

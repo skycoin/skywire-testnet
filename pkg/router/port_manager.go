@@ -23,7 +23,7 @@ type portManager struct {
 }
 
 func (pm *portManager) debug(args ...interface{}) {
-	pm.logger.Debug(args)
+	pm.logger.Info(args)
 }
 
 func newPortManager(minPort routing.Port, logger *logging.Logger) *portManager {

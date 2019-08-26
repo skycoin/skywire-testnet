@@ -73,7 +73,7 @@ func NewProtocol(rw io.ReadWriteCloser) *Protocol {
 
 // Send sends command Frame with payload and awaits for response.
 func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
-	Logger.Debug(th.Trace("ENTER"))
+	Logger.Info(th.Trace("ENTER"))
 	Logger.Debugf("%v cmd: %v, payload: %v\n", th.GetCaller(), cmd, payload)
 	Logger.Debugf("%v CALLERS: %v\n", th.GetCaller(), th.GetCallers(3))
 
@@ -106,8 +106,8 @@ func (p *Protocol) Send(cmd Frame, payload, res interface{}) error {
 
 // Serve reads incoming frame, passes it to the handleFunc and writes results.
 func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) error {
-	Logger.Debug(th.Trace("ENTER"))
-	defer Logger.Debug(th.Trace("EXIT"))
+	Logger.Info(th.Trace("ENTER"))
+	defer Logger.Info(th.Trace("EXIT"))
 	var cntr uint64
 
 	for {
@@ -160,8 +160,8 @@ func (p *Protocol) Serve(handleFunc func(Frame, []byte) (interface{}, error)) er
 
 // Close closes underlying ReadWriter.
 func (p *Protocol) Close() error {
-	Logger.Debug(th.Trace("ENTER"))
-	defer Logger.Debug(th.Trace("EXIT"))
+	Logger.Info(th.Trace("ENTER"))
+	defer Logger.Info(th.Trace("EXIT"))
 
 	if p == nil {
 		return nil
@@ -171,8 +171,8 @@ func (p *Protocol) Close() error {
 }
 
 func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err error) {
-	Logger.Debug(th.Trace("ENTER"))
-	defer Logger.Debug(th.Trace("EXIT"))
+	Logger.Info(th.Trace("ENTER"))
+	defer Logger.Info(th.Trace("EXIT"))
 
 	var data []byte
 	if err, ok := payload.(error); ok {

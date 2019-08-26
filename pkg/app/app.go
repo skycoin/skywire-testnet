@@ -31,8 +31,8 @@ const (
 
 var (
 	log      = logging.MustGetLogger("app")
-	trStart  = func() (_ error) { log.Debug(th.Trace("ENTER")); return }
-	trFinish = func(_ error) { log.Debug("FINISH"); return }
+	trStart  = func() (_ error) { log.Info(th.Trace("ENTER")); return }
+	trFinish = func(_ error) { log.Info("FINISH"); return }
 )
 
 // Config defines configuration parameters for App

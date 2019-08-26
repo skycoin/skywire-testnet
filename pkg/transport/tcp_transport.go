@@ -30,8 +30,8 @@ type TCPFactory struct {
 
 // NewTCPFactory constructs a new TCP Factory
 func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string, logger *logging.Logger) (Factory, error) {
-	logger.Debug(th.Trace("ENTER"))
-	defer logger.Debug(th.Trace("EXIT"))
+	logger.Info(th.Trace("ENTER"))
+	defer logger.Info(th.Trace("EXIT"))
 
 	pkTbl, err := FilePubKeyTable(pubkeysFile)
 	if err != nil {
@@ -54,8 +54,8 @@ func NewTCPFactory(pk cipher.PubKey, pubkeysFile string, tcpAddr string, logger 
 
 // Accept accepts a remotely-initiated Transport.
 func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
-	f.Logger.Debug(th.Trace("ENTER"))
-	defer f.Logger.Debug(th.Trace("EXIT"))
+	f.Logger.Info(th.Trace("ENTER"))
+	defer f.Logger.Info(th.Trace("EXIT"))
 
 	conn, err := f.Lsr.AcceptTCP()
 	if err != nil {
@@ -77,8 +77,8 @@ func (f *TCPFactory) Accept(ctx context.Context) (Transport, error) {
 
 // Dial initiates a Transport with a remote node.
 func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport, error) {
-	f.Logger.Debug(th.Trace("ENTER"))
-	defer f.Logger.Debug(th.Trace("EXIT"))
+	f.Logger.Info(th.Trace("ENTER"))
+	defer f.Logger.Info(th.Trace("EXIT"))
 
 	addr := f.PkTable.RemoteAddr(remote)
 	if addr == "" {
@@ -115,8 +115,8 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (Transport,
 
 // Close implements io.Closer
 func (f *TCPFactory) Close() error {
-	f.Logger.Debug(th.Trace("ENTER"))
-	defer f.Logger.Debug(th.Trace("EXIT"))
+	f.Logger.Info(th.Trace("ENTER"))
+	defer f.Logger.Info(th.Trace("EXIT"))
 
 	if f == nil {
 		return nil

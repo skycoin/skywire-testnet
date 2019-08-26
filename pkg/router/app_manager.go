@@ -23,7 +23,7 @@ type appManager struct {
 func (am *appManager) serveHandler(frame app.Frame, payload []byte) (res interface{}, err error) {
 	am.Logger.WithField("payload", app.Payload{Frame: frame, Data: payload}).
 		Debug(th.Trace("ENTER"))
-	defer am.Logger.Debug(th.Trace("EXIT"))
+	defer am.Logger.Info(th.Trace("EXIT"))
 
 	switch frame {
 	case app.FrameInit:
@@ -46,15 +46,15 @@ func (am *appManager) serveHandler(frame app.Frame, payload []byte) (res interfa
 }
 
 func (am *appManager) Serve() error {
-	am.Logger.Debug(th.Trace("ENTER"))
-	defer am.Logger.Debug(th.Trace("EXIT"))
+	am.Logger.Info(th.Trace("ENTER"))
+	defer am.Logger.Info(th.Trace("EXIT"))
 
 	return am.proto.Serve(am.serveHandler)
 }
 
 func (am *appManager) initApp(payload []byte) error {
-	am.Logger.Debug(th.Trace("ENTER"))
-	defer am.Logger.Debug(th.Trace("EXIT"))
+	am.Logger.Info(th.Trace("ENTER"))
+	defer am.Logger.Info(th.Trace("EXIT"))
 
 	var config app.Config
 	if err := json.Unmarshal(payload, &config); err != nil {
@@ -78,8 +78,8 @@ func (am *appManager) initApp(payload []byte) error {
 }
 
 func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
-	am.Logger.Debug(th.Trace("ENTER"))
-	defer am.Logger.Debug(th.Trace("EXIT"))
+	am.Logger.Info(th.Trace("ENTER"))
+	defer am.Logger.Info(th.Trace("EXIT"))
 
 	var raddr routing.Addr
 	if err := json.Unmarshal(payload, &raddr); err != nil {
@@ -90,8 +90,8 @@ func (am *appManager) setupLoop(payload []byte) (routing.Addr, error) {
 }
 
 func (am *appManager) handleCloseLoop(payload []byte) error {
-	am.Logger.Debug(th.Trace("ENTER"))
-	defer am.Logger.Debug(th.Trace("EXIT"))
+	am.Logger.Info(th.Trace("ENTER"))
+	defer am.Logger.Info(th.Trace("EXIT"))
 
 	var loop routing.AddrLoop
 	if err := json.Unmarshal(payload, &loop); err != nil {
@@ -102,8 +102,8 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 }
 
 func (am *appManager) forwardAppPacket(payload []byte) error {
-	am.Logger.Debug(th.Trace("ENTER"))
-	defer am.Logger.Debug(th.Trace("EXIT"))
+	am.Logger.Info(th.Trace("ENTER"))
+	defer am.Logger.Info(th.Trace("EXIT"))
 
 	packet := &app.Packet{}
 	if err := json.Unmarshal(payload, packet); err != nil {

@@ -214,8 +214,8 @@ func (tm *Manager) Serve(ctx context.Context) error {
 
 // CreateSetupTransport begins to attempt to establish setup transports to the given 'remote' node.
 func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKey, tpType string) (Transport, error) {
-	tm.Logger.Debug(th.Trace("ENTER"))
-	defer tm.Logger.Debug(th.Trace("EXIT"))
+	tm.Logger.Info(th.Trace("ENTER"))
+	defer tm.Logger.Info(th.Trace("EXIT"))
 
 	factory, ok := tm.factories[tpType]
 	if !ok {
@@ -233,8 +233,8 @@ func (tm *Manager) CreateSetupTransport(ctx context.Context, remote cipher.PubKe
 
 // CreateDataTransport begins to attempt to establish data transports to the given 'remote' node.
 func (tm *Manager) CreateDataTransport(ctx context.Context, remote cipher.PubKey, tpType string, public bool) (*ManagedTransport, error) {
-	tm.Logger.Debug(th.Trace("ENTER"))
-	defer tm.Logger.Debug(th.Trace("EXIT"))
+	tm.Logger.Info(th.Trace("ENTER"))
+	defer tm.Logger.Info(th.Trace("EXIT"))
 
 	factory, ok := tm.factories[tpType]
 	if !ok {
@@ -327,8 +327,8 @@ func (tm *Manager) Close() error {
 }
 
 func (tm *Manager) dialTransport(ctx context.Context, factory Factory, remote cipher.PubKey, public bool) (Transport, *Entry, error) {
-	tm.Logger.Debug(th.Trace("ENTER"))
-	defer tm.Logger.Debug(th.Trace("EXIT"))
+	tm.Logger.Info(th.Trace("ENTER"))
+	defer tm.Logger.Info(th.Trace("EXIT"))
 
 	if tm.isClosing() {
 		return nil, nil, errors.New("transport.Manager is closing. Skipping dialing transport")

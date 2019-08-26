@@ -16,8 +16,8 @@ type Packet []byte
 // MakePacket constructs a new Packet. If payload size is more than
 // uint16, MakePacket will panic.
 func MakePacket(id RouteID, payload []byte) Packet {
-	log.Debug(th.Trace("ENTER"))
-	defer log.Debug(th.Trace("ENTER"))
+	log.Info(th.Trace("ENTER"))
+	defer log.Info(th.Trace("ENTER"))
 
 	if len(payload) > math.MaxUint16 {
 		panic("packet size exceeded")

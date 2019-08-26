@@ -257,8 +257,8 @@ func (node *Node) Start() error {
 	if node == nil {
 		return errors.New("not initialized node")
 	}
-	// node.logger.Debug(th.Trace("ENTER"))
-	// defer node.logger.Debug(th.Trace("ENTER"))
+	// node.logger.Info(th.Trace("ENTER"))
+	// defer node.logger.Info(th.Trace("ENTER"))
 	node.logger.Info("started node")
 
 	ctx := context.Background()

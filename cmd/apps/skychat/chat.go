@@ -39,8 +39,8 @@ var (
 	connsMu   sync.Mutex
 
 	trcLog   = logger.WithField("_module", th.GetCallerN(3))
-	trStart  = func() error { trcLog.Debug("ENTER"); return nil }
-	trFinish = func(_ error) { trcLog.Debug(th.Trace("EXIT")) }
+	trStart  = func() error { trcLog.Info("ENTER"); return nil }
+	trFinish = func(_ error) { trcLog.Info(th.Trace("EXIT")) }
 )
 
 func main() {
@@ -102,13 +102,13 @@ func handleConn(conn net.Conn) {
 		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
 		if err != nil {
-			trcLog.Debug("failed to read packet:", err)
+			trcLog.Info("failed to read packet:", err)
 			return
 		}
 
 		clientMsg, err := json.Marshal(map[string]string{"sender": raddr.PubKey.Hex(), "message": string(buf[:n])})
 		if err != nil {
-			trcLog.Debug("Failed to marshal json: ", err)
+			trcLog.Info("Failed to marshal json: ", err)
 		}
 		select {
 		case clientCh <- string(clientMsg):
@@ -136,7 +136,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	addr := routing.Addr{PubKey: pk, Port: 1}
-	trcLog.Debug("addr: ", addr)
+	trcLog.Info("addr: ", addr)
 
 	connsMu.Lock()
 	conn, ok := chatConns[pk]
@@ -154,7 +154,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 			return err
 		})
 		if err != nil {
-			trcLog.Debug("err: ", err)
+			trcLog.Info("err: ", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
