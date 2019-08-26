@@ -73,7 +73,11 @@ func (rt *managedRoutingTable) Cleanup() error {
 		return err
 	}
 
-	return rt.DeleteRules(expiredIDs...)
+	if err := rt.DeleteRules(expiredIDs...); err != nil {
+		return err
+	}
+
+	rt.deleteActivity(expiredIDs...)
 }
 
 // ruleIsExpired checks whether rule's keep alive timeout is exceeded.
@@ -81,4 +85,12 @@ func (rt *managedRoutingTable) Cleanup() error {
 func (rt *managedRoutingTable) ruleIsTimedOut(routeID routing.RouteID, rule routing.Rule) bool {
 	lastActivity, ok := rt.activity[routeID]
 	return !ok || time.Since(lastActivity) > rule.KeepAlive()
+}
+
+// deleteActivity removes activity records for the specified set of `routeIDs`.
+// NOTE: for internal use, is NOT thread-safe, object lock should be acquired outside
+func (rt *managedRoutingTable) deleteActivity(routeIDs ...routing.RouteID) {
+	for _, rID := range routeIDs {
+		delete(rt.activity, rID)
+	}
 }
