@@ -97,7 +97,7 @@ func TestNode(t *testing.T) {
 
 		// prepare loop creation (client_1 will use this to request loop creation with setup node).
 		ld := routing.LoopDescriptor{
-			Loop: routing.AddrLoop{
+			Loop: routing.AddressPair{
 				Local:  routing.Addr{PubKey: clients[1].Local(), Port: 1},
 				Remote: routing.Addr{PubKey: clients[4].Local(), Port: 1},
 			},
@@ -214,7 +214,7 @@ func TestNode(t *testing.T) {
 
 		// prepare loop data describing the loop that is to be closed.
 		ld := routing.LoopData{
-			Loop: routing.AddrLoop{
+			Loop: routing.AddressPair{
 				Local: routing.Addr{
 					PubKey: clients[1].Local(),
 					Port:   1,

@@ -120,7 +120,7 @@ func TestRouterSetup(t *testing.T) {
 		require.NoError(t, err)
 
 		err = setup.ConfirmLoop(sProto, routing.LoopData{
-			Loop: routing.AddrLoop{
+			Loop: routing.AddressPair{
 				Remote: routing.Addr{
 					PubKey: pk2,
 					Port:   1,
@@ -166,7 +166,7 @@ func TestRouterSetup(t *testing.T) {
 		require.NoError(t, err)
 
 		err = setup.ConfirmLoop(sProto, routing.LoopData{
-			Loop: routing.AddrLoop{
+			Loop: routing.AddressPair{
 				Remote: routing.Addr{
 					PubKey: pk2,
 					Port:   3,
@@ -208,7 +208,7 @@ func TestRouterSetup(t *testing.T) {
 		assert.Equal(t, routing.RuleApp, rule.Type())
 
 		require.NoError(t, setup.LoopClosed(sProto, routing.LoopData{
-			Loop: routing.AddrLoop{
+			Loop: routing.AddressPair{
 				Remote: routing.Addr{
 					PubKey: pk2,
 					Port:   3,

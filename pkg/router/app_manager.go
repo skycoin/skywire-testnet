@@ -22,7 +22,7 @@ type appManager struct {
 
 func (am *appManager) serveHandler(frame app.Frame, payload []byte) (res interface{}, err error) {
 	am.Logger.WithField("payload", app.Payload{Frame: frame, Data: payload}).
-		Debug(th.Trace("ENTER"))
+		Info(th.Trace("ENTER"))
 	defer am.Logger.Info(th.Trace("EXIT"))
 
 	switch frame {
@@ -93,7 +93,7 @@ func (am *appManager) handleCloseLoop(payload []byte) error {
 	am.Logger.Info(th.Trace("ENTER"))
 	defer am.Logger.Info(th.Trace("EXIT"))
 
-	var loop routing.AddrLoop
+	var loop routing.AddressPair
 	if err := json.Unmarshal(payload, &loop); err != nil {
 		return err
 	}
@@ -109,7 +109,9 @@ func (am *appManager) forwardAppPacket(payload []byte) error {
 	if err := json.Unmarshal(payload, packet); err != nil {
 		return err
 	}
-	am.Logger.Debugf("%v: %v\n", th.GetCaller(), packet)
+	am.Logger.Infof("%v: %v\n", th.GetCaller(), packet)
 
-	return am.router.ForwardAppPacket(am.proto, packet)
+	err := am.router.ForwardAppPacket(am.proto, packet)
+	am.Logger.Infof("%v am.router.ForwardAppPacket: %v", th.GetCaller(), err)
+	return err
 }

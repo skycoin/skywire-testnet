@@ -55,7 +55,7 @@ type PacketRouter interface {
 	ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error
 	IsSetupTransport(tr *transport.ManagedTransport) bool
 	CreateLoop(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error)
-	CloseLoop(conn *app.Protocol, loop routing.AddrLoop) error
+	CloseLoop(conn *app.Protocol, loop routing.AddressPair) error
 	ForwardAppPacket(conn *app.Protocol, packet *app.Packet) error
 }
 
@@ -176,8 +176,7 @@ func (r *Router) handleTransport(tp transport.Transport, isAccepted, isSetup boo
 
 // ServeApp handles App packets from the App connection on provided port.
 func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
-	r.Logger.Infof("%v ENTER", th.GetCaller())
-	defer r.Logger.Infof("%v EXIT", th.GetCaller())
+	defer r.trFinish(r.trStart())
 
 	r.Logger.Infof("%v Starting router", th.GetCaller())
 
@@ -198,7 +197,7 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 
 	for _, port := range r.pm.AppPorts(appProto) {
 		for _, addr := range r.pm.Close(port) {
-			if err := r.closeLoop(routing.AddrLoop{Local: routing.Addr{Port: port}, Remote: addr}); err != nil {
+			if err := r.closeLoop(routing.AddressPair{Local: routing.Addr{Port: port}, Remote: addr}); err != nil {
 				log.WithError(err).Warn("Failed to close loop")
 			}
 		}
@@ -216,17 +215,19 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 
 // CreateLoop implements PactetRouter.CreateLoop
 func (r *Router) CreateLoop(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
-	r.Logger.Info("CreateLoop ENTER")
+	defer r.trFinish(r.trStart())
 	return r.requestLoop(conn, raddr)
 }
 
 // CloseLoop implements PactetRouter.CloseLoop
-func (r *Router) CloseLoop(_ *app.Protocol, loop routing.AddrLoop) error {
+func (r *Router) CloseLoop(_ *app.Protocol, loop routing.AddressPair) error {
+	defer r.trFinish(r.trStart())
 	return r.closeLoop(loop)
 }
 
 // ForwardAppPacket implements PactetRouter.ForwardAppPacket
 func (r *Router) ForwardAppPacket(_ *app.Protocol, packet *app.Packet) error {
+	defer r.trFinish(r.trStart())
 	return r.forwardAppPacket(packet)
 }
 
@@ -306,7 +307,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	laddr := routing.Addr{Port: rule.LocalPort()}
 	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
 
-	p := &app.Packet{Loop: routing.AddrLoop{Local: laddr, Remote: raddr}, Payload: payload}
+	p := &app.Packet{AddressPair: routing.AddressPair{Local: laddr, Remote: raddr}, Payload: payload}
 	b, err := r.pm.Get(rule.LocalPort())
 	if err != nil {
 		return err
@@ -335,17 +336,22 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 		return errors.New("router not initialized")
 	}
 
-	if appPacket.Loop.Remote.PubKey == r.config.PubKey {
-		r.trLog().Info("r.config.PubKey: ", r.config.PubKey)
+	if appPacket.AddressPair.Remote.PubKey == r.config.PubKey {
+		r.trLog().Info("Forwarding local packet to: ", r.config.PubKey)
 		return r.forwardLocalAppPacket(appPacket)
 	}
 
-	if r.isPubKeyLocal(appPacket.Loop.Remote.PubKey) {
-		r.trLog().Info("Found in pubkeys file: ", appPacket.Loop.Remote.PubKey)
+	if r.isPubKeyLocal(appPacket.AddressPair.Remote.PubKey) {
+		r.trLog().Info("Forwarding tcp-transport packet to: ", appPacket.AddressPair.Remote.PubKey)
 		return r.forwardTCPAppPacket(appPacket)
 	}
 
-	loop, err := r.pm.GetLoop(appPacket.Loop.Local.Port, appPacket.Loop.Remote)
+	r.trLog().Info("Forwarding dmsg packet to: ", appPacket.AddressPair.Remote.PubKey)
+	return r.forwardLocalDMSGPacket(appPacket)
+}
+
+func (r *Router) forwardLocalDMSGPacket(appPacket *app.Packet) error {
+	loop, err := r.pm.GetLoop(appPacket.AddressPair.Local.Port, appPacket.AddressPair.Remote)
 	if err != nil {
 		return err
 	}
@@ -354,32 +360,10 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 		r.trLog().Info("unknown transport")
 		return errors.New("unknown transport")
 	}
-	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
-
-	// 9df41ada-be66-5640-bce2-917988069706
-	// trID := uuid.MustParse("9df41ada-be66-5640-bce2-917988069706")
-	// trID := uuid.MustParse("9e566688-8717-5855-b1b7-92586ffc8c9b")
-	// fmt.Printf("trID %v ERRROR %v\n", trID, err)
-	// trID := transport.MakeTransportID(r.config.PubKey, appPacket.Loop.Remote.PubKey, "tcp-transport", true)
-
-	// tr = r.tm.Transport(trID)
-	// fmt.Print("TRANSPORT: ", tr)
-	// if tr == nil {
-	// 	r.trLog().Error("Loop: ", loop)
-	// 	r.trLog().Error("OOOOOOO")
-	// 	r.Logger.Errorf("%v r.tm.Transport: tr==nil", th.GetCaller())
-	// 	return errors.New("unknown transport")
-
-	// }
-
-	// r.Logger.Infof("%v ATTEMPT TO FIND %v", th.GetCaller(), appPacket.Loop.Remote.PubKey)
-	// if r.isPubKeyLocal(appPacket.Loop.Remote.PubKey) {
-	// 	r.Logger.Infof("%v isPubKeyLocal = true", th.GetCaller())
-	// 	// return r.forwardTCPAppPacket(packet)
-	// }
+	r.trLog().Infof("r.tm.transports: %v\n", r.tm.Transports())
 
 	rPacket := routing.MakePacket(loop.routeID, appPacket.Payload)
-	r.Logger.Infof("%v Forwarded App packet from LocalPort %d using route ID %d", th.GetCaller(), appPacket.Loop.Local.Port, loop.routeID)
+	r.Logger.Infof("%v Forwarded App packet from LocalPort %d using route ID %d", th.GetCaller(), appPacket.AddressPair.Local.Port, loop.routeID)
 	_, err = tr.Write(rPacket)
 	if err != nil {
 		r.Logger.Warnf("%v tr.Write: %v", err)
@@ -391,16 +375,16 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 func (r *Router) forwardLocalAppPacket(appPacket *app.Packet) error {
 	defer r.trFinish(r.trStart())
 
-	b, err := r.pm.Get(appPacket.Loop.Remote.Port)
+	b, err := r.pm.Get(appPacket.AddressPair.Remote.Port)
 	if err != nil {
 		r.Logger.Warnf("%v r.pm.Get: %v\n", th.GetCaller(), err)
 		return nil
 	}
 
 	p := &app.Packet{
-		Loop: routing.AddrLoop{
-			Local:  routing.Addr{Port: appPacket.Loop.Remote.Port},
-			Remote: routing.Addr{PubKey: appPacket.Loop.Remote.PubKey, Port: appPacket.Loop.Local.Port},
+		AddressPair: routing.AddressPair{
+			Local:  routing.Addr{Port: appPacket.AddressPair.Remote.Port},
+			Remote: routing.Addr{PubKey: appPacket.AddressPair.Remote.PubKey, Port: appPacket.AddressPair.Local.Port},
 		},
 		Payload: appPacket.Payload,
 	}
@@ -414,11 +398,11 @@ func (r *Router) forwardLocalAppPacket(appPacket *app.Packet) error {
 func (r *Router) forwardTCPAppPacket(appPacket *app.Packet) error {
 	defer r.trFinish(r.trStart())
 
-	loop, err := r.pm.GetLoop(appPacket.Loop.Local.Port, appPacket.Loop.Remote)
+	loop, err := r.pm.GetLoop(appPacket.AddressPair.Local.Port, appPacket.AddressPair.Remote)
 	if err != nil {
 		return err
 	}
-	trID := transport.MakeTransportID(r.config.PubKey, appPacket.Loop.Remote.PubKey, "tcp-transport", true)
+	trID := transport.MakeTransportID(r.config.PubKey, appPacket.AddressPair.Remote.PubKey, "tcp-transport", true)
 	tr := r.tm.Transport(trID)
 	if tr == nil {
 		r.trLog().Info("unknown transport")
@@ -427,7 +411,7 @@ func (r *Router) forwardTCPAppPacket(appPacket *app.Packet) error {
 	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
 
 	rPacket := routing.MakePacket(loop.routeID, appPacket.Payload)
-	r.Logger.Infof("%v Forwarded App packet from LocalPort %d using route ID %d", th.GetCaller(), appPacket.Loop.Local.Port, loop.routeID)
+	r.Logger.Infof("%v Forwarded App packet from LocalPort %d using route ID %d", th.GetCaller(), appPacket.AddressPair.Local.Port, loop.routeID)
 	_, err = tr.Write(rPacket)
 	if err != nil {
 		r.Logger.Warnf("%v tr.Write: %v", err)
@@ -447,6 +431,7 @@ func (r *Router) isPubKeyLocal(pk cipher.PubKey) bool {
 			}
 		}
 	}
+
 	return false
 }
 
@@ -481,7 +466,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 	}
 
 	ld := routing.LoopDescriptor{
-		Loop: routing.AddrLoop{
+		Loop: routing.AddressPair{
 			Local:  laddr,
 			Remote: raddr,
 		},
@@ -560,7 +545,7 @@ func (r *Router) confirmTCPLoop(laddr, raddr routing.Addr) error {
 
 	tr, err := r.tm.CreateDataTransport(context.Background(), raddr.PubKey, "tcp-transport", true)
 	if err != nil {
-		r.trLog().Warnf("r.tm.CreateDataTransport err: %v\n", th.GetCaller(), err)
+		r.trLog().Warnf("%v r.tm.CreateDataTransport err: %v\n", th.GetCaller(), err)
 	}
 	r.trLog().Infof("r.tm.CreateDataTransport  tr: %T  success: %v\n", tr, err == nil)
 
@@ -568,7 +553,7 @@ func (r *Router) confirmTCPLoop(laddr, raddr routing.Addr) error {
 
 }
 
-func (r *Router) confirmLoop(l routing.AddrLoop, rule routing.Rule) error {
+func (r *Router) confirmLoop(l routing.AddressPair, rule routing.Rule) error {
 	r.Logger.Info(th.Trace("ENTER"))
 	defer r.Logger.Info(th.Trace("EXIT"))
 
@@ -589,7 +574,7 @@ func (r *Router) confirmLoop(l routing.AddrLoop, rule routing.Rule) error {
 	return nil
 }
 
-func (r *Router) closeLoop(loop routing.AddrLoop) error {
+func (r *Router) closeLoop(loop routing.AddressPair) error {
 	r.Logger.Info(th.Trace("ENTER"))
 	defer r.Logger.Info(th.Trace("EXIT"))
 
@@ -598,7 +583,7 @@ func (r *Router) closeLoop(loop routing.AddrLoop) error {
 	}
 
 	if r.isPubKeyLocal(loop.Remote.PubKey) {
-		r.Logger.Info("%v isPubKeyLocal() == true", th.GetCaller())
+		r.Logger.Infof("%v isPubKeyLocal() == true", th.GetCaller())
 		return nil
 	}
 	proto, tr, err := r.setupProto(context.Background())
@@ -620,7 +605,7 @@ func (r *Router) closeLoop(loop routing.AddrLoop) error {
 	return nil
 }
 
-func (r *Router) loopClosed(loop routing.AddrLoop) error {
+func (r *Router) loopClosed(loop routing.AddressPair) error {
 	r.Logger.Info(th.Trace("ENTER"))
 	defer r.Logger.Info(th.Trace("EXIT"))
 
@@ -641,7 +626,7 @@ func (r *Router) loopClosed(loop routing.AddrLoop) error {
 	return nil
 }
 
-func (r *Router) destroyLoop(loop routing.AddrLoop) error {
+func (r *Router) destroyLoop(loop routing.AddressPair) error {
 	r.Logger.Info(th.Trace("ENTER"))
 	defer r.Logger.Info(th.Trace("EXIT"))
 

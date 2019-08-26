@@ -217,7 +217,7 @@ func TestRouterApp(t *testing.T) {
 	tr2 := m2.Transport(tr.Entry.ID)
 	sendErrCh := make(chan error, 1)
 	go func() {
-		sendErrCh <- proto.Send(app.FrameSend, &app.Packet{Loop: routing.AddrLoop{Local: routing.Addr{Port: 6}, Remote: raddr}, Payload: []byte("bar")}, nil)
+		sendErrCh <- proto.Send(app.FrameSend, &app.Packet{AddressPair: routing.AddressPair{Local: routing.Addr{Port: 6}, Remote: raddr}, Payload: []byte("bar")}, nil)
 	}()
 
 	packet := make(routing.Packet, 9)
@@ -234,9 +234,9 @@ func TestRouterApp(t *testing.T) {
 
 	var aPacket app.Packet
 	require.NoError(t, json.Unmarshal(<-dataCh, &aPacket))
-	assert.Equal(t, pk2, aPacket.Loop.Remote.PubKey)
-	assert.Equal(t, routing.Port(5), aPacket.Loop.Remote.Port)
-	assert.Equal(t, routing.Port(6), aPacket.Loop.Local.Port)
+	assert.Equal(t, pk2, aPacket.AddressPair.Remote.PubKey)
+	assert.Equal(t, routing.Port(5), aPacket.AddressPair.Remote.Port)
+	assert.Equal(t, routing.Port(6), aPacket.AddressPair.Local.Port)
 	assert.Equal(t, []byte("foo"), aPacket.Payload)
 
 	require.NoError(t, r.Close())
@@ -302,7 +302,7 @@ func TestRouterLocalApp(t *testing.T) {
 	sendErrCh := make(chan error, 1)
 	go func() {
 		packet := &app.Packet{
-			Loop: routing.AddrLoop{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo"),
+			AddressPair: routing.AddressPair{Local: routing.Addr{Port: 5}, Remote: routing.Addr{PubKey: pk, Port: 6}}, Payload: []byte("foo"),
 		}
 		sendErrCh <- proto1.Send(app.FrameSend, packet, nil)
 	}()
@@ -312,9 +312,9 @@ func TestRouterLocalApp(t *testing.T) {
 	packet := &app.Packet{}
 	require.NoError(t, json.Unmarshal(<-dataCh, packet))
 	require.NoError(t, err)
-	assert.Equal(t, pk, packet.Loop.Remote.PubKey)
-	assert.Equal(t, routing.Port(5), packet.Loop.Remote.Port)
-	assert.Equal(t, routing.Port(6), packet.Loop.Local.Port)
+	assert.Equal(t, pk, packet.AddressPair.Remote.PubKey)
+	assert.Equal(t, routing.Port(5), packet.AddressPair.Remote.Port)
+	assert.Equal(t, routing.Port(6), packet.AddressPair.Local.Port)
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, r.Close())

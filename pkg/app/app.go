@@ -51,7 +51,7 @@ type App struct {
 	acceptChan chan [2]routing.Addr
 	doneChan   chan struct{}
 
-	conns map[routing.AddrLoop]io.ReadWriteCloser
+	conns map[routing.AddressPair]io.ReadWriteCloser
 	mu    sync.Mutex
 }
 
@@ -87,7 +87,7 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 		proto:      NewProtocol(pipeConn),
 		acceptChan: make(chan [2]routing.Addr),
 		doneChan:   make(chan struct{}),
-		conns:      make(map[routing.AddrLoop]io.ReadWriteCloser),
+		conns:      make(map[routing.AddressPair]io.ReadWriteCloser),
 	}
 
 	go app.handleProto()
@@ -148,8 +148,8 @@ func (app *App) Accept() (net.Conn, error) {
 	raddr := addrs[1]
 
 	// TODO: Why is that?
-	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
-	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
+	loop := routing.AddressPair{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	// loop := routing.AddressPair{Local: laddr, Remote: raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
 	app.conns[loop] = conn
@@ -171,8 +171,8 @@ func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
 	}
 
 	// TODO: Why is that way?
-	loop := routing.AddrLoop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
-	// loop := routing.AddrLoop{Local: laddr, Remote: raddr}
+	loop := routing.AddressPair{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+	// loop := routing.AddressPair{Local: laddr, Remote: raddr}
 
 	conn, out := net.Pipe()
 	app.mu.Lock()
@@ -212,7 +212,7 @@ func (app *App) handleProto() {
 	}
 }
 
-func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
+func (app *App) serveConn(loop routing.AddressPair, conn io.ReadWriteCloser) {
 	defer trFinish(trStart())
 
 	log.Debugf("%v  loop: %v conn: %T\n", th.GetCaller(), loop, conn)
@@ -235,7 +235,7 @@ func (app *App) serveConn(loop routing.AddrLoop, conn io.ReadWriteCloser) {
 			break
 		}
 
-		packet := &Packet{Loop: loop, Payload: buf[:n]}
+		packet := &Packet{AddressPair: loop, Payload: buf[:n]}
 		if err := app.proto.Send(FrameSend, packet, nil); err != nil {
 			break
 		}
@@ -260,7 +260,7 @@ func (app *App) forwardPacket(data []byte) error {
 	}
 
 	app.mu.Lock()
-	conn := app.conns[packet.Loop]
+	conn := app.conns[packet.AddressPair]
 	app.mu.Unlock()
 
 	if conn == nil {
@@ -274,7 +274,7 @@ func (app *App) forwardPacket(data []byte) error {
 func (app *App) closeConn(data []byte) error {
 	defer trFinish(trStart())
 
-	var loop routing.AddrLoop
+	var loop routing.AddressPair
 	if err := json.Unmarshal(data, &loop); err != nil {
 		return err
 	}
@@ -302,7 +302,7 @@ func (app *App) confirmLoop(data []byte) error {
 	raddr := addrs[1]
 
 	app.mu.Lock()
-	conn := app.conns[routing.AddrLoop{Local: laddr, Remote: raddr}]
+	conn := app.conns[routing.AddressPair{Local: laddr, Remote: raddr}]
 	app.mu.Unlock()
 
 	if conn != nil {

@@ -22,7 +22,7 @@ type MockRouter struct {
 	errChan chan error
 
 	inPacket *app.Packet
-	inLoop   routing.AddrLoop
+	inLoop   routing.AddressPair
 }
 
 // Ports implements PacketRouter.Ports
@@ -78,7 +78,7 @@ func (r *MockRouter) IsSetupTransport(tr *transport.ManagedTransport) bool {
 }
 
 // CloseLoop  implements PacketRouter.CloseLoop
-func (r *MockRouter) CloseLoop(conn *app.Protocol, loop routing.AddrLoop) error {
+func (r *MockRouter) CloseLoop(conn *app.Protocol, loop routing.AddressPair) error {
 	r.inLoop = loop
 	return nil
 }

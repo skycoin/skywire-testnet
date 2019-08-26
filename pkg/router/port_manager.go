@@ -12,11 +12,6 @@ import (
 	th "github.com/skycoin/skywire/internal/testhelpers"
 )
 
-// var (
-// 	logger = logging.MustGetLogger("router")
-// 	debug  = logger.Debug
-// )
-
 type portManager struct {
 	ports  *portList
 	logger *logging.Logger
@@ -35,7 +30,10 @@ func (pm *portManager) Alloc(conn *app.Protocol) routing.Port {
 	defer pm.debug(th.Trace("EXIT"))
 
 	b := &portBind{conn, newLoopList()}
-	return pm.ports.add(b)
+
+	rPort := pm.ports.add(b)
+	pm.logger.Info(th.GetCaller(), "Added port: ", rPort)
+	return rPort
 }
 
 func (pm *portManager) Open(port routing.Port, proto *app.Protocol) error {

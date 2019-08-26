@@ -103,7 +103,7 @@ func TestRouterCloseLoop(t *testing.T) {
 
 	raddr := routing.Addr{PubKey: pk3, Port: 6}
 	require.NoError(t, r.pm.SetLoop(5, raddr, &loop{}))
-	require.NoError(t, proto.Send(app.FrameClose, routing.AddrLoop{Local: routing.Addr{Port: 5}, Remote: raddr}, nil))
+	require.NoError(t, proto.Send(app.FrameClose, routing.AddressPair{Local: routing.Addr{Port: 5}, Remote: raddr}, nil))
 
 	time.Sleep(100 * time.Millisecond)
 
