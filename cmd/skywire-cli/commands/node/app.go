@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -18,6 +19,7 @@ func init() {
 		startAppCmd,
 		stopAppCmd,
 		setAppAutostartCmd,
+		execCmd,
 	)
 }
 
@@ -80,5 +82,16 @@ var setAppAutostartCmd = &cobra.Command{
 		}
 		internal.Catch(rpcClient().SetAutoStart(args[0], autostart))
 		fmt.Println("OK")
+	},
+}
+
+var execCmd = &cobra.Command{
+	Use:   "exec <command>",
+	Short: "Executes the given command",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(_ *cobra.Command, args []string) {
+		out, err := rpcClient().Exec(strings.Join(args, " "))
+		internal.Catch(err)
+		fmt.Println(string(out))
 	},
 }
