@@ -151,7 +151,6 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		PubKey:          pk,
 		SecKey:          sk,
 		DefaultNodes:    config.TrustedNodes,
-		Networks:        []string{dmsg.Type}, // TODO: Have some way to configure this.
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
 	}
