@@ -267,6 +267,22 @@ func TestRPC(t *testing.T) {
 		// })
 	})
 
+	t.Run("Exec", func(t *testing.T) {
+		command := "echo 1"
+
+		t.Run("RPCServer", func(t *testing.T) {
+			var out []byte
+			require.NoError(t, gateway.Exec(&command, &out))
+			assert.Equal(t, []byte("1\n"), out)
+		})
+
+		// t.Run("RPCClient", func(t *testing.T) {
+		// 	out, err := client.Exec(command)
+		// 	require.NoError(t, err)
+		// 	assert.Equal(t, []byte("1\n"), out)
+		// })
+	})
+
 	t.Run("Apps", func(t *testing.T) {
 		test := func(t *testing.T, apps []*AppState) {
 			assert.Len(t, apps, 2)

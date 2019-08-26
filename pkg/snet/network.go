@@ -91,6 +91,9 @@ func (n *Network) LocalPK() cipher.PubKey { return n.conf.PubKey }
 
 func (n *Network) LocalSK() cipher.SecKey { return n.conf.SecKey }
 
+// TransportNetworks returns network types that are used for transports.
+func (n *Network) TransportNetworks() []string { return n.conf.TpNetworks }
+
 func (n *Network) Dmsg() *dmsg.Client { return n.dmsgC }
 
 func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, error) {

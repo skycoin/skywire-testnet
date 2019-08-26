@@ -81,7 +81,7 @@ func TestAppDial(t *testing.T) {
 	require.Len(t, app.conns, 0)
 	app.mu.Unlock()
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppAccept(t *testing.T) {
@@ -129,7 +129,7 @@ func TestAppAccept(t *testing.T) {
 	assert.Equal(t, lpk.Hex()+":2", conn.LocalAddr().String())
 	require.Len(t, app.conns, 2)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppWrite(t *testing.T) {
@@ -169,7 +169,7 @@ func TestAppWrite(t *testing.T) {
 	assert.Equal(t, []byte("foo"), packet.Payload)
 
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 	require.NoError(t, appOut.Close())
 }
 
@@ -201,7 +201,7 @@ func TestAppRead(t *testing.T) {
 	require.NoError(t, <-errCh)
 
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 	require.NoError(t, appOut.Close())
 }
 
@@ -238,7 +238,7 @@ func TestAppSetup(t *testing.T) {
 	assert.Equal(t, "0.0.1", config.ProtocolVersion)
 
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppCloseConn(t *testing.T) {
@@ -265,7 +265,7 @@ func TestAppCloseConn(t *testing.T) {
 	require.Len(t, app.conns, 0)
 
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppClose(t *testing.T) {
@@ -304,7 +304,7 @@ func TestAppClose(t *testing.T) {
 	assert.Equal(t, routing.Port(3), loop.Remote.Port)
 
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppCommand(t *testing.T) {

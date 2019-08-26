@@ -126,5 +126,5 @@ func TestChannelServeSocket(t *testing.T) {
 	assert.Equal(t, []byte("bar"), buf)
 
 	require.NoError(t, ch.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErr))
+	require.NoError(t, testhelpers.WithinTimeout(serveErr))
 }

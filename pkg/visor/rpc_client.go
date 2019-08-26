@@ -21,6 +21,7 @@ import (
 // RPCClient represents a RPC Client implementation.
 type RPCClient interface {
 	Summary() (*Summary, error)
+	Exec(command string) ([]byte, error)
 
 	Health() (*HealthInfo, error)
 	Uptime() (float64, error)
@@ -82,6 +83,13 @@ func (rc *rpcClient) Uptime() (float64, error) {
 	var out float64
 	err := rc.Call("Uptime", &struct{}{}, &out)
 	return out, err
+}
+
+// Exec calls Exec.
+func (rc *rpcClient) Exec(command string) ([]byte, error) {
+	output := make([]byte, 0)
+	err := rc.Call("Exec", &command, &output)
+	return output, err
 }
 
 // Apps calls Apps.
@@ -248,14 +256,20 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		}
 		lp := routing.Port(binary.BigEndian.Uint16(lpRaw[:]))
 		rp := routing.Port(binary.BigEndian.Uint16(rpRaw[:]))
-		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New())
-		fwdRID, err := rt.AddRule(fwdRule)
+		fwdRID, err := rt.AddRule(nil)
 		if err != nil {
 			panic(err)
 		}
-		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp)
-		appRID, err := rt.AddRule(appRule)
+		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New(), fwdRID)
+		if err := rt.SetRule(fwdRID, fwdRule); err != nil {
+			panic(err)
+		}
+		appRID, err := rt.AddRule(nil)
 		if err != nil {
+			panic(err)
+		}
+		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp, appRID)
+		if err := rt.SetRule(appRID, appRule); err != nil {
 			panic(err)
 		}
 		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
@@ -322,6 +336,11 @@ func (mc *mockRPCClient) Health() (*HealthInfo, error) {
 // Uptime implements RPCClient
 func (mc *mockRPCClient) Uptime() (float64, error) {
 	return time.Since(mc.startedAt).Seconds(), nil
+}
+
+// Exec implements RPCClient.
+func (mc *mockRPCClient) Exec(command string) ([]byte, error) {
+	return []byte("mock"), nil
 }
 
 // Apps implements RPCClient.

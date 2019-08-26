@@ -14,13 +14,13 @@ import (
 func TestManagedRoutingTableCleanup(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 
-	_, err := rt.AddRule(routing.ForwardRule(time.Now().Add(time.Hour), 3, uuid.New()))
+	_, err := rt.AddRule(routing.ForwardRule(time.Now().Add(time.Hour), 3, uuid.New(), 1))
 	require.NoError(t, err)
 
-	id, err := rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New()))
+	id, err := rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New(), 2))
 	require.NoError(t, err)
 
-	id2, err := rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New()))
+	id2, err := rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New(), 3))
 	require.NoError(t, err)
 
 	assert.Equal(t, 3, rt.Count())

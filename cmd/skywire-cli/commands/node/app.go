@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -20,6 +21,7 @@ func init() {
 		stopAppCmd,
 		setAppAutostartCmd,
 		appLogsSinceCmd,
+		execCmd,
 	)
 }
 
@@ -107,5 +109,16 @@ var appLogsSinceCmd = &cobra.Command{
 		} else {
 			fmt.Println("no logs")
 		}
+	},
+}
+
+var execCmd = &cobra.Command{
+	Use:   "exec <command>",
+	Short: "Executes the given command",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(_ *cobra.Command, args []string) {
+		out, err := rpcClient().Exec(strings.Join(args, " "))
+		internal.Catch(err)
+		fmt.Println(string(out))
 	},
 }

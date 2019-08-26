@@ -130,6 +130,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
+			r.Post("/exec", m.exec())
 			r.Get("/nodes", m.getNodes())
 			r.Get("/nodes/{pk}/health", m.getHealth())
 			r.Get("/nodes/{pk}/uptime", m.getUptime())
@@ -186,6 +187,30 @@ func (m *Node) getUptime() http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, u)
+	})
+}
+
+// executes a command and returns its output
+func (m *Node) exec() http.HandlerFunc {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		var reqBody struct {
+			Command string `json:"command"`
+		}
+		if err := httputil.ReadJSON(r, &reqBody); err != nil {
+			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		out, err := ctx.RPC.Exec(reqBody.Command)
+		if err != nil {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		output := struct {
+			Output string `json:"output"`
+		}{string(out)}
+		httputil.WriteJSON(w, r, http.StatusOK, output)
 	})
 }
 

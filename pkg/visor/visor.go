@@ -150,10 +150,10 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("invalid TransportLogStore: %s", err)
 	}
 	tmConfig := &transport.ManagerConfig{
-		PubKey:          pk,
-		SecKey:          sk,
-		DefaultNodes:    config.TrustedNodes,
-		Networks:        []string{dmsg.Type}, // TODO: Have some way to configure this.
+		PubKey:       pk,
+		SecKey:       sk,
+		DefaultNodes: config.TrustedNodes,
+		//Networks:        []string{dmsg.Type}, // TODO: Have some way to configure this.
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
 	}
@@ -356,6 +356,13 @@ func (node *Node) Close() (err error) {
 		node.logger.Info("router stopped successfully")
 	}
 	return err
+}
+
+// Exec executes a shell command. It returns combined stdout and stderr output and an error.
+func (node *Node) Exec(command string) ([]byte, error) {
+	args := strings.Split(command, " ")
+	cmd := exec.Command(args[0], args[1:]...) // nolint: gosec
+	return cmd.CombinedOutput()
 }
 
 // Apps returns list of AppStates for all registered apps.
