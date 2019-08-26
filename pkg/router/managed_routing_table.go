@@ -78,6 +78,8 @@ func (rt *managedRoutingTable) Cleanup() error {
 	}
 
 	rt.deleteActivity(expiredIDs...)
+
+	return nil
 }
 
 // ruleIsExpired checks whether rule's keep alive timeout is exceeded.
