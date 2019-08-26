@@ -150,10 +150,9 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		return nil, fmt.Errorf("invalid TransportLogStore: %s", err)
 	}
 	tmConfig := &transport.ManagerConfig{
-		PubKey:       pk,
-		SecKey:       sk,
-		DefaultNodes: config.TrustedNodes,
-		//Networks:        []string{dmsg.Type}, // TODO: Have some way to configure this.
+		PubKey:          pk,
+		SecKey:          sk,
+		DefaultNodes:    config.TrustedNodes,
 		DiscoveryClient: trDiscovery,
 		LogStore:        logStore,
 	}
