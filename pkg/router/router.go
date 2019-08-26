@@ -465,7 +465,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		return routing.Addr{}, fmt.Errorf("route finder: %s", err)
 	}
 
-	ld := routing.LoopDescriptor{
+	ld := routing.AddressPairDescriptor{
 		Loop: routing.AddressPair{
 			Local:  laddr,
 			Remote: raddr,
@@ -596,7 +596,7 @@ func (r *Router) closeLoop(loop routing.AddressPair) error {
 		}
 	}()
 
-	ld := routing.LoopData{Loop: loop}
+	ld := routing.AddressPairData{Loop: loop}
 	if err := setup.CloseLoop(proto, ld); err != nil {
 		return fmt.Errorf("route setup: %s", err)
 	}

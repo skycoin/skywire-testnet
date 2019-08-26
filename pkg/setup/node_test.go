@@ -96,7 +96,7 @@ func TestNode(t *testing.T) {
 		defer closeSetup()
 
 		// prepare loop creation (client_1 will use this to request loop creation with setup node).
-		ld := routing.LoopDescriptor{
+		ld := routing.AddressPairDescriptor{
 			Loop: routing.AddressPair{
 				Local:  routing.Addr{PubKey: clients[1].Local(), Port: 1},
 				Remote: routing.Addr{PubKey: clients[4].Local(), Port: 1},
@@ -168,7 +168,7 @@ func TestNode(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, PacketConfirmLoop, pt)
 
-			var d routing.LoopData
+			var d routing.AddressPairData
 			require.NoError(t, json.Unmarshal(pp, &d))
 
 			switch client {
@@ -213,7 +213,7 @@ func TestNode(t *testing.T) {
 		defer closeSetup()
 
 		// prepare loop data describing the loop that is to be closed.
-		ld := routing.LoopData{
+		ld := routing.AddressPairData{
 			Loop: routing.AddressPair{
 				Local: routing.Addr{
 					PubKey: clients[1].Local(),
@@ -255,7 +255,7 @@ func TestNode(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, PacketLoopClosed, pt)
 
-		var d routing.LoopData
+		var d routing.AddressPairData
 		require.NoError(t, json.Unmarshal(pp, &d))
 		require.Equal(t, ld.Loop.Remote, d.Loop.Local)
 		require.Equal(t, ld.Loop.Local, d.Loop.Remote)

@@ -140,7 +140,7 @@ func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, erro
 }
 
 func (rm *routeManager) confirmLoop(data []byte) error {
-	var ld routing.LoopData
+	var ld routing.AddressPairData
 	if err := json.Unmarshal(data, &ld); err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 }
 
 func (rm *routeManager) loopClosed(data []byte) error {
-	var ld routing.LoopData
+	var ld routing.AddressPairData
 	if err := json.Unmarshal(data, &ld); err != nil {
 		return err
 	}

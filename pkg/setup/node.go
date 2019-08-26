@@ -87,14 +87,14 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	startTime := time.Now()
 	switch sp {
 	case PacketCreateLoop:
-		var ld routing.LoopDescriptor
+		var ld routing.AddressPairDescriptor
 		if err = json.Unmarshal(data, &ld); err == nil {
 			err = sn.createLoop(ld)
 		}
 	case PacketCloseLoop:
-		var ld routing.LoopData
+		var ld routing.AddressPairData
 		if err = json.Unmarshal(data, &ld); err == nil {
-			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.LoopData{
+			err = sn.closeLoop(ld.Loop.Remote.PubKey, routing.AddressPairData{
 				Loop: routing.AddressPair{
 					Remote: ld.Loop.Local,
 					Local:  ld.Loop.Remote,
@@ -114,7 +114,7 @@ func (sn *Node) serveTransport(tr transport.Transport) error {
 	return proto.WritePacket(RespSuccess, nil)
 }
 
-func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
+func (sn *Node) createLoop(ld routing.AddressPairDescriptor) error {
 	sn.Logger.Infof("Creating new Loop %s", ld)
 	rRouteID, err := sn.createRoute(ld.Expiry, ld.Reverse, ld.Loop.Local.Port, ld.Loop.Remote.Port)
 	if err != nil {
@@ -133,7 +133,7 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 	initiator := ld.Initiator()
 	responder := ld.Responder()
 
-	ldR := routing.LoopData{
+	ldR := routing.AddressPairData{
 		Loop: routing.AddressPair{
 			Remote: routing.Addr{
 				PubKey: initiator,
@@ -151,7 +151,7 @@ func (sn *Node) createLoop(ld routing.LoopDescriptor) error {
 		return fmt.Errorf("loop connect: %s", err)
 	}
 
-	ldI := routing.LoopData{
+	ldI := routing.AddressPairData{
 		Loop: routing.AddressPair{
 			Remote: routing.Addr{
 				PubKey: responder,
@@ -213,7 +213,7 @@ func (sn *Node) createRoute(expireAt time.Time, route routing.Route, rport, lpor
 	return routeID, nil
 }
 
-func (sn *Node) connectLoop(on cipher.PubKey, ld routing.LoopData) error {
+func (sn *Node) connectLoop(on cipher.PubKey, ld routing.AddressPairData) error {
 	ctx := context.Background()
 
 	tr, err := sn.messenger.Dial(ctx, on)
@@ -242,7 +242,7 @@ func (sn *Node) Close() error {
 	return sn.messenger.Close()
 }
 
-func (sn *Node) closeLoop(on cipher.PubKey, ld routing.LoopData) error {
+func (sn *Node) closeLoop(on cipher.PubKey, ld routing.AddressPairData) error {
 	fmt.Printf(">>> BEGIN: closeLoop(%s, ld)\n", on)
 	defer fmt.Printf(">>>   END: closeLoop(%s, ld)\n", on)
 	ctx := context.Background()

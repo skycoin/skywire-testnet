@@ -74,7 +74,7 @@ func TestRouterCloseLoop(t *testing.T) {
 			return
 		}
 
-		var ld routing.LoopData
+		var ld routing.AddressPairData
 		if err := json.Unmarshal(data, &ld); err != nil {
 			errCh <- err
 			return
@@ -177,7 +177,7 @@ func TestRouterCloseLoopOnAppClose(t *testing.T) {
 			return
 		}
 
-		var ld routing.LoopData
+		var ld routing.AddressPairData
 		if err := json.Unmarshal(data, &ld); err != nil {
 			errCh <- err
 			return

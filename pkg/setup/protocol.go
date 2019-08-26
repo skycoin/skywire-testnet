@@ -130,7 +130,7 @@ func DeleteRule(p *Protocol, routeID routing.RouteID) error {
 }
 
 // CreateLoop sends CreateLoop setup request.
-func CreateLoop(p *Protocol, ld routing.LoopDescriptor) error {
+func CreateLoop(p *Protocol, ld routing.AddressPairDescriptor) error {
 	if err := p.WritePacket(PacketCreateLoop, ld); err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func CreateLoop(p *Protocol, ld routing.LoopDescriptor) error {
 }
 
 // ConfirmLoop sends ConfirmLoop setup request.
-func ConfirmLoop(p *Protocol, ld routing.LoopData) error {
+func ConfirmLoop(p *Protocol, ld routing.AddressPairData) error {
 	if err := p.WritePacket(PacketConfirmLoop, ld); err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func ConfirmLoop(p *Protocol, ld routing.LoopData) error {
 }
 
 // CloseLoop sends CloseLoop setup request.
-func CloseLoop(p *Protocol, ld routing.LoopData) error {
+func CloseLoop(p *Protocol, ld routing.AddressPairData) error {
 	if err := p.WritePacket(PacketCloseLoop, ld); err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func CloseLoop(p *Protocol, ld routing.LoopData) error {
 }
 
 // LoopClosed sends LoopClosed setup request.
-func LoopClosed(p *Protocol, ld routing.LoopData) error {
+func LoopClosed(p *Protocol, ld routing.AddressPairData) error {
 	if err := p.WritePacket(PacketLoopClosed, ld); err != nil {
 		return err
 	}
