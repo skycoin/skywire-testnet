@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net"
 	"time"
 
@@ -304,7 +305,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 }
 
 func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
-	routeID, err := rm.rt.AddRule(nil)
+	routeID, err := rm.rt.AddRule(routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0))
 	if err != nil {
 		return nil, err
 	}
