@@ -1,4 +1,4 @@
-// +build !no_ci
+// +build !no_ci, multihead
 
 package visor
 
@@ -85,7 +85,7 @@ func TestMultiHead_sendMessage_Local(t *testing.T) {
 
 	fmt.Printf("%v\n", mh.errReport())
 
-	recs := mh.Log.filter(`skyhost_001.*received.*"message"`, true)
+	recs := mh.Log.filter(`.*received.*"message"`, true)
 	if len(recs) == 1 {
 		fmt.Println("skyhost_001 received message")
 	}
@@ -124,6 +124,7 @@ func ExampleMultiHead_sendMessage_TCP() {
 	mh := makeMultiHeadN(3)
 	mh.RunExample(func(mh *MultiHead) {
 		resp, err := mh.sendMessage(1, 2, "Hello")
+
 		fmt.Printf("resp: %v \nerr: %v\n", resp, err)
 		time.Sleep(time.Second)
 	})
@@ -138,7 +139,7 @@ func ExampleMultiHead_sendMessage_TCP() {
 
 }
 
-func ExampleMultihead_forwardAppPacket() {
+func ExampleMultiHead_forwardAppPacket() {
 	mh := makeMultiHeadN(2)
 	mh.RunExample(func(mh *MultiHead) {
 		cfgA, _ := mh.cfgPool[0], mh.cfgPool[1]

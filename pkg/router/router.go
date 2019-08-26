@@ -2,6 +2,7 @@
 package router
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"net"
 	"sync"
 	"time"
-	"bytes"
 
 	"github.com/sirupsen/logrus"
 	"github.com/skycoin/dmsg/cipher"
@@ -24,7 +24,6 @@ import (
 	"github.com/skycoin/skywire/pkg/setup"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/transport/dmsg"
-	
 )
 
 const (
@@ -97,7 +96,7 @@ func New(config *Config) *Router {
 }
 
 func (r *Router) trLog() *logrus.Entry {
-	return r.Logger.WithField("_module", th.GetCallerN(3))
+	return r.Logger.WithField("func", th.GetCallerN(3))
 }
 func (r *Router) trStart() (_ error) {
 	r.trLog().Debug("ENTER")
@@ -215,6 +214,7 @@ func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config)
 
 // CreateLoop implements PactetRouter.CreateLoop
 func (r *Router) CreateLoop(conn *app.Protocol, raddr routing.Addr) (laddr routing.Addr, err error) {
+	r.Logger.Debug("CreateLoop ENTER")
 	return r.requestLoop(conn, raddr)
 }
 
@@ -319,8 +319,8 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 
 func reprS(v interface{}) string {
 	w := bytes.NewBuffer(nil)
-	
-	options := []repr.Option{repr.OmitEmpty(true), repr.IgnoreGoStringer()} 
+
+	options := []repr.Option{repr.OmitEmpty(true), repr.IgnoreGoStringer()}
 	// options = []Option{repr.NoIndent()}
 	p := repr.New(w, options...)
 	p.Print(v)
@@ -329,11 +329,6 @@ func reprS(v interface{}) string {
 
 func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 	defer r.trFinish(r.trStart())
-
-	r.trLog().Errorf("CALLERZZZ: %v\n", th.GetCallers(1))
-
-	r.trLog().Error("appPacket: ", appPacket)
-
 	if r == nil {
 		return errors.New("router not initialized")
 	}
@@ -343,49 +338,47 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 		return r.forwardLocalAppPacket(appPacket)
 	}
 
+	if r.isPubKeyLocal(appPacket.Loop.Remote.PubKey) {
+		r.trLog().Info("Found in pubkeys file: ", appPacket.Loop.Remote.PubKey)
+		return r.forwardTCPAppPacket(appPacket)
+	}
+
 	loop, err := r.pm.GetLoop(appPacket.Loop.Local.Port, appPacket.Loop.Remote)
-	r.trLog().Error("r.pm.GetLoop: ", err)
-
-	r.trLog().Warn("loop: ", loop)
-	r.trLog().Errorf("ALL LOOPS: %v\n", reprS(r.pm.Ports()))
-	// repr.Print(r.pm.Ports())
-
 	if err != nil {
 		return err
 	}
-
-	// r.Logger.Debugf("%v found loop: %v", th.GetCaller(), loop)
-
 	tr := r.tm.Transport(loop.trID)
-	
+	if tr == nil {
+		r.trLog().Debug("unknown transport")
+		return errors.New("unknown transport")
+	}
 	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
 
 	// 9df41ada-be66-5640-bce2-917988069706
 	// trID := uuid.MustParse("9df41ada-be66-5640-bce2-917988069706")
 	// trID := uuid.MustParse("9e566688-8717-5855-b1b7-92586ffc8c9b")
 	// fmt.Printf("trID %v ERRROR %v\n", trID, err)
-	trID := transport.MakeTransportID(r.config.PubKey, appPacket.Loop.Remote.PubKey, "tcp-transport", true)
+	// trID := transport.MakeTransportID(r.config.PubKey, appPacket.Loop.Remote.PubKey, "tcp-transport", true)
 
-	tr = r.tm.Transport(trID)
-	fmt.Print("TRANSPORT: ", tr)
-	if tr == nil {
-		r.trLog().Error("Loop: ", loop)
-		r.trLog().Error("OOOOOOO")
-		r.Logger.Errorf("%v r.tm.Transport: tr==nil", th.GetCaller())
-		return errors.New("unknown transport")
+	// tr = r.tm.Transport(trID)
+	// fmt.Print("TRANSPORT: ", tr)
+	// if tr == nil {
+	// 	r.trLog().Error("Loop: ", loop)
+	// 	r.trLog().Error("OOOOOOO")
+	// 	r.Logger.Errorf("%v r.tm.Transport: tr==nil", th.GetCaller())
+	// 	return errors.New("unknown transport")
 
-	}
+	// }
 
-	r.Logger.Debugf("%v ATTEMPT TO FIND %v", th.GetCaller(), appPacket.Loop.Remote.PubKey)
-	if r.isPubKeyLocal(appPacket.Loop.Remote.PubKey) {
-		r.Logger.Infof("%v isPubKeyLocal = true", th.GetCaller())
-		// return r.forwardTCPAppPacket(packet)
-	}
+	// r.Logger.Debugf("%v ATTEMPT TO FIND %v", th.GetCaller(), appPacket.Loop.Remote.PubKey)
+	// if r.isPubKeyLocal(appPacket.Loop.Remote.PubKey) {
+	// 	r.Logger.Infof("%v isPubKeyLocal = true", th.GetCaller())
+	// 	// return r.forwardTCPAppPacket(packet)
+	// }
 
 	rPacket := routing.MakePacket(loop.routeID, appPacket.Payload)
 	r.Logger.Infof("%v Forwarded App packet from LocalPort %d using route ID %d", th.GetCaller(), appPacket.Loop.Local.Port, loop.routeID)
 	_, err = tr.Write(rPacket)
-
 	if err != nil {
 		r.Logger.Warnf("%v tr.Write: %v", err)
 	}
@@ -394,8 +387,7 @@ func (r *Router) forwardAppPacket(appPacket *app.Packet) error {
 }
 
 func (r *Router) forwardLocalAppPacket(appPacket *app.Packet) error {
-	r.Logger.Info(th.Trace("ENTER"))
-	defer r.Logger.Info(th.Trace("EXIT"))
+	defer r.trFinish(r.trStart())
 
 	b, err := r.pm.Get(appPacket.Loop.Remote.Port)
 	if err != nil {
@@ -417,33 +409,33 @@ func (r *Router) forwardLocalAppPacket(appPacket *app.Packet) error {
 	return errSend
 }
 
-func (r *Router) forwardTCPAppPacket(appPacket *app.Packet) error { // nolint: unused
-	r.Logger.Info(th.Trace("ENTER"))
-	defer r.Logger.Info(th.Trace("EXIT"))
+func (r *Router) forwardTCPAppPacket(appPacket *app.Packet) error {
+	defer r.trFinish(r.trStart())
 
-	b, err := r.pm.Get(appPacket.Loop.Remote.Port)
+	loop, err := r.pm.GetLoop(appPacket.Loop.Local.Port, appPacket.Loop.Remote)
 	if err != nil {
-		r.Logger.Warnf("%v r.pm.Get: %v\n", th.GetCaller(), err)
-		return nil
+		return err
+	}
+	trID := transport.MakeTransportID(r.config.PubKey, appPacket.Loop.Remote.PubKey, "tcp-transport", true)
+	tr := r.tm.Transport(trID)
+	if tr == nil {
+		r.trLog().Debug("unknown transport")
+		return errors.New("unknown transport")
+	}
+	r.trLog().Errorf("r.tm.transports: %v\n", r.tm.Transports())
+
+	rPacket := routing.MakePacket(loop.routeID, appPacket.Payload)
+	r.Logger.Infof("%v Forwarded App packet from LocalPort %d using route ID %d", th.GetCaller(), appPacket.Loop.Local.Port, loop.routeID)
+	_, err = tr.Write(rPacket)
+	if err != nil {
+		r.Logger.Warnf("%v tr.Write: %v", err)
 	}
 
-	p := &app.Packet{
-		Loop: routing.AddrLoop{
-			Local:  routing.Addr{Port: appPacket.Loop.Remote.Port},
-			Remote: routing.Addr{PubKey: appPacket.Loop.Remote.PubKey, Port: appPacket.Loop.Local.Port},
-		},
-		Payload: appPacket.Payload,
-	}
-	errSend := b.conn.Send(app.FrameSend, p, nil)
-	if errSend != nil {
-		r.Logger.Warnf("%v b.conn.Send: %v\n", th.GetCaller(), err)
-	}
-	return errSend
+	return err
 }
 
 func (r *Router) isPubKeyLocal(pk cipher.PubKey) bool {
-	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Debug(th.Trace("EXIT"))
+	defer r.trFinish(r.trStart())
 
 	for _, fct := range r.tm.Factories() {
 		switch tfct := fct.(type) {
@@ -457,8 +449,8 @@ func (r *Router) isPubKeyLocal(pk cipher.PubKey) bool {
 }
 
 func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing.Addr, error) {
-	r.Logger.Info(th.Trace("ENTER"))
-	defer r.Logger.Info(th.Trace("EXIT"))
+	r.Logger.Debug(th.Trace("ENTER"))
+	defer r.Logger.Debug(th.Trace("EXIT"))
 
 	if r == nil {
 		return raddr, nil
@@ -476,7 +468,7 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 			r.Logger.Warnf("%v r.ConfirmLocalLoop err: %v", err)
 			return routing.Addr{}, fmt.Errorf("confirm: %s", err)
 		}
-		r.Logger.Infof("%v: r.confirmLocalLoop Created local loop on port %d", th.GetCaller(), laddr.Port)
+		r.trLog().Infof("r.confirmLocalLoop Created local loop on port %d", laddr.Port)
 		return laddr, nil
 	}
 
@@ -500,9 +492,10 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 		r.Logger.Debugf("%v laddr: %v raddr: %v \n", th.GetCaller(), laddr, raddr)
 		if err := r.confirmTCPLoop(laddr, raddr); err != nil {
 			r.Logger.Warnf("%v r.ConfirmTCPLoop err: %v", th.GetCaller(), err)
+
 		}
-		r.Logger.Debugf("%v laddr: %v raddr: %v \n", th.GetCaller(), laddr, raddr)
-		return laddr, nil
+		r.trLog().Debugf("laddr: %v raddr: %v \n", th.GetCaller(), raddr)
+		return laddr, err
 	}
 
 	proto, tr, err := r.setupProto(context.Background())
@@ -526,8 +519,8 @@ func (r *Router) requestLoop(appConn *app.Protocol, raddr routing.Addr) (routing
 }
 
 func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
-	r.Logger.Info(th.Trace("ENTER"))
-	defer r.Logger.Info(th.Trace("EXIT"))
+	r.Logger.Debug(th.Trace("ENTER"))
+	defer r.Logger.Debug(th.Trace("EXIT"))
 
 	b, err := r.pm.Get(raddr.Port)
 	if err != nil {
@@ -546,28 +539,28 @@ func (r *Router) confirmLocalLoop(laddr, raddr routing.Addr) error {
 
 func (r *Router) confirmTCPLoop(laddr, raddr routing.Addr) error {
 	r.Logger.Debug(th.Trace("ENTER"))
-	defer r.Logger.Info(th.Trace("EXIT"))
+	defer r.Logger.Debug(th.Trace("EXIT"))
 
-	r.Logger.Debugf("%v: laddr: %v, raddr: %v", th.GetCaller(), laddr, raddr)
+	r.trLog().Debugf("%v: laddr: %v, raddr: %v", th.GetCaller(), laddr, raddr)
 
 	// portBind
 	pb, err := r.pm.Get(raddr.Port)
 	if err != nil {
-		r.Logger.Warnf("%v r.pm.Get %v", th.GetCaller(), err)
+		r.trLog().Warnf("%v r.pm.Get %v", th.GetCaller(), err)
 		return err
 	}
 
 	addrs := [2]routing.Addr{raddr, laddr}
 	if err = pb.conn.Send(app.FrameConfirmLoop, addrs, nil); err != nil {
-		r.Logger.Warnf("%v b.conn.Send %v", th.GetCaller(), err)
+		r.trLog().Warnf("%v b.conn.Send %v", th.GetCaller(), err)
 		return err
 	}
 
 	tr, err := r.tm.CreateDataTransport(context.Background(), raddr.PubKey, "tcp-transport", true)
 	if err != nil {
-		r.Logger.Warnf("%v r.tm.CreateDataTransport err: %v\n", th.GetCaller(), err)
+		r.trLog().Warnf("r.tm.CreateDataTransport err: %v\n", th.GetCaller(), err)
 	}
-	r.Logger.Debugf("%v r.tm.CreateDataTransport  tr: %T  success: %v\n", th.GetCaller(), tr, err == nil)
+	r.trLog().Debugf("r.tm.CreateDataTransport  tr: %T  success: %v\n", tr, err == nil)
 
 	return nil
 

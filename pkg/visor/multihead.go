@@ -1,4 +1,4 @@
-//+build !no_ci
+//+build multihead, !no_ci
 
 package visor
 
@@ -99,7 +99,7 @@ func (mh *MultiHead) initIPPool(ipTemplate string, n uint) {
 
 func (mh *MultiHead) initCfgPool() {
 	mh.cfgPool = make([]Config, len(mh.ipPool))
-	localPathTmplt := "/tmp/multihead"
+	localPathTmplt := "/tmp/multihead/node%03d"
 	baseCfg := mh.baseCfg
 
 	for i := 0; i < len(mh.ipPool); i++ {
@@ -127,7 +127,6 @@ func (mh *MultiHead) initCfgPool() {
 
 		mh.cfgPool[i] = baseCfg
 	}
-
 }
 
 func (mh *MultiHead) pkAliases() []strsub {

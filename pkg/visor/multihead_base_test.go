@@ -1,4 +1,4 @@
-// +build !no_ci
+// +build multihead, !no_ci
 
 package visor
 
