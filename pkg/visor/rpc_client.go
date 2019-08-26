@@ -288,8 +288,9 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			Transports:  tps,
 			RoutesCount: rt.Count(),
 		},
-		tpTypes: types,
-		rt:      rt,
+		tpTypes:   types,
+		rt:        rt,
+		startedAt: time.Now(),
 	}
 	return localPK, client, nil
 }

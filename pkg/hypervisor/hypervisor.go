@@ -27,7 +27,8 @@ import (
 )
 
 var (
-	log = logging.MustGetLogger("hypervisor")
+	log           = logging.MustGetLogger("hypervisor")
+	healthTimeout = 5 * time.Second
 )
 
 type appNodeConn struct {
@@ -155,7 +156,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.ServeHTTP(w, req)
 }
 
-// VisorHealth represents a node's health report attached to it's pk for identification
+// VisorHealth represents a node's health report attached to hypervisor to visor request status
 type VisorHealth struct {
 	Status int `json:"status"`
 	*visor.HealthInfo
@@ -163,23 +164,37 @@ type VisorHealth struct {
 
 // provides summary of health information for every visor
 func (m *Node) getHealth() http.HandlerFunc {
-	healthStatuses := make([]*VisorHealth, 0, len(m.nodes))
-
 	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		vh := &VisorHealth{}
 
-		hi, err := ctx.RPC.Health()
-		if err != nil {
-			vh.Status = http.StatusInternalServerError
-		} else {
-			vh.HealthInfo = hi
-			vh.Status = http.StatusOK
-			healthStatuses = append(healthStatuses, vh)
+		type healthRes struct {
+			h   *visor.HealthInfo
+			err error
 		}
-		httputil.WriteJSON(w, r, http.StatusOK, healthStatuses)
+
+		resCh := make(chan healthRes)
+		tCh := time.After(healthTimeout)
+		go func() {
+			hi, err := ctx.RPC.Health()
+			resCh <- healthRes{hi, err}
+		}()
+		select {
+		case res := <-resCh:
+			if res.err != nil {
+				vh.Status = http.StatusInternalServerError
+			} else {
+				vh.HealthInfo = res.h
+				vh.Status = http.StatusOK
+			}
+			httputil.WriteJSON(w, r, http.StatusOK, vh)
+			return
+		case <-tCh:
+			httputil.WriteJSON(w, r, http.StatusRequestTimeout, &VisorHealth{Status: http.StatusRequestTimeout})
+		}
 	})
 }
 
+// getUptime gets given node's uptime
 func (m *Node) getUptime() http.HandlerFunc {
 	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		u, err := ctx.RPC.Uptime()

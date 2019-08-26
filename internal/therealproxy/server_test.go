@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 	if ok {
 		lvl, err := logging.LevelFromString(loggingLevel)
 		if err != nil {
-			log.Fatal(err)
+			Log.Fatal(err)
 		}
 		logging.SetLevel(lvl)
 	} else {

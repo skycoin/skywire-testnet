@@ -64,13 +64,13 @@ type Server struct {
 }
 
 // NewServer constructs new Server.
-func NewServer(auth Authorizer) *Server {
-	return &Server{logging.MustGetLogger("therealssh_server"), auth, newChanList()}
+func NewServer(auth Authorizer, log *logging.MasterLogger) *Server {
+	return &Server{log.PackageLogger("therealssh_server"), auth, newChanList()}
 }
 
 // OpenChannel opens new client channel.
 func (s *Server) OpenChannel(remoteAddr routing.Addr, remoteID uint32, conn net.Conn) error {
-	log.Debugln("opening new channel")
+	Log.Debugln("opening new channel")
 	channel := OpenChannel(remoteID, remoteAddr, conn)
 	var res []byte
 
@@ -83,7 +83,7 @@ func (s *Server) OpenChannel(remoteAddr routing.Addr, remoteID uint32, conn net.
 	s.log.Debugln("sending response")
 	if err := channel.Send(CmdChannelOpenResponse, res); err != nil {
 		if err := channel.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close channel")
+			Log.WithError(err).Warn("Failed to close channel")
 		}
 		return fmt.Errorf("channel response failure: %s", err)
 	}
@@ -91,7 +91,7 @@ func (s *Server) OpenChannel(remoteAddr routing.Addr, remoteID uint32, conn net.
 	go func() {
 		s.log.Debugln("listening for channel requests")
 		if err := channel.Serve(); err != nil {
-			log.Error("channel failure:", err)
+			Log.Error("channel failure:", err)
 		}
 	}()
 
@@ -107,7 +107,7 @@ func (s *Server) HandleRequest(remotePK cipher.PubKey, localID uint32, data []by
 
 	if s.auth.Authorize(remotePK) != nil || channel.RemoteAddr.PubKey != remotePK {
 		if err := channel.Send(CmdChannelResponse, responseUnauthorized); err != nil {
-			log.Error("failed to send response: ", err)
+			Log.Error("failed to send response: ", err)
 		}
 		return nil
 	}
@@ -188,7 +188,7 @@ func (s *Server) Close() error {
 
 	for _, channel := range s.chans.dropAll() {
 		if err := channel.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close channel")
+			Log.WithError(err).Warn("Failed to close channel")
 		}
 	}
 

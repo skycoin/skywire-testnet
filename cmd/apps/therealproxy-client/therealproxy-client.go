@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net"
 	"time"
 
@@ -22,6 +21,9 @@ const socksPort = 3
 var r = netutil.NewRetrier(time.Second, 0, 1)
 
 func main() {
+	log := app.NewLogger("socksproxy-client")
+	therealproxy.Log = log.PackageLogger("therealproxy")
+
 	var addr = flag.String("addr", ":1080", "Client address to listen on")
 	var serverPK = flag.String("srv", "", "PubKey of the server to connect to")
 	flag.Parse()
