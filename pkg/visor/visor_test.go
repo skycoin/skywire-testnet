@@ -252,7 +252,7 @@ func (r *mockRouter) Ports() []routing.Port {
 	return p
 }
 
-func (r *mockRouter) Serve(_ context.Context) error {
+func (r *mockRouter) Serve(context.Context) error {
 	r.didStart = true
 	return nil
 }
@@ -288,6 +288,10 @@ func (r *mockRouter) Close() error {
 	return nil
 }
 
-func (r *mockRouter) IsSetupTransport(tr *transport.ManagedTransport) bool {
+func (r *mockRouter) IsSetupTransport(*transport.ManagedTransport) bool {
 	return false
+}
+
+func (r *mockRouter) SetupIsTrusted(cipher.PubKey) bool {
+	return true
 }
