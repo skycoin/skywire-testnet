@@ -304,6 +304,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 			rulesSetupErr = err
 		}
 	}
+	cancelOnce.Do(cancel)
 
 	// close chan to avoid leaks
 	close(rulesSetupErrs)
