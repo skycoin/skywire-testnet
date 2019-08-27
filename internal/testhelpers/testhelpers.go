@@ -2,7 +2,10 @@
 package testhelpers
 
 import (
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 const timeout = 5 * time.Second
@@ -15,5 +18,12 @@ func NoErrorWithinTimeout(ch <-chan error) error {
 		return err
 	case <-time.After(timeout):
 		return nil
+	}
+}
+
+// NoErrorN performs require.NoError on multiple errors
+func NoErrorN(t *testing.T, errs ...error) {
+	for _, err := range errs {
+		require.NoError(t, err)
 	}
 }
