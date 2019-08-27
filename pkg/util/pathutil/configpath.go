@@ -97,7 +97,7 @@ func HypervisorDefaults() ConfigPaths {
 // - From CLI argument.
 // - From ENV.
 // - From a list of default paths.
-// If argsIndex < 0, args search does not take place.
+// If argsIndex < 0, searching from CLI arguments does not take place.
 func FindConfigPath(args []string, argsIndex int, env string, defaults ConfigPaths) string {
 	if argsIndex >= 0 && len(args) > argsIndex {
 		path := args[argsIndex]
