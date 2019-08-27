@@ -216,5 +216,5 @@ func ForwardRule(expireAt time.Time, nextRoute RouteID, nextTrID uuid.UUID, requ
 	rule = append(rule, nextTrID[:]...)
 	rule = append(rule, bytes.Repeat([]byte{0}, 25)...)
 	binary.BigEndian.PutUint32(rule[50:], uint32(requestRouteID))
-	return Rule(rule)
+	return rule
 }
