@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
+
+	"github.com/skycoin/skywire/pkg/snet"
 )
 
 // ErrTransportCommunicationTimeout represent timeout error for a mock transport.
@@ -174,15 +176,21 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	pk1, sk1 = cipher.GenerateKeyPair()
 	pk2, sk2 = cipher.GenerateKeyPair()
 
-	c1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
-	c2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
+	mc1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
+	mc2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
 
 	//f1, f2 := NewMockFactoryPair(pk1, pk2)
 
-	if m1, err = NewManager(nil, c1); err != nil {
+	nc1 := snet.Config{PubKey: pk1, SecKey: sk1}
+	nc2 := snet.Config{PubKey: pk2, SecKey: sk2}
+
+	net1 := snet.New(nc1)
+	net2 := snet.New(nc2)
+
+	if m1, err = NewManager(net1, mc1); err != nil {
 		return
 	}
-	if m2, err = NewManager(nil, c2); err != nil {
+	if m2, err = NewManager(net2, mc2); err != nil {
 		return
 	}
 
