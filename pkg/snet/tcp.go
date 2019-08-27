@@ -37,25 +37,18 @@ func (f *TCPFactory) Accept(ctx context.Context) (*TCPTransport, error) {
 	}
 
 	raddr := conn.RemoteAddr().(*net.TCPAddr)
-	rpk := f.pkt.RemotePK(raddr.String())
-	if rpk.Null() {
+	rpk, ok := f.pkt.RemotePK(raddr.String())
+	if !ok {
 		return nil, fmt.Errorf("error: %v, raddr: %v, rpk: %v", ErrUnknownRemote, raddr.String(), rpk)
 	}
-
-	// return &TCPTransport{conn, [2]cipher.PubKey{f.Pk, rpk}}, nil
 	return &TCPTransport{conn, f.lpk, rpk}, nil
 }
 
 // Dial initiates a Transport with a remote node.
 func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (*TCPTransport, error) {
-	raddr := f.pkt.RemoteAddr(remote)
-	if raddr == "" {
+	rAddr := f.pkt.RemoteAddr(remote)
+	if rAddr == nil {
 		return nil, ErrUnknownRemote
-	}
-
-	tcpAddr, err := net.ResolveTCPAddr("tcp", raddr)
-	if err != nil {
-		return nil, err
 	}
 
 	lsnAddr, err := net.ResolveTCPAddr("tcp", f.l.Addr().String())
@@ -67,7 +60,7 @@ func (f *TCPFactory) Dial(ctx context.Context, remote cipher.PubKey) (*TCPTransp
 		return nil, fmt.Errorf("error in constructing local address ")
 	}
 
-	conn, err := net.DialTCP("tcp", locAddr, tcpAddr)
+	conn, err := net.DialTCP("tcp", locAddr, rAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +110,8 @@ func (tr *TCPTransport) Type() string {
 
 // PubKeyTable provides translation between remote PubKey and TCPAddr.
 type PubKeyTable interface {
-	RemoteAddr(remotePK cipher.PubKey) string
-	RemotePK(address string) cipher.PubKey
+	RemoteAddr(remotePK cipher.PubKey) *net.TCPAddr
+	RemotePK(address string) (cipher.PubKey, bool)
 	Count() int
 }
 
@@ -144,16 +137,18 @@ func MakeMemoryPubKeyTable(entries map[cipher.PubKey]string) PubKeyTable {
 	return makeMemPKTable(entries)
 }
 
-func (t *memPKTable) RemoteAddr(remotePK cipher.PubKey) string {
-	return t.entries[remotePK]
+func (t *memPKTable) RemoteAddr(remotePK cipher.PubKey) *net.TCPAddr {
+	rAddr, _ := net.ResolveTCPAddr("tcp", t.entries[remotePK]) // nolint: errcheck
+	return rAddr
 }
 
-func (t *memPKTable) RemotePK(address string) cipher.PubKey {
+func (t *memPKTable) RemotePK(address string) (cipher.PubKey, bool) {
 	addr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		panic("net.ResolveTCPAddr")
 	}
-	return t.reverse[addr.IP.String()]
+	pk, ok := t.reverse[addr.IP.String()]
+	return pk, ok
 }
 
 func (t *memPKTable) Count() int {

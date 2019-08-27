@@ -26,7 +26,7 @@ const (
 // Network types.
 const (
 	DmsgType = "dmsg"
-	TCPType  = "tcptr"
+	TCPType  = "tcp"
 )
 
 var (
