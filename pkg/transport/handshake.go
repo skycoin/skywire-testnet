@@ -81,12 +81,15 @@ func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, conn *snet.Co
 // MakeSettlementHS creates a settlement handshake.
 // `init` determines whether the local side is initiating or responding.
 func MakeSettlementHS(init bool) SettlementHS {
-
 	// initiating logic.
 	initHS := func(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) (err error) {
 		entry := makeEntryFromTpConn(conn)
 
-		defer func() { _, _ = dc.UpdateStatuses(ctx, &Status{ID: entry.ID, IsUp: err == nil}) }() //nolint:errcheck
+		defer func() {
+			if _, err := dc.UpdateStatuses(ctx, &Status{ID: entry.ID, IsUp: err == nil}); err != nil {
+				log.WithError(err).Error("Failed to update statuses")
+			}
+		}()
 
 		// create signed entry and send it to responding visor node.
 		se, ok := NewSignedEntry(&entry, conn.LocalPK(), sk)
@@ -123,7 +126,9 @@ func MakeSettlementHS(init bool) SettlementHS {
 		entry = *recvSE.Entry
 
 		// Ensure transport is registered.
-		_ = dc.RegisterTransports(ctx, recvSE) //nolint:errcheck
+		if err := dc.RegisterTransports(ctx, recvSE); err != nil {
+			log.WithError(err).Error("Failed to register transports")
+		}
 
 		// inform initiating visor node.
 		if _, err := conn.Write([]byte{1}); err != nil {

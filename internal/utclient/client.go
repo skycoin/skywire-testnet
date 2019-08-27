@@ -12,9 +12,12 @@ import (
 	"net/http"
 
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/internal/httpauth"
 )
+
+var log = logging.MustGetLogger("utclient")
 
 // Error is the object returned to the client when there's an error.
 type Error struct {
@@ -61,10 +64,16 @@ func (c *httpClient) Get(ctx context.Context, path string) (*http.Response, erro
 // UpdateNodeUptime updates node uptime.
 func (c *httpClient) UpdateNodeUptime(ctx context.Context) error {
 	resp, err := c.Get(ctx, "/update")
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.WithError(err).Warn("Failed to close response body")
+			}
+		}()
+	}
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status: %d, error: %v", resp.StatusCode, extractError(resp.Body))

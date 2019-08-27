@@ -69,7 +69,7 @@ type Router struct {
 	n  *snet.Network
 	tm *transport.Manager
 	pm *portManager
-	rm *routeManager
+	rm *RouteManager
 
 	wg sync.WaitGroup
 	mx sync.Mutex
@@ -428,6 +428,7 @@ fetchRoutesAgain:
 	return fwdRoutes[0], revRoutes[0], nil
 }
 
+// SetupIsTrusted checks if setup node is trusted.
 func (r *Router) SetupIsTrusted(sPK cipher.PubKey) bool {
 	return r.rm.conf.SetupIsTrusted(sPK)
 }
