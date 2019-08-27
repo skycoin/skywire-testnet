@@ -18,6 +18,7 @@ const configEnv = "SW_HYPERVISOR_CONFIG"
 var (
 	log = logging.MustGetLogger("hypervisor")
 
+	configPath     string
 	mock           bool
 	mockEnableAuth bool
 	mockNodes      int
@@ -26,6 +27,7 @@ var (
 )
 
 func init() {
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", "./hypervisor-config.json", "hypervisor config path")
 	rootCmd.Flags().BoolVarP(&mock, "mock", "m", false, "whether to run hypervisor with mock data")
 	rootCmd.Flags().BoolVar(&mockEnableAuth, "mock-enable-auth", false, "whether to enable user management in mock mode")
 	rootCmd.Flags().IntVar(&mockNodes, "mock-nodes", 5, "number of app nodes to have in mock mode")
@@ -34,10 +36,12 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "hypervisor [config-path]",
+	Use:   "hypervisor",
 	Short: "Manages Skywire App Nodes",
 	Run: func(_ *cobra.Command, args []string) {
-		configPath := pathutil.FindConfigPath(args, 0, configEnv, pathutil.HypervisorDefaults())
+		if configPath == "" {
+			configPath = pathutil.FindConfigPath(args, -1, configEnv, pathutil.HypervisorDefaults())
+		}
 
 		var config hypervisor.Config
 		config.FillDefaults()
@@ -56,7 +60,7 @@ var rootCmd = &cobra.Command{
 			log.Fatalln("Failed to start hypervisor:", err)
 		}
 
-		log.Infof("serving  RPC on '%s'", rpcAddr)
+		log.Infof("serving RPC on '%s'", rpcAddr)
 		go func() {
 			l, err := net.Listen("tcp", rpcAddr)
 			if err != nil {
