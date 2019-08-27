@@ -87,7 +87,7 @@ func NewEnv(t *testing.T, keys []KeyPair) *Env {
 	}
 }
 
-// TearDown shutdowns the Env.
+// Teardown shutdowns the Env
 func (e *Env) Teardown() { e.teardown() }
 
 func createDmsgSrv(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {

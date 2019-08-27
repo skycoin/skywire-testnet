@@ -150,7 +150,7 @@ func (rm *routeManager) rtGarbageCollectLoop() {
 	}
 }
 
-func (rm *routeManager) dialSetupConn(ctx context.Context) (*snet.Conn, error) {
+func (rm *routeManager) dialSetupConn(_ context.Context) (*snet.Conn, error) {
 	for _, sPK := range rm.conf.SetupPKs {
 		conn, err := rm.n.Dial(snet.DmsgType, sPK, snet.SetupPort)
 		if err != nil {

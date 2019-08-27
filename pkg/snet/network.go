@@ -41,8 +41,8 @@ type Config struct {
 	DmsgDiscAddr string
 	DmsgMinSrvs  int
 
-	LocalTCPAddress string
-	PubKeyFile      string
+	TCPLocalAddress string
+	TCPPubKeyFile   string
 }
 
 // Network represents
@@ -104,6 +104,11 @@ func (n *Network) TransportNetworks() []string { return n.conf.TpNetworks }
 
 func (n *Network) Dmsg() *dmsg.Client { return n.dmsgC }
 
+// TCP returns TCPFactory of network
+func (n *Network) TCP() *TCPFactory {
+	return n.tcpF
+}
+
 func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, error) {
 	ctx := context.Background()
 	switch network {
@@ -134,21 +139,28 @@ func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 		}
 		return makeListener(lis, network), nil
 	case TCPType:
-		if n.conf.PubKeyFile != "" {
-			pkt, err := FilePubKeyTable(n.conf.PubKeyFile)
-			if err != nil {
-				return nil, fmt.Errorf("failed to inititiate tcp-transport: %v", err)
+		if n.conf.TCPPubKeyFile != "" {
+			errMsg := func(err error) error {
+				return fmt.Errorf("failed to inititiate tcp-transport: %v", err)
 			}
-			locAddr, err := net.ResolveTCPAddr("tcp", n.conf.LocalTCPAddress)
+
+			pkt, err := FilePubKeyTable(n.conf.TCPPubKeyFile)
+			if err != nil {
+				return nil, errMsg(err)
+			}
+			locAddr, err := net.ResolveTCPAddr("tcp", n.conf.TCPLocalAddress)
+			if err != nil {
+				return nil, errMsg(err)
+			}
 			lsn, err := net.ListenTCP("tcp", locAddr)
 			if err != nil {
-				return nil, fmt.Errorf("failed to inititiate  tcp-transport: %v", err)
+				return nil, errMsg(err)
 			}
 			n.tcpF = NewTCPFactory(n.conf.PubKey, pkt, lsn)
 			return &Listener{
 				Listener: lsn,
 				lPK:      n.conf.PubKey,
-				lPort:    666,
+				lPort:    666, //TODO: make something reasonable
 				network:  TCPType,
 			}, nil
 		}
@@ -156,10 +168,6 @@ func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 		return nil, ErrUnknownNetwork
 	}
 	return nil, nil
-}
-
-func (n *Network) TCP() *TCPFactory {
-	return n.tcpF
 }
 
 type Listener struct {

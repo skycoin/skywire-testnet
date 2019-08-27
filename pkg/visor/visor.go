@@ -134,8 +134,8 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		TpNetworks:      []string{dmsg.Type, snet.TCPType}, // TODO: Have some way to configure this.
 		DmsgDiscAddr:    config.Messaging.Discovery,
 		DmsgMinSrvs:     config.Messaging.ServerCount,
-		LocalTCPAddress: config.TCPTransport.LocalTCPAddress,
-		PubKeyFile:      config.TCPTransport.PubKeyFile,
+		TCPLocalAddress: config.TCPTransport.TCPLocalAddress,
+		TCPPubKeyFile:   config.TCPTransport.TCPPubKeyFile,
 	})
 	if err := node.n.Init(ctx); err != nil {
 		return nil, fmt.Errorf("failed to init network: %v", err)

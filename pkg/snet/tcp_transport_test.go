@@ -132,9 +132,9 @@ func TestTCPFactory(t *testing.T) {
 
 	f1 := snet.NewTCPFactory(pk1, pkt1, l1)
 	f2 := snet.NewTCPFactory(pk2, pkt2, l2)
-	require.Equal(t, "tcp-transport", f1.Type())
+	require.Equal(t, "tcp", f1.Type())
 	require.Equal(t, pk1, f1.Local())
-	require.Equal(t, "tcp-transport", f2.Type())
+	require.Equal(t, "tcp", f2.Type())
 	require.Equal(t, pk2, f2.Local())
 
 	var wg sync.WaitGroup

@@ -1,5 +1,3 @@
-// +build !no_ci
-
 package snet
 
 import (
@@ -92,7 +90,7 @@ func (f *TCPFactory) Local() cipher.PubKey {
 
 // Type returns the Transport type.
 func (f *TCPFactory) Type() string {
-	return "tcp-transport"
+	return "tcp"
 }
 
 // TCPTransport implements Transport over TCP connection.
@@ -129,7 +127,7 @@ type memPKTable struct {
 	reverse map[string]cipher.PubKey
 }
 
-func memoryPubKeyTable(entries map[cipher.PubKey]string) *memPKTable {
+func makeMemPKTable(entries map[cipher.PubKey]string) *memPKTable {
 	reverse := make(map[string]cipher.PubKey)
 	for k, v := range entries {
 		addr, err := net.ResolveTCPAddr("tcp", v)
@@ -141,9 +139,9 @@ func memoryPubKeyTable(entries map[cipher.PubKey]string) *memPKTable {
 	return &memPKTable{entries, reverse}
 }
 
-// MemoryPubKeyTable returns in memory implementation of the PubKeyTable.
-func MemoryPubKeyTable(entries map[cipher.PubKey]string) PubKeyTable {
-	return memoryPubKeyTable(entries)
+// MakeMemoryPubKeyTable returns in memory implementation of the PubKeyTable.
+func MakeMemoryPubKeyTable(entries map[cipher.PubKey]string) PubKeyTable {
+	return makeMemPKTable(entries)
 }
 
 func (t *memPKTable) RemoteAddr(remotePK cipher.PubKey) string {
@@ -200,5 +198,5 @@ func FilePubKeyTable(dbFile string) (PubKeyTable, error) {
 		entries[pk] = addr.String()
 	}
 
-	return &filePKTable{dbFile, memoryPubKeyTable(entries)}, nil
+	return &filePKTable{dbFile, makeMemPKTable(entries)}, nil
 }
