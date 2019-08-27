@@ -14,7 +14,7 @@ func TestNewLogger(t *testing.T) {
 	p, err := ioutil.TempFile("", "test-db")
 	require.NoError(t, err)
 
-	defer os.Remove(p.Name())
+	defer os.Remove(p.Name()) // nolint
 
 	a := &App{
 		config: Config{
@@ -30,8 +30,8 @@ func TestNewLogger(t *testing.T) {
 
 	l.Info("bar")
 
-	beggining := time.Unix(0, 0)
-	res, err := dbl.(*boltDBappLogs).LogsSince(beggining)
+	beginning := time.Unix(0, 0)
+	res, err := dbl.(*boltDBappLogs).LogsSince(beginning)
 	require.NoError(t, err)
 	require.Len(t, res, 1)
 	require.Contains(t, res[0], "bar")

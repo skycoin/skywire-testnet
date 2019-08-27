@@ -83,6 +83,7 @@ func (r *RPC) Uptime(_ *struct{}, out *float64) error {
 	<<< APP LOGS >>>
 */
 
+// AppLogsRequest represents a LogSince method request
 type AppLogsRequest struct {
 	// TimeStamp should be time.RFC3339Nano formated
 	TimeStamp time.Time `json:"time_stamp"`

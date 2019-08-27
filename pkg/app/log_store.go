@@ -161,7 +161,3 @@ func iterateFromBeginning(c *bbolt.Cursor, parsedTime []byte, logs *[]string) er
 
 	return nil
 }
-
-func bytesToTime(b []byte) (time.Time, error) {
-	return time.Parse(time.RFC3339Nano, string(b))
-}

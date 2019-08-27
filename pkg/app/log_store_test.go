@@ -14,7 +14,7 @@ func TestLogStore(t *testing.T) {
 	p, err := ioutil.TempFile("", "test-db")
 	require.NoError(t, err)
 
-	defer os.Remove(p.Name())
+	defer os.Remove(p.Name()) // nolint
 
 	ls, err := newBoltDB(p.Name(), "foo")
 	require.NoError(t, err)
