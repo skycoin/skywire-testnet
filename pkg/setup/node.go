@@ -70,12 +70,7 @@ func NewNode(conf *Config, metrics metrics.Recorder) (*Node, error) {
 
 // Serve starts transport listening loop.
 func (sn *Node) Serve(ctx context.Context) error {
-	if err := sn.dmsgC.InitiateServerConnections(ctx, sn.srvCount); err != nil {
-		return fmt.Errorf("messaging: %s", err)
-	}
-	sn.Logger.Info("Connected to messaging servers")
-
-	sn.Logger.Info("Starting Setup Node")
+	sn.Logger.Info("serving setup node")
 
 	for {
 		conn, err := sn.dmsgL.AcceptTransport()
