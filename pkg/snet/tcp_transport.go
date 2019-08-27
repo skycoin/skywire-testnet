@@ -1,6 +1,6 @@
 // +build !no_ci
 
-package transport
+package snet
 
 import (
 	"bufio"

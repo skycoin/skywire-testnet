@@ -291,3 +291,7 @@ func (r *mockRouter) Close() error {
 func (r *mockRouter) IsSetupTransport(tr *transport.ManagedTransport) bool {
 	return false
 }
+
+func (r *mockRouter) SetupIsTrusted(_ cipher.PubKey) bool {
+	return false
+}

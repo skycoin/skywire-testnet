@@ -26,6 +26,7 @@ const (
 // Network types.
 const (
 	DmsgType = "dmsg"
+	TCPType  = "tcptr"
 )
 
 var (
@@ -39,16 +40,22 @@ type Config struct {
 
 	DmsgDiscAddr string
 	DmsgMinSrvs  int
+
+	LocalTCPAddress string
+	PubKeyFile      string
 }
 
 // Network represents
 type Network struct {
 	conf  Config
 	dmsgC *dmsg.Client
+	tcpF  *TCPFactory
 }
 
 func New(conf Config) *Network {
-	dmsgC := dmsg.NewClient(conf.PubKey, conf.SecKey, disc.NewHTTP(conf.DmsgDiscAddr), dmsg.SetLogger(logging.MustGetLogger("snet.dmsgC")))
+	dmsgC := dmsg.NewClient(conf.PubKey,
+		conf.SecKey, disc.NewHTTP(conf.DmsgDiscAddr),
+		dmsg.SetLogger(logging.MustGetLogger("snet.dmsgC")))
 	return &Network{
 		conf:  conf,
 		dmsgC: dmsgC,
@@ -67,6 +74,7 @@ func (n *Network) Init(ctx context.Context) error {
 	if err := n.dmsgC.InitiateServerConnections(ctx, n.conf.DmsgMinSrvs); err != nil {
 		return fmt.Errorf("failed to initiate 'dmsg': %v", err)
 	}
+
 	return nil
 }
 
@@ -105,9 +113,16 @@ func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, er
 			return nil, err
 		}
 		return makeConn(conn, network), nil
+	case TCPType:
+		conn, err := n.tcpF.Dial(ctx, pk)
+		if err != nil {
+			return nil, err
+		}
+		return makeConn(conn, network), nil
 	default:
 		return nil, ErrUnknownNetwork
 	}
+	return nil, nil
 }
 
 func (n *Network) Listen(network string, port uint16) (*Listener, error) {
@@ -118,9 +133,33 @@ func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 			return nil, err
 		}
 		return makeListener(lis, network), nil
+	case TCPType:
+		if n.conf.PubKeyFile != "" {
+			pkt, err := FilePubKeyTable(n.conf.PubKeyFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to inititiate tcp-transport: %v", err)
+			}
+			locAddr, err := net.ResolveTCPAddr("tcp", n.conf.LocalTCPAddress)
+			lsn, err := net.ListenTCP("tcp", locAddr)
+			if err != nil {
+				return nil, fmt.Errorf("failed to inititiate  tcp-transport: %v", err)
+			}
+			n.tcpF = NewTCPFactory(n.conf.PubKey, pkt, lsn)
+			return &Listener{
+				Listener: lsn,
+				lPK:      n.conf.PubKey,
+				lPort:    666,
+				network:  TCPType,
+			}, nil
+		}
 	default:
 		return nil, ErrUnknownNetwork
 	}
+	return nil, nil
+}
+
+func (n *Network) TCP() *TCPFactory {
+	return n.tcpF
 }
 
 type Listener struct {

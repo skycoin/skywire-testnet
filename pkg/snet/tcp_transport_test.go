@@ -1,6 +1,6 @@
 // +build !no_ci
 
-package transport_test
+package snet_test
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	th "github.com/skycoin/skywire/internal/testhelpers"
-	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/skycoin/skywire/pkg/snet"
 )
 
 /*
@@ -57,7 +57,7 @@ func Example_transport_TCPFactory() {
 		fmt.Println(err)
 	}
 
-	pkt := transport.MemoryPubKeyTable(
+	pkt := snet.MemoryPubKeyTable(
 		map[cipher.PubKey]string{
 			pkA: addrA.String(),
 			pkB: addrB.String(),
@@ -69,7 +69,7 @@ func Example_transport_TCPFactory() {
 	go func() {
 		defer wg.Done()
 
-		fA := transport.NewTCPFactory(pkA, pkt, lsnA)
+		fA := snet.NewTCPFactory(pkA, pkt, lsnA)
 		tr, err := fA.Accept(context.TODO())
 		if err != nil {
 			fmt.Printf("Accept err: %v\n", err)
@@ -87,7 +87,7 @@ func Example_transport_TCPFactory() {
 
 	go func() {
 		defer wg.Done()
-		fB := transport.NewTCPFactory(pkB, pkt, lsnB)
+		fB := snet.NewTCPFactory(pkB, pkt, lsnB)
 		tr, err := fB.Dial(context.TODO(), pkA)
 		if err != nil {
 			fmt.Printf("Dial err: %v\n", err)
@@ -127,11 +127,11 @@ func TestTCPFactory(t *testing.T) {
 	l2, err := net.ListenTCP("tcp", addr2)
 	require.NoError(t, err)
 
-	pkt1 := transport.MemoryPubKeyTable(map[cipher.PubKey]string{pk2: addr2.String()})
-	pkt2 := transport.MemoryPubKeyTable(map[cipher.PubKey]string{pk1: addr1.String()})
+	pkt1 := snet.MemoryPubKeyTable(map[cipher.PubKey]string{pk2: addr2.String()})
+	pkt2 := snet.MemoryPubKeyTable(map[cipher.PubKey]string{pk1: addr1.String()})
 
-	f1 := transport.NewTCPFactory(pk1, pkt1, l1)
-	f2 := transport.NewTCPFactory(pk2, pkt2, l2)
+	f1 := snet.NewTCPFactory(pk1, pkt1, l1)
+	f2 := snet.NewTCPFactory(pk2, pkt2, l2)
 	require.Equal(t, "tcp-transport", f1.Type())
 	require.Equal(t, pk1, f1.Local())
 	require.Equal(t, "tcp-transport", f2.Type())
@@ -200,7 +200,7 @@ func TestFilePubKeyTable(t *testing.T) {
 	_, err = tmpfile.Write([]byte(fmt.Sprintf("%s\t%s\n", pk, addr)))
 	require.NoError(t, err)
 
-	pkt, err := transport.FilePubKeyTable(tmpfile.Name())
+	pkt, err := snet.FilePubKeyTable(tmpfile.Name())
 	require.NoError(t, err)
 	require.Equal(t, pkt.Count(), 1)
 
@@ -219,7 +219,7 @@ func Example_transport_MemoryPubKeyTable() {
 		pkA: ipA,
 		pkB: ipB,
 	}
-	pkt := transport.MemoryPubKeyTable(entries)
+	pkt := snet.MemoryPubKeyTable(entries)
 
 	fmt.Printf("ipA: %v\n", pkt.RemoteAddr(pkA))
 	fmt.Printf("pkB in: %v\n", pkt.RemotePK(ipA))
@@ -246,7 +246,7 @@ func Example_transport_FilePubKeyTable() {
 	_, err := tmpfile.Write([]byte(pkFileContent))
 	fmt.Printf("Write file success: %v\n", err == nil)
 
-	pkt, err := transport.FilePubKeyTable(tmpfile.Name())
+	pkt, err := snet.FilePubKeyTable(tmpfile.Name())
 
 	fmt.Printf("Opening FilePubKeyTable success: %v\n", err == nil)
 	fmt.Printf("ipA: %v\n", pkt.RemoteAddr(pkA))

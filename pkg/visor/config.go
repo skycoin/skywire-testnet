@@ -25,6 +25,11 @@ type Config struct {
 		StaticSecKey cipher.SecKey `json:"static_secret_key"`
 	} `json:"node"`
 
+	TCPTransport struct {
+		PubKeyFile      string `json:"pubkey_file"`
+		LocalTCPAddress string `json:"local_tcp_address"`
+	} `json:"tcp_transport"`
+
 	Messaging struct {
 		Discovery   string `json:"discovery"`
 		ServerCount int    `json:"server_count"`
