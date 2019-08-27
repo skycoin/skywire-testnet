@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestProxy(t *testing.T) {
-	srv, err := NewServer("")
+	srv, err := NewServer("", logging.NewMasterLogger())
 	require.NoError(t, err)
 
 	l, err := nettest.NewLocalListener("tcp")

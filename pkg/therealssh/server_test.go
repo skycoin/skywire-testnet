@@ -8,10 +8,9 @@ import (
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestMain(m *testing.M) {
@@ -31,7 +30,7 @@ func TestMain(m *testing.M) {
 
 func TestServerOpenChannel(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}})
+	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}}, logging.NewMasterLogger())
 
 	in, out := net.Pipe()
 	errCh := make(chan error)
@@ -62,7 +61,7 @@ func TestServerOpenChannel(t *testing.T) {
 
 func TestServerHandleRequest(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}})
+	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}}, logging.NewMasterLogger())
 
 	err := s.HandleRequest(pk, 0, []byte("foo"))
 	require.Error(t, err)
@@ -96,7 +95,7 @@ func TestServerHandleRequest(t *testing.T) {
 
 func TestServerHandleData(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}})
+	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}}, logging.NewMasterLogger())
 
 	err := s.HandleData(pk, 0, []byte("foo"))
 	require.Error(t, err)

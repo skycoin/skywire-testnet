@@ -1,24 +1,18 @@
+// +build !no_ci
+
 package visor
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"sync"
 	"testing"
 
-	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/internal/httpauth"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -69,6 +63,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+/*
 func TestNewNode(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +96,7 @@ func TestNewNode(t *testing.T) {
 	assert.NotNil(t, node.startedApps)
 }
 
-/*func TestNodeStartClose(t *testing.T) {
+func TestNodeStartClose(t *testing.T) {
 	r := new(mockRouter)
 	executer := &MockExecuter{}
 	conf := []AppConfig{
