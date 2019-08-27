@@ -105,7 +105,8 @@ func (s *Session) Run(command string) ([]byte, error) {
 	}() // Best effort.
 
 	// as stated in https://github.com/creack/pty/issues/21#issuecomment-513069505 we can ignore this error
-	res, _ := ioutil.ReadAll(ptmx) // nolint: err
+	res, err := ioutil.ReadAll(ptmx)
+	_ = err
 	return res, nil
 }
 
