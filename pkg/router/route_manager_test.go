@@ -25,7 +25,7 @@ func TestNewRouteManager(t *testing.T) {
 
 	rt := routing.InMemoryRoutingTable()
 
-	rm, err := NewRouteManager(env.Nets[0], rt, RMConfig{})
+	rm, err := newRouteManager(env.Nets[0], rt, RMConfig{})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, rm.Close()) }()
 

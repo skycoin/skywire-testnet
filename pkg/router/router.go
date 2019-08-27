@@ -69,7 +69,7 @@ type Router struct {
 	n  *snet.Network
 	tm *transport.Manager
 	pm *portManager
-	rm *RouteManager
+	rm *routeManager
 
 	wg sync.WaitGroup
 	mx sync.Mutex
@@ -89,7 +89,7 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 	}
 
 	// Prepare route manager.
-	rm, err := NewRouteManager(n, config.RoutingTable, RMConfig{
+	rm, err := newRouteManager(n, config.RoutingTable, RMConfig{
 		SetupPKs:               config.SetupNodes,
 		GarbageCollectDuration: config.GarbageCollectDuration,
 		OnConfirmLoop:          r.confirmLoop,
