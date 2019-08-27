@@ -12,20 +12,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/snet"
-
-	"github.com/skycoin/dmsg"
-
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
+	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skywire/pkg/metrics"
 	"github.com/skycoin/skywire/pkg/routing"
-
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/pkg/snet"
 )
 
 func TestMain(m *testing.M) {
@@ -164,45 +162,45 @@ func TestNode(t *testing.T) {
 		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
 		expectAddRules := func(client int, expRule routing.RuleType) {
 			conn, err := clients[client].Listener.Accept()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			fmt.Printf("client %v:%v accepted\n", client, clients[client].Addr)
 
 			proto := NewSetupProtocol(conn)
 
 			pt, _, err := proto.ReadPacket()
-			require.NoError(t, err)
-			require.Equal(t, PacketRequestRouteID, pt)
+			assert.NoError(t, err)
+			assert.Equal(t, PacketRequestRouteID, pt)
 
 			fmt.Printf("client %v:%v got PacketRequestRouteID\n", client, clients[client].Addr)
 
 			routeID := atomic.AddUint32(&nextRouteID, 1)
 
 			err = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)})
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			fmt.Printf("client %v:%v responded to with registration ID: %v\n", client, clients[client].Addr, routeID)
 
-			require.NoError(t, conn.Close())
+			assert.NoError(t, conn.Close())
 
 			conn, err = clients[client].Listener.Accept()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			fmt.Printf("client %v:%v accepted 2nd time\n", client, clients[client].Addr)
 
 			proto = NewSetupProtocol(conn)
 
 			pt, pp, err := proto.ReadPacket()
-			require.NoError(t, err)
-			require.Equal(t, PacketAddRules, pt)
+			assert.NoError(t, err)
+			assert.Equal(t, PacketAddRules, pt)
 
 			fmt.Printf("client %v:%v got PacketAddRules\n", client, clients[client].Addr)
 
 			var rs []routing.Rule
-			require.NoError(t, json.Unmarshal(pp, &rs))
+			assert.NoError(t, json.Unmarshal(pp, &rs))
 
 			for _, r := range rs {
-				require.Equal(t, expRule, r.Type())
+				assert.Equal(t, expRule, r.Type())
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
@@ -210,7 +208,7 @@ func TestNode(t *testing.T) {
 
 			fmt.Printf("client %v:%v responded for PacketAddRules\n", client, clients[client].Addr)
 
-			require.NoError(t, conn.Close())
+			assert.NoError(t, conn.Close())
 
 			addRuleDone.Done()
 		}
