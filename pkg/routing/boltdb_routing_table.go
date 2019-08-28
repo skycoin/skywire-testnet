@@ -70,7 +70,7 @@ func (rt *boltDBRoutingTable) SetRule(routeID RouteID, rule Rule) error {
 	return rt.db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(boltDBBucket)
 
-		return b.Put(binaryID(routeID), []byte(rule))
+		return b.Put(binaryID(routeID), rule)
 	})
 }
 
