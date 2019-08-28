@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	"sync/atomic"
 )
 
 // RangeFunc is used by RangeRules to iterate over rules.
@@ -28,6 +27,9 @@ type Table interface {
 	// RangeRules iterates over all rules and yields values to the rangeFunc until `next` is false.
 	RangeRules(rangeFunc RangeFunc) error
 
+	// ReserveRouteID reserves a RouteID.
+	ReserveRouteID() (routeID RouteID, err error)
+
 	// Count returns the number of RoutingRule entries stored.
 	Count() int
 
@@ -38,7 +40,7 @@ type Table interface {
 type inMemoryRoutingTable struct {
 	sync.RWMutex
 
-	nextID uint32
+	nextID RouteID
 	rules  map[RouteID]Rule
 }
 
@@ -49,18 +51,18 @@ func InMemoryRoutingTable() Table {
 	}
 }
 
-func (rt *inMemoryRoutingTable) AddRule(rule Rule) (routeID RouteID, err error) {
-	if routeID == math.MaxUint32 {
-		return 0, errors.New("no available routeIDs")
+func (rt *inMemoryRoutingTable) AddRule(rule Rule) (RouteID, error) {
+	routeID, err := rt.ReserveRouteID()
+	if err != nil {
+		return 0, err
 	}
 
-	routeID = RouteID(atomic.AddUint32(&rt.nextID, 1))
-
 	rt.Lock()
-	rt.rules[routeID] = rule
-	rt.Unlock()
+	defer rt.Unlock()
 
-	return routeID, nil
+	rt.rules[routeID] = rule
+
+	return rt.nextID, nil
 }
 
 func (rt *inMemoryRoutingTable) SetRule(routeID RouteID, rule Rule) error {
@@ -101,6 +103,18 @@ func (rt *inMemoryRoutingTable) DeleteRules(routeIDs ...RouteID) error {
 	rt.Unlock()
 
 	return nil
+}
+
+func (rt *inMemoryRoutingTable) ReserveRouteID() (RouteID, error) {
+	rt.Lock()
+	defer rt.Unlock()
+
+	if rt.nextID == math.MaxUint32 {
+		return 0, errors.New("no available routeIDs")
+	}
+
+	rt.nextID++
+	return rt.nextID, nil
 }
 
 func (rt *inMemoryRoutingTable) Count() int {

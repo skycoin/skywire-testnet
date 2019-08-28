@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync/atomic"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	"go.etcd.io/bbolt"
@@ -15,7 +16,8 @@ var log = logging.MustGetLogger("routing")
 
 // BoltDBRoutingTable implements RoutingTable on top of BoltDB.
 type boltDBRoutingTable struct {
-	db *bbolt.DB
+	db       *bbolt.DB
+	exceeded uint32
 }
 
 // BoltDBRoutingTable constructs a new BoldDBRoutingTable.
@@ -36,11 +38,15 @@ func BoltDBRoutingTable(path string) (Table, error) {
 		return nil, err
 	}
 
-	return &boltDBRoutingTable{db}, nil
+	return &boltDBRoutingTable{db: db}, nil
 }
 
 // AddRule adds routing rule to the table and returns assigned Route ID.
 func (rt *boltDBRoutingTable) AddRule(rule Rule) (routeID RouteID, err error) {
+	if atomic.LoadUint32(&rt.exceeded) != 0 {
+		return 0, errors.New("no available routeIDs")
+	}
+
 	err = rt.db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(boltDBBucket)
 		nextID, err := b.NextSequence()
@@ -48,12 +54,12 @@ func (rt *boltDBRoutingTable) AddRule(rule Rule) (routeID RouteID, err error) {
 			return err
 		}
 
-		if nextID > math.MaxUint32 {
-			return errors.New("no available routeIDs")
+		if nextID >= math.MaxUint32 {
+			atomic.StoreUint32(&rt.exceeded, 1)
 		}
 
 		routeID = RouteID(nextID)
-		return b.Put(binaryID(routeID), []byte(rule))
+		return b.Put(binaryID(routeID), rule)
 	})
 
 	return routeID, err
@@ -96,6 +102,30 @@ func (rt *boltDBRoutingTable) RangeRules(rangeFunc RangeFunc) error {
 		}
 		return nil
 	})
+}
+
+// AddRule adds routing rule to the table and returns assigned Route ID.
+func (rt *boltDBRoutingTable) ReserveRouteID() (routeID RouteID, err error) {
+	if atomic.LoadUint32(&rt.exceeded) != 0 {
+		return 0, errors.New("no available routeIDs")
+	}
+
+	err = rt.db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(boltDBBucket)
+		nextID, err := b.NextSequence()
+		if err != nil {
+			return err
+		}
+
+		if nextID >= math.MaxUint32 {
+			atomic.StoreUint32(&rt.exceeded, 1)
+		}
+
+		routeID = RouteID(nextID)
+		return nil
+	})
+
+	return routeID, err
 }
 
 // Rules returns RoutingRules for a given RouteIDs.
