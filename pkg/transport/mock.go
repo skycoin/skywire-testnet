@@ -7,7 +7,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 
 	"github.com/skycoin/skywire/pkg/snet"
 )
@@ -179,13 +181,34 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	mc1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
 	mc2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
 
-	//f1, f2 := NewMockFactoryPair(pk1, pk2)
+	nc1 := snet.Config{PubKey: pk1, SecKey: sk1, TpNetworks: []string{snet.DmsgType}, DmsgMinSrvs: 1}
+	nc2 := snet.Config{PubKey: pk2, SecKey: sk2, TpNetworks: []string{snet.DmsgType}, DmsgMinSrvs: 1}
 
-	nc1 := snet.Config{PubKey: pk1, SecKey: sk1}
-	nc2 := snet.Config{PubKey: pk2, SecKey: sk2}
+	dmsgD := disc.NewMock()
 
-	net1 := snet.New(nc1)
-	net2 := snet.New(nc2)
+	if err = dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk1, 0, []cipher.PubKey{})); err != nil {
+		return
+	}
+
+	// l, err := nettest.NewLocalListener("tcp")
+	// if err != nil {
+	// 	return
+	// }
+	// srv, err := dmsg.NewServer(pk1, sk1, "", l, dmsgD)
+	// if err != nil {
+	// 	return
+	// }
+	//
+	// go func() {
+	// 	errCh <- srv.Serve()
+	// 	close(errCh)
+	// }()
+
+	dmsgC1 := dmsg.NewClient(pk1, sk1, dmsgD)
+	dmsgC2 := dmsg.NewClient(pk2, sk2, dmsgD)
+
+	net1 := snet.NewRaw(nc1, dmsgC1)
+	net2 := snet.NewRaw(nc2, dmsgC2)
 
 	if m1, err = NewManager(net1, mc1); err != nil {
 		return
