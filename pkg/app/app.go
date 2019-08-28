@@ -219,7 +219,6 @@ func (app *App) serveConn(loop routing.Loop, conn io.ReadWriteCloser) {
 		if err != nil {
 			break
 		}
-		fmt.Println("READ:", buf)
 
 		packet := &Packet{Loop: loop, Payload: buf[:n]}
 		if err := app.proto.Send(FrameSend, packet, nil); err != nil {
