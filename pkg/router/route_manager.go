@@ -8,6 +8,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -316,7 +317,8 @@ func (rm *routeManager) loopClosed(data []byte) error {
 }
 
 func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
-	routeID, err := rm.rt.AddRule(nil)
+	rule := routing.ForwardRule(time.Now().Add(RouteTTL), 0, uuid.UUID{}, 0)
+	routeID, err := rm.rt.AddRule(rule)
 	if err != nil {
 		return nil, err
 	}
