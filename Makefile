@@ -190,6 +190,14 @@ mod-comm: ## Comments the 'replace' rule in go.mod
 mod-uncomm: ## Uncomments the 'replace' rule in go.mod
 	./ci_scripts/go_mod_replace.sh uncomment go.mod
 
+trigger-swc-build: ## Trigger integration build in skywire-services
+	./ci_scripts/trigger-swc-build.sh
+
+vendor-integration-check: ## Check compatibility of master@skywire-services with last vendored packages
+	./ci_scripts/vendor-integration-check.sh
+
+
+
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	

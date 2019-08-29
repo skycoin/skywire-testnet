@@ -1,21 +1,28 @@
 language: go
 go:
-  # - "1.11.x" At minimum the code should run make check on the latest two go versions in the default linux environment provided by Travis.
-  - "1.12.x"
-  
+- 1.12.x
 dist: xenial
-
+env:
+  global:
+    secure: Jez218P23oJMb0hh4zuzVoYVXQ8jawH9E3geYmK28oMQamr+b4tzxkThKP3SwhTcKhIMqCSGAprzzZgwnzSJnwv8PPukqVcBLYYJMRjBHYfySrkCY4OiFq3v0l6RAnBbAiwfsTkTtz3vOx5GegZitdnU4F0FuNVwtVbVhQXCKAlQ8P0FYaNE8Y5djSPj+xaaC2jMULNoPlpHzzCAU0Epd8i+Xdd47pA+3Rwsa2jeIIjY2tu6zNUVllcEGs6srMMAnTr4/Z9mcCu+GZd71GAO26ejuVib12wSMbevlHcDcalK2nScQVTVwjNqru0a0ywCDqPVV5XScZsd3vzVViL7i4gwsMK+TvDRWlWKao7bcog9699H+Icx7gtuNDIPeXSyM1lO660P1AHjOo/XJOjhCk/bcK/ExXrx6UyZNJ7rFetHv45Wc7jiPzpAtM7DekCsVIx6CyyQ6qdAFsJVATywWHjsQcpGgpFN5SdAaQ6zqOjqfzOjUmJxAcfQs7XmudhRSb2isT5gcRMNPK9yqRgof2xP0Ub7hFBT0osI+eX+PdUAVQn5ajycLpDUrP+xwAphWq8g2t0ATlgL7b/96cW/lIz55TvOk3FkxFJSuzRNZiAj0Mj1OZvGSuTwLod5t4ESCaHKcyu13c6rqeC85wEBmGMdqrMcHmQag3mfPG1GAd8=
+  matrix:
+  - SWC_BRANCH_NAME: master
 matrix:
   include:
-    - os: linux
-    - os: osx
-      # Do not start osx build for PR
-      if: type != pull_request
-      osx_image: xcode8
-
+  - os: linux
+  - os: osx
+    if: type != pull_request
+    osx_image: xcode8
 install:
-  - go get -u github.com/FiloSottile/vendorcheck
-  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $GOPATH/bin v1.17.1
-
+- go get -u github.com/FiloSottile/vendorcheck
+- curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh |
+  sh -s -- -b $GOPATH/bin v1.17.1
 script:
-  - make check
+- make check
+
+deploy:
+  provider: script
+  script: bash ./ci_scripts/trigger-swc-build.sh
+  on:
+    branch: mainnet
+    condition: $TRAVIS_PULL_REQUEST = false    
