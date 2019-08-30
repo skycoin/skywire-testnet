@@ -14,6 +14,7 @@ DOCKER_NODE?=SKY01
 DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker container
 TEST_OPTS?=-race -tags no_ci -cover -timeout=5m
 BUILD_OPTS?=-race
+SWC_BRANCH_NAME?=CICD/INTEGRATION_BUILD
 
 check: lint test ## Run linters and tests
 
@@ -189,6 +190,14 @@ mod-comm: ## Comments the 'replace' rule in go.mod
 
 mod-uncomm: ## Uncomments the 'replace' rule in go.mod
 	./ci_scripts/go_mod_replace.sh uncomment go.mod
+
+trigger-swc-build: ## Trigger integration build in skywire-services
+	SWC_BRANCH_NAME=$(SWC_BRANCH_NAME) ./ci_scripts/trigger-swc-build.sh
+
+vendor-integration-check: ## Check compatibility of master@skywire-services with last vendored packages
+	./ci_scripts/vendor-integration-check.sh
+
+
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
