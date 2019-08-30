@@ -42,6 +42,61 @@ type HSFrame []byte
 
 // NewHSFrame constructs new HSFrame.
 func NewHSFrame(procID ProcID, frameType HSFrameType, body interface{}) (HSFrame, error) {
+	bodyBytes, err := marshalHSFrameBody(body)
+	if err != nil {
+		return nil, err
+	}
+
+	hsFrame := make(HSFrame, HSFrameHeaderLength+len(bodyBytes))
+
+	hsFrame.SetProcID(procID)
+	hsFrame.SetFrameType(frameType)
+	_ = hsFrame.SetBodyLen(len(bodyBytes))
+
+	copy(hsFrame[HSFrameProcIDLength+HSFrameTypeLength+HSFrameBodyLenLength:], bodyBytes)
+
+	return hsFrame, nil
+}
+
+// ProcID gets ProcID from the HSFrame.
+func (f HSFrame) ProcID() ProcID {
+	return ProcID(binary.BigEndian.Uint16(f))
+}
+
+// SetProcID sets ProcID for the HSFrame.
+func (f HSFrame) SetProcID(procID ProcID) {
+	binary.BigEndian.PutUint16(f, uint16(procID))
+}
+
+// FrameType gets FrameType from the HSFrame.
+func (f HSFrame) FrameType() HSFrameType {
+	_ = f[HSFrameProcIDLength] // bounds check hint to compiler; see golang.org/issue/14808
+	return HSFrameType(f[HSFrameProcIDLength])
+}
+
+// SetFrameType sets FrameType for the HSFrame.
+func (f HSFrame) SetFrameType(frameType HSFrameType) {
+	_ = f[HSFrameProcIDLength] // bounds check hint to compiler; see golang.org/issue/14808
+	f[HSFrameProcIDLength] = byte(frameType)
+}
+
+// BodyLen gets BodyLen from the HSFrame.
+func (f HSFrame) BodyLen() int {
+	return int(binary.BigEndian.Uint16(f[HSFrameProcIDLength+HSFrameTypeLength:]))
+}
+
+// SetBodyLen sets BodyLen for the HSFrame.
+func (f HSFrame) SetBodyLen(bodyLen int) error {
+	if bodyLen > HSFrameMaxBodyLength {
+		return ErrHSFrameBodyTooLong
+	}
+
+	binary.BigEndian.PutUint16(f[HSFrameProcIDLength+HSFrameTypeLength:], uint16(bodyLen))
+
+	return nil
+}
+
+func marshalHSFrameBody(body interface{}) ([]byte, error) {
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -51,13 +106,5 @@ func NewHSFrame(procID ProcID, frameType HSFrameType, body interface{}) (HSFrame
 		return nil, ErrHSFrameBodyTooLong
 	}
 
-	hsFrame := make(HSFrame, HSFrameHeaderLength+len(bodyBytes))
-
-	binary.BigEndian.PutUint16(hsFrame, uint16(procID))
-	hsFrame[HSFrameProcIDLength] = byte(frameType)
-	binary.BigEndian.PutUint16(hsFrame[HSFrameProcIDLength+HSFrameTypeLength:], uint16(len(bodyBytes)))
-
-	copy(hsFrame[HSFrameProcIDLength+HSFrameTypeLength+HSFrameBodyLenLength:], bodyBytes)
-
-	return hsFrame, nil
+	return bodyBytes, nil
 }
