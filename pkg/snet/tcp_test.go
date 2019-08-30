@@ -45,19 +45,27 @@ func Example_transport_TCPFactory() {
 	ipA := "12.12.12.1:9119"
 	ipB := "12.12.12.2:9119"
 
-	addrA, _ := net.ResolveTCPAddr("tcp", ipA)
+	addrA, errA := net.ResolveTCPAddr("tcp", ipA)
+	if errA != nil {
+		fmt.Printf("net.ResolveTCPAddr(\"tcp\", ipA) failed: %v\n", errA)
+	}
+
 	lsnA, err := net.ListenTCP("tcp", addrA)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	addrB, _ := net.ResolveTCPAddr("tcp", ipB)
+	addrB, errB := net.ResolveTCPAddr("tcp", ipB)
+	if errB != nil {
+		fmt.Printf("net.ResolveTCPAddr(\"tcp\", ipA) failed: %v\n", errB)
+	}
+
 	lsnB, err := net.ListenTCP("tcp", addrB)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	pkt := snet.MemoryPubKeyTable(
+	pkt := snet.MakeMemoryPubKeyTable(
 		map[cipher.PubKey]string{
 			pkA: addrA.String(),
 			pkB: addrB.String(),
@@ -127,8 +135,8 @@ func TestTCPFactory(t *testing.T) {
 	l2, err := net.ListenTCP("tcp", addr2)
 	require.NoError(t, err)
 
-	pkt1 := snet.MemoryPubKeyTable(map[cipher.PubKey]string{pk2: addr2.String()})
-	pkt2 := snet.MemoryPubKeyTable(map[cipher.PubKey]string{pk1: addr1.String()})
+	pkt1 := snet.MakeMemoryPubKeyTable(map[cipher.PubKey]string{pk2: addr2.String()})
+	pkt2 := snet.MakeMemoryPubKeyTable(map[cipher.PubKey]string{pk1: addr1.String()})
 
 	f1 := snet.NewTCPFactory(pk1, pkt1, l1)
 	f2 := snet.NewTCPFactory(pk2, pkt2, l2)
@@ -205,9 +213,10 @@ func TestFilePubKeyTable(t *testing.T) {
 	require.Equal(t, pkt.Count(), 1)
 
 	raddr := pkt.RemoteAddr(pk)
-	assert.Equal(t, addr.String(), raddr)
+	assert.Equal(t, addr.IP.String(), raddr.IP.String())
 
-	rpk := pkt.RemotePK(addr.String())
+	rpk, ok := pkt.RemotePK(addr.String())
+	assert.True(t, ok)
 	assert.Equal(t, pk, rpk)
 }
 
@@ -219,15 +228,17 @@ func Example_transport_MemoryPubKeyTable() {
 		pkA: ipA,
 		pkB: ipB,
 	}
-	pkt := snet.MemoryPubKeyTable(entries)
+	pkt := snet.MakeMemoryPubKeyTable(entries)
 
 	fmt.Printf("ipA: %v\n", pkt.RemoteAddr(pkA))
-	fmt.Printf("pkB in: %v\n", pkt.RemotePK(ipA))
-	fmt.Printf("pkA out: %v\n", pkt.RemotePK(ipAA))
+	rpkA, errA := pkt.RemotePK(ipA)
+	fmt.Printf("pkB in: %v ok: %v\n", rpkA, errA)
+	rpkAA, errAA := pkt.RemotePK(ipAA)
+	fmt.Printf("pkA out: %v ok: %v\n", rpkAA, errAA)
 
 	// Output: ipA: 12.12.12.1:9119
-	// pkB in: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
-	// pkA out: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
+	// pkB in: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab ok: true
+	// pkA out: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab ok: true
 }
 
 func Example_transport_FilePubKeyTable() {
@@ -249,18 +260,19 @@ func Example_transport_FilePubKeyTable() {
 	pkt, err := snet.FilePubKeyTable(tmpfile.Name())
 
 	fmt.Printf("Opening FilePubKeyTable success: %v\n", err == nil)
-	fmt.Printf("ipA: %v\n", pkt.RemoteAddr(pkA))
-	fmt.Printf("PK for ipA: %v\n", pkt.RemotePK(ipA))
-	fmt.Printf("PK for ipAA: %v\n", pkt.RemotePK(ipAA))
-	fmt.Printf("PK for ipB: %v\n", pkt.RemotePK(ipB))
+	fmt.Printf("ip for %v: %v\n", pkA, pkt.RemoteAddr(pkA))
+	for _, ip := range []string{ipA, ipAA, ipB} {
+		pk, ok := pkt.RemotePK(ip)
+		fmt.Printf("PK for %s: %v ok: %v\n", ip, pk, ok)
+	}
 
 	// Output: pubkeys:
 	// 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab	12.12.12.1:9119
 	// 033978326862c191eaa39e33bb556a6296466facfe36bfb81e6b4c99d9c510e09f	12.12.12.2:9119
 	// Write file success: true
 	// Opening FilePubKeyTable success: true
-	// ipA: 12.12.12.1:9119
-	// PK for ipA: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
-	// PK for ipAA: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
-	// PK for ipB: 033978326862c191eaa39e33bb556a6296466facfe36bfb81e6b4c99d9c510e09f
+	// ip for 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab: 12.12.12.1:9119
+	// PK for 12.12.12.1:9119: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab ok: true
+	// PK for 12.12.12.1:54312: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab ok: true
+	// PK for 12.12.12.2:9119: 033978326862c191eaa39e33bb556a6296466facfe36bfb81e6b4c99d9c510e09f ok: true
 }
