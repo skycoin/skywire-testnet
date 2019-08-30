@@ -3,10 +3,11 @@ go:
 - 1.12.x
 dist: xenial
 env:
-  global:
-    secure: Jez218P23oJMb0hh4zuzVoYVXQ8jawH9E3geYmK28oMQamr+b4tzxkThKP3SwhTcKhIMqCSGAprzzZgwnzSJnwv8PPukqVcBLYYJMRjBHYfySrkCY4OiFq3v0l6RAnBbAiwfsTkTtz3vOx5GegZitdnU4F0FuNVwtVbVhQXCKAlQ8P0FYaNE8Y5djSPj+xaaC2jMULNoPlpHzzCAU0Epd8i+Xdd47pA+3Rwsa2jeIIjY2tu6zNUVllcEGs6srMMAnTr4/Z9mcCu+GZd71GAO26ejuVib12wSMbevlHcDcalK2nScQVTVwjNqru0a0ywCDqPVV5XScZsd3vzVViL7i4gwsMK+TvDRWlWKao7bcog9699H+Icx7gtuNDIPeXSyM1lO660P1AHjOo/XJOjhCk/bcK/ExXrx6UyZNJ7rFetHv45Wc7jiPzpAtM7DekCsVIx6CyyQ6qdAFsJVATywWHjsQcpGgpFN5SdAaQ6zqOjqfzOjUmJxAcfQs7XmudhRSb2isT5gcRMNPK9yqRgof2xP0Ub7hFBT0osI+eX+PdUAVQn5ajycLpDUrP+xwAphWq8g2t0ATlgL7b/96cW/lIz55TvOk3FkxFJSuzRNZiAj0Mj1OZvGSuTwLod5t4ESCaHKcyu13c6rqeC85wEBmGMdqrMcHmQag3mfPG1GAd8=
   matrix:
   - SWC_BRANCH_NAME: CICD/INTEGRATION_BUILD
+  global:
+  - secure: TawLMVj9gOd+FZmYHARiBqaVlcBCD1wBDsNEX8KsXDPfY/6zitNt7I4aEfRG+qlxEtaFIKeq0P9KwmIG9zv0rvbPB/D+35mVkIpytLgY9ENZH1b4NBJzXCV/AZiuWjrRbpkL3yUjfYkKuL5ReT2ORnF337JsNQASZTO578fvHtFEd6GHRaS4D1lPQvS7E1fqO+SwV9q3G3dnN+ci1g2Fum1JlUsN1HWx+YDzZBz34HPC9spnnsBhOY626a8PHuhQLXgkbEOgpiq6XSuBnMV5SfvpdT8Qfx1lx/tzD7/2yju8wXOn8hVvc176W3YQ/4wRx8/B+3Jfq9owVK5j642l5p2rnUuqllFzBcObsq5WMwH13MUsJqZO3m2mlRZ76qdEBvj2dv/04xO50A839iKMuwAdwAldsrvqxfPHmOlq6KCM4rcm3JhChz8lzW/SF++b4WypDs+3KzB5s8OrJrpWTPWsVDsrE1OeFUQKY8wPPcQjxniPDSILs13mWDvqj14HHHxYD+ti0BwzWO0rLfEJpIP5rJxiyw4OmZM8PTxixV1r6f8LuPkvNOnaQUW8dUwbg4wSsIbfIEkvdsAKbhqCp11H7A+dyMOaqpyU+4frFNSxqspOUWUONZox1J3IFat3UEtbs0dNDZ3zhgj7Sr7IZuRyzkOtwEM8nPMoQSMGVTs=
+  - secure: bi9U4lxHvCzkKZulislT+zhcSiG2iStfZfBFS2YgOuwEIIh7HhJQg4AZg1o++WUzJ6mcCV3qgygqMj+pL9poytqe4Mu+ItmfNx2i9ndzuDJSUdBgG9tKcZehQJ+P2fp3TrHfWGBXeDAOcikk3Js8T5WJkiEyxY9gDkr4fpWJiT1IAUIvW5uxVUx1pLkXhOBCG52U2Kk5yuOpBN4u3juSio6qpThcAde3Q8uOHXjrWNcW3x9/OfLT3U1iMvEUxzvbKWhx/P9CmbAul/de/Mf//95sqev4LzJFq3QxHafOQYqT1zM3gIHp3kqZ6qe6q/plyK58yqwIGNbl//z/CP6PbQskjphfpGbzxEvBUPnAKCwW15wH8i5M/i2ZrZdEQs1CcOZYMY3z9ngoGIKt1yY4a7ECeDEyISCESIfyY8UnpC29y6TeLtGutgJBM5SqbUuWAt3oRhSOA+16yJOx5G+CyDQnX/1TGN2+Ueyf4PkDBdSzA26BcEhEbKMT+Yxr7/oO4njyavFAT6Ud7r6wQchu6adoRtvZN7T+lZ5tzlVbSbtOOP7SOudvCpsp8AQswOh7JXwXIWUbuLwRKya1rL1adukOp843JkWu/Xmra5LnxFXukG8Stegwp50/JOvKWJiAiz3W3uCqUyfei3iPcplCy2Er5C4idHSnX0v7UMFA+Dg=
 matrix:
   include:
   - os: linux
@@ -19,10 +20,9 @@ install:
   sh -s -- -b $GOPATH/bin v1.17.1
 script:
 - make check
-
 deploy:
   provider: script
   script: bash ./ci_scripts/trigger-swc-build.sh
   on:
     branch: mainnet
-    condition: $TRAVIS_PULL_REQUEST = false    
+    condition: "$TRAVIS_PULL_REQUEST = false"
