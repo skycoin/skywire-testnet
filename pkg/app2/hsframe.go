@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	HSFrameHeaderLength  = 5
-	HSFrameProcIDLength  = 2
-	HSFrameTypeLength    = 1
-	HSFrameBodyLenLength = 2
-	HSFrameMaxBodyLength = math.MaxUint16
+	HSFrameHeaderLen  = 5
+	HSFrameProcIDLen  = 2
+	HSFrameTypeLen    = 1
+	HSFrameBodyLenLen = 2
+	HSFrameMaxBodyLen = math.MaxUint16
 )
 
 var (
-	// ErrHSFrameBodyTooLong is being returned when the body is too long to be
+	// ErrHSFrameBodyTooLarge is being returned when the body is too long to be
 	// fit in the HSFrame
-	ErrHSFrameBodyTooLong = errors.New("frame body is too long")
+	ErrHSFrameBodyTooLarge = errors.New("frame body is too long")
 )
 
 // HSFrameType identifies the type of a handshake frame.
@@ -47,13 +47,13 @@ func NewHSFrame(procID ProcID, frameType HSFrameType, body interface{}) (HSFrame
 		return nil, err
 	}
 
-	hsFrame := make(HSFrame, HSFrameHeaderLength+len(bodyBytes))
+	hsFrame := make(HSFrame, HSFrameHeaderLen+len(bodyBytes))
 
 	hsFrame.SetProcID(procID)
 	hsFrame.SetFrameType(frameType)
 	_ = hsFrame.SetBodyLen(len(bodyBytes))
 
-	copy(hsFrame[HSFrameProcIDLength+HSFrameTypeLength+HSFrameBodyLenLength:], bodyBytes)
+	copy(hsFrame[HSFrameProcIDLen+HSFrameTypeLen+HSFrameBodyLenLen:], bodyBytes)
 
 	return hsFrame, nil
 }
@@ -70,28 +70,28 @@ func (f HSFrame) SetProcID(procID ProcID) {
 
 // FrameType gets FrameType from the HSFrame.
 func (f HSFrame) FrameType() HSFrameType {
-	_ = f[HSFrameProcIDLength] // bounds check hint to compiler; see golang.org/issue/14808
-	return HSFrameType(f[HSFrameProcIDLength])
+	_ = f[HSFrameProcIDLen] // bounds check hint to compiler; see golang.org/issue/14808
+	return HSFrameType(f[HSFrameProcIDLen])
 }
 
 // SetFrameType sets FrameType for the HSFrame.
 func (f HSFrame) SetFrameType(frameType HSFrameType) {
-	_ = f[HSFrameProcIDLength] // bounds check hint to compiler; see golang.org/issue/14808
-	f[HSFrameProcIDLength] = byte(frameType)
+	_ = f[HSFrameProcIDLen] // bounds check hint to compiler; see golang.org/issue/14808
+	f[HSFrameProcIDLen] = byte(frameType)
 }
 
 // BodyLen gets BodyLen from the HSFrame.
 func (f HSFrame) BodyLen() int {
-	return int(binary.BigEndian.Uint16(f[HSFrameProcIDLength+HSFrameTypeLength:]))
+	return int(binary.BigEndian.Uint16(f[HSFrameProcIDLen+HSFrameTypeLen:]))
 }
 
 // SetBodyLen sets BodyLen for the HSFrame.
 func (f HSFrame) SetBodyLen(bodyLen int) error {
-	if bodyLen > HSFrameMaxBodyLength {
-		return ErrHSFrameBodyTooLong
+	if bodyLen > HSFrameMaxBodyLen {
+		return ErrHSFrameBodyTooLarge
 	}
 
-	binary.BigEndian.PutUint16(f[HSFrameProcIDLength+HSFrameTypeLength:], uint16(bodyLen))
+	binary.BigEndian.PutUint16(f[HSFrameProcIDLen+HSFrameTypeLen:], uint16(bodyLen))
 
 	return nil
 }
@@ -102,8 +102,8 @@ func marshalHSFrameBody(body interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(bodyBytes) > HSFrameMaxBodyLength {
-		return nil, ErrHSFrameBodyTooLong
+	if len(bodyBytes) > HSFrameMaxBodyLen {
+		return nil, ErrHSFrameBodyTooLarge
 	}
 
 	return bodyBytes, nil
