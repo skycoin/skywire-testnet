@@ -79,9 +79,9 @@ Rewards are being paid on a node by node basis. The total amount of rewards is l
 * Rewards are being calculated on a node by node basis
 * The total pool size is being divided evenly between all nodes eligible for receiving rewards. This implies that you will receive less than 12 Skycoin per-node rewards in case the pool size would be surpassed. 
 
-#### Reward Details - July
-The official reward pool size for July was 24,000 Skycoin:
-* **9.604 (9.603841536614645) Skycoin / node ; 76.831 Skycoin per 8 nodes**
+#### Reward Details - August
+The official reward pool size for August was 24,000 Skycoin:
+* **9.979 (9.97920997920998) Skycoin / node ; 79.834 Skycoin per 8 nodes**
 </div>
 <br>
 
@@ -111,19 +111,19 @@ We are calculating the underlying Skycoin price for your rewards based on the mo
 - 30 day length
 - starting on the 1st day of the subsequent month at 00:00
 
-#### Reward Details - July
+#### Reward Details - August
 Rewards are being paid on a node by node basis. The total amount you may earn is 8 per node rewards for each miner.
-The per node rewards for July are as follows:
-- Skycoin price $1.15942020
-- **8.981 (8.9807819460106) Skycoin per node reward; 71.846 Skycoin per 8 nodes**
+The per node rewards for August are as follows:
+- Skycoin price $0.66973720
+- **15.547 (15.547142968913775) Skycoin per node reward; 124.377 Skycoin per 8 nodes**
 - Skycoin per node reward equals ~ $USD 10.4125 
 
 ***
 
 ### DIY Skyminers
 
-Rewards are being paid on a node by node basis. The total amount of rewards is limited by a pool size that is subject to change. The DIY pool size for July was 16,000 Skycoin:
-* **2.797 (2.7967138612130746) Skycoin / node with a maximum of 8 nodes; 22.374 Skycoin maximum**
+Rewards are being paid on a node by node basis. The total amount of rewards is limited by a pool size that is subject to change. The DIY pool size for August was 16,000 Skycoin:
+* **2.698 (2.6976901028494353) Skycoin / node with a maximum of 8 nodes; 21.582 Skycoin maximum**
 * As soon as the total amount of rewards of all eligible nodes would be surpassed the pool size, we will adjust the rewards as follows: 
 	* The Skycoin in the pool will be evenly split up between all nodes which are eligible for rewards. 
 	* The maximum amount of Skycoin that any node can receive is 6 (six) Skycoin.
