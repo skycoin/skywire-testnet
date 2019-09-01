@@ -1,1 +1,115 @@
 package app2
+
+import (
+	"encoding/binary"
+	"fmt"
+	"net"
+	"sync"
+
+	"github.com/skycoin/dmsg"
+
+	"github.com/skycoin/skywire/pkg/routing"
+
+	"github.com/pkg/errors"
+
+	"github.com/skycoin/dmsg/cipher"
+)
+
+// Server is used by skywire visor.
+type Server struct {
+	PK     cipher.PubKey
+	dmsgC  *dmsg.Client
+	apps   map[string]net.Conn
+	appsMx sync.Mutex
+}
+
+func NewServer(localPK cipher.PubKey, dmsgC *dmsg.Client) *Server {
+	return &Server{
+		PK:    localPK,
+		dmsgC: dmsgC,
+	}
+}
+
+func (s *Server) Serve(sockAddr string) error {
+	l, err := net.Listen("unix", sockAddr)
+	if err != nil {
+		return errors.Wrap(err, "error listening unix socket")
+	}
+
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			return err
+		}
+
+		s.appsMx.Lock()
+		s.apps[conn.RemoteAddr().String()] = conn
+		s.appsMx.Unlock()
+
+		// TODO: handle error
+		go s.serveConn(conn)
+	}
+}
+
+func (s *Server) serveConn(conn net.Conn) error {
+	var hsFinished bool
+
+	for {
+		hsFrame, err := readHSFrame(conn)
+		if err != nil {
+			return errors.Wrap(err, "error reading HS frame")
+		}
+
+		switch hsFrame.FrameType() {
+		case HSFrameTypeDMSGListen:
+			pk := make(cipher.PubKey, 33)
+			copy(pk, hsFrame[HSFrameHeaderLen:HSFrameHeaderLen+HSFramePKLen])
+			port := binary.BigEndian.Uint16(hsFrame[HSFrameHeaderLen+HSFramePKLen:])
+			dmsgL, err := s.dmsgC.Listen(port)
+			if err != nil {
+				return fmt.Errorf("error listening on port %d: %v", port, err)
+			}
+
+			respHSFrame := NewHSFrameDMSGListening(hsFrame.ProcID(), routing.Addr{
+				PubKey: cipher.PubKey(pk),
+				Port:   0,
+			})
+		}
+	}
+}
+
+func (s *Server) handleDMSGListen(frame HSFrame) error {
+	var local routing.Addr
+	if err := frame.UnmarshalBody(&local); err != nil {
+		return errors.Wrap(err, "invalid JSON body")
+	}
+
+	// TODO: check `local` for validity
+
+	dmsgL, err := s.dmsgC.Listen(uint16(local.Port))
+	if err != nil {
+		return fmt.Errorf("error listening on port %d: %v", local.Port, err)
+	}
+
+}
+
+func (s *Server) handleDMSGListening(frame HSFrame) error {
+	var local routing.Addr
+	if err := frame.UnmarshalBody(&local); err != nil {
+		return errors.Wrap(err, "invalid JSON body")
+	}
+}
+
+func (s *Server) handleDMSGDial(frame HSFrame) error {
+	var loop routing.Loop
+	if err := frame.UnmarshalBody(&loop); err != nil {
+		return errors.Wrap(err, "invalid JSON body")
+	}
+}
+
+func (s *Server) handleDMSGAccept(frame HSFrame) error {
+	var loop routing.Loop
+	if err := frame.UnmarshalBody(&loop); err != nil {
+		return errors.Wrap(err, "invalid JSON body")
+	}
+}
