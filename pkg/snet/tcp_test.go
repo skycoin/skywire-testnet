@@ -57,7 +57,7 @@ func Example_transport_TCPFactory() {
 		fmt.Println(err)
 	}
 
-	pkt := snet.MemoryPubKeyTable(
+	pkt := snet.MakeMemoryPubKeyTable(
 		map[cipher.PubKey]string{
 			pkA: addrA.String(),
 			pkB: addrB.String(),
@@ -127,8 +127,8 @@ func TestTCPFactory(t *testing.T) {
 	l2, err := net.ListenTCP("tcp", addr2)
 	require.NoError(t, err)
 
-	pkt1 := snet.MemoryPubKeyTable(map[cipher.PubKey]string{pk2: addr2.String()})
-	pkt2 := snet.MemoryPubKeyTable(map[cipher.PubKey]string{pk1: addr1.String()})
+	pkt1 := snet.MakeMemoryPubKeyTable(map[cipher.PubKey]string{pk2: addr2.String()})
+	pkt2 := snet.MakeMemoryPubKeyTable(map[cipher.PubKey]string{pk1: addr1.String()})
 
 	f1 := snet.NewTCPFactory(pk1, pkt1, l1)
 	f2 := snet.NewTCPFactory(pk2, pkt2, l2)
@@ -205,25 +205,27 @@ func TestFilePubKeyTable(t *testing.T) {
 	require.Equal(t, pkt.Count(), 1)
 
 	raddr := pkt.RemoteAddr(pk)
-	assert.Equal(t, addr.String(), raddr)
+	assert.Equal(t, addr.String(), raddr.String())
 
-	rpk := pkt.RemotePK(addr.String())
+	rpk, _ := pkt.RemotePK(addr.String())
 	assert.Equal(t, pk, rpk)
 }
 
 func Example_transport_MemoryPubKeyTable() {
 	pkA, pkB := pkFromSeed("nodeA"), pkFromSeed("nodeB")
-	ipA, ipB := "12.12.12.1:9119", "skyhost_003:9119"
+	ipA, ipB := "12.12.12.1:9119", "12.12.12.2:9119"
 	ipAA := "12.12.12.1:54312"
 	entries := map[cipher.PubKey]string{
 		pkA: ipA,
 		pkB: ipB,
 	}
-	pkt := snet.MemoryPubKeyTable(entries)
+	pkt := snet.MakeMemoryPubKeyTable(entries)
 
 	fmt.Printf("ipA: %v\n", pkt.RemoteAddr(pkA))
-	fmt.Printf("pkB in: %v\n", pkt.RemotePK(ipA))
-	fmt.Printf("pkA out: %v\n", pkt.RemotePK(ipAA))
+	rpkB, _ := pkt.RemotePK(ipA)
+	fmt.Printf("pkB in: %v\n", rpkB)
+	rpkA, _ := pkt.RemotePK(ipAA)
+	fmt.Printf("pkA out: %v\n", rpkA)
 
 	// Output: ipA: 12.12.12.1:9119
 	// pkB in: 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab
@@ -250,9 +252,12 @@ func Example_transport_FilePubKeyTable() {
 
 	fmt.Printf("Opening FilePubKeyTable success: %v\n", err == nil)
 	fmt.Printf("ipA: %v\n", pkt.RemoteAddr(pkA))
-	fmt.Printf("PK for ipA: %v\n", pkt.RemotePK(ipA))
-	fmt.Printf("PK for ipAA: %v\n", pkt.RemotePK(ipAA))
-	fmt.Printf("PK for ipB: %v\n", pkt.RemotePK(ipB))
+	rpkA, _ := pkt.RemotePK(ipA)
+	fmt.Printf("PK for ipA: %v\n", rpkA)
+	rpkAA, _ := pkt.RemotePK(ipAA)
+	fmt.Printf("PK for ipAA: %v\n", rpkAA)
+	rpkB, _ := pkt.RemotePK(ipB)
+	fmt.Printf("PK for ipB: %v\n", rpkB)
 
 	// Output: pubkeys:
 	// 03c8ab0302ecda8564df4bce595c456a03b64871caff699fcafaf24a93058474ab	12.12.12.1:9119
