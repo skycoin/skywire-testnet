@@ -267,7 +267,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 			nextTpID = r[i+1].Transport
 			rule = routing.ForwardRule(expireAt, 0, nextTpID, 0)
 		} else {
-			rule = routing.AppRule(expireAt, 0, init, lport, rport, 0)
+			rule = routing.AppRule(expireAt, 0, 0, init, rport, lport)
 		}
 
 		go func(i int, pk cipher.PubKey, rule routing.Rule, reqIDChIn <-chan routing.RouteID,

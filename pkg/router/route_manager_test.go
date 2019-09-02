@@ -67,7 +67,7 @@ func TestNewRouteManager(t *testing.T) {
 		defer clearRules()
 
 		pk, _ := cipher.GenerateKeyPair()
-		rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 1)
+		rule := routing.AppRule(time.Now(), 1, 3, pk, 2, 3)
 		_, err := rt.AddRule(rule)
 		require.NoError(t, err)
 
@@ -98,6 +98,8 @@ func TestNewRouteManager(t *testing.T) {
 				errCh <- rm.handleSetupConn(delOut)       // Receive DeleteRule request.
 				close(errCh)
 			}()
+
+			// TODO: remove defer from for loop
 			defer func() {
 				require.NoError(t, requestIDIn.Close())
 				require.NoError(t, addIn.Close())
@@ -186,7 +188,7 @@ func TestNewRouteManager(t *testing.T) {
 
 		proto := setup.NewSetupProtocol(in)
 		pk, _ := cipher.GenerateKeyPair()
-		rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 2)
+		rule := routing.AppRule(time.Now(), 2, 3, pk, 2, 3)
 		require.NoError(t, rt.SetRule(2, rule))
 
 		rule = routing.ForwardRule(time.Now(), 3, uuid.New(), 1)
@@ -238,7 +240,7 @@ func TestNewRouteManager(t *testing.T) {
 		proto := setup.NewSetupProtocol(in)
 		pk, _ := cipher.GenerateKeyPair()
 
-		rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 0)
+		rule := routing.AppRule(time.Now(), 0, 3, pk, 2, 3)
 		require.NoError(t, rt.SetRule(2, rule))
 
 		rule = routing.ForwardRule(time.Now(), 3, uuid.New(), 1)

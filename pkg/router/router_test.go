@@ -2,7 +2,9 @@ package router
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/snet"
 	"github.com/skycoin/skywire/pkg/snet/snettest"
@@ -36,7 +39,6 @@ func TestMain(m *testing.M) {
 
 // Ensure that received packets are handled properly in `(*Router).Serve()`.
 func TestRouter_Serve(t *testing.T) {
-
 	// We are generating two key pairs - one for the a `Router`, the other to send packets to `Router`.
 	keys := snettest.GenKeyPairs(2)
 
@@ -49,10 +51,10 @@ func TestRouter_Serve(t *testing.T) {
 	// Create routers
 	r0, err := New(nEnv.Nets[0], rEnv.GenRouterConfig(0))
 	require.NoError(t, err)
-	//go r0.Serve(context.TODO())
+	// go r0.Serve(context.TODO())
 	r1, err := New(nEnv.Nets[1], rEnv.GenRouterConfig(1))
 	require.NoError(t, err)
-	//go r1.Serve(context.TODO())
+	// go r1.Serve(context.TODO())
 
 	// Create dmsg transport between two `snet.Network` entities.
 	tp1, err := rEnv.TpMngrs[1].SaveTransport(context.TODO(), keys[0].PK, dmsg.Type)
@@ -94,62 +96,70 @@ func TestRouter_Serve(t *testing.T) {
 	})
 
 	// TODO(evanlinjin): I'm having so much trouble with this I officially give up.
-	//t.Run("handlePacket_appRule", func(t *testing.T) {
-	//	defer clearRules(r0, r1)
-	//
-	//	// prepare mock-app
-	//	localPort := routing.Port(9)
-	//	cConn, sConn := net.Pipe()
-	//
-	//	// mock-app config
-	//	appConf := &app.Config{
-	//		AppName:         "test_app",
-	//		AppVersion:      "1.0",
-	//		ProtocolVersion: supportedProtocolVersion,
-	//	}
-	//
-	//	// serve mock-app
-	//	sErrCh := make(chan error, 1)
-	//	go func() {
-	//		sErrCh <- r0.ServeApp(sConn, localPort, appConf)
-	//		close(sErrCh)
-	//	}()
-	//	defer func() {
-	//		assert.NoError(t, cConn.Close())
-	//		assert.NoError(t, <-sErrCh)
-	//	}()
-	//
-	//	a, err := app.New(cConn, appConf)
-	//	require.NoError(t, err)
-	//	cErrCh := make(chan error, 1)
-	//	go func() {
-	//		conn, err := a.Accept()
-	//		if err == nil {
-	//			fmt.Println("ACCEPTED:", conn.RemoteAddr())
-	//		}
-	//		fmt.Println("FAILED TO ACCEPT")
-	//		cErrCh <- err
-	//		close(cErrCh)
-	//	}()
-	//	defer func() {
-	//		assert.NoError(t, <-cErrCh)
-	//	}()
-	//
-	//	// Add a APP rule for r0.
-	//	appRule := routing.AppRule(time.Now().Add(time.Hour), routing.RouteID(7), keys[1].PK, routing.Port(8), localPort)
-	//	appRtID, err := r0.rm.rt.AddRule(appRule)
-	//	require.NoError(t, err)
-	//
-	//	// Call handlePacket for r0.
-	//
-	//	// payload is prepended with two bytes to satisfy app.Proto.
-	//	// payload[0] = frame type, payload[1] = id
-	//	rAddr := routing.Addr{PubKey: keys[1].PK, Port: localPort}
-	//	rawRAddr, _ := json.Marshal(rAddr)
-	//	//payload := append([]byte{byte(app.FrameClose), 0}, rawRAddr...)
-	//	packet := routing.MakePacket(appRtID, rawRAddr)
-	//	require.NoError(t, r0.handlePacket(context.TODO(), packet))
-	//})
+	t.Run("handlePacket_appRule", func(t *testing.T) {
+		const duration = 10 * time.Second
+		// time.AfterFunc(duration, func() {
+		// 	panic("timeout")
+		// })
+
+		defer clearRules(r0, r1)
+
+		// prepare mock-app
+		localPort := routing.Port(9)
+		cConn, sConn := net.Pipe()
+
+		// mock-app config
+		appConf := &app.Config{
+			AppName:         "test_app",
+			AppVersion:      "1.0",
+			ProtocolVersion: supportedProtocolVersion,
+		}
+
+		// serve mock-app
+		// sErrCh := make(chan error, 1)
+		go func() {
+			// sErrCh <- r0.ServeApp(sConn, localPort, appConf)
+			_ = r0.ServeApp(sConn, localPort, appConf)
+			// close(sErrCh)
+		}()
+		// defer func() {
+		// 	assert.NoError(t, cConn.Close())
+		// 	assert.NoError(t, <-sErrCh)
+		// }()
+
+		a, err := app.New(cConn, appConf)
+		require.NoError(t, err)
+		// cErrCh := make(chan error, 1)
+		go func() {
+			conn, err := a.Accept()
+			if err == nil {
+				fmt.Println("ACCEPTED:", conn.RemoteAddr())
+			}
+			fmt.Println("FAILED TO ACCEPT")
+			// cErrCh <- err
+			// close(cErrCh)
+		}()
+		a.Dial(a.Addr().(routing.Addr))
+		// defer func() {
+		// 	assert.NoError(t, <-cErrCh)
+		// }()
+
+		// Add a APP rule for r0.
+		// port8 := routing.Port(8)
+		appRule := routing.AppRule(time.Now().Add(time.Hour), 0, routing.RouteID(7), keys[1].PK, localPort, localPort)
+		appRtID, err := r0.rm.rt.AddRule(appRule)
+		require.NoError(t, err)
+
+		// Call handlePacket for r0.
+
+		// payload is prepended with two bytes to satisfy app.Proto.
+		// payload[0] = frame type, payload[1] = id
+		rAddr := routing.Addr{PubKey: keys[1].PK, Port: localPort}
+		rawRAddr, _ := json.Marshal(rAddr)
+		// payload := append([]byte{byte(app.FrameClose), 0}, rawRAddr...)
+		packet := routing.MakePacket(appRtID, rawRAddr)
+		require.NoError(t, r0.handlePacket(context.TODO(), packet))
+	})
 }
 
 type TestEnv struct {

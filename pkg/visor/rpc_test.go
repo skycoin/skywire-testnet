@@ -1,16 +1,23 @@
 package visor
 
 import (
+	"context"
+	"encoding/json"
+	"net"
+	"net/rpc"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/snet"
+	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
 
@@ -90,8 +97,6 @@ func TestStartStopApp(t *testing.T) {
 	node.startedMu.Unlock()
 }
 
-// TODO(nkryuchkov): fix and uncomment
-/*
 func TestRPC(t *testing.T) {
 	r := new(mockRouter)
 	executer := new(MockExecuter)
@@ -151,6 +156,7 @@ func TestRPC(t *testing.T) {
 	go svr.ServeConn(sConn)
 
 	// client := RPCClient{Client: rpc.NewClient(cConn)}
+	client := NewRPCClient(rpc.NewClient(cConn), "")
 
 	printFunc := func(t *testing.T, name string, v interface{}) {
 		j, err := json.MarshalIndent(v, name+": ", "  ")
@@ -170,11 +176,11 @@ func TestRPC(t *testing.T) {
 			require.NoError(t, gateway.Summary(&struct{}{}, &summary))
 			test(t, &summary)
 		})
-		// t.Run("RPCClient", func(t *testing.T) {
-		//	summary, err := client.Summary()
-		//	require.NoError(t, err)
-		//	test(t, summary)
-		// })
+		t.Run("RPCClient", func(t *testing.T) {
+			summary, err := client.Summary()
+			require.NoError(t, err)
+			test(t, summary)
+		})
 	})
 
 	t.Run("Exec", func(t *testing.T) {
@@ -186,11 +192,11 @@ func TestRPC(t *testing.T) {
 			assert.Equal(t, []byte("1\n"), out)
 		})
 
-		// t.Run("RPCClient", func(t *testing.T) {
-		// 	out, err := client.Exec(command)
-		// 	require.NoError(t, err)
-		// 	assert.Equal(t, []byte("1\n"), out)
-		// })
+		t.Run("RPCClient", func(t *testing.T) {
+			out, err := client.Exec(command)
+			require.NoError(t, err)
+			assert.Equal(t, []byte("1\n"), out)
+		})
 	})
 
 	t.Run("Apps", func(t *testing.T) {
@@ -203,21 +209,21 @@ func TestRPC(t *testing.T) {
 			require.NoError(t, gateway.Apps(&struct{}{}, &apps))
 			test(t, apps)
 		})
-		// t.Run("RPCClient", func(t *testing.T) {
-		//	apps, err := client.Apps()
-		//	require.NoError(t, err)
-		//	test(t, apps)
-		// })
+		t.Run("RPCClient", func(t *testing.T) {
+			apps, err := client.Apps()
+			require.NoError(t, err)
+			test(t, apps)
+		})
 	})
 
 	// TODO(evanlinjin): For some reason, this freezes.
-	// t.Run("StopStartApp", func(t *testing.T) {
-	//	appName := "foo"
-	//	require.NoError(t, gateway.StopApp(&appName, &struct{}{}))
-	//	require.NoError(t, gateway.StartApp(&appName, &struct{}{}))
-	//	require.NoError(t, client.StopApp(appName))
-	//	require.NoError(t, client.StartApp(appName))
-	// })
+	t.Run("StopStartApp", func(t *testing.T) {
+		appName := "foo"
+		require.NoError(t, gateway.StopApp(&appName, &struct{}{}))
+		require.NoError(t, gateway.StartApp(&appName, &struct{}{}))
+		require.NoError(t, client.StopApp(appName))
+		require.NoError(t, client.StartApp(appName))
+	})
 
 	t.Run("SetAutoStart", func(t *testing.T) {
 		unknownAppName := "whoAmI"
@@ -241,15 +247,15 @@ func TestRPC(t *testing.T) {
 
 		// Test with RPC Client
 
-		// err = client.SetAutoStart(in1.AppName, in1.AutoStart)
-		// require.Error(t, err)
-		// assert.Equal(t, ErrUnknownApp.Error(), err.Error())
-		//
-		// require.NoError(t, client.SetAutoStart(in2.AppName, in2.AutoStart))
-		// assert.True(t, node.appsConf[0].AutoStart)
-		//
-		// require.NoError(t, client.SetAutoStart(in3.AppName, in3.AutoStart))
-		// assert.False(t, node.appsConf[0].AutoStart)
+		err = client.SetAutoStart(in1.AppName, in1.AutoStart)
+		require.Error(t, err)
+		assert.Equal(t, ErrUnknownApp.Error(), err.Error())
+
+		require.NoError(t, client.SetAutoStart(in2.AppName, in2.AutoStart))
+		assert.True(t, node.appsConf[0].AutoStart)
+
+		require.NoError(t, client.SetAutoStart(in3.AppName, in3.AutoStart))
+		assert.False(t, node.appsConf[0].AutoStart)
 	})
 
 	t.Run("TransportTypes", func(t *testing.T) {
@@ -257,33 +263,32 @@ func TestRPC(t *testing.T) {
 
 		var out []*TransportSummary
 		require.NoError(t, gateway.Transports(&in, &out))
-		assert.Len(t, out, 1)
+		require.Len(t, out, 1)
 		assert.Equal(t, "mock", out[0].Type)
 
-		// out2, err := client.Transports(in.FilterTypes, in.FilterPubKeys, in.ShowLogs)
-		// require.NoError(t, err)
-		// assert.Equal(t, out, out2)
+		out2, err := client.Transports(in.FilterTypes, in.FilterPubKeys, in.ShowLogs)
+		require.NoError(t, err)
+		assert.Equal(t, out, out2)
 	})
 
-	//t.Run("Transport", func(t *testing.T) {
-	//	var ids []uuid.UUID
-	//	node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-	//		ids = append(ids, tp.Entry.ID)
-	//		return true
-	//	})
-	//
-	//	for _, id := range ids {
-	//		id := id
-	//		var summary TransportSummary
-	//		require.NoError(t, gateway.Transport(&id, &summary))
-	//
-	//		summary2, err := client.Transport(id)
-	//		require.NoError(t, err)
-	//		require.Equal(t, summary, *summary2)
-	//	}
-	//})
+	t.Run("Transport", func(t *testing.T) {
+		var ids []uuid.UUID
+		node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
+			ids = append(ids, tp.Entry.ID)
+			return true
+		})
+
+		for _, id := range ids {
+			id := id
+			var summary TransportSummary
+			require.NoError(t, gateway.Transport(&id, &summary))
+
+			summary2, err := client.Transport(id)
+			require.NoError(t, err)
+			require.Equal(t, summary, *summary2)
+		}
+	})
 
 	// TODO: Test add/remove transports
 
 }
-*/

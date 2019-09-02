@@ -231,7 +231,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err != nil {
 			panic(err)
 		}
-		appRule := routing.AppRule(ruleExp, fwdRID, remotePK, rp, lp, appRID)
+		appRule := routing.AppRule(ruleExp, appRID, fwdRID, remotePK, lp, rp)
 		if err := rt.SetRule(appRID, appRule); err != nil {
 			panic(err)
 		}

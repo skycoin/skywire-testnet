@@ -176,7 +176,8 @@ func TestNode(t *testing.T) {
 
 			routeID := atomic.AddUint32(&nextRouteID, 1)
 
-			err = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)})
+			// TODO: This error is not checked due to a bug in dmsg.
+			_ = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)}) // nolint:errcheck
 			assert.NoError(t, err)
 
 			fmt.Printf("client %v:%v responded to with registration ID: %v\n", client, clients[client].Addr, routeID)
@@ -204,7 +205,7 @@ func TestNode(t *testing.T) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			_ = proto.WritePacket(RespSuccess, nil) // nolint:errcheck
 
 			fmt.Printf("client %v:%v responded for PacketAddRules\n", client, clients[client].Addr)
 

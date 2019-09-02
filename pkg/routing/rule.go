@@ -150,7 +150,7 @@ type RuleSummary struct {
 func (rs *RuleSummary) ToRule() (Rule, error) {
 	if rs.Type == RuleApp && rs.AppFields != nil && rs.ForwardFields == nil {
 		f := rs.AppFields
-		return AppRule(rs.ExpireAt, f.RespRID, f.RemotePK, f.RemotePort, f.LocalPort, rs.RequestRouteID), nil
+		return AppRule(rs.ExpireAt, rs.RequestRouteID, f.RespRID, f.RemotePK, f.LocalPort, f.RemotePort), nil
 	}
 	if rs.Type == RuleForward && rs.AppFields == nil && rs.ForwardFields != nil {
 		f := rs.ForwardFields
@@ -183,8 +183,7 @@ func (r Rule) Summary() *RuleSummary {
 }
 
 // AppRule constructs a new consume RoutingRule.
-func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remotePort, localPort Port,
-	requestRouteID RouteID) Rule {
+func AppRule(expireAt time.Time, reqRoute, respRoute RouteID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
 	rule := make([]byte, RuleHeaderSize)
 	if expireAt.Unix() <= time.Now().Unix() {
 		binary.BigEndian.PutUint64(rule[0:], 0)
@@ -198,7 +197,7 @@ func AppRule(expireAt time.Time, respRoute RouteID, remotePK cipher.PubKey, remo
 	rule = append(rule, bytes.Repeat([]byte{0}, 8)...)
 	binary.BigEndian.PutUint16(rule[46:], uint16(remotePort))
 	binary.BigEndian.PutUint16(rule[48:], uint16(localPort))
-	binary.BigEndian.PutUint32(rule[50:], uint32(requestRouteID))
+	binary.BigEndian.PutUint32(rule[50:], uint32(reqRoute))
 	return rule
 }
 

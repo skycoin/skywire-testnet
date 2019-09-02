@@ -147,6 +147,8 @@ func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error 
 
 // ServeApp handles App packets from the App connection on provided port.
 func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
+	fmt.Println("!!! [ServeApp] start !!!")
+
 	r.wg.Add(1)
 	defer r.wg.Done()
 
@@ -229,7 +231,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	}
 	fmt.Println("got it!")
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil { // TODO: Stuck here.
-		fmt.Println("err:", err)
+		fmt.Println("!!! Send err:", err)
 		return err
 	}
 	fmt.Println("done")
