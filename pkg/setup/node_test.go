@@ -41,6 +41,21 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// TODO(Darkren): fix this test. Explanation below
+// Test may finish in 3 different ways:
+// 1. Pass
+// 2. Fail
+// 3. Hang
+// Adding `time.Sleep` at the start of `Write` operation in the DMSG makes it less possible to hang
+// From observations seems like something's wrong in the DMSG, probably writing right after `Dial/Accept`
+// causes this.
+// 1. Test has possibility to pass, this means the test itself is correct
+// 2. Test failure always comes with unexpected `context deadline exceeded`. In `read` operation of
+// `setup proto` we ensure additional timeout, that's where this error comes from. This fact proves that
+// DMSG has a related bug
+// 3. Hanging may be not the problem of the DMSG. Probably some of the communication part here is wrong.
+// The reason I think so is that - if we ensure read timeouts, why doesn't this test constantly fail?
+// Maybe some wrapper for DMSG is wrong, or some internal operations before the actual communication behave bad
 func TestNode(t *testing.T) {
 	// Prepare mock dmsg discovery.
 	discovery := disc.NewMock()
