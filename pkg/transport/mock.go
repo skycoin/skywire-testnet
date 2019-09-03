@@ -10,6 +10,7 @@ import (
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
+	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skywire/pkg/snet"
 )
@@ -174,9 +175,11 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	discovery := NewDiscoveryMock()
 	logs := InMemoryTransportLogStore()
 
-	var sk1, sk2 cipher.SecKey
+	var pk3 cipher.PubKey
+	var sk1, sk2, sk3 cipher.SecKey
 	pk1, sk1 = cipher.GenerateKeyPair()
 	pk2, sk2 = cipher.GenerateKeyPair()
+	pk3, sk3 = cipher.GenerateKeyPair()
 
 	mc1 := &ManagerConfig{PubKey: pk1, SecKey: sk1, DiscoveryClient: discovery, LogStore: logs}
 	mc2 := &ManagerConfig{PubKey: pk2, SecKey: sk2, DiscoveryClient: discovery, LogStore: logs}
@@ -186,23 +189,31 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 
 	dmsgD := disc.NewMock()
 
-	if err = dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk1, 0, []cipher.PubKey{})); err != nil {
+	l, err := nettest.NewLocalListener("tcp")
+	if err != nil {
+		return
+	}
+	srv, err := dmsg.NewServer(pk3, sk3, "", l, dmsgD)
+	if err != nil {
 		return
 	}
 
-	// l, err := nettest.NewLocalListener("tcp")
-	// if err != nil {
-	// 	return
-	// }
-	// srv, err := dmsg.NewServer(pk1, sk1, "", l, dmsgD)
-	// if err != nil {
-	// 	return
-	// }
-	//
-	// go func() {
-	// 	errCh <- srv.Serve()
-	// 	close(errCh)
-	// }()
+	go func() {
+		errCh <- srv.Serve()
+		close(errCh)
+	}()
+
+	if err = dmsgD.SetEntry(context.TODO(), disc.NewServerEntry(pk3, 0, srv.Addr(), 0)); err != nil {
+		return
+	}
+
+	if err = dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk1, 0, []cipher.PubKey{pk3})); err != nil {
+		return
+	}
+
+	if err = dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk2, 0, []cipher.PubKey{pk3})); err != nil {
+		return
+	}
 
 	dmsgC1 := dmsg.NewClient(pk1, sk1, dmsgD)
 	dmsgC2 := dmsg.NewClient(pk2, sk2, dmsgD)
