@@ -81,7 +81,7 @@ func (tm *Manager) serve(ctx context.Context) {
 		listeners = append(listeners, lis)
 
 		tm.wg.Add(1)
-		go func(netName string) {
+		go func() {
 			defer tm.wg.Done()
 			for {
 				select {
@@ -98,7 +98,7 @@ func (tm *Manager) serve(ctx context.Context) {
 					}
 				}
 			}
-		}(netType)
+		}()
 	}
 	tm.Logger.Info("transport manager is serving.")
 
@@ -116,25 +116,26 @@ func (tm *Manager) serve(ctx context.Context) {
 	}
 }
 
-func (tm *Manager) initTransports(ctx context.Context) {
-	tm.mx.Lock()
-	defer tm.mx.Unlock()
-
-	entries, err := tm.conf.DiscoveryClient.GetTransportsByEdge(ctx, tm.conf.PubKey)
-	if err != nil {
-		log.Warnf("No transports found for local node: %v", err)
-	}
-	for _, entry := range entries {
-		var (
-			tpType = entry.Entry.Type
-			remote = entry.Entry.RemoteEdge(tm.conf.PubKey)
-			tpID   = entry.Entry.ID
-		)
-		if _, err := tm.saveTransport(remote, tpType); err != nil {
-			tm.Logger.Warnf("INIT: failed to init tp: type(%s) remote(%s) tpID(%s)", tpType, remote, tpID)
-		}
-	}
-}
+// TODO(nkryuchkov): either use or remove if unused
+// func (tm *Manager) initTransports(ctx context.Context) {
+// 	tm.mx.Lock()
+// 	defer tm.mx.Unlock()
+//
+// 	entries, err := tm.conf.DiscoveryClient.GetTransportsByEdge(ctx, tm.conf.PubKey)
+// 	if err != nil {
+// 		log.Warnf("No transports found for local node: %v", err)
+// 	}
+// 	for _, entry := range entries {
+// 		var (
+// 			tpType = entry.Entry.Type
+// 			remote = entry.Entry.RemoteEdge(tm.conf.PubKey)
+// 			tpID   = entry.Entry.ID
+// 		)
+// 		if _, err := tm.saveTransport(remote, tpType); err != nil {
+// 			tm.Logger.Warnf("INIT: failed to init tp: type(%s) remote(%s) tpID(%s)", tpType, remote, tpID)
+// 		}
+// 	}
+// }
 
 func (tm *Manager) acceptTransport(ctx context.Context, lis *snet.Listener) error {
 	conn, err := lis.AcceptConn()
@@ -268,16 +269,16 @@ func (tm *Manager) Local() cipher.PubKey {
 }
 
 // Close closes opened transports and registered factories.
-func (tm *Manager) Close() (err error) {
+func (tm *Manager) Close() error {
 	tm.closeOnce.Do(func() {
-		err = tm.close()
+		tm.close()
 	})
-	return err
+	return nil
 }
 
-func (tm *Manager) close() error {
+func (tm *Manager) close() {
 	if tm == nil {
-		return nil
+		return
 	}
 
 	tm.mx.Lock()
@@ -297,7 +298,6 @@ func (tm *Manager) close() error {
 
 	tm.wg.Wait()
 	close(tm.readCh)
-	return nil
 }
 
 func (tm *Manager) isClosing() bool {

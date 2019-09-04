@@ -3,38 +3,17 @@ package visor
 import (
 	"fmt"
 	"net/http"
-	"testing"
-	"time"
-
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
-
-/*
-import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/rpc"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
-*/
 
 func TestHealth(t *testing.T) {
 	sPK, sSK := cipher.GenerateKeyPair()
@@ -78,7 +57,6 @@ func TestUptime(t *testing.T) {
 	assert.Contains(t, fmt.Sprintf("%f", res), "1.0")
 }
 
-/*
 func TestListApps(t *testing.T) {
 	apps := []AppConfig{
 		{App: "foo", AutoStart: false, Port: 10},
@@ -155,6 +133,8 @@ func TestStartStopApp(t *testing.T) {
 	node.startedMu.Unlock()
 }
 
+// TODO(nkryuchkov): fix and uncomment
+/*
 func TestRPC(t *testing.T) {
 	r := new(mockRouter)
 	executer := new(MockExecuter)
@@ -163,6 +143,7 @@ func TestRPC(t *testing.T) {
 	}()
 
 	pk1, _, tm1, tm2, errCh, err := transport.MockTransportManagersPair()
+
 	require.NoError(t, err)
 	defer func() {
 		require.NoError(t, tm1.Close())
@@ -171,7 +152,7 @@ func TestRPC(t *testing.T) {
 		require.NoError(t, <-errCh)
 	}()
 
-	_, err = tm2.SaveTransport(context.TODO(), pk1, "mock")
+	_, err = tm2.SaveTransport(context.TODO(), pk1, snet.DmsgType)
 	require.NoError(t, err)
 
 	apps := []AppConfig{
@@ -198,7 +179,6 @@ func TestRPC(t *testing.T) {
 	}()
 
 	require.NoError(t, node.StartApp("foo"))
-	require.NoError(t, node.StartApp("bar"))
 
 	time.Sleep(time.Second)
 	gateway := &RPC{node: node}
@@ -347,5 +327,6 @@ func TestRPC(t *testing.T) {
 	//})
 
 	// TODO: Test add/remove transports
+
 }
 */

@@ -11,40 +11,18 @@ import (
 	"os/exec"
 	"sync"
 	"testing"
-
-	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
-)
-
-/*
-import (
-	"context"
-	"encoding/json"
-	"errors"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"os/exec"
-	"sync"
-	"testing"
 	"time"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/skywire/internal/httpauth"
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-*/
+
 var masterLogger *logging.MasterLogger
 
 func TestMain(m *testing.M) {
@@ -63,6 +41,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// TODO(nkryuchkov): fix and uncomment
 /*
 func TestNewNode(t *testing.T) {
 	pk, sk := cipher.GenerateKeyPair()
@@ -95,8 +74,10 @@ func TestNewNode(t *testing.T) {
 	assert.NotNil(t, node.localPath)
 	assert.NotNil(t, node.startedApps)
 }
+*/
 
-func TestNodeStartClose(t *testing.T) {
+// TODO(Darkren): fix test
+/*func TestNodeStartClose(t *testing.T) {
 	r := new(mockRouter)
 	executer := &MockExecuter{}
 	conf := []AppConfig{
@@ -134,7 +115,6 @@ func TestNodeStartClose(t *testing.T) {
 	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
 }*/
 
-/*
 func TestNodeSpawnApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
 	r := new(mockRouter)
@@ -160,7 +140,8 @@ func TestNodeSpawnApp(t *testing.T) {
 	require.Len(t, executer.cmds, 1)
 	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Path)
 	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
-	assert.Equal(t, []string{"skychat.v1.0", "foo"}, executer.cmds[0].Args)
+	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Args[0])
+	assert.Equal(t, "foo", executer.cmds[0].Args[2])
 	executer.Unlock()
 
 	ports := r.Ports()
@@ -206,7 +187,7 @@ func TestNodeSpawnAppValidations(t *testing.T) {
 		})
 	}
 }
-*/
+
 type MockExecuter struct {
 	sync.Mutex
 	err    error
@@ -272,7 +253,7 @@ func (r *mockRouter) Ports() []routing.Port {
 	return p
 }
 
-func (r *mockRouter) Serve(_ context.Context) error {
+func (r *mockRouter) Serve(context.Context) error {
 	r.didStart = true
 	return nil
 }
@@ -308,6 +289,10 @@ func (r *mockRouter) Close() error {
 	return nil
 }
 
-func (r *mockRouter) IsSetupTransport(tr *transport.ManagedTransport) bool {
+func (r *mockRouter) IsSetupTransport(*transport.ManagedTransport) bool {
 	return false
+}
+
+func (r *mockRouter) SetupIsTrusted(cipher.PubKey) bool {
+	return true
 }

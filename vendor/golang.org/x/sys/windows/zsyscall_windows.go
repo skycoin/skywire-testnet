@@ -234,7 +234,6 @@ var (
 	procCoCreateGuid                       = modole32.NewProc("CoCreateGuid")
 	procCoTaskMemFree                      = modole32.NewProc("CoTaskMemFree")
 	procRtlGetVersion                      = modntdll.NewProc("RtlGetVersion")
-	procRtlGetNtVersionNumbers             = modntdll.NewProc("RtlGetNtVersionNumbers")
 	procWSAStartup                         = modws2_32.NewProc("WSAStartup")
 	procWSACleanup                         = modws2_32.NewProc("WSACleanup")
 	procWSAIoctl                           = modws2_32.NewProc("WSAIoctl")
@@ -2528,11 +2527,6 @@ func rtlGetVersion(info *OsVersionInfoEx) (ret error) {
 	if r0 != 0 {
 		ret = syscall.Errno(r0)
 	}
-	return
-}
-
-func rtlGetNtVersionNumbers(majorVersion *uint32, minorVersion *uint32, buildNumber *uint32) {
-	syscall.Syscall(procRtlGetNtVersionNumbers.Addr(), 3, uintptr(unsafe.Pointer(majorVersion)), uintptr(unsafe.Pointer(minorVersion)), uintptr(unsafe.Pointer(buildNumber)))
 	return
 }
 

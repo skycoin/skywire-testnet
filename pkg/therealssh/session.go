@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/creack/pty"
@@ -19,7 +20,10 @@ var Log = logging.MustGetLogger("therealssh")
 
 // Session represents PTY sessions. Channel normally handles Session's lifecycle.
 type Session struct {
-	pty, tty *os.File
+	ptyMu sync.Mutex
+	pty   *os.File
+	ttyMu sync.Mutex
+	tty   *os.File
 
 	user *user.User
 	cmd  *exec.Cmd
@@ -38,6 +42,9 @@ func OpenSession(user *user.User, sz *pty.Winsize) (s *Session, err error) {
 		return
 	}
 
+	s.ptyMu.Lock()
+	defer s.ptyMu.Unlock()
+
 	if err = pty.Setsize(s.pty, sz); err != nil {
 		if closeErr := s.Close(); closeErr != nil {
 			Log.WithError(closeErr).Warn("Failed to close session")
@@ -51,6 +58,9 @@ func OpenSession(user *user.User, sz *pty.Winsize) (s *Session, err error) {
 // Start executes command on Session's PTY.
 func (s *Session) Start(command string) (err error) {
 	defer func() {
+		s.ttyMu.Lock()
+		defer s.ttyMu.Unlock()
+
 		if err := s.tty.Close(); err != nil {
 			Log.WithError(err).Warn("Failed to close TTY")
 		}
@@ -65,9 +75,13 @@ func (s *Session) Start(command string) (err error) {
 	components := strings.Split(command, " ")
 	cmd := exec.Command(components[0], components[1:]...) // nolint:gosec
 	cmd.Dir = s.user.HomeDir
+
+	s.ttyMu.Lock()
 	cmd.Stdout = s.tty
 	cmd.Stdin = s.tty
 	cmd.Stderr = s.tty
+	s.ttyMu.Unlock()
+
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
@@ -106,7 +120,8 @@ func (s *Session) Run(command string) ([]byte, error) {
 	}() // Best effort.
 
 	// as stated in https://github.com/creack/pty/issues/21#issuecomment-513069505 we can ignore this error
-	res, _ := ioutil.ReadAll(ptmx) // nolint: err
+	res, err := ioutil.ReadAll(ptmx)
+	_ = err
 	return res, nil
 }
 
@@ -121,6 +136,9 @@ func (s *Session) Wait() error {
 
 // WindowChange resize PTY Session size.
 func (s *Session) WindowChange(sz *pty.Winsize) error {
+	s.ptyMu.Lock()
+	defer s.ptyMu.Unlock()
+
 	if err := pty.Setsize(s.pty, sz); err != nil {
 		return fmt.Errorf("failed to set PTY size: %s", err)
 	}
@@ -156,10 +174,16 @@ func (s *Session) credentials() *syscall.Credential {
 }
 
 func (s *Session) Write(p []byte) (int, error) {
+	s.ptyMu.Lock()
+	defer s.ptyMu.Unlock()
+
 	return s.pty.Write(p)
 }
 
 func (s *Session) Read(p []byte) (int, error) {
+	s.ptyMu.Lock()
+	defer s.ptyMu.Unlock()
+
 	return s.pty.Read(p)
 }
 
@@ -168,5 +192,9 @@ func (s *Session) Close() error {
 	if s == nil {
 		return nil
 	}
+
+	s.ptyMu.Lock()
+	defer s.ptyMu.Unlock()
+
 	return s.pty.Close()
 }
