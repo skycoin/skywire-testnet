@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	// RouteTTL is the default expiration interval for routes
-	RouteTTL = 2 * time.Hour
+	// DefaultRouteKeepAlive is the default expiration interval for routes
+	DefaultRouteKeepAlive = 2 * time.Hour
 
 	// DefaultGarbageCollectDuration is the default duration for garbage collection of routing rules.
 	DefaultGarbageCollectDuration = time.Second * 5
@@ -89,7 +89,7 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 	}
 
 	// Prepare route manager.
-	rm, err := NewRouteManager(n, config.RoutingTable, RMConfig{
+	rm, err := newRouteManager(n, config.RoutingTable, RMConfig{
 		SetupPKs:               config.SetupNodes,
 		GarbageCollectDuration: config.GarbageCollectDuration,
 		OnConfirmLoop:          r.confirmLoop,
@@ -300,9 +300,9 @@ func (r *Router) requestLoop(ctx context.Context, appConn *app.Protocol, raddr r
 			Local:  laddr,
 			Remote: raddr,
 		},
-		Expiry:  time.Now().Add(RouteTTL),
-		Forward: forwardRoute,
-		Reverse: reverseRoute,
+		KeepAlive: DefaultRouteKeepAlive,
+		Forward:   forwardRoute,
+		Reverse:   reverseRoute,
 	}
 
 	sConn, err := r.rm.dialSetupConn(ctx)
@@ -430,6 +430,7 @@ fetchRoutesAgain:
 	return fwdRoutes[0], revRoutes[0], nil
 }
 
+// SetupIsTrusted checks if setup node is trusted.
 func (r *Router) SetupIsTrusted(sPK cipher.PubKey) bool {
 	return r.rm.conf.SetupIsTrusted(sPK)
 }

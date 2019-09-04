@@ -17,7 +17,6 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
@@ -116,7 +115,11 @@ func TestNode(t *testing.T) {
 			dmsgL:   listener,
 			metrics: metrics.NewDummy(),
 		}
-		go func() { _ = sn.Serve(context.TODO()) }() //nolint:errcheck
+		go func() {
+			if err := sn.Serve(context.TODO()); err != nil {
+				sn.Logger.WithError(err).Error("Failed to serve")
+			}
+		}()
 		return sn, func() {
 			require.NoError(t, sn.Close())
 		}
@@ -152,7 +155,7 @@ func TestNode(t *testing.T) {
 				&routing.Hop{From: clients[3].Addr.PK, To: clients[2].Addr.PK, Transport: uuid.New()},
 				&routing.Hop{From: clients[2].Addr.PK, To: clients[1].Addr.PK, Transport: uuid.New()},
 			},
-			Expiry: time.Now().Add(time.Hour),
+			KeepAlive: 1 * time.Hour,
 		}
 
 		// client_1 initiates loop creation with setup node.
@@ -177,15 +180,15 @@ func TestNode(t *testing.T) {
 		// CLOSURE: emulates how a visor node should react when expecting an AddRules packet.
 		expectAddRules := func(client int, expRule routing.RuleType) {
 			conn, err := clients[client].Listener.Accept()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			fmt.Printf("client %v:%v accepted\n", client, clients[client].Addr)
 
 			proto := NewSetupProtocol(conn)
 
 			pt, _, err := proto.ReadPacket()
-			assert.NoError(t, err)
-			assert.Equal(t, PacketRequestRouteID, pt)
+			require.NoError(t, err)
+			require.Equal(t, PacketRequestRouteID, pt)
 
 			fmt.Printf("client %v:%v got PacketRequestRouteID\n", client, clients[client].Addr)
 
@@ -193,38 +196,39 @@ func TestNode(t *testing.T) {
 
 			// TODO: This error is not checked due to a bug in dmsg.
 			_ = proto.WritePacket(RespSuccess, []routing.RouteID{routing.RouteID(routeID)}) // nolint:errcheck
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			fmt.Printf("client %v:%v responded to with registration ID: %v\n", client, clients[client].Addr, routeID)
 
-			assert.NoError(t, conn.Close())
+			require.NoError(t, conn.Close())
 
 			conn, err = clients[client].Listener.Accept()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			fmt.Printf("client %v:%v accepted 2nd time\n", client, clients[client].Addr)
 
 			proto = NewSetupProtocol(conn)
 
 			pt, pp, err := proto.ReadPacket()
-			assert.NoError(t, err)
-			assert.Equal(t, PacketAddRules, pt)
+			require.NoError(t, err)
+			require.Equal(t, PacketAddRules, pt)
 
 			fmt.Printf("client %v:%v got PacketAddRules\n", client, clients[client].Addr)
 
 			var rs []routing.Rule
-			assert.NoError(t, json.Unmarshal(pp, &rs))
+			require.NoError(t, json.Unmarshal(pp, &rs))
 
 			for _, r := range rs {
-				assert.Equal(t, expRule, r.Type())
+				require.Equal(t, expRule, r.Type())
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) // nolint:errcheck
+			err = proto.WritePacket(RespSuccess, nil)
+			_ = err
 
 			fmt.Printf("client %v:%v responded for PacketAddRules\n", client, clients[client].Addr)
 
-			assert.NoError(t, conn.Close())
+			require.NoError(t, conn.Close())
 
 			addRuleDone.Done()
 		}
@@ -254,7 +258,8 @@ func TestNode(t *testing.T) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			err = proto.WritePacket(RespSuccess, nil)
+			_ = err
 
 			require.NoError(t, tp.Close())
 		}
@@ -343,7 +348,8 @@ func TestNode(t *testing.T) {
 		require.Equal(t, ld.Loop.Local, d.Loop.Remote)
 
 		// TODO: This error is not checked due to a bug in dmsg.
-		_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+		err = proto.WritePacket(RespSuccess, nil)
+		_ = err
 	})
 }
 

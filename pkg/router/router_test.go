@@ -80,7 +80,7 @@ func TestRouter_Serve(t *testing.T) {
 		defer clearRules(r0, r1)
 
 		// Add a FWD rule for r0.
-		fwdRule := routing.ForwardRule(time.Now().Add(time.Hour), routing.RouteID(5), tp1.Entry.ID, routing.RouteID(0))
+		fwdRule := routing.ForwardRule(1*time.Hour, routing.RouteID(5), tp1.Entry.ID, routing.RouteID(0))
 		fwdRtID, err := r0.rm.rt.AddRule(fwdRule)
 		require.NoError(t, err)
 
@@ -147,7 +147,7 @@ func TestRouter_Serve(t *testing.T) {
 
 		// Add a APP rule for r0.
 		// port8 := routing.Port(8)
-		appRule := routing.AppRule(time.Now().Add(time.Hour), 0, routing.RouteID(7), keys[1].PK, localPort, localPort)
+		appRule := routing.AppRule(10*time.Minute, 0, routing.RouteID(7), keys[1].PK, localPort, localPort)
 		appRtID, err := r0.rm.rt.AddRule(appRule)
 		require.NoError(t, err)
 

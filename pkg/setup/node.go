@@ -130,12 +130,12 @@ func (sn *Node) serveTransport(ctx context.Context, tr *dmsg.Transport) error {
 
 func (sn *Node) createLoop(ctx context.Context, ld routing.LoopDescriptor) error {
 	sn.Logger.Infof("Creating new Loop %s", ld)
-	rRouteID, err := sn.createRoute(ctx, ld.Expiry, ld.Reverse, ld.Loop.Local.Port, ld.Loop.Remote.Port)
+	rRouteID, err := sn.createRoute(ctx, ld.KeepAlive, ld.Reverse, ld.Loop.Local.Port, ld.Loop.Remote.Port)
 	if err != nil {
 		return err
 	}
 
-	fRouteID, err := sn.createRoute(ctx, ld.Expiry, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
+	fRouteID, err := sn.createRoute(ctx, ld.KeepAlive, ld.Forward, ld.Loop.Remote.Port, ld.Loop.Local.Port)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,8 @@ func (sn *Node) createLoop(ctx context.Context, ld routing.LoopDescriptor) error
 //
 // During the setup process each error received along the way causes all the procedure to be canceled. RouteID received
 // from the 1st step connecting to the initiating node is used as the ID for the overall rule, thus being returned.
-func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routing.Route, rport, lport routing.Port) (routing.RouteID, error) {
+func (sn *Node) createRoute(ctx context.Context, keepAlive time.Duration, route routing.Route,
+	rport, lport routing.Port) (routing.RouteID, error) {
 	if len(route) == 0 {
 		return 0, nil
 	}
@@ -265,9 +266,9 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 		if i != len(r)-1 {
 			reqIDChIn = reqIDsCh[i]
 			nextTpID = r[i+1].Transport
-			rule = routing.ForwardRule(expireAt, 0, nextTpID, 0)
+			rule = routing.ForwardRule(keepAlive, 0, nextTpID, 0)
 		} else {
-			rule = routing.AppRule(expireAt, 0, 0, init, rport, lport)
+			rule = routing.AppRule(keepAlive, 0, 0, init, rport, lport)
 		}
 
 		go func(i int, pk cipher.PubKey, rule routing.Rule, reqIDChIn <-chan routing.RouteID,
@@ -304,6 +305,7 @@ func (sn *Node) createRoute(ctx context.Context, expireAt time.Time, route routi
 			rulesSetupErr = err
 		}
 	}
+	cancelOnce.Do(cancel)
 
 	// close chan to avoid leaks
 	close(rulesSetupErrs)

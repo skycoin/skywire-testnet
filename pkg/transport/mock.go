@@ -198,6 +198,7 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 		return
 	}
 
+	errCh = make(chan error, 1)
 	go func() {
 		errCh <- srv.Serve()
 		close(errCh)
@@ -207,8 +208,8 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 		return
 	}
 
-	if err = dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk1, 0, []cipher.PubKey{pk3})); err != nil {
-		return
+	if err := dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk1, 0, []cipher.PubKey{pk3})); err != nil {
+		return cipher.PubKey{}, cipher.PubKey{}, nil, nil, nil, err
 	}
 
 	if err = dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk2, 0, []cipher.PubKey{pk3})); err != nil {
@@ -222,16 +223,16 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	net2 := snet.NewRaw(nc2, dmsgC2)
 
 	if m1, err = NewManager(net1, mc1); err != nil {
-		return
+		return cipher.PubKey{}, cipher.PubKey{}, nil, nil, nil, err
 	}
 	if m2, err = NewManager(net2, mc2); err != nil {
-		return
+		return cipher.PubKey{}, cipher.PubKey{}, nil, nil, nil, err
 	}
 
 	go m1.Serve(context.TODO())
 	go m2.Serve(context.TODO())
 
-	return
+	return pk1, pk2, m1, m2, errCh, err
 }
 
 // MockTransportManager creates Manager

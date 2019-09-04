@@ -12,6 +12,7 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
@@ -207,7 +208,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		log.Infof("tp[%2d]: %v", i, tps[i])
 	}
 	rt := routing.InMemoryRoutingTable()
-	ruleExp := time.Now().Add(time.Hour * 24)
+	ruleKeepAlive := router.DefaultRouteKeepAlive
 	for i := 0; i < r.Intn(maxRules+1); i++ {
 		remotePK, _ := cipher.GenerateKeyPair()
 		var lpRaw, rpRaw [2]byte
@@ -223,7 +224,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err != nil {
 			panic(err)
 		}
-		fwdRule := routing.ForwardRule(ruleExp, routing.RouteID(r.Uint32()), uuid.New(), fwdRID)
+		fwdRule := routing.ForwardRule(ruleKeepAlive, routing.RouteID(r.Uint32()), uuid.New(), fwdRID)
 		if err := rt.SetRule(fwdRID, fwdRule); err != nil {
 			panic(err)
 		}
@@ -231,7 +232,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err != nil {
 			panic(err)
 		}
-		appRule := routing.AppRule(ruleExp, appRID, fwdRID, remotePK, lp, rp)
+		appRule := routing.AppRule(ruleKeepAlive, fwdRID, remotePK, rp, lp, appRID)
 		if err := rt.SetRule(appRID, appRule); err != nil {
 			panic(err)
 		}
