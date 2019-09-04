@@ -1,18 +1,11 @@
 package setup
 
 import (
-	"errors"
 	"log"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/net/nettest"
 )
 
 func TestMain(m *testing.M) {
@@ -342,26 +335,26 @@ func TestMain(m *testing.M) {
 	})
 }*/
 
-func createServer(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
-	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
-	require.NoError(t, err)
-	l, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
-	require.NoError(t, err)
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- srv.Serve()
-		close(errCh)
-	}()
-	return srv, errCh
-}
-
-func errWithTimeout(ch <-chan error) error {
-	select {
-	case err := <-ch:
-		return err
-	case <-time.After(5 * time.Second):
-		return errors.New("timeout")
-	}
-}
+// func createServer(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
+// 	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
+// 	require.NoError(t, err)
+// 	l, err := nettest.NewLocalListener("tcp")
+// 	require.NoError(t, err)
+// 	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
+// 	require.NoError(t, err)
+// 	errCh := make(chan error, 1)
+// 	go func() {
+// 		errCh <- srv.Serve()
+// 		close(errCh)
+// 	}()
+// 	return srv, errCh
+// }
+//
+// func errWithTimeout(ch <-chan error) error {
+// 	select {
+// 	case err := <-ch:
+// 		return err
+// 	case <-time.After(5 * time.Second):
+// 		return errors.New("timeout")
+// 	}
+// }
