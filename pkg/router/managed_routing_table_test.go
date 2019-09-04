@@ -14,14 +14,18 @@ import (
 func TestManagedRoutingTableCleanup(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 
-	_, err := rt.AddRule(routing.ForwardRule(time.Now().Add(time.Hour), 3, uuid.New(), 1))
+	_, err := rt.AddRule(routing.ForwardRule(1*time.Hour, 3, uuid.New(), 1))
 	require.NoError(t, err)
 
-	id, err := rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New(), 2))
+	id, err := rt.AddRule(routing.ForwardRule(1*time.Hour, 3, uuid.New(), 2))
 	require.NoError(t, err)
 
-	id2, err := rt.AddRule(routing.ForwardRule(time.Now().Add(-time.Hour), 3, uuid.New(), 3))
+	id2, err := rt.AddRule(routing.ForwardRule(-1*time.Hour, 3, uuid.New(), 3))
 	require.NoError(t, err)
+
+	// rule should already be expired at this point due to the execution time.
+	// However, we'll just a bit to be sure
+	time.Sleep(1 * time.Millisecond)
 
 	assert.Equal(t, 3, rt.Count())
 

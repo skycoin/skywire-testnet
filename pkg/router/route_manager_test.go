@@ -43,13 +43,17 @@ func TestNewRouteManager(t *testing.T) {
 	t.Run("GetRule", func(t *testing.T) {
 		defer clearRules()
 
-		expiredRule := routing.ForwardRule(time.Now().Add(-10*time.Minute), 3, uuid.New(), 1)
-		expiredID, err := rt.AddRule(expiredRule)
+		expiredRule := routing.ForwardRule(-10*time.Minute, 3, uuid.New(), 1)
+		expiredID, err := rm.rt.AddRule(expiredRule)
 		require.NoError(t, err)
 
-		rule := routing.ForwardRule(time.Now().Add(10*time.Minute), 3, uuid.New(), 2)
-		id, err := rt.AddRule(rule)
+		rule := routing.ForwardRule(10*time.Minute, 3, uuid.New(), 2)
+		id, err := rm.rt.AddRule(rule)
 		require.NoError(t, err)
+
+		// rule should already be expired at this point due to the execution time.
+		// However, we'll just a bit to be sure
+		time.Sleep(1 * time.Millisecond)
 
 		_, err = rm.GetRule(expiredID)
 		require.Error(t, err)
@@ -67,7 +71,7 @@ func TestNewRouteManager(t *testing.T) {
 		defer clearRules()
 
 		pk, _ := cipher.GenerateKeyPair()
-		rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 1)
+		rule := routing.AppRule(10*time.Minute, 3, pk, 3, 2, 1)
 		_, err := rt.AddRule(rule)
 		require.NoError(t, err)
 
@@ -112,7 +116,7 @@ func TestNewRouteManager(t *testing.T) {
 			require.NoError(t, err)
 
 			// Emulate SetupNode sending AddRule request.
-			rule := routing.ForwardRule(time.Now(), 3, uuid.New(), id)
+			rule := routing.ForwardRule(10*time.Minute, 3, uuid.New(), id)
 			err = setup.AddRule(context.TODO(), setup.NewSetupProtocol(addIn), rule)
 			require.NoError(t, err)
 
@@ -150,7 +154,7 @@ func TestNewRouteManager(t *testing.T) {
 
 		proto := setup.NewSetupProtocol(in)
 
-		rule := routing.ForwardRule(time.Now(), 3, uuid.New(), 1)
+		rule := routing.ForwardRule(10*time.Minute, 3, uuid.New(), 1)
 		id, err := rt.AddRule(rule)
 		require.NoError(t, err)
 		assert.Equal(t, 1, rt.Count())
@@ -186,10 +190,10 @@ func TestNewRouteManager(t *testing.T) {
 
 		proto := setup.NewSetupProtocol(in)
 		pk, _ := cipher.GenerateKeyPair()
-		rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 2)
+		rule := routing.AppRule(10*time.Minute, 3, pk, 3, 2, 2)
 		require.NoError(t, rt.SetRule(2, rule))
 
-		rule = routing.ForwardRule(time.Now(), 3, uuid.New(), 1)
+		rule = routing.ForwardRule(10*time.Minute, 3, uuid.New(), 1)
 		require.NoError(t, rt.SetRule(1, rule))
 
 		ld := routing.LoopData{
@@ -238,10 +242,10 @@ func TestNewRouteManager(t *testing.T) {
 		proto := setup.NewSetupProtocol(in)
 		pk, _ := cipher.GenerateKeyPair()
 
-		rule := routing.AppRule(time.Now(), 3, pk, 3, 2, 0)
+		rule := routing.AppRule(10*time.Minute, 3, pk, 3, 2, 0)
 		require.NoError(t, rt.SetRule(2, rule))
 
-		rule = routing.ForwardRule(time.Now(), 3, uuid.New(), 1)
+		rule = routing.ForwardRule(10*time.Minute, 3, uuid.New(), 1)
 		require.NoError(t, rt.SetRule(1, rule))
 
 		ld := routing.LoopData{

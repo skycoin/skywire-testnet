@@ -138,7 +138,7 @@ func TestMain(m *testing.M) {
 				&routing.Hop{From: clients[3].Addr.PK, To: clients[2].Addr.PK, Transport: uuid.New()},
 				&routing.Hop{From: clients[2].Addr.PK, To: clients[1].Addr.PK, Transport: uuid.New()},
 			},
-			Expiry: time.Now().Add(time.Hour),
+			KeepAlive: 1 * time.Hour,
 		}
 
 		// client_1 initiates loop creation with setup node.

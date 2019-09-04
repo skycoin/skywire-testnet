@@ -186,10 +186,6 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 		return nil, errors.New("corrupted rule")
 	}
 
-	if rule.Expiry().Before(time.Now()) {
-		return nil, errors.New("expired routing rule")
-	}
-
 	return rule, nil
 }
 
@@ -317,7 +313,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 }
 
 func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
-	rule := routing.ForwardRule(time.Now().Add(RouteTTL), 0, uuid.UUID{}, 0)
+	rule := routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0)
 	routeID, err := rm.rt.AddRule(rule)
 	if err != nil {
 		return nil, err

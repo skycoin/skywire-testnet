@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	// RouteTTL is the default expiration interval for routes
-	RouteTTL = 2 * time.Hour
+	// DefaultRouteKeepAlive is the default expiration interval for routes
+	DefaultRouteKeepAlive = 2 * time.Hour
 
 	// DefaultGarbageCollectDuration is the default duration for garbage collection of routing rules.
 	DefaultGarbageCollectDuration = time.Second * 5
@@ -298,9 +298,9 @@ func (r *Router) requestLoop(ctx context.Context, appConn *app.Protocol, raddr r
 			Local:  laddr,
 			Remote: raddr,
 		},
-		Expiry:  time.Now().Add(RouteTTL),
-		Forward: forwardRoute,
-		Reverse: reverseRoute,
+		KeepAlive: DefaultRouteKeepAlive,
+		Forward:   forwardRoute,
+		Reverse:   reverseRoute,
 	}
 
 	sConn, err := r.rm.dialSetupConn(ctx)
