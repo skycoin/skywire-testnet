@@ -12,8 +12,9 @@ import (
 	"github.com/creack/pty"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestRunRPC(t *testing.T) {

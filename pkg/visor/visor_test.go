@@ -1,5 +1,3 @@
-// +build !no_ci
-
 package visor
 
 import (
@@ -15,12 +13,13 @@ import (
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var masterLogger *logging.MasterLogger
@@ -152,15 +151,21 @@ func TestNodeSpawnApp(t *testing.T) {
 }
 
 func TestNodeSpawnAppValidations(t *testing.T) {
+	pk, _ := cipher.GenerateKeyPair()
 	conn, _ := net.Pipe()
 	r := new(mockRouter)
 	executer := &MockExecuter{err: errors.New("foo")}
 	defer func() {
 		require.NoError(t, os.RemoveAll("skychat"))
 	}()
+	c := &Config{}
+	c.Node.StaticPubKey = pk
 	node := &Node{router: r, executer: executer,
 		startedApps: map[string]*appBind{"skychat": {conn, 10}},
-		logger:      logging.MustGetLogger("test")}
+		logger:      logging.MustGetLogger("test"),
+		config:      c,
+	}
+	defer os.Remove(node.dir()) // nolint
 
 	cases := []struct {
 		conf *AppConfig
