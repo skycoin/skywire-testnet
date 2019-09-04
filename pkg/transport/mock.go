@@ -186,8 +186,8 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 
 	dmsgD := disc.NewMock()
 
-	if err = dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk1, 0, []cipher.PubKey{})); err != nil {
-		return
+	if err := dmsgD.SetEntry(context.TODO(), disc.NewClientEntry(pk1, 0, []cipher.PubKey{})); err != nil {
+		return cipher.PubKey{}, cipher.PubKey{}, nil, nil, nil, err
 	}
 
 	// l, err := nettest.NewLocalListener("tcp")
@@ -199,6 +199,7 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	// 	return
 	// }
 	//
+	// errCh := make(chan error, 1)
 	// go func() {
 	// 	errCh <- srv.Serve()
 	// 	close(errCh)
@@ -211,16 +212,17 @@ func MockTransportManagersPair() (pk1, pk2 cipher.PubKey, m1, m2 *Manager, errCh
 	net2 := snet.NewRaw(nc2, dmsgC2)
 
 	if m1, err = NewManager(net1, mc1); err != nil {
-		return
+		return cipher.PubKey{}, cipher.PubKey{}, nil, nil, nil, err
 	}
 	if m2, err = NewManager(net2, mc2); err != nil {
-		return
+		return cipher.PubKey{}, cipher.PubKey{}, nil, nil, nil, err
 	}
 
 	go m1.Serve(context.TODO())
 	go m2.Serve(context.TODO())
 
-	return
+	// return pk1, pk2, m1,m2, errCh, err
+	return pk1, pk2, m1, m2, nil, err
 }
 
 // MockTransportManager creates Manager
