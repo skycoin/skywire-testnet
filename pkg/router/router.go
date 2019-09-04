@@ -89,7 +89,7 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 	}
 
 	// Prepare route manager.
-	rm, err := NewRouteManager(n, config.RoutingTable, RMConfig{
+	rm, err := newRouteManager(n, config.RoutingTable, RMConfig{
 		SetupPKs:               config.SetupNodes,
 		GarbageCollectDuration: config.GarbageCollectDuration,
 		OnConfirmLoop:          r.confirmLoop,
@@ -428,6 +428,7 @@ fetchRoutesAgain:
 	return fwdRoutes[0], revRoutes[0], nil
 }
 
+// SetupIsTrusted checks if setup node is trusted.
 func (r *Router) SetupIsTrusted(sPK cipher.PubKey) bool {
 	return r.rm.conf.SetupIsTrusted(sPK)
 }

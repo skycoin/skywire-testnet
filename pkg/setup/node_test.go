@@ -105,7 +105,11 @@ func TestMain(m *testing.M) {
 			dmsgL:   listener,
 			metrics: metrics.NewDummy(),
 		}
-		go func() { _ = sn.Serve(context.TODO()) }() //nolint:errcheck
+		go func() {
+			if err := sn.Serve(context.TODO()); err != nil {
+				sn.Logger.WithError(err).Error("Failed to serve")
+			}
+		}()
 		return sn, func() {
 			require.NoError(t, sn.Close())
 		}
@@ -208,7 +212,8 @@ func TestMain(m *testing.M) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			err = proto.WritePacket(RespSuccess, nil)
+			_ = err
 
 			fmt.Printf("client %v:%v responded for PacketAddRules\n", client, clients[client].Addr)
 
@@ -242,7 +247,8 @@ func TestMain(m *testing.M) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			err = proto.WritePacket(RespSuccess, nil)
+			_ = err
 
 			require.NoError(t, tp.Close())
 		}
@@ -331,7 +337,8 @@ func TestMain(m *testing.M) {
 		require.Equal(t, ld.Loop.Local, d.Loop.Remote)
 
 		// TODO: This error is not checked due to a bug in dmsg.
-		_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+		err = proto.WritePacket(RespSuccess, nil)
+		_ = err
 	})
 }*/
 
