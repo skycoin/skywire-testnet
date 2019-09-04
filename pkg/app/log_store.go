@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -38,16 +39,14 @@ type boltDBappLogs struct {
 	bucket []byte
 }
 
-func newBoltDB(path, appName string) (LogStore, error) {
+func newBoltDB(path, appName string) (_ LogStore, err error) {
 	db, err := bbolt.Open(path, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		err := db.Close()
-		if err != nil {
-			panic(err)
-		}
+		cErr := db.Close()
+		err = cErr
 	}()
 
 	b := []byte(appName)
@@ -67,6 +66,11 @@ func newBoltDB(path, appName string) (LogStore, error) {
 
 // Write implements io.Writer
 func (l *boltDBappLogs) Write(p []byte) (int, error) {
+	// ensure there is at least timestamp long bytes
+	if len(p) < 37 {
+		return 0, io.ErrShortBuffer
+	}
+
 	db, err := bbolt.Open(l.dbpath, 0600, nil)
 	if err != nil {
 		return 0, err
@@ -94,16 +98,14 @@ func (l *boltDBappLogs) Write(p []byte) (int, error) {
 }
 
 // Store implements LogStore
-func (l *boltDBappLogs) Store(t time.Time, s string) error {
+func (l *boltDBappLogs) Store(t time.Time, s string) (err error) {
 	db, err := bbolt.Open(l.dbpath, 0600, nil)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		err := db.Close()
-		if err != nil {
-			panic(err)
-		}
+		cErr := db.Close()
+		err = cErr
 	}()
 
 	parsedTime := []byte(t.Format(time.RFC3339Nano))
@@ -114,19 +116,17 @@ func (l *boltDBappLogs) Store(t time.Time, s string) error {
 }
 
 // LogSince implements LogStore
-func (l *boltDBappLogs) LogsSince(t time.Time) ([]string, error) {
+func (l *boltDBappLogs) LogsSince(t time.Time) (logs []string, err error) {
 	db, err := bbolt.Open(l.dbpath, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		err := db.Close()
-		if err != nil {
-			panic(err)
-		}
+		cErr := db.Close()
+		err = cErr
 	}()
 
-	logs := make([]string, 0)
+	logs = make([]string, 0)
 
 	err = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(l.bucket)
@@ -135,29 +135,33 @@ func (l *boltDBappLogs) LogsSince(t time.Time) ([]string, error) {
 
 		v := b.Get(parsedTime)
 		if v == nil {
-			return iterateFromBeginning(c, parsedTime, &logs)
+			logs = iterateFromBeginning(c, parsedTime)
+			return nil
 		}
 		c.Seek(parsedTime)
-		return iterateFromKey(c, &logs)
+		logs = iterateFromKey(c)
+		return nil
 	})
 
 	return logs, err
 }
 
-func iterateFromKey(c *bbolt.Cursor, logs *[]string) error {
+func iterateFromKey(c *bbolt.Cursor) []string {
+	logs := make([]string, 0)
 	for k, v := c.Next(); k != nil; k, v = c.Next() {
-		*logs = append(*logs, string(v))
+		logs = append(logs, string(v))
 	}
-	return nil
+	return logs
 }
 
-func iterateFromBeginning(c *bbolt.Cursor, parsedTime []byte, logs *[]string) error {
+func iterateFromBeginning(c *bbolt.Cursor, parsedTime []byte) []string {
+	logs := make([]string, 0)
 	for k, v := c.First(); k != nil; k, v = c.Next() {
 		if bytes.Compare(k, parsedTime) < 0 {
 			continue
 		}
-		*logs = append(*logs, string(v))
+		logs = append(logs, string(v))
 	}
 
-	return nil
+	return logs
 }

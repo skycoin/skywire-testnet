@@ -187,7 +187,6 @@ func (m *Node) getHealth() http.HandlerFunc {
 				vh.Status = http.StatusOK
 			}
 			httputil.WriteJSON(w, r, http.StatusOK, vh)
-			return
 		case <-tCh:
 			httputil.WriteJSON(w, r, http.StatusRequestTimeout, &VisorHealth{Status: http.StatusRequestTimeout})
 		}
@@ -200,6 +199,7 @@ func (m *Node) getUptime() http.HandlerFunc {
 		u, err := ctx.RPC.Uptime()
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, u)
 	})
