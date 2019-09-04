@@ -8,13 +8,11 @@ import (
 	"time"
 
 	"github.com/skycoin/dmsg"
-
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/disc"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
-
-	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 func TestMain(m *testing.M) {
@@ -317,11 +315,7 @@ func TestMain(m *testing.M) {
 		}()
 
 		// client_2 accepts close request.
-		listener, err := clients[2].Listen(clients[2].Addr.Port)
-		require.NoError(t, err)
-		defer func() { require.NoError(t, listener.Close()) }()
-
-		tp, err := listener.AcceptTransport()
+		tp, err := clients[2].Listener.AcceptTransport()
 		require.NoError(t, err)
 		defer func() { require.NoError(t, tp.Close()) }()
 
