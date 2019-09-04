@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -194,11 +195,11 @@ func AppRule(keepAlive time.Duration, respRoute RouteID, remotePK cipher.PubKey,
 	rule[8] = byte(RuleApp)
 	binary.BigEndian.PutUint32(rule[9:], uint32(respRoute))
 	rule = append(rule, remotePK[:]...)
-	rule = append(rule, 0, 0, 0, 0, 0, 0, 0, 0)
+	rule = append(rule, bytes.Repeat([]byte{0}, 8)...)
 	binary.BigEndian.PutUint16(rule[46:], uint16(remotePort))
 	binary.BigEndian.PutUint16(rule[48:], uint16(localPort))
 	binary.BigEndian.PutUint32(rule[50:], uint32(requestRouteID))
-	return Rule(rule)
+	return rule
 }
 
 // ForwardRule constructs a new forward RoutingRule.
@@ -214,7 +215,7 @@ func ForwardRule(keepAlive time.Duration, nextRoute RouteID, nextTrID uuid.UUID,
 	rule[8] = byte(RuleForward)
 	binary.BigEndian.PutUint32(rule[9:], uint32(nextRoute))
 	rule = append(rule, nextTrID[:]...)
-	rule = append(rule, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+	rule = append(rule, bytes.Repeat([]byte{0}, 25)...)
 	binary.BigEndian.PutUint32(rule[50:], uint32(requestRouteID))
-	return Rule(rule)
+	return rule
 }

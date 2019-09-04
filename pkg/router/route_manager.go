@@ -5,19 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/snet"
-
+	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
-
-	"github.com/skycoin/skywire/pkg/setup"
-
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/setup"
+	"github.com/skycoin/skywire/pkg/snet"
 )
 
 type RMConfig struct {
@@ -305,7 +302,8 @@ func (rm *routeManager) loopClosed(data []byte) error {
 }
 
 func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
-	routeID, err := rm.rt.AddRule(routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0))
+	rule := routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0)
+	routeID, err := rm.rt.AddRule(rule)
 	if err != nil {
 		return nil, err
 	}
