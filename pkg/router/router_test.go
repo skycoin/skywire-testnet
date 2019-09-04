@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/app"
+	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/snet"
 	"github.com/skycoin/skywire/pkg/snet/snettest"
@@ -214,7 +215,7 @@ func (e *TestEnv) GenRouterConfig(i int) *Config {
 		SecKey:                 e.TpMngrConfs[i].SecKey,
 		TransportManager:       e.TpMngrs[i],
 		RoutingTable:           routing.InMemoryRoutingTable(),
-		RouteFinder:            nil, // TODO
+		RouteFinder:            routeFinder.NewMock(),
 		SetupNodes:             nil, // TODO
 		GarbageCollectDuration: DefaultGarbageCollectDuration,
 	}
