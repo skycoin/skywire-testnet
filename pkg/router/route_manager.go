@@ -17,6 +17,7 @@ import (
 	"github.com/skycoin/skywire/pkg/snet"
 )
 
+// RMConfig represents route manager configuration.
 type RMConfig struct {
 	SetupPKs               []cipher.PubKey // Trusted setup PKs.
 	GarbageCollectDuration time.Duration
@@ -24,6 +25,7 @@ type RMConfig struct {
 	OnLoopClosed           func(loop routing.Loop) error
 }
 
+// SetupIsTrusted checks if setup node is trusted.
 func (sc RMConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
 	for _, pk := range sc.SetupPKs {
 		if sPK == pk {
@@ -33,6 +35,7 @@ func (sc RMConfig) SetupIsTrusted(sPK cipher.PubKey) bool {
 	return false
 }
 
+// routeManager represents route manager.
 type routeManager struct {
 	Logger *logging.Logger
 	conf   RMConfig
@@ -42,8 +45,8 @@ type routeManager struct {
 	done   chan struct{}
 }
 
-// NewRouteManager creates a new route manager.
-func NewRouteManager(n *snet.Network, rt routing.Table, config RMConfig) (*routeManager, error) {
+// newRouteManager creates a new route manager.
+func newRouteManager(n *snet.Network, rt routing.Table, config RMConfig) (*routeManager, error) {
 	sl, err := n.Listen(snet.DmsgType, snet.AwaitSetupPort)
 	if err != nil {
 		return nil, err
@@ -58,11 +61,13 @@ func NewRouteManager(n *snet.Network, rt routing.Table, config RMConfig) (*route
 	}, nil
 }
 
+// Close closes route manager.
 func (rm *routeManager) Close() error {
 	close(rm.done)
 	return rm.sl.Close()
 }
 
+// Serve initiates serving connections by route manager.
 func (rm *routeManager) Serve() {
 	// Routing table garbage collect loop.
 	go rm.rtGarbageCollectLoop()
@@ -97,7 +102,11 @@ func (rm *routeManager) serveConn() error {
 }
 
 func (rm *routeManager) handleSetupConn(conn net.Conn) error {
-	defer func() { _ = conn.Close() }() //nolint:errcheck
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
+	}()
 
 	proto := setup.NewSetupProtocol(conn)
 	t, body, err := proto.ReadPacket()
@@ -160,6 +169,7 @@ func (rm *routeManager) dialSetupConn(_ context.Context) (*snet.Conn, error) {
 	return nil, errors.New("failed to dial to a setup node")
 }
 
+// GetRule gets routing rule.
 func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 	rule, err := rm.rt.Rule(routeID)
 	if err != nil {
@@ -176,13 +186,10 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 		return nil, errors.New("corrupted rule")
 	}
 
-	if rule.Expiry().Before(time.Now()) {
-		return nil, errors.New("expired routing rule")
-	}
-
 	return rule, nil
 }
 
+// RemoveLoopRule removes loop rule.
 func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
@@ -306,7 +313,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 }
 
 func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
-	rule := routing.ForwardRule(time.Now().Add(RouteTTL), 0, uuid.UUID{}, 0)
+	rule := routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0)
 	routeID, err := rm.rt.AddRule(rule)
 	if err != nil {
 		return nil, err

@@ -166,12 +166,13 @@ func ensureDir(path string) (string, error) {
 	return absPath, nil
 }
 
-// HypervisorConfig represents a connection to a hypervisor.
+// HypervisorConfig represents hypervisor configuration.
 type HypervisorConfig struct {
 	PubKey cipher.PubKey `json:"public_key"`
 	Addr   string        `json:"address"`
 }
 
+// DmsgConfig represents dmsg configuration.
 type DmsgConfig struct {
 	PubKey     cipher.PubKey
 	SecKey     cipher.SecKey

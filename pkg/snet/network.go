@@ -30,9 +30,11 @@ const (
 )
 
 var (
+	// ErrUnknownNetwork occurs on attempt to dial an unknown network type.
 	ErrUnknownNetwork = errors.New("unknown network type")
 )
 
+// Config represents a network configuration.
 type Config struct {
 	PubKey     cipher.PubKey
 	SecKey     cipher.SecKey
@@ -45,13 +47,14 @@ type Config struct {
 	TCPPubKeyFile   string
 }
 
-// Network represents
+// Network represents a network between nodes in Skywire.
 type Network struct {
 	conf  Config
 	dmsgC *dmsg.Client
 	tcpF  *TCPFactory
 }
 
+// New creates a network from a config.
 func New(conf Config) *Network {
 	dmsgC := dmsg.NewClient(conf.PubKey,
 		conf.SecKey, disc.NewHTTP(conf.DmsgDiscAddr),
@@ -62,6 +65,7 @@ func New(conf Config) *Network {
 	}
 }
 
+// NewRaw creates a network from a config and a dmsg client.
 func NewRaw(conf Config, dmsgC *dmsg.Client) *Network {
 	return &Network{
 		conf:  conf,
@@ -69,6 +73,7 @@ func NewRaw(conf Config, dmsgC *dmsg.Client) *Network {
 	}
 }
 
+// Init initiates server connections.
 func (n *Network) Init(ctx context.Context) error {
 	fmt.Println("dmsg: min_servers:", n.conf.DmsgMinSrvs)
 	if err := n.dmsgC.InitiateServerConnections(ctx, n.conf.DmsgMinSrvs); err != nil {
@@ -78,6 +83,7 @@ func (n *Network) Init(ctx context.Context) error {
 	return nil
 }
 
+// Close closes underlying connections.
 func (n *Network) Close() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
@@ -95,20 +101,22 @@ func (n *Network) Close() error {
 	return nil
 }
 
+// LocalPK returns local public key.
 func (n *Network) LocalPK() cipher.PubKey { return n.conf.PubKey }
 
+// LocalSK returns local secure key.
 func (n *Network) LocalSK() cipher.SecKey { return n.conf.SecKey }
 
 // TransportNetworks returns network types that are used for transports.
 func (n *Network) TransportNetworks() []string { return n.conf.TpNetworks }
 
+// Dmsg returns underlying dmsg client.
 func (n *Network) Dmsg() *dmsg.Client { return n.dmsgC }
 
-// TCP returns TCPFactory of network
-func (n *Network) TCP() *TCPFactory {
-	return n.tcpF
-}
+// TCP returns the underlying TCPFactory.
+func (n *Network) TCP() *TCPFactory { return n.tcpF }
 
+// Dial dials a node by its public key and returns a connection.
 func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, error) {
 	ctx := context.Background()
 	switch network {
@@ -127,9 +135,9 @@ func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, er
 	default:
 		return nil, ErrUnknownNetwork
 	}
-	return nil, nil
 }
 
+// Listen listens on the specified port.
 func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 	switch network {
 	case DmsgType:
@@ -170,6 +178,7 @@ func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 	return nil, nil
 }
 
+// Listener represents a listener.
 type Listener struct {
 	net.Listener
 	lPK     cipher.PubKey
@@ -182,10 +191,16 @@ func makeListener(l net.Listener, network string) *Listener {
 	return &Listener{Listener: l, lPK: lPK, lPort: lPort, network: network}
 }
 
+// LocalPK returns a local public key of listener.
 func (l Listener) LocalPK() cipher.PubKey { return l.lPK }
-func (l Listener) LocalPort() uint16      { return l.lPort }
-func (l Listener) Network() string        { return l.network }
 
+// LocalPort returns a local port of listener.
+func (l Listener) LocalPort() uint16 { return l.lPort }
+
+// Network returns a network of listener.
+func (l Listener) Network() string { return l.network }
+
+// AcceptConn accepts a connection from listener.
 func (l Listener) AcceptConn() (*Conn, error) {
 	conn, err := l.Listener.Accept()
 	if err != nil {
@@ -194,6 +209,7 @@ func (l Listener) AcceptConn() (*Conn, error) {
 	return makeConn(conn, l.network), nil
 }
 
+// Conn represent a connection between nodes in Skywire.
 type Conn struct {
 	net.Conn
 	lPK     cipher.PubKey
@@ -209,11 +225,20 @@ func makeConn(conn net.Conn, network string) *Conn {
 	return &Conn{Conn: conn, lPK: lPK, rPK: rPK, lPort: lPort, rPort: rPort, network: network}
 }
 
-func (c Conn) LocalPK() cipher.PubKey  { return c.lPK }
+// LocalPK returns local public key of connection.
+func (c Conn) LocalPK() cipher.PubKey { return c.lPK }
+
+// RemotePK returns remote public key of connection.
 func (c Conn) RemotePK() cipher.PubKey { return c.rPK }
-func (c Conn) LocalPort() uint16       { return c.lPort }
-func (c Conn) RemotePort() uint16      { return c.rPort }
-func (c Conn) Network() string         { return c.network }
+
+// LocalPort returns local port of connection.
+func (c Conn) LocalPort() uint16 { return c.lPort }
+
+// RemotePort returns remote port of connection.
+func (c Conn) RemotePort() uint16 { return c.rPort }
+
+// Network returns network of connection.
+func (c Conn) Network() string { return c.network }
 
 func disassembleAddr(addr net.Addr) (pk cipher.PubKey, port uint16) {
 	strs := strings.Split(addr.String(), ":")

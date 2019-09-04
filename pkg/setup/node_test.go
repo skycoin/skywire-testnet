@@ -1,18 +1,9 @@
 package setup
 
 import (
-	"errors"
 	"log"
 	"os"
 	"testing"
-	"time"
-
-	"github.com/skycoin/dmsg"
-
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/disc"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/net/nettest"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 )
@@ -107,7 +98,11 @@ func TestMain(m *testing.M) {
 			dmsgL:   listener,
 			metrics: metrics.NewDummy(),
 		}
-		go func() { _ = sn.Serve(context.TODO()) }() //nolint:errcheck
+		go func() {
+			if err := sn.Serve(context.TODO()); err != nil {
+				sn.Logger.WithError(err).Error("Failed to serve")
+			}
+		}()
 		return sn, func() {
 			require.NoError(t, sn.Close())
 		}
@@ -143,7 +138,7 @@ func TestMain(m *testing.M) {
 				&routing.Hop{From: clients[3].Addr.PK, To: clients[2].Addr.PK, Transport: uuid.New()},
 				&routing.Hop{From: clients[2].Addr.PK, To: clients[1].Addr.PK, Transport: uuid.New()},
 			},
-			Expiry: time.Now().Add(time.Hour),
+			KeepAlive: 1 * time.Hour,
 		}
 
 		// client_1 initiates loop creation with setup node.
@@ -210,7 +205,8 @@ func TestMain(m *testing.M) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			err = proto.WritePacket(RespSuccess, nil)
+			_ = err
 
 			fmt.Printf("client %v:%v responded for PacketAddRules\n", client, clients[client].Addr)
 
@@ -244,7 +240,8 @@ func TestMain(m *testing.M) {
 			}
 
 			// TODO: This error is not checked due to a bug in dmsg.
-			_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+			err = proto.WritePacket(RespSuccess, nil)
+			_ = err
 
 			require.NoError(t, tp.Close())
 		}
@@ -317,11 +314,7 @@ func TestMain(m *testing.M) {
 		}()
 
 		// client_2 accepts close request.
-		listener, err := clients[2].Listen(clients[2].Addr.Port)
-		require.NoError(t, err)
-		defer func() { require.NoError(t, listener.Close()) }()
-
-		tp, err := listener.AcceptTransport()
+		tp, err := clients[2].Listener.AcceptTransport()
 		require.NoError(t, err)
 		defer func() { require.NoError(t, tp.Close()) }()
 
@@ -337,30 +330,31 @@ func TestMain(m *testing.M) {
 		require.Equal(t, ld.Loop.Local, d.Loop.Remote)
 
 		// TODO: This error is not checked due to a bug in dmsg.
-		_ = proto.WritePacket(RespSuccess, nil) //nolint:errcheck
+		err = proto.WritePacket(RespSuccess, nil)
+		_ = err
 	})
 }*/
 
-func createServer(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
-	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
-	require.NoError(t, err)
-	l, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
-	require.NoError(t, err)
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- srv.Serve()
-		close(errCh)
-	}()
-	return srv, errCh
-}
-
-func errWithTimeout(ch <-chan error) error {
-	select {
-	case err := <-ch:
-		return err
-	case <-time.After(5 * time.Second):
-		return errors.New("timeout")
-	}
-}
+// func createServer(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {
+// 	pk, sk, err := cipher.GenerateDeterministicKeyPair([]byte("s"))
+// 	require.NoError(t, err)
+// 	l, err := nettest.NewLocalListener("tcp")
+// 	require.NoError(t, err)
+// 	srv, err = dmsg.NewServer(pk, sk, "", l, dc)
+// 	require.NoError(t, err)
+// 	errCh := make(chan error, 1)
+// 	go func() {
+// 		errCh <- srv.Serve()
+// 		close(errCh)
+// 	}()
+// 	return srv, errCh
+// }
+//
+// func errWithTimeout(ch <-chan error) error {
+// 	select {
+// 	case err := <-ch:
+// 		return err
+// 	case <-time.After(5 * time.Second):
+// 		return errors.New("timeout")
+// 	}
+// }

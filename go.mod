@@ -28,4 +28,4 @@ require (
 )
 
 // Uncomment for tests with alternate branches of 'dmsg'
-//replace github.com/skycoin/dmsg => ../dmsg
+replace github.com/skycoin/dmsg => ../dmsg
