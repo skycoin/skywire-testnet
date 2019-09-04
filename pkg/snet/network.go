@@ -147,35 +147,35 @@ func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 		}
 		return makeListener(lis, network), nil
 	case TCPType:
-		if n.conf.TCPPubKeyFile != "" {
-			errMsg := func(err error) error {
-				return fmt.Errorf("failed to inititiate tcp-transport: %v", err)
-			}
-
-			pkt, err := FilePubKeyTable(n.conf.TCPPubKeyFile)
-			if err != nil {
-				return nil, errMsg(err)
-			}
-			locAddr, err := net.ResolveTCPAddr("tcp", n.conf.TCPLocalAddress)
-			if err != nil {
-				return nil, errMsg(err)
-			}
-			lsn, err := net.ListenTCP("tcp", locAddr)
-			if err != nil {
-				return nil, errMsg(err)
-			}
-			n.tcpF = NewTCPFactory(n.conf.PubKey, pkt, lsn)
-			return &Listener{
-				Listener: lsn,
-				lPK:      n.conf.PubKey,
-				lPort:    666, //TODO: make something reasonable
-				network:  TCPType,
-			}, nil
+		if n.conf.TCPPubKeyFile == "" {
+			return nil, errors.New("tcp transport factory: no pk file")
 		}
+		errMsg := func(err error) error {
+			return fmt.Errorf("failed to inititiate tcp-transport: %v", err)
+		}
+		pkt, err := FilePubKeyTable(n.conf.TCPPubKeyFile)
+		if err != nil {
+			return nil, errMsg(err)
+		}
+		locAddr, err := net.ResolveTCPAddr("tcp", n.conf.TCPLocalAddress)
+		if err != nil {
+			return nil, errMsg(err)
+		}
+		lsn, err := net.ListenTCP("tcp", locAddr)
+		if err != nil {
+			return nil, errMsg(err)
+		}
+
+		n.tcpF = NewTCPFactory(n.conf.PubKey, pkt, lsn)
+		return &Listener{
+			Listener: lsn,
+			lPK:      n.conf.PubKey,
+			lPort:    666, //TODO: make something reasonable
+			network:  TCPType,
+		}, nil
 	default:
 		return nil, ErrUnknownNetwork
 	}
-	return nil, nil
 }
 
 // Listener represents a listener.

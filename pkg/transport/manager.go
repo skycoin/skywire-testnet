@@ -138,7 +138,7 @@ func (tm *Manager) serve(ctx context.Context) {
 // }
 
 func (tm *Manager) acceptTransport(ctx context.Context, lis *snet.Listener) error {
-	conn, err := lis.AcceptConn()
+	conn, err := lis.AcceptConn() // TODO: tcp panic.
 	if err != nil {
 		return err
 	}

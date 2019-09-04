@@ -108,6 +108,16 @@ func (tr *TCPTransport) Type() string {
 	return "tcp"
 }
 
+
+
+
+
+
+
+
+
+
+
 // PubKeyTable provides translation between remote PubKey and TCPAddr.
 type PubKeyTable interface {
 	RemoteAddr(remotePK cipher.PubKey) *net.TCPAddr
