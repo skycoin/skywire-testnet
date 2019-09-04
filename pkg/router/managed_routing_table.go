@@ -55,6 +55,8 @@ func (rt *managedRoutingTable) Rule(routeID routing.RouteID) (routing.Rule, erro
 		return nil, ErrRuleTimedOut
 	}
 
+	rt.activity[routeID] = time.Now()
+
 	return rule, nil
 }
 
