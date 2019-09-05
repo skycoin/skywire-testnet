@@ -14,6 +14,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
+// Conn wraps an underlying net.Conn and modifies various methods to integrate better with the 'network' package.
 type Conn struct {
 	net.Conn
 	lAddr    dmsg.Addr
@@ -33,14 +34,17 @@ func newConn(conn net.Conn, deadline time.Time, hs Handshake, freePort func()) (
 	return &Conn{Conn: conn, lAddr: lAddr, rAddr: rAddr, freePort: freePort}, nil
 }
 
+// LocalAddr implements net.Conn
 func (c *Conn) LocalAddr() net.Addr {
 	return c.lAddr
 }
 
+// RemoteAddr implements net.Conn
 func (c *Conn) RemoteAddr() net.Addr {
 	return c.rAddr
 }
 
+// Close implements net.Conn
 func (c *Conn) Close() error {
 	if c.freePort != nil {
 		c.freePort()
@@ -48,6 +52,7 @@ func (c *Conn) Close() error {
 	return c.Conn.Close()
 }
 
+// Listener implements net.Listener
 type Listener struct {
 	lAddr    dmsg.Addr
 	freePort func()
@@ -66,6 +71,7 @@ func newListener(lAddr dmsg.Addr, freePort func()) *Listener {
 	}
 }
 
+// Introduce is used by stcp.Client to introduce stcp.Conn to Listener.
 func (l *Listener) Introduce(conn *Conn) error {
 	select {
 	case <-l.done:
@@ -83,6 +89,7 @@ func (l *Listener) Introduce(conn *Conn) error {
 	}
 }
 
+// Accept implements net.Listener
 func (l *Listener) Accept() (net.Conn, error) {
 	conn, ok := <-l.accept
 	if !ok {
@@ -91,6 +98,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 	return conn, nil
 }
 
+// Close implements net.Listener
 func (l *Listener) Close() error {
 	l.once.Do(func() {
 		close(l.done)
@@ -104,10 +112,12 @@ func (l *Listener) Close() error {
 	return nil
 }
 
+// Addr implements net.Listener
 func (l *Listener) Addr() net.Addr {
 	return l.lAddr
 }
 
+// Client is the central control for incoming and outgoing 'stcp.Conn's.
 type Client struct {
 	log *logging.Logger
 
@@ -124,6 +134,7 @@ type Client struct {
 	once sync.Once
 }
 
+// NewClient creates a net Client.
 func NewClient(log *logging.Logger, pk cipher.PubKey, sk cipher.SecKey, t PKTable) *Client {
 	if log == nil {
 		log = logging.MustGetLogger("stcp")
@@ -139,6 +150,7 @@ func NewClient(log *logging.Logger, pk cipher.PubKey, sk cipher.SecKey, t PKTabl
 	}
 }
 
+// Serve serves the listening portion of the client.
 func (c *Client) Serve(tcpAddr string) error {
 	if c.lTCP != nil {
 		return errors.New("already listening")
@@ -192,6 +204,7 @@ func (c *Client) acceptTCPConn() error {
 	return lis.Introduce(conn)
 }
 
+// Dial dials a new stcp.Conn to specified remote public key and port.
 func (c *Client) Dial(ctx context.Context, rPK cipher.PubKey, rPort uint16) (*Conn, error) {
 	if c.isClosed() {
 		return nil, io.ErrClosedPipe
@@ -214,6 +227,8 @@ func (c *Client) Dial(ctx context.Context, rPK cipher.PubKey, rPort uint16) (*Co
 	return newConn(conn, time.Now().Add(HandshakeTimeout), hs, freePort)
 }
 
+// Listen creates a new listener for stcp.
+// The created Listener cannot actually accept remote connections unless Serve is called beforehand.
 func (c *Client) Listen(lPort uint16) (*Listener, error) {
 	if c.isClosed() {
 		return nil, io.ErrClosedPipe
@@ -233,7 +248,11 @@ func (c *Client) Listen(lPort uint16) (*Listener, error) {
 	return lis, nil
 }
 
+// Close closes the Client.
 func (c *Client) Close() error {
+	if c == nil {
+		return nil
+	}
 	c.once.Do(func() {
 		close(c.done)
 

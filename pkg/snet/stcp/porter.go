@@ -6,9 +6,11 @@ import (
 )
 
 const (
+	// PorterMinEphemeral is the minimum ephemeral port.
 	PorterMinEphemeral = uint16(49152)
 )
 
+// Porter reserves stcp ports.
 type Porter struct {
 	eph    uint16 // current ephemeral value
 	minEph uint16 // minimal ephemeral port value
@@ -27,6 +29,8 @@ func newPorter(minEph uint16) *Porter {
 	}
 }
 
+// Reserve a given port.
+// It returns a boolean informing whether the port is reserved, and a function to clear the reservation.
 func (p *Porter) Reserve(port uint16) (bool, func()) {
 	p.mx.Lock()
 	defer p.mx.Unlock()
@@ -38,6 +42,8 @@ func (p *Porter) Reserve(port uint16) (bool, func()) {
 	return true, p.portFreer(port)
 }
 
+// ReserveEphemeral reserves a new ephemeral port.
+// It returns the reserved ephemeral port, a function to clear the reservation and an error (if any).
 func (p *Porter) ReserveEphemeral(ctx context.Context) (uint16, func(), error) {
 	p.mx.Lock()
 	defer p.mx.Unlock()
