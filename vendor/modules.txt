@@ -98,7 +98,7 @@ golang.org/x/net/nettest
 golang.org/x/net/context
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
-# golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
+# golang.org/x/sys v0.0.0-20190825160603-fb81701db80f
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc/eventlog

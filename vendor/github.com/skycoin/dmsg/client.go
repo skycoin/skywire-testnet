@@ -158,7 +158,7 @@ func (c *Client) findServerEntries(ctx context.Context) ([]*disc.Entry, error) {
 				return nil, fmt.Errorf("dms_servers are not available: %s", err)
 			default:
 				retry := time.Second
-				c.log.WithError(err).Warnf("no dms_servers found: trying again in %d second...", retry)
+				c.log.WithError(err).Warnf("no dms_servers found: trying again in %v...", retry)
 				time.Sleep(retry)
 				continue
 			}
