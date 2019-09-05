@@ -66,12 +66,12 @@ func (m *Node) ServeRPC(lis net.Listener) error {
 			return err
 		}
 		addr := conn.RemoteAddr().(*noise.Addr)
-		m.mu.RLock()
+		m.mu.Lock()
 		m.nodes[addr.PK] = appNodeConn{
 			Addr:   addr,
 			Client: visor.NewRPCClient(rpc.NewClient(conn), visor.RPCPrefix),
 		}
-		m.mu.RUnlock()
+		m.mu.Unlock()
 	}
 }
 
