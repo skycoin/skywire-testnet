@@ -93,6 +93,8 @@ github.com/skycoin/dmsg v0.0.0-20190805065636-70f4c32a994f h1:WWjaxOXoj6oYelm67M
 github.com/skycoin/dmsg v0.0.0-20190805065636-70f4c32a994f/go.mod h1:obZYZp8eKR7Xqz+KNhJdUE6Gvp6rEXbDO8YTlW2YXgU=
 github.com/skycoin/dmsg v0.0.0-20190816104216-d18ee6aa05cb h1:kpNxP3mOjrVyyLBOtOxBgpxUOCBBI/RhdO9Vto5+OHk=
 github.com/skycoin/dmsg v0.0.0-20190816104216-d18ee6aa05cb/go.mod h1:obZYZp8eKR7Xqz+KNhJdUE6Gvp6rEXbDO8YTlW2YXgU=
+github.com/skycoin/dmsg v0.0.0-20190904181013-b781e3cbebc6 h1:YwSyQXUyG/EFp3xCGMkOldgQNpw8XLfmocQND4/Y3aw=
+github.com/skycoin/dmsg v0.0.0-20190904181013-b781e3cbebc6/go.mod h1:obZYZp8eKR7Xqz+KNhJdUE6Gvp6rEXbDO8YTlW2YXgU=
 github.com/skycoin/skycoin v0.26.0 h1:xDxe2r8AclMntZ550Y/vUQgwgLtwrf9Wu5UYiYcN5/o=
 github.com/skycoin/skycoin v0.26.0/go.mod h1:78nHjQzd8KG0jJJVL/j0xMmrihXi70ti63fh8vXScJw=
 github.com/spf13/afero v1.1.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B0CQ=
