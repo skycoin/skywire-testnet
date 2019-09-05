@@ -26,9 +26,9 @@ type Config struct {
 	} `json:"node"`
 
 	TCPTransport struct {
-		TCPPubKeyFile   string `json:"tcp_pubkey_file"`
-		TCPLocalAddress string `json:"tcp_local_address"`
-	} `json:"tcp_transport"`
+		PubKeyTable map[cipher.PubKey]string `json:"pk_table"`
+		LocalAddr   string                   `json:"local_address"`
+	} `json:"stcp"`
 
 	Messaging struct {
 		Discovery   string `json:"discovery"`

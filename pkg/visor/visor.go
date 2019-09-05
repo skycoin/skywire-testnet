@@ -129,13 +129,13 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	fmt.Println("min servers:", config.Messaging.ServerCount)
 	node.n = snet.New(snet.Config{
-		PubKey:          pk,
-		SecKey:          sk,
-		TpNetworks:      []string{dmsg.Type, snet.TCPType}, // TODO: Have some way to configure this.
-		DmsgDiscAddr:    config.Messaging.Discovery,
-		DmsgMinSrvs:     config.Messaging.ServerCount,
-		TCPLocalAddress: config.TCPTransport.TCPLocalAddress,
-		TCPPubKeyFile:   config.TCPTransport.TCPPubKeyFile,
+		PubKey:        pk,
+		SecKey:        sk,
+		TpNetworks:    []string{dmsg.Type, snet.STcpType}, // TODO: Have some way to configure this.
+		DmsgDiscAddr:  config.Messaging.Discovery,
+		DmsgMinSrvs:   config.Messaging.ServerCount,
+		STCPLocalAddr: config.TCPTransport.LocalAddr,
+		STCPTable:     config.TCPTransport.PubKeyTable,
 	})
 	if err := node.n.Init(ctx); err != nil {
 		return nil, fmt.Errorf("failed to init network: %v", err)

@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+const (
+	PorterMinEphemeral = uint16(49152)
+)
+
 type Porter struct {
 	eph    uint16 // current ephemeral value
 	minEph uint16 // minimal ephemeral port value
@@ -39,11 +43,11 @@ func (p *Porter) ReserveEphemeral(ctx context.Context) (uint16, func(), error) {
 	defer p.mx.Unlock()
 
 	for {
+		p.eph++
 		if p.eph < p.minEph {
 			p.eph = p.minEph
 		}
 		if _, ok := p.ports[p.eph]; ok {
-			p.eph++
 			select {
 			case <-ctx.Done():
 				return 0, nil, ctx.Err()

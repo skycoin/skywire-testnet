@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/router"
-
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"

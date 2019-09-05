@@ -25,7 +25,9 @@ func newConn(conn net.Conn, deadline time.Time, hs Handshake, freePort func()) (
 	lAddr, rAddr, err := hs(conn, deadline)
 	if err != nil {
 		_ = conn.Close() //nolint:errcheck
-		freePort()
+		if freePort != nil {
+			freePort()
+		}
 		return nil, err
 	}
 	return &Conn{Conn: conn, lAddr: lAddr, rAddr: rAddr, freePort: freePort}, nil
@@ -114,6 +116,7 @@ type Client struct {
 	t   PKTable
 	p   *Porter
 
+	lTCP net.Listener
 	lMap map[uint16]*Listener // key: lPort
 	mx   sync.Mutex
 
@@ -121,7 +124,75 @@ type Client struct {
 	once sync.Once
 }
 
-func (c *Client) Dial(rPK cipher.PubKey, rPort uint16) (*Conn, error) {
+func NewClient(log *logging.Logger, pk cipher.PubKey, sk cipher.SecKey, t PKTable) *Client {
+	if log == nil {
+		log = logging.MustGetLogger("stcp")
+	}
+	return &Client{
+		log:  log,
+		lPK:  pk,
+		lSK:  sk,
+		t:    t,
+		p:    newPorter(PorterMinEphemeral),
+		lMap: make(map[uint16]*Listener),
+		done: make(chan struct{}),
+	}
+}
+
+func (c *Client) Serve(tcpAddr string) error {
+	if c.lTCP != nil {
+		return errors.New("already listening")
+	}
+
+	lTCP, err := net.Listen("tcp", tcpAddr)
+	if err != nil {
+		return err
+	}
+	c.lTCP = lTCP
+	c.log.Infof("listening on tcp addr: %v", lTCP.Addr())
+
+	go func() {
+		for {
+			if err := c.acceptTCPConn(); err != nil {
+				c.log.Warnf("failed to accept incoming connection: %v", err)
+				if !IsHandshakeError(err) {
+					c.log.Warnf("stopped serving stcp")
+					return
+				}
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (c *Client) acceptTCPConn() error {
+	if c.isClosed() {
+		return io.ErrClosedPipe
+	}
+
+	tcpConn, err := c.lTCP.Accept()
+	if err != nil {
+		return err
+	}
+	var lis *Listener
+	hs := ResponderHandshake(func(f2 Frame2) error {
+		c.mx.Lock()
+		defer c.mx.Unlock()
+		var ok bool
+		if lis, ok = c.lMap[f2.DstAddr.Port]; !ok {
+			return errors.New("not listening on given port")
+		}
+		return nil
+	})
+	conn, err := newConn(tcpConn, time.Now().Add(HandshakeTimeout), hs, nil)
+	if err != nil {
+		return err
+	}
+	return lis.Introduce(conn)
+}
+
+func (c *Client) Dial(ctx context.Context, rPK cipher.PubKey, rPort uint16) (*Conn, error) {
 	if c.isClosed() {
 		return nil, io.ErrClosedPipe
 	}
@@ -135,7 +206,7 @@ func (c *Client) Dial(rPK cipher.PubKey, rPort uint16) (*Conn, error) {
 		return nil, err
 	}
 
-	lPort, freePort, err := c.p.ReserveEphemeral(context.TODO())
+	lPort, freePort, err := c.p.ReserveEphemeral(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -162,49 +233,16 @@ func (c *Client) Listen(lPort uint16) (*Listener, error) {
 	return lis, nil
 }
 
-func (c *Client) AcceptLoop(tcpL net.Listener) {
-	for {
-		if err := c.acceptTCPConn(tcpL); err != nil {
-			c.log.Warnf("failed to accept incoming connection: %v", err)
-			if !IsHandshakeError(err) {
-				return
-			}
-		}
-	}
-}
-
-func (c *Client) acceptTCPConn(tcpL net.Listener) error {
-	if c.isClosed() {
-		return io.ErrClosedPipe
-	}
-
-	tcpConn, err := tcpL.Accept()
-	if err != nil {
-		return err
-	}
-	var lis *Listener
-	hs := ResponderHandshake(func(f2 Frame2) error {
-		c.mx.Lock()
-		defer c.mx.Unlock()
-		var ok bool
-		if lis, ok = c.lMap[f2.DstAddr.Port]; !ok {
-			return errors.New("not listening on given port")
-		}
-		return nil
-	})
-	conn, err := newConn(tcpConn, time.Now().Add(HandshakeTimeout), hs, nil)
-	if err != nil {
-		return err
-	}
-	return lis.Introduce(conn)
-}
-
 func (c *Client) Close() error {
 	c.once.Do(func() {
 		close(c.done)
 
 		c.mx.Lock()
 		defer c.mx.Unlock()
+
+		if c.lTCP != nil {
+			_ = c.lTCP.Close() //nolint:errcheck
+		}
 
 		for _, lis := range c.lMap {
 			_ = lis.Close() // nolint:errcheck
