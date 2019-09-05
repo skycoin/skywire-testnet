@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/skycoin/dmsg/cipher"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/skycoin/dmsg/cipher"
 )
 
 type PKTable interface {

@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
 	"io"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 type Conn struct {
@@ -72,7 +73,7 @@ func (l *Listener) Introduce(conn *Conn) error {
 		defer l.mx.Unlock()
 
 		select {
-		case l.accept <-conn:
+		case l.accept <- conn:
 			return nil
 		case <-l.done:
 			return io.ErrClosedPipe
@@ -108,10 +109,10 @@ func (l *Listener) Addr() net.Addr {
 type Client struct {
 	log *logging.Logger
 
-	lPK  cipher.PubKey
-	lSK  cipher.SecKey
-	t    PKTable
-	p    *Porter
+	lPK cipher.PubKey
+	lSK cipher.SecKey
+	t   PKTable
+	p   *Porter
 
 	lMap map[uint16]*Listener // key: lPort
 	mx   sync.Mutex

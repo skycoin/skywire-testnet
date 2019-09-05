@@ -5,11 +5,12 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
 	"io"
 	"net"
 	"time"
+
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
 )
 
 const (

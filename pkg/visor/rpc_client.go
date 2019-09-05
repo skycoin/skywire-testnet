@@ -3,11 +3,12 @@ package visor
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/skycoin/skywire/pkg/router"
 	"math/rand"
 	"net/rpc"
 	"sync"
 	"time"
+
+	"github.com/skycoin/skywire/pkg/router"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
