@@ -550,7 +550,7 @@ func makeLoopResp(info visor.LoopInfo) loopResp {
 	}
 	return loopResp{
 		RuleConsumeFields: *info.AppRule.Summary().ConsumeFields,
-		FwdRule:       *info.FwdRule.Summary().ForwardFields,
+		FwdRule:           *info.FwdRule.Summary().ForwardFields,
 	}
 }
 

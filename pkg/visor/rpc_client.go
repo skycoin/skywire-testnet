@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -260,7 +261,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err != nil {
 			panic(err)
 		}
-		fwdRule := routing.IntermediaryForwardRule(ruleKeepAlive, fwdRID, routing.RouteID(r.Uint32()), uuid.New() )
+		fwdRule := routing.IntermediaryForwardRule(ruleKeepAlive, fwdRID, routing.RouteID(r.Uint32()), uuid.New())
 		if err := rt.SetRule(fwdRID, fwdRule); err != nil {
 			panic(err)
 		}

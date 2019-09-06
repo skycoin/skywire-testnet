@@ -268,7 +268,7 @@ func (sn *Node) createRoute(ctx context.Context, keepAlive time.Duration, route 
 			nextTpID = r[i+1].Transport
 			rule = routing.IntermediaryForwardRule(keepAlive, 0, 0, nextTpID)
 		} else {
-			rule = routing.ConsumeRule(keepAlive, 0,  init, lport, rport)
+			rule = routing.ConsumeRule(keepAlive, 0, init, lport, rport)
 		}
 
 		go func(i int, pk cipher.PubKey, rule routing.Rule, reqIDChIn <-chan routing.RouteID,

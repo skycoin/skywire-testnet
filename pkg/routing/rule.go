@@ -43,7 +43,7 @@ const (
 	// A packet referencing this rule is to be consumed localy.
 	RuleConsume = RuleType(0)
 
-	// ForwardRule represents a hop from the route's source node.
+	// RuleForward represents a hop from the route's source node.
 	// A packet referencing this rule is to be sent to a remote node.
 	RuleForward = RuleType(1)
 
@@ -69,6 +69,7 @@ func (r Rule) KeepAlive() time.Duration {
 	return time.Duration(binary.BigEndian.Uint64(r[0:8]))
 }
 
+// SetKeepAlive sets rule's keep-alive timeout.
 func (r Rule) SetKeepAlive(keepAlive time.Duration) {
 	r.assertLen(RuleHeaderSize)
 
@@ -85,18 +86,19 @@ func (r Rule) Type() RuleType {
 	return RuleType(r[8])
 }
 
+// SetType sets type of a rule.
 func (r Rule) SetType(t RuleType) {
 	r.assertLen(RuleHeaderSize)
 	r[8] = byte(t)
 }
 
-// RouteID returns RouteID from the rule: reverse ID for an app rule
-// and next ID for a forward rule.
+// KeyRouteID returns KeyRouteID from the rule: it is used as the key to retrieve the rule.
 func (r Rule) KeyRouteID() RouteID {
 	r.assertLen(RuleHeaderSize)
 	return RouteID(binary.BigEndian.Uint32(r[8+1 : 8+1+4]))
 }
 
+// SetKeyRouteID sets KeyRouteID of a rule.
 func (r Rule) SetKeyRouteID(id RouteID) {
 	r.assertLen(RuleHeaderSize)
 	binary.BigEndian.PutUint32(r[8+1:8+1+4], uint32(id))
@@ -108,6 +110,7 @@ func (r Rule) Body() []byte {
 	return append(r[:0:0], r[RuleHeaderSize:]...)
 }
 
+// RouteDescriptor returns RouteDescriptor from the rule.
 func (r Rule) RouteDescriptor() RouteDescriptor {
 	switch t := r.Type(); t {
 	case RuleConsume, RuleForward:
@@ -122,6 +125,7 @@ func (r Rule) RouteDescriptor() RouteDescriptor {
 	}
 }
 
+// NextRouteID returns NextRouteID from the rule.
 func (r Rule) NextRouteID() RouteID {
 	offset := RuleHeaderSize
 	switch t := r.Type(); t {
@@ -138,6 +142,7 @@ func (r Rule) NextRouteID() RouteID {
 	}
 }
 
+// SetNextRouteID sets SetNextRouteID of a rule.
 func (r Rule) SetNextRouteID(id RouteID) {
 	offset := RuleHeaderSize
 	switch t := r.Type(); t {
@@ -171,6 +176,7 @@ func (r Rule) NextTransportID() uuid.UUID {
 	}
 }
 
+// SetNextTransportID sets SetNextTransportID of a rule.
 func (r Rule) SetNextTransportID(id uuid.UUID) {
 	offset := RuleHeaderSize + 4
 	switch t := r.Type(); t {
@@ -187,9 +193,11 @@ func (r Rule) SetNextTransportID(id uuid.UUID) {
 	}
 }
 
+// SetSrcPK sets source public key of a rule.
 func (r Rule) SetSrcPK(pk cipher.PubKey) {
 	switch t := r.Type(); t {
 	case RuleConsume, RuleForward:
+		r.assertLen(RuleHeaderSize + pkSize)
 		copy(r[RuleHeaderSize:RuleHeaderSize+pkSize], pk[:])
 
 	default:
@@ -197,9 +205,11 @@ func (r Rule) SetSrcPK(pk cipher.PubKey) {
 	}
 }
 
+// SetDstPK sets destination public key of a rule.
 func (r Rule) SetDstPK(pk cipher.PubKey) {
 	switch t := r.Type(); t {
 	case RuleConsume, RuleForward:
+		r.assertLen(RuleHeaderSize + pkSize*2)
 		copy(r[RuleHeaderSize+pkSize:RuleHeaderSize+pkSize*2], pk[:])
 
 	default:
@@ -207,9 +217,11 @@ func (r Rule) SetDstPK(pk cipher.PubKey) {
 	}
 }
 
+// SetSrcPort sets source port of a rule.
 func (r Rule) SetSrcPort(port Port) {
 	switch t := r.Type(); t {
 	case RuleConsume, RuleForward:
+		r.assertLen(RuleHeaderSize + pkSize*2 + 2)
 		binary.BigEndian.PutUint16(r[RuleHeaderSize+pkSize*2:RuleHeaderSize+pkSize*2+2], uint16(port))
 
 	default:
@@ -217,9 +229,11 @@ func (r Rule) SetSrcPort(port Port) {
 	}
 }
 
+// SetDstPort sets destination port of a rule.
 func (r Rule) SetDstPort(port Port) {
 	switch t := r.Type(); t {
 	case RuleConsume, RuleForward:
+		r.assertLen(RuleHeaderSize + pkSize*2 + 2*2)
 		binary.BigEndian.PutUint16(r[RuleHeaderSize+pkSize*2+2:RuleHeaderSize+pkSize*2+2*2], uint16(port))
 
 	default:
@@ -227,40 +241,34 @@ func (r Rule) SetDstPort(port Port) {
 	}
 }
 
+// RouteDescriptor describes a route (from the perspective of the source and destination edges).
 type RouteDescriptor [routeDescriptorSize]byte
 
+// SrcPK returns source public key from RouteDescriptor.
 func (d RouteDescriptor) SrcPK() cipher.PubKey {
 	var pk cipher.PubKey
 	copy(pk[:], d[0:pkSize])
 	return pk
 }
 
+// DstPK returns destination public key from RouteDescriptor.
 func (d RouteDescriptor) DstPK() cipher.PubKey {
 	var pk cipher.PubKey
 	copy(pk[:], d[pkSize:pkSize*2])
 	return pk
 }
 
-func (d RouteDescriptor) SetDskPK(pk cipher.PubKey) {
-	copy(d[pkSize:pkSize*2], pk[:])
-}
-
+// SrcPort returns source port from RouteDescriptor.
 func (d RouteDescriptor) SrcPort() Port {
 	return Port(binary.BigEndian.Uint16(d[pkSize*2 : pkSize*2+2]))
 }
 
-func (d RouteDescriptor) SetSrcPort(port Port) {
-	binary.BigEndian.PutUint16(d[pkSize*2:pkSize*2+2], uint16(port))
-}
-
+// DstPort returns destination port from RouteDescriptor.
 func (d RouteDescriptor) DstPort() Port {
 	return Port(binary.BigEndian.Uint16(d[pkSize*2+2 : pkSize*2+2*2]))
 }
 
-func (d RouteDescriptor) SetDstPort(port Port) {
-	binary.BigEndian.PutUint16(d[pkSize*2+2:pkSize*2+2*2], uint16(port))
-}
-
+// String returns rule's string representation.
 func (r Rule) String() string {
 	switch t := r.Type(); t {
 	case RuleConsume:
@@ -278,6 +286,7 @@ func (r Rule) String() string {
 	}
 }
 
+// RouteDescriptorFields summarizes route descriptor fields of a RoutingRule.
 type RouteDescriptorFields struct {
 	DstPK   cipher.PubKey `json:"dst_pk"`
 	SrcPK   cipher.PubKey `json:"src_pk"`
@@ -285,7 +294,7 @@ type RouteDescriptorFields struct {
 	SrcPort Port          `json:"src_port"`
 }
 
-// RuleConsumeFields summarizes App fields of a RoutingRule.
+// RuleConsumeFields summarizes consume fields of a RoutingRule.
 type RuleConsumeFields struct {
 	RouteDescriptor RouteDescriptorFields `json:"route_descriptor"`
 }
@@ -376,6 +385,7 @@ func (r Rule) Summary() *RuleSummary {
 	return &summary
 }
 
+// ConsumeRule constructs a new Consume rule.
 func ConsumeRule(keepAlive time.Duration, keyRouteID RouteID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
 	rule := Rule(make([]byte, RuleHeaderSize+routeDescriptorSize))
 
@@ -391,6 +401,7 @@ func ConsumeRule(keepAlive time.Duration, keyRouteID RouteID, remotePK cipher.Pu
 	return rule
 }
 
+// ForwardRule constructs a new Forward rule.
 func ForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTransport uuid.UUID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
 	rule := Rule(make([]byte, RuleHeaderSize+routeDescriptorSize+4+pkSize))
 
@@ -408,6 +419,7 @@ func ForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTra
 	return rule
 }
 
+// IntermediaryForwardRule constructs a new IntermediaryForward rule.
 func IntermediaryForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTransport uuid.UUID) Rule {
 	rule := Rule(make([]byte, RuleHeaderSize+4+pkSize))
 
