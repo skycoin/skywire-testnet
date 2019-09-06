@@ -15,6 +15,7 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +28,8 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		logger := logging.MustGetLogger("transport-test")
+		dmsg.SetLogger(logger)
 		logging.SetLevel(lvl)
 	} else {
 		logging.Disable()
