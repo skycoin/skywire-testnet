@@ -1,6 +1,8 @@
 package visor
 
 import (
+	"fmt"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +15,48 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
+
+func TestHealth(t *testing.T) {
+	sPK, sSK := cipher.GenerateKeyPair()
+
+	c := &Config{}
+	c.Node.StaticPubKey = sPK
+	c.Node.StaticSecKey = sSK
+	c.Transport.Discovery = "foo"
+	c.Routing.SetupNodes = []cipher.PubKey{sPK}
+	c.Routing.RouteFinder = "foo"
+
+	t.Run("Report all the services as available", func(t *testing.T) {
+		rpc := &RPC{&Node{config: c}}
+		h := &HealthInfo{}
+		err := rpc.Health(nil, h)
+		require.NoError(t, err)
+
+		// Transport discovery needs to be mocked or will always fail
+		assert.Equal(t, http.StatusOK, h.SetupNode)
+		assert.Equal(t, http.StatusOK, h.RouteFinder)
+	})
+
+	t.Run("Report as unavailable", func(t *testing.T) {
+		rpc := &RPC{&Node{config: &Config{}}}
+		h := &HealthInfo{}
+		err := rpc.Health(nil, h)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusNotFound, h.SetupNode)
+		assert.Equal(t, http.StatusNotFound, h.RouteFinder)
+	})
+}
+
+func TestUptime(t *testing.T) {
+	rpc := &RPC{&Node{startedAt: time.Now()}}
+	time.Sleep(time.Second)
+	var res float64
+	err := rpc.Uptime(nil, &res)
+	require.NoError(t, err)
+
+	assert.Contains(t, fmt.Sprintf("%f", res), "1.0")
+}
 
 func TestListApps(t *testing.T) {
 	apps := []AppConfig{

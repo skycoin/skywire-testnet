@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"net/rpc"
 	"sync"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-
+	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -22,10 +23,14 @@ type RPCClient interface {
 	Summary() (*Summary, error)
 	Exec(command string) ([]byte, error)
 
+	Health() (*HealthInfo, error)
+	Uptime() (float64, error)
+
 	Apps() ([]*AppState, error)
 	StartApp(appName string) error
 	StopApp(appName string) error
 	SetAutoStart(appName string, autostart bool) error
+	LogsSince(timestamp time.Time, appName string) ([]string, error)
 
 	TransportTypes() ([]string, error)
 	Transports(types []string, pks []cipher.PubKey, logs bool) ([]*TransportSummary, error)
@@ -66,6 +71,20 @@ func (rc *rpcClient) Summary() (*Summary, error) {
 	return out, err
 }
 
+// Health calls Health
+func (rc *rpcClient) Health() (*HealthInfo, error) {
+	hi := &HealthInfo{}
+	err := rc.Call("Health", &struct{}{}, hi)
+	return hi, err
+}
+
+// Uptime calls Uptime
+func (rc *rpcClient) Uptime() (float64, error) {
+	var out float64
+	err := rc.Call("Uptime", &struct{}{}, &out)
+	return out, err
+}
+
 // Exec calls Exec.
 func (rc *rpcClient) Exec(command string) ([]byte, error) {
 	output := make([]byte, 0)
@@ -96,6 +115,21 @@ func (rc *rpcClient) SetAutoStart(appName string, autostart bool) error {
 		AppName:   appName,
 		AutoStart: autostart,
 	}, &struct{}{})
+}
+
+// LogsSince calls LogsSince
+func (rc *rpcClient) LogsSince(timestamp time.Time, appName string) ([]string, error) {
+	res := make([]string, 0)
+
+	err := rc.Call("LogsSince", &AppLogsRequest{
+		TimeStamp: timestamp,
+		AppName:   appName,
+	}, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 // TransportTypes calls TransportTypes.
@@ -180,9 +214,11 @@ func (rc *rpcClient) Loops() ([]LoopInfo, error) {
 
 // MockRPCClient mocks RPCClient.
 type mockRPCClient struct {
-	s       *Summary
-	tpTypes []string
-	rt      routing.Table
+	startedAt time.Time
+	s         *Summary
+	tpTypes   []string
+	rt        routing.Table
+	appls     app.LogStore
 	sync.RWMutex
 }
 
@@ -252,8 +288,9 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			Transports:  tps,
 			RoutesCount: rt.Count(),
 		},
-		tpTypes: types,
-		rt:      rt,
+		tpTypes:   types,
+		rt:        rt,
+		startedAt: time.Now(),
 	}
 	return localPK, client, nil
 }
@@ -284,6 +321,22 @@ func (mc *mockRPCClient) Summary() (*Summary, error) {
 		return nil
 	})
 	return &out, err
+}
+
+// Health implements RPCClient
+func (mc *mockRPCClient) Health() (*HealthInfo, error) {
+	hi := &HealthInfo{
+		TransportDiscovery: http.StatusOK,
+		RouteFinder:        http.StatusOK,
+		SetupNode:          http.StatusOK,
+	}
+
+	return hi, nil
+}
+
+// Uptime implements RPCClient
+func (mc *mockRPCClient) Uptime() (float64, error) {
+	return time.Since(mc.startedAt).Seconds(), nil
 }
 
 // Exec implements RPCClient.
@@ -324,6 +377,11 @@ func (mc *mockRPCClient) SetAutoStart(appName string, autostart bool) error {
 		}
 		return fmt.Errorf("app of name '%s' does not exist", appName)
 	})
+}
+
+// LogsSince implements RPCClient. Manually set (*mockRPPClient).appls before calling this function
+func (mc *mockRPCClient) LogsSince(timestamp time.Time, _ string) ([]string, error) {
+	return mc.appls.LogsSince(timestamp)
 }
 
 // TransportTypes implements RPCClient.

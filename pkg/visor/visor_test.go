@@ -147,7 +147,8 @@ func TestNodeSpawnApp(t *testing.T) {
 	require.Len(t, executer.cmds, 1)
 	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Path)
 	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
-	assert.Equal(t, []string{"skychat.v1.0", "foo"}, executer.cmds[0].Args)
+	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Args[0])
+	assert.Equal(t, "foo", executer.cmds[0].Args[2])
 	executer.Unlock()
 
 	ports := r.Ports()
@@ -158,15 +159,21 @@ func TestNodeSpawnApp(t *testing.T) {
 }
 
 func TestNodeSpawnAppValidations(t *testing.T) {
+	pk, _ := cipher.GenerateKeyPair()
 	conn, _ := net.Pipe()
 	r := new(mockRouter)
 	executer := &MockExecuter{err: errors.New("foo")}
 	defer func() {
 		require.NoError(t, os.RemoveAll("skychat"))
 	}()
+	c := &Config{}
+	c.Node.StaticPubKey = pk
 	node := &Node{router: r, executer: executer,
 		startedApps: map[string]*appBind{"skychat": {conn, 10}},
-		logger:      logging.MustGetLogger("test")}
+		logger:      logging.MustGetLogger("test"),
+		config:      c,
+	}
+	defer os.Remove(node.dir()) // nolint
 
 	cases := []struct {
 		conf *AppConfig
