@@ -2,11 +2,11 @@
 package hypervisor
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/rand"
-	"net"
 	"net/http"
 	"net/rpc"
 	"strconv"
@@ -16,9 +16,10 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/google/uuid"
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/httputil"
@@ -32,42 +33,59 @@ var (
 )
 
 type appNodeConn struct {
-	Addr   *noise.Addr
+	Addr   dmsg.Addr
 	Client visor.RPCClient
 }
 
 // Node manages AppNodes.
 type Node struct {
-	c     Config
-	nodes map[cipher.PubKey]appNodeConn // connected remote nodes.
-	users *UserManager
-	mu    *sync.RWMutex
+	c       Config
+	nodes   map[cipher.PubKey]appNodeConn // connected remote nodes.
+	users   *UserManager
+	mu      *sync.RWMutex
+	Network *snet.Network
 }
 
 // NewNode creates a new Node.
 func NewNode(config Config) (*Node, error) {
+	ctx := context.Background()
+
 	boltUserDB, err := NewBoltUserStore(config.DBPath)
 	if err != nil {
 		return nil, err
 	}
 	singleUserDB := NewSingleUserStore("admin", boltUserDB)
+	dmsgConf := snet.Config{
+		PubKey:     config.PK,
+		SecKey:     config.SK,
+		TpNetworks: []string{snet.DmsgType},
+
+		DmsgDiscAddr: config.MessagingDiscovery,
+		DmsgMinSrvs:  1,
+	}
+
+	network := snet.New(dmsgConf)
+	if err := network.Init(ctx); err != nil {
+		return nil, fmt.Errorf("failed to init network: %v", err)
+	}
 
 	return &Node{
-		c:     config,
-		nodes: make(map[cipher.PubKey]appNodeConn),
-		users: NewUserManager(singleUserDB, config.Cookies),
-		mu:    new(sync.RWMutex),
+		c:       config,
+		nodes:   make(map[cipher.PubKey]appNodeConn),
+		users:   NewUserManager(singleUserDB, config.Cookies),
+		mu:      new(sync.RWMutex),
+		Network: network,
 	}, nil
 }
 
 // ServeRPC serves RPC of a Node.
-func (m *Node) ServeRPC(lis net.Listener) error {
+func (m *Node) ServeRPC(lis *snet.Listener) error {
 	for {
-		conn, err := noise.WrapListener(lis, m.c.PK, m.c.SK, false, noise.HandshakeXK).Accept()
+		conn, err := lis.AcceptConn()
 		if err != nil {
 			return err
 		}
-		addr := conn.RemoteAddr().(*noise.Addr)
+		addr := conn.RemoteAddr().(dmsg.Addr)
 		m.mu.Lock()
 		m.nodes[addr.PK] = appNodeConn{
 			Addr:   addr,
@@ -100,9 +118,9 @@ func (m *Node) AddMockData(config MockConfig) error {
 		}
 		m.mu.Lock()
 		m.nodes[pk] = appNodeConn{
-			Addr: &noise.Addr{
+			Addr: dmsg.Addr{
 				PK:   pk,
-				Addr: mockAddr(fmt.Sprintf("0.0.0.0:%d", i)),
+				Port: uint16(i),
 			},
 			Client: client,
 		}
@@ -246,7 +264,7 @@ func (m *Node) getNodes() http.HandlerFunc {
 				summary = &visor.Summary{PubKey: pk}
 			}
 			summaries = append(summaries, summaryResp{
-				TCPAddr: c.Addr.Addr.String(),
+				TCPAddr: c.Addr.String(),
 				Summary: summary,
 			})
 		}
@@ -264,7 +282,7 @@ func (m *Node) getNode() http.HandlerFunc {
 			return
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, summaryResp{
-			TCPAddr: ctx.Addr.Addr.String(),
+			TCPAddr: ctx.Addr.String(),
 			Summary: summary,
 		})
 	})
@@ -573,7 +591,7 @@ func (m *Node) getLoops() http.HandlerFunc {
 	<<< Helper functions >>>
 */
 
-func (m *Node) client(pk cipher.PubKey) (*noise.Addr, visor.RPCClient, bool) {
+func (m *Node) client(pk cipher.PubKey) (dmsg.Addr, visor.RPCClient, bool) {
 	m.mu.RLock()
 	conn, ok := m.nodes[pk]
 	m.mu.RUnlock()
@@ -583,7 +601,7 @@ func (m *Node) client(pk cipher.PubKey) (*noise.Addr, visor.RPCClient, bool) {
 type httpCtx struct {
 	// Node
 	PK   cipher.PubKey
-	Addr *noise.Addr
+	Addr dmsg.Addr
 	RPC  visor.RPCClient
 
 	// App

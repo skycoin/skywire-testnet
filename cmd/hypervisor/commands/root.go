@@ -2,15 +2,14 @@ package commands
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/spf13/cobra"
-
 	"github.com/skycoin/skywire/pkg/hypervisor"
+	"github.com/skycoin/skywire/pkg/snet"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/spf13/cobra"
 )
 
 const configEnv = "SW_HYPERVISOR_CONFIG"
@@ -62,7 +61,11 @@ var rootCmd = &cobra.Command{
 
 		log.Infof("serving RPC on '%s'", rpcAddr)
 		go func() {
-			l, err := net.Listen("tcp", rpcAddr)
+			_, rpcPort, err := config.Interfaces.SplitRPCAddr()
+			if err != nil {
+				log.Fatalln("Failed to parse rpc port from rpc address:", err)
+			}
+			l, err := m.Network.Listen(snet.DmsgType, rpcPort)
 			if err != nil {
 				log.Fatalln("Failed to bind tcp port:", err)
 			}

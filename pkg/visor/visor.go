@@ -207,15 +207,6 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		}
 		node.rpcListener = l
 	}
-	node.rpcDialers = make([]*noise.RPCClientDialer, len(config.Hypervisors))
-	for i, entry := range config.Hypervisors {
-		node.rpcDialers[i] = noise.NewRPCClientDialer(entry.Addr, noise.HandshakeXK, noise.Config{
-			LocalPK:   pk,
-			LocalSK:   sk,
-			RemotePK:  entry.PubKey,
-			Initiator: true,
-		})
-	}
 
 	return node, err
 }
@@ -247,12 +238,15 @@ func (node *Node) Start() error {
 		node.logger.Info("Starting RPC interface on ", node.rpcListener.Addr())
 		go rpcSvr.Accept(node.rpcListener)
 	}
-	for _, dialer := range node.rpcDialers {
-		go func(dialer *noise.RPCClientDialer) {
-			if err := dialer.Run(rpcSvr, time.Second); err != nil {
-				node.logger.Errorf("Dialer exited with error: %v", err)
+	for _, hypervisor := range node.config.Hypervisors {
+		go func(hypervisor HypervisorConfig) {
+			conn, err := node.n.Dial(snet.DmsgType, hypervisor.PubKey, hypervisor.Port)
+			if err != nil {
+				node.logger.Errorf("Hypervisor dmsg Dial exited with error: %v", err)
+			} else {
+				rpcSvr.ServeConn(conn)
 			}
-		}(dialer)
+		}(hypervisor)
 	}
 
 	node.logger.Info("Starting packet router")
