@@ -23,7 +23,6 @@ import (
 
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
@@ -109,7 +108,6 @@ type Node struct {
 	pidMu sync.Mutex
 
 	rpcListener net.Listener
-	rpcDialers  []*noise.RPCClientDialer
 }
 
 // NewNode constructs new Node.
@@ -326,13 +324,6 @@ func (node *Node) Close() (err error) {
 			node.logger.WithError(err).Error("failed to stop RPC interface")
 		} else {
 			node.logger.Info("RPC interface stopped successfully")
-		}
-	}
-	for i, dialer := range node.rpcDialers {
-		if err = dialer.Close(); err != nil {
-			node.logger.WithError(err).Errorf("(%d) failed to stop RPC dialer", i)
-		} else {
-			node.logger.Infof("(%d) RPC dialer closed successfully", i)
 		}
 	}
 	node.startedMu.Lock()
