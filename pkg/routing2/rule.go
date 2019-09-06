@@ -23,8 +23,12 @@ func (rt RuleType) String() string {
 	switch rt {
 	case RuleApp:
 		return "App"
+	case RuleConsume:
+		return "Consume"
 	case RuleForward:
 		return "Forward"
+	case RuleIntermediaryForward:
+		return "IntermediaryForward"
 	}
 
 	return fmt.Sprintf("Unknown(%d)", rt)
@@ -32,9 +36,19 @@ func (rt RuleType) String() string {
 
 const (
 	// RuleApp defines App routing rule type.
-	RuleApp RuleType = iota
-	// RuleForward defines Forward routing rule type.
-	RuleForward
+	RuleApp = RuleType(0)
+
+	// RuleConsume represents a hop to the route's destination node.
+	// A packet referencing this rule is to be consumed localy.
+	RuleConsume = RuleType(0)
+
+	// ForwardRule represents a hop from the route's source node.
+	// A packet referencing this rule is to be sent to a remote node.
+	RuleForward = RuleType(1)
+
+	// RuleIntermediaryForward represents a hop which is not from the route's source,
+	// nor to the route's destination.
+	RuleIntermediaryForward = RuleType(2)
 )
 
 // Rule represents a routing rule.
@@ -42,26 +56,42 @@ const (
 //
 type Rule []byte
 
+func (r Rule) assertLen() {
+	if len(r) < RuleHeaderSize {
+		panic("bad rule length")
+	}
+}
+
 // KeepAlive returns rule's keep-alive timeout.
 func (r Rule) KeepAlive() time.Duration {
+	r.assertLen()
 	return time.Duration(binary.BigEndian.Uint64(r))
 }
 
 // Type returns type of a rule.
 func (r Rule) Type() RuleType {
+	r.assertLen()
 	return RuleType(r[8])
 }
 
 // RouteID returns RouteID from the rule: reverse ID for an app rule
 // and next ID for a forward rule.
 func (r Rule) RouteID() RouteID {
+	r.assertLen()
 	return RouteID(binary.BigEndian.Uint32(r[9:]))
 }
 
 // SetRouteID sets RouteID for the rule: reverse ID for an app rule
 // and next ID for a forward rule.
 func (r Rule) SetRouteID(routeID RouteID) {
+	r.assertLen()
 	binary.BigEndian.PutUint32(r[9:], uint32(routeID))
+}
+
+// Body returns Body from the rule.
+func (r Rule) Body() []byte {
+	r.assertLen()
+	return append(r[:0:0], r[RuleHeaderSize:]...)
 }
 
 // TransportID returns next transport ID for a forward rule.
