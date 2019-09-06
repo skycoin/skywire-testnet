@@ -151,7 +151,9 @@ func (app *App) Close() error {
 // Accept awaits for incoming loop confirmation request from a Node and
 // returns net.Conn for received loop.
 func (app *App) Accept() (net.Conn, error) {
+	fmt.Println("!!! [ACCEPT] start !!!")
 	addrs := <-app.acceptChan
+	fmt.Println("!!! [ACCEPT] read from ch !!!")
 	laddr := addrs[0]
 	raddr := addrs[1]
 
@@ -187,6 +189,7 @@ func (app *App) Addr() net.Addr {
 
 func (app *App) handleProto() {
 	err := app.proto.Serve(func(frame Frame, payload []byte) (res interface{}, err error) {
+		fmt.Printf("!!! app received frame: %s\n", frame)
 		switch frame {
 		case FrameConfirmLoop:
 			err = app.confirmLoop(payload)
@@ -242,6 +245,8 @@ func (app *App) forwardPacket(data []byte) error {
 		return err
 	}
 
+	fmt.Printf("!!! packet loop: %s\n", packet.Loop)
+
 	app.mu.Lock()
 	conn := app.conns[packet.Loop]
 	app.mu.Unlock()
@@ -272,6 +277,7 @@ func (app *App) closeConn(data []byte) error {
 }
 
 func (app *App) confirmLoop(data []byte) error {
+	fmt.Println("!!! [confirmLoop] !!!")
 	var addrs [2]routing.Addr
 	if err := json.Unmarshal(data, &addrs); err != nil {
 		return err
@@ -288,6 +294,7 @@ func (app *App) confirmLoop(data []byte) error {
 		return errors.New("loop is already created")
 	}
 
+	fmt.Println("!!! [confirmLoop] selecting !!!")
 	select {
 	case app.acceptChan <- addrs:
 	default:

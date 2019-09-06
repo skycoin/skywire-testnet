@@ -73,7 +73,6 @@ type Config struct {
 
 // MessagingConfig returns config for dmsg client.
 func (c *Config) MessagingConfig() (*DmsgConfig, error) {
-
 	msgConfig := c.Messaging
 
 	if msgConfig.Discovery == "" {

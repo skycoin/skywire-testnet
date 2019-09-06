@@ -11,13 +11,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/snet"
 	"github.com/skycoin/skywire/pkg/transport"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 )
@@ -41,42 +44,39 @@ func TestMain(m *testing.M) {
 }
 
 // TODO(nkryuchkov): fix and uncomment
-/*
-func TestNewNode(t *testing.T) {
-	pk, sk := cipher.GenerateKeyPair()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.NoError(t, json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}))
-	}))
-	defer srv.Close()
+//func TestNewNode(t *testing.T) {
+//	pk, sk := cipher.GenerateKeyPair()
+//	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		require.NoError(t, json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: pk, NextNonce: 1}))
+//	}))
+//	defer srv.Close()
+//
+//	conf := Config{Version: "1.0", LocalPath: "local", AppsPath: "apps"}
+//	conf.Node.StaticPubKey = pk
+//	conf.Node.StaticSecKey = sk
+//	conf.Messaging.Discovery = "http://skywire.skycoin.net:8001"
+//	conf.Messaging.ServerCount = 10
+//	conf.Transport.Discovery = srv.URL
+//	conf.Apps = []AppConfig{
+//		{App: "foo", Version: "1.1", Port: 1},
+//		{App: "bar", AutoStart: true, Port: 2},
+//	}
+//
+//	defer func() {
+//		require.NoError(t, os.RemoveAll("local"))
+//	}()
+//
+//	node, err := NewNode(&conf, masterLogger)
+//	require.NoError(t, err)
+//
+//	assert.NotNil(t, node.router)
+//	assert.NotNil(t, node.appsConf)
+//	assert.NotNil(t, node.appsPath)
+//	assert.NotNil(t, node.localPath)
+//	assert.NotNil(t, node.startedApps)
+//}
 
-	conf := Config{Version: "1.0", LocalPath: "local", AppsPath: "apps"}
-	conf.Node.StaticPubKey = pk
-	conf.Node.StaticSecKey = sk
-	conf.Messaging.Discovery = "http://skywire.skycoin.net:8001"
-	conf.Messaging.ServerCount = 10
-	conf.Transport.Discovery = srv.URL
-	conf.Apps = []AppConfig{
-		{App: "foo", Version: "1.1", Port: 1},
-		{App: "bar", AutoStart: true, Port: 2},
-	}
-
-	defer func() {
-		require.NoError(t, os.RemoveAll("local"))
-	}()
-
-	node, err := NewNode(&conf, masterLogger)
-	require.NoError(t, err)
-
-	assert.NotNil(t, node.router)
-	assert.NotNil(t, node.appsConf)
-	assert.NotNil(t, node.appsPath)
-	assert.NotNil(t, node.localPath)
-	assert.NotNil(t, node.startedApps)
-}
-*/
-
-// TODO(Darkren): fix test
-/*func TestNodeStartClose(t *testing.T) {
+func TestNodeStartClose(t *testing.T) {
 	r := new(mockRouter)
 	executer := &MockExecuter{}
 	conf := []AppConfig{
@@ -90,13 +90,21 @@ func TestNewNode(t *testing.T) {
 
 	node := &Node{config: &Config{}, router: r, executer: executer, appsConf: conf,
 		startedApps: map[string]*appBind{}, logger: logging.MustGetLogger("test")}
-	mConf := &dmsg.Config{PubKey: cipher.PubKey{}, SecKey: cipher.SecKey{}, Discovery: disc.NewMock()}
-	node.messenger = dmsg.NewClient(mConf.PubKey, mConf.SecKey, mConf.Discovery)
 
-	var err error
+	dmsgC := dmsg.NewClient(cipher.PubKey{}, cipher.SecKey{}, disc.NewMock())
+	netConf := snet.Config{
+		PubKey:       cipher.PubKey{},
+		SecKey:       cipher.SecKey{},
+		TpNetworks:   nil,
+		DmsgDiscAddr: "",
+		DmsgMinSrvs:  0,
+	}
 
+	network := snet.NewRaw(netConf, dmsgC, nil)
 	tmConf := &transport.ManagerConfig{PubKey: cipher.PubKey{}, DiscoveryClient: transport.NewDiscoveryMock()}
-	node.tm, err = transport.NewManager(tmConf, nil, node.messenger)
+
+	tm, err := transport.NewManager(network, tmConf)
+	node.tm = tm
 	require.NoError(t, err)
 
 	errCh := make(chan error)
@@ -112,7 +120,7 @@ func TestNewNode(t *testing.T) {
 	require.Len(t, executer.cmds, 1)
 	assert.Equal(t, "skychat.v1.0", executer.cmds[0].Path)
 	assert.Equal(t, "skychat/v1.0", executer.cmds[0].Dir)
-}*/
+}
 
 func TestNodeSpawnApp(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
