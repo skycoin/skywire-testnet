@@ -540,7 +540,7 @@ func (m *Node) deleteRoute() http.HandlerFunc {
 }
 
 type loopResp struct {
-	routing.RuleAppFields
+	routing.RuleConsumeFields
 	FwdRule routing.RuleForwardFields `json:"resp"`
 }
 
@@ -549,7 +549,7 @@ func makeLoopResp(info visor.LoopInfo) loopResp {
 		return loopResp{}
 	}
 	return loopResp{
-		RuleAppFields: *info.AppRule.Summary().AppFields,
+		RuleConsumeFields: *info.AppRule.Summary().ConsumeFields,
 		FwdRule:       *info.FwdRule.Summary().ForwardFields,
 	}
 }

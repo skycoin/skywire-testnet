@@ -352,7 +352,7 @@ type LoopInfo struct {
 func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
 	var loops []LoopInfo
 	err := r.node.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
-		if rule.Type() == routing.RuleApp {
+		if rule.Type() == routing.RuleConsume {
 			loops = append(loops, LoopInfo{AppRule: rule})
 		}
 		return true
@@ -361,7 +361,7 @@ func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
 		return err
 	}
 	for i, l := range loops {
-		fwdRID := l.AppRule.RouteID()
+		fwdRID := l.AppRule.NextRouteID()
 		rule, err := r.node.rt.Rule(fwdRID)
 		if err != nil {
 			return err

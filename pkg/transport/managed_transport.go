@@ -9,12 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/snet"
-
-	"github.com/skycoin/skywire/pkg/routing"
-
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/snet"
 )
 
 const logWriteInterval = time.Second * 3

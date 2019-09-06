@@ -14,13 +14,13 @@ import (
 func TestManagedRoutingTableCleanup(t *testing.T) {
 	rt := manageRoutingTable(routing.InMemoryRoutingTable())
 
-	_, err := rt.AddRule(routing.ForwardRule(1*time.Hour, 3, uuid.New(), 1))
+	_, err := rt.AddRule(routing.IntermediaryForwardRule(1*time.Hour, 1, 3, uuid.New()))
 	require.NoError(t, err)
 
-	id, err := rt.AddRule(routing.ForwardRule(1*time.Hour, 3, uuid.New(), 2))
+	id, err := rt.AddRule(routing.IntermediaryForwardRule(1*time.Hour, 2, 3, uuid.New()))
 	require.NoError(t, err)
 
-	id2, err := rt.AddRule(routing.ForwardRule(-1*time.Hour, 3, uuid.New(), 3))
+	id2, err := rt.AddRule(routing.IntermediaryForwardRule(-1*time.Hour, 3, 3, uuid.New()))
 	require.NoError(t, err)
 
 	// rule should already be expired at this point due to the execution time.

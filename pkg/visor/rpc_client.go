@@ -260,7 +260,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err != nil {
 			panic(err)
 		}
-		fwdRule := routing.ForwardRule(ruleKeepAlive, routing.RouteID(r.Uint32()), uuid.New(), fwdRID)
+		fwdRule := routing.IntermediaryForwardRule(ruleKeepAlive, fwdRID, routing.RouteID(r.Uint32()), uuid.New() )
 		if err := rt.SetRule(fwdRID, fwdRule); err != nil {
 			panic(err)
 		}
@@ -268,12 +268,12 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err != nil {
 			panic(err)
 		}
-		appRule := routing.AppRule(ruleKeepAlive, appRID, fwdRID, remotePK, lp, rp)
+		appRule := routing.ConsumeRule(ruleKeepAlive, appRID, remotePK, lp, rp)
 		if err := rt.SetRule(appRID, appRule); err != nil {
 			panic(err)
 		}
 		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
-		log.Infof("rt[%2db]: %v %v", i, appRID, appRule.Summary().AppFields)
+		log.Infof("rt[%2db]: %v %v", i, appRID, appRule.Summary().ConsumeFields)
 	}
 	log.Printf("rtCount: %d", rt.Count())
 	client := &mockRPCClient{
@@ -502,7 +502,7 @@ func (mc *mockRPCClient) RemoveRoutingRule(key routing.RouteID) error {
 func (mc *mockRPCClient) Loops() ([]LoopInfo, error) {
 	var loops []LoopInfo
 	err := mc.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
-		if rule.Type() == routing.RuleApp {
+		if rule.Type() == routing.RuleConsume {
 			loops = append(loops, LoopInfo{AppRule: rule})
 		}
 		return true
@@ -511,7 +511,7 @@ func (mc *mockRPCClient) Loops() ([]LoopInfo, error) {
 		return nil, err
 	}
 	for i, l := range loops {
-		fwdRID := l.AppRule.RouteID()
+		fwdRID := l.AppRule.NextRouteID()
 		rule, err := mc.rt.Rule(fwdRID)
 		if err != nil {
 			return nil, err

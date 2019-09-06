@@ -139,10 +139,12 @@ func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error 
 		return err
 	}
 	r.Logger.Infof("Got new remote packet with route ID %d. Using rule: %s", packet.RouteID(), rule)
-	if rule.Type() == routing.RuleForward {
+	switch t := rule.Type(); t {
+	case routing.RuleForward, routing.RuleIntermediaryForward:
 		return r.forwardPacket(ctx, packet.Payload(), rule)
+	default:
+		return r.consumePacket(packet.Payload(), rule)
 	}
-	return r.consumePacket(packet.Payload(), rule)
 }
 
 // ServeApp handles App packets from the App connection on provided port.
@@ -209,23 +211,23 @@ func (r *Router) Close() error {
 }
 
 func (r *Router) forwardPacket(ctx context.Context, payload []byte, rule routing.Rule) error {
-	tp := r.tm.Transport(rule.TransportID())
+	tp := r.tm.Transport(rule.NextTransportID())
 	if tp == nil {
 		return errors.New("unknown transport")
 	}
-	if err := tp.WritePacket(ctx, rule.RouteID(), payload); err != nil {
+	if err := tp.WritePacket(ctx, rule.KeyRouteID(), payload); err != nil {
 		return err
 	}
-	r.Logger.Infof("Forwarded packet via Transport %s using rule %d", rule.TransportID(), rule.RouteID())
+	r.Logger.Infof("Forwarded packet via Transport %s using rule %d", rule.NextTransportID(), rule.KeyRouteID())
 	return nil
 }
 
 func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
-	laddr := routing.Addr{Port: rule.LocalPort()}
-	raddr := routing.Addr{PubKey: rule.RemotePK(), Port: rule.RemotePort()}
+	laddr := routing.Addr{Port: rule.RouteDescriptor().SrcPort()}
+	raddr := routing.Addr{PubKey: rule.RouteDescriptor().DstPK(), Port: rule.RouteDescriptor().DstPort()}
 
 	p := &app.Packet{Loop: routing.Loop{Local: laddr, Remote: raddr}, Payload: payload}
-	b, err := r.pm.Get(rule.LocalPort())
+	b, err := r.pm.Get(rule.RouteDescriptor().SrcPort())
 	if err != nil {
 		return err
 	}
@@ -236,7 +238,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	}
 	fmt.Println("done")
 
-	r.Logger.Infof("Forwarded packet to App on Port %d", rule.LocalPort())
+	r.Logger.Infof("Forwarded packet to App on Port %d", rule.RouteDescriptor().SrcPort())
 	return nil
 }
 
@@ -342,7 +344,7 @@ func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
 		return err
 	}
 
-	if err := r.pm.SetLoop(l.Local.Port, l.Remote, &loop{rule.TransportID(), rule.RouteID()}); err != nil {
+	if err := r.pm.SetLoop(l.Local.Port, l.Remote, &loop{rule.NextTransportID(), rule.KeyRouteID()}); err != nil {
 		return err
 	}
 

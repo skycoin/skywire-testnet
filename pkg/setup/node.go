@@ -266,9 +266,9 @@ func (sn *Node) createRoute(ctx context.Context, keepAlive time.Duration, route 
 		if i != len(r)-1 {
 			reqIDChIn = reqIDsCh[i]
 			nextTpID = r[i+1].Transport
-			rule = routing.ForwardRule(keepAlive, 0, nextTpID, 0)
+			rule = routing.IntermediaryForwardRule(keepAlive, 0, 0, nextTpID)
 		} else {
-			rule = routing.AppRule(keepAlive, 0, 0, init, lport, rport)
+			rule = routing.ConsumeRule(keepAlive, 0,  init, lport, rport)
 		}
 
 		go func(i int, pk cipher.PubKey, rule routing.Rule, reqIDChIn <-chan routing.RouteID,
@@ -381,10 +381,10 @@ func (sn *Node) setupRule(ctx context.Context, pk cipher.PubKey, rule routing.Ru
 	var nextRouteID routing.RouteID
 	if reqIDChIn != nil {
 		nextRouteID = <-reqIDChIn
-		rule.SetRouteID(nextRouteID)
+		rule.SetNextRouteID(nextRouteID)
 	}
 
-	rule.SetRequestRouteID(requestRouteID)
+	rule.SetKeyRouteID(requestRouteID)
 
 	sn.Logger.Debugf("dialing to %s to setup rule: %v\n", pk, rule)
 

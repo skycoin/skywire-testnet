@@ -48,7 +48,7 @@ var ruleCmd = &cobra.Command{
 		rule, err := rpcClient().RoutingRule(routing.RouteID(id))
 		internal.Catch(err)
 
-		printRoutingRules(&visor.RoutingEntry{Key: rule.RouteID(), Value: rule})
+		printRoutingRules(&visor.RoutingEntry{Key: rule.KeyRouteID(), Value: rule})
 	},
 }
 
@@ -100,13 +100,13 @@ var addRuleCmd = &cobra.Command{
 				remotePort = routing.Port(parseUint("remote-port", args[3], 16))
 				localPort  = routing.Port(parseUint("local-port", args[4], 16))
 			)
-			rule = routing.AppRule(keepAlive, 0, routeID, remotePK, localPort, remotePort)
+			rule = routing.ConsumeRule(keepAlive, routeID, remotePK, localPort, remotePort)
 		case "fwd":
 			var (
 				nextRouteID = routing.RouteID(parseUint("next-route-id", args[1], 32))
 				nextTpID    = internal.ParseUUID("next-transport-id", args[2])
 			)
-			rule = routing.ForwardRule(keepAlive, nextRouteID, nextTpID, 0)
+			rule = routing.IntermediaryForwardRule(keepAlive, 0, nextRouteID, nextTpID)
 		}
 		rIDKey, err := rpcClient().AddRoutingRule(rule)
 		internal.Catch(err)
@@ -115,22 +115,23 @@ var addRuleCmd = &cobra.Command{
 }
 
 func printRoutingRules(rules ...*visor.RoutingEntry) {
-	printAppRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
-		_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%d\t%s\t%s\t%s\n", id, s.Type, s.AppFields.LocalPort,
-			s.AppFields.RemotePort, s.AppFields.RemotePK, s.AppFields.RespRID, "-", "-", s.KeepAlive)
+	printConsumeRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
+		_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", id, s.Type,
+			s.ConsumeFields.RouteDescriptor.SrcPort, s.ConsumeFields.RouteDescriptor.DstPort,
+			s.ConsumeFields.RouteDescriptor.DstPK, "-", "-", "-", s.KeepAlive)
 		internal.Catch(err)
 	}
 	printFwdRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
 		_, err := fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\n", id, s.Type, "-",
-			"-", "-", "-", s.ForwardFields.NextRID, s.ForwardFields.NextTID, s.KeepAlive)
+			"-", "-", "-", s.IntermediaryForwardFields.NextRID, s.IntermediaryForwardFields.NextTID, s.KeepAlive)
 		internal.Catch(err)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "id\ttype\tlocal-port\tremote-port\tremote-pk\tresp-id\tnext-route-id\tnext-transport-id\texpire-at")
 	internal.Catch(err)
 	for _, rule := range rules {
-		if rule.Value.Summary().AppFields != nil {
-			printAppRule(w, rule.Key, rule.Value.Summary())
+		if rule.Value.Summary().ConsumeFields != nil {
+			printConsumeRule(w, rule.Key, rule.Value.Summary())
 		} else {
 			printFwdRule(w, rule.Key, rule.Value.Summary())
 		}

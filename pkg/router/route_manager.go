@@ -194,8 +194,9 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleApp || rule.RemotePK() != loop.Remote.PubKey ||
-			rule.RemotePort() != loop.Remote.Port || rule.LocalPort() != loop.Local.Port {
+		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != loop.Remote.PubKey ||
+			rule.RouteDescriptor().DstPort() != loop.Remote.Port ||
+			rule.RouteDescriptor().SrcPort() != loop.Local.Port {
 			return true
 		}
 
@@ -227,7 +228,7 @@ func (rm *routeManager) setRoutingRules(data []byte) error {
 	}
 
 	for _, rule := range rules {
-		routeID := rule.RequestRouteID()
+		routeID := rule.KeyRouteID()
 		if err := rm.rt.SetRule(routeID, rule); err != nil {
 			return fmt.Errorf("routing table: %s", err)
 		}
@@ -262,8 +263,9 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
 	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleApp || rule.RemotePK() != ld.Loop.Remote.PubKey ||
-			rule.RemotePort() != ld.Loop.Remote.Port || rule.LocalPort() != ld.Loop.Local.Port {
+		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != ld.Loop.Remote.PubKey ||
+			rule.RouteDescriptor().DstPort() != ld.Loop.Remote.Port ||
+			rule.RouteDescriptor().SrcPort() != ld.Loop.Local.Port {
 			return true
 		}
 
@@ -285,7 +287,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return fmt.Errorf("routing table: %s", err)
 	}
 
-	if rule.Type() != routing.RuleForward {
+	if rule.Type() != routing.RuleIntermediaryForward {
 		return errors.New("reverse rule is not forward")
 	}
 
@@ -294,7 +296,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 	}
 
 	rm.Logger.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRouteID)
-	appRule.SetRouteID(ld.RouteID)
+	appRule.SetKeyRouteID(ld.RouteID)
 	if rErr := rm.rt.SetRule(appRouteID, appRule); rErr != nil {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
@@ -313,7 +315,7 @@ func (rm *routeManager) loopClosed(data []byte) error {
 }
 
 func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
-	rule := routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0)
+	rule := routing.IntermediaryForwardRule(DefaultRouteKeepAlive, 0, 0, uuid.UUID{})
 	routeID, err := rm.rt.AddRule(rule)
 	if err != nil {
 		return nil, err
