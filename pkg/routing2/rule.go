@@ -1,7 +1,6 @@
 package routing
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -14,15 +13,20 @@ import (
 // RuleHeaderSize represents the base size of a rule.
 // All rules should be at-least this size.
 // TODO(evanlinjin): Document the format of rules in comments.
-const RuleHeaderSize = 13
+const (
+	RuleHeaderSize      = 8 + 1 + 4
+	pkSize              = len(cipher.PubKey{})
+	uuidSize            = len(uuid.UUID{})
+	routeDescriptorSize = pkSize*2 + 2*2
+
+	invalidRule = "invalid rule"
+)
 
 // RuleType defines type of a routing rule
 type RuleType byte
 
 func (rt RuleType) String() string {
 	switch rt {
-	case RuleApp:
-		return "App"
 	case RuleConsume:
 		return "Consume"
 	case RuleForward:
@@ -35,9 +39,6 @@ func (rt RuleType) String() string {
 }
 
 const (
-	// RuleApp defines App routing rule type.
-	RuleApp = RuleType(0)
-
 	// RuleConsume represents a hop to the route's destination node.
 	// A packet referencing this rule is to be consumed localy.
 	RuleConsume = RuleType(0)
@@ -56,195 +57,365 @@ const (
 //
 type Rule []byte
 
-func (r Rule) assertLen() {
-	if len(r) < RuleHeaderSize {
+func (r Rule) assertLen(l int) {
+	if len(r) < l {
 		panic("bad rule length")
 	}
 }
 
 // KeepAlive returns rule's keep-alive timeout.
 func (r Rule) KeepAlive() time.Duration {
-	r.assertLen()
-	return time.Duration(binary.BigEndian.Uint64(r))
+	r.assertLen(RuleHeaderSize)
+	return time.Duration(binary.BigEndian.Uint64(r[0:8]))
+}
+
+func (r Rule) SetKeepAlive(keepAlive time.Duration) {
+	r.assertLen(RuleHeaderSize)
+
+	if keepAlive < 0 {
+		keepAlive = 0
+	}
+
+	binary.BigEndian.PutUint64(r[0:8], uint64(keepAlive))
 }
 
 // Type returns type of a rule.
 func (r Rule) Type() RuleType {
-	r.assertLen()
+	r.assertLen(RuleHeaderSize)
 	return RuleType(r[8])
+}
+
+func (r Rule) SetType(t RuleType) {
+	r.assertLen(RuleHeaderSize)
+	r[8] = byte(t)
 }
 
 // RouteID returns RouteID from the rule: reverse ID for an app rule
 // and next ID for a forward rule.
-func (r Rule) RouteID() RouteID {
-	r.assertLen()
-	return RouteID(binary.BigEndian.Uint32(r[9:]))
+func (r Rule) KeyRouteID() RouteID {
+	r.assertLen(RuleHeaderSize)
+	return RouteID(binary.BigEndian.Uint32(r[8+1 : 8+1+4]))
 }
 
-// SetRouteID sets RouteID for the rule: reverse ID for an app rule
-// and next ID for a forward rule.
-func (r Rule) SetRouteID(routeID RouteID) {
-	r.assertLen()
-	binary.BigEndian.PutUint32(r[9:], uint32(routeID))
+func (r Rule) SetKeyRouteID(id RouteID) {
+	r.assertLen(RuleHeaderSize)
+	binary.BigEndian.PutUint32(r[8+1:8+1+4], uint32(id))
 }
 
 // Body returns Body from the rule.
 func (r Rule) Body() []byte {
-	r.assertLen()
+	r.assertLen(RuleHeaderSize)
 	return append(r[:0:0], r[RuleHeaderSize:]...)
 }
 
-// TransportID returns next transport ID for a forward rule.
-func (r Rule) TransportID() uuid.UUID {
-	if r.Type() != RuleForward {
-		panic("invalid rule")
+func (r Rule) RouteDescriptor() RouteDescriptor {
+	switch t := r.Type(); t {
+	case RuleConsume, RuleForward:
+		r.assertLen(RuleHeaderSize + routeDescriptorSize)
+
+		var desc RouteDescriptor
+		copy(desc[:], r[RuleHeaderSize:])
+		return desc
+
+	default:
+		panic(invalidRule)
 	}
-	return uuid.Must(uuid.FromBytes(r[13:29]))
 }
 
-// RemotePK returns remove PK for an app rule.
-func (r Rule) RemotePK() cipher.PubKey {
-	if r.Type() != RuleApp {
-		panic("invalid rule")
-	}
+func (r Rule) NextRouteID() RouteID {
+	offset := RuleHeaderSize
+	switch t := r.Type(); t {
+	case RuleForward:
+		offset += routeDescriptorSize
+		fallthrough
 
-	pk := cipher.PubKey{}
-	if err := pk.UnmarshalBinary(r[13:46]); err != nil {
-		log.WithError(err).Warn("Failed to unmarshal public key")
+	case RuleIntermediaryForward:
+		r.assertLen(offset + 4)
+		return RouteID(binary.BigEndian.Uint32(r[offset : offset+4]))
+
+	default:
+		panic(invalidRule)
 	}
+}
+
+func (r Rule) SetNextRouteID(id RouteID) {
+	offset := RuleHeaderSize
+	switch t := r.Type(); t {
+	case RuleForward:
+		offset += routeDescriptorSize
+		fallthrough
+
+	case RuleIntermediaryForward:
+		r.assertLen(offset + 4)
+		binary.BigEndian.PutUint32(r[offset:offset+4], uint32(id))
+
+	default:
+		panic(invalidRule)
+	}
+}
+
+// NextTransportID returns next transport ID for a forward rule.
+func (r Rule) NextTransportID() uuid.UUID {
+	offset := RuleHeaderSize + 4
+	switch t := r.Type(); t {
+	case RuleForward:
+		offset += routeDescriptorSize
+		fallthrough
+
+	case RuleIntermediaryForward:
+		r.assertLen(offset + 4)
+		return uuid.Must(uuid.FromBytes(r[offset : offset+uuidSize]))
+
+	default:
+		panic(invalidRule)
+	}
+}
+
+func (r Rule) SetNextTransportID(id uuid.UUID) {
+	offset := RuleHeaderSize + 4
+	switch t := r.Type(); t {
+	case RuleForward:
+		offset += routeDescriptorSize
+		fallthrough
+
+	case RuleIntermediaryForward:
+		r.assertLen(offset + 4)
+		copy(r[offset:offset+uuidSize], id[:])
+
+	default:
+		panic(invalidRule)
+	}
+}
+
+func (r Rule) SetSrcPK(pk cipher.PubKey) {
+	switch t := r.Type(); t {
+	case RuleConsume, RuleForward:
+		copy(r[RuleHeaderSize:RuleHeaderSize+pkSize], pk[:])
+
+	default:
+		panic(invalidRule)
+	}
+}
+
+func (r Rule) SetDstPK(pk cipher.PubKey) {
+	switch t := r.Type(); t {
+	case RuleConsume, RuleForward:
+		copy(r[RuleHeaderSize+pkSize:RuleHeaderSize+pkSize*2], pk[:])
+
+	default:
+		panic(invalidRule)
+	}
+}
+
+func (r Rule) SetSrcPort(port Port) {
+	switch t := r.Type(); t {
+	case RuleConsume, RuleForward:
+		binary.BigEndian.PutUint16(r[RuleHeaderSize+pkSize*2:RuleHeaderSize+pkSize*2+2], uint16(port))
+
+	default:
+		panic(invalidRule)
+	}
+}
+
+func (r Rule) SetDstPort(port Port) {
+	switch t := r.Type(); t {
+	case RuleConsume, RuleForward:
+		binary.BigEndian.PutUint16(r[RuleHeaderSize+pkSize*2+2:RuleHeaderSize+pkSize*2+2*2], uint16(port))
+
+	default:
+		panic(invalidRule)
+	}
+}
+
+type RouteDescriptor [routeDescriptorSize]byte
+
+func (d RouteDescriptor) SrcPK() cipher.PubKey {
+	var pk cipher.PubKey
+	copy(pk[:], d[0:pkSize])
 	return pk
 }
 
-// RemotePort returns remote Port for an app rule.
-func (r Rule) RemotePort() Port {
-	if r.Type() != RuleApp {
-		panic("invalid rule")
-	}
-	return Port(binary.BigEndian.Uint16(r[46:]))
+func (d RouteDescriptor) DstPK() cipher.PubKey {
+	var pk cipher.PubKey
+	copy(pk[:], d[pkSize:pkSize*2])
+	return pk
 }
 
-// LocalPort returns local Port for an app rule.
-func (r Rule) LocalPort() Port {
-	if r.Type() != RuleApp {
-		panic("invalid rule")
-	}
-	return Port(binary.BigEndian.Uint16(r[48:]))
+func (d RouteDescriptor) SetDskPK(pk cipher.PubKey) {
+	copy(d[pkSize:pkSize*2], pk[:])
 }
 
-// RequestRouteID returns route ID which will be used to register this rule within
-// the visor node.
-func (r Rule) RequestRouteID() RouteID {
-	return RouteID(binary.BigEndian.Uint32(r[50:]))
+func (d RouteDescriptor) SrcPort() Port {
+	return Port(binary.BigEndian.Uint16(d[pkSize*2 : pkSize*2+2]))
 }
 
-// SetRequestRouteID sets the route ID which will be used to register this rule within
-// the visor node.
-func (r Rule) SetRequestRouteID(id RouteID) {
-	binary.BigEndian.PutUint32(r[50:], uint32(id))
+func (d RouteDescriptor) SetSrcPort(port Port) {
+	binary.BigEndian.PutUint16(d[pkSize*2:pkSize*2+2], uint16(port))
+}
+
+func (d RouteDescriptor) DstPort() Port {
+	return Port(binary.BigEndian.Uint16(d[pkSize*2+2 : pkSize*2+2*2]))
+}
+
+func (d RouteDescriptor) SetDstPort(port Port) {
+	binary.BigEndian.PutUint16(d[pkSize*2+2:pkSize*2+2*2], uint16(port))
 }
 
 func (r Rule) String() string {
-	if r.Type() == RuleApp {
-		return fmt.Sprintf("App: <resp-rid: %d><remote-pk: %s><remote-port: %d><local-port: %d>",
-			r.RouteID(), r.RemotePK(), r.RemotePort(), r.LocalPort())
+	switch t := r.Type(); t {
+	case RuleConsume:
+		return fmt.Sprintf("App: <remote-pk: %s><remote-port: %d><local-port: %d>",
+			r.RouteDescriptor().DstPK(), r.RouteDescriptor().DstPort(), r.RouteDescriptor().SrcPK())
+	case RuleForward:
+		return fmt.Sprintf("Forward: <next-rid: %d><next-tid: %s><remote-pk: %s><remote-port: %d><local-port: %d>",
+			r.NextRouteID(), r.NextTransportID(),
+			r.RouteDescriptor().DstPK(), r.RouteDescriptor().DstPort(), r.RouteDescriptor().SrcPK())
+	case RuleIntermediaryForward:
+		return fmt.Sprintf("IntermediaryForward: <next-rid: %d><next-tid: %s>",
+			r.NextRouteID(), r.NextTransportID())
+	default:
+		panic(invalidRule)
 	}
-
-	return fmt.Sprintf("Forward: <next-rid: %d><next-tid: %s>", r.RouteID(), r.TransportID())
 }
 
-// RuleAppFields summarizes App fields of a RoutingRule.
-type RuleAppFields struct {
+type RouteDescriptorFields struct {
 	RespRID    RouteID       `json:"resp_rid"`
 	RemotePK   cipher.PubKey `json:"remote_pk"`
 	RemotePort Port          `json:"remote_port"`
 	LocalPort  Port          `json:"local_port"`
 }
 
+// RuleConsumeFields summarizes App fields of a RoutingRule.
+type RuleConsumeFields struct {
+	RouteDescriptor RouteDescriptorFields `json:"route_descriptor"`
+}
+
 // RuleForwardFields summarizes Forward fields of a RoutingRule.
 type RuleForwardFields struct {
+	RouteDescriptor RouteDescriptorFields `json:"route_descriptor"`
+	NextRID         RouteID               `json:"next_rid"`
+	NextTID         uuid.UUID             `json:"next_tid"`
+}
+
+// RuleIntermediaryForwardFields summarizes IntermediaryForward fields of a RoutingRule.
+type RuleIntermediaryForwardFields struct {
 	NextRID RouteID   `json:"next_rid"`
 	NextTID uuid.UUID `json:"next_tid"`
 }
 
 // RuleSummary provides a summary of a RoutingRule.
 type RuleSummary struct {
-	KeepAlive      time.Duration      `json:"keep_alive"`
-	Type           RuleType           `json:"rule_type"`
-	AppFields      *RuleAppFields     `json:"app_fields,omitempty"`
-	ForwardFields  *RuleForwardFields `json:"forward_fields,omitempty"`
-	RequestRouteID RouteID            `json:"request_route_id"`
+	KeepAlive                 time.Duration                  `json:"keep_alive"`
+	Type                      RuleType                       `json:"rule_type"`
+	KeyRouteID                RouteID                        `json:"key_route_id"`
+	ConsumeFields             *RuleConsumeFields             `json:"app_fields,omitempty"`
+	ForwardFields             *RuleForwardFields             `json:"forward_fields,omitempty"`
+	IntermediaryForwardFields *RuleIntermediaryForwardFields `json:"intermediary_forward_fields,omitempty"`
 }
 
 // ToRule converts RoutingRuleSummary to RoutingRule.
 func (rs *RuleSummary) ToRule() (Rule, error) {
-	if rs.Type == RuleApp && rs.AppFields != nil && rs.ForwardFields == nil {
-		f := rs.AppFields
-		return AppRule(rs.KeepAlive, rs.RequestRouteID, f.RespRID, f.RemotePK, f.LocalPort, f.RemotePort), nil
-	}
-	if rs.Type == RuleForward && rs.AppFields == nil && rs.ForwardFields != nil {
+	switch {
+
+	case rs.Type == RuleConsume && rs.ConsumeFields != nil && rs.ForwardFields == nil && rs.IntermediaryForwardFields == nil:
+		f := rs.ConsumeFields
+		d := f.RouteDescriptor
+		return ConsumeRule(rs.KeepAlive, rs.KeyRouteID, d.RemotePK, d.LocalPort, d.RemotePort), nil
+
+	case rs.Type == RuleForward && rs.ConsumeFields == nil && rs.ForwardFields != nil && rs.IntermediaryForwardFields == nil:
 		f := rs.ForwardFields
-		return ForwardRule(rs.KeepAlive, f.NextRID, f.NextTID, rs.RequestRouteID), nil
+		d := f.RouteDescriptor
+		return ForwardRule(rs.KeepAlive, rs.KeyRouteID, f.NextRID, f.NextTID, d.RemotePK, d.LocalPort, d.RemotePort), nil
+
+	case rs.Type == RuleIntermediaryForward && rs.ConsumeFields == nil && rs.ForwardFields == nil && rs.IntermediaryForwardFields != nil:
+		f := rs.IntermediaryForwardFields
+		return IntermediaryForwardRule(rs.KeepAlive, rs.KeyRouteID, f.NextRID, f.NextTID), nil
+
+	default:
+		return nil, errors.New("invalid routing rule summary")
 	}
-	return nil, errors.New("invalid routing rule summary")
 }
 
 // Summary returns the RoutingRule's summary.
 func (r Rule) Summary() *RuleSummary {
 	summary := RuleSummary{
-		KeepAlive:      r.KeepAlive(),
-		Type:           r.Type(),
-		RequestRouteID: r.RequestRouteID(),
+		KeepAlive:  r.KeepAlive(),
+		Type:       r.Type(),
+		KeyRouteID: r.KeyRouteID(),
 	}
-	if summary.Type == RuleApp {
-		summary.AppFields = &RuleAppFields{
-			RespRID:    r.RouteID(),
-			RemotePK:   r.RemotePK(),
-			RemotePort: r.RemotePort(),
-			LocalPort:  r.LocalPort(),
+	switch summary.Type {
+	case RuleConsume:
+		summary.ConsumeFields = &RuleConsumeFields{
+			RouteDescriptor: RouteDescriptorFields{
+				RespRID:    r.NextRouteID(),
+				RemotePK:   r.RouteDescriptor().DstPK(),
+				RemotePort: r.RouteDescriptor().DstPort(),
+				LocalPort:  r.RouteDescriptor().SrcPort(),
+			},
 		}
-	} else {
+	case RuleForward:
 		summary.ForwardFields = &RuleForwardFields{
-			NextRID: r.RouteID(),
-			NextTID: r.TransportID(),
+			RouteDescriptor: RouteDescriptorFields{
+				RespRID:    r.NextRouteID(),
+				RemotePK:   r.RouteDescriptor().DstPK(),
+				RemotePort: r.RouteDescriptor().DstPort(),
+				LocalPort:  r.RouteDescriptor().SrcPort(),
+			},
+			NextRID: r.NextRouteID(),
+			NextTID: r.NextTransportID(),
 		}
+
+	case RuleIntermediaryForward:
+		summary.IntermediaryForwardFields = &RuleIntermediaryForwardFields{
+			NextRID: r.NextRouteID(),
+			NextTID: r.NextTransportID(),
+		}
+	default:
+		panic(invalidRule)
 	}
 	return &summary
 }
 
-// AppRule constructs a new consume RoutingRule.
-func AppRule(keepAlive time.Duration, reqRoute, respRoute RouteID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
-	rule := make([]byte, RuleHeaderSize)
+func ConsumeRule(keepAlive time.Duration, keyRouteID RouteID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
+	rule := Rule(make([]byte, RuleHeaderSize+routeDescriptorSize))
 
-	if keepAlive < 0 {
-		keepAlive = 0
-	}
+	rule.SetKeepAlive(keepAlive)
+	rule.SetType(RuleConsume)
+	rule.SetKeyRouteID(keyRouteID)
 
-	binary.BigEndian.PutUint64(rule, uint64(keepAlive))
+	rule.SetDstPK(remotePK)
+	rule.SetSrcPK(cipher.PubKey{})
+	rule.SetDstPort(remotePort)
+	rule.SetSrcPort(localPort)
 
-	rule[8] = byte(RuleApp)
-	binary.BigEndian.PutUint32(rule[9:], uint32(respRoute))
-	rule = append(rule, remotePK[:]...)
-	rule = append(rule, bytes.Repeat([]byte{0}, 8)...)
-	binary.BigEndian.PutUint16(rule[46:], uint16(remotePort))
-	binary.BigEndian.PutUint16(rule[48:], uint16(localPort))
-	binary.BigEndian.PutUint32(rule[50:], uint32(reqRoute))
 	return rule
 }
 
-// ForwardRule constructs a new forward RoutingRule.
-func ForwardRule(keepAlive time.Duration, nextRoute RouteID, nextTrID uuid.UUID, requestRouteID RouteID) Rule {
-	rule := make([]byte, RuleHeaderSize)
+func ForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTransport uuid.UUID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
+	rule := Rule(make([]byte, RuleHeaderSize+routeDescriptorSize+4+pkSize))
 
-	if keepAlive < 0 {
-		keepAlive = 0
-	}
+	rule.SetKeepAlive(keepAlive)
+	rule.SetType(RuleForward)
+	rule.SetKeyRouteID(keyRouteID)
+	rule.SetNextRouteID(nextRoute)
+	rule.SetNextTransportID(nextTransport)
 
-	binary.BigEndian.PutUint64(rule, uint64(keepAlive))
+	rule.SetDstPK(remotePK)
+	rule.SetSrcPK(cipher.PubKey{})
+	rule.SetDstPort(remotePort)
+	rule.SetSrcPort(localPort)
 
-	rule[8] = byte(RuleForward)
-	binary.BigEndian.PutUint32(rule[9:], uint32(nextRoute))
-	rule = append(rule, nextTrID[:]...)
-	rule = append(rule, bytes.Repeat([]byte{0}, 25)...)
-	binary.BigEndian.PutUint32(rule[50:], uint32(requestRouteID))
+	return rule
+}
+
+func IntermediaryForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTransport uuid.UUID) Rule {
+	rule := Rule(make([]byte, RuleHeaderSize+4+pkSize))
+
+	rule.SetKeepAlive(keepAlive)
+	rule.SetType(RuleIntermediaryForward)
+	rule.SetKeyRouteID(keyRouteID)
+	rule.SetNextRouteID(nextRoute)
+	rule.SetNextTransportID(nextTransport)
+
 	return rule
 }
