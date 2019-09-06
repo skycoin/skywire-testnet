@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/skycoin/skywire/pkg/snet/stcp"
+
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/dmsg"
@@ -26,6 +28,7 @@ const (
 // Network types.
 const (
 	DmsgType = "dmsg"
+	STcpType = "stcp"
 )
 
 var (
@@ -41,36 +44,55 @@ type Config struct {
 
 	DmsgDiscAddr string
 	DmsgMinSrvs  int
+
+	STCPLocalAddr string // if empty, don't listen.
+	STCPTable     map[cipher.PubKey]string
 }
 
 // Network represents a network between nodes in Skywire.
 type Network struct {
 	conf  Config
 	dmsgC *dmsg.Client
+	stcpC *stcp.Client
 }
 
 // New creates a network from a config.
 func New(conf Config) *Network {
-	dmsgC := dmsg.NewClient(conf.PubKey, conf.SecKey, disc.NewHTTP(conf.DmsgDiscAddr), dmsg.SetLogger(logging.MustGetLogger("snet.dmsgC")))
-	return &Network{
-		conf:  conf,
-		dmsgC: dmsgC,
-	}
+	dmsgC := dmsg.NewClient(
+		conf.PubKey,
+		conf.SecKey,
+		disc.NewHTTP(conf.DmsgDiscAddr),
+		dmsg.SetLogger(logging.MustGetLogger("snet.dmsgC")))
+
+	stcpC := stcp.NewClient(
+		logging.MustGetLogger("snet.stcpC"),
+		conf.PubKey,
+		conf.SecKey,
+		stcp.NewTable(conf.STCPTable))
+
+	return NewRaw(conf, dmsgC, stcpC)
 }
 
 // NewRaw creates a network from a config and a dmsg client.
-func NewRaw(conf Config, dmsgC *dmsg.Client) *Network {
+func NewRaw(conf Config, dmsgC *dmsg.Client, stcpC *stcp.Client) *Network {
 	return &Network{
 		conf:  conf,
 		dmsgC: dmsgC,
+		stcpC: stcpC,
 	}
 }
 
 // Init initiates server connections.
 func (n *Network) Init(ctx context.Context) error {
-	fmt.Println("dmsg: min_servers:", n.conf.DmsgMinSrvs)
 	if err := n.dmsgC.InitiateServerConnections(ctx, n.conf.DmsgMinSrvs); err != nil {
 		return fmt.Errorf("failed to initiate 'dmsg': %v", err)
+	}
+	if n.conf.STCPLocalAddr != "" {
+		if err := n.stcpC.Serve(n.conf.STCPLocalAddr); err != nil {
+			return fmt.Errorf("failed to initiate 'stcp': %v", err)
+		}
+	} else {
+		fmt.Println("No config found for stcp")
 	}
 	return nil
 }
@@ -78,7 +100,7 @@ func (n *Network) Init(ctx context.Context) error {
 // Close closes underlying connections.
 func (n *Network) Close() error {
 	wg := new(sync.WaitGroup)
-	wg.Add(1)
+	wg.Add(2)
 
 	var dmsgErr error
 	go func() {
@@ -86,9 +108,19 @@ func (n *Network) Close() error {
 		wg.Done()
 	}()
 
+	var stcpErr error
+	go func() {
+		stcpErr = n.stcpC.Close()
+		wg.Done()
+	}()
+
 	wg.Wait()
+
 	if dmsgErr != nil {
 		return dmsgErr
+	}
+	if stcpErr != nil {
+		return stcpErr
 	}
 	return nil
 }
@@ -105,12 +137,21 @@ func (n *Network) TransportNetworks() []string { return n.conf.TpNetworks }
 // Dmsg returns underlying dmsg client.
 func (n *Network) Dmsg() *dmsg.Client { return n.dmsgC }
 
+// STcp returns the underlying stcp.Client.
+func (n *Network) STcp() *stcp.Client { return n.stcpC }
+
 // Dial dials a node by its public key and returns a connection.
 func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, error) {
 	ctx := context.Background()
 	switch network {
 	case DmsgType:
 		conn, err := n.dmsgC.Dial(ctx, pk, port)
+		if err != nil {
+			return nil, err
+		}
+		return makeConn(conn, network), nil
+	case STcpType:
+		conn, err := n.stcpC.Dial(ctx, pk, port)
 		if err != nil {
 			return nil, err
 		}
@@ -125,6 +166,12 @@ func (n *Network) Listen(network string, port uint16) (*Listener, error) {
 	switch network {
 	case DmsgType:
 		lis, err := n.dmsgC.Listen(port)
+		if err != nil {
+			return nil, err
+		}
+		return makeListener(lis, network), nil
+	case STcpType:
+		lis, err := n.stcpC.Listen(port)
 		if err != nil {
 			return nil, err
 		}

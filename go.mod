@@ -19,7 +19,7 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/common v0.6.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/skycoin/dmsg v0.0.0-20190805065636-70f4c32a994f
+	github.com/skycoin/dmsg v0.0.0-20190904181013-b781e3cbebc6
 	github.com/skycoin/skycoin v0.26.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
@@ -29,4 +29,4 @@ require (
 )
 
 // Uncomment for tests with alternate branches of 'dmsg'
-replace github.com/skycoin/dmsg => ../dmsg
+//replace github.com/skycoin/dmsg => ../dmsg

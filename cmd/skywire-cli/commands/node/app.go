@@ -119,6 +119,6 @@ var execCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, args []string) {
 		out, err := rpcClient().Exec(strings.Join(args, " "))
 		internal.Catch(err)
-		fmt.Println(string(out))
+		fmt.Print(string(out))
 	},
 }

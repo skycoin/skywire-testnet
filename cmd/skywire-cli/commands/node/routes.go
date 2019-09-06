@@ -100,7 +100,7 @@ var addRuleCmd = &cobra.Command{
 				remotePort = routing.Port(parseUint("remote-port", args[3], 16))
 				localPort  = routing.Port(parseUint("local-port", args[4], 16))
 			)
-			rule = routing.AppRule(keepAlive, routeID, remotePK, remotePort, localPort, 0)
+			rule = routing.AppRule(keepAlive, 0, routeID, remotePK, localPort, remotePort)
 		case "fwd":
 			var (
 				nextRouteID = routing.RouteID(parseUint("next-route-id", args[1], 32))

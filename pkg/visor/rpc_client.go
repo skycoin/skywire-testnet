@@ -9,13 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/router"
-
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
@@ -270,7 +268,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err != nil {
 			panic(err)
 		}
-		appRule := routing.AppRule(ruleKeepAlive, fwdRID, remotePK, rp, lp, appRID)
+		appRule := routing.AppRule(ruleKeepAlive, appRID, fwdRID, remotePK, lp, rp)
 		if err := rt.SetRule(appRID, appRule); err != nil {
 			panic(err)
 		}

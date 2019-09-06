@@ -62,6 +62,7 @@ func NewEnv(t *testing.T, keys []KeyPair) *Env {
 				DmsgMinSrvs: 1,
 			},
 			dmsg.NewClient(pairs.PK, pairs.SK, dmsgD),
+			nil,
 		)
 		require.NoError(t, n.Init(context.TODO()))
 		ns[i] = n

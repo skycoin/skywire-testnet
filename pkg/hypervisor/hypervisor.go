@@ -68,12 +68,12 @@ func (m *Node) ServeRPC(lis net.Listener) error {
 			return err
 		}
 		addr := conn.RemoteAddr().(*noise.Addr)
-		m.mu.RLock()
+		m.mu.Lock()
 		m.nodes[addr.PK] = appNodeConn{
 			Addr:   addr,
 			Client: visor.NewRPCClient(rpc.NewClient(conn), visor.RPCPrefix),
 		}
-		m.mu.RUnlock()
+		m.mu.Unlock()
 	}
 }
 
@@ -131,7 +131,7 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
-			r.Post("/exec", m.exec())
+			r.Post("/exec/{pk}", m.exec())
 			r.Get("/nodes", m.getNodes())
 			r.Get("/nodes/{pk}/health", m.getHealth())
 			r.Get("/nodes/{pk}/uptime", m.getUptime())
