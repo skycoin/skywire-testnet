@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/skycoin/skywire/pkg/snet"
+
 	"github.com/skycoin/skywire/pkg/routing"
 
 	"github.com/google/uuid"
@@ -18,55 +20,69 @@ import (
 type ManagerConfig struct {
 	PubKey          cipher.PubKey
 	SecKey          cipher.SecKey
+	DefaultNodes    []cipher.PubKey // Nodes to automatically connect to
 	DiscoveryClient DiscoveryClient
 	LogStore        LogStore
-	DefaultNodes    []cipher.PubKey // Nodes to automatically connect to
 }
 
 // Manager manages Transports.
 type Manager struct {
-	Logger   *logging.Logger
-	conf     *ManagerConfig
-	setupPKS []cipher.PubKey
-	facs     map[string]Factory
-	tps      map[uuid.UUID]*ManagedTransport
+	Logger *logging.Logger
+	conf   *ManagerConfig
+	nets   map[string]struct{}
+	tps    map[uuid.UUID]*ManagedTransport
+	n      *snet.Network
 
-	setupCh chan Transport
-	readCh  chan routing.Packet
-	mx      sync.RWMutex
-	done    chan struct{}
+	readCh    chan routing.Packet
+	mx        sync.RWMutex
+	wg        sync.WaitGroup
+	serveOnce sync.Once // ensure we only serve once.
+	closeOnce sync.Once // ensure we only close once.
+	done      chan struct{}
 }
 
 // NewManager creates a Manager with the provided configuration and transport factories.
 // 'factories' should be ordered by preference.
-func NewManager(config *ManagerConfig, setupPKs []cipher.PubKey, factories ...Factory) (*Manager, error) {
-	tm := &Manager{
-		Logger:   logging.MustGetLogger("tp_manager"),
-		conf:     config,
-		setupPKS: setupPKs,
-		facs:     make(map[string]Factory),
-		tps:      make(map[uuid.UUID]*ManagedTransport),
-		setupCh:  make(chan Transport, 9), // TODO: eliminate or justify buffering here
-		readCh:   make(chan routing.Packet, 20),
-		done:     make(chan struct{}),
+func NewManager(n *snet.Network, config *ManagerConfig) (*Manager, error) {
+	nets := make(map[string]struct{})
+	for _, netType := range n.TransportNetworks() {
+		nets[netType] = struct{}{}
 	}
-	for _, factory := range factories {
-		tm.facs[factory.Type()] = factory
+	tm := &Manager{
+		Logger: logging.MustGetLogger("tp_manager"),
+		conf:   config,
+		nets:   nets,
+		tps:    make(map[uuid.UUID]*ManagedTransport),
+		n:      n,
+		readCh: make(chan routing.Packet, 20),
+		done:   make(chan struct{}),
 	}
 	return tm, nil
 }
 
 // Serve runs listening loop across all registered factories.
-func (tm *Manager) Serve(ctx context.Context) error {
-	tm.mx.Lock()
-	tm.initTransports(ctx)
-	tm.mx.Unlock()
+func (tm *Manager) Serve(ctx context.Context) {
+	tm.serveOnce.Do(func() {
+		tm.serve(ctx)
+	})
+}
 
-	var wg sync.WaitGroup
-	for _, factory := range tm.facs {
-		wg.Add(1)
-		go func(f Factory) {
-			defer wg.Done()
+func (tm *Manager) serve(ctx context.Context) {
+	var listeners []*snet.Listener
+
+	for _, netType := range tm.n.TransportNetworks() {
+		lis, err := tm.n.Listen(netType, snet.TransportPort)
+		if err != nil {
+			tm.Logger.WithError(err).Fatalf("failed to listen on network '%s' of port '%d'",
+				netType, snet.TransportPort)
+			continue
+		}
+		tm.Logger.Infof("listening on network: %s", netType)
+		listeners = append(listeners, lis)
+
+		tm.wg.Add(1)
+		go func() {
+			defer tm.wg.Done()
 			for {
 				select {
 				case <-ctx.Done():
@@ -74,7 +90,7 @@ func (tm *Manager) Serve(ctx context.Context) error {
 				case <-tm.done:
 					return
 				default:
-					if err := tm.acceptTransport(ctx, f); err != nil {
+					if err := tm.acceptTransport(ctx, lis); err != nil {
 						if strings.Contains(err.Error(), "closed") {
 							return
 						}
@@ -82,15 +98,30 @@ func (tm *Manager) Serve(ctx context.Context) error {
 					}
 				}
 			}
-		}(factory)
+		}()
 	}
 
-	tm.Logger.Info("TransportManager is serving.")
-	wg.Wait()
-	return nil
+	tm.initTransports(ctx)
+	tm.Logger.Info("transport manager is serving.")
+
+	// closing logic
+	<-tm.done
+
+	tm.Logger.Info("transport manager is closing.")
+	defer tm.Logger.Info("transport manager closed.")
+
+	// Close all listeners.
+	for i, lis := range listeners {
+		if err := lis.Close(); err != nil {
+			tm.Logger.Warnf("listener %d of network '%s' closed with error: %v", i, lis.Network(), err)
+		}
+	}
 }
 
 func (tm *Manager) initTransports(ctx context.Context) {
+	tm.mx.Lock()
+	defer tm.mx.Unlock()
+
 	entries, err := tm.conf.DiscoveryClient.GetTransportsByEdge(ctx, tm.conf.PubKey)
 	if err != nil {
 		log.Warnf("No transports found for local node: %v", err)
@@ -107,11 +138,12 @@ func (tm *Manager) initTransports(ctx context.Context) {
 	}
 }
 
-func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) error {
-	tr, err := factory.Accept(ctx)
+func (tm *Manager) acceptTransport(ctx context.Context, lis *snet.Listener) error {
+	conn, err := lis.AcceptConn() // TODO: tcp panic.
 	if err != nil {
 		return err
 	}
+	tm.Logger.Infof("recv transport connection request: type(%s) remote(%s)", lis.Network(), conn.RemotePK())
 
 	tm.mx.Lock()
 	defer tm.mx.Unlock()
@@ -120,30 +152,26 @@ func (tm *Manager) acceptTransport(ctx context.Context, factory Factory) error {
 		return errors.New("transport.Manager is closing. Skipping incoming transport")
 	}
 
-	if tm.IsSetupPK(tr.RemotePK()) {
-		tm.setupCh <- tr
-		return nil
-	}
-
 	// For transports for purpose(data).
-	tpID := tm.tpIDFromPK(tr.RemotePK(), tr.Type())
+
+	tpID := tm.tpIDFromPK(conn.RemotePK(), conn.Network())
 
 	mTp, ok := tm.tps[tpID]
 	if !ok {
-		mTp = NewManagedTransport(factory, tm.conf.DiscoveryClient, tm.conf.LogStore, tr.RemotePK(), tm.conf.SecKey)
-		if err := mTp.Accept(ctx, tr); err != nil {
+		mTp = NewManagedTransport(tm.n, tm.conf.DiscoveryClient, tm.conf.LogStore, conn.RemotePK(), lis.Network())
+		if err := mTp.Accept(ctx, conn); err != nil {
 			return err
 		}
 		go mTp.Serve(tm.readCh, tm.done)
 		tm.tps[tpID] = mTp
 
 	} else {
-		if err := mTp.Accept(ctx, tr); err != nil {
+		if err := mTp.Accept(ctx, conn); err != nil {
 			return err
 		}
 	}
 
-	tm.Logger.Infof("accepted tp: type(%s) remote(%s) tpID(%s) new(%v)", factory.Type(), tr.RemotePK(), tpID, !ok)
+	tm.Logger.Infof("accepted tp: type(%s) remote(%s) tpID(%s) new(%v)", lis.Network(), conn.RemotePK(), tpID, !ok)
 	return nil
 }
 
@@ -164,24 +192,23 @@ func (tm *Manager) SaveTransport(ctx context.Context, remote cipher.PubKey, tpTy
 	return mTp, nil
 }
 
-func (tm *Manager) saveTransport(remote cipher.PubKey, tpType string) (*ManagedTransport, error) {
-	factory, ok := tm.facs[tpType]
-	if !ok {
+func (tm *Manager) saveTransport(remote cipher.PubKey, netName string) (*ManagedTransport, error) {
+	if _, ok := tm.nets[netName]; !ok {
 		return nil, errors.New("unknown transport type")
 	}
 
-	tpID := tm.tpIDFromPK(remote, tpType)
+	tpID := tm.tpIDFromPK(remote, netName)
 
 	tp, ok := tm.tps[tpID]
 	if ok {
 		return tp, nil
 	}
 
-	mTp := NewManagedTransport(factory, tm.conf.DiscoveryClient, tm.conf.LogStore, remote, tm.conf.SecKey)
+	mTp := NewManagedTransport(tm.n, tm.conf.DiscoveryClient, tm.conf.LogStore, remote, netName)
 	go mTp.Serve(tm.readCh, tm.done)
 	tm.tps[tpID] = mTp
 
-	tm.Logger.Infof("saved transport: remote(%s) type(%s) tpID(%s)", remote, tpType, tpID)
+	tm.Logger.Infof("saved transport: remote(%s) type(%s) tpID(%s)", remote, netName, tpID)
 	return mTp, nil
 }
 
@@ -210,64 +237,12 @@ func (tm *Manager) ReadPacket() (routing.Packet, error) {
 }
 
 /*
-	SETUP LOGIC
-*/
-
-// SetupPKs returns setup node list contained within the TransportManager.
-func (tm *Manager) SetupPKs() []cipher.PubKey {
-	return tm.setupPKS
-}
-
-// IsSetupPK checks whether provided `pk` is of `setup` purpose.
-func (tm *Manager) IsSetupPK(pk cipher.PubKey) bool {
-	for _, sPK := range tm.setupPKS {
-		if sPK == pk {
-			return true
-		}
-	}
-	return false
-}
-
-// DialSetupConn dials to a remote setup node.
-func (tm *Manager) DialSetupConn(ctx context.Context, remote cipher.PubKey, tpType string) (Transport, error) {
-	tm.mx.Lock()
-	defer tm.mx.Unlock()
-	if tm.isClosing() {
-		return nil, io.ErrClosedPipe
-	}
-
-	factory, ok := tm.facs[tpType]
-	if !ok {
-		return nil, errors.New("unknown transport type")
-	}
-	tr, err := factory.Dial(ctx, remote)
-	if err != nil {
-		return nil, err
-	}
-	tm.Logger.Infof("Dialed to setup node %s using %s factory.", remote, tpType)
-	return tr, nil
-}
-
-// AcceptSetupConn accepts a connection from a remote setup node.
-func (tm *Manager) AcceptSetupConn() (Transport, error) {
-	tp, ok := <-tm.setupCh
-	if !ok {
-		return nil, ErrNotServing
-	}
-	return tp, nil
-}
-
-/*
 	STATE
 */
 
-// Factories returns all the factory types contained within the TransportManager.
-func (tm *Manager) Factories() []string {
-	fTypes, i := make([]string, len(tm.facs)), 0
-	for _, f := range tm.facs {
-		fTypes[i], i = f.Type(), i+1
-	}
-	return fTypes
+// Networks returns all the network types contained within the TransportManager.
+func (tm *Manager) Networks() []string {
+	return tm.n.TransportNetworks()
 }
 
 // Transport obtains a Transport via a given Transport ID.
@@ -296,42 +271,34 @@ func (tm *Manager) Local() cipher.PubKey {
 
 // Close closes opened transports and registered factories.
 func (tm *Manager) Close() error {
+	tm.closeOnce.Do(func() {
+		tm.close()
+	})
+	return nil
+}
+
+func (tm *Manager) close() {
 	if tm == nil {
-		return nil
+		return
 	}
 
 	tm.mx.Lock()
 	defer tm.mx.Unlock()
 
 	close(tm.done)
-	tm.Logger.Info("closing transport manager...")
-	defer tm.Logger.Infof("transport manager closed.")
 
-	go func() {
-		for range tm.readCh {
-		}
-	}()
-
-	i, statuses := 0, make([]*Status, len(tm.tps))
+	statuses := make([]*Status, 0, len(tm.tps))
 	for _, tr := range tm.tps {
-		tr.close()
-		statuses[i] = &Status{ID: tr.Entry.ID, IsUp: false}
-		i++
+		if closed := tr.close(); closed {
+			statuses = append(statuses[0:], &Status{ID: tr.Entry.ID, IsUp: false})
+		}
 	}
 	if _, err := tm.conf.DiscoveryClient.UpdateStatuses(context.Background(), statuses...); err != nil {
 		tm.Logger.Warnf("failed to update transport statuses: %v", err)
 	}
 
-	tm.Logger.Infof("closing transport factories...")
-	for _, f := range tm.facs {
-		if err := f.Close(); err != nil {
-			tm.Logger.Warnf("Failed to close factory: %s", err)
-		}
-	}
-
-	close(tm.setupCh)
+	tm.wg.Wait()
 	close(tm.readCh)
-	return nil
 }
 
 func (tm *Manager) isClosing() bool {

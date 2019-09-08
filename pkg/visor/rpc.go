@@ -3,11 +3,14 @@ package visor
 import (
 	"context"
 	"errors"
+	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 
+	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 )
@@ -31,6 +34,77 @@ var (
 // RPC defines RPC methods for Node.
 type RPC struct {
 	node *Node
+}
+
+/*
+	<<< NODE HEALTH >>>
+*/
+
+// HealthInfo carries information about visor's external services health represented as http status codes
+type HealthInfo struct {
+	TransportDiscovery int `json:"transport_discovery"`
+	RouteFinder        int `json:"route_finder"`
+	SetupNode          int `json:"setup_node"`
+}
+
+// Health returns health information about the visor
+func (r *RPC) Health(_ *struct{}, out *HealthInfo) error {
+	out.TransportDiscovery = http.StatusOK
+	out.RouteFinder = http.StatusOK
+	out.SetupNode = http.StatusOK
+
+	_, err := r.node.config.TransportDiscovery()
+	if err != nil {
+		out.TransportDiscovery = http.StatusNotFound
+	}
+
+	if r.node.config.Routing.RouteFinder == "" {
+		out.RouteFinder = http.StatusNotFound
+	}
+
+	if len(r.node.config.Routing.SetupNodes) == 0 {
+		out.SetupNode = http.StatusNotFound
+	}
+
+	return nil
+}
+
+/*
+	<<< NODE UPTIME >>>
+*/
+
+// Uptime returns for how long the visor has been running in seconds
+func (r *RPC) Uptime(_ *struct{}, out *float64) error {
+	*out = time.Since(r.node.startedAt).Seconds()
+	return nil
+}
+
+/*
+	<<< APP LOGS >>>
+*/
+
+// AppLogsRequest represents a LogSince method request
+type AppLogsRequest struct {
+	// TimeStamp should be time.RFC3339Nano formated
+	TimeStamp time.Time `json:"time_stamp"`
+	// AppName should match the app name in visor config
+	AppName string `json:"app_name"`
+}
+
+// LogsSince returns all logs from an specific app since the timestamp
+func (r *RPC) LogsSince(in *AppLogsRequest, out *[]string) error {
+	ls, err := app.NewLogStore(filepath.Join(r.node.dir(), in.AppName), in.AppName, "bbolt")
+	if err != nil {
+		return err
+	}
+
+	res, err := ls.LogsSince(in.TimeStamp)
+	if err != nil {
+		return err
+	}
+
+	*out = res
+	return nil
 }
 
 /*
@@ -78,7 +152,7 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 	var summaries []*TransportSummary
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
 		summaries = append(summaries,
-			newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp)))
+			newTransportSummary(r.node.tm, tp, false, r.node.router.SetupIsTrusted(tp.Remote())))
 		return true
 	})
 	*out = Summary{
@@ -90,6 +164,13 @@ func (r *RPC) Summary(_ *struct{}, out *Summary) error {
 		RoutesCount:     r.node.rt.Count(),
 	}
 	return nil
+}
+
+// Exec executes a given command in cmd and writes its output to out.
+func (r *RPC) Exec(cmd *string, out *[]byte) error {
+	var err error
+	*out, err = r.node.Exec(*cmd)
+	return err
 }
 
 /*
@@ -129,7 +210,7 @@ func (r *RPC) SetAutoStart(in *SetAutoStartIn, _ *struct{}) error {
 
 // TransportTypes lists all transport types supported by the Node.
 func (r *RPC) TransportTypes(_ *struct{}, out *[]string) error {
-	*out = r.node.tm.Factories()
+	*out = r.node.tm.Networks()
 	return nil
 }
 
@@ -166,7 +247,7 @@ func (r *RPC) Transports(in *TransportsIn, out *[]*TransportSummary) error {
 	}
 	r.node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
 		if typeIncluded(tp.Type()) && pkIncluded(r.node.tm.Local(), tp.Remote()) {
-			*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs, r.node.router.IsSetupTransport(tp)))
+			*out = append(*out, newTransportSummary(r.node.tm, tp, in.ShowLogs, r.node.router.SetupIsTrusted(tp.Remote())))
 		}
 		return true
 	})
@@ -179,7 +260,7 @@ func (r *RPC) Transport(in *uuid.UUID, out *TransportSummary) error {
 	if tp == nil {
 		return ErrNotFound
 	}
-	*out = *newTransportSummary(r.node.tm, tp, true, r.node.router.IsSetupTransport(tp))
+	*out = *newTransportSummary(r.node.tm, tp, true, r.node.router.SetupIsTrusted(tp.Remote()))
 	return nil
 }
 
@@ -204,7 +285,7 @@ func (r *RPC) AddTransport(in *AddTransportIn, out *TransportSummary) error {
 	if err != nil {
 		return err
 	}
-	*out = *newTransportSummary(r.node.tm, tp, false, r.node.router.IsSetupTransport(tp))
+	*out = *newTransportSummary(r.node.tm, tp, false, r.node.router.SetupIsTrusted(tp.Remote()))
 	return nil
 }
 

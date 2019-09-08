@@ -20,7 +20,7 @@ func (f Frame) String() string {
 	case FrameCreateLoop:
 		return "CreateLoop"
 	case FrameConfirmLoop:
-		return "ConfirmLoop"
+		return "OnConfirmLoop"
 	case FrameSend:
 		return "Send"
 	case FrameClose:
@@ -35,7 +35,7 @@ const (
 	FrameInit Frame = iota
 	// FrameCreateLoop represents CreateLoop request frame type.
 	FrameCreateLoop
-	// FrameConfirmLoop represents ConfirmLoop request frame type.
+	// FrameConfirmLoop represents OnConfirmLoop request frame type.
 	FrameConfirmLoop
 	// FrameSend represents Send frame type.
 	FrameSend

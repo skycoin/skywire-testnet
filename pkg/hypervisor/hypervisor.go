@@ -20,13 +20,15 @@ import (
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/httputil"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/visor"
 )
 
 var (
-	log = logging.MustGetLogger("hypervisor")
+	log           = logging.MustGetLogger("hypervisor")
+	healthTimeout = 5 * time.Second
 )
 
 type appNodeConn struct {
@@ -66,12 +68,12 @@ func (m *Node) ServeRPC(lis net.Listener) error {
 			return err
 		}
 		addr := conn.RemoteAddr().(*noise.Addr)
-		m.mu.RLock()
+		m.mu.Lock()
 		m.nodes[addr.PK] = appNodeConn{
 			Addr:   addr,
 			Client: visor.NewRPCClient(rpc.NewClient(conn), visor.RPCPrefix),
 		}
-		m.mu.RUnlock()
+		m.mu.Unlock()
 	}
 }
 
@@ -129,11 +131,15 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 			r.Get("/user", m.users.UserInfo())
 			r.Post("/change-password", m.users.ChangePassword())
+			r.Post("/exec/{pk}", m.exec())
 			r.Get("/nodes", m.getNodes())
+			r.Get("/nodes/{pk}/health", m.getHealth())
+			r.Get("/nodes/{pk}/uptime", m.getUptime())
 			r.Get("/nodes/{pk}", m.getNode())
 			r.Get("/nodes/{pk}/apps", m.getApps())
 			r.Get("/nodes/{pk}/apps/{app}", m.getApp())
 			r.Put("/nodes/{pk}/apps/{app}", m.putApp())
+			r.Get("/nodes/{pk}/apps/{app}/logs", m.appLogsSince())
 			r.Get("/nodes/{pk}/transport-types", m.getTransportTypes())
 			r.Get("/nodes/{pk}/transports", m.getTransports())
 			r.Post("/nodes/{pk}/transports", m.postTransport())
@@ -148,6 +154,79 @@ func (m *Node) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		})
 	})
 	r.ServeHTTP(w, req)
+}
+
+// VisorHealth represents a node's health report attached to hypervisor to visor request status
+type VisorHealth struct {
+	Status int `json:"status"`
+	*visor.HealthInfo
+}
+
+// provides summary of health information for every visor
+func (m *Node) getHealth() http.HandlerFunc {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		vh := &VisorHealth{}
+
+		type healthRes struct {
+			h   *visor.HealthInfo
+			err error
+		}
+
+		resCh := make(chan healthRes)
+		tCh := time.After(healthTimeout)
+		go func() {
+			hi, err := ctx.RPC.Health()
+			resCh <- healthRes{hi, err}
+		}()
+		select {
+		case res := <-resCh:
+			if res.err != nil {
+				vh.Status = http.StatusInternalServerError
+			} else {
+				vh.HealthInfo = res.h
+				vh.Status = http.StatusOK
+			}
+			httputil.WriteJSON(w, r, http.StatusOK, vh)
+		case <-tCh:
+			httputil.WriteJSON(w, r, http.StatusRequestTimeout, &VisorHealth{Status: http.StatusRequestTimeout})
+		}
+	})
+}
+
+// getUptime gets given node's uptime
+func (m *Node) getUptime() http.HandlerFunc {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		u, err := ctx.RPC.Uptime()
+		if err != nil {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		httputil.WriteJSON(w, r, http.StatusOK, u)
+	})
+}
+
+// executes a command and returns its output
+func (m *Node) exec() http.HandlerFunc {
+	return m.withCtx(m.nodeCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		var reqBody struct {
+			Command string `json:"command"`
+		}
+		if err := httputil.ReadJSON(r, &reqBody); err != nil {
+			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		out, err := ctx.RPC.Exec(reqBody.Command)
+		if err != nil {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		output := struct {
+			Output string `json:"output"`
+		}{string(out)}
+		httputil.WriteJSON(w, r, http.StatusOK, output)
+	})
 }
 
 type summaryResp struct {
@@ -247,6 +326,39 @@ func (m *Node) putApp() http.HandlerFunc {
 			}
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, ctx.App)
+	})
+}
+
+// LogsRes parses logs as json, along with the last obtained timestamp for use on subsequent requests
+type LogsRes struct {
+	LastLogTimestamp string   `json:"last_log_timestamp"`
+	Logs             []string `json:"logs"`
+}
+
+func (m *Node) appLogsSince() http.HandlerFunc {
+	return m.withCtx(m.appCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
+		since := r.URL.Query().Get("since")
+
+		// if time is not parseable or empty default to return all logs
+		t, err := time.Parse(time.RFC3339Nano, since)
+		if err != nil {
+			t = time.Unix(0, 0)
+		}
+		logs, err := ctx.RPC.LogsSince(t, ctx.App.Name)
+		if err != nil {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		if len(logs) == 0 {
+			httputil.WriteJSON(w, r, http.StatusInternalServerError, fmt.Errorf("no new available logs"))
+			return
+		}
+
+		httputil.WriteJSON(w, r, http.StatusOK, &LogsRes{
+			LastLogTimestamp: app.TimestampFromLog(logs[len(logs)-1]),
+			Logs:             logs,
+		})
 	})
 }
 

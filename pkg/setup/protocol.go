@@ -24,15 +24,17 @@ func (sp PacketType) String() string {
 	case PacketCreateLoop:
 		return "CreateLoop"
 	case PacketConfirmLoop:
-		return "ConfirmLoop"
+		return "OnConfirmLoop"
 	case PacketCloseLoop:
 		return "CloseLoop"
 	case PacketLoopClosed:
-		return "LoopClosed"
+		return "OnLoopClosed"
 	case RespSuccess:
 		return "Success"
 	case RespFailure:
 		return "Failure"
+	case PacketRequestRouteID:
+		return "RequestRouteIDs"
 	}
 	return fmt.Sprintf("Unknown(%d)", sp)
 }
@@ -44,12 +46,14 @@ const (
 	PacketDeleteRules
 	// PacketCreateLoop represents CreateLoop foundation packet.
 	PacketCreateLoop
-	// PacketConfirmLoop represents ConfirmLoop foundation packet.
+	// PacketConfirmLoop represents OnConfirmLoop foundation packet.
 	PacketConfirmLoop
 	// PacketCloseLoop represents CloseLoop foundation packet.
 	PacketCloseLoop
-	// PacketLoopClosed represents LoopClosed foundation packet.
+	// PacketLoopClosed represents OnLoopClosed foundation packet.
 	PacketLoopClosed
+	// PacketRequestRouteID represents RequestRouteIDs foundation packet.
+	PacketRequestRouteID
 
 	// RespFailure represents failure response for a foundation packet.
 	RespFailure = 0xfe
@@ -59,23 +63,23 @@ const (
 
 // Protocol defines routes setup protocol.
 type Protocol struct {
-	rw io.ReadWriter
+	rwc io.ReadWriteCloser
 }
 
 // NewSetupProtocol constructs a new setup Protocol.
-func NewSetupProtocol(rw io.ReadWriter) *Protocol {
-	return &Protocol{rw}
+func NewSetupProtocol(rwc io.ReadWriteCloser) *Protocol {
+	return &Protocol{rwc}
 }
 
 // ReadPacket reads a single setup packet.
 func (p *Protocol) ReadPacket() (PacketType, []byte, error) {
 	h := make([]byte, 3)
-	if _, err := io.ReadFull(p.rw, h); err != nil {
+	if _, err := io.ReadFull(p.rwc, h); err != nil {
 		return 0, nil, err
 	}
 	t := PacketType(h[0])
 	pay := make([]byte, binary.BigEndian.Uint16(h[1:3]))
-	if _, err := io.ReadFull(p.rw, pay); err != nil {
+	if _, err := io.ReadFull(p.rwc, pay); err != nil {
 		return 0, nil, err
 	}
 	if len(pay) == 0 {
@@ -96,23 +100,40 @@ func (p *Protocol) WritePacket(t PacketType, body interface{}) error {
 	raw[0] = byte(t)
 	binary.BigEndian.PutUint16(raw[1:3], uint16(len(pay)))
 	copy(raw[3:], pay)
-	_, err = p.rw.Write(raw)
+	_, err = p.rwc.Write(raw)
 	return err
 }
 
-// AddRule sends AddRule setup request.
-func AddRule(ctx context.Context, p *Protocol, rule routing.Rule) (routeID routing.RouteID, err error) {
-	if err = p.WritePacket(PacketAddRules, []routing.Rule{rule}); err != nil {
-		return 0, err
+// Close closes the underlying `ReadWriteCloser`.
+func (p *Protocol) Close() error {
+	if err := p.rwc.Close(); err != nil {
+		return fmt.Errorf("failed to close transport: %v", err)
+	}
+
+	return nil
+}
+
+// RequestRouteIDs sends RequestRouteIDs request.
+func RequestRouteIDs(ctx context.Context, p *Protocol, n uint8) ([]routing.RouteID, error) {
+	if err := p.WritePacket(PacketRequestRouteID, n); err != nil {
+		return nil, err
 	}
 	var res []routing.RouteID
-	if err = readAndDecodePacketWithTimeout(ctx, p, &res); err != nil {
-		return 0, err
+	if err := readAndDecodePacketWithTimeout(ctx, p, &res); err != nil {
+		return nil, err
 	}
-	if len(res) == 0 {
-		return 0, errors.New("empty response")
+	if len(res) != int(n) {
+		return nil, errors.New("invalid response: wrong number of routeIDs")
 	}
-	return res[0], nil
+	return res, nil
+}
+
+// AddRules sends AddRule setup request.
+func AddRules(ctx context.Context, p *Protocol, rules []routing.Rule) error {
+	if err := p.WritePacket(PacketAddRules, rules); err != nil {
+		return err
+	}
+	return readAndDecodePacketWithTimeout(ctx, p, nil)
 }
 
 // DeleteRule sends DeleteRule setup request.
@@ -138,7 +159,7 @@ func CreateLoop(ctx context.Context, p *Protocol, ld routing.LoopDescriptor) err
 	return readAndDecodePacketWithTimeout(ctx, p, nil) // TODO: data race.
 }
 
-// ConfirmLoop sends ConfirmLoop setup request.
+// ConfirmLoop sends OnConfirmLoop setup request.
 func ConfirmLoop(ctx context.Context, p *Protocol, ld routing.LoopData) error {
 	if err := p.WritePacket(PacketConfirmLoop, ld); err != nil {
 		return err
@@ -176,6 +197,9 @@ func readAndDecodePacketWithTimeout(ctx context.Context, p *Protocol, v interfac
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-done:
+		if err == io.ErrClosedPipe {
+			return nil
+		}
 		return err
 	}
 }

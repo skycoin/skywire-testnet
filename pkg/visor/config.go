@@ -14,7 +14,6 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
 	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
 )
 
 // Config defines configuration parameters for Node.
@@ -25,6 +24,11 @@ type Config struct {
 		StaticPubKey cipher.PubKey `json:"static_public_key"`
 		StaticSecKey cipher.SecKey `json:"static_secret_key"`
 	} `json:"node"`
+
+	TCPTransport struct {
+		PubKeyTable map[cipher.PubKey]string `json:"pk_table"`
+		LocalAddr   string                   `json:"local_address"`
+	} `json:"stcp"`
 
 	Messaging struct {
 		Discovery   string `json:"discovery"`
@@ -49,6 +53,10 @@ type Config struct {
 		} `json:"table"`
 	} `json:"routing"`
 
+	Uptime struct {
+		Tracker string `json:"tracker"`
+	} `json:"uptime"`
+
 	Apps []AppConfig `json:"apps"`
 
 	TrustedNodes []cipher.PubKey    `json:"trusted_nodes"`
@@ -64,15 +72,14 @@ type Config struct {
 }
 
 // MessagingConfig returns config for dmsg client.
-func (c *Config) MessagingConfig() (*dmsg.Config, error) {
-
+func (c *Config) MessagingConfig() (*DmsgConfig, error) {
 	msgConfig := c.Messaging
 
 	if msgConfig.Discovery == "" {
 		return nil, errors.New("empty discovery")
 	}
 
-	return &dmsg.Config{
+	return &DmsgConfig{
 		PubKey:     c.Node.StaticPubKey,
 		SecKey:     c.Node.StaticSecKey,
 		Discovery:  disc.NewHTTP(msgConfig.Discovery),
@@ -158,10 +165,19 @@ func ensureDir(path string) (string, error) {
 	return absPath, nil
 }
 
-// HypervisorConfig represents a connection to a hypervisor.
+// HypervisorConfig represents hypervisor configuration.
 type HypervisorConfig struct {
 	PubKey cipher.PubKey `json:"public_key"`
 	Addr   string        `json:"address"`
+}
+
+// DmsgConfig represents dmsg configuration.
+type DmsgConfig struct {
+	PubKey     cipher.PubKey
+	SecKey     cipher.SecKey
+	Discovery  disc.APIClient
+	Retries    int
+	RetryDelay time.Duration
 }
 
 // AppConfig defines app startup parameters.

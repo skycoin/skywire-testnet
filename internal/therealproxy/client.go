@@ -9,7 +9,8 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
-var log = logging.MustGetLogger("therealproxy")
+// Log is therealproxy package level logger, it can be replaced with a different one from outside the package
+var Log = logging.MustGetLogger("therealproxy")
 
 // Client implement multiplexing proxy client using yamux.
 type Client struct {
@@ -64,14 +65,14 @@ func (c *Client) ListenAndServe(addr string) error {
 
 			for err := range errCh {
 				if err := conn.Close(); err != nil {
-					log.WithError(err).Warn("Failed to close connection")
+					Log.WithError(err).Warn("Failed to close connection")
 				}
 				if err := stream.Close(); err != nil {
-					log.WithError(err).Warn("Failed to close stream")
+					Log.WithError(err).Warn("Failed to close stream")
 				}
 
 				if err != nil {
-					log.Error("Copy error:", err)
+					Log.Error("Copy error:", err)
 				}
 			}
 		}()
