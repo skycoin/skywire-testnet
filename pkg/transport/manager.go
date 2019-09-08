@@ -116,27 +116,6 @@ func (tm *Manager) serve(ctx context.Context) {
 	}
 }
 
-// TODO(nkryuchkov): either use or remove if unused
-// func (tm *Manager) initTransports(ctx context.Context) {
-// 	tm.mx.Lock()
-// 	defer tm.mx.Unlock()
-//
-// 	entries, err := tm.conf.DiscoveryClient.GetTransportsByEdge(ctx, tm.conf.PubKey)
-// 	if err != nil {
-// 		log.Warnf("No transports found for local node: %v", err)
-// 	}
-// 	for _, entry := range entries {
-// 		var (
-// 			tpType = entry.Entry.Type
-// 			remote = entry.Entry.RemoteEdge(tm.conf.PubKey)
-// 			tpID   = entry.Entry.ID
-// 		)
-// 		if _, err := tm.saveTransport(remote, tpType); err != nil {
-// 			tm.Logger.Warnf("INIT: failed to init tp: type(%s) remote(%s) tpID(%s)", tpType, remote, tpID)
-// 		}
-// 	}
-// }
-
 func (tm *Manager) acceptTransport(ctx context.Context, lis *snet.Listener) error {
 	conn, err := lis.AcceptConn() // TODO: tcp panic.
 	if err != nil {

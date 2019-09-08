@@ -108,6 +108,7 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet, done <-chan stru
 		mt.connMx.Unlock()
 	}()
 
+	// Read loop.
 	go func() {
 		defer func() {
 			mt.log.Infof("closed readPacket loop.")
@@ -133,6 +134,7 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet, done <-chan stru
 		}
 	}()
 
+	// Redial loop.
 	for {
 		select {
 		case <-mt.done:
@@ -225,7 +227,6 @@ func (mt *ManagedTransport) Dial(ctx context.Context) error {
 	return mt.dial(ctx)
 }
 
-// TODO: Figure out where this fella is called.
 func (mt *ManagedTransport) dial(ctx context.Context) error {
 	tp, err := mt.n.Dial(mt.netName, mt.rPK, snet.TransportPort)
 	if err != nil {
