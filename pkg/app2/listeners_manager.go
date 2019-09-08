@@ -4,18 +4,22 @@ import (
 	"net"
 	"sync"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
 	"github.com/pkg/errors"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
 var (
-	ErrPortAlreadyBound = errors.New("port is already bound")
-	ErrNoListenerOnPort = errors.New("no listener on port")
+	ErrPortAlreadyBound               = errors.New("port is already bound")
+	ErrNoListenerOnPort               = errors.New("no listener on port")
+	ErrListenersManagerAlreadyServing = errors.New("listeners manager already serving")
 )
 
 type listenersManager struct {
 	listeners map[routing.Port]*Listener
 	mx        sync.RWMutex
+	isServing int32
 }
 
 func newListenersManager() *listenersManager {
@@ -31,15 +35,16 @@ func (lm *listenersManager) portIsBound(port routing.Port) bool {
 	return ok
 }
 
-func (lm *listenersManager) add(port routing.Port, l *Listener) error {
+func (lm *listenersManager) add(addr routing.Addr, stopListening func(port routing.Port) error, logger *logging.Logger) (*Listener, error) {
 	lm.mx.Lock()
-	if _, ok := lm.listeners[port]; ok {
+	if _, ok := lm.listeners[addr.Port]; ok {
 		lm.mx.Unlock()
-		return ErrPortAlreadyBound
+		return nil, ErrPortAlreadyBound
 	}
-	lm.listeners[port] = l
+	l := NewListener(addr, lm, stopListening, logger)
+	lm.listeners[addr.Port] = l
 	lm.mx.Unlock()
-	return nil
+	return l, nil
 }
 
 func (lm *listenersManager) remove(port routing.Port) error {

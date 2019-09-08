@@ -24,6 +24,7 @@ const (
 	HSFrameTypeDMSGListening
 	HSFrameTypeDMSGDial
 	HSFrameTypeDMSGAccept
+	HSFrameTypeStopListening
 )
 
 // HSFrame is the data unit for socket connection handshakes between Server and Client.
@@ -80,6 +81,15 @@ func NewHSFrameDMSGAccept(procID ProcID, loop routing.Loop) HSFrame {
 
 	copy(hsFrame[HSFrameHeaderLen+HSFramePKLen+HSFramePortLen:], loop.Remote.PubKey[:])
 	binary.BigEndian.PutUint16(hsFrame[HSFrameHeaderLen+2*HSFramePKLen+HSFramePortLen:], uint16(loop.Remote.Port))
+
+	return hsFrame
+}
+
+func NewHSFrameDMSGStopListening(procID ProcID, local routing.Addr) HSFrame {
+	hsFrame := newHSFrame(procID, HSFrameTypeDMSGListen, HSFramePKLen+HSFramePortLen)
+
+	copy(hsFrame[HSFrameHeaderLen:], local.PubKey[:])
+	binary.BigEndian.PutUint16(hsFrame[HSFrameHeaderLen+HSFramePKLen:], uint16(local.Port))
 
 	return hsFrame
 }

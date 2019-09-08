@@ -3,6 +3,7 @@ package app2
 import (
 	"encoding/binary"
 	"net"
+	"sync/atomic"
 
 	"github.com/hashicorp/yamux"
 
@@ -20,20 +21,21 @@ var (
 
 // Client is used by skywire apps.
 type Client struct {
-	PK       cipher.PubKey
-	pid      ProcID
-	sockAddr string
-	conn     net.Conn
-	session  *yamux.Session
-	logger   *logging.Logger
-	lm       *listenersManager
+	PK          cipher.PubKey
+	pid         ProcID
+	sockAddr    string
+	conn        net.Conn
+	session     *yamux.Session
+	logger      *logging.Logger
+	lm          *listenersManager
+	isListening int32
 }
 
 // NewClient creates a new Client. The Client needs to be provided with:
 // - localPK: The local public key of the parent skywire visor.
 // - pid: The procID assigned for the process that Client is being used by.
 // - sockAddr: The socket address to connect to Server.
-func NewClient(localPK cipher.PubKey, pid ProcID, sockAddr string) (*Client, error) {
+func NewClient(localPK cipher.PubKey, pid ProcID, sockAddr string, l *logging.Logger) (*Client, error) {
 	conn, err := net.Dial("unix", sockAddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "error connecting app server")
@@ -44,13 +46,15 @@ func NewClient(localPK cipher.PubKey, pid ProcID, sockAddr string) (*Client, err
 		return nil, errors.Wrap(err, "error opening yamux session")
 	}
 
+	lm := newListenersManager()
+
 	return &Client{
 		PK:       localPK,
 		pid:      pid,
 		sockAddr: sockAddr,
 		conn:     conn,
 		session:  session,
-		lm:       newListenersManager(),
+		lm:       lm,
 	}, nil
 }
 
@@ -112,12 +116,15 @@ func (c *Client) Listen(port routing.Port) (*Listener, error) {
 		return nil, ErrWrongHSFrameTypeReceived
 	}
 
-	l := NewListener(addr, c.lm)
-	if err := c.lm.add(port, l); err != nil {
-		return nil, err
+	if atomic.CompareAndSwapInt32(&c.isListening, 0, 1) {
+		go func() {
+			if err := c.listen(); err != nil {
+				c.logger.WithError(err).Error("error listening")
+			}
+		}()
 	}
 
-	return l, nil
+	return c.lm.add(addr, c.stopListening, c.logger)
 }
 
 func (c *Client) listen() error {
@@ -145,4 +152,27 @@ func (c *Client) listen() error {
 			continue
 		}
 	}
+}
+
+func (c *Client) stopListening(port routing.Port) error {
+	stream, err := c.session.Open()
+	if err != nil {
+		return errors.Wrap(err, "error opening stream")
+	}
+
+	addr := routing.Addr{
+		PubKey: c.PK,
+		Port:   port,
+	}
+
+	hsFrame := NewHSFrameDMSGStopListening(c.pid, addr)
+	if _, err := stream.Write(hsFrame); err != nil {
+		return errors.Wrap(err, "error writing HS frame")
+	}
+
+	if err := stream.Close(); err != nil {
+		return errors.Wrap(err, "error closing stream")
+	}
+
+	return nil
 }

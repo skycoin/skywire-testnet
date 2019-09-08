@@ -6,6 +6,10 @@ import (
 	"net"
 	"sync"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/hashicorp/yamux"
+
 	"github.com/skycoin/dmsg"
 
 	"github.com/skycoin/skywire/pkg/routing"
@@ -15,18 +19,28 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 )
 
+type clientConn struct {
+	conn    net.Conn
+	session *yamux.Session
+	lm      *listenersManager
+	dmsgL   *dmsg.Listener
+}
+
 // Server is used by skywire visor.
 type Server struct {
 	PK     cipher.PubKey
 	dmsgC  *dmsg.Client
-	apps   map[string]net.Conn
+	apps   map[string]*clientConn
 	appsMx sync.Mutex
+	logger *logging.Logger
 }
 
-func NewServer(localPK cipher.PubKey, dmsgC *dmsg.Client) *Server {
+func NewServer(localPK cipher.PubKey, dmsgC *dmsg.Client, l *logging.Logger) *Server {
 	return &Server{
-		PK:    localPK,
-		dmsgC: dmsgC,
+		PK:     localPK,
+		dmsgC:  dmsgC,
+		apps:   make(map[string]*clientConn),
+		logger: l,
 	}
 }
 
@@ -39,22 +53,40 @@ func (s *Server) Serve(sockAddr string) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "error accepting client connection")
 		}
 
 		s.appsMx.Lock()
-		s.apps[conn.RemoteAddr().String()] = conn
+		if _, ok := s.apps[conn.RemoteAddr().String()]; ok {
+			s.logger.WithError(ErrPortAlreadyBound).Error("error storing session")
+		}
+
+		session, err := yamux.Server(conn, nil)
+		if err != nil {
+			return errors.Wrap(err, "error creating yamux session")
+		}
+
+		s.apps[conn.RemoteAddr().String()] = &clientConn{
+			session: session,
+			conn:    conn,
+			lm:      newListenersManager(),
+		}
 		s.appsMx.Unlock()
 
 		// TODO: handle error
-		go s.serveConn(conn)
+		go s.serveClient(session)
 	}
 }
 
-func (s *Server) serveConn(conn net.Conn) error {
-	var hsFinished bool
-
+func (s *Server) serveClient(session *yamux.Session) error {
 	for {
+		stream, err := session.Accept()
+		if err != nil {
+			return errors.Wrap(err, "error opening stream")
+		}
+
+		go s.serveStream(stream)
+
 		hsFrame, err := readHSFrame(conn)
 		if err != nil {
 			return errors.Wrap(err, "error reading HS frame")
@@ -74,6 +106,36 @@ func (s *Server) serveConn(conn net.Conn) error {
 				PubKey: cipher.PubKey(pk),
 				Port:   0,
 			})
+		}
+	}
+}
+
+func (s *Server) serveStream(stream net.Conn) error {
+	for {
+		hsFrame, err := readHSFrame(stream)
+		if err != nil {
+			return errors.Wrap(err, "error reading HS frame")
+		}
+
+		switch hsFrame.FrameType() {
+		case HSFrameTypeDMSGListen:
+			var pk cipher.PubKey
+			copy(pk[:], hsFrame[HSFrameHeaderLen:HSFrameHeaderLen+HSFramePKLen])
+			port := binary.BigEndian.Uint16(hsFrame[HSFrameHeaderLen+HSFramePKLen:])
+			dmsgL, err := s.dmsgC.Listen(port)
+			if err != nil {
+				return fmt.Errorf("error listening on port %d: %v", port, err)
+			}
+
+			respHSFrame := NewHSFrameDMSGListening(hsFrame.ProcID(), routing.Addr{
+				PubKey: pk,
+				Port:   routing.Port(port),
+			})
+
+			if _, err := stream.Write(respHSFrame); err != nil {
+				return errors.Wrap(err, "error writing response")
+			}
+
 		}
 	}
 }
