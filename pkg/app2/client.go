@@ -146,9 +146,30 @@ func (c *Client) listen() error {
 		}
 
 		// TODO: handle field get gracefully
-		port := routing.Port(binary.BigEndian.Uint16(hsFrame[HSFrameHeaderLen+HSFramePKLen:]))
-		if err := c.lm.addConn(port, stream); err != nil {
+		remotePort := routing.Port(binary.BigEndian.Uint16(hsFrame[HSFrameHeaderLen+HSFramePKLen*2+HSFramePortLen:]))
+		if err := c.lm.addConn(remotePort, stream); err != nil {
 			c.logger.WithError(err).Error("failed to accept")
+			continue
+		}
+
+		localPort := routing.Port(binary.BigEndian.Uint16(hsFrame[HSFrameHeaderLen+HSFramePKLen:]))
+
+		var localPK cipher.PubKey
+		copy(localPK[:], hsFrame[HSFrameHeaderLen:HSFrameHeaderLen+HSFramePKLen])
+
+		respHSFrame := NewHSFrameDMSGAccept(c.pid, routing.Loop{
+			Local: routing.Addr{
+				PubKey: c.PK,
+				Port:   remotePort,
+			},
+			Remote: routing.Addr{
+				PubKey: localPK,
+				Port:   localPort,
+			},
+		})
+
+		if _, err := stream.Write(respHSFrame); err != nil {
+			c.logger.WithError(err).Error("error responding with DmsgAccept")
 			continue
 		}
 	}

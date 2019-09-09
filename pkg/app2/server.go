@@ -22,6 +22,7 @@ import (
 )
 
 type clientConn struct {
+	procID ProcID
 	conn            net.Conn
 	session         *yamux.Session
 	lm              *listenersManager
@@ -121,6 +122,9 @@ func (s *Server) serveStream(stream net.Conn, conn *clientConn) error {
 		if err != nil {
 			return errors.Wrap(err, "error reading HS frame")
 		}
+
+		// TODO: ensure thread-safety
+		conn.procID = hsFrame.ProcID()
 
 		var respHSFrame HSFrame
 		switch hsFrame.FrameType() {
@@ -223,42 +227,40 @@ func (c *clientConn) addListener(port routing.Port, l *dmsg.Listener) error {
 		return ErrPortAlreadyBound
 	}
 	c.dmsgListeners[port] = l
+	go c.acceptDMSG(l)
 	c.dmsgListenersMx.Unlock()
 	return nil
 }
 
-func (s *Server) handleDMSGListen(frame HSFrame) error {
-	var local routing.Addr
-	if err := frame.UnmarshalBody(&local); err != nil {
-		return errors.Wrap(err, "invalid JSON body")
-	}
+func (c *clientConn) acceptDMSG(l *dmsg.Listener) error {
+	for {
+		stream, err := c.session.Open()
+		if err != nil {
+			return errors.Wrap(err, "error opening yamux stream")
+		}
 
-	// TODO: check `local` for validity
+		remoteAddr, ok := l.Addr().(dmsg.Addr)
+		if !ok {
+			// shouldn't happen, but still
+			return errors.Wrap(err, "wrong type for DMSG addr")
+		}
 
-	dmsgL, err := s.dmsgC.Listen(uint16(local.Port))
-	if err != nil {
-		return fmt.Errorf("error listening on port %d: %v", local.Port, err)
-	}
+		hsFrame := NewHSFrameDSMGDial(c.procID, routing.Loop{
+			Local:  routing.Addr{
+				PubKey: remoteAddr.PK,
+				Port:   routing.Port(remoteAddr.Port),
+			},
+			// TODO: get local addr
+			Remote: routing.Addr{
+				PubKey:
+			},
+		})
 
-}
+		conn, err := l.Accept()
+		if err != nil {
+			return errors.Wrap(err, "error accepting DMSG conn")
+		}
 
-func (s *Server) handleDMSGListening(frame HSFrame) error {
-	var local routing.Addr
-	if err := frame.UnmarshalBody(&local); err != nil {
-		return errors.Wrap(err, "invalid JSON body")
-	}
-}
 
-func (s *Server) handleDMSGDial(frame HSFrame) error {
-	var loop routing.Loop
-	if err := frame.UnmarshalBody(&loop); err != nil {
-		return errors.Wrap(err, "invalid JSON body")
-	}
-}
-
-func (s *Server) handleDMSGAccept(frame HSFrame) error {
-	var loop routing.Loop
-	if err := frame.UnmarshalBody(&loop); err != nil {
-		return errors.Wrap(err, "invalid JSON body")
 	}
 }

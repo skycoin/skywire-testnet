@@ -17,21 +17,33 @@ var (
 	ErrListenerClosed = errors.New("listener closed")
 )
 
+type acceptedConn struct {
+	remote routing.Addr
+	net.Conn
+}
+
+func (c *acceptedConn) Addr() net.Addr {
+	return c.remote
+}
+
 type Listener struct {
 	addr          routing.Addr
-	conns         chan net.Conn
+	conns         chan *acceptedConn
 	stopListening func(port routing.Port) error
 	logger        *logging.Logger
 	lm            *listenersManager
+	procID        ProcID
 }
 
-func NewListener(addr routing.Addr, lm *listenersManager, stopListening func(port routing.Port) error, l *logging.Logger) *Listener {
+func NewListener(addr routing.Addr, lm *listenersManager, procID ProcID,
+	stopListening func(port routing.Port) error, l *logging.Logger) *Listener {
 	return &Listener{
 		addr:          addr,
-		conns:         make(chan net.Conn, listenerBufSize),
+		conns:         make(chan *acceptedConn, listenerBufSize),
 		lm:            lm,
 		stopListening: stopListening,
 		logger:        l,
+		procID:        procID,
 	}
 }
 
@@ -39,6 +51,15 @@ func (l *Listener) Accept() (net.Conn, error) {
 	conn, ok := <-l.conns
 	if !ok {
 		return nil, ErrListenerClosed
+	}
+
+	hsFrame := NewHSFrameDMSGAccept(l.procID, routing.Loop{
+		Local:  l.addr,
+		Remote: conn.remote,
+	})
+
+	if _, err := conn.Write(hsFrame); err != nil {
+		return nil, err
 	}
 
 	return conn, nil
@@ -62,6 +83,6 @@ func (l *Listener) Addr() net.Addr {
 	return l.addr
 }
 
-func (l *Listener) addConn(conn net.Conn) {
+func (l *Listener) addConn(conn *acceptedConn) {
 	l.conns <- conn
 }
