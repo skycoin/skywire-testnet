@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -65,7 +66,23 @@ var rootCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalln("Failed to parse rpc port from rpc address:", err)
 			}
-			l, err := m.Network.Listen(snet.DmsgType, rpcPort)
+
+			dmsgConf := snet.Config{
+				PubKey:     config.PK,
+				SecKey:     config.SK,
+				TpNetworks: []string{snet.DmsgType},
+
+				DmsgDiscAddr: config.DmsgDiscovery,
+				DmsgMinSrvs:  1,
+			}
+
+			network := snet.New(dmsgConf)
+
+			ctx := context.Background()
+			if err := network.Init(ctx); err != nil {
+				log.Fatalln("failed to init network: %v", err)
+			}
+			l, err := network.Listen(snet.DmsgType, rpcPort)
 			if err != nil {
 				log.Fatalln("Failed to bind tcp port:", err)
 			}

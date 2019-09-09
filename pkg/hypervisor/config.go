@@ -37,13 +37,13 @@ func (hk *Key) UnmarshalText(text []byte) error {
 
 // Config configures the hypervisor.
 type Config struct {
-	PK                 cipher.PubKey   `json:"public_key"`
-	SK                 cipher.SecKey   `json:"secret_key"`
-	DBPath             string          `json:"db_path"`             // Path to store database file.
-	EnableAuth         bool            `json:"enable_auth"`         // Whether to enable user management.
-	Cookies            CookieConfig    `json:"cookies"`             // Configures cookies (for session management).
-	Interfaces         InterfaceConfig `json:"interfaces"`          // Configures exposed interfaces.
-	MessagingDiscovery string          `json:"messaging_discovery"` // MessagingDiscovery address for dmsg usage
+	PK            cipher.PubKey   `json:"public_key"`
+	SK            cipher.SecKey   `json:"secret_key"`
+	DBPath        string          `json:"db_path"`        // Path to store database file.
+	EnableAuth    bool            `json:"enable_auth"`    // Whether to enable user management.
+	Cookies       CookieConfig    `json:"cookies"`        // Configures cookies (for session management).
+	Interfaces    InterfaceConfig `json:"interfaces"`     // Configures exposed interfaces.
+	DmsgDiscovery string          `json:"dmsg_discovery"` // DmsgDiscovery address for dmsg usage
 }
 
 func makeConfig() Config {

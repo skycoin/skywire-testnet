@@ -2,7 +2,6 @@
 package hypervisor
 
 import (
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -39,47 +38,31 @@ type appNodeConn struct {
 
 // Node manages AppNodes.
 type Node struct {
-	c       Config
-	nodes   map[cipher.PubKey]appNodeConn // connected remote nodes.
-	users   *UserManager
-	mu      *sync.RWMutex
-	Network *snet.Network
+	c     Config
+	nodes map[cipher.PubKey]appNodeConn // connected remote nodes.
+	users *UserManager
+	mu    *sync.RWMutex
 }
 
 // NewNode creates a new Node.
 func NewNode(config Config) (*Node, error) {
-	ctx := context.Background()
-
 	boltUserDB, err := NewBoltUserStore(config.DBPath)
 	if err != nil {
 		return nil, err
 	}
 	singleUserDB := NewSingleUserStore("admin", boltUserDB)
-	dmsgConf := snet.Config{
-		PubKey:     config.PK,
-		SecKey:     config.SK,
-		TpNetworks: []string{snet.DmsgType},
-
-		DmsgDiscAddr: config.MessagingDiscovery,
-		DmsgMinSrvs:  1,
-	}
-
-	network := snet.New(dmsgConf)
-	if err := network.Init(ctx); err != nil {
-		return nil, fmt.Errorf("failed to init network: %v", err)
-	}
 
 	return &Node{
-		c:       config,
-		nodes:   make(map[cipher.PubKey]appNodeConn),
-		users:   NewUserManager(singleUserDB, config.Cookies),
-		mu:      new(sync.RWMutex),
-		Network: network,
+		c:     config,
+		nodes: make(map[cipher.PubKey]appNodeConn),
+		users: NewUserManager(singleUserDB, config.Cookies),
+		mu:    new(sync.RWMutex),
 	}, nil
 }
 
 // ServeRPC serves RPC of a Node.
 func (m *Node) ServeRPC(lis *snet.Listener) error {
+
 	for {
 		conn, err := lis.AcceptConn()
 		if err != nil {
