@@ -416,7 +416,7 @@ func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing
 	defer timer.Stop()
 
 fetchRoutesAgain:
-	fwdRoutes, revRoutes, err := r.conf.RouteFinder.PairedRoutes(source, destination, minHops, maxHops)
+	fwdRoutes, err := r.conf.RouteFinder.FindRoutes(source, destination, minHops, maxHops)
 	if err != nil {
 		select {
 		case <-timer.C:

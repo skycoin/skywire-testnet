@@ -21,18 +21,15 @@ const defaultContextTimeout = 10 * time.Second
 
 var log = logging.MustGetLogger("route-finder")
 
-// GetRoutesRequest parses json body for /routes endpoint request
-type GetRoutesRequest struct {
-	SrcPK   cipher.PubKey `json:"src_pk,omitempty"`
-	DstPK   cipher.PubKey `json:"dst_pk,omitempty"`
-	MinHops uint16        `json:"min_hops,omitempty"`
-	MaxHops uint16        `json:"max_hops,omitempty"`
+type RouteOptions struct {
+	MinHops uint16
+	MaxHops uint16
 }
 
-// GetRoutesResponse encodes the json body of /routes response
-type GetRoutesResponse struct {
-	Forward []routing.Route `json:"forward"`
-	Reverse []routing.Route `json:"response"`
+// GetRoutesRequest parses json body for /routes endpoint request
+type FindRoutesRequest struct {
+	Edges [][2]cipher.PubKey
+	Opts  *RouteOptions
 }
 
 // HTTPResponse represents http response struct
@@ -49,7 +46,7 @@ type HTTPError struct {
 
 // Client implements route finding operations.
 type Client interface {
-	PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops uint16) ([]routing.Route, []routing.Route, error)
+	FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts *RouteOptions) ([][]routing.Route, error)
 }
 
 // APIClient implements Client interface
@@ -72,23 +69,21 @@ func NewHTTP(addr string, apiTimeout time.Duration) Client {
 	}
 }
 
-// PairedRoutes returns routes from source skywire visor to destiny, that has at least the given minHops and as much
-// the given maxHops as well as the reverse routes from destiny to source.
-func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops uint16) ([]routing.Route, []routing.Route, error) {
-	requestBody := &GetRoutesRequest{
-		SrcPK:   source,
-		DstPK:   destiny,
-		MinHops: minHops,
-		MaxHops: maxHops,
+// FindRoutes returns routes from source skywire visor to destiny, that has at least the given minHops and as much
+// the given maxHops.
+func (c *apiClient) FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts *RouteOptions) ([][]routing.Route, error) {
+	requestBody := &FindRoutesRequest{
+		Edges: rts,
+		Opts:  opts,
 	}
 	marshaledBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	req, err := http.NewRequest(http.MethodGet, c.addr+"/routes", bytes.NewBuffer(marshaledBody))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	ctx, cancel := context.WithTimeout(context.Background(), c.apiTimeout)
@@ -104,7 +99,7 @@ func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops
 		}()
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -112,19 +107,19 @@ func (c *apiClient) PairedRoutes(source, destiny cipher.PubKey, minHops, maxHops
 
 		err = json.NewDecoder(res.Body).Decode(&apiErr)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		return nil, nil, errors.New(apiErr.Error.Message)
+		return nil, errors.New(apiErr.Error.Message)
 	}
 
-	var routes GetRoutesResponse
+	var routes [][]routing.Route
 	err = json.NewDecoder(res.Body).Decode(&routes)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return routes.Forward, routes.Reverse, nil
+	return routes, nil
 }
 
 func sanitizedAddr(addr string) string {

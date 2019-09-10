@@ -1,6 +1,8 @@
 package client
 
 import (
+	"context"
+	"fmt"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/routing"
@@ -23,27 +25,24 @@ func (r *mockClient) SetError(err error) {
 	r.err = err
 }
 
-// PairedRoutes implements Client for MockClient
-func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint16) ([]routing.Route, []routing.Route, error) {
+// FindRoutes implements Client for MockClient
+func (r *mockClient) FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts *RouteOptions) ([][]routing.Route, error) {
 	if r.err != nil {
-		return nil, nil, r.err
+		return nil, r.err
 	}
 
-	return []routing.Route{
+	if len(rts) == 0 {
+		return nil, fmt.Errorf("no edges provided to returns routes from")
+	}
+	return [][]routing.Route{
+		{
 			{
 				&routing.Hop{
-					From:      src,
-					To:        dst,
-					Transport: transport.MakeTransportID(src, dst, ""),
+					From:      rts[0][0],
+					To:        rts[0][1],
+					Transport: transport.MakeTransportID(rts[0][0], rts[0][1], ""),
 				},
 			},
-		}, []routing.Route{
-			{
-				&routing.Hop{
-					From:      src,
-					To:        dst,
-					Transport: transport.MakeTransportID(src, dst, ""),
-				},
-			},
-		}, nil
+		},
+	}, nil
 }
