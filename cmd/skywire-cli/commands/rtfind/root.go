@@ -1,6 +1,7 @@
 package rtfind
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -34,10 +35,12 @@ var RootCmd = &cobra.Command{
 		internal.Catch(srcPK.Set(args[0]))
 		internal.Catch(dstPK.Set(args[1]))
 
-		forward, reverse, err := rfc.PairedRoutes(srcPK, dstPK, frMinHops, frMaxHops)
+		ctx := context.Background()
+		routes, err := rfc.FindRoutes(ctx, [][2]cipher.PubKey{{srcPK, dstPK}, {dstPK, srcPK}},
+			&client.RouteOptions{MinHops: frMinHops, MaxHops: frMaxHops})
 		internal.Catch(err)
 
-		fmt.Println("forward: ", forward)
-		fmt.Println("reverse: ", reverse)
+		fmt.Println("forward: ", routes[0][0])
+		fmt.Println("reverse: ", routes[1][0])
 	},
 }

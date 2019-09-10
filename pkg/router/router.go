@@ -416,7 +416,9 @@ func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing
 	defer timer.Stop()
 
 fetchRoutesAgain:
-	fwdRoutes, err := r.conf.RouteFinder.FindRoutes(source, destination, minHops, maxHops)
+	ctx := context.Background()
+	routes, err := r.conf.RouteFinder.FindRoutes(ctx, [][2]cipher.PubKey{{source, destination}, {destination, source}},
+		&routeFinder.RouteOptions{MinHops: minHops, MaxHops: maxHops})
 	if err != nil {
 		select {
 		case <-timer.C:
@@ -426,8 +428,8 @@ fetchRoutesAgain:
 		}
 	}
 
-	r.Logger.Infof("Found routes Forward: %s. Reverse %s", fwdRoutes, revRoutes)
-	return fwdRoutes[0], revRoutes[0], nil
+	r.Logger.Infof("Found routes Forward: %s. Reverse %s", routes[0], routes[1])
+	return routes[0][0], routes[1][0], nil
 }
 
 // SetupIsTrusted checks if setup node is trusted.

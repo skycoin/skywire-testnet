@@ -21,12 +21,13 @@ const defaultContextTimeout = 10 * time.Second
 
 var log = logging.MustGetLogger("route-finder")
 
+// RouteOptions for FindRoutesRequest. If nil MinHops and MaxHops will take default values
 type RouteOptions struct {
 	MinHops uint16
 	MaxHops uint16
 }
 
-// GetRoutesRequest parses json body for /routes endpoint request
+// FindRoutesRequest parses json body for /routes endpoint request
 type FindRoutesRequest struct {
 	Edges [][2]cipher.PubKey
 	Opts  *RouteOptions
