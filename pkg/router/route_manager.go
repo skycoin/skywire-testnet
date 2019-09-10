@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
@@ -19,10 +18,9 @@ import (
 
 // RMConfig represents route manager configuration.
 type RMConfig struct {
-	SetupPKs               []cipher.PubKey // Trusted setup PKs.
-	GarbageCollectDuration time.Duration
-	OnConfirmLoop          func(loop routing.Loop, rule routing.Rule) (err error)
-	OnLoopClosed           func(loop routing.Loop) error
+	SetupPKs      []cipher.PubKey // Trusted setup PKs.
+	OnConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
+	OnLoopClosed  func(loop routing.Loop) error
 }
 
 // SetupIsTrusted checks if setup node is trusted.
@@ -41,7 +39,7 @@ type routeManager struct {
 	conf   RMConfig
 	n      *snet.Network
 	sl     *snet.Listener // Listens for setup node requests.
-	rt     *managedRoutingTable
+	rt     routing.Table
 	done   chan struct{}
 }
 
@@ -56,7 +54,7 @@ func newRouteManager(n *snet.Network, rt routing.Table, config RMConfig) (*route
 		conf:   config,
 		n:      n,
 		sl:     sl,
-		rt:     manageRoutingTable(rt),
+		rt:     rt,
 		done:   make(chan struct{}),
 	}, nil
 }
@@ -69,9 +67,6 @@ func (rm *routeManager) Close() error {
 
 // Serve initiates serving connections by route manager.
 func (rm *routeManager) Serve() {
-	// Routing table garbage collect loop.
-	go rm.rtGarbageCollectLoop()
-
 	// Accept setup node request loop.
 	for {
 		if err := rm.serveConn(); err != nil {
@@ -137,24 +132,6 @@ func (rm *routeManager) handleSetupConn(conn net.Conn) error {
 		return proto.WritePacket(setup.RespFailure, err.Error())
 	}
 	return proto.WritePacket(setup.RespSuccess, respBody)
-}
-
-func (rm *routeManager) rtGarbageCollectLoop() {
-	if rm.conf.GarbageCollectDuration <= 0 {
-		return
-	}
-	ticker := time.NewTicker(rm.conf.GarbageCollectDuration)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-rm.done:
-			return
-		case <-ticker.C:
-			if err := rm.rt.Cleanup(); err != nil {
-				rm.Logger.WithError(err).Warnf("routing table cleanup returned error")
-			}
-		}
-	}
 }
 
 func (rm *routeManager) dialSetupConn(_ context.Context) (*snet.Conn, error) {

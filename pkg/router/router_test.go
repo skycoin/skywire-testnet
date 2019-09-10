@@ -207,14 +207,13 @@ func NewTestEnv(t *testing.T, nets []*snet.Network) *TestEnv {
 
 func (e *TestEnv) GenRouterConfig(i int) *Config {
 	return &Config{
-		Logger:                 logging.MustGetLogger(fmt.Sprintf("router_%d", i)),
-		PubKey:                 e.TpMngrConfs[i].PubKey,
-		SecKey:                 e.TpMngrConfs[i].SecKey,
-		TransportManager:       e.TpMngrs[i],
-		RoutingTable:           routing.InMemoryRoutingTable(),
-		RouteFinder:            routeFinder.NewMock(),
-		SetupNodes:             nil, // TODO
-		GarbageCollectDuration: DefaultGarbageCollectDuration,
+		Logger:           logging.MustGetLogger(fmt.Sprintf("router_%d", i)),
+		PubKey:           e.TpMngrConfs[i].PubKey,
+		SecKey:           e.TpMngrConfs[i].SecKey,
+		TransportManager: e.TpMngrs[i],
+		RoutingTable:     routing.New(),
+		RouteFinder:      routeFinder.NewMock(),
+		SetupNodes:       nil, // TODO
 	}
 }
 

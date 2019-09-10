@@ -171,7 +171,7 @@ These tests have been commented out for the following reasons:
 //		config:      conf,
 //		router:      r,
 //		tm:          tm1,
-//		rt:          routing.InMemoryRoutingTable(),
+//		rt:          routing.New(),
 //		executer:    executer,
 //		appsConf:    apps,
 //		startedApps: map[string]*appBind{},

@@ -22,7 +22,7 @@ func TestNewRouteManager(t *testing.T) {
 	env := snettest.NewEnv(t, []snettest.KeyPair{{PK: pk, SK: sk}})
 	defer env.Teardown()
 
-	rt := routing.InMemoryRoutingTable()
+	rt := routing.New()
 
 	rm, err := newRouteManager(env.Nets[0], rt, RMConfig{})
 	require.NoError(t, err)

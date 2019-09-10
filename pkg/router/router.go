@@ -26,9 +26,6 @@ const (
 	// DefaultRouteKeepAlive is the default expiration interval for routes
 	DefaultRouteKeepAlive = 2 * time.Hour
 
-	// DefaultGarbageCollectDuration is the default duration for garbage collection of routing rules.
-	DefaultGarbageCollectDuration = time.Second * 5
-
 	minHops = 0
 	maxHops = 50
 )
@@ -37,23 +34,19 @@ var log = logging.MustGetLogger("router")
 
 // Config configures Router.
 type Config struct {
-	Logger                 *logging.Logger
-	PubKey                 cipher.PubKey
-	SecKey                 cipher.SecKey
-	TransportManager       *transport.Manager
-	RoutingTable           routing.Table
-	RouteFinder            routeFinder.Client
-	SetupNodes             []cipher.PubKey
-	GarbageCollectDuration time.Duration
+	Logger           *logging.Logger
+	PubKey           cipher.PubKey
+	SecKey           cipher.SecKey
+	TransportManager *transport.Manager
+	RoutingTable     routing.Table
+	RouteFinder      routeFinder.Client
+	SetupNodes       []cipher.PubKey
 }
 
 // SetDefaults sets default values for certain empty values.
 func (c *Config) SetDefaults() {
 	if c.Logger == nil {
 		c.Logger = log
-	}
-	if c.GarbageCollectDuration <= 0 {
-		c.GarbageCollectDuration = DefaultGarbageCollectDuration
 	}
 }
 
@@ -90,10 +83,9 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 
 	// Prepare route manager.
 	rm, err := newRouteManager(n, config.RoutingTable, RMConfig{
-		SetupPKs:               config.SetupNodes,
-		GarbageCollectDuration: config.GarbageCollectDuration,
-		OnConfirmLoop:          r.confirmLoop,
-		OnLoopClosed:           r.loopClosed,
+		SetupPKs:      config.SetupNodes,
+		OnConfirmLoop: r.confirmLoop,
+		OnLoopClosed:  r.loopClosed,
 	})
 	if err != nil {
 		return nil, err
