@@ -62,11 +62,11 @@ func TestRouter_Serve(t *testing.T) {
 	clearRules := func(routers ...*Router) {
 		for _, r := range routers {
 			var rtIDs []routing.RouteID
-			require.NoError(t, r.rm.rt.RangeRules(func(rtID routing.RouteID, _ routing.Rule) bool {
+			r.rm.rt.RangeRules(func(rtID routing.RouteID, _ routing.Rule) bool {
 				rtIDs = append(rtIDs, rtID)
 				return true
-			}))
-			require.NoError(t, r.rm.rt.DeleteRules(rtIDs...))
+			})
+			r.rm.rt.DelRules(rtIDs)
 		}
 	}
 

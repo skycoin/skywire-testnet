@@ -31,11 +31,11 @@ func TestNewRouteManager(t *testing.T) {
 	// CLOSURE: Delete all routing rules.
 	clearRules := func() {
 		var rules []routing.RouteID
-		assert.NoError(t, rt.RangeRules(func(routeID routing.RouteID, _ routing.Rule) (next bool) {
+		rt.RangeRules(func(routeID routing.RouteID, _ routing.Rule) (next bool) {
 			rules = append(rules[0:], routeID)
 			return true
-		}))
-		assert.NoError(t, rt.DeleteRules(rules...))
+		})
+		rt.DelRules(rules)
 	}
 
 	// TEST: Set and get expired and unexpired rule.
@@ -139,7 +139,7 @@ func TestNewRouteManager(t *testing.T) {
 	})
 
 	// TEST: Ensure DeleteRule requests from SetupNode is handled properly.
-	t.Run("DeleteRules", func(t *testing.T) {
+	t.Run("DelRules", func(t *testing.T) {
 		defer clearRules()
 
 		in, out := net.Pipe()
@@ -192,10 +192,10 @@ func TestNewRouteManager(t *testing.T) {
 		proto := setup.NewSetupProtocol(in)
 		pk, _ := cipher.GenerateKeyPair()
 		rule := routing.ConsumeRule(10*time.Minute, 2, pk, 2, 3)
-		require.NoError(t, rt.SetRule(2, rule))
+		require.NoError(t, rt.SaveRule(2, rule))
 
 		rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-		require.NoError(t, rt.SetRule(1, rule))
+		require.NoError(t, rt.SaveRule(1, rule))
 
 		ld := routing.LoopData{
 			Loop: routing.Loop{
@@ -244,10 +244,10 @@ func TestNewRouteManager(t *testing.T) {
 		pk, _ := cipher.GenerateKeyPair()
 
 		rule := routing.ConsumeRule(10*time.Minute, 0, pk, 2, 3)
-		require.NoError(t, rt.SetRule(2, rule))
+		require.NoError(t, rt.SaveRule(2, rule))
 
 		rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-		require.NoError(t, rt.SetRule(1, rule))
+		require.NoError(t, rt.SaveRule(1, rule))
 
 		ld := routing.LoopData{
 			Loop: routing.Loop{

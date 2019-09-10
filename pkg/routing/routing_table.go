@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -16,28 +15,41 @@ var log = logging.MustGetLogger("routing")
 // DefaultGCInterval is the default duration for garbage collection of routing rules.
 const DefaultGCInterval = 5 * time.Second
 
-// ErrRuleTimedOut is being returned while trying to access the rule which timed out
-var ErrRuleTimedOut = errors.New("rule keep-alive timeout exceeded")
+var (
+	// ErrRuleTimedOut is being returned while trying to access the rule which timed out
+	ErrRuleTimedOut = errors.New("rule keep-alive timeout exceeded")
+	// ErrNoAvailableRoutes is returned when there're no more available routeIDs
+	ErrNoAvailableRoutes = errors.New("no available routeIDs")
+)
 
 // RangeFunc is used by RangeRules to iterate over rules.
 type RangeFunc func(routeID RouteID, rule Rule) (next bool)
 
 // Table represents a routing table implementation.
 type Table interface {
-	// AddRule adds a new RoutingRules to the table and returns assigned RouteID.
-	AddRule(rule Rule) (routeID RouteID, err error)
+	// ReserveKey reserves a RouteID.
+	ReserveKey() (RouteID, error)
 
-	// SetRule sets RoutingRule for a given RouteID.
-	SetRule(routeID RouteID, rule Rule) error
+	// SaveRule sets RoutingRule for a given RouteID.
+	SaveRule(RouteID, Rule) error
+
+	// AddRule adds a new RoutingRules to the table and returns assigned RouteID.
+	AddRule(Rule) (RouteID, error)
 
 	// Rule returns RoutingRule with a given RouteID.
-	Rule(routeID RouteID) (Rule, error)
+	Rule(RouteID) (Rule, error)
 
-	// DeleteRules removes RoutingRules with a given a RouteIDs.
-	DeleteRules(routeIDs ...RouteID) error
+	// AllRules returns all non timed out rules with a given route descriptor.
+	RulesWithDesc(RouteDescriptor) []Rule
+
+	// AllRules returns all non timed out rules.
+	AllRules() []Rule
+
+	// DelRules removes RoutingRules with a given a RouteIDs.
+	DelRules([]RouteID)
 
 	// RangeRules iterates over all rules and yields values to the rangeFunc until `next` is false.
-	RangeRules(rangeFunc RangeFunc) error
+	RangeRules(RangeFunc)
 
 	// Count returns the number of RoutingRule entries stored.
 	Count() int
@@ -46,10 +58,11 @@ type Table interface {
 type memTable struct {
 	sync.RWMutex
 
-	nextID     uint32
-	rules      map[RouteID]Rule
-	activity   map[RouteID]time.Time
-	gcInterval time.Duration
+	config Config
+
+	nextID   RouteID
+	rules    map[RouteID]Rule
+	activity map[RouteID]time.Time
 }
 
 // Config represents a routing table configuration.
@@ -76,9 +89,9 @@ func NewWithConfig(config Config) Table {
 	}
 
 	mt := &memTable{
-		rules:      map[RouteID]Rule{},
-		activity:   make(map[RouteID]time.Time),
-		gcInterval: config.GCInterval,
+		config:   config,
+		rules:    map[RouteID]Rule{},
+		activity: make(map[RouteID]time.Time),
 	}
 
 	go mt.gcLoop()
@@ -86,22 +99,36 @@ func NewWithConfig(config Config) Table {
 	return mt
 }
 
-func (mt *memTable) AddRule(rule Rule) (routeID RouteID, err error) {
-	if routeID == math.MaxUint32 {
-		return 0, errors.New("no available routeIDs")
+func (mt *memTable) ReserveKey() (RouteID, error) {
+	mt.Lock()
+	defer mt.Unlock()
+
+	if mt.nextID == math.MaxUint32 {
+		return 0, ErrNoAvailableRoutes
 	}
 
-	routeID = RouteID(atomic.AddUint32(&mt.nextID, 1))
-
-	mt.Lock()
-	mt.rules[routeID] = rule
-	mt.activity[routeID] = time.Now()
-	mt.Unlock()
-
-	return routeID, nil
+	mt.nextID++
+	return mt.nextID, nil
 }
 
-func (mt *memTable) SetRule(routeID RouteID, rule Rule) error {
+func (mt *memTable) AddRule(rule Rule) (RouteID, error) {
+	routeID, err := mt.ReserveKey()
+	if err != nil {
+		return 0, err
+	}
+
+	if err := mt.SaveRule(routeID, rule); err != nil {
+		return 0, err
+	}
+
+	mt.Lock()
+	defer mt.Unlock()
+	mt.activity[routeID] = time.Now()
+
+	return mt.nextID, nil
+}
+
+func (mt *memTable) SaveRule(routeID RouteID, rule Rule) error {
 	mt.Lock()
 	mt.rules[routeID] = rule
 	mt.Unlock()
@@ -125,26 +152,52 @@ func (mt *memTable) Rule(routeID RouteID) (Rule, error) {
 	return rule, nil
 }
 
-func (mt *memTable) RangeRules(rangeFunc RangeFunc) error {
+func (mt *memTable) RulesWithDesc(desc RouteDescriptor) []Rule {
 	mt.RLock()
+	defer mt.RUnlock()
+
+	rules := make([]Rule, 0, len(mt.rules))
+	for k, v := range mt.rules {
+		if !mt.ruleIsTimedOut(k, v) && v.RouteDescriptor() == desc {
+			rules = append(rules, v)
+		}
+	}
+
+	return rules
+}
+
+func (mt *memTable) AllRules() []Rule {
+	mt.RLock()
+	defer mt.RUnlock()
+
+	rules := make([]Rule, 0, len(mt.rules))
+	for k, v := range mt.rules {
+		if !mt.ruleIsTimedOut(k, v) {
+			rules = append(rules, v)
+		}
+	}
+
+	return rules
+}
+
+func (mt *memTable) RangeRules(rangeFunc RangeFunc) {
+	mt.RLock()
+	defer mt.RUnlock()
+
 	for routeID, rule := range mt.rules {
 		if !rangeFunc(routeID, rule) {
 			break
 		}
 	}
-	mt.RUnlock()
-
-	return nil
 }
 
-func (mt *memTable) DeleteRules(routeIDs ...RouteID) error {
+func (mt *memTable) DelRules(routeIDs []RouteID) {
 	mt.Lock()
+	defer mt.Unlock()
+
 	for _, routeID := range routeIDs {
 		delete(mt.rules, routeID)
 	}
-	mt.Unlock()
-
-	return nil
 }
 
 func (mt *memTable) Count() int {
@@ -160,40 +213,29 @@ func (mt *memTable) Close() error {
 
 // Routing table garbage collect loop.
 func (mt *memTable) gcLoop() {
-	if mt.gcInterval <= 0 {
-		return
-	}
-	ticker := time.NewTicker(mt.gcInterval)
+	ticker := time.NewTicker(mt.config.GCInterval)
 	defer ticker.Stop()
+
 	for range ticker.C {
-		if err := mt.gc(); err != nil {
-			log.WithError(err).Warnf("routing table gc")
-		}
+		mt.gc()
 	}
 }
 
-func (mt *memTable) gc() error {
+func (mt *memTable) gc() {
 	expiredIDs := make([]RouteID, 0)
 
-	err := mt.RangeRules(func(routeID RouteID, rule Rule) bool {
+	mt.RangeRules(func(routeID RouteID, rule Rule) bool {
 		if rule.Type() == RuleIntermediaryForward && mt.ruleIsTimedOut(routeID, rule) {
 			expiredIDs = append(expiredIDs, routeID)
 		}
 		return true
 	})
-	if err != nil {
-		return err
-	}
 
-	if err := mt.DeleteRules(expiredIDs...); err != nil {
-		return err
-	}
+	mt.DelRules(expiredIDs)
 
 	mt.Lock()
 	defer mt.Unlock()
 	mt.deleteActivity(expiredIDs...)
-
-	return nil
 }
 
 // ruleIsExpired checks whether rule's keep alive timeout is exceeded.

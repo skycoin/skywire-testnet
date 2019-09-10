@@ -170,7 +170,7 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
-	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
+	rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != loop.Remote.PubKey ||
 			rule.RouteDescriptor().DstPort() != loop.Remote.Port ||
 			rule.RouteDescriptor().SrcPort() != loop.Local.Port {
@@ -183,17 +183,12 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 
 		return false
 	})
-	if err != nil {
-		return fmt.Errorf("routing table: %s", err)
-	}
 
 	if len(appRule) == 0 {
 		return nil
 	}
 
-	if err = rm.rt.DeleteRules(appRouteID); err != nil {
-		return fmt.Errorf("routing table: %s", err)
-	}
+	rm.rt.DelRules([]routing.RouteID{appRouteID})
 
 	return nil
 }
@@ -206,7 +201,7 @@ func (rm *routeManager) setRoutingRules(data []byte) error {
 
 	for _, rule := range rules {
 		routeID := rule.KeyRouteID()
-		if err := rm.rt.SetRule(routeID, rule); err != nil {
+		if err := rm.rt.SaveRule(routeID, rule); err != nil {
 			return fmt.Errorf("routing table: %s", err)
 		}
 
@@ -222,12 +217,9 @@ func (rm *routeManager) deleteRoutingRules(data []byte) ([]routing.RouteID, erro
 		return nil, err
 	}
 
-	err := rm.rt.DeleteRules(ruleIDs...)
-	if err != nil {
-		return nil, fmt.Errorf("routing table: %s", err)
-	}
-
+	rm.rt.DelRules(ruleIDs)
 	rm.Logger.Infof("Removed Routing Rules with IDs %s", ruleIDs)
+
 	return ruleIDs, nil
 }
 
@@ -239,7 +231,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 
 	var appRouteID routing.RouteID
 	var appRule routing.Rule
-	err := rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
+	rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != ld.Loop.Remote.PubKey ||
 			rule.RouteDescriptor().DstPort() != ld.Loop.Remote.Port ||
 			rule.RouteDescriptor().SrcPort() != ld.Loop.Local.Port {
@@ -251,9 +243,6 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		copy(appRule, rule)
 		return false
 	})
-	if err != nil {
-		return fmt.Errorf("routing table: %s", err)
-	}
 
 	if appRule == nil {
 		return errors.New("unknown loop")
@@ -274,7 +263,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 
 	rm.Logger.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRouteID)
 	appRule.SetKeyRouteID(ld.RouteID)
-	if rErr := rm.rt.SetRule(appRouteID, appRule); rErr != nil {
+	if rErr := rm.rt.SaveRule(appRouteID, appRule); rErr != nil {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 

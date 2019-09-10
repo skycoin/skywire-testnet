@@ -262,7 +262,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			panic(err)
 		}
 		fwdRule := routing.IntermediaryForwardRule(ruleKeepAlive, fwdRID, routing.RouteID(r.Uint32()), uuid.New())
-		if err := rt.SetRule(fwdRID, fwdRule); err != nil {
+		if err := rt.SaveRule(fwdRID, fwdRule); err != nil {
 			panic(err)
 		}
 		appRID, err := rt.AddRule(nil)
@@ -270,7 +270,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			panic(err)
 		}
 		appRule := routing.ConsumeRule(ruleKeepAlive, appRID, remotePK, lp, rp)
-		if err := rt.SetRule(appRID, appRule); err != nil {
+		if err := rt.SaveRule(appRID, appRule); err != nil {
 			panic(err)
 		}
 		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
@@ -472,11 +472,11 @@ func (mc *mockRPCClient) RemoveTransport(tid uuid.UUID) error {
 // RoutingRules implements RPCClient.
 func (mc *mockRPCClient) RoutingRules() ([]*RoutingEntry, error) {
 	var entries []*RoutingEntry
-	err := mc.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) (next bool) {
+	mc.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) (next bool) {
 		entries = append(entries, &RoutingEntry{Key: routeID, Value: rule})
 		return true
 	})
-	return entries, err
+	return entries, nil
 }
 
 // RoutingRule implements RPCClient.
@@ -491,26 +491,24 @@ func (mc *mockRPCClient) AddRoutingRule(rule routing.Rule) (routing.RouteID, err
 
 // SetRoutingRule implements RPCClient.
 func (mc *mockRPCClient) SetRoutingRule(key routing.RouteID, rule routing.Rule) error {
-	return mc.rt.SetRule(key, rule)
+	return mc.rt.SaveRule(key, rule)
 }
 
 // RemoveRoutingRule implements RPCClient.
 func (mc *mockRPCClient) RemoveRoutingRule(key routing.RouteID) error {
-	return mc.rt.DeleteRules(key)
+	mc.rt.DelRules([]routing.RouteID{key})
+	return nil
 }
 
 // Loops implements RPCClient.
 func (mc *mockRPCClient) Loops() ([]LoopInfo, error) {
 	var loops []LoopInfo
-	err := mc.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
+	mc.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
 		if rule.Type() == routing.RuleConsume {
 			loops = append(loops, LoopInfo{AppRule: rule})
 		}
 		return true
 	})
-	if err != nil {
-		return nil, err
-	}
 	for i, l := range loops {
 		fwdRID := l.AppRule.NextRouteID()
 		rule, err := mc.rt.Rule(fwdRID)

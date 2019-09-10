@@ -45,20 +45,19 @@ func RoutingTableSuite(t *testing.T, tbl Table) {
 
 	assert.Equal(t, 2, tbl.Count())
 
-	require.NoError(t, tbl.SetRule(id2, rule))
+	require.NoError(t, tbl.SaveRule(id2, rule))
 	r, err = tbl.Rule(id2)
 	require.NoError(t, err)
 	assert.Equal(t, rule, r)
 
 	ids := make([]RouteID, 0)
-	err = tbl.RangeRules(func(routeID RouteID, _ Rule) bool {
+	tbl.RangeRules(func(routeID RouteID, _ Rule) bool {
 		ids = append(ids, routeID)
 		return true
 	})
-	require.NoError(t, err)
 	require.ElementsMatch(t, []RouteID{id, id2}, ids)
 
-	require.NoError(t, tbl.DeleteRules(id, id2))
+	tbl.DelRules([]RouteID{id, id2})
 	assert.Equal(t, 0, tbl.Count())
 }
 
@@ -68,9 +67,9 @@ func TestRoutingTable(t *testing.T) {
 
 func TestRoutingTableCleanup(t *testing.T) {
 	rt := &memTable{
-		rules:      map[RouteID]Rule{},
-		activity:   make(map[RouteID]time.Time),
-		gcInterval: DefaultGCInterval,
+		rules:    map[RouteID]Rule{},
+		activity: make(map[RouteID]time.Time),
+		config:   Config{GCInterval: DefaultGCInterval},
 	}
 
 	_, err := rt.AddRule(IntermediaryForwardRule(1*time.Hour, 1, 3, uuid.New()))
@@ -93,7 +92,7 @@ func TestRoutingTableCleanup(t *testing.T) {
 
 	assert.NotNil(t, rt.activity[id])
 
-	require.NoError(t, rt.gc())
+	rt.gc()
 	assert.Equal(t, 2, rt.Count())
 
 	rule, err := rt.Rule(id2)
