@@ -144,7 +144,7 @@ func SaveForwardRules(rules RulesMap, idc *idReservoir, keepAlive time.Duration,
 		if !ok {
 			return 0, 0, errors.New("fucked up")
 		}
-		rule := routing.IntermediaryForwardRule(keepAlive, rID, nxtRID, hop.Transport)
+		rule := routing.IntermediaryForwardRule(keepAlive, rID, nxtRID, hop.TpID)
 		rules[hop.From] = append(rules[hop.From], rule)
 
 		rID = nxtRID

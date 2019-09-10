@@ -11,13 +11,13 @@ import (
 
 // Hop defines a route hop between 2 nodes.
 type Hop struct {
-	From      cipher.PubKey
-	To        cipher.PubKey
-	Transport uuid.UUID
+	TpID uuid.UUID
+	From cipher.PubKey
+	To   cipher.PubKey
 }
 
 func (h Hop) String() string {
-	return fmt.Sprintf("%s -> %s @ %s", h.From, h.To, h.Transport)
+	return fmt.Sprintf("%s -> %s @ %s", h.From, h.To, h.TpID)
 }
 
 // Route is a succession of transport entries that denotes a path from source node to destination node
