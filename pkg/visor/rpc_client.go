@@ -39,7 +39,7 @@ type RPCClient interface {
 	AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error)
 	RemoveTransport(tid uuid.UUID) error
 
-	RoutingRules() ([]*RoutingEntry, error)
+	RoutingRules() ([]routing.RuleEntry, error)
 	RoutingRule(key routing.RouteID) (routing.Rule, error)
 	AddRoutingRule(rule routing.Rule) (routing.RouteID, error)
 	SetRoutingRule(key routing.RouteID, rule routing.Rule) error
@@ -176,8 +176,8 @@ func (rc *rpcClient) RemoveTransport(tid uuid.UUID) error {
 }
 
 // RoutingRules calls RoutingRules.
-func (rc *rpcClient) RoutingRules() ([]*RoutingEntry, error) {
-	var entries []*RoutingEntry
+func (rc *rpcClient) RoutingRules() ([]routing.RuleEntry, error) {
+	var entries []routing.RuleEntry
 	err := rc.Call("RoutingRules", &struct{}{}, &entries)
 	return entries, err
 }
@@ -470,13 +470,8 @@ func (mc *mockRPCClient) RemoveTransport(tid uuid.UUID) error {
 }
 
 // RoutingRules implements RPCClient.
-func (mc *mockRPCClient) RoutingRules() ([]*RoutingEntry, error) {
-	var entries []*RoutingEntry
-	mc.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) (next bool) {
-		entries = append(entries, &RoutingEntry{Key: routeID, Value: rule})
-		return true
-	})
-	return entries, nil
+func (mc *mockRPCClient) RoutingRules() ([]routing.RuleEntry, error) {
+	return mc.rt.AllRules(), nil
 }
 
 // RoutingRule implements RPCClient.
@@ -508,19 +503,22 @@ func (mc *mockRPCClient) RemoveRoutingRule(key routing.RouteID) error {
 // Loops implements RPCClient.
 func (mc *mockRPCClient) Loops() ([]LoopInfo, error) {
 	var loops []LoopInfo
-	mc.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
-		if rule.Type() == routing.RuleConsume {
-			loops = append(loops, LoopInfo{ConsumeRule: rule})
+	entries := mc.rt.AllRules()
+	for _, entry := range entries {
+		if entry.Rule.Type() != routing.RuleConsume {
+			continue
 		}
-		return true
-	})
-	for i, l := range loops {
-		fwdRID := l.ConsumeRule.NextRouteID()
+
+		fwdRID := entry.Rule.NextRouteID()
 		rule, err := mc.rt.Rule(fwdRID)
 		if err != nil {
 			return nil, err
 		}
-		loops[i].FwdRule = rule
+		loops = append(loops, LoopInfo{
+			ConsumeRule: entry.Rule,
+			FwdRule:     rule,
+		})
 	}
+
 	return loops, nil
 }

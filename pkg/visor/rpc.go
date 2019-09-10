@@ -306,12 +306,8 @@ type RoutingEntry struct {
 }
 
 // RoutingRules obtains all routing rules of the RoutingTable.
-func (r *RPC) RoutingRules(_ *struct{}, out *[]*RoutingEntry) error {
-	r.node.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) (next bool) {
-		*out = append(*out, &RoutingEntry{Key: routeID, Value: rule})
-		return true
-	})
-
+func (r *RPC) RoutingRules(_ *struct{}, out *[]routing.RuleEntry) error {
+	*out = r.node.rt.AllRules()
 	return nil
 }
 
@@ -358,20 +354,24 @@ type LoopInfo struct {
 // Loops retrieves loops via rules of the routing table.
 func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
 	var loops []LoopInfo
-	r.node.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
-		if rule.Type() == routing.RuleConsume {
-			loops = append(loops, LoopInfo{ConsumeRule: rule})
+
+	entries := r.node.rt.AllRules()
+	for _, entry := range entries {
+		if entry.Rule.Type() != routing.RuleConsume {
+			continue
 		}
-		return true
-	})
-	for i, l := range loops {
-		fwdRID := l.ConsumeRule.NextRouteID()
+
+		fwdRID := entry.Rule.NextRouteID()
 		rule, err := r.node.rt.Rule(fwdRID)
 		if err != nil {
 			return err
 		}
-		loops[i].FwdRule = rule
+		loops = append(loops, LoopInfo{
+			ConsumeRule: rule,
+			FwdRule:     rule,
+		})
 	}
+
 	*out = loops
 	return nil
 }

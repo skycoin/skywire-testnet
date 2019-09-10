@@ -22,7 +22,7 @@ func TestNewRouteManager(t *testing.T) {
 	env := snettest.NewEnv(t, []snettest.KeyPair{{PK: pk, SK: sk}})
 	defer env.Teardown()
 
-	rt := routing.New()
+	rt := routing.NewWithConfig(routing.Config{GCInterval: 100 * time.Millisecond})
 
 	rm, err := newRouteManager(env.Nets[0], rt, RMConfig{})
 	require.NoError(t, err)
@@ -30,17 +30,15 @@ func TestNewRouteManager(t *testing.T) {
 
 	// CLOSURE: Delete all routing rules.
 	clearRules := func() {
-		var rules []routing.RouteID
-		rt.RangeRules(func(routeID routing.RouteID, _ routing.Rule) (next bool) {
-			rules = append(rules[0:], routeID)
-			return true
-		})
-		rt.DelRules(rules)
+		entries := rt.AllRules()
+		for _, entry := range entries {
+			rt.DelRules([]routing.RouteID{entry.RouteID})
+		}
 	}
 
 	// TEST: Set and get expired and unexpired rule.
 	t.Run("GetRule", func(t *testing.T) {
-		defer clearRules()
+		clearRules()
 
 		expiredRule := routing.IntermediaryForwardRule(-10*time.Minute, 1, 3, uuid.New())
 		expiredID, err := rm.rt.ReserveKey()
@@ -53,6 +51,8 @@ func TestNewRouteManager(t *testing.T) {
 		require.NoError(t, err)
 		err = rm.rt.SaveRule(id, rule)
 		require.NoError(t, err)
+
+		defer rm.rt.DelRules([]routing.RouteID{id, expiredID})
 
 		// rule should already be expired at this point due to the execution time.
 		// However, we'll just a bit to be sure
@@ -71,7 +71,7 @@ func TestNewRouteManager(t *testing.T) {
 
 	// TEST: Ensure removing loop rules work properly.
 	t.Run("RemoveLoopRule", func(t *testing.T) {
-		defer clearRules()
+		clearRules()
 
 		pk, _ := cipher.GenerateKeyPair()
 		rule := routing.ConsumeRule(10*time.Minute, 1, pk, 2, 3)
@@ -92,7 +92,7 @@ func TestNewRouteManager(t *testing.T) {
 
 	// TEST: Ensure AddRule and DeleteRule requests from a SetupNode does as expected.
 	t.Run("AddRemoveRule", func(t *testing.T) {
-		defer clearRules()
+		clearRules()
 
 		// Add/Remove rules multiple times.
 		for i := 0; i < 5; i++ {
@@ -107,16 +107,6 @@ func TestNewRouteManager(t *testing.T) {
 				errCh <- rm.handleSetupConn(addOut)       // Receive AddRule request.
 				errCh <- rm.handleSetupConn(delOut)       // Receive DeleteRule request.
 				close(errCh)
-			}()
-
-			// TODO: remove defer from for loop
-			defer func() {
-				require.NoError(t, requestIDIn.Close())
-				require.NoError(t, addIn.Close())
-				require.NoError(t, delIn.Close())
-				for err := range errCh {
-					require.NoError(t, err)
-				}
 			}()
 
 			// Emulate SetupNode sending RequestRegistrationID request.
@@ -142,12 +132,19 @@ func TestNewRouteManager(t *testing.T) {
 			r, err = rt.Rule(ids[0])
 			assert.Error(t, err)
 			assert.Nil(t, r)
+
+			require.NoError(t, requestIDIn.Close())
+			require.NoError(t, addIn.Close())
+			require.NoError(t, delIn.Close())
+			for err := range errCh {
+				require.NoError(t, err)
+			}
 		}
 	})
 
 	// TEST: Ensure DeleteRule requests from SetupNode is handled properly.
 	t.Run("DelRules", func(t *testing.T) {
-		defer clearRules()
+		clearRules()
 
 		in, out := net.Pipe()
 		errCh := make(chan error, 1)
@@ -177,7 +174,7 @@ func TestNewRouteManager(t *testing.T) {
 
 	// TEST: Ensure ConfirmLoop request from SetupNode is handled properly.
 	t.Run("ConfirmLoop", func(t *testing.T) {
-		defer clearRules()
+		clearRules()
 
 		var inLoop routing.Loop
 		var inRule routing.Rule
@@ -230,7 +227,7 @@ func TestNewRouteManager(t *testing.T) {
 
 	// TEST: Ensure LoopClosed request from SetupNode is handled properly.
 	t.Run("LoopClosed", func(t *testing.T) {
-		defer clearRules()
+		clearRules()
 
 		var inLoop routing.Loop
 

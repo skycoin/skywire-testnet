@@ -167,24 +167,21 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 
 // RemoveLoopRule removes loop rule.
 func (rm *routeManager) RemoveLoopRule(loop routing.Loop) {
-	var appRouteID routing.RouteID
-	var consumeRule routing.Rule
-	rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != loop.Remote.PubKey ||
-			rule.RouteDescriptor().DstPort() != loop.Remote.Port ||
-			rule.RouteDescriptor().SrcPort() != loop.Local.Port {
-			return true
+	remote := loop.Remote
+	local := loop.Local
+
+	entries := rm.rt.AllRules()
+	for _, entry := range entries {
+		rule := entry.Rule
+		if rule.Type() != routing.RuleConsume {
+			continue
 		}
 
-		appRouteID = routeID
-		consumeRule = make(routing.Rule, len(rule))
-		copy(consumeRule, rule)
-
-		return false
-	})
-
-	if len(consumeRule) != 0 {
-		rm.rt.DelRules([]routing.RouteID{appRouteID})
+		rd := rule.RouteDescriptor()
+		if rd.DstPK() == remote.PubKey && rd.DstPort() == remote.Port && rd.SrcPort() == local.Port {
+			rm.rt.DelRules([]routing.RouteID{entry.RouteID})
+			return
+		}
 	}
 }
 
@@ -224,20 +221,29 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return err
 	}
 
+	remote := ld.Loop.Remote
+	local := ld.Loop.Local
+
 	var appRouteID routing.RouteID
 	var consumeRule routing.Rule
-	rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
-		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != ld.Loop.Remote.PubKey ||
-			rule.RouteDescriptor().DstPort() != ld.Loop.Remote.Port ||
-			rule.RouteDescriptor().SrcPort() != ld.Loop.Local.Port {
-			return true
+
+	entries := rm.rt.AllRules()
+	for _, entry := range entries {
+		rule := entry.Rule
+		if rule.Type() != routing.RuleConsume {
+			continue
 		}
 
-		appRouteID = routeID
-		consumeRule = make(routing.Rule, len(rule))
-		copy(consumeRule, rule)
-		return false
-	})
+		rd := rule.RouteDescriptor()
+		if rd.DstPK() == remote.PubKey && rd.DstPort() == remote.Port && rd.SrcPort() == local.Port {
+
+			appRouteID = entry.RouteID
+			consumeRule = make(routing.Rule, len(rule))
+			copy(consumeRule, rule)
+
+			break
+		}
+	}
 
 	if consumeRule == nil {
 		return errors.New("unknown loop")
@@ -262,7 +268,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 
-	rm.Logger.Infof("Confirmed loop with %s:%d", ld.Loop.Remote.PubKey, ld.Loop.Remote.Port)
+	rm.Logger.Infof("Confirmed loop with %s:%d", remote.PubKey, remote.Port)
 	return nil
 }
 

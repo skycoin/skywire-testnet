@@ -14,7 +14,6 @@ import (
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/visor"
 )
 
 func init() {
@@ -48,7 +47,7 @@ var ruleCmd = &cobra.Command{
 		rule, err := rpcClient().RoutingRule(routing.RouteID(id))
 		internal.Catch(err)
 
-		printRoutingRules(&visor.RoutingEntry{Key: rule.KeyRouteID(), Value: rule})
+		printRoutingRules(routing.RuleEntry{RouteID: rule.KeyRouteID(), Rule: rule})
 	},
 }
 
@@ -114,7 +113,7 @@ var addRuleCmd = &cobra.Command{
 	},
 }
 
-func printRoutingRules(rules ...*visor.RoutingEntry) {
+func printRoutingRules(entries ...routing.RuleEntry) {
 	printConsumeRule := func(w io.Writer, id routing.RouteID, s *routing.RuleSummary) {
 		_, err := fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", id, s.Type,
 			s.ConsumeFields.RouteDescriptor.SrcPort, s.ConsumeFields.RouteDescriptor.DstPort,
@@ -129,11 +128,11 @@ func printRoutingRules(rules ...*visor.RoutingEntry) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	_, err := fmt.Fprintln(w, "id\ttype\tlocal-port\tremote-port\tremote-pk\tresp-id\tnext-route-id\tnext-transport-id\texpire-at")
 	internal.Catch(err)
-	for _, rule := range rules {
-		if rule.Value.Summary().ConsumeFields != nil {
-			printConsumeRule(w, rule.Key, rule.Value.Summary())
+	for _, entry := range entries {
+		if entry.Rule.Summary().ConsumeFields != nil {
+			printConsumeRule(w, entry.RouteID, entry.Rule.Summary())
 		} else {
-			printFwdRule(w, rule.Key, rule.Value.Summary())
+			printFwdRule(w, entry.RouteID, entry.Rule.Summary())
 		}
 	}
 	internal.Catch(w.Flush())

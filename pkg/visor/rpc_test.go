@@ -318,7 +318,7 @@ These tests have been commented out for the following reasons:
 //	t.Run("Transport", func(t *testing.T) {
 //		var ids []uuid.UUID
 //		node.tm.WalkTransports(func(tp *transport.ManagedTransport) bool {
-//			ids = append(ids, tp.Entry.ID)
+//			ids = append(ids, tp.RuleEntry.ID)
 //			return true
 //		})
 //

@@ -18,9 +18,6 @@ var (
 	ErrNoAvailableRoutes = errors.New("no available routeIDs")
 )
 
-// RangeFunc is used by RangeRules to iterate over rules.
-type RangeFunc func(routeID RouteID, rule Rule) (next bool)
-
 // Table represents a routing table implementation.
 type Table interface {
 	// ReserveKey reserves a RouteID.
@@ -36,13 +33,10 @@ type Table interface {
 	RulesWithDesc(RouteDescriptor) []Rule
 
 	// AllRules returns all non timed out rules.
-	AllRules() []Rule
+	AllRules() []RuleEntry
 
 	// DelRules removes RoutingRules with a given a RouteIDs.
 	DelRules([]RouteID)
-
-	// RangeRules iterates over all rules and yields values to the rangeFunc until `next` is false.
-	RangeRules(RangeFunc)
 
 	// Count returns the number of RoutingRule entries stored.
 	Count() int
@@ -143,49 +137,48 @@ func (mt *memTable) RulesWithDesc(desc RouteDescriptor) []Rule {
 	return rules
 }
 
-func (mt *memTable) AllRules() []Rule {
+// RuleEntry is a pair of a RouteID and a Rule.
+type RuleEntry struct {
+	RouteID RouteID
+	Rule    Rule
+}
+
+func (mt *memTable) AllRules() []RuleEntry {
 	mt.RLock()
 	defer mt.RUnlock()
 
-	rules := make([]Rule, 0, len(mt.rules))
+	rules := make([]RuleEntry, 0, len(mt.rules))
 	for k, v := range mt.rules {
 		if !mt.ruleIsTimedOut(k, v) {
-			rules = append(rules, v)
+			entry := RuleEntry{
+				RouteID: k,
+				Rule:    v,
+			}
+			rules = append(rules, entry)
 		}
 	}
 
 	return rules
 }
 
-func (mt *memTable) RangeRules(rangeFunc RangeFunc) {
-	mt.RLock()
-	defer mt.RUnlock()
-
-	for routeID, rule := range mt.rules {
-		if !rangeFunc(routeID, rule) {
-			break
-		}
+func (mt *memTable) DelRules(routeIDs []RouteID) {
+	for _, routeID := range routeIDs {
+		mt.Lock()
+		mt.delRule(routeID)
+		mt.Unlock()
 	}
 }
 
-func (mt *memTable) DelRules(routeIDs []RouteID) {
-	mt.Lock()
-	defer mt.Unlock()
-
-	for _, routeID := range routeIDs {
-		delete(mt.rules, routeID)
-	}
+func (mt *memTable) delRule(routeID RouteID) {
+	delete(mt.rules, routeID)
+	delete(mt.activity, routeID)
 }
 
 func (mt *memTable) Count() int {
 	mt.RLock()
-	count := len(mt.rules)
-	mt.RUnlock()
-	return count
-}
+	defer mt.RUnlock()
 
-func (mt *memTable) Close() error {
-	return nil
+	return len(mt.rules)
 }
 
 // Routing table garbage collect loop.
@@ -199,33 +192,21 @@ func (mt *memTable) gcLoop() {
 }
 
 func (mt *memTable) gc() {
-	expiredIDs := make([]RouteID, 0)
-
-	mt.RangeRules(func(routeID RouteID, rule Rule) bool {
-		if rule.Type() == RuleIntermediaryForward && mt.ruleIsTimedOut(routeID, rule) {
-			expiredIDs = append(expiredIDs, routeID)
-		}
-		return true
-	})
-
-	mt.DelRules(expiredIDs)
-
 	mt.Lock()
 	defer mt.Unlock()
-	mt.deleteActivity(expiredIDs...)
+
+	for routeID, rule := range mt.rules {
+		if rule.Type() == RuleIntermediaryForward && mt.ruleIsTimedOut(routeID, rule) {
+			mt.delRule(routeID)
+		}
+	}
 }
 
 // ruleIsExpired checks whether rule's keep alive timeout is exceeded.
 // NOTE: for internal use, is NOT thread-safe, object lock should be acquired outside
 func (mt *memTable) ruleIsTimedOut(routeID RouteID, rule Rule) bool {
 	lastActivity, ok := mt.activity[routeID]
-	return !ok || time.Since(lastActivity) > rule.KeepAlive()
-}
-
-// deleteActivity removes activity records for the specified set of `routeIDs`.
-// NOTE: for internal use, is NOT thread-safe, object lock should be acquired outside
-func (mt *memTable) deleteActivity(routeIDs ...RouteID) {
-	for _, rID := range routeIDs {
-		delete(mt.activity, rID)
-	}
+	idling := time.Since(lastActivity)
+	keepAlive := rule.KeepAlive()
+	return !ok || idling > keepAlive
 }

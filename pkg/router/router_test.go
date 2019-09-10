@@ -61,12 +61,10 @@ func TestRouter_Serve(t *testing.T) {
 	// CLOSURE: clear all rules in all router.
 	clearRules := func(routers ...*Router) {
 		for _, r := range routers {
-			var rtIDs []routing.RouteID
-			r.rm.rt.RangeRules(func(rtID routing.RouteID, _ routing.Rule) bool {
-				rtIDs = append(rtIDs, rtID)
-				return true
-			})
-			r.rm.rt.DelRules(rtIDs)
+			entries := r.rm.rt.AllRules()
+			for _, entry := range entries {
+				r.rm.rt.DelRules([]routing.RouteID{entry.RouteID})
+			}
 		}
 	}
 

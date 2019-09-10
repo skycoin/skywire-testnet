@@ -428,7 +428,7 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) (err erro
 	node.startedApps[config.App] = bind
 	node.startedMu.Unlock()
 
-	// TODO: make PackageLogger return *Entry. FieldLogger doesn't expose Writer.
+	// TODO: make PackageLogger return *RuleEntry. FieldLogger doesn't expose Writer.
 	logger := node.logger.WithField("_module", fmt.Sprintf("%s.v%s", config.App, config.Version)).Writer()
 	defer func() {
 		if logErr := logger.Close(); err == nil && logErr != nil {

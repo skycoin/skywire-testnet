@@ -58,10 +58,9 @@ func RoutingTableSuite(t *testing.T, tbl Table) {
 	assert.Equal(t, rule, r)
 
 	ids := make([]RouteID, 0)
-	tbl.RangeRules(func(routeID RouteID, _ Rule) bool {
-		ids = append(ids, routeID)
-		return true
-	})
+	for _, entry := range tbl.AllRules() {
+		ids = append(ids, entry.RouteID)
+	}
 	require.ElementsMatch(t, []RouteID{id, id2}, ids)
 
 	tbl.DelRules([]RouteID{id, id2})
