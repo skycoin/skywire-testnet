@@ -80,13 +80,6 @@ func TestRoutingTable(t *testing.T) {
 	}()
 
 	conf := Config{}
-	conf.Routing.Table.Type = "boltdb"
-	conf.Routing.Table.Location = tmpfile.Name()
-	_, err = conf.RoutingTable()
-	require.NoError(t, err)
-
-	conf.Routing.Table.Type = "memory"
-	conf.Routing.Table.Location = ""
 	_, err = conf.RoutingTable()
 	require.NoError(t, err)
 }

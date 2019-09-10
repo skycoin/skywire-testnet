@@ -47,10 +47,6 @@ type Config struct {
 		SetupNodes         []cipher.PubKey `json:"setup_nodes"`
 		RouteFinder        string          `json:"route_finder"`
 		RouteFinderTimeout Duration        `json:"route_finder_timeout"`
-		Table              struct {
-			Type     string `json:"type"`
-			Location string `json:"location"`
-		} `json:"table"`
 	} `json:"routing"`
 
 	Uptime struct {
@@ -108,10 +104,6 @@ func (c *Config) TransportLogStore() (transport.LogStore, error) {
 
 // RoutingTable returns configure routing.Table.
 func (c *Config) RoutingTable() (routing.Table, error) {
-	if c.Routing.Table.Type == "boltdb" {
-		return routing.BoltDBRoutingTable(c.Routing.Table.Location)
-	}
-
 	return routing.InMemoryRoutingTable(), nil
 }
 

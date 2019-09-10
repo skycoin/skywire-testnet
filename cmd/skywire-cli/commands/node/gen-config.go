@@ -62,7 +62,6 @@ func homeConfig() *visor.Config {
 	c := defaultConfig()
 	c.AppsPath = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/apps")
 	c.Transport.LogStore.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/transport_logs")
-	c.Routing.Table.Location = filepath.Join(pathutil.HomeDir(), ".skycoin/skywire/routing.db")
 	return c
 }
 
@@ -70,7 +69,6 @@ func localConfig() *visor.Config {
 	c := defaultConfig()
 	c.AppsPath = "/usr/local/skycoin/skywire/apps"
 	c.Transport.LogStore.Location = "/usr/local/skycoin/skywire/transport_logs"
-	c.Routing.Table.Location = "/usr/local/skycoin/skywire/routing.db"
 	return c
 }
 
@@ -105,8 +103,6 @@ func defaultConfig() *visor.Config {
 		log.WithError(err).Warnf("Failed to unmarshal default setup node public key %s", defaultSetupNodePK)
 	}
 	conf.Routing.SetupNodes = []cipher.PubKey{sPK}
-	conf.Routing.Table.Type = "boltdb"
-	conf.Routing.Table.Location = "./skywire/routing.db"
 	conf.Routing.RouteFinderTimeout = visor.Duration(10 * time.Second)
 
 	conf.Hypervisors = []visor.HypervisorConfig{}
