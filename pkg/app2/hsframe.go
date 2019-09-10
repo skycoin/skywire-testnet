@@ -3,6 +3,7 @@ package app2
 import (
 	"encoding/binary"
 	"io"
+	"net"
 
 	"github.com/pkg/errors"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -137,6 +138,15 @@ func readHSFrame(r io.Reader) (HSFrame, error) {
 	return hsFrame, nil
 }
 
+func writeHSFrame(w io.Writer, hsFrame HSFrame) (int, error) {
+	n, err := w.Write(hsFrame)
+	if err != nil {
+		return 0, errors.Wrap(err, "error writing HS frame")
+	}
+
+	return n, nil
+}
+
 func readHSFrameBody(hsFrame HSFrame, r io.Reader) (HSFrame, error) {
 	switch hsFrame.FrameType() {
 	case HSFrameTypeDMSGListen, HSFrameTypeDMSGListening:
@@ -147,4 +157,50 @@ func readHSFrameBody(hsFrame HSFrame, r io.Reader) (HSFrame, error) {
 
 	_, err := io.ReadFull(r, hsFrame[HSFrameHeaderLen:])
 	return hsFrame, err
+}
+
+func dialHS(conn net.Conn, pid ProcID, loop routing.Loop) error {
+	hsFrame := NewHSFrameDSMGDial(pid, loop)
+
+	if _, err := writeHSFrame(conn, hsFrame); err != nil {
+		return err
+	}
+
+	hsFrame, err := readHSFrame(conn)
+	if err != nil {
+		return err
+	}
+
+	if hsFrame.FrameType() != HSFrameTypeDMSGAccept {
+		return ErrWrongHSFrameTypeReceived
+	}
+
+	if hsFrame.ProcID() != pid {
+		return ErrWrongPID
+	}
+
+	return nil
+}
+
+func listenHS(conn net.Conn, pid ProcID, local routing.Addr) error {
+	hsFrame := NewHSFrameDMSGListen(pid, local)
+
+	if _, err := writeHSFrame(conn, hsFrame); err != nil {
+		return err
+	}
+
+	hsFrame, err := readHSFrame(conn)
+	if err != nil {
+		return err
+	}
+
+	if hsFrame.FrameType() != HSFrameTypeDMSGListening {
+		return ErrWrongHSFrameTypeReceived
+	}
+
+	if hsFrame.ProcID() != pid {
+		return ErrWrongPID
+	}
+
+	return nil
 }

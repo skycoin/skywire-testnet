@@ -7,25 +7,24 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/yamux"
-
+	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/pkg/errors"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
 var (
-	ErrPortAlreadyBound               = errors.New("port is already bound")
-	ErrNoListenerOnPort               = errors.New("no listener on port")
-	ErrListenersManagerAlreadyServing = errors.New("listeners manager already serving")
-	ErrWrongPID                       = errors.New("wrong ProcID specified in the HS frame")
+	ErrPortAlreadyBound = errors.New("port is already bound")
+	ErrNoListenerOnPort = errors.New("no listener on port")
+	ErrWrongPID         = errors.New("wrong ProcID specified in the HS frame")
 )
 
+// listenersManager contains and manages all the instantiated listeners
 type listenersManager struct {
 	pid         ProcID
 	pk          cipher.PubKey
-	listeners   map[routing.Port]*Listener
+	listeners   map[routing.Port]*listener
 	mx          sync.RWMutex
 	isListening int32
 	logger      *logging.Logger
@@ -37,7 +36,7 @@ func newListenersManager(l *logging.Logger, pid ProcID, pk cipher.PubKey) *liste
 	return &listenersManager{
 		pid:       pid,
 		pk:        pk,
-		listeners: make(map[routing.Port]*Listener),
+		listeners: make(map[routing.Port]*listener),
 		logger:    l,
 		doneCh:    make(chan struct{}),
 	}
@@ -48,23 +47,26 @@ func (lm *listenersManager) close() {
 	lm.doneWg.Wait()
 }
 
-func (lm *listenersManager) portIsBound(port routing.Port) bool {
-	lm.mx.RLock()
-	_, ok := lm.listeners[port]
-	lm.mx.RUnlock()
-	return ok
+func (lm *listenersManager) set(port routing.Port, l *listener) error {
+	lm.mx.Lock()
+	if v, ok := lm.listeners[port]; !ok || v != nil {
+		lm.mx.Unlock()
+		return ErrPortAlreadyBound
+	}
+	lm.listeners[port] = l
+	lm.mx.Unlock()
+	return nil
 }
 
-func (lm *listenersManager) add(addr routing.Addr, stopListening func(port routing.Port) error, logger *logging.Logger) (*Listener, error) {
+func (lm *listenersManager) reserveListener(port routing.Port) error {
 	lm.mx.Lock()
-	if _, ok := lm.listeners[addr.Port]; ok {
+	if _, ok := lm.listeners[port]; ok {
 		lm.mx.Unlock()
-		return nil, ErrPortAlreadyBound
+		return ErrPortAlreadyBound
 	}
-	l := NewListener(addr, lm, lm.pid, stopListening, logger)
-	lm.listeners[addr.Port] = l
+	lm.listeners[port] = nil
 	lm.mx.Unlock()
-	return l, nil
+	return nil
 }
 
 func (lm *listenersManager) remove(port routing.Port) error {
@@ -78,6 +80,7 @@ func (lm *listenersManager) remove(port routing.Port) error {
 	return nil
 }
 
+// addConn passes connection to the corresponding listener
 func (lm *listenersManager) addConn(localPort routing.Port, remote routing.Addr, conn net.Conn) error {
 	lm.mx.RLock()
 	if _, ok := lm.listeners[localPort]; !ok {
@@ -92,6 +95,9 @@ func (lm *listenersManager) addConn(localPort routing.Port, remote routing.Addr,
 	return nil
 }
 
+// listen accepts all new yamux streams from the server. We want to accept only
+// `DmsgDial` frames here, thus all the other frames get rejected. `DmsgDial` frames
+// are being distributed between the corresponding listeners with regards to their port
 func (lm *listenersManager) listen(session *yamux.Session) {
 	// this one should only start once
 	if !atomic.CompareAndSwapInt32(&lm.isListening, 0, 1) {

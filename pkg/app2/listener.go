@@ -16,7 +16,7 @@ var (
 	ErrListenerClosed = errors.New("listener closed")
 )
 
-type Listener struct {
+type listener struct {
 	addr          routing.Addr
 	conns         chan *clientConn
 	stopListening func(port routing.Port) error
@@ -25,9 +25,9 @@ type Listener struct {
 	procID        ProcID
 }
 
-func NewListener(addr routing.Addr, lm *listenersManager, procID ProcID,
-	stopListening func(port routing.Port) error, l *logging.Logger) *Listener {
-	return &Listener{
+func newListener(addr routing.Addr, lm *listenersManager, procID ProcID,
+	stopListening func(port routing.Port) error, l *logging.Logger) *listener {
+	return &listener{
 		addr:          addr,
 		conns:         make(chan *clientConn, listenerBufSize),
 		lm:            lm,
@@ -37,7 +37,7 @@ func NewListener(addr routing.Addr, lm *listenersManager, procID ProcID,
 	}
 }
 
-func (l *Listener) Accept() (net.Conn, error) {
+func (l *listener) Accept() (net.Conn, error) {
 	conn, ok := <-l.conns
 	if !ok {
 		return nil, ErrListenerClosed
@@ -55,7 +55,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 	return conn, nil
 }
 
-func (l *Listener) Close() error {
+func (l *listener) Close() error {
 	if err := l.stopListening(l.addr.Port); err != nil {
 		l.logger.WithError(err).Error("error sending DmsgStopListening")
 	}
@@ -69,10 +69,10 @@ func (l *Listener) Close() error {
 	return nil
 }
 
-func (l *Listener) Addr() net.Addr {
+func (l *listener) Addr() net.Addr {
 	return l.addr
 }
 
-func (l *Listener) addConn(conn *clientConn) {
+func (l *listener) addConn(conn *clientConn) {
 	l.conns <- conn
 }

@@ -3,7 +3,6 @@ package app2
 import (
 	"encoding/binary"
 	"net"
-	"sync/atomic"
 
 	"github.com/hashicorp/yamux"
 
@@ -46,7 +45,7 @@ func NewClient(localPK cipher.PubKey, pid ProcID, sockAddr string, l *logging.Lo
 		return nil, errors.Wrap(err, "error opening yamux session")
 	}
 
-	lm := newListenersManager()
+	lm := newListenersManager(l, pid, localPK)
 
 	return &Client{
 		PK:       localPK,
@@ -64,32 +63,22 @@ func (c *Client) Dial(addr routing.Addr) (net.Conn, error) {
 		return nil, errors.Wrap(err, "error opening stream")
 	}
 
-	hsFrame := NewHSFrameDSMGDial(c.pid, routing.Loop{
+	err = dialHS(stream, c.pid, routing.Loop{
 		Local: routing.Addr{
 			PubKey: c.PK,
 		},
 		Remote: addr,
 	})
-
-	if _, err := stream.Write(hsFrame); err != nil {
-		return nil, errors.Wrap(err, "error writing HS frame")
-	}
-
-	hsFrame, err = readHSFrame(stream)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading HS frame")
-	}
-
-	if hsFrame.FrameType() != HSFrameTypeDMSGAccept {
-		return nil, ErrWrongHSFrameTypeReceived
+		return nil, errors.Wrap(err, "error performing Dial HS")
 	}
 
 	return stream, nil
 }
 
-func (c *Client) Listen(port routing.Port) (*Listener, error) {
-	if c.lm.portIsBound(port) {
-		return nil, ErrPortAlreadyBound
+func (c *Client) Listen(port routing.Port) (net.Listener, error) {
+	if err := c.lm.reserveListener(port); err != nil {
+		return nil, errors.Wrap(err, "error reserving listener")
 	}
 
 	stream, err := c.session.Open()
@@ -97,34 +86,24 @@ func (c *Client) Listen(port routing.Port) (*Listener, error) {
 		return nil, errors.Wrap(err, "error opening stream")
 	}
 
-	addr := routing.Addr{
+	local := routing.Addr{
 		PubKey: c.PK,
 		Port:   port,
 	}
 
-	hsFrame := NewHSFrameDMSGListen(c.pid, addr)
-	if _, err := stream.Write(hsFrame); err != nil {
-		return nil, errors.Wrap(err, "error writing HS frame")
-	}
-
-	hsFrame, err = readHSFrame(stream)
+	err = listenHS(stream, c.pid, local)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading HS frame")
+		return nil, errors.Wrap(err, "error performing Listen HS")
 	}
 
-	if hsFrame.FrameType() != HSFrameTypeDMSGListening {
-		return nil, ErrWrongHSFrameTypeReceived
+	c.lm.listen(c.session)
+
+	l := newListener(local, c.lm, c.pid, c.stopListening, c.logger)
+	if err := c.lm.set(port, l); err != nil {
+		return nil, errors.Wrap(err, "error setting listener")
 	}
 
-	if atomic.CompareAndSwapInt32(&c.isListening, 0, 1) {
-		go func() {
-			if err := c.listen(); err != nil {
-				c.logger.WithError(err).Error("error listening")
-			}
-		}()
-	}
-
-	return c.lm.add(addr, c.stopListening, c.logger)
+	return l, nil
 }
 
 func (c *Client) listen() error {
