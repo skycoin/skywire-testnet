@@ -78,7 +78,11 @@ func TestRouter_Serve(t *testing.T) {
 
 		// Add a FWD rule for r0.
 		fwdRule := routing.IntermediaryForwardRule(1*time.Hour, routing.RouteID(0), routing.RouteID(5), tp1.Entry.ID)
-		fwdRtID, err := r0.rm.rt.AddRule(fwdRule)
+		fwdRtID, err := r0.rm.rt.ReserveKey()
+		require.NoError(t, err)
+		err = r0.rm.rt.SaveRule(fwdRtID, fwdRule)
+		require.NoError(t, err)
+
 		require.NoError(t, err)
 
 		// Call handlePacket for r0 (this should in turn, use the rule we added).

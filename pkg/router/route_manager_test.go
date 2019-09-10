@@ -43,11 +43,15 @@ func TestNewRouteManager(t *testing.T) {
 		defer clearRules()
 
 		expiredRule := routing.IntermediaryForwardRule(-10*time.Minute, 1, 3, uuid.New())
-		expiredID, err := rm.rt.AddRule(expiredRule)
+		expiredID, err := rm.rt.ReserveKey()
+		require.NoError(t, err)
+		err = rm.rt.SaveRule(expiredID, expiredRule)
 		require.NoError(t, err)
 
 		rule := routing.IntermediaryForwardRule(10*time.Minute, 2, 3, uuid.New())
-		id, err := rm.rt.AddRule(rule)
+		id, err := rm.rt.ReserveKey()
+		require.NoError(t, err)
+		err = rm.rt.SaveRule(id, rule)
 		require.NoError(t, err)
 
 		// rule should already be expired at this point due to the execution time.
@@ -71,7 +75,10 @@ func TestNewRouteManager(t *testing.T) {
 
 		pk, _ := cipher.GenerateKeyPair()
 		rule := routing.ConsumeRule(10*time.Minute, 1, pk, 2, 3)
-		_, err := rt.AddRule(rule)
+
+		id, err := rm.rt.ReserveKey()
+		require.NoError(t, err)
+		err = rm.rt.SaveRule(id, rule)
 		require.NoError(t, err)
 
 		loop := routing.Loop{Local: routing.Addr{Port: 3}, Remote: routing.Addr{PubKey: pk, Port: 3}}
@@ -156,8 +163,12 @@ func TestNewRouteManager(t *testing.T) {
 		proto := setup.NewSetupProtocol(in)
 
 		rule := routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-		id, err := rt.AddRule(rule)
+
+		id, err := rm.rt.ReserveKey()
 		require.NoError(t, err)
+		err = rm.rt.SaveRule(id, rule)
+		require.NoError(t, err)
+
 		assert.Equal(t, 1, rt.Count())
 
 		require.NoError(t, setup.DeleteRule(context.TODO(), proto, id))

@@ -257,7 +257,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		}
 		lp := routing.Port(binary.BigEndian.Uint16(lpRaw[:]))
 		rp := routing.Port(binary.BigEndian.Uint16(rpRaw[:]))
-		fwdRID, err := rt.AddRule(nil)
+		fwdRID, err := rt.ReserveKey()
 		if err != nil {
 			panic(err)
 		}
@@ -265,7 +265,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		if err := rt.SaveRule(fwdRID, fwdRule); err != nil {
 			panic(err)
 		}
-		appRID, err := rt.AddRule(nil)
+		appRID, err := rt.ReserveKey()
 		if err != nil {
 			panic(err)
 		}
@@ -486,7 +486,12 @@ func (mc *mockRPCClient) RoutingRule(key routing.RouteID) (routing.Rule, error) 
 
 // AddRoutingRule implements RPCClient.
 func (mc *mockRPCClient) AddRoutingRule(rule routing.Rule) (routing.RouteID, error) {
-	return mc.rt.AddRule(rule)
+	key, err := mc.rt.ReserveKey()
+	if err != nil {
+		return 0, err
+	}
+
+	return key, mc.rt.SaveRule(key, rule)
 }
 
 // SetRoutingRule implements RPCClient.

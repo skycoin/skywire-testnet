@@ -324,9 +324,13 @@ func (r *RPC) RoutingRule(key *routing.RouteID, rule *routing.Rule) error {
 
 // AddRoutingRule adds a RoutingRule and returns a Key in which the rule is stored under.
 func (r *RPC) AddRoutingRule(rule *routing.Rule, routeID *routing.RouteID) error {
-	var err error
-	*routeID, err = r.node.rt.AddRule(*rule)
-	return err
+	key, err := r.node.rt.ReserveKey()
+	if err != nil {
+		return err
+	}
+
+	*routeID = key
+	return r.node.rt.SaveRule(key, *rule)
 }
 
 // SetRoutingRule sets a routing rule.

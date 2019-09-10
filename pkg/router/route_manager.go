@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -284,8 +283,7 @@ func (rm *routeManager) occupyRouteID(data []byte) ([]routing.RouteID, error) {
 
 	var ids = make([]routing.RouteID, n)
 	for i := range ids {
-		rule := routing.IntermediaryForwardRule(DefaultRouteKeepAlive, 0, 0, uuid.UUID{})
-		routeID, err := rm.rt.AddRule(rule)
+		routeID, err := rm.rt.ReserveKey()
 		if err != nil {
 			return nil, err
 		}

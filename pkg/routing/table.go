@@ -6,11 +6,7 @@ import (
 	"math"
 	"sync"
 	"time"
-
-	"github.com/skycoin/skycoin/src/util/logging"
 )
-
-var log = logging.MustGetLogger("routing")
 
 // DefaultGCInterval is the default duration for garbage collection of routing rules.
 const DefaultGCInterval = 5 * time.Second
@@ -32,9 +28,6 @@ type Table interface {
 
 	// SaveRule sets RoutingRule for a given RouteID.
 	SaveRule(RouteID, Rule) error
-
-	// AddRule adds a new RoutingRules to the table and returns assigned RouteID.
-	AddRule(Rule) (RouteID, error)
 
 	// Rule returns RoutingRule with a given RouteID.
 	Rule(RouteID) (Rule, error)
@@ -58,8 +51,7 @@ type Table interface {
 type memTable struct {
 	sync.RWMutex
 
-	config Config
-
+	config   Config
 	nextID   RouteID
 	rules    map[RouteID]Rule
 	activity map[RouteID]time.Time
@@ -111,27 +103,12 @@ func (mt *memTable) ReserveKey() (RouteID, error) {
 	return mt.nextID, nil
 }
 
-func (mt *memTable) AddRule(rule Rule) (RouteID, error) {
-	routeID, err := mt.ReserveKey()
-	if err != nil {
-		return 0, err
-	}
-
-	if err := mt.SaveRule(routeID, rule); err != nil {
-		return 0, err
-	}
-
-	mt.Lock()
-	defer mt.Unlock()
-	mt.activity[routeID] = time.Now()
-
-	return mt.nextID, nil
-}
-
 func (mt *memTable) SaveRule(routeID RouteID, rule Rule) error {
 	mt.Lock()
+	defer mt.Unlock()
+
 	mt.rules[routeID] = rule
-	mt.Unlock()
+	mt.activity[routeID] = time.Now()
 
 	return nil
 }
