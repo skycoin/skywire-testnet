@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/skycoin/skywire/pkg/hypervisor"
-	"github.com/skycoin/skywire/pkg/snet"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
 	"github.com/spf13/cobra"
 )
@@ -67,25 +68,17 @@ var rootCmd = &cobra.Command{
 				log.Fatalln("Failed to parse rpc port from rpc address:", err)
 			}
 
-			dmsgConf := snet.Config{
-				PubKey:     config.PK,
-				SecKey:     config.SK,
-				TpNetworks: []string{snet.DmsgType},
-
-				DmsgDiscAddr: config.DmsgDiscovery,
-				DmsgMinSrvs:  1,
-			}
-
-			network := snet.New(dmsgConf)
+			dmsgC := dmsg.NewClient(config.PK, config.SK, disc.NewHTTP(config.DmsgDiscovery))
 
 			ctx := context.Background()
-			if err := network.Init(ctx); err != nil {
-				log.Fatalln("failed to init network: %v", err)
+			if err = dmsgC.InitiateServerConnections(ctx, 1); err != nil {
+				log.Fatalln("failed to initiate dmsg server connections:", err)
 			}
-			l, err := network.Listen(snet.DmsgType, rpcPort)
+			l, err := dmsgC.Listen(rpcPort)
 			if err != nil {
 				log.Fatalln("Failed to bind tcp port:", err)
 			}
+
 			if err := m.ServeRPC(l); err != nil {
 				log.Fatalln("Failed to serve RPC:", err)
 			}

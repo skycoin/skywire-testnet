@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
-	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/skywire/pkg/app"
 	"github.com/skycoin/skywire/pkg/httputil"
@@ -61,10 +61,9 @@ func NewNode(config Config) (*Node, error) {
 }
 
 // ServeRPC serves RPC of a Node.
-func (m *Node) ServeRPC(lis *snet.Listener) error {
-
+func (m *Node) ServeRPC(lis *dmsg.Listener) error {
 	for {
-		conn, err := lis.AcceptConn()
+		conn, err := lis.Accept()
 		if err != nil {
 			return err
 		}
@@ -339,6 +338,7 @@ type LogsRes struct {
 func (m *Node) appLogsSince() http.HandlerFunc {
 	return m.withCtx(m.appCtx, func(w http.ResponseWriter, r *http.Request, ctx *httpCtx) {
 		since := r.URL.Query().Get("since")
+		since = strings.Replace(since, " ", "+", 1) // we need to put '+' again that was replaced in the query string
 
 		// if time is not parseable or empty default to return all logs
 		t, err := time.Parse(time.RFC3339Nano, since)

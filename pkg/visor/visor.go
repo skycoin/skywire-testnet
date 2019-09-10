@@ -25,6 +25,7 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
+	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/router"
@@ -34,6 +35,7 @@ import (
 )
 
 var log = logging.MustGetLogger("node")
+var retrier = netutil.NewRetrier(200*time.Millisecond, 5, 2)
 
 // AppStatus defines running status of an App.
 type AppStatus int
@@ -238,7 +240,13 @@ func (node *Node) Start() error {
 	}
 	for _, hypervisor := range node.config.Hypervisors {
 		go func(hypervisor HypervisorConfig) {
-			conn, err := node.n.Dial(snet.DmsgType, hypervisor.PubKey, hypervisor.Port)
+			var conn net.Conn
+			var err error
+
+			err = retrier.Do(func() error {
+				conn, err = node.n.Dial(snet.DmsgType, hypervisor.PubKey, hypervisor.Port)
+				return err
+			})
 			if err != nil {
 				node.logger.Errorf("Hypervisor dmsg Dial exited with error: %v", err)
 			} else {

@@ -29,7 +29,6 @@ func TestLogStore(t *testing.T) {
 	require.NoError(t, err)
 
 	err = ls.Store(t1, "bar")
-	fmt.Println("original: ", t1.Format(time.RFC3339Nano))
 	require.NoError(t, err)
 
 	t2, err := time.Parse(time.RFC3339, "2000-02-01T00:00:00Z")
