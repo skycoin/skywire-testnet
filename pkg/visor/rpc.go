@@ -347,8 +347,8 @@ func (r *RPC) RemoveRoutingRule(key *routing.RouteID, _ *struct{}) error {
 
 // LoopInfo is a human-understandable representation of a loop.
 type LoopInfo struct {
-	AppRule routing.Rule
-	FwdRule routing.Rule
+	ConsumeRule routing.Rule
+	FwdRule     routing.Rule
 }
 
 // Loops retrieves loops via rules of the routing table.
@@ -356,12 +356,12 @@ func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
 	var loops []LoopInfo
 	r.node.rt.RangeRules(func(_ routing.RouteID, rule routing.Rule) (next bool) {
 		if rule.Type() == routing.RuleConsume {
-			loops = append(loops, LoopInfo{AppRule: rule})
+			loops = append(loops, LoopInfo{ConsumeRule: rule})
 		}
 		return true
 	})
 	for i, l := range loops {
-		fwdRID := l.AppRule.NextRouteID()
+		fwdRID := l.ConsumeRule.NextRouteID()
 		rule, err := r.node.rt.Rule(fwdRID)
 		if err != nil {
 			return err

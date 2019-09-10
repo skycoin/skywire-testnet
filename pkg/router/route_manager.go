@@ -169,7 +169,7 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 // RemoveLoopRule removes loop rule.
 func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 	var appRouteID routing.RouteID
-	var appRule routing.Rule
+	var consumeRule routing.Rule
 	rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != loop.Remote.PubKey ||
 			rule.RouteDescriptor().DstPort() != loop.Remote.Port ||
@@ -178,13 +178,13 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 		}
 
 		appRouteID = routeID
-		appRule = make(routing.Rule, len(rule))
-		copy(appRule, rule)
+		consumeRule = make(routing.Rule, len(rule))
+		copy(consumeRule, rule)
 
 		return false
 	})
 
-	if len(appRule) == 0 {
+	if len(consumeRule) == 0 {
 		return nil
 	}
 
@@ -230,7 +230,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 	}
 
 	var appRouteID routing.RouteID
-	var appRule routing.Rule
+	var consumeRule routing.Rule
 	rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
 		if rule.Type() != routing.RuleConsume || rule.RouteDescriptor().DstPK() != ld.Loop.Remote.PubKey ||
 			rule.RouteDescriptor().DstPort() != ld.Loop.Remote.Port ||
@@ -239,12 +239,12 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		}
 
 		appRouteID = routeID
-		appRule = make(routing.Rule, len(rule))
-		copy(appRule, rule)
+		consumeRule = make(routing.Rule, len(rule))
+		copy(consumeRule, rule)
 		return false
 	})
 
-	if appRule == nil {
+	if consumeRule == nil {
 		return errors.New("unknown loop")
 	}
 
@@ -262,8 +262,8 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 	}
 
 	rm.Logger.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRouteID)
-	appRule.SetKeyRouteID(ld.RouteID)
-	if rErr := rm.rt.SaveRule(appRouteID, appRule); rErr != nil {
+	consumeRule.SetKeyRouteID(ld.RouteID)
+	if rErr := rm.rt.SaveRule(appRouteID, consumeRule); rErr != nil {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 

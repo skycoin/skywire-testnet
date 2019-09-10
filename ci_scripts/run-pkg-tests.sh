@@ -55,8 +55,9 @@ go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/routing -run TestBoltDBRoutingTable >> ./logs/pkg/TestBoltDBRoutingTable.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/routing -run TestMakePacket >> ./logs/pkg/TestMakePacket.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/routing -run TestRoutingTable >> ./logs/pkg/TestRoutingTable.log
-go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/routing -run TestAppRule >> ./logs/pkg/TestAppRule.log
+go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/routing -run TestConsumeRule >> ./logs/pkg/TestConsumeRule.log
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/routing -run TestForwardRule >> ./logs/pkg/TestForwardRule.log
+go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/routing -run TestIntermediaryForwardRule >> ./logs/pkg/TestIntermediaryForwardRule.log
 
 go clean -testcache &> /dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/skycoin/skywire/pkg/setup -run TestNewProtocol >> ./logs/pkg/TestNewProtocol.log
 

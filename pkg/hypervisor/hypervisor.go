@@ -545,11 +545,11 @@ type loopResp struct {
 }
 
 func makeLoopResp(info visor.LoopInfo) loopResp {
-	if len(info.FwdRule) == 0 || len(info.AppRule) == 0 {
+	if len(info.FwdRule) == 0 || len(info.ConsumeRule) == 0 {
 		return loopResp{}
 	}
 	return loopResp{
-		RuleConsumeFields: *info.AppRule.Summary().ConsumeFields,
+		RuleConsumeFields: *info.ConsumeRule.Summary().ConsumeFields,
 		FwdRule:           *info.FwdRule.Summary().ForwardFields,
 	}
 }
