@@ -21,7 +21,7 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 )
 
-type clientConn struct {
+type serverConn struct {
 	procID ProcID
 	conn            net.Conn
 	session         *yamux.Session
@@ -34,7 +34,7 @@ type clientConn struct {
 type Server struct {
 	PK     cipher.PubKey
 	dmsgC  *dmsg.Client
-	apps   map[string]*clientConn
+	apps   map[string]*serverConn
 	appsMx sync.RWMutex
 	logger *logging.Logger
 }
@@ -43,7 +43,7 @@ func NewServer(localPK cipher.PubKey, dmsgC *dmsg.Client, l *logging.Logger) *Se
 	return &Server{
 		PK:     localPK,
 		dmsgC:  dmsgC,
-		apps:   make(map[string]*clientConn),
+		apps:   make(map[string]*serverConn),
 		logger: l,
 	}
 }
@@ -70,7 +70,7 @@ func (s *Server) Serve(sockAddr string) error {
 			return errors.Wrap(err, "error creating yamux session")
 		}
 
-		s.apps[conn.RemoteAddr().String()] = &clientConn{
+		s.apps[conn.RemoteAddr().String()] = &serverConn{
 			session:       session,
 			conn:          conn,
 			lm:            newListenersManager(),
@@ -83,7 +83,7 @@ func (s *Server) Serve(sockAddr string) error {
 	}
 }
 
-func (s *Server) serveClient(conn *clientConn) error {
+func (s *Server) serveClient(conn *serverConn) error {
 	for {
 		stream, err := conn.session.Accept()
 		if err != nil {
@@ -116,7 +116,7 @@ func (s *Server) serveClient(conn *clientConn) error {
 	}
 }
 
-func (s *Server) serveStream(stream net.Conn, conn *clientConn) error {
+func (s *Server) serveStream(stream net.Conn, conn *serverConn) error {
 	for {
 		hsFrame, err := readHSFrame(stream)
 		if err != nil {
@@ -209,7 +209,7 @@ func (s *Server) forwardOverDMSG(stream net.Conn, tp *dmsg.Transport) error {
 	return nil
 }
 
-func (c *clientConn) reserveListener(port routing.Port) error {
+func (c *serverConn) reserveListener(port routing.Port) error {
 	c.dmsgListenersMx.Lock()
 	if _, ok := c.dmsgListeners[port]; ok {
 		c.dmsgListenersMx.Unlock()
@@ -220,7 +220,7 @@ func (c *clientConn) reserveListener(port routing.Port) error {
 	return nil
 }
 
-func (c *clientConn) addListener(port routing.Port, l *dmsg.Listener) error {
+func (c *serverConn) addListener(port routing.Port, l *dmsg.Listener) error {
 	c.dmsgListenersMx.Lock()
 	if lis, ok := c.dmsgListeners[port]; ok && lis != nil {
 		c.dmsgListenersMx.Unlock()
@@ -232,7 +232,7 @@ func (c *clientConn) addListener(port routing.Port, l *dmsg.Listener) error {
 	return nil
 }
 
-func (c *clientConn) acceptDMSG(l *dmsg.Listener) error {
+func (c *serverConn) acceptDMSG(l *dmsg.Listener) error {
 	for {
 		stream, err := c.session.Open()
 		if err != nil {

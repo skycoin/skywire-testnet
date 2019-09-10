@@ -5,7 +5,6 @@ import (
 	"net"
 
 	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -17,18 +16,9 @@ var (
 	ErrListenerClosed = errors.New("listener closed")
 )
 
-type acceptedConn struct {
-	remote routing.Addr
-	net.Conn
-}
-
-func (c *acceptedConn) Addr() net.Addr {
-	return c.remote
-}
-
 type Listener struct {
 	addr          routing.Addr
-	conns         chan *acceptedConn
+	conns         chan *clientConn
 	stopListening func(port routing.Port) error
 	logger        *logging.Logger
 	lm            *listenersManager
@@ -39,7 +29,7 @@ func NewListener(addr routing.Addr, lm *listenersManager, procID ProcID,
 	stopListening func(port routing.Port) error, l *logging.Logger) *Listener {
 	return &Listener{
 		addr:          addr,
-		conns:         make(chan *acceptedConn, listenerBufSize),
+		conns:         make(chan *clientConn, listenerBufSize),
 		lm:            lm,
 		stopListening: stopListening,
 		logger:        l,
@@ -83,6 +73,6 @@ func (l *Listener) Addr() net.Addr {
 	return l.addr
 }
 
-func (l *Listener) addConn(conn *acceptedConn) {
+func (l *Listener) addConn(conn *clientConn) {
 	l.conns <- conn
 }

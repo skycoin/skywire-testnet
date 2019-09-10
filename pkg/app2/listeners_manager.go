@@ -84,7 +84,7 @@ func (lm *listenersManager) addConn(localPort routing.Port, remote routing.Addr,
 		lm.mx.RUnlock()
 		return ErrNoListenerOnPort
 	}
-	lm.listeners[localPort].addConn(&acceptedConn{
+	lm.listeners[localPort].addConn(&clientConn{
 		remote: remote,
 		Conn:   conn,
 	})
