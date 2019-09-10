@@ -272,15 +272,16 @@ func (d RouteDescriptor) DstPort() Port {
 func (r Rule) String() string {
 	switch t := r.Type(); t {
 	case RuleConsume:
-		return fmt.Sprintf("App: <remote-pk: %s><remote-port: %d><local-port: %d>",
-			r.RouteDescriptor().DstPK(), r.RouteDescriptor().DstPort(), r.RouteDescriptor().SrcPK())
+		rd := r.RouteDescriptor()
+		return fmt.Sprintf("APP(keyRtID:%d, resRtID:%d, rPK:%s, rPort:%d, lPort:%d)",
+			r.KeyRouteID(), r.NextRouteID(), rd.DstPK(), rd.DstPort(), rd.SrcPK())
 	case RuleForward:
-		return fmt.Sprintf("Forward: <next-rid: %d><next-tid: %s><remote-pk: %s><remote-port: %d><local-port: %d>",
-			r.NextRouteID(), r.NextTransportID(),
-			r.RouteDescriptor().DstPK(), r.RouteDescriptor().DstPort(), r.RouteDescriptor().SrcPK())
+		rd := r.RouteDescriptor()
+		return fmt.Sprintf("FWD(keyRtID:%d, nxtRtID:%d, nxtTpID:%s, rPK:%s, rPort:%d, lPort:%d)",
+			r.KeyRouteID(), r.NextRouteID(), r.NextTransportID(), rd.DstPK(), rd.DstPort(), rd.SrcPK())
 	case RuleIntermediaryForward:
-		return fmt.Sprintf("IntermediaryForward: <next-rid: %d><next-tid: %s>",
-			r.NextRouteID(), r.NextTransportID())
+		return fmt.Sprintf("IFWD(keyRtID:%d, nxtRtID:%d, nxtTpID:%s)",
+			r.KeyRouteID(), r.NextRouteID(), r.NextTransportID())
 	default:
 		panic(fmt.Sprintf("%v: %v", invalidRule, t.String()))
 	}
@@ -293,6 +294,10 @@ type RouteDescriptorFields struct {
 	DstPort Port          `json:"dst_port"`
 	SrcPort Port          `json:"src_port"`
 }
+
+//func (r Rule) MarshalJSON() ([]byte, error) {
+//	return json.Marshal(r.String())
+//}
 
 // RuleConsumeFields summarizes consume fields of a RoutingRule.
 type RuleConsumeFields struct {
