@@ -75,11 +75,11 @@ func TestNewRouteManager(t *testing.T) {
 		require.NoError(t, err)
 
 		loop := routing.Loop{Local: routing.Addr{Port: 3}, Remote: routing.Addr{PubKey: pk, Port: 3}}
-		require.NoError(t, rm.RemoveLoopRule(loop))
+		rm.RemoveLoopRule(loop)
 		assert.Equal(t, 1, rt.Count())
 
 		loop = routing.Loop{Local: routing.Addr{Port: 2}, Remote: routing.Addr{PubKey: pk, Port: 3}}
-		require.NoError(t, rm.RemoveLoopRule(loop))
+		rm.RemoveLoopRule(loop)
 		assert.Equal(t, 0, rt.Count())
 	})
 

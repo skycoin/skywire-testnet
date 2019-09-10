@@ -167,7 +167,7 @@ func (rm *routeManager) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 }
 
 // RemoveLoopRule removes loop rule.
-func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
+func (rm *routeManager) RemoveLoopRule(loop routing.Loop) {
 	var appRouteID routing.RouteID
 	var consumeRule routing.Rule
 	rm.rt.RangeRules(func(routeID routing.RouteID, rule routing.Rule) bool {
@@ -184,13 +184,9 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) error {
 		return false
 	})
 
-	if len(consumeRule) == 0 {
-		return nil
+	if len(consumeRule) != 0 {
+		rm.rt.DelRules([]routing.RouteID{appRouteID})
 	}
-
-	rm.rt.DelRules([]routing.RouteID{appRouteID})
-
-	return nil
 }
 
 func (rm *routeManager) setRoutingRules(data []byte) error {

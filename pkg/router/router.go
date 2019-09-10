@@ -349,9 +349,7 @@ func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
 }
 
 func (r *Router) closeLoop(ctx context.Context, appConn *app.Protocol, loop routing.Loop) error {
-	if err := r.destroyLoop(loop); err != nil {
-		r.Logger.Warnf("Failed to remove loop: %s", err)
-	}
+	r.destroyLoop(loop)
 
 	sConn, err := r.rm.dialSetupConn(ctx)
 	if err != nil {
@@ -375,9 +373,7 @@ func (r *Router) loopClosed(loop routing.Loop) error {
 		return nil
 	}
 
-	if err := r.destroyLoop(loop); err != nil {
-		r.Logger.Warnf("Failed to remove loop: %s", err)
-	}
+	r.destroyLoop(loop)
 
 	if err := b.conn.Send(app.FrameClose, loop, nil); err != nil {
 		return err
@@ -387,7 +383,7 @@ func (r *Router) loopClosed(loop routing.Loop) error {
 	return nil
 }
 
-func (r *Router) destroyLoop(loop routing.Loop) error {
+func (r *Router) destroyLoop(loop routing.Loop) {
 	r.mx.Lock()
 	_, ok := r.staticPorts[loop.Local.Port]
 	r.mx.Unlock()
@@ -400,7 +396,7 @@ func (r *Router) destroyLoop(loop routing.Loop) error {
 		r.pm.Close(loop.Local.Port)
 	}
 
-	return r.rm.RemoveLoopRule(loop)
+	r.rm.RemoveLoopRule(loop)
 }
 
 func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Route, rev routing.Route, err error) {
