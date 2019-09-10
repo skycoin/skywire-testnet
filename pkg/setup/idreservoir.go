@@ -24,14 +24,14 @@ func newIDReservoir(routes ...routing.Route) (*idReservoir, int) {
 	var total int
 
 	for _, rt := range routes {
-		if len(rt) == 0 {
+		if len(rt.Hops) == 0 {
 			continue
 		}
-		rec[rt[0].From]++
-		for _, hop := range rt {
+		rec[rt.Hops[0].From]++
+		for _, hop := range rt.Hops {
 			rec[hop.To]++
 		}
-		total += len(rt) + 1
+		total += len(rt.Hops) + 1
 	}
 
 	return &idReservoir{
@@ -131,15 +131,14 @@ func GenerateRules(idc *idReservoir, ld routing.LoopDescriptor) (rules RulesMap,
 // - lastRID: the last visor's route ID (note that there is no rule set for this ID yet).
 // - err: an error (if any).
 func SaveForwardRules(rules RulesMap, idc *idReservoir, keepAlive time.Duration, route routing.Route) (firstRID, lastRID routing.RouteID, err error) {
-
 	// 'firstRID' is the first visor's key routeID - this is to be returned.
 	var ok bool
-	if firstRID, ok = idc.PopID(route[0].From); !ok {
+	if firstRID, ok = idc.PopID(route.Hops[0].From); !ok {
 		return 0, 0, errors.New("fucked up")
 	}
 
 	var rID = firstRID
-	for _, hop := range route {
+	for _, hop := range route.Hops {
 		nxtRID, ok := idc.PopID(hop.To)
 		if !ok {
 			return 0, 0, errors.New("fucked up")

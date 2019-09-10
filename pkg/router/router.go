@@ -410,7 +410,7 @@ fetchRoutesAgain:
 	if err != nil {
 		select {
 		case <-timer.C:
-			return nil, nil, err
+			return routing.Route{}, routing.Route{}, err
 		default:
 			goto fetchRoutesAgain
 		}

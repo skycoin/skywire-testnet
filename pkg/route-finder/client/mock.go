@@ -31,18 +31,22 @@ func (r *mockClient) PairedRoutes(src, dst cipher.PubKey, minHops, maxHops uint1
 
 	return []routing.Route{
 			{
-				&routing.Hop{
-					TpID: transport.MakeTransportID(src, dst, ""),
-					From: src,
-					To:   dst,
+				Hops: []routing.Hop{
+					{
+						TpID: transport.MakeTransportID(src, dst, ""),
+						From: src,
+						To:   dst,
+					},
 				},
 			},
 		}, []routing.Route{
 			{
-				&routing.Hop{
-					TpID: transport.MakeTransportID(src, dst, ""),
-					From: src,
-					To:   dst,
+				Hops: []routing.Hop{
+					{
+						TpID: transport.MakeTransportID(src, dst, ""),
+						From: src,
+						To:   dst,
+					},
 				},
 			},
 		}, nil

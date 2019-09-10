@@ -28,20 +28,20 @@ type LoopDescriptor struct {
 
 // Initiator returns initiator of the Loop.
 func (l LoopDescriptor) Initiator() cipher.PubKey {
-	if len(l.Forward) == 0 {
+	if len(l.Forward.Hops) == 0 {
 		panic("empty forward route")
 	}
 
-	return l.Forward[0].From
+	return l.Forward.Hops[0].From
 }
 
 // Responder returns responder of the Loop.
 func (l LoopDescriptor) Responder() cipher.PubKey {
-	if len(l.Reverse) == 0 {
+	if len(l.Reverse.Hops) == 0 {
 		panic("empty reverse route")
 	}
 
-	return l.Reverse[0].From
+	return l.Reverse.Hops[0].From
 }
 
 func (l LoopDescriptor) String() string {

@@ -4,6 +4,7 @@ package routing
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/skycoin/dmsg/cipher"
@@ -21,11 +22,15 @@ func (h Hop) String() string {
 }
 
 // Route is a succession of transport entries that denotes a path from source node to destination node
-type Route []*Hop
+type Route struct {
+	Desc      RouteDescriptor `json:"desc"`
+	Hops      []Hop           `json:"hops"`
+	KeepAlive time.Duration   `json:"keep_alive"`
+}
 
 func (r Route) String() string {
 	res := "\n"
-	for _, hop := range r {
+	for _, hop := range r.Hops {
 		res += fmt.Sprintf("\t%s\n", hop)
 	}
 
