@@ -9,9 +9,10 @@ import (
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/disc"
 	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/spf13/cobra"
+
 	"github.com/skycoin/skywire/pkg/hypervisor"
 	"github.com/skycoin/skywire/pkg/util/pathutil"
-	"github.com/spf13/cobra"
 )
 
 const configEnv = "SW_HYPERVISOR_CONFIG"
