@@ -306,7 +306,7 @@ type RoutingEntry struct {
 }
 
 // RoutingRules obtains all routing rules of the RoutingTable.
-func (r *RPC) RoutingRules(_ *struct{}, out *[]routing.RuleEntry) error {
+func (r *RPC) RoutingRules(_ *struct{}, out *[]routing.Rule) error {
 	*out = r.node.rt.AllRules()
 	return nil
 }
@@ -318,20 +318,9 @@ func (r *RPC) RoutingRule(key *routing.RouteID, rule *routing.Rule) error {
 	return err
 }
 
-// AddRoutingRule adds a RoutingRule and returns a Key in which the rule is stored under.
-func (r *RPC) AddRoutingRule(rule *routing.Rule, routeID *routing.RouteID) error {
-	key, err := r.node.rt.ReserveKey()
-	if err != nil {
-		return err
-	}
-
-	*routeID = key
-	return r.node.rt.SaveRule(key, *rule)
-}
-
-// SetRoutingRule sets a routing rule.
-func (r *RPC) SetRoutingRule(in *RoutingEntry, out *struct{}) error {
-	return r.node.rt.SaveRule(in.Key, in.Value)
+// SaveRoutingRule saves a routing rule.
+func (r *RPC) SaveRoutingRule(in *routing.Rule, out *struct{}) error {
+	return r.node.rt.SaveRule(*in)
 }
 
 // RemoveRoutingRule removes a RoutingRule based on given RouteID key.
@@ -355,13 +344,13 @@ type LoopInfo struct {
 func (r *RPC) Loops(_ *struct{}, out *[]LoopInfo) error {
 	var loops []LoopInfo
 
-	entries := r.node.rt.AllRules()
-	for _, entry := range entries {
-		if entry.Rule.Type() != routing.RuleConsume {
+	rules := r.node.rt.AllRules()
+	for _, rule := range rules {
+		if rule.Type() != routing.RuleConsume {
 			continue
 		}
 
-		fwdRID := entry.Rule.NextRouteID()
+		fwdRID := rule.NextRouteID()
 		rule, err := r.node.rt.Rule(fwdRID)
 		if err != nil {
 			return err

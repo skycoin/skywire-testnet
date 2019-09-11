@@ -113,7 +113,7 @@ func (rm *routeManager) handleSetupConn(conn net.Conn) error {
 	var respBody interface{}
 	switch t {
 	case setup.PacketAddRules:
-		err = rm.setRoutingRules(body)
+		err = rm.saveRoutingRules(body)
 	case setup.PacketDeleteRules:
 		respBody, err = rm.deleteRoutingRules(body)
 	case setup.PacketConfirmLoop:
@@ -170,34 +170,32 @@ func (rm *routeManager) RemoveLoopRule(loop routing.Loop) {
 	remote := loop.Remote
 	local := loop.Local
 
-	entries := rm.rt.AllRules()
-	for _, entry := range entries {
-		rule := entry.Rule
+	rules := rm.rt.AllRules()
+	for _, rule := range rules {
 		if rule.Type() != routing.RuleConsume {
 			continue
 		}
 
 		rd := rule.RouteDescriptor()
 		if rd.DstPK() == remote.PubKey && rd.DstPort() == remote.Port && rd.SrcPort() == local.Port {
-			rm.rt.DelRules([]routing.RouteID{entry.RouteID})
+			rm.rt.DelRules([]routing.RouteID{rule.KeyRouteID()})
 			return
 		}
 	}
 }
 
-func (rm *routeManager) setRoutingRules(data []byte) error {
+func (rm *routeManager) saveRoutingRules(data []byte) error {
 	var rules []routing.Rule
 	if err := json.Unmarshal(data, &rules); err != nil {
 		return err
 	}
 
 	for _, rule := range rules {
-		routeID := rule.KeyRouteID()
-		if err := rm.rt.SaveRule(routeID, rule); err != nil {
+		if err := rm.rt.SaveRule(rule); err != nil {
 			return fmt.Errorf("routing table: %s", err)
 		}
 
-		rm.Logger.Infof("Set new Routing Rule with ID %d %s", routeID, rule)
+		rm.Logger.Infof("Save new Routing Rule with ID %d %s", rule.KeyRouteID(), rule)
 	}
 
 	return nil
@@ -227,9 +225,8 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 	var appRouteID routing.RouteID
 	var consumeRule routing.Rule
 
-	entries := rm.rt.AllRules()
-	for _, entry := range entries {
-		rule := entry.Rule
+	rules := rm.rt.AllRules()
+	for _, rule := range rules {
 		if rule.Type() != routing.RuleConsume {
 			continue
 		}
@@ -237,7 +234,7 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 		rd := rule.RouteDescriptor()
 		if rd.DstPK() == remote.PubKey && rd.DstPort() == remote.Port && rd.SrcPort() == local.Port {
 
-			appRouteID = entry.RouteID
+			appRouteID = rule.KeyRouteID()
 			consumeRule = make(routing.Rule, len(rule))
 			copy(consumeRule, rule)
 
@@ -263,8 +260,8 @@ func (rm *routeManager) confirmLoop(data []byte) error {
 	}
 
 	rm.Logger.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRouteID)
-	consumeRule.SetKeyRouteID(ld.RouteID)
-	if rErr := rm.rt.SaveRule(appRouteID, consumeRule); rErr != nil {
+	consumeRule.SetKeyRouteID(appRouteID)
+	if rErr := rm.rt.SaveRule(consumeRule); rErr != nil {
 		return fmt.Errorf("routing table: %s", rErr)
 	}
 

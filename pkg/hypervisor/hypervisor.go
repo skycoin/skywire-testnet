@@ -459,14 +459,14 @@ func (m *Node) getRoutes() http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
 			return
 		}
-		entries, err := ctx.RPC.RoutingRules()
+		rules, err := ctx.RPC.RoutingRules()
 		if err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		resp := make([]routingRuleResp, len(entries))
-		for i, entry := range entries {
-			resp[i] = makeRoutingRuleResp(entry.RouteID, entry.Rule, qSummary)
+		resp := make([]routingRuleResp, len(rules))
+		for i, rule := range rules {
+			resp[i] = makeRoutingRuleResp(rule.KeyRouteID(), rule, qSummary)
 		}
 		httputil.WriteJSON(w, r, http.StatusOK, resp)
 	})
@@ -484,12 +484,12 @@ func (m *Node) postRoute() http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
 			return
 		}
-		tid, err := ctx.RPC.AddRoutingRule(rule)
-		if err != nil {
+
+		if err := ctx.RPC.SaveRoutingRule(rule); err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		httputil.WriteJSON(w, r, http.StatusOK, makeRoutingRuleResp(tid, rule, true))
+		httputil.WriteJSON(w, r, http.StatusOK, makeRoutingRuleResp(rule.KeyRouteID(), rule, true))
 	})
 }
 
@@ -521,7 +521,7 @@ func (m *Node) putRoute() http.HandlerFunc {
 			httputil.WriteJSON(w, r, http.StatusBadRequest, err)
 			return
 		}
-		if err := ctx.RPC.SetRoutingRule(ctx.RtKey, rule); err != nil {
+		if err := ctx.RPC.SaveRoutingRule(rule); err != nil {
 			httputil.WriteJSON(w, r, http.StatusInternalServerError, err)
 			return
 		}

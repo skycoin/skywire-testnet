@@ -22,7 +22,7 @@ func TestNewRouteManager(t *testing.T) {
 	env := snettest.NewEnv(t, []snettest.KeyPair{{PK: pk, SK: sk}})
 	defer env.Teardown()
 
-	rt := routing.NewWithConfig(routing.Config{GCInterval: 100 * time.Millisecond})
+	rt := routing.NewTable(routing.Config{GCInterval: 100 * time.Millisecond})
 
 	rm, err := newRouteManager(env.Nets[0], rt, RMConfig{})
 	require.NoError(t, err)
@@ -30,9 +30,9 @@ func TestNewRouteManager(t *testing.T) {
 
 	// CLOSURE: Delete all routing rules.
 	clearRules := func() {
-		entries := rt.AllRules()
-		for _, entry := range entries {
-			rt.DelRules([]routing.RouteID{entry.RouteID})
+		rules := rt.AllRules()
+		for _, rule := range rules {
+			rt.DelRules([]routing.RouteID{rule.KeyRouteID()})
 		}
 	}
 
@@ -40,16 +40,18 @@ func TestNewRouteManager(t *testing.T) {
 	t.Run("GetRule", func(t *testing.T) {
 		clearRules()
 
-		expiredRule := routing.IntermediaryForwardRule(-10*time.Minute, 1, 3, uuid.New())
 		expiredID, err := rm.rt.ReserveKey()
 		require.NoError(t, err)
-		err = rm.rt.SaveRule(expiredID, expiredRule)
+
+		expiredRule := routing.IntermediaryForwardRule(-10*time.Minute, expiredID, 3, uuid.New())
+		err = rm.rt.SaveRule(expiredRule)
 		require.NoError(t, err)
 
-		rule := routing.IntermediaryForwardRule(10*time.Minute, 2, 3, uuid.New())
 		id, err := rm.rt.ReserveKey()
 		require.NoError(t, err)
-		err = rm.rt.SaveRule(id, rule)
+
+		rule := routing.IntermediaryForwardRule(10*time.Minute, id, 3, uuid.New())
+		err = rm.rt.SaveRule(rule)
 		require.NoError(t, err)
 
 		defer rm.rt.DelRules([]routing.RouteID{id, expiredID})
@@ -74,11 +76,12 @@ func TestNewRouteManager(t *testing.T) {
 		clearRules()
 
 		pk, _ := cipher.GenerateKeyPair()
-		rule := routing.ConsumeRule(10*time.Minute, 1, pk, 2, 3)
 
 		id, err := rm.rt.ReserveKey()
 		require.NoError(t, err)
-		err = rm.rt.SaveRule(id, rule)
+
+		rule := routing.ConsumeRule(10*time.Minute, id, pk, 2, 3)
+		err = rm.rt.SaveRule(rule)
 		require.NoError(t, err)
 
 		loop := routing.Loop{Local: routing.Addr{Port: 3}, Remote: routing.Addr{PubKey: pk, Port: 3}}
@@ -143,7 +146,7 @@ func TestNewRouteManager(t *testing.T) {
 	})
 
 	// TEST: Ensure DeleteRule requests from SetupNode is handled properly.
-	t.Run("DelRules", func(t *testing.T) {
+	t.Run("DeleteRules", func(t *testing.T) {
 		clearRules()
 
 		in, out := net.Pipe()
@@ -159,11 +162,12 @@ func TestNewRouteManager(t *testing.T) {
 
 		proto := setup.NewSetupProtocol(in)
 
-		rule := routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-
 		id, err := rm.rt.ReserveKey()
 		require.NoError(t, err)
-		err = rm.rt.SaveRule(id, rule)
+
+		rule := routing.IntermediaryForwardRule(10*time.Minute, id, 3, uuid.New())
+
+		err = rm.rt.SaveRule(rule)
 		require.NoError(t, err)
 
 		assert.Equal(t, 1, rt.Count())
@@ -199,11 +203,12 @@ func TestNewRouteManager(t *testing.T) {
 
 		proto := setup.NewSetupProtocol(in)
 		pk, _ := cipher.GenerateKeyPair()
+
 		rule := routing.ConsumeRule(10*time.Minute, 2, pk, 2, 3)
-		require.NoError(t, rt.SaveRule(2, rule))
+		require.NoError(t, rt.SaveRule(rule))
 
 		rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-		require.NoError(t, rt.SaveRule(1, rule))
+		require.NoError(t, rt.SaveRule(rule))
 
 		ld := routing.LoopData{
 			Loop: routing.Loop{
@@ -251,11 +256,11 @@ func TestNewRouteManager(t *testing.T) {
 		proto := setup.NewSetupProtocol(in)
 		pk, _ := cipher.GenerateKeyPair()
 
-		rule := routing.ConsumeRule(10*time.Minute, 0, pk, 2, 3)
-		require.NoError(t, rt.SaveRule(2, rule))
+		rule := routing.ConsumeRule(10*time.Minute, 2, pk, 2, 3)
+		require.NoError(t, rt.SaveRule(rule))
 
 		rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-		require.NoError(t, rt.SaveRule(1, rule))
+		require.NoError(t, rt.SaveRule(rule))
 
 		ld := routing.LoopData{
 			Loop: routing.Loop{

@@ -24,7 +24,7 @@ type Table interface {
 	ReserveKey() (RouteID, error)
 
 	// SaveRule sets RoutingRule for a given RouteID.
-	SaveRule(RouteID, Rule) error
+	SaveRule(Rule) error
 
 	// Rule returns RoutingRule with a given RouteID.
 	Rule(RouteID) (Rule, error)
@@ -33,7 +33,7 @@ type Table interface {
 	RulesWithDesc(RouteDescriptor) []Rule
 
 	// AllRules returns all non timed out rules.
-	AllRules() []RuleEntry
+	AllRules() []Rule
 
 	// DelRules removes RoutingRules with a given a RouteIDs.
 	DelRules([]RouteID)
@@ -63,13 +63,8 @@ func DefaultConfig() Config {
 	}
 }
 
-// New returns an in-memory routing table implementation.
-func New() Table {
-	return NewWithConfig(DefaultConfig())
-}
-
-// NewWithConfig returns an in-memory routing table implementation with a specified configuration.
-func NewWithConfig(config Config) Table {
+// NewTable returns an in-memory routing table implementation with a specified configuration.
+func NewTable(config Config) Table {
 	if config.GCInterval <= 0 {
 		config.GCInterval = DefaultGCInterval
 	}
@@ -85,7 +80,7 @@ func NewWithConfig(config Config) Table {
 	return mt
 }
 
-func (mt *memTable) ReserveKey() (RouteID, error) {
+func (mt *memTable) ReserveKey() (key RouteID, err error) {
 	mt.Lock()
 	defer mt.Unlock()
 
@@ -97,26 +92,29 @@ func (mt *memTable) ReserveKey() (RouteID, error) {
 	return mt.nextID, nil
 }
 
-func (mt *memTable) SaveRule(routeID RouteID, rule Rule) error {
+func (mt *memTable) SaveRule(rule Rule) error {
+	key := rule.KeyRouteID()
+	now := time.Now()
+
 	mt.Lock()
 	defer mt.Unlock()
 
-	mt.rules[routeID] = rule
-	mt.activity[routeID] = time.Now()
+	mt.rules[key] = rule
+	mt.activity[key] = now
 
 	return nil
 }
 
-func (mt *memTable) Rule(routeID RouteID) (Rule, error) {
+func (mt *memTable) Rule(key RouteID) (Rule, error) {
 	mt.RLock()
-	rule, ok := mt.rules[routeID]
+	rule, ok := mt.rules[key]
 	mt.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("rule of id %v not found", routeID)
+		return nil, fmt.Errorf("rule of id %v not found", key)
 	}
 
-	if mt.ruleIsTimedOut(routeID, rule) {
+	if mt.ruleIsTimedOut(key, rule) {
 		return nil, ErrRuleTimedOut
 	}
 
@@ -137,41 +135,31 @@ func (mt *memTable) RulesWithDesc(desc RouteDescriptor) []Rule {
 	return rules
 }
 
-// RuleEntry is a pair of a RouteID and a Rule.
-type RuleEntry struct {
-	RouteID RouteID
-	Rule    Rule
-}
-
-func (mt *memTable) AllRules() []RuleEntry {
+func (mt *memTable) AllRules() []Rule {
 	mt.RLock()
 	defer mt.RUnlock()
 
-	rules := make([]RuleEntry, 0, len(mt.rules))
+	rules := make([]Rule, 0, len(mt.rules))
 	for k, v := range mt.rules {
 		if !mt.ruleIsTimedOut(k, v) {
-			entry := RuleEntry{
-				RouteID: k,
-				Rule:    v,
-			}
-			rules = append(rules, entry)
+			rules = append(rules, v)
 		}
 	}
 
 	return rules
 }
 
-func (mt *memTable) DelRules(routeIDs []RouteID) {
-	for _, routeID := range routeIDs {
+func (mt *memTable) DelRules(keys []RouteID) {
+	for _, key := range keys {
 		mt.Lock()
-		mt.delRule(routeID)
+		mt.delRule(key)
 		mt.Unlock()
 	}
 }
 
-func (mt *memTable) delRule(routeID RouteID) {
-	delete(mt.rules, routeID)
-	delete(mt.activity, routeID)
+func (mt *memTable) delRule(key RouteID) {
+	delete(mt.rules, key)
+	delete(mt.activity, key)
 }
 
 func (mt *memTable) Count() int {
@@ -204,8 +192,8 @@ func (mt *memTable) gc() {
 
 // ruleIsExpired checks whether rule's keep alive timeout is exceeded.
 // NOTE: for internal use, is NOT thread-safe, object lock should be acquired outside
-func (mt *memTable) ruleIsTimedOut(routeID RouteID, rule Rule) bool {
-	lastActivity, ok := mt.activity[routeID]
+func (mt *memTable) ruleIsTimedOut(key RouteID, rule Rule) bool {
+	lastActivity, ok := mt.activity[key]
 	idling := time.Since(lastActivity)
 	keepAlive := rule.KeepAlive()
 	return !ok || idling > keepAlive

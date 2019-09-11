@@ -30,11 +30,11 @@ func TestMain(m *testing.M) {
 func RoutingTableSuite(t *testing.T, tbl Table) {
 	t.Helper()
 
-	rule := IntermediaryForwardRule(15*time.Minute, 1, 2, uuid.New())
-
 	id, err := tbl.ReserveKey()
 	require.NoError(t, err)
-	err = tbl.SaveRule(id, rule)
+
+	rule := IntermediaryForwardRule(15*time.Minute, id, 2, uuid.New())
+	err = tbl.SaveRule(rule)
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, tbl.Count())
@@ -43,23 +43,23 @@ func RoutingTableSuite(t *testing.T, tbl Table) {
 	require.NoError(t, err)
 	assert.Equal(t, rule, r)
 
-	rule2 := IntermediaryForwardRule(15*time.Minute, 2, 3, uuid.New())
-
 	id2, err := tbl.ReserveKey()
 	require.NoError(t, err)
-	err = tbl.SaveRule(id2, rule2)
+
+	rule2 := IntermediaryForwardRule(15*time.Minute, id2, 3, uuid.New())
+	err = tbl.SaveRule(rule2)
 	require.NoError(t, err)
 
 	assert.Equal(t, 2, tbl.Count())
+	require.NoError(t, tbl.SaveRule(rule))
 
-	require.NoError(t, tbl.SaveRule(id2, rule))
-	r, err = tbl.Rule(id2)
+	r, err = tbl.Rule(id)
 	require.NoError(t, err)
 	assert.Equal(t, rule, r)
 
 	ids := make([]RouteID, 0)
-	for _, entry := range tbl.AllRules() {
-		ids = append(ids, entry.RouteID)
+	for _, rule := range tbl.AllRules() {
+		ids = append(ids, rule.KeyRouteID())
 	}
 	require.ElementsMatch(t, []RouteID{id, id2}, ids)
 
@@ -68,7 +68,7 @@ func RoutingTableSuite(t *testing.T, tbl Table) {
 }
 
 func TestRoutingTable(t *testing.T) {
-	RoutingTableSuite(t, New())
+	RoutingTableSuite(t, NewTable(DefaultConfig()))
 }
 
 func TestRoutingTableCleanup(t *testing.T) {
@@ -80,17 +80,17 @@ func TestRoutingTableCleanup(t *testing.T) {
 
 	id0, err := rt.ReserveKey()
 	require.NoError(t, err)
-	err = rt.SaveRule(id0, IntermediaryForwardRule(1*time.Hour, 1, 3, uuid.New()))
+	err = rt.SaveRule(IntermediaryForwardRule(1*time.Hour, id0, 3, uuid.New()))
 	require.NoError(t, err)
 
 	id1, err := rt.ReserveKey()
 	require.NoError(t, err)
-	err = rt.SaveRule(id1, IntermediaryForwardRule(1*time.Hour, 2, 3, uuid.New()))
+	err = rt.SaveRule(IntermediaryForwardRule(1*time.Hour, id1, 3, uuid.New()))
 	require.NoError(t, err)
 
 	id2, err := rt.ReserveKey()
 	require.NoError(t, err)
-	err = rt.SaveRule(id2, IntermediaryForwardRule(-1*time.Hour, 3, 3, uuid.New()))
+	err = rt.SaveRule(IntermediaryForwardRule(-1*time.Hour, id2, 3, uuid.New()))
 	require.NoError(t, err)
 
 	// rule should already be expired at this point due to the execution time.

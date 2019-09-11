@@ -39,10 +39,9 @@ type RPCClient interface {
 	AddTransport(remote cipher.PubKey, tpType string, public bool, timeout time.Duration) (*TransportSummary, error)
 	RemoveTransport(tid uuid.UUID) error
 
-	RoutingRules() ([]routing.RuleEntry, error)
+	RoutingRules() ([]routing.Rule, error)
 	RoutingRule(key routing.RouteID) (routing.Rule, error)
-	AddRoutingRule(rule routing.Rule) (routing.RouteID, error)
-	SetRoutingRule(key routing.RouteID, rule routing.Rule) error
+	SaveRoutingRule(rule routing.Rule) error
 	RemoveRoutingRule(key routing.RouteID) error
 
 	Loops() ([]LoopInfo, error)
@@ -176,8 +175,8 @@ func (rc *rpcClient) RemoveTransport(tid uuid.UUID) error {
 }
 
 // RoutingRules calls RoutingRules.
-func (rc *rpcClient) RoutingRules() ([]routing.RuleEntry, error) {
-	var entries []routing.RuleEntry
+func (rc *rpcClient) RoutingRules() ([]routing.Rule, error) {
+	var entries []routing.Rule
 	err := rc.Call("RoutingRules", &struct{}{}, &entries)
 	return entries, err
 }
@@ -189,16 +188,9 @@ func (rc *rpcClient) RoutingRule(key routing.RouteID) (routing.Rule, error) {
 	return rule, err
 }
 
-// AddRoutingRule calls AddRoutingRule.
-func (rc *rpcClient) AddRoutingRule(rule routing.Rule) (routing.RouteID, error) {
-	var tid routing.RouteID
-	err := rc.Call("AddRoutingRule", &rule, &tid)
-	return tid, err
-}
-
-// SetRoutingRule calls SetRoutingRule.
-func (rc *rpcClient) SetRoutingRule(key routing.RouteID, rule routing.Rule) error {
-	return rc.Call("SetRoutingRule", &RoutingEntry{Key: key, Value: rule}, &struct{}{})
+// SaveRoutingRule calls SaveRoutingRule.
+func (rc *rpcClient) SaveRoutingRule(rule routing.Rule) error {
+	return rc.Call("SaveRoutingRule", &rule, &struct{}{})
 }
 
 // RemoveRoutingRule calls RemoveRoutingRule.
@@ -244,7 +236,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		}
 		log.Infof("tp[%2d]: %v", i, tps[i])
 	}
-	rt := routing.New()
+	rt := routing.NewTable(routing.DefaultConfig())
 	ruleKeepAlive := router.DefaultRouteKeepAlive
 	for i := 0; i < r.Intn(maxRules+1); i++ {
 		remotePK, _ := cipher.GenerateKeyPair()
@@ -262,7 +254,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			panic(err)
 		}
 		fwdRule := routing.IntermediaryForwardRule(ruleKeepAlive, fwdRID, routing.RouteID(r.Uint32()), uuid.New())
-		if err := rt.SaveRule(fwdRID, fwdRule); err != nil {
+		if err := rt.SaveRule(fwdRule); err != nil {
 			panic(err)
 		}
 		appRID, err := rt.ReserveKey()
@@ -270,7 +262,7 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 			panic(err)
 		}
 		consumeRule := routing.ConsumeRule(ruleKeepAlive, appRID, remotePK, lp, rp)
-		if err := rt.SaveRule(appRID, consumeRule); err != nil {
+		if err := rt.SaveRule(consumeRule); err != nil {
 			panic(err)
 		}
 		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
@@ -470,7 +462,7 @@ func (mc *mockRPCClient) RemoveTransport(tid uuid.UUID) error {
 }
 
 // RoutingRules implements RPCClient.
-func (mc *mockRPCClient) RoutingRules() ([]routing.RuleEntry, error) {
+func (mc *mockRPCClient) RoutingRules() ([]routing.Rule, error) {
 	return mc.rt.AllRules(), nil
 }
 
@@ -479,19 +471,9 @@ func (mc *mockRPCClient) RoutingRule(key routing.RouteID) (routing.Rule, error) 
 	return mc.rt.Rule(key)
 }
 
-// AddRoutingRule implements RPCClient.
-func (mc *mockRPCClient) AddRoutingRule(rule routing.Rule) (routing.RouteID, error) {
-	key, err := mc.rt.ReserveKey()
-	if err != nil {
-		return 0, err
-	}
-
-	return key, mc.rt.SaveRule(key, rule)
-}
-
-// SetRoutingRule implements RPCClient.
-func (mc *mockRPCClient) SetRoutingRule(key routing.RouteID, rule routing.Rule) error {
-	return mc.rt.SaveRule(key, rule)
+// SaveRoutingRule implements RPCClient.
+func (mc *mockRPCClient) SaveRoutingRule(rule routing.Rule) error {
+	return mc.rt.SaveRule(rule)
 }
 
 // RemoveRoutingRule implements RPCClient.
@@ -503,20 +485,20 @@ func (mc *mockRPCClient) RemoveRoutingRule(key routing.RouteID) error {
 // Loops implements RPCClient.
 func (mc *mockRPCClient) Loops() ([]LoopInfo, error) {
 	var loops []LoopInfo
-	entries := mc.rt.AllRules()
-	for _, entry := range entries {
-		if entry.Rule.Type() != routing.RuleConsume {
+	rules := mc.rt.AllRules()
+	for _, rule := range rules {
+		if rule.Type() != routing.RuleConsume {
 			continue
 		}
 
-		fwdRID := entry.Rule.NextRouteID()
-		rule, err := mc.rt.Rule(fwdRID)
+		fwdRID := rule.NextRouteID()
+		fwdRule, err := mc.rt.Rule(fwdRID)
 		if err != nil {
 			return nil, err
 		}
 		loops = append(loops, LoopInfo{
-			ConsumeRule: entry.Rule,
-			FwdRule:     rule,
+			ConsumeRule: rule,
+			FwdRule:     fwdRule,
 		})
 	}
 

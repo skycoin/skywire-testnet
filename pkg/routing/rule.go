@@ -386,12 +386,12 @@ func (r Rule) Summary() *RuleSummary {
 }
 
 // ConsumeRule constructs a new Consume rule.
-func ConsumeRule(keepAlive time.Duration, keyRouteID RouteID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
+func ConsumeRule(keepAlive time.Duration, key RouteID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
 	rule := Rule(make([]byte, RuleHeaderSize+routeDescriptorSize))
 
 	rule.setKeepAlive(keepAlive)
 	rule.setType(RuleConsume)
-	rule.SetKeyRouteID(keyRouteID)
+	rule.SetKeyRouteID(key)
 
 	rule.setDstPK(remotePK)
 	rule.setSrcPK(cipher.PubKey{})
@@ -402,12 +402,12 @@ func ConsumeRule(keepAlive time.Duration, keyRouteID RouteID, remotePK cipher.Pu
 }
 
 // ForwardRule constructs a new Forward rule.
-func ForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTransport uuid.UUID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
+func ForwardRule(keepAlive time.Duration, key, nextRoute RouteID, nextTransport uuid.UUID, remotePK cipher.PubKey, localPort, remotePort Port) Rule {
 	rule := Rule(make([]byte, RuleHeaderSize+routeDescriptorSize+4+pkSize))
 
 	rule.setKeepAlive(keepAlive)
 	rule.setType(RuleForward)
-	rule.SetKeyRouteID(keyRouteID)
+	rule.SetKeyRouteID(key)
 	rule.setNextRouteID(nextRoute)
 	rule.setNextTransportID(nextTransport)
 
@@ -420,12 +420,12 @@ func ForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTra
 }
 
 // IntermediaryForwardRule constructs a new IntermediaryForward rule.
-func IntermediaryForwardRule(keepAlive time.Duration, keyRouteID, nextRoute RouteID, nextTransport uuid.UUID) Rule {
+func IntermediaryForwardRule(keepAlive time.Duration, key, nextRoute RouteID, nextTransport uuid.UUID) Rule {
 	rule := Rule(make([]byte, RuleHeaderSize+4+pkSize))
 
 	rule.setKeepAlive(keepAlive)
 	rule.setType(RuleIntermediaryForward)
-	rule.SetKeyRouteID(keyRouteID)
+	rule.SetKeyRouteID(key)
 	rule.setNextRouteID(nextRoute)
 	rule.setNextTransportID(nextTransport)
 

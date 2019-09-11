@@ -61,9 +61,9 @@ func TestRouter_Serve(t *testing.T) {
 	// CLOSURE: clear all rules in all router.
 	clearRules := func(routers ...*Router) {
 		for _, r := range routers {
-			entries := r.rm.rt.AllRules()
-			for _, entry := range entries {
-				r.rm.rt.DelRules([]routing.RouteID{entry.RouteID})
+			rules := r.rm.rt.AllRules()
+			for _, rule := range rules {
+				r.rm.rt.DelRules([]routing.RouteID{rule.KeyRouteID()})
 			}
 		}
 	}
@@ -75,12 +75,11 @@ func TestRouter_Serve(t *testing.T) {
 		defer clearRules(r0, r1)
 
 		// Add a FWD rule for r0.
-		fwdRule := routing.IntermediaryForwardRule(1*time.Hour, routing.RouteID(0), routing.RouteID(5), tp1.Entry.ID)
 		fwdRtID, err := r0.rm.rt.ReserveKey()
 		require.NoError(t, err)
-		err = r0.rm.rt.SaveRule(fwdRtID, fwdRule)
-		require.NoError(t, err)
 
+		fwdRule := routing.IntermediaryForwardRule(1*time.Hour, fwdRtID, routing.RouteID(5), tp1.Entry.ID)
+		err = r0.rm.rt.SaveRule(fwdRule)
 		require.NoError(t, err)
 
 		// Call handlePacket for r0 (this should in turn, use the rule we added).
@@ -213,7 +212,7 @@ func (e *TestEnv) GenRouterConfig(i int) *Config {
 		PubKey:           e.TpMngrConfs[i].PubKey,
 		SecKey:           e.TpMngrConfs[i].SecKey,
 		TransportManager: e.TpMngrs[i],
-		RoutingTable:     routing.New(),
+		RoutingTable:     routing.NewTable(routing.DefaultConfig()),
 		RouteFinder:      routeFinder.NewMock(),
 		SetupNodes:       nil, // TODO
 	}
