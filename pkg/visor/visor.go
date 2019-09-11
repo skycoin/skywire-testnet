@@ -110,6 +110,7 @@ type Node struct {
 	pidMu sync.Mutex
 
 	rpcListener net.Listener
+	rpcDialers  []*RPCClientDialer
 }
 
 // NewNode constructs new Node.
@@ -208,6 +209,11 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		node.rpcListener = l
 	}
 
+	node.rpcDialers = make([]*RPCClientDialer, len(config.Hypervisors))
+	for i, entry := range config.Hypervisors {
+		node.rpcDialers[i] = NewRPCClientDialer(node.n, entry.PubKey, entry.Port)
+	}
+
 	return node, err
 }
 
@@ -238,21 +244,12 @@ func (node *Node) Start() error {
 		node.logger.Info("Starting RPC interface on ", node.rpcListener.Addr())
 		go rpcSvr.Accept(node.rpcListener)
 	}
-	for _, hypervisor := range node.config.Hypervisors {
-		go func(hypervisor HypervisorConfig) {
-			var conn net.Conn
-			var err error
-
-			err = retrier.Do(func() error {
-				conn, err = node.n.Dial(snet.DmsgType, hypervisor.PubKey, hypervisor.Port)
-				return err
-			})
-			if err != nil {
+	for _, dialer := range node.rpcDialers {
+		go func(dialer *RPCClientDialer) {
+			if err := dialer.Run(rpcSvr, time.Second); err != nil {
 				node.logger.Errorf("Hypervisor dmsg Dial exited with error: %v", err)
-			} else {
-				rpcSvr.ServeConn(conn)
 			}
-		}(hypervisor)
+		}(dialer)
 	}
 
 	node.logger.Info("Starting packet router")
