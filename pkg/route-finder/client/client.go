@@ -87,7 +87,7 @@ func (c *apiClient) FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	ctx, cancel := context.WithTimeout(context.Background(), c.apiTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.apiTimeout)
 	defer cancel()
 	req = req.WithContext(ctx)
 
