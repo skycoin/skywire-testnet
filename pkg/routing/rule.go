@@ -114,13 +114,21 @@ func (r Rule) SetRequestRouteID(id RouteID) {
 }
 
 func (r Rule) String() string {
-	if r.Type() == RuleApp {
-		return fmt.Sprintf("App: <resp-rid: %d><remote-pk: %s><remote-port: %d><local-port: %d>",
-			r.RouteID(), r.RemotePK(), r.RemotePort(), r.LocalPort())
+	switch r.Type() {
+	case RuleApp:
+		return fmt.Sprintf("APP(keyRtID:%d, resRtID:%d, rPK:%s, rPort:%d, lPort:%d)",
+			r.RequestRouteID(), r.RouteID(), r.RemotePK(), r.RemotePort(), r.LocalPort())
+	case RuleForward:
+		return fmt.Sprintf("FWD(keyRtID:%d, nxtRtID:%d, nxtTpID:%s)",
+			r.RequestRouteID(), r.RouteID(), r.TransportID())
+	default:
+		return "invalid rule"
 	}
-
-	return fmt.Sprintf("Forward: <next-rid: %d><next-tid: %s>", r.RouteID(), r.TransportID())
 }
+
+//func (r Rule) MarshalJSON() ([]byte, error) {
+//	return json.Marshal(r.String())
+//}
 
 // RuleAppFields summarizes App fields of a RoutingRule.
 type RuleAppFields struct {

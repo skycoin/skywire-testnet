@@ -127,7 +127,7 @@ func (rm *routeManager) handleSetupConn(conn net.Conn) error {
 	case setup.PacketLoopClosed:
 		err = rm.loopClosed(body)
 	case setup.PacketRequestRouteID:
-		respBody, err = rm.occupyRouteID()
+		respBody, err = rm.occupyRouteID(body)
 	default:
 		err = errors.New("unknown foundation packet")
 	}
@@ -312,12 +312,20 @@ func (rm *routeManager) loopClosed(data []byte) error {
 	return rm.conf.OnLoopClosed(ld.Loop)
 }
 
-func (rm *routeManager) occupyRouteID() ([]routing.RouteID, error) {
-	rule := routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0)
-	routeID, err := rm.rt.AddRule(rule)
-	if err != nil {
+func (rm *routeManager) occupyRouteID(data []byte) ([]routing.RouteID, error) {
+	var n uint8
+	if err := json.Unmarshal(data, &n); err != nil {
 		return nil, err
 	}
 
-	return []routing.RouteID{routeID}, nil
+	var ids = make([]routing.RouteID, n)
+	for i := range ids {
+		rule := routing.ForwardRule(DefaultRouteKeepAlive, 0, uuid.UUID{}, 0)
+		routeID, err := rm.rt.AddRule(rule)
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = routeID
+	}
+	return ids, nil
 }
