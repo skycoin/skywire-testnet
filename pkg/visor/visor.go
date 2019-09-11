@@ -25,7 +25,6 @@ import (
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/netutil"
 	"github.com/skycoin/skywire/pkg/app"
 	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
 	"github.com/skycoin/skywire/pkg/router"
@@ -35,7 +34,6 @@ import (
 )
 
 var log = logging.MustGetLogger("node")
-var retrier = netutil.NewRetrier(200*time.Millisecond, 5, 2)
 
 // AppStatus defines running status of an App.
 type AppStatus int
