@@ -134,6 +134,109 @@ func TestStartStopApp(t *testing.T) {
 	node.startedMu.Unlock()
 }
 
+type TestRPC struct{}
+
+type AddIn struct{ A, B int }
+
+func (r *TestRPC) Add(in *AddIn, out *int) error {
+	*out = in.A + in.B
+	return nil
+}
+
+// TODO: Implement correctly
+/*
+func TestRPCClientDialer(t *testing.T) {
+	svr := rpc.NewServer()
+	require.NoError(t, svr.Register(new(TestRPC)))
+
+	lPK, lSK := cipher.GenerateKeyPair()
+	var l *snet.Listener
+	var port uint16
+	var listenerN *snet.Network
+	discMock := disc.NewMock()
+
+	sPK, sSK := cipher.GenerateKeyPair()
+	sl, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+	log.Info("here: ", sl.Addr().String())
+	server, err := dmsg.NewServer(sPK, sSK, fmt.Sprintf(":%d", sl.Addr().(*net.TCPAddr).Port), sl, discMock)
+	require.NoError(t, err)
+	go func() {
+		log.Fatal("server error is !!!!!!!!!1 ---->>> ", server.Serve())
+	}()
+
+	setup := func() {
+		var err error
+
+		listenerN = snet.NewRaw(snet.Config{
+			PubKey:      lPK,
+			SecKey:      lSK,
+			TpNetworks:  []string{snet.DmsgType},
+			DmsgMinSrvs: 1,
+		}, dmsg.NewClient(lPK, lSK, discMock), nil)
+
+		require.NoError(t, listenerN.Init(context.Background()))
+		l, err = listenerN.Listen(snet.DmsgType, 9999)
+		require.NoError(t, err)
+
+		lAddr := l.Addr().(dmsg.Addr).String()
+		t.Logf("Listening on %s", lAddr)
+
+		port = l.Addr().(dmsg.Addr).Port
+	}
+
+	teardown := func() {
+		require.NoError(t, l.Close())
+		require.NoError(t, listenerN.Close())
+		l = nil
+	}
+
+	t.Run("RunRetry", func(t *testing.T) {
+		setup()
+		defer teardown() // Just in case of failure.
+
+		const reconCount = 5
+		const retry = time.Second / 4
+
+		dPK, dSK := cipher.GenerateKeyPair()
+		n := snet.NewRaw(snet.Config{
+			PubKey:      dPK,
+			SecKey:      dSK,
+			TpNetworks:  []string{snet.DmsgType},
+			DmsgMinSrvs: 1,
+		}, dmsg.NewClient(dPK, dSK, discMock), nil)
+		require.NoError(t, n.Init(context.Background()))
+
+		d := NewRPCClientDialer(n, lPK, port)
+		dDone := make(chan error, 1)
+
+		go func() {
+			err := d.Run(svr, retry)
+			dDone <- err
+			close(dDone)
+		}()
+
+		for i := 0; i < reconCount; i++ {
+			teardown()
+			time.Sleep(retry * 2) // Dialer shouldn't quit retrying in this time.
+			setup()
+
+			conn, err := l.Accept()
+			require.NoError(t, err)
+
+			in, out := &AddIn{A: i, B: i}, new(int)
+			require.NoError(t, rpc.NewClient(conn).Call("TestRPC.Add", in, out))
+			require.Equal(t, in.A+in.B, *out)
+			require.NoError(t, conn.Close()) // NOTE: also closes d, as it's the same connection
+		}
+
+		// The same connection is closed above (conn.Close()), and hence, this may return an error.
+		_ = d.Close() // nolint: errcheck
+		require.NoError(t, <-dDone)
+	})
+}
+/*
+
 /*
 TODO(evanlinjin): Fix these tests.
 These tests have been commented out for the following reasons:
