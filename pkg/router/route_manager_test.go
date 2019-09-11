@@ -114,26 +114,26 @@ func TestNewRouteManager(t *testing.T) {
 			}()
 
 			// Emulate SetupNode sending RequestRegistrationID request.
-			id, err := setup.RequestRouteID(context.TODO(), setup.NewSetupProtocol(requestIDIn))
+			ids, err := setup.RequestRouteIDs(context.TODO(), setup.NewSetupProtocol(requestIDIn), 1)
 			require.NoError(t, err)
 
 			// Emulate SetupNode sending AddRule request.
-			rule := routing.ForwardRule(10*time.Minute, 3, uuid.New(), id)
-			err = setup.AddRule(context.TODO(), setup.NewSetupProtocol(addIn), rule)
+			rule := routing.ForwardRule(10*time.Minute, 3, uuid.New(), ids[0])
+			err = setup.AddRules(context.TODO(), setup.NewSetupProtocol(addIn), []routing.Rule{rule})
 			require.NoError(t, err)
 
 			// Check routing table state after AddRule.
 			assert.Equal(t, 1, rt.Count())
-			r, err := rt.Rule(id)
+			r, err := rt.Rule(ids[0])
 			require.NoError(t, err)
 			assert.Equal(t, rule, r)
 
 			// Emulate SetupNode sending RemoveRule request.
-			require.NoError(t, setup.DeleteRule(context.TODO(), setup.NewSetupProtocol(delIn), id))
+			require.NoError(t, setup.DeleteRule(context.TODO(), setup.NewSetupProtocol(delIn), ids[0]))
 
 			// Check routing table state after DeleteRule.
 			assert.Equal(t, 0, rt.Count())
-			r, err = rt.Rule(id)
+			r, err = rt.Rule(ids[0])
 			assert.Error(t, err)
 			assert.Nil(t, r)
 		}
