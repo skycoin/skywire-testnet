@@ -27,7 +27,7 @@ func (r *mockClient) SetError(err error) {
 }
 
 // FindRoutes implements Client for MockClient
-func (r *mockClient) FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts *RouteOptions) ([][]routing.Route, error) {
+func (r *mockClient) FindRoutes(ctx context.Context, rts []routing.PathEdges, opts *RouteOptions) (map[routing.PathEdges][]routing.Path, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -35,10 +35,10 @@ func (r *mockClient) FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opt
 	if len(rts) == 0 {
 		return nil, fmt.Errorf("no edges provided to returns routes from")
 	}
-	return [][]routing.Route{
-		{
+	return map[routing.PathEdges][]routing.Path{
+		[2]cipher.PubKey{rts[0][0], rts[0][1]}: {
 			{
-				&routing.Hop{
+				routing.Hop{
 					From:      rts[0][0],
 					To:        rts[0][1],
 					Transport: transport.MakeTransportID(rts[0][0], rts[0][1], ""),

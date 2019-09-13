@@ -19,7 +19,7 @@ type idReservoir struct {
 	mx  sync.Mutex
 }
 
-func newIDReservoir(routes ...routing.Route) (*idReservoir, int) {
+func newIDReservoir(routes ...routing.Path) (*idReservoir, int) {
 	rec := make(map[cipher.PubKey]uint8)
 	var total int
 
@@ -130,7 +130,7 @@ func GenerateRules(idc *idReservoir, ld routing.LoopDescriptor) (rules RulesMap,
 // - firstRID: the first visor's route ID.
 // - lastRID: the last visor's route ID (note that there is no rule set for this ID yet).
 // - err: an error (if any).
-func SaveForwardRules(rules RulesMap, idc *idReservoir, keepAlive time.Duration, route routing.Route) (firstRID, lastRID routing.RouteID, err error) {
+func SaveForwardRules(rules RulesMap, idc *idReservoir, keepAlive time.Duration, route routing.Path) (firstRID, lastRID routing.RouteID, err error) {
 
 	// 'firstRID' is the first visor's key routeID - this is to be returned.
 	var ok bool

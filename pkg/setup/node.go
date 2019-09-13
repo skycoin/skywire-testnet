@@ -224,7 +224,7 @@ func (sn *Node) handleCreateLoop(ctx context.Context, ld routing.LoopDescriptor)
 	return nil
 }
 
-func (sn *Node) reserveRouteIDs(ctx context.Context, fwd, rev routing.Route) (*idReservoir, error) {
+func (sn *Node) reserveRouteIDs(ctx context.Context, fwd, rev routing.Path) (*idReservoir, error) {
 	idc, total := newIDReservoir(fwd, rev)
 	sn.Logger.Infof("There are %d route IDs to reserve.", total)
 

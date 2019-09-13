@@ -21,8 +21,8 @@ func (l Loop) String() string {
 // LoopDescriptor defines a loop over a pair of routes.
 type LoopDescriptor struct {
 	Loop      Loop
-	Forward   Route
-	Reverse   Route
+	Forward   Path
+	Reverse   Path
 	KeepAlive time.Duration
 }
 

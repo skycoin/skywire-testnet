@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/routing"
@@ -29,7 +28,7 @@ type RouteOptions struct {
 
 // FindRoutesRequest parses json body for /routes endpoint request
 type FindRoutesRequest struct {
-	Edges [][2]cipher.PubKey
+	Edges []routing.PathEdges
 	Opts  *RouteOptions
 }
 
@@ -47,7 +46,7 @@ type HTTPError struct {
 
 // Client implements route finding operations.
 type Client interface {
-	FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts *RouteOptions) ([][]routing.Route, error)
+	FindRoutes(ctx context.Context, rts []routing.PathEdges, opts *RouteOptions) (map[routing.PathEdges][]routing.Path, error)
 }
 
 // APIClient implements Client interface
@@ -72,7 +71,7 @@ func NewHTTP(addr string, apiTimeout time.Duration) Client {
 
 // FindRoutes returns routes from source skywire visor to destiny, that has at least the given minHops and as much
 // the given maxHops.
-func (c *apiClient) FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts *RouteOptions) ([][]routing.Route, error) {
+func (c *apiClient) FindRoutes(ctx context.Context, rts []routing.PathEdges, opts *RouteOptions) (map[routing.PathEdges][]routing.Path, error) {
 	requestBody := &FindRoutesRequest{
 		Edges: rts,
 		Opts:  opts,
@@ -114,13 +113,13 @@ func (c *apiClient) FindRoutes(ctx context.Context, rts [][2]cipher.PubKey, opts
 		return nil, errors.New(apiErr.Error.Message)
 	}
 
-	var routes [][]routing.Route
-	err = json.NewDecoder(res.Body).Decode(&routes)
+	var paths map[routing.PathEdges][]routing.Path
+	err = json.NewDecoder(res.Body).Decode(&paths)
 	if err != nil {
 		return nil, err
 	}
 
-	return routes, nil
+	return paths, nil
 }
 
 func sanitizedAddr(addr string) string {

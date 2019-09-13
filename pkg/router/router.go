@@ -409,15 +409,17 @@ func (r *Router) destroyLoop(loop routing.Loop) error {
 	return r.rm.RemoveLoopRule(loop)
 }
 
-func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Route, rev routing.Route, err error) {
+func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Path, rev routing.Path, err error) {
 	r.Logger.Infof("Requesting new routes from %s to %s", source, destination)
 
 	timer := time.NewTimer(time.Second * 10)
 	defer timer.Stop()
+	forward := [2]cipher.PubKey{source, destination}
+	backward := [2]cipher.PubKey{destination, source}
 
 fetchRoutesAgain:
 	ctx := context.Background()
-	routes, err := r.conf.RouteFinder.FindRoutes(ctx, [][2]cipher.PubKey{{source, destination}, {destination, source}},
+	paths, err := r.conf.RouteFinder.FindRoutes(ctx, []routing.PathEdges{forward, backward},
 		&routeFinder.RouteOptions{MinHops: minHops, MaxHops: maxHops})
 	if err != nil {
 		select {
@@ -428,8 +430,8 @@ fetchRoutesAgain:
 		}
 	}
 
-	r.Logger.Infof("Found routes Forward: %s. Reverse %s", routes[0], routes[1])
-	return routes[0][0], routes[1][0], nil
+	r.Logger.Infof("Found routes Forward: %s. Reverse %s", paths[forward], paths[backward])
+	return paths[forward][0], paths[backward][0], nil
 }
 
 // SetupIsTrusted checks if setup node is trusted.

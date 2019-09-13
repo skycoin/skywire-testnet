@@ -10,6 +10,7 @@ import (
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
 	"github.com/skycoin/skywire/pkg/route-finder/client"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 var frAddr string
@@ -34,13 +35,14 @@ var RootCmd = &cobra.Command{
 		var srcPK, dstPK cipher.PubKey
 		internal.Catch(srcPK.Set(args[0]))
 		internal.Catch(dstPK.Set(args[1]))
-
+		forward := [2]cipher.PubKey{srcPK, dstPK}
+		backward := [2]cipher.PubKey{dstPK, srcPK}
 		ctx := context.Background()
-		routes, err := rfc.FindRoutes(ctx, [][2]cipher.PubKey{{srcPK, dstPK}, {dstPK, srcPK}},
+		routes, err := rfc.FindRoutes(ctx, []routing.PathEdges{forward, backward},
 			&client.RouteOptions{MinHops: frMinHops, MaxHops: frMaxHops})
 		internal.Catch(err)
 
-		fmt.Println("forward: ", routes[0][0])
-		fmt.Println("reverse: ", routes[1][0])
+		fmt.Println("forward: ", routes[forward][0])
+		fmt.Println("reverse: ", routes[backward][0])
 	},
 }
