@@ -3,6 +3,7 @@ package router
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -62,7 +63,9 @@ type Router struct {
 	n  *snet.Network
 	tm *transport.Manager
 	pm *portManager
-	rm *routeManager
+
+	sl *snet.Listener
+	rt routing.Table
 
 	wg sync.WaitGroup
 	mx sync.Mutex
@@ -72,25 +75,21 @@ type Router struct {
 func New(n *snet.Network, config *Config) (*Router, error) {
 	config.SetDefaults()
 
+	sl, err := n.Listen(snet.DmsgType, snet.AwaitSetupPort)
+	if err != nil {
+		return nil, err
+	}
+
 	r := &Router{
 		Logger:      config.Logger,
 		n:           n,
 		tm:          config.TransportManager,
 		pm:          newPortManager(10),
+		rt:          config.RoutingTable,
+		sl:          sl,
 		conf:        config,
 		staticPorts: make(map[routing.Port]struct{}),
 	}
-
-	// Prepare route manager.
-	rm, err := newRouteManager(n, config.RoutingTable, RMConfig{
-		SetupPKs:      config.SetupNodes,
-		OnConfirmLoop: r.confirmLoop,
-		OnLoopClosed:  r.loopClosed,
-	})
-	if err != nil {
-		return nil, err
-	}
-	r.rm = rm
 
 	return r, nil
 }
@@ -117,7 +116,7 @@ func (r *Router) Serve(ctx context.Context) error {
 
 	r.wg.Add(1)
 	go func() {
-		r.rm.Serve()
+		r.ServeConnLoop()
 		r.wg.Done()
 	}()
 
@@ -125,8 +124,188 @@ func (r *Router) Serve(ctx context.Context) error {
 	return nil
 }
 
+// ServeConnLoop initiates serving connections by route manager.
+func (r *Router) ServeConnLoop() {
+	// Accept setup node request loop.
+	for {
+		if err := r.serveConn(); err != nil {
+			r.Logger.WithError(err).Warnf("stopped serving")
+			return
+		}
+	}
+}
+
+func (r *Router) serveConn() error {
+	conn, err := r.sl.AcceptConn()
+	if err != nil {
+		r.Logger.WithError(err).Warnf("stopped serving")
+		return err
+	}
+	if !r.SetupIsTrusted(conn.RemotePK()) {
+		r.Logger.Warnf("closing conn from untrusted setup node: %v", conn.Close())
+		return nil
+	}
+	go func() {
+		r.Logger.Infof("handling setup request: setupPK(%s)", conn.RemotePK())
+		if err := r.handleSetupConn(conn); err != nil {
+			r.Logger.WithError(err).Warnf("setup request failed: setupPK(%s)", conn.RemotePK())
+		}
+		r.Logger.Infof("successfully handled setup request: setupPK(%s)", conn.RemotePK())
+	}()
+	return nil
+}
+
+func (r *Router) handleSetupConn(conn net.Conn) error {
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
+	}()
+
+	proto := setup.NewSetupProtocol(conn)
+	t, body, err := proto.ReadPacket()
+
+	if err != nil {
+		return err
+	}
+	r.Logger.Infof("Got new Setup request with type %s", t)
+
+	var respBody interface{}
+	switch t {
+	case setup.PacketAddRules:
+		err = r.saveRoutingRules(body)
+	case setup.PacketDeleteRules:
+		respBody, err = r.deleteRoutingRules(body)
+	case setup.PacketConfirmLoop:
+		err = r.confirmLoopWrapper(body)
+	case setup.PacketLoopClosed:
+		err = r.loopClosedWrapper(body)
+	case setup.PacketRequestRouteID:
+		respBody, err = r.occupyRouteID(body)
+	default:
+		err = errors.New("unknown foundation packet")
+	}
+
+	if err != nil {
+		r.Logger.Infof("Setup request with type %s failed: %s", t, err)
+		return proto.WritePacket(setup.RespFailure, err.Error())
+	}
+	return proto.WritePacket(setup.RespSuccess, respBody)
+}
+
+func (r *Router) saveRoutingRules(data []byte) error {
+	var rules []routing.Rule
+	if err := json.Unmarshal(data, &rules); err != nil {
+		return err
+	}
+
+	for _, rule := range rules {
+		if err := r.rt.SaveRule(rule); err != nil {
+			return fmt.Errorf("routing table: %s", err)
+		}
+
+		r.Logger.Infof("Save new Routing Rule with ID %d %s", rule.KeyRouteID(), rule)
+	}
+
+	return nil
+}
+
+func (r *Router) deleteRoutingRules(data []byte) ([]routing.RouteID, error) {
+	var ruleIDs []routing.RouteID
+	if err := json.Unmarshal(data, &ruleIDs); err != nil {
+		return nil, err
+	}
+
+	r.rt.DelRules(ruleIDs)
+	r.Logger.Infof("Removed Routing Rules with IDs %s", ruleIDs)
+
+	return ruleIDs, nil
+}
+
+func (r *Router) confirmLoopWrapper(data []byte) error {
+	var ld routing.LoopData
+	if err := json.Unmarshal(data, &ld); err != nil {
+		return err
+	}
+
+	remote := ld.Loop.Remote
+	local := ld.Loop.Local
+
+	var appRouteID routing.RouteID
+	var consumeRule routing.Rule
+
+	rules := r.rt.AllRules()
+	for _, rule := range rules {
+		if rule.Type() != routing.RuleConsume {
+			continue
+		}
+
+		rd := rule.RouteDescriptor()
+		if rd.DstPK() == remote.PubKey && rd.DstPort() == remote.Port && rd.SrcPort() == local.Port {
+
+			appRouteID = rule.KeyRouteID()
+			consumeRule = make(routing.Rule, len(rule))
+			copy(consumeRule, rule)
+
+			break
+		}
+	}
+
+	if consumeRule == nil {
+		return errors.New("unknown loop")
+	}
+
+	rule, err := r.rt.Rule(ld.RouteID)
+	if err != nil {
+		return fmt.Errorf("routing table: %s", err)
+	}
+
+	if rule.Type() != routing.RuleIntermediaryForward {
+		return errors.New("reverse rule is not forward")
+	}
+
+	if err = r.confirmLoop(ld.Loop, rule); err != nil {
+		return fmt.Errorf("confirm: %s", err)
+	}
+
+	r.Logger.Infof("Setting reverse route ID %d for rule with ID %d", ld.RouteID, appRouteID)
+	consumeRule.SetKeyRouteID(appRouteID)
+	if rErr := r.rt.SaveRule(consumeRule); rErr != nil {
+		return fmt.Errorf("routing table: %s", rErr)
+	}
+
+	r.Logger.Infof("Confirmed loop with %s:%d", remote.PubKey, remote.Port)
+	return nil
+}
+
+func (r *Router) loopClosedWrapper(data []byte) error {
+	var ld routing.LoopData
+	if err := json.Unmarshal(data, &ld); err != nil {
+		return err
+	}
+
+	return r.loopClosed(ld.Loop)
+}
+
+func (r *Router) occupyRouteID(data []byte) ([]routing.RouteID, error) {
+	var n uint8
+	if err := json.Unmarshal(data, &n); err != nil {
+		return nil, err
+	}
+
+	var ids = make([]routing.RouteID, n)
+	for i := range ids {
+		routeID, err := r.rt.ReserveKey()
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = routeID
+	}
+	return ids, nil
+}
+
 func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error {
-	rule, err := r.rm.GetRule(packet.RouteID())
+	rule, err := r.GetRule(packet.RouteID())
 	if err != nil {
 		return err
 	}
@@ -137,6 +316,26 @@ func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error 
 	default:
 		return r.consumePacket(packet.Payload(), rule)
 	}
+}
+
+// GetRule gets routing rule.
+func (r *Router) GetRule(routeID routing.RouteID) (routing.Rule, error) {
+	rule, err := r.rt.Rule(routeID)
+	if err != nil {
+		return nil, fmt.Errorf("routing table: %s", err)
+	}
+
+	if rule == nil {
+		return nil, errors.New("unknown RouteID")
+	}
+
+	// TODO(evanlinjin): This is a workaround for ensuring the read-in rule is of the correct size.
+	// Sometimes it is not, causing a segfault later down the line.
+	if len(rule) < routing.RuleHeaderSize {
+		return nil, errors.New("corrupted rule")
+	}
+
+	return rule, nil
 }
 
 // ServeApp handles App packets from the App connection on provided port.
@@ -194,7 +393,7 @@ func (r *Router) Close() error {
 		}
 	}
 
-	if err := r.rm.Close(); err != nil {
+	if err := r.sl.Close(); err != nil {
 		r.Logger.WithError(err).Warnf("closing route_manager returned error")
 	}
 	r.wg.Wait()
@@ -299,7 +498,7 @@ func (r *Router) requestLoop(ctx context.Context, appConn *app.Protocol, raddr r
 		Reverse:   reverseRoute,
 	}
 
-	sConn, err := r.rm.dialSetupConn(ctx)
+	sConn, err := r.dialSetupConn(ctx)
 	if err != nil {
 		return routing.Addr{}, err
 	}
@@ -351,7 +550,7 @@ func (r *Router) confirmLoop(l routing.Loop, rule routing.Rule) error {
 func (r *Router) closeLoop(ctx context.Context, appConn *app.Protocol, loop routing.Loop) error {
 	r.destroyLoop(loop)
 
-	sConn, err := r.rm.dialSetupConn(ctx)
+	sConn, err := r.dialSetupConn(ctx)
 	if err != nil {
 		return err
 	}
@@ -365,6 +564,18 @@ func (r *Router) closeLoop(ctx context.Context, appConn *app.Protocol, loop rout
 	}
 	r.Logger.Infof("Closed loop %s", loop)
 	return nil
+}
+
+func (r *Router) dialSetupConn(_ context.Context) (*snet.Conn, error) {
+	for _, sPK := range r.conf.SetupNodes {
+		conn, err := r.n.Dial(snet.DmsgType, sPK, snet.SetupPort)
+		if err != nil {
+			r.Logger.WithError(err).Warnf("failed to dial to setup node: setupPK(%s)", sPK)
+			continue
+		}
+		return conn, nil
+	}
+	return nil, errors.New("failed to dial to a setup node")
 }
 
 func (r *Router) loopClosed(loop routing.Loop) error {
@@ -396,7 +607,26 @@ func (r *Router) destroyLoop(loop routing.Loop) {
 		r.pm.Close(loop.Local.Port)
 	}
 
-	r.rm.RemoveLoopRule(loop)
+	r.RemoveLoopRule(loop)
+}
+
+// RemoveLoopRule removes loop rule.
+func (r *Router) RemoveLoopRule(loop routing.Loop) {
+	remote := loop.Remote
+	local := loop.Local
+
+	rules := r.rt.AllRules()
+	for _, rule := range rules {
+		if rule.Type() != routing.RuleConsume {
+			continue
+		}
+
+		rd := rule.RouteDescriptor()
+		if rd.DstPK() == remote.PubKey && rd.DstPort() == remote.Port && rd.SrcPort() == local.Port {
+			r.rt.DelRules([]routing.RouteID{rule.KeyRouteID()})
+			return
+		}
+	}
 }
 
 func (r *Router) fetchBestRoutes(source, destination cipher.PubKey) (fwd routing.Route, rev routing.Route, err error) {
@@ -422,5 +652,10 @@ fetchRoutesAgain:
 
 // SetupIsTrusted checks if setup node is trusted.
 func (r *Router) SetupIsTrusted(sPK cipher.PubKey) bool {
-	return r.rm.conf.SetupIsTrusted(sPK)
+	for _, pk := range r.conf.SetupNodes {
+		if sPK == pk {
+			return true
+		}
+	}
+	return false
 }
