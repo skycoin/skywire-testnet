@@ -29,12 +29,13 @@ func (sp PacketType) String() string {
 		return "CloseLoop"
 	case PacketLoopClosed:
 		return "OnLoopClosed"
-	case RespSuccess:
-		return "Success"
-	case RespFailure:
-		return "Failure"
 	case PacketRequestRouteID:
 		return "RequestRouteIDs"
+
+	case RespFailure:
+		return "Failure"
+	case RespSuccess:
+		return "Success"
 	}
 	return fmt.Sprintf("Unknown(%d)", sp)
 }

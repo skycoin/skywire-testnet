@@ -321,8 +321,6 @@ func (r *Router) GetRule(routeID routing.RouteID) (routing.Rule, error) {
 
 // ServeApp handles App packets from the App connection on provided port.
 func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
-	fmt.Println("!!! [ServeApp] start !!!")
-
 	r.wg.Add(1)
 	defer r.wg.Done()
 
