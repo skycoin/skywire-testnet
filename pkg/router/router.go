@@ -69,6 +69,9 @@ type Router struct {
 
 	wg sync.WaitGroup
 	mx sync.Mutex
+
+	OnConfirmLoop func(loop routing.Loop, rule routing.Rule) (err error)
+	OnLoopClosed  func(loop routing.Loop) error
 }
 
 // New constructs a new Router.
@@ -90,6 +93,9 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 		conf:        config,
 		staticPorts: make(map[routing.Port]struct{}),
 	}
+
+	r.OnConfirmLoop = r.confirmLoop
+	r.OnLoopClosed = r.loopClosed
 
 	return r, nil
 }
@@ -264,7 +270,7 @@ func (r *Router) confirmLoopWrapper(data []byte) error {
 		return errors.New("reverse rule is not forward")
 	}
 
-	if err = r.confirmLoop(ld.Loop, rule); err != nil {
+	if err = r.OnConfirmLoop(ld.Loop, rule); err != nil {
 		return fmt.Errorf("confirm: %s", err)
 	}
 
@@ -284,7 +290,7 @@ func (r *Router) loopClosedWrapper(data []byte) error {
 		return err
 	}
 
-	return r.loopClosed(ld.Loop)
+	return r.OnLoopClosed(ld.Loop)
 }
 
 func (r *Router) occupyRouteID(data []byte) ([]routing.RouteID, error) {

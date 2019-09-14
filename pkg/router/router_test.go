@@ -334,110 +334,110 @@ func TestRouter_Rules(t *testing.T) {
 		require.NoError(t, setup.DeleteRule(context.TODO(), proto, id))
 		assert.Equal(t, 0, rt.Count())
 	})
-	//
-	// // TEST: Ensure ConfirmLoop request from SetupNode is handled properly.
-	// t.Run("ConfirmLoop", func(t *testing.T) {
-	// 	clearRules()
-	//
-	// 	var inLoop routing.Loop
-	// 	var inRule routing.Rule
-	//
-	// 	r.conf = func(loop routing.Loop, rule routing.Rule) (err error) {
-	// 		inLoop = loop
-	// 		inRule = rule
-	// 		return nil
-	// 	}
-	// 	defer func() { r.conf.OnConfirmLoop = nil }()
-	//
-	// 	in, out := net.Pipe()
-	// 	errCh := make(chan error, 1)
-	// 	go func() {
-	// 		errCh <- r.handleSetupConn(out)
-	// 		close(errCh)
-	// 	}()
-	// 	defer func() {
-	// 		require.NoError(t, in.Close())
-	// 		require.NoError(t, <-errCh)
-	// 	}()
-	//
-	// 	proto := setup.NewSetupProtocol(in)
-	// 	pk, _ := cipher.GenerateKeyPair()
-	//
-	// 	rule := routing.ConsumeRule(10*time.Minute, 2, pk, 2, 3)
-	// 	require.NoError(t, rt.SaveRule(rule))
-	//
-	// 	rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-	// 	require.NoError(t, rt.SaveRule(rule))
-	//
-	// 	ld := routing.LoopData{
-	// 		Loop: routing.Loop{
-	// 			Remote: routing.Addr{
-	// 				PubKey: pk,
-	// 				Port:   3,
-	// 			},
-	// 			Local: routing.Addr{
-	// 				Port: 2,
-	// 			},
-	// 		},
-	// 		RouteID: 1,
-	// 	}
-	// 	err := setup.ConfirmLoop(context.TODO(), proto, ld)
-	// 	require.NoError(t, err)
-	// 	assert.Equal(t, rule, inRule)
-	// 	assert.Equal(t, routing.Port(2), inLoop.Local.Port)
-	// 	assert.Equal(t, routing.Port(3), inLoop.Remote.Port)
-	// 	assert.Equal(t, pk, inLoop.Remote.PubKey)
-	// })
-	//
-	// // TEST: Ensure LoopClosed request from SetupNode is handled properly.
-	// t.Run("LoopClosed", func(t *testing.T) {
-	// 	clearRules()
-	//
-	// 	var inLoop routing.Loop
-	//
-	// 	r.conf.OnLoopClosed = func(loop routing.Loop) error {
-	// 		inLoop = loop
-	// 		return nil
-	// 	}
-	// 	defer func() { r.conf.OnLoopClosed = nil }()
-	//
-	// 	in, out := net.Pipe()
-	// 	errCh := make(chan error, 1)
-	// 	go func() {
-	// 		errCh <- r.handleSetupConn(out)
-	// 		close(errCh)
-	// 	}()
-	// 	defer func() {
-	// 		require.NoError(t, in.Close())
-	// 		require.NoError(t, <-errCh)
-	// 	}()
-	//
-	// 	proto := setup.NewSetupProtocol(in)
-	// 	pk, _ := cipher.GenerateKeyPair()
-	//
-	// 	rule := routing.ConsumeRule(10*time.Minute, 2, pk, 2, 3)
-	// 	require.NoError(t, rt.SaveRule(rule))
-	//
-	// 	rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
-	// 	require.NoError(t, rt.SaveRule(rule))
-	//
-	// 	ld := routing.LoopData{
-	// 		Loop: routing.Loop{
-	// 			Remote: routing.Addr{
-	// 				PubKey: pk,
-	// 				Port:   3,
-	// 			},
-	// 			Local: routing.Addr{
-	// 				Port: 2,
-	// 			},
-	// 		},
-	// 		RouteID: 1,
-	// 	}
-	// 	require.NoError(t, setup.LoopClosed(context.TODO(), proto, ld))
-	// 	assert.Equal(t, routing.Port(2), inLoop.Local.Port)
-	// 	assert.Equal(t, routing.Port(3), inLoop.Remote.Port)
-	// 	assert.Equal(t, pk, inLoop.Remote.PubKey)
-	// })
+
+	// TEST: Ensure ConfirmLoop request from SetupNode is handled properly.
+	t.Run("ConfirmLoop", func(t *testing.T) {
+		clearRules()
+
+		var inLoop routing.Loop
+		var inRule routing.Rule
+
+		r.OnConfirmLoop = func(loop routing.Loop, rule routing.Rule) (err error) {
+			inLoop = loop
+			inRule = rule
+			return nil
+		}
+		defer func() { r.OnConfirmLoop = nil }()
+
+		in, out := net.Pipe()
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- r.handleSetupConn(out)
+			close(errCh)
+		}()
+		defer func() {
+			require.NoError(t, in.Close())
+			require.NoError(t, <-errCh)
+		}()
+
+		proto := setup.NewSetupProtocol(in)
+		pk, _ := cipher.GenerateKeyPair()
+
+		rule := routing.ConsumeRule(10*time.Minute, 2, pk, 2, 3)
+		require.NoError(t, rt.SaveRule(rule))
+
+		rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
+		require.NoError(t, rt.SaveRule(rule))
+
+		ld := routing.LoopData{
+			Loop: routing.Loop{
+				Remote: routing.Addr{
+					PubKey: pk,
+					Port:   3,
+				},
+				Local: routing.Addr{
+					Port: 2,
+				},
+			},
+			RouteID: 1,
+		}
+		err := setup.ConfirmLoop(context.TODO(), proto, ld)
+		require.NoError(t, err)
+		assert.Equal(t, rule, inRule)
+		assert.Equal(t, routing.Port(2), inLoop.Local.Port)
+		assert.Equal(t, routing.Port(3), inLoop.Remote.Port)
+		assert.Equal(t, pk, inLoop.Remote.PubKey)
+	})
+
+	// TEST: Ensure LoopClosed request from SetupNode is handled properly.
+	t.Run("LoopClosed", func(t *testing.T) {
+		clearRules()
+
+		var inLoop routing.Loop
+
+		r.OnLoopClosed = func(loop routing.Loop) error {
+			inLoop = loop
+			return nil
+		}
+		defer func() { r.OnLoopClosed = nil }()
+
+		in, out := net.Pipe()
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- r.handleSetupConn(out)
+			close(errCh)
+		}()
+		defer func() {
+			require.NoError(t, in.Close())
+			require.NoError(t, <-errCh)
+		}()
+
+		proto := setup.NewSetupProtocol(in)
+		pk, _ := cipher.GenerateKeyPair()
+
+		rule := routing.ConsumeRule(10*time.Minute, 2, pk, 2, 3)
+		require.NoError(t, rt.SaveRule(rule))
+
+		rule = routing.IntermediaryForwardRule(10*time.Minute, 1, 3, uuid.New())
+		require.NoError(t, rt.SaveRule(rule))
+
+		ld := routing.LoopData{
+			Loop: routing.Loop{
+				Remote: routing.Addr{
+					PubKey: pk,
+					Port:   3,
+				},
+				Local: routing.Addr{
+					Port: 2,
+				},
+			},
+			RouteID: 1,
+		}
+		require.NoError(t, setup.LoopClosed(context.TODO(), proto, ld))
+		assert.Equal(t, routing.Port(2), inLoop.Local.Port)
+		assert.Equal(t, routing.Port(3), inLoop.Remote.Port)
+		assert.Equal(t, pk, inLoop.Remote.PubKey)
+	})
 }
 
 type TestEnv struct {
