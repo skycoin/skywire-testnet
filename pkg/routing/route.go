@@ -3,7 +3,7 @@
 package routing
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -24,27 +24,32 @@ func (h Hop) String() string {
 // PathEdges are the edge nodes of a path
 type PathEdges [2]cipher.PubKey
 
-// PathEdgesText is used internally for marshaling and unmarshaling of PathEdges
-type PathEdgesText struct {
-	Edge1 cipher.PubKey `json:"edge_1"`
-	Edge2 cipher.PubKey `json:"edge_2"`
-}
-
 // MarshalText implements encoding.TextMarshaler
 func (p PathEdges) MarshalText() ([]byte, error) {
-	return json.Marshal(PathEdgesText{p[0], p[1]})
+	b1, err := p[0].MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	b2, err := p[1].MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	res := bytes.NewBuffer(b1)
+	res.WriteString(":") // nolint
+	res.Write(b2)        // nolint
+	return res.Bytes(), nil
 }
 
 // UnmarshalText implements json.Unmarshaler
 func (p *PathEdges) UnmarshalText(b []byte) error {
-	edges := PathEdgesText{}
-	err := json.Unmarshal(b, &edges)
+	err := p[0].UnmarshalText(b[:66])
 	if err != nil {
 		return err
 	}
-
-	p[0] = edges.Edge1
-	p[1] = edges.Edge2
+	err = p[1].UnmarshalText(b[67:])
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
