@@ -10,7 +10,7 @@ import (
 type ServerRPCClient interface {
 	Dial(remote routing.Addr) (uint16, error)
 	Listen(local routing.Addr) (uint16, error)
-	Accept(lisID uint16) (uint16, error)
+	Accept(lisID uint16) (uint16, routing.Addr, error)
 	Write(connID uint16, b []byte) (int, error)
 	Read(connID uint16, b []byte) (int, error)
 	CloseConn(id uint16) error
@@ -50,13 +50,13 @@ func (c *serverRPCCLient) Listen(local routing.Addr) (uint16, error) {
 }
 
 // Accept sends `Accept` command to the server.
-func (c *serverRPCCLient) Accept(lisID uint16) (uint16, error) {
-	var connID uint16
-	if err := c.rpc.Call("Accept", &lisID, &connID); err != nil {
-		return 0, err
+func (c *serverRPCCLient) Accept(lisID uint16) (uint16, routing.Addr, error) {
+	var acceptResp AcceptResp
+	if err := c.rpc.Call("Accept", &lisID, &acceptResp); err != nil {
+		return 0, routing.Addr{}, err
 	}
 
-	return connID, nil
+	return acceptResp.ConnID, acceptResp.Remote, nil
 }
 
 // Write sends `Write` command to the server.

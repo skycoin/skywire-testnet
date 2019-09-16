@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/skycoin/skycoin/src/util/logging"
+
+	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg"
 
 	"github.com/skycoin/skywire/pkg/routing"
@@ -14,14 +17,16 @@ type ServerRPC struct {
 	dmsgC *dmsg.Client
 	lm    *listenersManager
 	cm    *connsManager
+	log   *logging.Logger
 }
 
 // newServerRPC constructs new server RPC interface.
-func newServerRPC(dmsgC *dmsg.Client) *ServerRPC {
+func newServerRPC(log *logging.Logger, dmsgC *dmsg.Client) *ServerRPC {
 	return &ServerRPC{
 		dmsgC: dmsgC,
 		lm:    newListenersManager(),
 		cm:    newConnsManager(),
+		log:   log,
 	}
 }
 
@@ -57,15 +62,24 @@ func (r *ServerRPC) Listen(local *routing.Addr, lisID *uint16) error {
 	}
 
 	if err := r.lm.set(*lisID, dmsgL); err != nil {
-		// TODO: close listener
+		if err := dmsgL.Close(); err != nil {
+			r.log.WithError(err).Error("error closing DMSG listener")
+		}
+
 		return err
 	}
 
 	return nil
 }
 
+// AcceptResp contains response parameters for `Accept`.
+type AcceptResp struct {
+	Remote routing.Addr
+	ConnID uint16
+}
+
 // Accept accepts connection from the listener specified by `lisID`.
-func (r *ServerRPC) Accept(lisID *uint16, connID *uint16) error {
+func (r *ServerRPC) Accept(lisID *uint16, resp *AcceptResp) error {
 	lis, ok := r.lm.get(*lisID)
 	if !ok {
 		return fmt.Errorf("not listener with id %d", *lisID)
@@ -82,8 +96,24 @@ func (r *ServerRPC) Accept(lisID *uint16, connID *uint16) error {
 	}
 
 	if err := r.cm.set(*connID, tp); err != nil {
-		// TODO: close conn
+		if err := tp.Close(); err != nil {
+			r.log.WithError(err).Error("error closing DMSG transport")
+		}
+
 		return err
+	}
+
+	remote, ok := tp.RemoteAddr().(dmsg.Addr)
+	if !ok {
+		return errors.New("wrong type for transport remote addr")
+	}
+
+	resp = &AcceptResp{
+		Remote: routing.Addr{
+			PubKey: remote.PK,
+			Port:   routing.Port(remote.Port),
+		},
+		ConnID: *connID,
 	}
 
 	return nil

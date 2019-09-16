@@ -1,72 +1,66 @@
 package dmsg
 
 import (
-	"math/rand"
+	"context"
 	"sync"
-	"time"
 
 	"github.com/skycoin/dmsg/cipher"
-)
-
-const (
-	firstEphemeralPort = 49152
-	lastEphemeralPort  = 65535
+	"github.com/skycoin/dmsg/netutil"
 )
 
 // PortManager manages ports of nodes.
 type PortManager struct {
-	mu        sync.RWMutex
-	rand      *rand.Rand
-	listeners map[uint16]*Listener
+	lPK cipher.PubKey
+	p   *netutil.Porter
 }
 
-func newPortManager() *PortManager {
+func newPortManager(lPK cipher.PubKey) *PortManager {
 	return &PortManager{
-		rand:      rand.New(rand.NewSource(time.Now().UnixNano())),
-		listeners: make(map[uint16]*Listener),
+		lPK: lPK,
+		p:   netutil.NewPorter(netutil.PorterMinEphemeral),
 	}
 }
 
 // Listener returns a listener assigned to a given port.
 func (pm *PortManager) Listener(port uint16) (*Listener, bool) {
-	pm.mu.RLock()
-	defer pm.mu.RUnlock()
-
-	l, ok := pm.listeners[port]
+	v, ok := pm.p.PortValue(port)
+	if !ok {
+		return nil, false
+	}
+	l, ok := v.(*Listener)
 	return l, ok
 }
 
 // NewListener assigns listener to port if port is available.
-func (pm *PortManager) NewListener(pk cipher.PubKey, port uint16) (*Listener, bool) {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-	if _, ok := pm.listeners[port]; ok {
+func (pm *PortManager) NewListener(port uint16) (*Listener, bool) {
+	l := newListener(Addr{pm.lPK, port})
+	ok, clear := pm.p.Reserve(port, l)
+	if !ok {
 		return nil, false
 	}
-	l := newListener(pk, port)
-	pm.listeners[port] = l
+	l.AddCloseCallback(clear)
 	return l, true
 }
 
-// RemoveListener removes listener assigned to port.
-func (pm *PortManager) RemoveListener(port uint16) {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-
-	delete(pm.listeners, port)
+// ReserveEphemeral reserves an ephemeral port.
+func (pm *PortManager) ReserveEphemeral(ctx context.Context) (uint16, func(), error) {
+	return pm.p.ReserveEphemeral(ctx, nil)
 }
 
-// NextEmptyEphemeralPort returns next random ephemeral port.
-// It has a value between firstEphemeralPort and lastEphemeralPort.
-func (pm *PortManager) NextEmptyEphemeralPort() uint16 {
-	for {
-		port := pm.randomEphemeralPort()
-		if _, ok := pm.Listener(port); !ok {
-			return port
+// Close closes all listeners.
+func (pm *PortManager) Close() error {
+	wg := new(sync.WaitGroup)
+	pm.p.RangePortValues(func(_ uint16, v interface{}) (next bool) {
+		l, ok := v.(*Listener)
+		if ok {
+			wg.Add(1)
+			go func() {
+				l.close()
+				wg.Done()
+			}()
 		}
-	}
-}
-
-func (pm *PortManager) randomEphemeralPort() uint16 {
-	return uint16(firstEphemeralPort + pm.rand.Intn(lastEphemeralPort-firstEphemeralPort))
+		return true
+	})
+	wg.Wait()
+	return nil
 }

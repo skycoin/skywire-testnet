@@ -8,23 +8,23 @@ import (
 
 // Listener is a listener for app server connections.
 type Listener struct {
-	id   uint16
-	rpc  ServerRPCClient
-	addr routing.Addr
+	id       uint16
+	rpc      ServerRPCClient
+	addr     routing.Addr
+	freePort func()
 }
 
 func (l *Listener) Accept() (net.Conn, error) {
-	connID, err := l.rpc.Accept(l.id)
+	connID, remote, err := l.rpc.Accept(l.id)
 	if err != nil {
 		return nil, err
 	}
 
 	conn := &Conn{
-		id:    connID,
-		rpc:   l.rpc,
-		local: l.addr,
-		// TODO: probably pass with response
-		remote: routing.Addr{},
+		id:     connID,
+		rpc:    l.rpc,
+		local:  l.addr,
+		remote: remote,
 	}
 
 	return conn, nil
@@ -32,6 +32,8 @@ func (l *Listener) Accept() (net.Conn, error) {
 
 // TODO: should unblock all called `Accept`s with errors
 func (l *Listener) Close() error {
+	defer l.freePort()
+
 	return l.rpc.CloseListener(l.id)
 }
 

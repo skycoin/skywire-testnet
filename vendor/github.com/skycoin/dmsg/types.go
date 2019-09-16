@@ -2,6 +2,7 @@ package dmsg
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -18,7 +19,7 @@ const (
 	Type = "dmsg"
 	// HandshakePayloadVersion contains payload version to maintain compatibility with future versions
 	// of HandshakePayload format.
-	HandshakePayloadVersion = "1"
+	HandshakePayloadVersion = "2.0"
 
 	tpBufCap      = math.MaxUint16
 	tpBufFrameCap = math.MaxUint8
@@ -34,15 +35,43 @@ var (
 	AcceptBufferSize = 20
 )
 
-// HandshakePayload represents format of payload sent with REQUEST frames.
-// TODO(evanlinjin): Use 'dmsg.Addr' for PK:Port pair.
-type HandshakePayload struct {
-	Version string        `json:"version"` // just in case the struct changes.
-	InitPK  cipher.PubKey `json:"init_pk"`
-	RespPK  cipher.PubKey `json:"resp_pk"`
-	Port    uint16        `json:"port"`
+// Addr implements net.Addr for dmsg addresses.
+type Addr struct {
+	PK   cipher.PubKey `json:"public_key"`
+	Port uint16        `json:"port"`
 }
 
+// Network returns "dmsg"
+func (Addr) Network() string {
+	return Type
+}
+
+// String returns public key and port of node split by colon.
+func (a Addr) String() string {
+	if a.Port == 0 {
+		return fmt.Sprintf("%s:~", a.PK)
+	}
+	return fmt.Sprintf("%s:%d", a.PK, a.Port)
+}
+
+// HandshakePayload represents format of payload sent with REQUEST frames.
+type HandshakePayload struct {
+	Version  string `json:"version"` // just in case the struct changes.
+	InitAddr Addr   `json:"init_address"`
+	RespAddr Addr   `json:"resp_address"`
+}
+
+func marshalHandshakePayload(p HandshakePayload) ([]byte, error) {
+	return json.Marshal(p)
+}
+
+func unmarshalHandshakePayload(b []byte) (HandshakePayload, error) {
+	var p HandshakePayload
+	err := json.Unmarshal(b, &p)
+	return p, err
+}
+
+// determines whether the transport ID is of an initiator or responder.
 func isInitiatorID(tpID uint16) bool { return tpID%2 == 0 }
 
 func randID(initiator bool) uint16 {
@@ -55,6 +84,7 @@ func randID(initiator bool) uint16 {
 	}
 }
 
+// serveCount records the number of dmsg.Servers connected
 var serveCount int64
 
 func incrementServeCount() int64 { return atomic.AddInt64(&serveCount, 1) }
@@ -133,24 +163,36 @@ func (f Frame) String() string {
 	return fmt.Sprintf("<type:%s><id:%d><size:%d>%s", f.Type(), f.TpID(), f.PayLen(), p)
 }
 
-func readFrame(r io.Reader) (Frame, error) {
-	f := make(Frame, headerLen)
-	if _, err := io.ReadFull(r, f); err != nil {
-		return nil, err
+type disassembledFrame struct {
+	Type FrameType
+	TpID uint16
+	Pay  []byte
+}
+
+// read and disassembles frame from reader
+func readFrame(r io.Reader) (f Frame, df disassembledFrame, err error) {
+	f = make(Frame, headerLen)
+	if _, err = io.ReadFull(r, f); err != nil {
+		return
 	}
 	f = append(f, make([]byte, f.PayLen())...)
-	_, err := io.ReadFull(r, f[headerLen:])
-	return f, err
+	if _, err = io.ReadFull(r, f[headerLen:]); err != nil {
+		return
+	}
+	t, id, p := f.Disassemble()
+	df = disassembledFrame{Type: t, TpID: id, Pay: p}
+	return
 }
 
 type writeError struct{ error }
 
 func (e *writeError) Error() string { return "write error: " + e.error.Error() }
 
-func isWriteError(err error) bool {
-	_, ok := err.(*writeError)
-	return ok
-}
+// TODO(evanlinjin): Determine if this is still needed, may be useful elsewhere.
+//func isWriteError(err error) bool {
+//	_, ok := err.(*writeError)
+//	return ok
+//}
 
 func writeFrame(w io.Writer, f Frame) error {
 	_, err := w.Write(f)
