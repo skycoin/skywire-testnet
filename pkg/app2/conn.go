@@ -2,14 +2,16 @@ package app2
 
 import (
 	"net"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
 // Conn is a connection from app client to the server.
 type Conn struct {
 	id     uint16
-	rpc    ConnRPCClient
+	rpc    ServerRPCClient
 	local  routing.Addr
 	remote routing.Addr
 }
@@ -32,4 +34,16 @@ func (c *Conn) LocalAddr() net.Addr {
 
 func (c *Conn) RemoteAddr() net.Addr {
 	return c.remote
+}
+
+func (c *Conn) SetDeadline(t time.Time) error {
+	return errors.New("method not implemented")
+}
+
+func (c *Conn) SetReadDeadline(t time.Time) error {
+	return errors.New("method not implemented")
+}
+
+func (c *Conn) SetWriteDeadline(t time.Time) error {
+	return errors.New("method not implemented")
 }

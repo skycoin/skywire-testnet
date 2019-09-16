@@ -17,24 +17,6 @@ type ServerRPCClient interface {
 	CloseListener(id uint16) error
 }
 
-// ListenerRPCClient describes RPC interface to communicate with the server.
-// Contains funcs for `Listener` and `Conn`.
-type ListenerRPCClient interface {
-	Accept(id uint16) (uint16, error)
-	CloseListener(id uint16) error
-	Write(connID uint16, b []byte) (int, error)
-	Read(connID uint16, b []byte) (int, error)
-	CloseConn(id uint16) error
-}
-
-// ConnRPCClient describes RPC interface to communicate with the server.
-// Contains funcs for `Conn`.
-type ConnRPCClient interface {
-	Write(id uint16, b []byte) (int, error)
-	Read(id uint16, b []byte) (int, error)
-	CloseConn(id uint16) error
-}
-
 // serverRPCClient implements `ServerRPCClient`.
 type serverRPCCLient struct {
 	rpc *rpc.Client

@@ -1,6 +1,7 @@
 package app2
 
 import (
+	"net"
 	"net/rpc"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -52,7 +53,7 @@ func (c *Client) Dial(remote routing.Addr) (*Conn, error) {
 }
 
 // Listen listens on the specified `port` for the incoming connections.
-func (c *Client) Listen(port routing.Port) (*Listener, error) {
+func (c *Client) Listen(port routing.Port) (net.Listener, error) {
 	local := routing.Addr{
 		PubKey: c.pk,
 		Port:   port,

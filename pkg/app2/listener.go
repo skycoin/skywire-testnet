@@ -9,11 +9,11 @@ import (
 // Listener is a listener for app server connections.
 type Listener struct {
 	id   uint16
-	rpc  ListenerRPCClient
+	rpc  ServerRPCClient
 	addr routing.Addr
 }
 
-func (l *Listener) Accept() (*Conn, error) {
+func (l *Listener) Accept() (net.Conn, error) {
 	connID, err := l.rpc.Accept(l.id)
 	if err != nil {
 		return nil, err
