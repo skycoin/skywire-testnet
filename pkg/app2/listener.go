@@ -6,6 +6,7 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
+// Listener is a listener for app server connections.
 type Listener struct {
 	id   uint16
 	rpc  ListenerRPCClient
@@ -29,6 +30,7 @@ func (l *Listener) Accept() (*Conn, error) {
 	return conn, nil
 }
 
+// TODO: should unblock all called `Accept`s with errors
 func (l *Listener) Close() error {
 	return l.rpc.CloseListener(l.id)
 }

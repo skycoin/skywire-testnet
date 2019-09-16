@@ -6,6 +6,7 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
+// Conn is a connection from app client to the server.
 type Conn struct {
 	id     uint16
 	rpc    ConnRPCClient

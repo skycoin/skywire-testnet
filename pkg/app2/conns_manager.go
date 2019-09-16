@@ -8,18 +8,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+// connsManager manages connections within the app server.
 type connsManager struct {
 	conns map[uint16]net.Conn
 	mx    sync.RWMutex
 	lstID uint16
 }
 
+// newConnsManager constructs new `connsManager`.
 func newConnsManager() *connsManager {
 	return &connsManager{
 		conns: make(map[uint16]net.Conn),
 	}
 }
 
+// `nextID` reserves slot for the next connection and returns its id.
 func (m *connsManager) nextID() (*uint16, error) {
 	m.mx.Lock()
 
@@ -42,6 +45,8 @@ func (m *connsManager) nextID() (*uint16, error) {
 	return &connID, nil
 }
 
+// getAndRemove removes connection specified by `connID` from the manager instance and
+// returns it.
 func (m *connsManager) getAndRemove(connID uint16) (net.Conn, error) {
 	m.mx.Lock()
 	conn, ok := m.conns[connID]
@@ -61,6 +66,7 @@ func (m *connsManager) getAndRemove(connID uint16) (net.Conn, error) {
 	return conn, nil
 }
 
+// set sets `conn` associated with `connID`.
 func (m *connsManager) set(connID uint16, conn net.Conn) error {
 	m.mx.Lock()
 
@@ -75,6 +81,7 @@ func (m *connsManager) set(connID uint16, conn net.Conn) error {
 	return nil
 }
 
+// get gets the connection associated with the `connID`.
 func (m *connsManager) get(connID uint16) (net.Conn, bool) {
 	m.mx.RLock()
 	conn, ok := m.conns[connID]

@@ -9,12 +9,14 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
+// ServerRPC is a RPC interface for the app server.
 type ServerRPC struct {
 	dmsgC *dmsg.Client
 	lm    *listenersManager
 	cm    *connsManager
 }
 
+// newServerRPC constructs new server RPC interface.
 func newServerRPC(dmsgC *dmsg.Client) *ServerRPC {
 	return &ServerRPC{
 		dmsgC: dmsgC,
@@ -23,6 +25,7 @@ func newServerRPC(dmsgC *dmsg.Client) *ServerRPC {
 	}
 }
 
+// Dial dials to the remote.
 func (r *ServerRPC) Dial(remote *routing.Addr, connID *uint16) error {
 	connID, err := r.cm.nextID()
 	if err != nil {
@@ -41,6 +44,7 @@ func (r *ServerRPC) Dial(remote *routing.Addr, connID *uint16) error {
 	return nil
 }
 
+// Listen starts listening.
 func (r *ServerRPC) Listen(local *routing.Addr, lisID *uint16) error {
 	lisID, err := r.lm.nextID()
 	if err != nil {
@@ -60,6 +64,7 @@ func (r *ServerRPC) Listen(local *routing.Addr, lisID *uint16) error {
 	return nil
 }
 
+// Accept accepts connection from the listener specified by `lisID`.
 func (r *ServerRPC) Accept(lisID *uint16, connID *uint16) error {
 	lis, ok := r.lm.get(*lisID)
 	if !ok {
@@ -84,11 +89,13 @@ func (r *ServerRPC) Accept(lisID *uint16, connID *uint16) error {
 	return nil
 }
 
+// WriteReq contains arguments for `Write`.
 type WriteReq struct {
 	ConnID uint16
 	B      []byte
 }
 
+// Write writes to the connection.
 func (r *ServerRPC) Write(req *WriteReq, n *int) error {
 	conn, ok := r.cm.get(req.ConnID)
 	if !ok {
@@ -104,11 +111,13 @@ func (r *ServerRPC) Write(req *WriteReq, n *int) error {
 	return nil
 }
 
+// ReadResp contains response parameters for `Read`.
 type ReadResp struct {
 	B []byte
 	N int
 }
 
+// Read reads data from connection specified by `connID`.
 func (r *ServerRPC) Read(connID *uint16, resp *ReadResp) error {
 	conn, ok := r.cm.get(*connID)
 	if !ok {
@@ -124,6 +133,7 @@ func (r *ServerRPC) Read(connID *uint16, resp *ReadResp) error {
 	return nil
 }
 
+// CloseConn closes connection specified by `connID`.
 func (r *ServerRPC) CloseConn(connID *uint16, _ *struct{}) error {
 	conn, err := r.cm.getAndRemove(*connID)
 	if err != nil {
@@ -133,6 +143,7 @@ func (r *ServerRPC) CloseConn(connID *uint16, _ *struct{}) error {
 	return conn.Close()
 }
 
+// CloseListener closes listener specified by `lisID`.
 func (r *ServerRPC) CloseListener(lisID *uint16, _ *struct{}) error {
 	lis, err := r.lm.getAndRemove(*lisID)
 	if err != nil {
