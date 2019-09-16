@@ -8,7 +8,7 @@ import (
 	"github.com/skycoin/dmsg"
 )
 
-// connsManager manages listeners within the app server.
+// listenersManager manages listeners within the app server.
 type listenersManager struct {
 	listeners map[uint16]*dmsg.Listener
 	mx        sync.RWMutex

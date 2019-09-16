@@ -3,6 +3,7 @@ package app2
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -15,8 +16,8 @@ import (
 // ServerRPC is a RPC interface for the app server.
 type ServerRPC struct {
 	dmsgC *dmsg.Client
-	lm    *listenersManager
-	cm    *connsManager
+	lm    *manager
+	cm    *manager
 	log   *logging.Logger
 }
 
@@ -24,8 +25,8 @@ type ServerRPC struct {
 func newServerRPC(log *logging.Logger, dmsgC *dmsg.Client) *ServerRPC {
 	return &ServerRPC{
 		dmsgC: dmsgC,
-		lm:    newListenersManager(),
-		cm:    newConnsManager(),
+		lm:    newManager(),
+		cm:    newManager(),
 		log:   log,
 	}
 }
@@ -80,7 +81,7 @@ type AcceptResp struct {
 
 // Accept accepts connection from the listener specified by `lisID`.
 func (r *ServerRPC) Accept(lisID *uint16, resp *AcceptResp) error {
-	lis, ok := r.lm.get(*lisID)
+	lis, ok := r.getListener(*lisID)
 	if !ok {
 		return fmt.Errorf("not listener with id %d", *lisID)
 	}
@@ -127,7 +128,7 @@ type WriteReq struct {
 
 // Write writes to the connection.
 func (r *ServerRPC) Write(req *WriteReq, n *int) error {
-	conn, ok := r.cm.get(req.ConnID)
+	conn, ok := r.getConn(req.ConnID)
 	if !ok {
 		return fmt.Errorf("no conn with id %d", req.ConnID)
 	}
@@ -149,7 +150,7 @@ type ReadResp struct {
 
 // Read reads data from connection specified by `connID`.
 func (r *ServerRPC) Read(connID *uint16, resp *ReadResp) error {
-	conn, ok := r.cm.get(*connID)
+	conn, ok := r.getConn(*connID)
 	if !ok {
 		return fmt.Errorf("no conn with id %d", *connID)
 	}
@@ -181,4 +182,63 @@ func (r *ServerRPC) CloseListener(lisID *uint16, _ *struct{}) error {
 	}
 
 	return lis.Close()
+}
+
+func (r *ServerRPC) getAndRemoveListener(lisID uint16) (*dmsg.Listener, error) {
+	lisIfc, err := r.lm.getAndRemove(lisID)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.assertListener(lisIfc)
+}
+
+func (r *ServerRPC) getAndRemoveConn(connID uint16) (net.Conn, error) {
+	connIfc, err := r.cm.getAndRemove(connID)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.assertConn(connIfc)
+}
+
+func (r *ServerRPC) getListener(lisID uint16) (*dmsg.Listener, error) {
+	lisIfc, ok := r.lm.get(lisID)
+	if !ok {
+		return nil, false
+	}
+
+	return r.assertListener(lisIfc)
+}
+
+func (r *ServerRPC) getConn(connID uint16) (net.Conn, error) {
+	connIfc, ok := r.cm.get(connID)
+	if !ok {
+		return nil, false
+	}
+
+	conn, ok := connIfc.(net.Conn)
+	if !ok {
+		r.log.Errorln("wrong type of value stored for conn")
+		return nil, false
+	}
+
+	return conn, true
+}
+func (r *ServerRPC) assertListener(v interface{}) (*dmsg.Listener, error) {
+	lis, ok := v.(*dmsg.Listener)
+	if !ok {
+		return nil, errors.New("wrong type of value stored for listener")
+	}
+
+	return lis, nil
+}
+
+func (r *ServerRPC) assertConn(v interface{}) (net.Conn, error) {
+	conn, ok := v.(net.Conn)
+	if !ok {
+		return nil, errors.New("wrong type of value stored for conn")
+	}
+
+	return conn, nil
 }
