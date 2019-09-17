@@ -9,7 +9,7 @@ action=$1
 filename=$2
 
 # Line to comment/uncomment in go.mod
-line="replace github.com\/skycoin\/dmsg => ..\/dmsg"
+line="replace github.com\/SkycoinProject\/dmsg => ..\/dmsg"
 
 function print_usage() {
     echo $"Usage: $0 (comment|uncomment) <filename>"

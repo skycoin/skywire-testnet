@@ -9,10 +9,10 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/app"
-	ssh "github.com/skycoin/skywire/pkg/therealssh"
+	"github.com/SkycoinProject/skywire/pkg/app"
+	ssh "github.com/SkycoinProject/skywire/pkg/therealssh"
 )
 
 func main() {

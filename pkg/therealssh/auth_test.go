@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/stretchr/testify/require"
 )
 

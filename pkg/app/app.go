@@ -14,9 +14,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 const (

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 func TestManagedRoutingTableCleanup(t *testing.T) {

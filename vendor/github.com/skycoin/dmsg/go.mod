@@ -1,4 +1,4 @@
-module github.com/skycoin/dmsg
+module github.com/SkycoinProject/dmsg
 
 go 1.12
 
@@ -9,7 +9,7 @@ require (
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/sirupsen/logrus v1.4.2
-	github.com/skycoin/skycoin v0.26.0
+	github.com/SkycoinProject/SkycoinProject v0.26.0
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4 // indirect
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859

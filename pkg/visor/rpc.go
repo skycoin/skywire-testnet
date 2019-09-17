@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/transport"
 )
 
 const (

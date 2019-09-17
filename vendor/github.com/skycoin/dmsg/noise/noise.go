@@ -4,11 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 
 	"github.com/flynn/noise"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 var noiseLogger = logging.MustGetLogger("noise") // TODO: initialize properly or remove

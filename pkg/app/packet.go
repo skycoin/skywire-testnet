@@ -1,6 +1,6 @@
 package app
 
-import "github.com/skycoin/skywire/pkg/routing"
+import "github.com/SkycoinProject/skywire/pkg/routing"
 
 // Packet represents message exchanged between App and Node.
 type Packet struct {

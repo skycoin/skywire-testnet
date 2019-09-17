@@ -19,11 +19,11 @@ import (
 
 	"github.com/pkg/profile"
 	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/util/pathutil"
-	"github.com/skycoin/skywire/pkg/visor"
+	"github.com/SkycoinProject/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire/pkg/visor"
 )
 
 const configEnv = "SW_CONFIG"

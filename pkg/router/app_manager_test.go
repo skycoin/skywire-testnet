@@ -5,14 +5,14 @@ import (
 	"net"
 	"testing"
 
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/testhelpers"
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/internal/testhelpers"
+	"github.com/SkycoinProject/skywire/pkg/app"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 func TestAppManagerInit(t *testing.T) {

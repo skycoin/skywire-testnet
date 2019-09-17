@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/handlers"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 )
 
 var log = logging.MustGetLogger("httputil")

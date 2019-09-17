@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/hashicorp/yamux"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 )
 
 var log = logging.MustGetLogger("therealproxy")

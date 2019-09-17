@@ -8,11 +8,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire/pkg/transport"
 )
 
 func TestTCPFactory(t *testing.T) {

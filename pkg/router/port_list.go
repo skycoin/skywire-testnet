@@ -4,8 +4,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/app"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 type portBind struct {

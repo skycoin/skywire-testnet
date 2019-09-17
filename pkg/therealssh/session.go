@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 )
 
 var log = logging.MustGetLogger("therealssh")

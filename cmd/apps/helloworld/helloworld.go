@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/app"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 func main() {

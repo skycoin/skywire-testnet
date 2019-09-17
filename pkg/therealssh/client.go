@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/creack/pty"
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/skycoin/skywire/internal/netutil"
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/internal/netutil"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 var r = netutil.NewRetrier(50*time.Millisecond, 5, 2)

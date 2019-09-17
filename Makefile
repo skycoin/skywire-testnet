@@ -73,9 +73,9 @@ install-linters: ## Install linters
 	${OPTS} go get -u golang.org/x/tools/cmd/goimports
 
 format: ## Formats the code. Must have goimports installed (use make install-linters).
-	${OPTS} goimports -w -local github.com/skycoin/skywire ./pkg
-	${OPTS} goimports -w -local github.com/skycoin/skywire ./cmd
-	${OPTS} goimports -w -local github.com/skycoin/skywire ./internal
+	${OPTS} goimports -w -local github.com/SkycoinProject/skywire ./pkg
+	${OPTS} goimports -w -local github.com/SkycoinProject/skywire ./cmd
+	${OPTS} goimports -w -local github.com/SkycoinProject/skywire ./internal
 
 dep: ## Sorts dependencies
 	${OPTS} go mod vendor -v

@@ -7,10 +7,10 @@ import (
 	"io"
 	"net"
 
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 // CommandType represents global protocol messages.

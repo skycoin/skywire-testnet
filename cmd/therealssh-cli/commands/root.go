@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/creack/pty"
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 
-	ssh "github.com/skycoin/skywire/pkg/therealssh"
+	ssh "github.com/SkycoinProject/skywire/pkg/therealssh"
 )
 
 var (

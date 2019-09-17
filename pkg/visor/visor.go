@@ -19,16 +19,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skycoin/dmsg/noise"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/dmsg/noise"
+	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/app"
-	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
-	"github.com/skycoin/skywire/pkg/router"
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
-	"github.com/skycoin/skywire/pkg/transport/dmsg"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire/pkg/app"
+	routeFinder "github.com/SkycoinProject/skywire/pkg/route-finder/client"
+	"github.com/SkycoinProject/skywire/pkg/router"
+	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire/pkg/transport/dmsg"
+	"github.com/SkycoinProject/skywire/pkg/util/pathutil"
 )
 
 var log = logging.MustGetLogger("node")

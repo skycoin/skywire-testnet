@@ -5,12 +5,12 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire/pkg/app"
+	"github.com/SkycoinProject/skywire/pkg/routing"
 )
 
 func TestPortManager(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/ioutil"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/ioutil"
 )
 
 // ReadWriter implements noise encrypted read writer.

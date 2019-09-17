@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 // Loop defines a loop over a pair of addresses.

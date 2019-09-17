@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/securecookie"
 
-	"github.com/skycoin/skywire/pkg/httputil"
+	"github.com/SkycoinProject/skywire/pkg/httputil"
 )
 
 const (
