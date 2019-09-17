@@ -32,7 +32,7 @@ func newServerRPC(log *logging.Logger, dmsgC *dmsg.Client) *ServerRPC {
 
 // Dial dials to the remote.
 func (r *ServerRPC) Dial(remote *routing.Addr, connID *uint16) error {
-	connID, err := r.cm.nextID()
+	connID, err := r.cm.nextKey()
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func (r *ServerRPC) Dial(remote *routing.Addr, connID *uint16) error {
 
 // Listen starts listening.
 func (r *ServerRPC) Listen(local *routing.Addr, lisID *uint16) error {
-	lisID, err := r.lm.nextID()
+	lisID, err := r.lm.nextKey()
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (r *ServerRPC) Accept(lisID *uint16, resp *AcceptResp) error {
 		return err
 	}
 
-	connID, err := r.cm.nextID()
+	connID, err := r.cm.nextKey()
 	if err != nil {
 		return err
 	}

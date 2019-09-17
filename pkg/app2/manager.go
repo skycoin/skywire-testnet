@@ -27,8 +27,8 @@ func newManager() *manager {
 	}
 }
 
-// `nextID` reserves next free slot for the value and returns the key for it.
-func (m *manager) nextID() (*uint16, error) {
+// `nextKey` reserves next free slot for the value and returns the key for it.
+func (m *manager) nextKey() (*uint16, error) {
 	m.mx.Lock()
 
 	nxtKey := m.lstKey + 1
@@ -75,9 +75,15 @@ func (m *manager) getAndRemove(key uint16) (interface{}, error) {
 func (m *manager) set(key uint16, v interface{}) error {
 	m.mx.Lock()
 
-	if l, ok := m.values[key]; ok && l != nil {
+	l, ok := m.values[key]
+	if !ok {
 		m.mx.Unlock()
-		return errors.New("value already exists")
+		return errors.New("key is not reserved")
+	} else {
+		if l != nil {
+			m.mx.Unlock()
+			return errors.New("value already exists")
+		}
 	}
 
 	m.values[key] = v
