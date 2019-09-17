@@ -7,6 +7,7 @@ import (
 )
 
 // Listener is a listener for app server connections.
+// Implements `net.Listener`.
 type Listener struct {
 	id       uint16
 	rpc      ServerRPCClient

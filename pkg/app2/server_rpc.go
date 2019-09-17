@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg"
+	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/routing"
 )
@@ -81,9 +80,9 @@ type AcceptResp struct {
 
 // Accept accepts connection from the listener specified by `lisID`.
 func (r *ServerRPC) Accept(lisID *uint16, resp *AcceptResp) error {
-	lis, ok := r.getListener(*lisID)
-	if !ok {
-		return fmt.Errorf("not listener with id %d", *lisID)
+	lis, err := r.getListener(*lisID)
+	if err != nil {
+		return err
 	}
 
 	connID, err := r.cm.nextID()
@@ -128,12 +127,11 @@ type WriteReq struct {
 
 // Write writes to the connection.
 func (r *ServerRPC) Write(req *WriteReq, n *int) error {
-	conn, ok := r.getConn(req.ConnID)
-	if !ok {
-		return fmt.Errorf("no conn with id %d", req.ConnID)
+	conn, err := r.getConn(req.ConnID)
+	if err != nil {
+		return err
 	}
 
-	var err error
 	*n, err = conn.Write(req.B)
 	if err != nil {
 		return err
@@ -150,12 +148,11 @@ type ReadResp struct {
 
 // Read reads data from connection specified by `connID`.
 func (r *ServerRPC) Read(connID *uint16, resp *ReadResp) error {
-	conn, ok := r.getConn(*connID)
-	if !ok {
-		return fmt.Errorf("no conn with id %d", *connID)
+	conn, err := r.getConn(*connID)
+	if err != nil {
+		return err
 	}
 
-	var err error
 	resp.N, err = conn.Read(resp.B)
 	if err != nil {
 		return err
@@ -166,7 +163,7 @@ func (r *ServerRPC) Read(connID *uint16, resp *ReadResp) error {
 
 // CloseConn closes connection specified by `connID`.
 func (r *ServerRPC) CloseConn(connID *uint16, _ *struct{}) error {
-	conn, err := r.cm.getAndRemove(*connID)
+	conn, err := r.getAndRemoveConn(*connID)
 	if err != nil {
 		return err
 	}
@@ -176,7 +173,7 @@ func (r *ServerRPC) CloseConn(connID *uint16, _ *struct{}) error {
 
 // CloseListener closes listener specified by `lisID`.
 func (r *ServerRPC) CloseListener(lisID *uint16, _ *struct{}) error {
-	lis, err := r.lm.getAndRemove(*lisID)
+	lis, err := r.getAndRemoveListener(*lisID)
 	if err != nil {
 		return err
 	}
@@ -184,6 +181,8 @@ func (r *ServerRPC) CloseListener(lisID *uint16, _ *struct{}) error {
 	return lis.Close()
 }
 
+// getAndRemoveListener gets listener from the manager by `lisID` and removes it.
+// Handles type assertion.
 func (r *ServerRPC) getAndRemoveListener(lisID uint16) (*dmsg.Listener, error) {
 	lisIfc, err := r.lm.getAndRemove(lisID)
 	if err != nil {
@@ -193,6 +192,8 @@ func (r *ServerRPC) getAndRemoveListener(lisID uint16) (*dmsg.Listener, error) {
 	return r.assertListener(lisIfc)
 }
 
+// getAndRemoveConn gets conn from the manager by `connID` and removes it.
+// Handles type assertion.
 func (r *ServerRPC) getAndRemoveConn(connID uint16) (net.Conn, error) {
 	connIfc, err := r.cm.getAndRemove(connID)
 	if err != nil {
@@ -202,29 +203,27 @@ func (r *ServerRPC) getAndRemoveConn(connID uint16) (net.Conn, error) {
 	return r.assertConn(connIfc)
 }
 
+// getListener gets listener from the manager by `lisID`. Handles type assertion.
 func (r *ServerRPC) getListener(lisID uint16) (*dmsg.Listener, error) {
 	lisIfc, ok := r.lm.get(lisID)
 	if !ok {
-		return nil, false
+		return nil, fmt.Errorf("no listener with key %d", lisID)
 	}
 
 	return r.assertListener(lisIfc)
 }
 
+// getConn gets conn from the manager by `connID`. Handles type assertion.
 func (r *ServerRPC) getConn(connID uint16) (net.Conn, error) {
 	connIfc, ok := r.cm.get(connID)
 	if !ok {
-		return nil, false
+		return nil, fmt.Errorf("no conn with key %d", connID)
 	}
 
-	conn, ok := connIfc.(net.Conn)
-	if !ok {
-		r.log.Errorln("wrong type of value stored for conn")
-		return nil, false
-	}
-
-	return conn, true
+	return r.assertConn(connIfc)
 }
+
+// assertListener asserts that `v` is of type `*dmsg.Listener`.
 func (r *ServerRPC) assertListener(v interface{}) (*dmsg.Listener, error) {
 	lis, ok := v.(*dmsg.Listener)
 	if !ok {
@@ -234,6 +233,7 @@ func (r *ServerRPC) assertListener(v interface{}) (*dmsg.Listener, error) {
 	return lis, nil
 }
 
+// assertConn asserts that `v` is of type `net.Conn`.
 func (r *ServerRPC) assertConn(v interface{}) (net.Conn, error) {
 	conn, ok := v.(net.Conn)
 	if !ok {
