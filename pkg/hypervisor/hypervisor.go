@@ -18,11 +18,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/SkycoinProject/dmsg/noise"
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/SkycoinProject/skywire/pkg/httputil"
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/visor"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/httputil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/visor"
 )
 
 var (

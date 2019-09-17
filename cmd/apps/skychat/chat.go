@@ -17,9 +17,9 @@ import (
 
 	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/SkycoinProject/skywire/internal/netutil"
-	"github.com/SkycoinProject/skywire/pkg/app"
-	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/internal/netutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 var addr = flag.String("addr", ":8000", "address to bind")

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"go.etcd.io/bbolt"
 )
 

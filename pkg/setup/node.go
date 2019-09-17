@@ -9,12 +9,12 @@ import (
 
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/SkycoinProject/dmsg/disc"
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/SkycoinProject/skywire/pkg/metrics"
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/transport"
-	"github.com/SkycoinProject/skywire/pkg/transport/dmsg"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/metrics"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport/dmsg"
 )
 
 // Hop is a wrapper around transport hop to add functionality

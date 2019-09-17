@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
 	"github.com/flynn/noise"
 

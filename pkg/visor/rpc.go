@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 )
 
 const (

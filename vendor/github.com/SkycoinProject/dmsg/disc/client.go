@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
 	"github.com/SkycoinProject/dmsg/cipher"
 )

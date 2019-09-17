@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/SkycoinProject/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 )
 
 func testTransportLogStore(t *testing.T, logStore transport.LogStore) {

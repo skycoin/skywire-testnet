@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/SkycoinProject/skywire/pkg/hypervisor"
-	"github.com/SkycoinProject/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/hypervisor"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 var (

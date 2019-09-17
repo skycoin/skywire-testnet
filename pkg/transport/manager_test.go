@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/transport"
-	"github.com/SkycoinProject/skywire/pkg/transport/dmsg"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport/dmsg"
 
 	"github.com/google/uuid"
 	"github.com/SkycoinProject/dmsg/cipher"

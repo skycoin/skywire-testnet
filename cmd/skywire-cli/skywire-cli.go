@@ -4,7 +4,7 @@ CLI for skywire visor
 package main
 
 import (
-	"github.com/SkycoinProject/skywire/cmd/skywire-cli/commands"
+	"github.com/SkycoinProject/skywire-mainnet/cmd/skywire-cli/commands"
 )
 
 func main() {

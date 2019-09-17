@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/SkycoinProject/skywire/internal/httpauth"
-	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/internal/httpauth"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 func TestMessagingDiscovery(t *testing.T) {

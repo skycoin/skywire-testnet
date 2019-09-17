@@ -7,10 +7,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/setup"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/setup"
 )
 
 type setupCallbacks struct {

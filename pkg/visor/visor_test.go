@@ -16,16 +16,16 @@ import (
 
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/SkycoinProject/dmsg/disc"
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/SkycoinProject/skywire/internal/httpauth"
-	"github.com/SkycoinProject/skywire/pkg/app"
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/transport"
-	"github.com/SkycoinProject/skywire/pkg/transport/dmsg"
-	"github.com/SkycoinProject/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/internal/httpauth"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport/dmsg"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 var masterLogger *logging.MasterLogger

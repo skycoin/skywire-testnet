@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"log"
 
-	secp "github.com/SkycoinProject/SkycoinProject/src/cipher/secp256k1-go/secp256k1-go2"
+	secp "github.com/skycoin/skycoin/src/cipher/secp256k1-go/secp256k1-go2"
 )
 
 // DebugPrint enable debug print statements

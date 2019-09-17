@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 var routeKeepalive = 10 * time.Minute // interval to keep active expired routes

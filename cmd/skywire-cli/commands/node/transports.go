@@ -11,8 +11,8 @@ import (
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/spf13/cobra"
 
-	"github.com/SkycoinProject/skywire/cmd/skywire-cli/internal"
-	"github.com/SkycoinProject/skywire/pkg/visor"
+	"github.com/SkycoinProject/skywire-mainnet/cmd/skywire-cli/internal"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/visor"
 )
 
 func init() {

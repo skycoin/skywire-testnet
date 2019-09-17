@@ -3,10 +3,10 @@ package node
 import (
 	"net/rpc"
 
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/SkycoinProject/skywire/pkg/visor"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/visor"
 )
 
 var log = logging.MustGetLogger("skywire-cli")

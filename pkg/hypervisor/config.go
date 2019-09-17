@@ -10,7 +10,7 @@ import (
 
 	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/SkycoinProject/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 // Key allows a byte slice to be marshaled or unmarshaled from a hex string.

@@ -9,10 +9,10 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/SkycoinProject/skywire/pkg/app"
-	ssh "github.com/SkycoinProject/skywire/pkg/therealssh"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
+	ssh "github.com/SkycoinProject/skywire-mainnet/pkg/therealssh"
 )
 
 func main() {

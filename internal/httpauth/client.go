@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 
 	"github.com/SkycoinProject/dmsg/cipher"
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 )
 
 const (

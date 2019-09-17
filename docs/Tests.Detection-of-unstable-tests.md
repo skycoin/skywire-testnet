@@ -21,15 +21,15 @@ You will get output similar to:
 
 ```text
 TestClient
-ok  	github.com/SkycoinProject/skywire/internal/httpauth	0.043s
-?   	github.com/SkycoinProject/skywire/internal/httputil	[no test files]
+ok  	github.com/SkycoinProject/skywire-mainnet/internal/httpauth	0.043s
+?   	github.com/SkycoinProject/skywire-mainnet/internal/httputil	[no test files]
 TestAckReadWriter
 TestAckReadWriterCRCFailure
 TestAckReadWriterFlushOnClose
 TestAckReadWriterPartialRead
 TestAckReadWriterReadError
 TestLenReadWriter
-ok  	github.com/SkycoinProject/skywire/internal/ioutil	0.049s
+ok  	github.com/SkycoinProject/skywire-mainnet/internal/ioutil	0.049s
 ```
 
 Filter lines with `[no test files]`.
@@ -37,14 +37,14 @@ Filter lines with `[no test files]`.
 Transform this output to:
 
 ```bash
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire/internal/httpauth -run TestClient >> ./logs/internal/TestClient.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire-mainnet/internal/httpauth -run TestClient >> ./logs/internal/TestClient.log
 
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire/internal/ioutil	-run TestAckReadWriter  >>./logs/internal/TestAckReadWriter.log
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire/internal/ioutil	-run TestAckReadWriterCRCFailure  >>./logs/internal/TestAckReadWriterCRCFailure.log
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire/internal/ioutil	-run TestAckReadWriterFlushOnClose  >>./logs/internal/TestAckReadWriterFlushOnClose.log
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire/internal/ioutil	-run TestAckReadWriterPartialRead  >>./logs/internal/TestAckReadWriterPartialRead.log
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire/internal/ioutil	-run TestAckReadWriterReadError  >>./logs/internal/TestAckReadWriterReadError.log
-go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire/internal/ioutil	-run TestLenReadWriter  >>./logs/internal/TestLenReadWriter.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire-mainnet/internal/ioutil	-run TestAckReadWriter  >>./logs/internal/TestAckReadWriter.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire-mainnet/internal/ioutil	-run TestAckReadWriterCRCFailure  >>./logs/internal/TestAckReadWriterCRCFailure.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire-mainnet/internal/ioutil	-run TestAckReadWriterFlushOnClose  >>./logs/internal/TestAckReadWriterFlushOnClose.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire-mainnet/internal/ioutil	-run TestAckReadWriterPartialRead  >>./logs/internal/TestAckReadWriterPartialRead.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire-mainnet/internal/ioutil	-run TestAckReadWriterReadError  >>./logs/internal/TestAckReadWriterReadError.log
+go clean -testcache &>/dev/null || go test -race -tags no_ci -cover -timeout=5m github.com/SkycoinProject/skywire-mainnet/internal/ioutil	-run TestLenReadWriter  >>./logs/internal/TestLenReadWriter.log
 ```
 
 Notes:
@@ -79,10 +79,10 @@ If you see something like:
 
 ```sh
 $ grep "FAIL" ./logs/pkg/*.log
-# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire/pkg/messaging        300.838s
-# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire/pkg/messaging        300.849s
-# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire/pkg/messaging        300.844s
-# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire/pkg/messaging        300.849s
+# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire-mainnet/pkg/messaging        300.838s
+# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire-mainnet/pkg/messaging        300.849s
+# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire-mainnet/pkg/messaging        300.844s
+# ./logs/pkg/TestClientConnectInitialServers.log:FAIL     github.com/SkycoinProject/skywire-mainnet/pkg/messaging        300.849s
 ```
 
 (note  300s for FAILs)
@@ -91,12 +91,12 @@ And:
 
 ```sh
 $ grep "coverage" ./logs/pkg/TestClientConnectInitialServers.log  
-# ok      github.com/SkycoinProject/skywire/pkg/messaging        3.049s  coverage: 39.5% of statements
+# ok      github.com/SkycoinProject/skywire-mainnet/pkg/messaging        3.049s  coverage: 39.5% of statements
 # coverage: 38.0% of statements
-# ok      github.com/SkycoinProject/skywire/pkg/messaging        3.072s  coverage: 39.5% of statements
-# ok      github.com/SkycoinProject/skywire/pkg/messaging        3.073s  coverage: 39.5% of statements
-# ok      github.com/SkycoinProject/skywire/pkg/messaging        3.071s  coverage: 39.5% of statements
-# ok      github.com/SkycoinProject/skywire/pkg/messaging        3.050s  coverage: 39.5% of statements
+# ok      github.com/SkycoinProject/skywire-mainnet/pkg/messaging        3.072s  coverage: 39.5% of statements
+# ok      github.com/SkycoinProject/skywire-mainnet/pkg/messaging        3.073s  coverage: 39.5% of statements
+# ok      github.com/SkycoinProject/skywire-mainnet/pkg/messaging        3.071s  coverage: 39.5% of statements
+# ok      github.com/SkycoinProject/skywire-mainnet/pkg/messaging        3.050s  coverage: 39.5% of statements
 # coverage: 38.0% of statements
 ```
 
@@ -129,11 +129,11 @@ Temporary solution: test was moved to `./pkg/messaging/client_test.go` and tagge
 ```sh
 $ grep coverage ./logs/internal/*.log
 # ./logs/internal/TestReadWriterConcurrentTCP.log
-# 1:ok    github.com/SkycoinProject/skywire/internal/noise       1.545s  coverage: 0.0% of statements
-# 2:ok    github.com/SkycoinProject/skywire/internal/noise       1.427s  coverage: 0.0% of statements
-# 3:ok    github.com/SkycoinProject/skywire/internal/noise       1.429s  coverage: 0.0% of statements
-# 4:ok    github.com/SkycoinProject/skywire/internal/noise       1.429s  coverage: 0.0% of statements
-# 5:ok    github.com/SkycoinProject/skywire/internal/noise       1.436s  coverage: 0.0% of statements
+# 1:ok    github.com/SkycoinProject/skywire-mainnet/internal/noise       1.545s  coverage: 0.0% of statements
+# 2:ok    github.com/SkycoinProject/skywire-mainnet/internal/noise       1.427s  coverage: 0.0% of statements
+# 3:ok    github.com/SkycoinProject/skywire-mainnet/internal/noise       1.429s  coverage: 0.0% of statements
+# 4:ok    github.com/SkycoinProject/skywire-mainnet/internal/noise       1.429s  coverage: 0.0% of statements
+# 5:ok    github.com/SkycoinProject/skywire-mainnet/internal/noise       1.436s  coverage: 0.0% of statements
 ```
 
 Note 0.0% coverage

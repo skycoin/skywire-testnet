@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 
-	ssh "github.com/SkycoinProject/skywire/pkg/therealssh"
+	ssh "github.com/SkycoinProject/skywire-mainnet/pkg/therealssh"
 )
 
 var (

@@ -1,8 +1,10 @@
-module github.com/SkycoinProject/skywire
+module github.com/SkycoinProject/skywire-mainnet
 
 go 1.12
 
 require (
+	github.com/SkycoinProject/dmsg v0.0.0-20190917230949-27f4fd2f25fb
+	github.com/SkycoinProject/skycoin v0.26.0
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 	github.com/creack/pty v1.1.7
 	github.com/go-chi/chi v4.0.2+incompatible
@@ -16,8 +18,6 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/SkycoinProject/dmsg v0.0.0-20190805065636-70f4c32a994f
-	github.com/SkycoinProject/SkycoinProject v0.26.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0
 	go.etcd.io/bbolt v1.3.3

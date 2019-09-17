@@ -7,8 +7,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/SkycoinProject/skywire/internal/therealproxy"
-	"github.com/SkycoinProject/skywire/pkg/app"
+	"github.com/SkycoinProject/skywire-mainnet/internal/therealproxy"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
 )
 
 func main() {

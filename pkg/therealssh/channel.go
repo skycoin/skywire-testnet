@@ -15,7 +15,7 @@ import (
 	"github.com/creack/pty"
 	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 // Port reserved for SSH app

@@ -9,8 +9,8 @@ import (
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/spf13/cobra"
 
-	"github.com/SkycoinProject/skywire/pkg/util/pathutil"
-	"github.com/SkycoinProject/skywire/pkg/visor"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/visor"
 )
 
 func init() {
@@ -68,9 +68,9 @@ func homeConfig() *visor.Config {
 
 func localConfig() *visor.Config {
 	c := defaultConfig()
-	c.AppsPath = "/usr/local/SkycoinProject/skywire/apps"
-	c.Transport.LogStore.Location = "/usr/local/SkycoinProject/skywire/transport_logs"
-	c.Routing.Table.Location = "/usr/local/SkycoinProject/skywire/routing.db"
+	c.AppsPath = "/usr/local/SkycoinProject/skywire-mainnet/apps"
+	c.Transport.LogStore.Location = "/usr/local/SkycoinProject/skywire-mainnet/transport_logs"
+	c.Routing.Table.Location = "/usr/local/SkycoinProject/skywire-mainnet/routing.db"
 	return c
 }
 

@@ -11,10 +11,10 @@ import (
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/SkycoinProject/dmsg/disc"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/transport"
-	trClient "github.com/SkycoinProject/skywire/pkg/transport-discovery/client"
-	"github.com/SkycoinProject/skywire/pkg/transport/dmsg"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
+	trClient "github.com/SkycoinProject/skywire-mainnet/pkg/transport-discovery/client"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport/dmsg"
 )
 
 // Config defines configuration parameters for Node.

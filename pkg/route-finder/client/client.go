@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/SkycoinProject/dmsg/cipher"
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 const defaultContextTimeout = 10 * time.Second

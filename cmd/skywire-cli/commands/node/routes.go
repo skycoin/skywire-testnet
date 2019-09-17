@@ -11,10 +11,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/SkycoinProject/skywire/cmd/skywire-cli/internal"
-	"github.com/SkycoinProject/skywire/pkg/router"
-	"github.com/SkycoinProject/skywire/pkg/routing"
-	"github.com/SkycoinProject/skywire/pkg/visor"
+	"github.com/SkycoinProject/skywire-mainnet/cmd/skywire-cli/internal"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/router"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/visor"
 )
 
 func init() {

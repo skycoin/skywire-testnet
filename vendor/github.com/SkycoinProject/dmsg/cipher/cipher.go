@@ -1,5 +1,5 @@
 // Package cipher implements common golang encoding interfaces for
-// github.com/SkycoinProject/SkycoinProject/src/cipher
+// github.com/SkycoinProject/skycoin/src/cipher
 package cipher
 
 import (
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SkycoinProject/SkycoinProject/src/cipher"
+	"github.com/SkycoinProject/skycoin/src/cipher"
 )
 
 func init() {

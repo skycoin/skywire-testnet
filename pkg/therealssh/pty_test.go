@@ -13,7 +13,7 @@ import (
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/stretchr/testify/require"
 
-	"github.com/SkycoinProject/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 func TestRunRPC(t *testing.T) {

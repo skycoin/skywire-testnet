@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/SkycoinProject/SkycoinProject/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/SkycoinProject/skywire/pkg/hypervisor"
-	"github.com/SkycoinProject/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/hypervisor"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 const configEnv = "SW_HYPERVISOR_CONFIG"

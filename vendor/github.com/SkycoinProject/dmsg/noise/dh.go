@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/flynn/noise"
-	"github.com/SkycoinProject/SkycoinProject/src/cipher"
+	"github.com/SkycoinProject/skycoin/src/cipher"
 )
 
 // Secp256k1 implements `noise.DHFunc`.
