@@ -18,7 +18,15 @@ type Conn struct {
 }
 
 func (c *Conn) Read(b []byte) (int, error) {
-	return c.rpc.Read(c.id, b)
+	n, readBytes, err := c.rpc.Read(c.id, b)
+	if err != nil {
+		return 0, err
+	}
+
+	// TODO: check for slice border
+	copy(b[:n], readBytes[:n])
+
+	return n, err
 }
 
 func (c *Conn) Write(b []byte) (int, error) {

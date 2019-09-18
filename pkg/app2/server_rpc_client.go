@@ -14,7 +14,7 @@ type ServerRPCClient interface {
 	Listen(local routing.Addr) (uint16, error)
 	Accept(lisID uint16) (uint16, routing.Addr, error)
 	Write(connID uint16, b []byte) (int, error)
-	Read(connID uint16, b []byte) (int, error)
+	Read(connID uint16, b []byte) (int, []byte, error)
 	CloseConn(id uint16) error
 	CloseListener(id uint16) error
 }
@@ -77,15 +77,13 @@ func (c *serverRPCCLient) Write(connID uint16, b []byte) (int, error) {
 }
 
 // Read sends `Read` command to the server.
-func (c *serverRPCCLient) Read(connID uint16, b []byte) (int, error) {
+func (c *serverRPCCLient) Read(connID uint16, b []byte) (int, []byte, error) {
 	var resp ReadResp
 	if err := c.rpc.Call("Read", &connID, &resp); err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
-	copy(b[:resp.N], resp.B[:resp.N])
-
-	return resp.N, nil
+	return resp.N, resp.B, nil
 }
 
 // CloseConn sends `CloseConn` command to the server.
