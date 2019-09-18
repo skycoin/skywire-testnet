@@ -6,6 +6,8 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
+//go:generate mockery -name ServerRPCClient -case underscore -inpkg
+
 // ServerRPCClient describes RPC interface to communicate with the server.
 type ServerRPCClient interface {
 	Dial(remote routing.Addr) (uint16, error)
@@ -22,8 +24,8 @@ type serverRPCCLient struct {
 	rpc *rpc.Client
 }
 
-// newServerRPCClient constructs new `serverRPCClient`.
-func newServerRPCClient(rpc *rpc.Client) ServerRPCClient {
+// NewServerRPCClient constructs new `serverRPCClient`.
+func NewServerRPCClient(rpc *rpc.Client) ServerRPCClient {
 	return &serverRPCCLient{
 		rpc: rpc,
 	}

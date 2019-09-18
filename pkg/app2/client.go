@@ -3,12 +3,9 @@ package app2
 import (
 	"context"
 	"net"
-	"net/rpc"
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/netutil"
-	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -17,7 +14,6 @@ type Client struct {
 	pk     cipher.PubKey
 	pid    ProcID
 	rpc    ServerRPCClient
-	log    *logging.Logger
 	porter *netutil.Porter
 }
 
@@ -26,19 +22,17 @@ type Client struct {
 // - localPK: The local public key of the parent skywire visor.
 // - pid: The procID assigned for the process that Client is being used by.
 // - rpc: RPC client to communicate with the server.
-func NewClient(log *logging.Logger, localPK cipher.PubKey, pid ProcID, rpc *rpc.Client,
-	porter *netutil.Porter) *Client {
+func NewClient(localPK cipher.PubKey, pid ProcID, rpc ServerRPCClient, porter *netutil.Porter) *Client {
 	return &Client{
 		pk:     localPK,
 		pid:    pid,
-		rpc:    newServerRPCClient(rpc),
-		log:    log,
+		rpc:    rpc,
 		porter: porter,
 	}
 }
 
 // Dial dials the remote node using `remote`.
-func (c *Client) Dial(remote routing.Addr) (*Conn, error) {
+func (c *Client) Dial(remote routing.Addr) (net.Conn, error) {
 	localPort, free, err := c.porter.ReserveEphemeral(context.TODO(), nil)
 	if err != nil {
 		return nil, err
@@ -46,6 +40,7 @@ func (c *Client) Dial(remote routing.Addr) (*Conn, error) {
 
 	connID, err := c.rpc.Dial(remote)
 	if err != nil {
+		free()
 		return nil, err
 	}
 
@@ -67,7 +62,6 @@ func (c *Client) Dial(remote routing.Addr) (*Conn, error) {
 func (c *Client) Listen(port routing.Port) (net.Listener, error) {
 	ok, free := c.porter.Reserve(uint16(port), nil)
 	if !ok {
-		free()
 		return nil, ErrPortAlreadyBound
 	}
 
@@ -78,6 +72,7 @@ func (c *Client) Listen(port routing.Port) (net.Listener, error) {
 
 	lisID, err := c.rpc.Listen(local)
 	if err != nil {
+		free()
 		return nil, err
 	}
 
