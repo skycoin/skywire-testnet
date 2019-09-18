@@ -1,4 +1,4 @@
-# github.com/SkycoinProject/dmsg v0.0.0-20190917230949-27f4fd2f25fb
+# github.com/SkycoinProject/dmsg v0.0.0-20190918181704-b7cccca1451e
 github.com/SkycoinProject/dmsg/cipher
 github.com/SkycoinProject/dmsg
 github.com/SkycoinProject/dmsg/disc
@@ -41,7 +41,7 @@ github.com/inconshreveable/mousetrap
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/mattn/go-colorable v0.1.2
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.8
+# github.com/mattn/go-isatty v0.0.9
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -85,7 +85,7 @@ github.com/stretchr/testify/require
 github.com/stretchr/testify/assert
 # go.etcd.io/bbolt v1.3.3
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
+# golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
@@ -94,12 +94,12 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
-# golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
+# golang.org/x/net v0.0.0-20190918130420-a8b05e9114ab
 golang.org/x/net/nettest
 golang.org/x/net/context
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
-# golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
+# golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc/eventlog

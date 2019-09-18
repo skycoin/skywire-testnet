@@ -14,8 +14,6 @@ import (
 
 	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
-	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
-	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 func TestHealth(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet"
 	"github.com/SkycoinProject/dmsg/cipher"
 )
 

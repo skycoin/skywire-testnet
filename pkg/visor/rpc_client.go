@@ -3,6 +3,7 @@ package visor
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/router"
 	"math/rand"
 	"net/http"
 	"net/rpc"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/SkycoinProject/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
 	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 )
