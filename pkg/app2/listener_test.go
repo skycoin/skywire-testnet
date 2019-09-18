@@ -76,37 +76,33 @@ func TestListener_Close(t *testing.T) {
 		Port:   routing.Port(100),
 	}
 
-	t.Run("ok", func(t *testing.T) {
-		var closeErr error
+	tt := []struct {
+		name     string
+		closeErr error
+	}{
+		{
+			name: "ok",
+		},
+		{
+			name:     "close error",
+			closeErr: errors.New("close error"),
+		},
+	}
 
-		rpc := &MockServerRPCClient{}
-		rpc.On("CloseListener", lisID).Return(closeErr)
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			rpc := &MockServerRPCClient{}
+			rpc.On("CloseListener", lisID).Return(tc.closeErr)
 
-		lis := &Listener{
-			id:       lisID,
-			rpc:      rpc,
-			addr:     local,
-			freePort: func() {},
-		}
+			lis := &Listener{
+				id:       lisID,
+				rpc:      rpc,
+				addr:     local,
+				freePort: func() {},
+			}
 
-		err := lis.Close()
-		require.NoError(t, err)
-	})
-
-	t.Run("close error", func(t *testing.T) {
-		closeErr := errors.New("close error")
-
-		rpc := &MockServerRPCClient{}
-		rpc.On("CloseListener", lisID).Return(closeErr)
-
-		lis := &Listener{
-			id:       lisID,
-			rpc:      rpc,
-			addr:     local,
-			freePort: func() {},
-		}
-
-		err := lis.Close()
-		require.Equal(t, closeErr, err)
-	})
+			err := lis.Close()
+			require.Equal(t, tc.closeErr, err)
+		})
+	}
 }

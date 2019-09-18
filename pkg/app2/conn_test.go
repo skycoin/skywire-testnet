@@ -10,119 +10,113 @@ import (
 func TestConn_Read(t *testing.T) {
 	connID := uint16(1)
 
-	t.Run("ok", func(t *testing.T) {
-		readBuff := make([]byte, 100)
-		readN := 20
-		readBytes := make([]byte, 100)
-		for i := 0; i < readN; i++ {
-			readBytes[i] = 2
-		}
-		var readErr error
+	tt := []struct {
+		name      string
+		readBuff  []byte
+		readN     int
+		readBytes []byte
+		readErr   error
+		wantBuff  []byte
+	}{
+		{
+			name:      "ok",
+			readBuff:  make([]byte, 10),
+			readN:     2,
+			readBytes: []byte{1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+			wantBuff:  []byte{1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			name:     "read error",
+			readBuff: make([]byte, 10),
+			readErr:  errors.New("read error"),
+			wantBuff: make([]byte, 10),
+		},
+	}
 
-		rpc := &MockServerRPCClient{}
-		rpc.On("Read", connID, readBuff).Return(readN, readBytes, readErr)
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			rpc := &MockServerRPCClient{}
+			rpc.On("Read", connID, tc.readBuff).Return(tc.readN, tc.readBytes, tc.readErr)
 
-		conn := &Conn{
-			id:  connID,
-			rpc: rpc,
-		}
+			conn := &Conn{
+				id:  connID,
+				rpc: rpc,
+			}
 
-		n, err := conn.Read(readBuff)
-		require.NoError(t, err)
-		require.Equal(t, n, readN)
-		require.Equal(t, readBuff[:n], readBytes[:n])
-	})
-
-	t.Run("read error", func(t *testing.T) {
-		readBuff := make([]byte, 100)
-		readN := 0
-		var readBytes []byte
-		readErr := errors.New("read error")
-
-		rpc := &MockServerRPCClient{}
-		rpc.On("Read", connID, readBuff).Return(readN, readBytes, readErr)
-
-		conn := &Conn{
-			id:  connID,
-			rpc: rpc,
-		}
-
-		n, err := conn.Read(readBuff)
-		require.Equal(t, readErr, err)
-		require.Equal(t, readN, n)
-	})
+			n, err := conn.Read(tc.readBuff)
+			require.Equal(t, tc.readErr, err)
+			require.Equal(t, tc.readN, n)
+			require.Equal(t, tc.wantBuff, tc.readBuff)
+		})
+	}
 }
 
 func TestConn_Write(t *testing.T) {
 	connID := uint16(1)
 
-	t.Run("ok", func(t *testing.T) {
-		writeBuff := make([]byte, 100)
-		writeN := 20
-		var writeErr error
+	tt := []struct {
+		name      string
+		writeBuff []byte
+		writeN    int
+		writeErr  error
+	}{
+		{
+			name:      "ok",
+			writeBuff: make([]byte, 10),
+			writeN:    2,
+		},
+		{
+			name:      "write error",
+			writeBuff: make([]byte, 10),
+			writeErr:  errors.New("write error"),
+		},
+	}
 
-		rpc := &MockServerRPCClient{}
-		rpc.On("Write", connID, writeBuff).Return(writeN, writeErr)
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			rpc := &MockServerRPCClient{}
+			rpc.On("Write", connID, tc.writeBuff).Return(tc.writeN, tc.writeErr)
 
-		conn := &Conn{
-			id:  connID,
-			rpc: rpc,
-		}
+			conn := &Conn{
+				id:  connID,
+				rpc: rpc,
+			}
 
-		n, err := conn.Write(writeBuff)
-		require.NoError(t, err)
-		require.Equal(t, writeN, n)
-	})
-
-	t.Run("write error", func(t *testing.T) {
-		writeBuff := make([]byte, 100)
-		writeN := 0
-		writeErr := errors.New("write error")
-
-		rpc := &MockServerRPCClient{}
-		rpc.On("Write", connID, writeBuff).Return(writeN, writeErr)
-
-		conn := &Conn{
-			id:  connID,
-			rpc: rpc,
-		}
-
-		n, err := conn.Write(writeBuff)
-		require.Equal(t, writeErr, err)
-		require.Equal(t, writeN, n)
-	})
+			n, err := conn.Write(tc.writeBuff)
+			require.Equal(t, tc.writeErr, err)
+			require.Equal(t, tc.writeN, n)
+		})
+	}
 }
 
 func TestConn_Close(t *testing.T) {
 	connID := uint16(1)
 
-	t.Run("ok", func(t *testing.T) {
-		var closeErr error
+	tt := []struct {
+		name     string
+		closeErr error
+	}{
+		{
+			name: "ok",
+		},
+		{
+			name:     "close error",
+			closeErr: errors.New("close error"),
+		},
+	}
 
-		rpc := &MockServerRPCClient{}
-		rpc.On("CloseConn", connID).Return(closeErr)
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			rpc := &MockServerRPCClient{}
+			rpc.On("CloseConn", connID).Return(tc.closeErr)
 
-		conn := &Conn{
-			id:  connID,
-			rpc: rpc,
-		}
+			conn := &Conn{
+				id:  connID,
+				rpc: rpc,
+			}
 
-		err := conn.Close()
-		require.NoError(t, err)
-	})
-
-	t.Run("close error", func(t *testing.T) {
-		closeErr := errors.New("close error")
-
-		rpc := &MockServerRPCClient{}
-		rpc.On("CloseConn", connID).Return(closeErr)
-
-		conn := &Conn{
-			id:  connID,
-			rpc: rpc,
-		}
-
-		err := conn.Close()
-		require.Equal(t, closeErr, err)
-	})
+			err := conn.Close()
+			require.Equal(t, tc.closeErr, err)
+		})
+	}
 }
