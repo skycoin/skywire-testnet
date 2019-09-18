@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	// RouteTTL is the default expiration interval for routes
-	RouteTTL = 2 * time.Hour
+	// DefaultRouteKeepAlive is the default expiration interval for routes
+	DefaultRouteKeepAlive = 2 * time.Hour
 
 	// DefaultGarbageCollectDuration is the default duration for garbage collection of routing rules.
 	DefaultGarbageCollectDuration = time.Second * 5
@@ -89,7 +89,7 @@ func New(n *snet.Network, config *Config) (*Router, error) {
 	}
 
 	// Prepare route manager.
-	rm, err := NewRouteManager(n, config.RoutingTable, RMConfig{
+	rm, err := newRouteManager(n, config.RoutingTable, RMConfig{
 		SetupPKs:               config.SetupNodes,
 		GarbageCollectDuration: config.GarbageCollectDuration,
 		OnConfirmLoop:          r.confirmLoop,
@@ -147,6 +147,8 @@ func (r *Router) handlePacket(ctx context.Context, packet routing.Packet) error 
 
 // ServeApp handles App packets from the App connection on provided port.
 func (r *Router) ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error {
+	fmt.Println("!!! [ServeApp] start !!!")
+
 	r.wg.Add(1)
 	defer r.wg.Done()
 
@@ -229,7 +231,7 @@ func (r *Router) consumePacket(payload []byte, rule routing.Rule) error {
 	}
 	fmt.Println("got it!")
 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil { // TODO: Stuck here.
-		fmt.Println("err:", err)
+		fmt.Println("!!! Send err:", err)
 		return err
 	}
 	fmt.Println("done")
@@ -298,9 +300,9 @@ func (r *Router) requestLoop(ctx context.Context, appConn *app.Protocol, raddr r
 			Local:  laddr,
 			Remote: raddr,
 		},
-		Expiry:  time.Now().Add(RouteTTL),
-		Forward: forwardRoute,
-		Reverse: reverseRoute,
+		KeepAlive: DefaultRouteKeepAlive,
+		Forward:   forwardRoute,
+		Reverse:   reverseRoute,
 	}
 
 	sConn, err := r.rm.dialSetupConn(ctx)
@@ -428,6 +430,7 @@ fetchRoutesAgain:
 	return fwdRoutes[0], revRoutes[0], nil
 }
 
+// SetupIsTrusted checks if setup node is trusted.
 func (r *Router) SetupIsTrusted(sPK cipher.PubKey) bool {
 	return r.rm.conf.SetupIsTrusted(sPK)
 }

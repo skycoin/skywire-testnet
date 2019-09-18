@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 	if ok {
 		lvl, err := logging.LevelFromString(loggingLevel)
 		if err != nil {
-			log.Fatal(err)
+			Log.Fatal(err)
 		}
 		logging.SetLevel(lvl)
 	} else {
@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 
 func TestServerOpenChannel(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}})
+	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}}, logging.NewMasterLogger())
 
 	in, out := net.Pipe()
 	errCh := make(chan error)
@@ -62,7 +62,7 @@ func TestServerOpenChannel(t *testing.T) {
 
 func TestServerHandleRequest(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}})
+	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}}, logging.NewMasterLogger())
 
 	err := s.HandleRequest(pk, 0, []byte("foo"))
 	require.Error(t, err)
@@ -96,7 +96,7 @@ func TestServerHandleRequest(t *testing.T) {
 
 func TestServerHandleData(t *testing.T) {
 	pk, _ := cipher.GenerateKeyPair()
-	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}})
+	s := NewServer(&ListAuthorizer{[]cipher.PubKey{pk}}, logging.NewMasterLogger())
 
 	err := s.HandleData(pk, 0, []byte("foo"))
 	require.Error(t, err)

@@ -25,6 +25,11 @@ type Config struct {
 		StaticSecKey cipher.SecKey `json:"static_secret_key"`
 	} `json:"node"`
 
+	TCPTransport struct {
+		PubKeyTable map[cipher.PubKey]string `json:"pk_table"`
+		LocalAddr   string                   `json:"local_address"`
+	} `json:"stcp"`
+
 	Messaging struct {
 		Discovery   string `json:"discovery"`
 		ServerCount int    `json:"server_count"`
@@ -68,7 +73,6 @@ type Config struct {
 
 // MessagingConfig returns config for dmsg client.
 func (c *Config) MessagingConfig() (*DmsgConfig, error) {
-
 	msgConfig := c.Messaging
 
 	if msgConfig.Discovery == "" {
@@ -161,12 +165,13 @@ func ensureDir(path string) (string, error) {
 	return absPath, nil
 }
 
-// HypervisorConfig represents a connection to a hypervisor.
+// HypervisorConfig represents hypervisor configuration.
 type HypervisorConfig struct {
 	PubKey cipher.PubKey `json:"public_key"`
 	Addr   string        `json:"address"`
 }
 
+// DmsgConfig represents dmsg configuration.
 type DmsgConfig struct {
 	PubKey     cipher.PubKey
 	SecKey     cipher.SecKey

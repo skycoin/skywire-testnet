@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 func RoutingTableSuite(t *testing.T, tbl Table) {
 	t.Helper()
 
-	rule := ForwardRule(time.Now(), 2, uuid.New(), 1)
+	rule := ForwardRule(15*time.Minute, 2, uuid.New(), 1)
 	id, err := tbl.AddRule(rule)
 	require.NoError(t, err)
 
@@ -39,7 +39,7 @@ func RoutingTableSuite(t *testing.T, tbl Table) {
 	require.NoError(t, err)
 	assert.Equal(t, rule, r)
 
-	rule2 := ForwardRule(time.Now(), 3, uuid.New(), 2)
+	rule2 := ForwardRule(15*time.Minute, 3, uuid.New(), 2)
 	id2, err := tbl.AddRule(rule2)
 	require.NoError(t, err)
 

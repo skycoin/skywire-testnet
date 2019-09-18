@@ -62,6 +62,7 @@ func NewEnv(t *testing.T, keys []KeyPair) *Env {
 				DmsgMinSrvs: 1,
 			},
 			dmsg.NewClient(pairs.PK, pairs.SK, dmsgD),
+			nil,
 		)
 		require.NoError(t, n.Init(context.TODO()))
 		ns[i] = n
@@ -87,7 +88,7 @@ func NewEnv(t *testing.T, keys []KeyPair) *Env {
 	}
 }
 
-// TearDown shutdowns the Env.
+// Teardown shutdowns the Env.
 func (e *Env) Teardown() { e.teardown() }
 
 func createDmsgSrv(t *testing.T, dc disc.APIClient) (srv *dmsg.Server, srvErr <-chan error) {

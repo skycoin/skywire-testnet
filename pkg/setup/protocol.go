@@ -34,7 +34,7 @@ func (sp PacketType) String() string {
 	case RespFailure:
 		return "Failure"
 	case PacketRequestRouteID:
-		return "RequestRouteID"
+		return "RequestRouteIDs"
 	}
 	return fmt.Sprintf("Unknown(%d)", sp)
 }
@@ -52,7 +52,7 @@ const (
 	PacketCloseLoop
 	// PacketLoopClosed represents OnLoopClosed foundation packet.
 	PacketLoopClosed
-	// PacketRequestRouteID represents RequestRouteID foundation packet.
+	// PacketRequestRouteID represents RequestRouteIDs foundation packet.
 	PacketRequestRouteID
 
 	// RespFailure represents failure response for a foundation packet.
@@ -113,24 +113,24 @@ func (p *Protocol) Close() error {
 	return nil
 }
 
-// RequestRouteID sends RequestRouteID request.
-func RequestRouteID(ctx context.Context, p *Protocol) (routing.RouteID, error) {
-	if err := p.WritePacket(PacketRequestRouteID, nil); err != nil {
-		return 0, err
+// RequestRouteIDs sends RequestRouteIDs request.
+func RequestRouteIDs(ctx context.Context, p *Protocol, n uint8) ([]routing.RouteID, error) {
+	if err := p.WritePacket(PacketRequestRouteID, n); err != nil {
+		return nil, err
 	}
 	var res []routing.RouteID
 	if err := readAndDecodePacketWithTimeout(ctx, p, &res); err != nil {
-		return 0, err
+		return nil, err
 	}
-	if len(res) == 0 {
-		return 0, errors.New("empty response")
+	if len(res) != int(n) {
+		return nil, errors.New("invalid response: wrong number of routeIDs")
 	}
-	return res[0], nil
+	return res, nil
 }
 
-// AddRule sends AddRule setup request.
-func AddRule(ctx context.Context, p *Protocol, rule routing.Rule) error {
-	if err := p.WritePacket(PacketAddRules, []routing.Rule{rule}); err != nil {
+// AddRules sends AddRule setup request.
+func AddRules(ctx context.Context, p *Protocol, rules []routing.Rule) error {
+	if err := p.WritePacket(PacketAddRules, rules); err != nil {
 		return err
 	}
 	return readAndDecodePacketWithTimeout(ctx, p, nil)
@@ -197,6 +197,9 @@ func readAndDecodePacketWithTimeout(ctx context.Context, p *Protocol, v interfac
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-done:
+		if err == io.ErrClosedPipe {
+			return nil
+		}
 		return err
 	}
 }

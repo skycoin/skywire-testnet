@@ -23,7 +23,6 @@ import (
 
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
-
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -105,6 +104,8 @@ type Node struct {
 	startedMu   sync.RWMutex
 	startedApps map[string]*appBind
 
+	startedAt time.Time
+
 	pidMu sync.Mutex
 
 	rpcListener net.Listener
@@ -129,11 +130,13 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 
 	fmt.Println("min servers:", config.Messaging.ServerCount)
 	node.n = snet.New(snet.Config{
-		PubKey:       pk,
-		SecKey:       sk,
-		TpNetworks:   []string{dmsg.Type}, // TODO: Have some way to configure this.
-		DmsgDiscAddr: config.Messaging.Discovery,
-		DmsgMinSrvs:  config.Messaging.ServerCount,
+		PubKey:        pk,
+		SecKey:        sk,
+		TpNetworks:    []string{dmsg.Type, snet.STcpType}, // TODO: Have some way to configure this.
+		DmsgDiscAddr:  config.Messaging.Discovery,
+		DmsgMinSrvs:   config.Messaging.ServerCount,
+		STCPLocalAddr: config.TCPTransport.LocalAddr,
+		STCPTable:     config.TCPTransport.PubKeyTable,
 	})
 	if err := node.n.Init(ctx); err != nil {
 		return nil, fmt.Errorf("failed to init network: %v", err)
@@ -220,6 +223,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 // Start spawns auto-started Apps, starts router and RPC interfaces .
 func (node *Node) Start() error {
 	ctx := context.Background()
+	node.startedAt = time.Now()
 
 	pathutil.EnsureDir(node.dir())
 	node.closePreviousApps()
@@ -400,10 +404,11 @@ func (node *Node) StartApp(appName string) error {
 // SpawnApp configures and starts new App.
 func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) (err error) {
 	node.logger.Infof("Starting %s.v%s", config.App, config.Version)
+	node.logger.Warnf("here: config.Args: %+v, with len %d", config.Args, len(config.Args))
 	conn, cmd, err := app.Command(
 		&app.Config{ProtocolVersion: supportedProtocolVersion, AppName: config.App, AppVersion: config.Version},
 		node.appsPath,
-		config.Args,
+		append([]string{filepath.Join(node.dir(), config.App)}, config.Args...),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize App server: %s", err)

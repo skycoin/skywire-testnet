@@ -13,6 +13,7 @@ DOCKER_NETWORK?=SKYNET
 DOCKER_NODE?=SKY01
 DOCKER_OPTS?=GO111MODULE=on GOOS=linux # go options for compiling for docker container
 TEST_OPTS?=-race -tags no_ci -cover -timeout=5m
+TEST_OPTS_NOCI?=-race -cover -timeout=5m -v
 BUILD_OPTS?=-race
 
 check: lint test ## Run linters and tests
@@ -45,7 +46,7 @@ rerun: stop
 lint: ## Run linters. Use make install-linters first	
 	${OPTS} golangci-lint run -c .golangci.yml ./...
 	# The govet version in golangci-lint is out of date and has spurious warnings, run it separately
-	${OPTS} go vet -mod=vendor -all ./...
+	${OPTS} go vet -all ./...
 
 vendorcheck:  ## Run vendorcheck
 	GO111MODULE=off vendorcheck ./internal/... 
@@ -63,6 +64,10 @@ test: ## Run tests
 	-go clean -testcache &>/dev/null
 	${OPTS} go test ${TEST_OPTS} ./internal/...
 	${OPTS} go test ${TEST_OPTS} ./pkg/...
+
+test-no-ci: ## Run no_ci tests
+	-go clean -testcache
+	${OPTS} go test ${TEST_OPTS_NOCI} ./pkg/transport/... -run "TCP|PubKeyTable"
 
 install-linters: ## Install linters
 	- VERSION=1.17.1 ./ci_scripts/install-golangci-lint.sh 

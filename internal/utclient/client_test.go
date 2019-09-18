@@ -30,7 +30,9 @@ func TestClientAuth(t *testing.T) {
 				headerCh <- r.Header
 
 			case fmt.Sprintf("/security/nonces/%s", testPubKey):
-				fmt.Fprintf(w, `{"edge": "%s", "next_nonce": 1}`, testPubKey)
+				if _, err := fmt.Fprintf(w, `{"edge": "%s", "next_nonce": 1}`, testPubKey); err != nil {
+					t.Errorf("Failed to write nonce response: %s", err)
+				}
 
 			default:
 				t.Errorf("Don't know how to handle URL = '%s'", url)
@@ -75,7 +77,9 @@ func authHandler(next http.Handler) http.Handler {
 	m := http.NewServeMux()
 	m.Handle("/security/nonces/", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: testPubKey, NextNonce: 1}) // nolint: errcheck
+			if err := json.NewEncoder(w).Encode(&httpauth.NextNonceResponse{Edge: testPubKey, NextNonce: 1}); err != nil {
+				log.WithError(err).Error("Failed to encode nonce response")
+			}
 		},
 	))
 	m.Handle("/", next)

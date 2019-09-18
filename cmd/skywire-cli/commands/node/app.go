@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -19,6 +20,7 @@ func init() {
 		startAppCmd,
 		stopAppCmd,
 		setAppAutostartCmd,
+		appLogsSinceCmd,
 		execCmd,
 	)
 }
@@ -85,6 +87,31 @@ var setAppAutostartCmd = &cobra.Command{
 	},
 }
 
+var appLogsSinceCmd = &cobra.Command{
+	Use:   "app-logs-since <name> <timestamp>",
+	Short: "Gets logs from given app since RFC3339Nano-formated timestamp. \"beginning\" is a special timestamp to fetch all the logs",
+	Args:  cobra.MinimumNArgs(2),
+	Run: func(_ *cobra.Command, args []string) {
+		var t time.Time
+
+		if args[1] == "beginning" {
+			t = time.Unix(0, 0)
+		} else {
+			var err error
+			strTime := args[1]
+			t, err = time.Parse(time.RFC3339Nano, strTime)
+			internal.Catch(err)
+		}
+		logs, err := rpcClient().LogsSince(t, args[0])
+		internal.Catch(err)
+		if len(logs) > 0 {
+			fmt.Println(logs)
+		} else {
+			fmt.Println("no logs")
+		}
+	},
+}
+
 var execCmd = &cobra.Command{
 	Use:   "exec <command>",
 	Short: "Executes the given command",
@@ -92,6 +119,6 @@ var execCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, args []string) {
 		out, err := rpcClient().Exec(strings.Join(args, " "))
 		internal.Catch(err)
-		fmt.Println(string(out))
+		fmt.Print(string(out))
 	},
 }

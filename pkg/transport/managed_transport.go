@@ -100,12 +100,15 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet, done <-chan stru
 		mt.connMx.Lock()
 		close(mt.connCh)
 		if mt.conn != nil {
-			_ = mt.conn.Close() //nolint:errcheck
+			if err := mt.conn.Close(); err != nil {
+				mt.log.WithError(err).Warn("Failed to close connection")
+			}
 			mt.conn = nil
 		}
 		mt.connMx.Unlock()
 	}()
 
+	// Read loop.
 	go func() {
 		defer func() {
 			mt.log.Infof("closed readPacket loop.")
@@ -131,6 +134,7 @@ func (mt *ManagedTransport) Serve(readCh chan<- routing.Packet, done <-chan stru
 		}
 	}()
 
+	// Redial loop.
 	for {
 		select {
 		case <-mt.done:
@@ -193,7 +197,9 @@ func (mt *ManagedTransport) Accept(ctx context.Context, conn *snet.Conn) error {
 	}
 
 	if !mt.isServing() {
-		_ = conn.Close() //nolint:errcheck
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 		return ErrNotServing
 	}
 
@@ -221,7 +227,6 @@ func (mt *ManagedTransport) Dial(ctx context.Context) error {
 	return mt.dial(ctx)
 }
 
-// TODO: Figure out where this fella is called.
 func (mt *ManagedTransport) dial(ctx context.Context) error {
 	tp, err := mt.n.Dial(mt.netName, mt.rPK, snet.TransportPort)
 	if err != nil {
@@ -248,7 +253,9 @@ func (mt *ManagedTransport) getConn() *snet.Conn {
 // TODO: Add logging here.
 func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn *snet.Conn) error {
 	if mt.conn != nil {
-		_ = conn.Close() //nolint:errcheck
+		if err := conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 		return ErrConnAlreadyExists
 	}
 
@@ -272,7 +279,9 @@ func (mt *ManagedTransport) setIfConnNil(ctx context.Context, conn *snet.Conn) e
 
 func (mt *ManagedTransport) clearConn(ctx context.Context) {
 	if mt.conn != nil {
-		_ = mt.conn.Close() //nolint:errcheck
+		if err := mt.conn.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close connection")
+		}
 		mt.conn = nil
 	}
 	if _, err := mt.dc.UpdateStatuses(ctx, &Status{ID: mt.Entry.ID, IsUp: false}); err != nil {
