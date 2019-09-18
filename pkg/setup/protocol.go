@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 // PacketType defines type of a setup packet

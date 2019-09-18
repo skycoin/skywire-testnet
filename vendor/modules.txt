@@ -1,7 +1,16 @@
+# github.com/SkycoinProject/dmsg v0.0.0-20190917230949-27f4fd2f25fb
+github.com/SkycoinProject/dmsg/cipher
+github.com/SkycoinProject/dmsg
+github.com/SkycoinProject/dmsg/disc
+github.com/SkycoinProject/dmsg/noise
+github.com/SkycoinProject/dmsg/ioutil
+# github.com/SkycoinProject/skycoin v0.26.0
+github.com/SkycoinProject/skycoin/src/util/logging
+github.com/SkycoinProject/skycoin/src/cipher
 # github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 github.com/alecthomas/template
 github.com/alecthomas/template/parse
-# github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
+# github.com/alecthomas/units v0.0.0-20190910110746-680d30ca3117
 github.com/alecthomas/units
 # github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 github.com/armon/go-socks5
@@ -62,15 +71,7 @@ github.com/prometheus/procfs/internal/fs
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
-# github.com/skycoin/dmsg v0.0.0-20190904181013-b781e3cbebc6
-github.com/skycoin/dmsg/cipher
-github.com/skycoin/dmsg
-github.com/skycoin/dmsg/disc
-github.com/skycoin/dmsg/noise
-github.com/skycoin/dmsg/ioutil
 # github.com/skycoin/skycoin v0.26.0
-github.com/skycoin/skycoin/src/util/logging
-github.com/skycoin/skycoin/src/cipher
 github.com/skycoin/skycoin/src/cipher/base58
 github.com/skycoin/skycoin/src/cipher/ripemd160
 github.com/skycoin/skycoin/src/cipher/secp256k1-go

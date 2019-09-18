@@ -3,7 +3,7 @@ package routing
 import (
 	"fmt"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 // Port is a network port number

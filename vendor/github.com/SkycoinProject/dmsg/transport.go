@@ -8,10 +8,10 @@ import (
 	"net"
 	"sync"
 
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/ioutil"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/ioutil"
 )
 
 // Errors related to REQUEST frames.
@@ -19,18 +19,16 @@ var (
 	ErrRequestRejected    = errors.New("failed to create transport: request rejected")
 	ErrRequestCheckFailed = errors.New("failed to create transport: request check failed")
 	ErrAcceptCheckFailed  = errors.New("failed to create transport: accept check failed")
-	ErrPortNotListening   = errors.New("failed to create transport: port not listening")
 )
 
-// Transport represents communication between two nodes via a single hop:
-// a connection from dmsg.Client to remote dmsg.Client (via dmsg.Server intermediary).
+// Transport represents a connection from dmsg.Client to remote dmsg.Client (via dmsg.Server intermediary).
 type Transport struct {
 	net.Conn // underlying connection to dmsg.Server
 	log      *logging.Logger
 
-	id     uint16 // tp ID that identifies this dmsg.transport
-	local  Addr   // local PK
-	remote Addr   // remote PK
+	id     uint16        // tp ID that identifies this dmsg.Transport
+	local  cipher.PubKey // local PK
+	remote cipher.PubKey // remote PK
 
 	inCh chan Frame // handles incoming frames (from dmsg.Client)
 	inMx sync.Mutex // protects 'inCh'
@@ -51,7 +49,7 @@ type Transport struct {
 }
 
 // NewTransport creates a new dms_tp.
-func NewTransport(conn net.Conn, log *logging.Logger, local, remote Addr, id uint16, doneFunc func(id uint16)) *Transport {
+func NewTransport(conn net.Conn, log *logging.Logger, local, remote cipher.PubKey, id uint16, doneFunc func(id uint16)) *Transport {
 	tp := &Transport{
 		Conn:      conn,
 		log:       log,
@@ -115,7 +113,7 @@ func (tp *Transport) close() (closed bool) {
 // Close closes the dmsg_tp.
 func (tp *Transport) Close() error {
 	if tp.close() {
-		if err := writeCloseFrame(tp.Conn, tp.id, PlaceholderReason); err != nil {
+		if err := writeFrame(tp.Conn, MakeFrame(CloseType, tp.id, []byte{0})); err != nil {
 			log.WithError(err).Warn("Failed to write frame")
 		}
 	}
@@ -134,19 +132,13 @@ func (tp *Transport) IsClosed() bool {
 
 // LocalPK returns the local public key of the transport.
 func (tp *Transport) LocalPK() cipher.PubKey {
-	return tp.local.PK
+	return tp.local
 }
 
 // RemotePK returns the remote public key of the transport.
 func (tp *Transport) RemotePK() cipher.PubKey {
-	return tp.remote.PK
+	return tp.remote
 }
-
-// LocalAddr returns local address in from <public-key>:<port>
-func (tp *Transport) LocalAddr() net.Addr { return tp.local }
-
-// RemoteAddr returns remote address in form <public-key>:<port>
-func (tp *Transport) RemoteAddr() net.Addr { return tp.remote }
 
 // Type returns the transport type.
 func (tp *Transport) Type() string {
@@ -170,18 +162,8 @@ func (tp *Transport) HandleFrame(f Frame) error {
 }
 
 // WriteRequest writes a REQUEST frame to dmsg_server to be forwarded to associated client.
-func (tp *Transport) WriteRequest(port uint16) error {
-	payload := HandshakePayload{
-		Version: HandshakePayloadVersion,
-		InitPK:  tp.local.PK,
-		RespPK:  tp.remote.PK,
-		Port:    port,
-	}
-	payloadBytes, err := marshalHandshakePayload(payload)
-	if err != nil {
-		return err
-	}
-	f := MakeFrame(RequestType, tp.id, payloadBytes)
+func (tp *Transport) WriteRequest() error {
+	f := MakeFrame(RequestType, tp.id, combinePKs(tp.local, tp.remote))
 	if err := writeFrame(tp.Conn, f); err != nil {
 		tp.log.WithError(err).Error("HandshakeFailed")
 		tp.close()
@@ -200,7 +182,7 @@ func (tp *Transport) WriteAccept() (err error) {
 		}
 	}()
 
-	f := MakeFrame(AcceptType, tp.id, combinePKs(tp.remote.PK, tp.local.PK))
+	f := MakeFrame(AcceptType, tp.id, combinePKs(tp.remote, tp.local))
 	if err = writeFrame(tp.Conn, f); err != nil {
 		tp.close()
 		return err
@@ -243,7 +225,7 @@ func (tp *Transport) ReadAccept(ctx context.Context) (err error) {
 			// - resp_pk should be of remote client.
 			// - use an even number with the intermediary dmsg_server.
 			initPK, respPK, ok := splitPKs(p)
-			if !ok || initPK != tp.local.PK || respPK != tp.remote.PK || !isInitiatorID(id) {
+			if !ok || initPK != tp.local || respPK != tp.remote || !isInitiatorID(id) {
 				if err := tp.Close(); err != nil {
 					log.WithError(err).Warn("Failed to close transport")
 				}
@@ -275,7 +257,7 @@ func (tp *Transport) Serve() {
 	// also write CLOSE frame if this is the first time 'close' is triggered
 	defer func() {
 		if tp.close() {
-			if err := writeCloseFrame(tp.Conn, tp.id, PlaceholderReason); err != nil {
+			if err := writeCloseFrame(tp.Conn, tp.id, 0); err != nil {
 				log.WithError(err).Warn("Failed to write close frame")
 			}
 		}

@@ -6,8 +6,8 @@ package main
 import (
 	"flag"
 
-	"github.com/skycoin/skywire/internal/therealproxy"
-	"github.com/skycoin/skywire/pkg/app"
+	"github.com/SkycoinProject/skywire-mainnet/internal/therealproxy"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
 )
 
 func main() {

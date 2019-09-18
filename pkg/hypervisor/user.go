@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"go.etcd.io/bbolt"
 )
 

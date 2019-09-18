@@ -1,10 +1,12 @@
-module github.com/skycoin/skywire
+module github.com/SkycoinProject/skywire-mainnet
 
 go 1.12
 
 require (
+	github.com/SkycoinProject/dmsg v0.0.0-20190917230949-27f4fd2f25fb
+	github.com/SkycoinProject/skycoin v0.26.0
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 // indirect
+	github.com/alecthomas/units v0.0.0-20190910110746-680d30ca3117 // indirect
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 	github.com/creack/pty v1.1.7
 	github.com/go-chi/chi v4.0.2+incompatible
@@ -19,8 +21,6 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/common v0.6.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/skycoin/dmsg v0.0.0-20190904181013-b781e3cbebc6
-	github.com/skycoin/skycoin v0.26.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
 	go.etcd.io/bbolt v1.3.3
@@ -29,4 +29,4 @@ require (
 )
 
 // Uncomment for tests with alternate branches of 'dmsg'
-//replace github.com/skycoin/dmsg => ../dmsg
+//replace github.com/SkycoinProject/dmsg => ../dmsg

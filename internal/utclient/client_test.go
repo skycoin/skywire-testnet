@@ -9,11 +9,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/internal/httpauth"
+	"github.com/SkycoinProject/skywire-mainnet/internal/httpauth"
 )
 
 var testPubKey, testSecKey = cipher.GenerateKeyPair()
