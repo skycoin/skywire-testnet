@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 )
 
 var log = logging.MustGetLogger("pathutil")
@@ -78,7 +78,7 @@ func NodeDefaults() ConfigPaths {
 		paths[WorkingDirLoc] = filepath.Join(wd, "skywire-config.json")
 	}
 	paths[HomeLoc] = filepath.Join(HomeDir(), ".skycoin/skywire/skywire-config.json")
-	paths[LocalLoc] = "/usr/local/skycoin/skywire/skywire-config.json"
+	paths[LocalLoc] = "/usr/local/SkycoinProject/skywire-mainnet/skywire-config.json"
 	return paths
 }
 
@@ -89,7 +89,7 @@ func HypervisorDefaults() ConfigPaths {
 		paths[WorkingDirLoc] = filepath.Join(wd, "hypervisor-config.json")
 	}
 	paths[HomeLoc] = filepath.Join(HomeDir(), ".skycoin/hypervisor/hypervisor-config.json")
-	paths[LocalLoc] = "/usr/local/skycoin/hypervisor/hypervisor-config.json"
+	paths[LocalLoc] = "/usr/local/SkycoinProject/hypervisor/hypervisor-config.json"
 	return paths
 }
 

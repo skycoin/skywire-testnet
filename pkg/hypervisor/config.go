@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 // Key allows a byte slice to be marshaled or unmarshaled from a hex string.
@@ -79,7 +79,7 @@ func GenerateHomeConfig() Config {
 // GenerateLocalConfig generates a config with default values and uses db from shared folder.
 func GenerateLocalConfig() Config {
 	c := makeConfig()
-	c.DBPath = "/usr/local/skycoin/hypervisor/users.db"
+	c.DBPath = "/usr/local/SkycoinProject/hypervisor/users.db"
 	return c
 }
 

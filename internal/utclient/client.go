@@ -11,10 +11,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/internal/httpauth"
+	"github.com/SkycoinProject/skywire-mainnet/internal/httpauth"
 )
 
 var log = logging.MustGetLogger("utclient")

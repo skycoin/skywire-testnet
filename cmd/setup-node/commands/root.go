@@ -12,11 +12,11 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
 
-	"github.com/skycoin/skywire/pkg/metrics"
-	"github.com/skycoin/skywire/pkg/setup"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/metrics"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/setup"
 )
 
 var (

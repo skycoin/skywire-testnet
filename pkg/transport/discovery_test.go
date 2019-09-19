@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 )
 
 func TestNewDiscoveryMock(t *testing.T) {

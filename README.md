@@ -70,7 +70,7 @@ Skywire requires a version of [golang](https://golang.org/) with [go modules](ht
 
 ```bash
 # Clone.
-$ git clone https://github.com/skycoin/skywire
+$ git clone https://github.com/SkycoinProject/skywire
 $ cd skywire
 $ git checkout mainnet
 # Build
@@ -247,7 +247,7 @@ $ sudo cat /tmp/syslog/messages ## collected logs from NodeA, NodeB, NodeC insta
 
 ## Updater
 
-This software comes with an updater, which is located in this repo: <https://github.com/skycoin/skywire-updater>. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface.
+This software comes with an updater, which is located in this repo: <https://github.com/SkycoinProject/skywire-updater>. Follow the instructions in the README.md for further information. It can be used with a CLI for now and will be usable with the manager interface.
 
 ## Running skywire in docker containers
 

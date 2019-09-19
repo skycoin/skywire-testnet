@@ -7,16 +7,14 @@ import (
 	"os"
 	"testing"
 	"time"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/snet/snettest"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet/snettest"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 
-	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
-
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

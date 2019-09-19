@@ -8,12 +8,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/disc"
-
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
-	trClient "github.com/skycoin/skywire/pkg/transport-discovery/client"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/disc"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
+	trClient "github.com/SkycoinProject/skywire-mainnet/pkg/transport-discovery/client"
 )
 
 // Config defines configuration parameters for Node.

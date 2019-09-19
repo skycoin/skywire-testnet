@@ -3,9 +3,9 @@ package app
 import (
 	"fmt"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 func ExamplePacket() {

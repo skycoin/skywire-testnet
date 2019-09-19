@@ -4,7 +4,7 @@ CLI for SSH app
 package main
 
 import (
-	"github.com/skycoin/skywire/cmd/therealssh-cli/commands"
+	"github.com/SkycoinProject/skywire-mainnet/cmd/therealssh-cli/commands"
 )
 
 func main() {

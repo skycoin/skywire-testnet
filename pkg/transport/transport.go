@@ -7,8 +7,8 @@ import (
 	"math/big"
 
 	"github.com/google/uuid"
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 )
 
 var log = logging.MustGetLogger("transport")

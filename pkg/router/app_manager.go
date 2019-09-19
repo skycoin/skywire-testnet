@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/skycoin/skywire/pkg/app"
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 const supportedProtocolVersion = "0.0.1"
