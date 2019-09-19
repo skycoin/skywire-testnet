@@ -3,7 +3,7 @@ package dmsg
 import (
 	"fmt"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 // Addr implements net.Addr for skywire addresses.

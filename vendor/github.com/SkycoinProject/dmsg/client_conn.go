@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 // ClientConn represents a connection between a dmsg.Client and dmsg.Server from a client's perspective.

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/dmsg"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 )
 
 // Conn wraps an underlying net.Conn and modifies various methods to integrate better with the 'network' package.

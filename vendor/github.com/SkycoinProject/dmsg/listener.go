@@ -4,7 +4,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 // Listener listens for remote-initiated transports.

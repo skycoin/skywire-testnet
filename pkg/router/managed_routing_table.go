@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 var (

@@ -7,18 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/dmsg"
+	"github.com/sirupsen/logrus"
+	"github.com/SkycoinProject/dmsg"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/snet"
-	"github.com/skycoin/skywire/pkg/snet/snettest"
-	"github.com/skycoin/skywire/pkg/transport"
-
-	"github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/logging"
+	routeFinder "github.com/SkycoinProject/skywire-mainnet/pkg/route-finder/client"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet/snettest"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 )
 
 func TestMain(m *testing.M) {

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 )
 
 // NewLogger returns a logger which persists app logs. This logger should be passed down
