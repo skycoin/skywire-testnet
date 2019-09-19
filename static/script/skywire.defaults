@@ -23,7 +23,7 @@ SKYWIRE_STOP_CMD=${SKYWIRE_DIR}/static/script/stop
 SKYWIRE_START_CMD=${SKYWIRE_DIR}/static/script/start
 Web_Dir=${SKYWIRE_DIR}/static/skywire-manager
 SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
-DISCOVERY_ADDR=discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+DISCOVERY_ADDR=testnet.skywire.skycoin.com:5999-028ec969bdeb92a1991bb19c948645ac8150468a6919113061899051409de3f243
 
 # export them all
 export MANAGER_IP
