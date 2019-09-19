@@ -4,13 +4,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 
-	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 // Key allows a byte slice to be marshaled or unmarshaled from a hex string.
@@ -35,12 +37,13 @@ func (hk *Key) UnmarshalText(text []byte) error {
 
 // Config configures the hypervisor.
 type Config struct {
-	PK         cipher.PubKey   `json:"public_key"`
-	SK         cipher.SecKey   `json:"secret_key"`
-	DBPath     string          `json:"db_path"`     // Path to store database file.
-	EnableAuth bool            `json:"enable_auth"` // Whether to enable user management.
-	Cookies    CookieConfig    `json:"cookies"`     // Configures cookies (for session management).
-	Interfaces InterfaceConfig `json:"interfaces"`  // Configures exposed interfaces.
+	PK            cipher.PubKey   `json:"public_key"`
+	SK            cipher.SecKey   `json:"secret_key"`
+	DBPath        string          `json:"db_path"`        // Path to store database file.
+	EnableAuth    bool            `json:"enable_auth"`    // Whether to enable user management.
+	Cookies       CookieConfig    `json:"cookies"`        // Configures cookies (for session management).
+	Interfaces    InterfaceConfig `json:"interfaces"`     // Configures exposed interfaces.
+	DmsgDiscovery string          `json:"dmsg_discovery"` // DmsgDiscovery address for dmsg usage
 }
 
 func makeConfig() Config {
@@ -76,7 +79,7 @@ func GenerateHomeConfig() Config {
 // GenerateLocalConfig generates a config with default values and uses db from shared folder.
 func GenerateLocalConfig() Config {
 	c := makeConfig()
-	c.DBPath = "/usr/local/skycoin/hypervisor/users.db"
+	c.DBPath = "/usr/local/SkycoinProject/hypervisor/users.db"
 	return c
 }
 
@@ -133,4 +136,19 @@ type InterfaceConfig struct {
 func (c *InterfaceConfig) FillDefaults() {
 	c.HTTPAddr = ":8080"
 	c.RPCAddr = ":7080"
+}
+
+// SplitRPCAddr returns host and port and whatever error results from parsing the rpc address interface
+func (c *InterfaceConfig) SplitRPCAddr() (host string, port uint16, err error) {
+	addr, err := url.Parse(c.RPCAddr)
+	if err != nil {
+		return
+	}
+
+	uint64port, err := strconv.ParseUint(addr.Port(), 10, 16)
+	if err != nil {
+		return
+	}
+
+	return addr.Host, uint16(uint64port), nil
 }

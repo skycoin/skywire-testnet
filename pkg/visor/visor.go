@@ -19,19 +19,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/snet"
+	"github.com/SkycoinProject/dmsg"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet"
 
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/noise"
-	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/app"
-	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
-	"github.com/skycoin/skywire/pkg/router"
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/transport"
-	"github.com/skycoin/skywire/pkg/util/pathutil"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
+	routeFinder "github.com/SkycoinProject/skywire-mainnet/pkg/route-finder/client"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/router"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 )
 
 var log = logging.MustGetLogger("node")
@@ -109,7 +107,7 @@ type Node struct {
 	pidMu sync.Mutex
 
 	rpcListener net.Listener
-	rpcDialers  []*noise.RPCClientDialer
+	rpcDialers  []*RPCClientDialer
 }
 
 // NewNode constructs new Node.
@@ -207,14 +205,10 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		}
 		node.rpcListener = l
 	}
-	node.rpcDialers = make([]*noise.RPCClientDialer, len(config.Hypervisors))
+
+	node.rpcDialers = make([]*RPCClientDialer, len(config.Hypervisors))
 	for i, entry := range config.Hypervisors {
-		node.rpcDialers[i] = noise.NewRPCClientDialer(entry.Addr, noise.HandshakeXK, noise.Config{
-			LocalPK:   pk,
-			LocalSK:   sk,
-			RemotePK:  entry.PubKey,
-			Initiator: true,
-		})
+		node.rpcDialers[i] = NewRPCClientDialer(node.n, entry.PubKey, entry.Port)
 	}
 
 	return node, err
@@ -248,9 +242,9 @@ func (node *Node) Start() error {
 		go rpcSvr.Accept(node.rpcListener)
 	}
 	for _, dialer := range node.rpcDialers {
-		go func(dialer *noise.RPCClientDialer) {
+		go func(dialer *RPCClientDialer) {
 			if err := dialer.Run(rpcSvr, time.Second); err != nil {
-				node.logger.Errorf("Dialer exited with error: %v", err)
+				node.logger.Errorf("Hypervisor dmsg Dial exited with error: %v", err)
 			}
 		}(dialer)
 	}
@@ -332,13 +326,6 @@ func (node *Node) Close() (err error) {
 			node.logger.WithError(err).Error("failed to stop RPC interface")
 		} else {
 			node.logger.Info("RPC interface stopped successfully")
-		}
-	}
-	for i, dialer := range node.rpcDialers {
-		if err = dialer.Close(); err != nil {
-			node.logger.WithError(err).Errorf("(%d) failed to stop RPC dialer", i)
-		} else {
-			node.logger.Infof("(%d) RPC dialer closed successfully", i)
 		}
 	}
 	node.startedMu.Lock()

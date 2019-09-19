@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skycoin/skywire/pkg/snet"
-
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 func makeEntry(pk1, pk2 cipher.PubKey, tpType string) Entry {

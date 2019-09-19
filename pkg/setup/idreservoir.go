@@ -8,9 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/dmsg/cipher"
-
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 type idReservoir struct {

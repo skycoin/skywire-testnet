@@ -9,10 +9,10 @@ import (
 	"net"
 	"time"
 
-	cipher2 "github.com/skycoin/skycoin/src/cipher"
+	cipher2 "github.com/SkycoinProject/skycoin/src/cipher"
 
-	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg"
+	"github.com/SkycoinProject/dmsg/cipher"
 )
 
 const (

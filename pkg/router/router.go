@@ -10,16 +10,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/snet"
+	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/app"
-	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
-	"github.com/skycoin/skywire/pkg/routing"
-	"github.com/skycoin/skywire/pkg/setup"
-	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet"
+	routeFinder "github.com/SkycoinProject/skywire-mainnet/pkg/route-finder/client"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/setup"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 )
 
 const (

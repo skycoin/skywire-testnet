@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/skycoin/dmsg"
+	"github.com/SkycoinProject/dmsg"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/snet"
-	"github.com/skycoin/skywire/pkg/snet/snettest"
-	"github.com/skycoin/skywire/pkg/transport"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet/snettest"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/transport"
 )
 
 func TestSettlementHS(t *testing.T) {

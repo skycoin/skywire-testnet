@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/setup"
-	"github.com/skycoin/skywire/pkg/snet/snettest"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/setup"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet/snettest"
 
 	"github.com/google/uuid"
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/SkycoinProject/dmsg/cipher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
 )
 
 func TestNewRouteManager(t *testing.T) {
