@@ -76,7 +76,9 @@ func (rt *boltDBRoutingTable) Rule(routeID RouteID) (Rule, error) {
 		rule = b.Get(binaryID(routeID))
 		return nil
 	})
-
+	if rule == nil {
+		return nil, fmt.Errorf("rule of routeID '%v' does not exist", routeID)
+	}
 	return rule, err
 }
 

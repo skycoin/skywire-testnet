@@ -2,6 +2,7 @@ package routing
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -72,9 +73,11 @@ func (rt *inMemoryRoutingTable) SetRule(routeID RouteID, rule Rule) error {
 
 func (rt *inMemoryRoutingTable) Rule(routeID RouteID) (Rule, error) {
 	rt.RLock()
-	rule := rt.rules[routeID]
+	rule, ok := rt.rules[routeID]
 	rt.RUnlock()
-
+	if !ok {
+		return nil, fmt.Errorf("rule of id %v not found", routeID)
+	}
 	return rule, nil
 }
 

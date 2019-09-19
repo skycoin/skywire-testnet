@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 	if ok {
 		lvl, err := logging.LevelFromString(loggingLevel)
 		if err != nil {
-			log.Fatal(err)
+			Log.Fatal(err)
 		}
 		logging.SetLevel(lvl)
 	} else {
@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestProxy(t *testing.T) {
-	srv, err := NewServer("")
+	srv, err := NewServer("", logging.NewMasterLogger())
 	require.NoError(t, err)
 
 	l, err := nettest.NewLocalListener("tcp")

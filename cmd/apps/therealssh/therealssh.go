@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"log"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
@@ -15,7 +14,12 @@ import (
 	ssh "github.com/SkycoinProject/skywire-mainnet/pkg/therealssh"
 )
 
+var log *logging.MasterLogger
+
 func main() {
+	log = app.NewLogger("SSH")
+	ssh.Log = log.PackageLogger("therealssh")
+
 	var authFile = flag.String("auth", "~/.therealssh/authorized_keys", "Auth file location. Should contain one PubKey per line.")
 	var debug = flag.Bool("debug", false, "enable debug messages")
 
@@ -47,7 +51,7 @@ func main() {
 		log.Fatal("Failed to setup Authorizer: ", err)
 	}
 
-	server := ssh.NewServer(auth)
+	server := ssh.NewServer(auth, log)
 	defer func() {
 		if err := server.Close(); err != nil {
 			log.Println("Failed to close server:", err)

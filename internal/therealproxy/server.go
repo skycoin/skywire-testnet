@@ -6,16 +6,18 @@ import (
 
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 )
 
 // Server implements multiplexing proxy server using yamux.
 type Server struct {
 	socks    *socks5.Server
 	listener net.Listener
+	log      *logging.MasterLogger
 }
 
 // NewServer constructs a new Server.
-func NewServer(passcode string) (*Server, error) {
+func NewServer(passcode string, l *logging.MasterLogger) (*Server, error) {
 	var credentials socks5.CredentialStore
 	if passcode != "" {
 		credentials = passcodeCredentials(passcode)
@@ -26,7 +28,7 @@ func NewServer(passcode string) (*Server, error) {
 		return nil, fmt.Errorf("socks5: %s", err)
 	}
 
-	return &Server{socks: s}, nil
+	return &Server{socks: s, log: l}, nil
 }
 
 // Serve accept connections from listener and serves socks5 proxy for
@@ -46,7 +48,7 @@ func (s *Server) Serve(l net.Listener) error {
 
 		go func() {
 			if err := s.socks.Serve(session); err != nil {
-				log.Error("Failed to start SOCKS5 server:", err)
+				s.log.Error("Failed to start SOCKS5 server:", err)
 			}
 		}()
 	}

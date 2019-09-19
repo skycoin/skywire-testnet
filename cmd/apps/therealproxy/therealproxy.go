@@ -5,13 +5,15 @@ package main
 
 import (
 	"flag"
-	"log"
 
 	"github.com/SkycoinProject/skywire-mainnet/internal/therealproxy"
 	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
 )
 
 func main() {
+	log := app.NewLogger("socksproxy")
+	therealproxy.Log = log.PackageLogger("therealproxy")
+
 	var passcode = flag.String("passcode", "", "Authorize user against this passcode")
 	flag.Parse()
 
@@ -26,7 +28,7 @@ func main() {
 		}
 	}()
 
-	srv, err := therealproxy.NewServer(*passcode)
+	srv, err := therealproxy.NewServer(*passcode, log)
 	if err != nil {
 		log.Fatal("Failed to create a new server: ", err)
 	}

@@ -72,7 +72,7 @@ func (auth *FileAuthorizer) Close() error {
 func (auth *FileAuthorizer) Authorize(remotePK cipher.PubKey) error {
 	defer func() {
 		if _, err := auth.authFile.Seek(0, 0); err != nil {
-			log.WithError(err).Warn("Failed to seek to the beginning of auth file")
+			Log.WithError(err).Warn("Failed to seek to the beginning of auth file")
 		}
 	}()
 

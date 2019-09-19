@@ -111,6 +111,8 @@ func defaultConfig() *visor.Config {
 
 	conf.Hypervisors = []visor.HypervisorConfig{}
 
+	conf.Uptime.Tracker = ""
+
 	conf.AppsPath = "./apps"
 	conf.LocalPath = "./local"
 

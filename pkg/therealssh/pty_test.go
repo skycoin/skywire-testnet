@@ -11,6 +11,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"github.com/stretchr/testify/require"
 
 	"github.com/SkycoinProject/skywire-mainnet/pkg/routing"
@@ -25,7 +26,7 @@ func TestRunRPC(t *testing.T) {
 		require.NoError(t, client.Close())
 	}()
 
-	server := NewServer(MockAuthorizer{})
+	server := NewServer(MockAuthorizer{}, logging.NewMasterLogger())
 	go func() {
 		server.Serve(PipeWithRoutingAddr{acceptConn}) // nolint
 	}()

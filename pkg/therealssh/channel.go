@@ -79,7 +79,7 @@ func (sshCh *SSHChannel) Write(p []byte) (n int, err error) {
 
 // Request sends request message and waits for response.
 func (sshCh *SSHChannel) Request(requestType RequestType, payload []byte) ([]byte, error) {
-	log.Debugf("sending request %x", requestType)
+	Log.Debugf("sending request %x", requestType)
 	req := append([]byte{byte(requestType)}, payload...)
 
 	if err := sshCh.Send(CmdChannelRequest, req); err != nil {
@@ -98,7 +98,7 @@ func (sshCh *SSHChannel) Request(requestType RequestType, payload []byte) ([]byt
 func (sshCh *SSHChannel) Serve() error {
 	for data := range sshCh.msgCh {
 		var err error
-		log.Debugf("new request %x", data[0])
+		Log.Debugf("new request %x", data[0])
 		switch RequestType(data[0]) {
 		case RequestPTY:
 			var u *user.User
@@ -151,10 +151,10 @@ func (sshCh *SSHChannel) SocketPath() string {
 // ServeSocket starts socket handling loop.
 func (sshCh *SSHChannel) ServeSocket() error {
 	if err := os.Remove(sshCh.SocketPath()); err != nil {
-		log.WithError(err).Warn("Failed to remove SSH channel socket file")
+		Log.WithError(err).Warn("Failed to remove SSH channel socket file")
 	}
 
-	log.Debugf("waiting for new socket connections on: %s", sshCh.SocketPath())
+	Log.Debugf("waiting for new socket connections on: %s", sshCh.SocketPath())
 	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: sshCh.SocketPath(), Net: "unix"})
 	if err != nil {
 		return fmt.Errorf("failed to open unix socket: %s", err)
@@ -168,22 +168,22 @@ func (sshCh *SSHChannel) ServeSocket() error {
 		return fmt.Errorf("failed to accept connection: %s", err)
 	}
 
-	log.Debugln("got new socket connection")
+	Log.Debugln("got new socket connection")
 	defer func() {
 		if err := conn.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close connection")
+			Log.WithError(err).Warn("Failed to close connection")
 		}
 		if err := sshCh.closeListener(); err != nil {
-			log.WithError(err).Warn("Failed to close listener")
+			Log.WithError(err).Warn("Failed to close listener")
 		}
 		if err := os.Remove(sshCh.SocketPath()); err != nil {
-			log.WithError(err).Warn("Failed to close SSH channel socket file")
+			Log.WithError(err).Warn("Failed to close SSH channel socket file")
 		}
 	}()
 
 	go func() {
 		if _, err := io.Copy(sshCh, conn); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			log.Errorf("failed to write to server:", err)
+			Log.Errorf("failed to write to server:", err)
 			return
 		}
 	}()
@@ -201,7 +201,7 @@ func (sshCh *SSHChannel) OpenPTY(user *user.User, sz *pty.Winsize) (err error) {
 		return errors.New("session is already started")
 	}
 
-	log.Debugf("starting new session for %s with %#v", user.Username, sz)
+	Log.Debugf("starting new session for %s with %#v", user.Username, sz)
 	sshCh.session, err = OpenSession(user, sz)
 	if err != nil {
 		sshCh.session = nil
@@ -224,11 +224,11 @@ func (sshCh *SSHChannel) Start(command string) error {
 
 	go func() {
 		if err := sshCh.serveSession(); err != nil {
-			log.Error("Session failure:", err)
+			Log.Error("Session failure:", err)
 		}
 	}()
 
-	log.Debugf("starting new pty process %s", command)
+	Log.Debugf("starting new pty process %s", command)
 	return sshCh.session.Start(command)
 }
 
@@ -246,7 +246,7 @@ func (sshCh *SSHChannel) Run(command string) error {
 	go func() {
 		_, err := sshCh.Write(out)
 		if err != nil {
-			log.Warn("error writing to channel: ", err)
+			Log.Warn("error writing to channel: ", err)
 		}
 	}()
 	return err
@@ -255,16 +255,16 @@ func (sshCh *SSHChannel) Run(command string) error {
 func (sshCh *SSHChannel) serveSession() error {
 	defer func() {
 		if err := sshCh.Send(CmdChannelServerClose, nil); err != nil {
-			log.WithError(err).Warn("Failed to send to SSH channel")
+			Log.WithError(err).Warn("Failed to send to SSH channel")
 		}
 		if err := sshCh.Close(); err != nil {
-			log.WithError(err).Warn("Failed to close SSH channel")
+			Log.WithError(err).Warn("Failed to close SSH channel")
 		}
 	}()
 
 	go func() {
 		if _, err := io.Copy(sshCh.session, sshCh); err != nil {
-			log.Error("PTY copy: ", err)
+			Log.Error("PTY copy: ", err)
 			return
 		}
 	}()

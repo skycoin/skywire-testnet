@@ -57,7 +57,7 @@ func TestAppManagerInit(t *testing.T) {
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppManagerSetupLoop(t *testing.T) {
@@ -92,7 +92,7 @@ func TestAppManagerSetupLoop(t *testing.T) {
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppManagerCloseLoop(t *testing.T) {
@@ -129,7 +129,7 @@ func TestAppManagerCloseLoop(t *testing.T) {
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }
 
 func TestAppManagerForward(t *testing.T) {
@@ -166,5 +166,5 @@ func TestAppManagerForward(t *testing.T) {
 	require.NoError(t, in.Close())
 	require.NoError(t, <-srvCh)
 	require.NoError(t, proto.Close())
-	require.NoError(t, testhelpers.NoErrorWithinTimeout(serveErrCh))
+	require.NoError(t, testhelpers.WithinTimeout(serveErrCh))
 }

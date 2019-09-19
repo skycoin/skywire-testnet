@@ -9,13 +9,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/SkycoinProject/dmsg/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/logging"
 
 	"github.com/SkycoinProject/skywire-mainnet/internal/netutil"
 	"github.com/SkycoinProject/skywire-mainnet/pkg/app"
@@ -30,12 +30,15 @@ var (
 	clientCh  chan string
 	chatConns map[cipher.PubKey]net.Conn
 	connsMu   sync.Mutex
+	log       *logging.MasterLogger
 )
 
 func main() {
+	appName := "skychat"
+	log = app.NewLogger(appName)
 	flag.Parse()
 
-	a, err := app.Setup(&app.Config{AppName: "skychat", AppVersion: "1.0", ProtocolVersion: "0.0.1"})
+	a, err := app.Setup(&app.Config{AppName: appName, AppVersion: "1.0", ProtocolVersion: "0.0.1"})
 	if err != nil {
 		log.Fatal("Setup failure: ", err)
 	}

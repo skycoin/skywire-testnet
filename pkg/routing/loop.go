@@ -20,10 +20,10 @@ func (l Loop) String() string {
 
 // LoopDescriptor defines a loop over a pair of routes.
 type LoopDescriptor struct {
-	Loop    Loop
-	Forward Route
-	Reverse Route
-	Expiry  time.Time
+	Loop      Loop
+	Forward   Route
+	Reverse   Route
+	KeepAlive time.Duration
 }
 
 // Initiator returns initiator of the Loop.
@@ -45,8 +45,8 @@ func (l LoopDescriptor) Responder() cipher.PubKey {
 }
 
 func (l LoopDescriptor) String() string {
-	return fmt.Sprintf("lport: %d. rport: %d. routes: %s/%s. expire at %s",
-		l.Loop.Local.Port, l.Loop.Remote.Port, l.Forward, l.Reverse, l.Expiry)
+	return fmt.Sprintf("lport: %d. rport: %d. routes: %s/%s. keep-alive timeout %s",
+		l.Loop.Local.Port, l.Loop.Remote.Port, l.Forward, l.Reverse, l.KeepAlive)
 }
 
 // LoopData stores loop confirmation request data.

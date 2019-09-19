@@ -8,8 +8,8 @@ import (
 
 // Various timeouts for setup node.
 const (
-	ServeTransportTimeout = time.Second * 30
-	ReadTimeout           = time.Second * 10
+	RequestTimeout = time.Second * 30
+	ReadTimeout    = time.Second * 10
 )
 
 // Config defines configuration parameters for setup Node.

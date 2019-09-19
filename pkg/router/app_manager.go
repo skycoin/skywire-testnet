@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/SkycoinProject/skycoin/src/util/logging"
@@ -59,7 +60,8 @@ func (am *appManager) Serve() error {
 func (am *appManager) initApp(payload []byte) error {
 	var config app.Config
 	if err := json.Unmarshal(payload, &config); err != nil {
-		return errors.New("invalid Init payload")
+		fmt.Println("invalid init:", string(payload))
+		return fmt.Errorf("invalid INIT payload: %v", err)
 	}
 
 	if config.ProtocolVersion != supportedProtocolVersion {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/SkycoinProject/skywire-mainnet/pkg/snet"
 	"github.com/SkycoinProject/dmsg/cipher"
 )
 
@@ -19,8 +20,8 @@ func makeEntry(pk1, pk2 cipher.PubKey, tpType string) Entry {
 	}
 }
 
-func makeEntryFromTp(tp Transport) Entry {
-	return makeEntry(tp.LocalPK(), tp.RemotePK(), tp.Type())
+func makeEntryFromTpConn(conn *snet.Conn) Entry {
+	return makeEntry(conn.LocalPK(), conn.RemotePK(), conn.Network())
 }
 
 func compareEntries(expected, received *Entry) error {
@@ -59,13 +60,13 @@ func receiveAndVerifyEntry(r io.Reader, expected *Entry, remotePK cipher.PubKey)
 
 // SettlementHS represents a settlement handshake.
 // This is the handshake responsible for registering a transport to transport discovery.
-type SettlementHS func(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) error
+type SettlementHS func(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) error
 
 // Do performs the settlement handshake.
-func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) (err error) {
+func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) (err error) {
 	done := make(chan struct{})
 	go func() {
-		err = hs(ctx, dc, tp, sk)
+		err = hs(ctx, dc, conn, sk)
 		close(done)
 	}()
 	select {
@@ -79,25 +80,28 @@ func (hs SettlementHS) Do(ctx context.Context, dc DiscoveryClient, tp Transport,
 // MakeSettlementHS creates a settlement handshake.
 // `init` determines whether the local side is initiating or responding.
 func MakeSettlementHS(init bool) SettlementHS {
-
 	// initiating logic.
-	initHS := func(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) (err error) {
-		entry := makeEntryFromTp(tp)
+	initHS := func(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) (err error) {
+		entry := makeEntryFromTpConn(conn)
 
-		defer func() { _, _ = dc.UpdateStatuses(ctx, &Status{ID: entry.ID, IsUp: err == nil}) }() //nolint:errcheck
+		defer func() {
+			if _, err := dc.UpdateStatuses(ctx, &Status{ID: entry.ID, IsUp: err == nil}); err != nil {
+				log.WithError(err).Error("Failed to update statuses")
+			}
+		}()
 
 		// create signed entry and send it to responding visor node.
-		se, ok := NewSignedEntry(&entry, tp.LocalPK(), sk)
+		se, ok := NewSignedEntry(&entry, conn.LocalPK(), sk)
 		if !ok {
 			return errors.New("failed to sign entry")
 		}
-		if err := json.NewEncoder(tp).Encode(se); err != nil {
+		if err := json.NewEncoder(conn).Encode(se); err != nil {
 			return fmt.Errorf("failed to write entry: %v", err)
 		}
 
 		// await okay signal.
 		accepted := make([]byte, 1)
-		if _, err := io.ReadFull(tp, accepted); err != nil {
+		if _, err := io.ReadFull(conn, accepted); err != nil {
 			return fmt.Errorf("failed to read response: %v", err)
 		}
 		if accepted[0] == 0 {
@@ -107,24 +111,26 @@ func MakeSettlementHS(init bool) SettlementHS {
 	}
 
 	// responding logic.
-	respHS := func(ctx context.Context, dc DiscoveryClient, tp Transport, sk cipher.SecKey) error {
-		entry := makeEntryFromTp(tp)
+	respHS := func(ctx context.Context, dc DiscoveryClient, conn *snet.Conn, sk cipher.SecKey) error {
+		entry := makeEntryFromTpConn(conn)
 
 		// receive, verify and sign entry.
-		recvSE, err := receiveAndVerifyEntry(tp, &entry, tp.RemotePK())
+		recvSE, err := receiveAndVerifyEntry(conn, &entry, conn.RemotePK())
 		if err != nil {
 			return err
 		}
-		if ok := recvSE.Sign(tp.LocalPK(), sk); !ok {
+		if ok := recvSE.Sign(conn.LocalPK(), sk); !ok {
 			return errors.New("failed to sign received entry")
 		}
 		entry = *recvSE.Entry
 
 		// Ensure transport is registered.
-		_ = dc.RegisterTransports(ctx, recvSE) //nolint:errcheck
+		if err := dc.RegisterTransports(ctx, recvSE); err != nil {
+			log.WithError(err).Error("Failed to register transports")
+		}
 
 		// inform initiating visor node.
-		if _, err := tp.Write([]byte{1}); err != nil {
+		if _, err := conn.Write([]byte{1}); err != nil {
 			return fmt.Errorf("failed to accept transport settlement: write failed: %v", err)
 		}
 		return nil

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"testing"
 	"time"
 
@@ -42,10 +43,12 @@ func checkConnCount(t *testing.T, delay time.Duration, count int, ccs ...connCou
 	}))
 }
 
-func checkTransportsClosed(t *testing.T, transports ...*Transport) {
-	for _, transport := range transports {
-		assert.False(t, isDoneChanOpen(transport.done))
-		assert.False(t, isReadChanOpen(transport.inCh))
+func checkTransportsClosed(t *testing.T, transports ...net.Conn) {
+	for _, tr := range transports {
+		if tr, ok := tr.(*Transport); ok && tr != nil {
+			assert.False(t, isDoneChanOpen(tr.done))
+			assert.False(t, isReadChanOpen(tr.inCh))
+		}
 	}
 }
 

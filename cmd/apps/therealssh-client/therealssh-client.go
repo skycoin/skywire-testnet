@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -15,7 +14,12 @@ import (
 	ssh "github.com/SkycoinProject/skywire-mainnet/pkg/therealssh"
 )
 
+var log *logging.MasterLogger
+
 func main() {
+	log = app.NewLogger("SSH-client")
+	ssh.Log = log.PackageLogger("therealssh")
+
 	var rpcAddr = flag.String("rpc", ":2222", "Client RPC address to listen on")
 	var debug = flag.Bool("debug", false, "enable debug messages")
 	flag.Parse()

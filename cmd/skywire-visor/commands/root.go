@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,7 +22,7 @@ import (
 	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/SkycoinProject/skycoin/src/util/logging"
 	"github.com/spf13/cobra"
-
+	"github.com/SkycoinProject/skywire-mainnet/internal/utclient"
 	"github.com/SkycoinProject/skywire-mainnet/pkg/util/pathutil"
 	"github.com/SkycoinProject/skywire-mainnet/pkg/visor"
 )
@@ -139,6 +140,7 @@ func (cfg *runCfg) readConfig() *runCfg {
 	if err := json.NewDecoder(rdr).Decode(&cfg.conf); err != nil {
 		cfg.logger.Fatalf("Failed to decode %s: %s", rdr, err)
 	}
+	fmt.Println("TCP Factory conf:", cfg.conf.TCPTransport)
 	return cfg
 }
 
@@ -146,6 +148,25 @@ func (cfg *runCfg) runNode() *runCfg {
 	node, err := visor.NewNode(&cfg.conf, cfg.masterLogger)
 	if err != nil {
 		cfg.logger.Fatal("Failed to initialize node: ", err)
+	}
+
+	if cfg.conf.Uptime.Tracker != "" {
+		uptimeTracker, err := utclient.NewHTTP(cfg.conf.Uptime.Tracker, cfg.conf.Node.StaticPubKey, cfg.conf.Node.StaticSecKey)
+		if err != nil {
+			cfg.logger.Error("Failed to connect to uptime tracker: ", err)
+		} else {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+
+			go func() {
+				for range ticker.C {
+					ctx := context.Background()
+					if err := uptimeTracker.UpdateNodeUptime(ctx); err != nil {
+						cfg.logger.Error("Failed to update node uptime: ", err)
+					}
+				}
+			}()
+		}
 	}
 
 	go func() {
