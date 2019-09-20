@@ -37,6 +37,7 @@ func (c *Client) Dial(remote routing.Addr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+	net.Dial()
 
 	connID, err := c.rpc.Dial(remote)
 	if err != nil {

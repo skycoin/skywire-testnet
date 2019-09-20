@@ -26,3 +26,5 @@ require (
 	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
 	golang.org/x/net v0.0.0-20190916140828-c8589233b77d
 )
+
+replace github.com/skycoin/dmsg => ../dmsg
