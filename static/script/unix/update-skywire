@@ -18,6 +18,9 @@ cd ${SKYWIRE_DIR}
 # reset to master
 git checkout master
 
+# save the only local config we need: the MANAGER_IP
+MIP=`cat /etc/default/skywire | grep MANAGER_IP | grep '=' | cut -d '=' -f 2`
+
 # reset any local changes
 git reset --hard > /dev/null 2>&1
 
@@ -30,6 +33,12 @@ git pull origin master > /dev/null 2>&1
 # once more, there are reports that it need it
 # TODO review this.
 git pull > /dev/null 2>&1
+
+# replace the default MANAGER_IP with the custom one, if need
+NMIP=`cat /etc/default/skywire | grep MANAGER_IP | grep '=' | cut -d '=' -f 2`
+if [ "$MIP" != "$NMIP" ] ; then
+	sed -i s/"=$NMIP"/"=$MIP"/ /etc/default/skywire
+fi
 
 # TODO needs revision, see:
 # https://github.com/skycoin/skywire/issues/161
