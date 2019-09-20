@@ -52,7 +52,7 @@ func (m *manager) nextKey() (*uint16, error) {
 
 // getAndRemove removes value specified by `key` from the manager instance and
 // returns it.
-func (m *manager) getAndRemove(key uint16) (interface{}, error) {
+func (m *manager) pop(key uint16) (interface{}, error) {
 	m.mx.Lock()
 	v, ok := m.values[key]
 	if !ok {

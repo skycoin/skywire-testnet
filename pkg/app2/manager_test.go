@@ -66,7 +66,7 @@ func TestManager_NextID(t *testing.T) {
 	})
 }
 
-func TestManager_GetAndRemove(t *testing.T) {
+func TestManager_Pop(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
 		m := newManager()
 
@@ -74,7 +74,7 @@ func TestManager_GetAndRemove(t *testing.T) {
 
 		m.values[1] = v
 
-		gotV, err := m.getAndRemove(1)
+		gotV, err := m.pop(1)
 		require.NoError(t, err)
 		require.NotNil(t, gotV)
 		require.Equal(t, gotV, v)
@@ -86,7 +86,7 @@ func TestManager_GetAndRemove(t *testing.T) {
 	t.Run("no value", func(t *testing.T) {
 		m := newManager()
 
-		_, err := m.getAndRemove(1)
+		_, err := m.pop(1)
 		require.Error(t, err)
 	})
 
@@ -95,7 +95,7 @@ func TestManager_GetAndRemove(t *testing.T) {
 
 		m.values[1] = nil
 
-		_, err := m.getAndRemove(1)
+		_, err := m.pop(1)
 		require.Error(t, err)
 	})
 
@@ -108,7 +108,7 @@ func TestManager_GetAndRemove(t *testing.T) {
 		errs := make(chan error, concurrency)
 		for i := uint16(0); i < uint16(concurrency); i++ {
 			go func() {
-				_, err := m.getAndRemove(1)
+				_, err := m.pop(1)
 				errs <- err
 			}()
 		}

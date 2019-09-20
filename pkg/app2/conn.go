@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/app2/network"
 )
 
 // Conn is a connection from app client to the server.
@@ -12,8 +12,8 @@ import (
 type Conn struct {
 	id            uint16
 	rpc           ServerRPCClient
-	local         routing.Addr
-	remote        routing.Addr
+	local         network.Addr
+	remote        network.Addr
 	freeLocalPort func()
 }
 

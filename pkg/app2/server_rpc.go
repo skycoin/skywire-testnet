@@ -1,48 +1,49 @@
 package app2
 
 import (
-	"context"
 	"fmt"
 	"net"
+
+	"github.com/skycoin/skywire/pkg/app2/network"
 
 	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/skycoin/src/util/logging"
-
-	"github.com/skycoin/skywire/pkg/routing"
 )
 
 // ServerRPC is a RPC interface for the app server.
 type ServerRPC struct {
-	dmsgC *dmsg.Client
-	lm    *manager
-	cm    *manager
-	log   *logging.Logger
+	lm  *manager
+	cm  *manager
+	log *logging.Logger
 }
 
 // newServerRPC constructs new server RPC interface.
-func newServerRPC(log *logging.Logger, dmsgC *dmsg.Client) *ServerRPC {
+func newServerRPC(log *logging.Logger) *ServerRPC {
 	return &ServerRPC{
-		dmsgC: dmsgC,
-		lm:    newManager(),
-		cm:    newManager(),
-		log:   log,
+		lm:  newManager(),
+		cm:  newManager(),
+		log: log,
 	}
 }
 
 // Dial dials to the remote.
-func (r *ServerRPC) Dial(remote *routing.Addr, connID *uint16) error {
+func (r *ServerRPC) Dial(remote *network.Addr, connID *uint16) error {
 	connID, err := r.cm.nextKey()
 	if err != nil {
 		return err
 	}
 
-	tp, err := r.dmsgC.Dial(context.TODO(), remote.PubKey, uint16(remote.Port))
+	conn, err := network.Dial(*remote)
 	if err != nil {
 		return err
 	}
 
-	if err := r.cm.set(*connID, tp); err != nil {
+	if err := r.cm.set(*connID, conn); err != nil {
+		if err := conn.Close(); err != nil {
+			r.log.WithError(err).Error("error closing conn")
+		}
+
 		return err
 	}
 
@@ -50,20 +51,20 @@ func (r *ServerRPC) Dial(remote *routing.Addr, connID *uint16) error {
 }
 
 // Listen starts listening.
-func (r *ServerRPC) Listen(local *routing.Addr, lisID *uint16) error {
+func (r *ServerRPC) Listen(local *network.Addr, lisID *uint16) error {
 	lisID, err := r.lm.nextKey()
 	if err != nil {
 		return err
 	}
 
-	dmsgL, err := r.dmsgC.Listen(uint16(local.Port))
+	l, err := network.Listen(*local)
 	if err != nil {
 		return err
 	}
 
-	if err := r.lm.set(*lisID, dmsgL); err != nil {
-		if err := dmsgL.Close(); err != nil {
-			r.log.WithError(err).Error("error closing DMSG listener")
+	if err := r.lm.set(*lisID, l); err != nil {
+		if err := l.Close(); err != nil {
+			r.log.WithError(err).Error("error closing listener")
 		}
 
 		return err
@@ -74,7 +75,7 @@ func (r *ServerRPC) Listen(local *routing.Addr, lisID *uint16) error {
 
 // AcceptResp contains response parameters for `Accept`.
 type AcceptResp struct {
-	Remote routing.Addr
+	Remote network.Addr
 	ConnID uint16
 }
 
@@ -90,29 +91,26 @@ func (r *ServerRPC) Accept(lisID *uint16, resp *AcceptResp) error {
 		return err
 	}
 
-	tp, err := lis.Accept()
+	conn, err := lis.Accept()
 	if err != nil {
 		return err
 	}
 
-	if err := r.cm.set(*connID, tp); err != nil {
-		if err := tp.Close(); err != nil {
+	if err := r.cm.set(*connID, conn); err != nil {
+		if err := conn.Close(); err != nil {
 			r.log.WithError(err).Error("error closing DMSG transport")
 		}
 
 		return err
 	}
 
-	remote, ok := tp.RemoteAddr().(dmsg.Addr)
+	remote, ok := conn.RemoteAddr().(network.Addr)
 	if !ok {
-		return errors.New("wrong type for transport remote addr")
+		return errors.New("wrong type for remote addr")
 	}
 
 	resp = &AcceptResp{
-		Remote: routing.Addr{
-			PubKey: remote.PK,
-			Port:   routing.Port(remote.Port),
-		},
+		Remote: remote,
 		ConnID: *connID,
 	}
 
@@ -163,7 +161,7 @@ func (r *ServerRPC) Read(connID *uint16, resp *ReadResp) error {
 
 // CloseConn closes connection specified by `connID`.
 func (r *ServerRPC) CloseConn(connID *uint16, _ *struct{}) error {
-	conn, err := r.getAndRemoveConn(*connID)
+	conn, err := r.popConn(*connID)
 	if err != nil {
 		return err
 	}
@@ -173,7 +171,7 @@ func (r *ServerRPC) CloseConn(connID *uint16, _ *struct{}) error {
 
 // CloseListener closes listener specified by `lisID`.
 func (r *ServerRPC) CloseListener(lisID *uint16, _ *struct{}) error {
-	lis, err := r.getAndRemoveListener(*lisID)
+	lis, err := r.popListener(*lisID)
 	if err != nil {
 		return err
 	}
@@ -181,10 +179,10 @@ func (r *ServerRPC) CloseListener(lisID *uint16, _ *struct{}) error {
 	return lis.Close()
 }
 
-// getAndRemoveListener gets listener from the manager by `lisID` and removes it.
+// popListener gets listener from the manager by `lisID` and removes it.
 // Handles type assertion.
-func (r *ServerRPC) getAndRemoveListener(lisID uint16) (*dmsg.Listener, error) {
-	lisIfc, err := r.lm.getAndRemove(lisID)
+func (r *ServerRPC) popListener(lisID uint16) (*dmsg.Listener, error) {
+	lisIfc, err := r.lm.pop(lisID)
 	if err != nil {
 		return nil, err
 	}
@@ -192,10 +190,10 @@ func (r *ServerRPC) getAndRemoveListener(lisID uint16) (*dmsg.Listener, error) {
 	return r.assertListener(lisIfc)
 }
 
-// getAndRemoveConn gets conn from the manager by `connID` and removes it.
+// popConn gets conn from the manager by `connID` and removes it.
 // Handles type assertion.
-func (r *ServerRPC) getAndRemoveConn(connID uint16) (net.Conn, error) {
-	connIfc, err := r.cm.getAndRemove(connID)
+func (r *ServerRPC) popConn(connID uint16) (net.Conn, error) {
+	connIfc, err := r.cm.pop(connID)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +221,7 @@ func (r *ServerRPC) getConn(connID uint16) (net.Conn, error) {
 	return r.assertConn(connIfc)
 }
 
-// assertListener asserts that `v` is of type `*dmsg.Listener`.
+// assertListener asserts that `v` is of type `net.Listener`.
 func (r *ServerRPC) assertListener(v interface{}) (*dmsg.Listener, error) {
 	lis, ok := v.(*dmsg.Listener)
 	if !ok {

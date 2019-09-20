@@ -3,16 +3,16 @@ package app2
 import (
 	"net/rpc"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/app2/network"
 )
 
 //go:generate mockery -name ServerRPCClient -case underscore -inpkg
 
 // ServerRPCClient describes RPC interface to communicate with the server.
 type ServerRPCClient interface {
-	Dial(remote routing.Addr) (uint16, error)
-	Listen(local routing.Addr) (uint16, error)
-	Accept(lisID uint16) (uint16, routing.Addr, error)
+	Dial(remote network.Addr) (uint16, error)
+	Listen(local network.Addr) (uint16, error)
+	Accept(lisID uint16) (uint16, network.Addr, error)
 	Write(connID uint16, b []byte) (int, error)
 	Read(connID uint16, b []byte) (int, []byte, error)
 	CloseConn(id uint16) error
@@ -32,7 +32,7 @@ func NewServerRPCClient(rpc *rpc.Client) ServerRPCClient {
 }
 
 // Dial sends `Dial` command to the server.
-func (c *serverRPCCLient) Dial(remote routing.Addr) (uint16, error) {
+func (c *serverRPCCLient) Dial(remote network.Addr) (uint16, error) {
 	var connID uint16
 	if err := c.rpc.Call("Dial", &remote, &connID); err != nil {
 		return 0, err
@@ -42,7 +42,7 @@ func (c *serverRPCCLient) Dial(remote routing.Addr) (uint16, error) {
 }
 
 // Listen sends `Listen` command to the server.
-func (c *serverRPCCLient) Listen(local routing.Addr) (uint16, error) {
+func (c *serverRPCCLient) Listen(local network.Addr) (uint16, error) {
 	var lisID uint16
 	if err := c.rpc.Call("Listen", &local, &lisID); err != nil {
 		return 0, err
@@ -52,10 +52,10 @@ func (c *serverRPCCLient) Listen(local routing.Addr) (uint16, error) {
 }
 
 // Accept sends `Accept` command to the server.
-func (c *serverRPCCLient) Accept(lisID uint16) (uint16, routing.Addr, error) {
+func (c *serverRPCCLient) Accept(lisID uint16) (uint16, network.Addr, error) {
 	var acceptResp AcceptResp
 	if err := c.rpc.Call("Accept", &lisID, &acceptResp); err != nil {
-		return 0, routing.Addr{}, err
+		return 0, network.Addr{}, err
 	}
 
 	return acceptResp.ConnID, acceptResp.Remote, nil

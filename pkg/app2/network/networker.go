@@ -54,13 +54,13 @@ type Networker interface {
 }
 
 // Dial dials the remote `addr` of the specified `network`.
-func Dial(t Type, addr Addr) (net.Conn, error) {
-	return DialContext(context.Background(), t, addr)
+func Dial(addr Addr) (net.Conn, error) {
+	return DialContext(context.Background(), addr)
 }
 
 // DialContext dials the remote `Addr` of the specified `network` with the context.
-func DialContext(ctx context.Context, t Type, addr Addr) (net.Conn, error) {
-	n, err := ResolveNetworker(t)
+func DialContext(ctx context.Context, addr Addr) (net.Conn, error) {
+	n, err := ResolveNetworker(addr.Net)
 	if err != nil {
 		return nil, err
 	}
@@ -69,13 +69,13 @@ func DialContext(ctx context.Context, t Type, addr Addr) (net.Conn, error) {
 }
 
 // Listen starts listening on the local `addr` of the specified `network`.
-func Listen(t Type, addr Addr) (net.Listener, error) {
-	return ListenContext(context.Background(), t, addr)
+func Listen(addr Addr) (net.Listener, error) {
+	return ListenContext(context.Background(), addr)
 }
 
 // ListenContext starts listening on the local `addr` of the specified `network` with the context.
-func ListenContext(ctx context.Context, t Type, addr Addr) (net.Listener, error) {
-	networker, err := ResolveNetworker(t)
+func ListenContext(ctx context.Context, addr Addr) (net.Listener, error) {
+	networker, err := ResolveNetworker(addr.Net)
 	if err != nil {
 		return nil, err
 	}

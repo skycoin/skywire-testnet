@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 
+	"github.com/skycoin/skywire/pkg/app2/network"
+
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/netutil"
 	"github.com/skycoin/skywire/pkg/routing"
@@ -32,12 +34,11 @@ func NewClient(localPK cipher.PubKey, pid ProcID, rpc ServerRPCClient, porter *n
 }
 
 // Dial dials the remote node using `remote`.
-func (c *Client) Dial(remote routing.Addr) (net.Conn, error) {
+func (c *Client) Dial(remote network.Addr) (net.Conn, error) {
 	localPort, free, err := c.porter.ReserveEphemeral(context.TODO(), nil)
 	if err != nil {
 		return nil, err
 	}
-	net.Dial()
 
 	connID, err := c.rpc.Dial(remote)
 	if err != nil {
@@ -48,7 +49,8 @@ func (c *Client) Dial(remote routing.Addr) (net.Conn, error) {
 	conn := &Conn{
 		id:  connID,
 		rpc: c.rpc,
-		local: routing.Addr{
+		local: network.Addr{
+			Net:    remote.Net,
 			PubKey: c.pk,
 			Port:   routing.Port(localPort),
 		},
@@ -60,13 +62,14 @@ func (c *Client) Dial(remote routing.Addr) (net.Conn, error) {
 }
 
 // Listen listens on the specified `port` for the incoming connections.
-func (c *Client) Listen(port routing.Port) (net.Listener, error) {
+func (c *Client) Listen(n network.Type, port routing.Port) (net.Listener, error) {
 	ok, free := c.porter.Reserve(uint16(port), nil)
 	if !ok {
 		return nil, ErrPortAlreadyBound
 	}
 
-	local := routing.Addr{
+	local := network.Addr{
+		Net:    n,
 		PubKey: c.pk,
 		Port:   port,
 	}

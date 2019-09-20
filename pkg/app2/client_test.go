@@ -3,6 +3,8 @@ package app2
 import (
 	"testing"
 
+	"github.com/skycoin/skywire/pkg/app2/network"
+
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +21,7 @@ func TestClient_Dial(t *testing.T) {
 
 	remotePK, _ := cipher.GenerateKeyPair()
 	remotePort := routing.Port(120)
-	remote := routing.Addr{
+	remote := network.Addr{
 		PubKey: remotePK,
 		Port:   remotePort,
 	}
@@ -36,7 +38,7 @@ func TestClient_Dial(t *testing.T) {
 		wantConn := &Conn{
 			id:  dialConnID,
 			rpc: rpc,
-			local: routing.Addr{
+			local: network.Addr{
 				PubKey: localPK,
 			},
 			remote: remote,
@@ -76,7 +78,7 @@ func TestClient_Listen(t *testing.T) {
 	pid := ProcID(1)
 
 	port := routing.Port(1)
-	local := routing.Addr{
+	local := network.Addr{
 		PubKey: localPK,
 		Port:   port,
 	}

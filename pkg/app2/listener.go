@@ -3,7 +3,7 @@ package app2
 import (
 	"net"
 
-	"github.com/skycoin/skywire/pkg/routing"
+	"github.com/skycoin/skywire/pkg/app2/network"
 )
 
 // Listener is a listener for app server connections.
@@ -11,7 +11,7 @@ import (
 type Listener struct {
 	id       uint16
 	rpc      ServerRPCClient
-	addr     routing.Addr
+	addr     network.Addr
 	freePort func()
 }
 
