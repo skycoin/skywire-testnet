@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+//go:generate mockery -name Networker -case underscore -inpkg
+
 var (
 	// ErrNoSuchNetworker is being returned when there's no suitable networker.
 	ErrNoSuchNetworker = errors.New("no such networker")
@@ -15,11 +17,11 @@ var (
 )
 
 var (
-	networkers   = map[Type]Networker{}
+	networkers   = make(map[Type]Networker)
 	networkersMx sync.RWMutex
 )
 
-// AddNetworker associated Networker with the `network`.
+// AddNetworker associates Networker with the `network`.
 func AddNetworker(t Type, n Networker) error {
 	networkersMx.Lock()
 	defer networkersMx.Unlock()
