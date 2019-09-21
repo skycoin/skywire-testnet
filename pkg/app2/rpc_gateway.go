@@ -28,7 +28,7 @@ func newRPCGateway(log *logging.Logger) *RPCGateway {
 
 // Dial dials to the remote.
 func (r *RPCGateway) Dial(remote *network.Addr, connID *uint16) error {
-	connID, err := r.cm.nextKey()
+	reservedConnID, err := r.cm.nextKey()
 	if err != nil {
 		return err
 	}
@@ -38,13 +38,15 @@ func (r *RPCGateway) Dial(remote *network.Addr, connID *uint16) error {
 		return err
 	}
 
-	if err := r.cm.set(*connID, conn); err != nil {
+	if err := r.cm.set(*reservedConnID, conn); err != nil {
 		if err := conn.Close(); err != nil {
 			r.log.WithError(err).Error("error closing conn")
 		}
 
 		return err
 	}
+
+	*connID = *reservedConnID
 
 	return nil
 }

@@ -5,7 +5,7 @@ type Type string
 
 const (
 	// TypeDMSG is a network type for DMSG communication.
-	TypeDMSG = "dmsg"
+	TypeDMSG Type = "dmsg"
 )
 
 // IsValid checks whether the network contains valid value for the type.

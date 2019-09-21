@@ -15,7 +15,7 @@ import (
 func TestAddNetworker(t *testing.T) {
 	clearNetworkers()
 
-	nType := Type(TypeDMSG)
+	nType := TypeDMSG
 	var n Networker
 
 	err := AddNetworker(nType, n)
@@ -28,7 +28,7 @@ func TestAddNetworker(t *testing.T) {
 func TestResolveNetworker(t *testing.T) {
 	clearNetworkers()
 
-	nType := Type(TypeDMSG)
+	nType := TypeDMSG
 	var n Networker
 
 	n, err := ResolveNetworker(nType)
