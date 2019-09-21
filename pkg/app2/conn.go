@@ -11,7 +11,7 @@ import (
 // Implements `net.Conn`.
 type Conn struct {
 	id            uint16
-	rpc           ServerRPCClient
+	rpc           RPCClient
 	local         network.Addr
 	remote        network.Addr
 	freeLocalPort func()

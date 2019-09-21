@@ -3,16 +3,12 @@ package app2
 import (
 	"testing"
 
-	"github.com/skycoin/skywire/pkg/app2/network"
-
 	"github.com/pkg/errors"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/require"
 
+	"github.com/skycoin/skywire/pkg/app2/network"
 	"github.com/skycoin/skywire/pkg/routing"
-
-	"github.com/skycoin/dmsg/cipher"
-
-	"github.com/skycoin/dmsg/netutil"
 )
 
 func TestClient_Dial(t *testing.T) {
@@ -30,10 +26,10 @@ func TestClient_Dial(t *testing.T) {
 		dialConnID := uint16(1)
 		var dialErr error
 
-		rpc := &MockServerRPCClient{}
+		rpc := &MockRPCClient{}
 		rpc.On("Dial", remote).Return(dialConnID, dialErr)
 
-		cl := NewClient(localPK, pid, rpc, netutil.NewPorter(netutil.PorterMinEphemeral))
+		cl := NewClient(localPK, pid, rpc)
 
 		wantConn := &Conn{
 			id:  dialConnID,
@@ -62,10 +58,10 @@ func TestClient_Dial(t *testing.T) {
 	t.Run("dial error", func(t *testing.T) {
 		dialErr := errors.New("dial error")
 
-		rpc := &MockServerRPCClient{}
+		rpc := &MockRPCClient{}
 		rpc.On("Dial", remote).Return(uint16(0), dialErr)
 
-		cl := NewClient(localPK, pid, rpc, netutil.NewPorter(netutil.PorterMinEphemeral))
+		cl := NewClient(localPK, pid, rpc)
 
 		conn, err := cl.Dial(remote)
 		require.Equal(t, dialErr, err)
@@ -79,6 +75,7 @@ func TestClient_Listen(t *testing.T) {
 
 	port := routing.Port(1)
 	local := network.Addr{
+		Net:    network.TypeDMSG,
 		PubKey: localPK,
 		Port:   port,
 	}
@@ -87,10 +84,10 @@ func TestClient_Listen(t *testing.T) {
 		listenLisID := uint16(1)
 		var listenErr error
 
-		rpc := &MockServerRPCClient{}
+		rpc := &MockRPCClient{}
 		rpc.On("Listen", local).Return(listenLisID, listenErr)
 
-		cl := NewClient(localPK, pid, rpc, netutil.NewPorter(netutil.PorterMinEphemeral))
+		cl := NewClient(localPK, pid, rpc)
 
 		wantListener := &Listener{
 			id:   listenLisID,
@@ -98,7 +95,7 @@ func TestClient_Listen(t *testing.T) {
 			addr: local,
 		}
 
-		listener, err := cl.Listen(port)
+		listener, err := cl.Listen(network.TypeDMSG, port)
 		require.Nil(t, err)
 		appListener, ok := listener.(*Listener)
 		require.True(t, ok)
@@ -112,17 +109,16 @@ func TestClient_Listen(t *testing.T) {
 	})
 
 	t.Run("port is already bound", func(t *testing.T) {
-		porter := netutil.NewPorter(netutil.PorterMinEphemeral)
-		ok, _ := porter.Reserve(uint16(port), nil)
+		rpc := &MockRPCClient{}
+
+		cl := NewClient(localPK, pid, rpc)
+
+		ok, _ := cl.porter.Reserve(uint16(port), nil)
 		require.True(t, ok)
-
-		rpc := &MockServerRPCClient{}
-
-		cl := NewClient(localPK, pid, rpc, porter)
 
 		wantErr := ErrPortAlreadyBound
 
-		listener, err := cl.Listen(port)
+		listener, err := cl.Listen(network.TypeDMSG, port)
 		require.Equal(t, wantErr, err)
 		require.Nil(t, listener)
 	})
@@ -130,12 +126,12 @@ func TestClient_Listen(t *testing.T) {
 	t.Run("listen error", func(t *testing.T) {
 		listenErr := errors.New("listen error")
 
-		rpc := &MockServerRPCClient{}
+		rpc := &MockRPCClient{}
 		rpc.On("Listen", local).Return(uint16(0), listenErr)
 
-		cl := NewClient(localPK, pid, rpc, netutil.NewPorter(netutil.PorterMinEphemeral))
+		cl := NewClient(localPK, pid, rpc)
 
-		listener, err := cl.Listen(port)
+		listener, err := cl.Listen(network.TypeDMSG, port)
 		require.Equal(t, listenErr, err)
 		require.Nil(t, listener)
 		_, ok := cl.porter.PortValue(uint16(port))

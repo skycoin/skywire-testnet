@@ -4,10 +4,10 @@ import (
 	"context"
 	"net"
 
-	"github.com/skycoin/skywire/pkg/app2/network"
-
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/netutil"
+
+	"github.com/skycoin/skywire/pkg/app2/network"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -15,21 +15,20 @@ import (
 type Client struct {
 	pk     cipher.PubKey
 	pid    ProcID
-	rpc    ServerRPCClient
+	rpc    RPCClient
 	porter *netutil.Porter
 }
 
 // NewClient creates a new `Client`. The `Client` needs to be provided with:
-// - log: Logger instance.
 // - localPK: The local public key of the parent skywire visor.
 // - pid: The procID assigned for the process that Client is being used by.
 // - rpc: RPC client to communicate with the server.
-func NewClient(localPK cipher.PubKey, pid ProcID, rpc ServerRPCClient, porter *netutil.Porter) *Client {
+func NewClient(localPK cipher.PubKey, pid ProcID, rpc RPCClient) *Client {
 	return &Client{
 		pk:     localPK,
 		pid:    pid,
 		rpc:    rpc,
-		porter: porter,
+		porter: netutil.NewPorter(netutil.PorterMinEphemeral),
 	}
 }
 

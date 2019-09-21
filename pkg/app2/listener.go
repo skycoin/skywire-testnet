@@ -10,7 +10,7 @@ import (
 // Implements `net.Listener`.
 type Listener struct {
 	id       uint16
-	rpc      ServerRPCClient
+	rpc      RPCClient
 	addr     network.Addr
 	freePort func()
 }

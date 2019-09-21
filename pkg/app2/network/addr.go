@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/skycoin/dmsg/cipher"
+
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
@@ -14,7 +15,7 @@ type Addr struct {
 	Port   routing.Port
 }
 
-// Network returns "dmsg"
+// Network returns network type.
 func (a Addr) Network() string {
 	return string(a.Net)
 }

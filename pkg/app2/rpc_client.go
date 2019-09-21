@@ -6,10 +6,10 @@ import (
 	"github.com/skycoin/skywire/pkg/app2/network"
 )
 
-//go:generate mockery -name ServerRPCClient -case underscore -inpkg
+//go:generate mockery -name RPCClient -case underscore -inpkg
 
-// ServerRPCClient describes RPC interface to communicate with the server.
-type ServerRPCClient interface {
+// RPCClient describes RPC interface to communicate with the server.
+type RPCClient interface {
 	Dial(remote network.Addr) (uint16, error)
 	Listen(local network.Addr) (uint16, error)
 	Accept(lisID uint16) (uint16, network.Addr, error)
@@ -19,20 +19,20 @@ type ServerRPCClient interface {
 	CloseListener(id uint16) error
 }
 
-// serverRPCClient implements `ServerRPCClient`.
-type serverRPCCLient struct {
+// rpcClient implements `RPCClient`.
+type rpcCLient struct {
 	rpc *rpc.Client
 }
 
-// NewServerRPCClient constructs new `serverRPCClient`.
-func NewServerRPCClient(rpc *rpc.Client) ServerRPCClient {
-	return &serverRPCCLient{
+// NewRPCClient constructs new `rpcClient`.
+func NewRPCClient(rpc *rpc.Client) RPCClient {
+	return &rpcCLient{
 		rpc: rpc,
 	}
 }
 
 // Dial sends `Dial` command to the server.
-func (c *serverRPCCLient) Dial(remote network.Addr) (uint16, error) {
+func (c *rpcCLient) Dial(remote network.Addr) (uint16, error) {
 	var connID uint16
 	if err := c.rpc.Call("Dial", &remote, &connID); err != nil {
 		return 0, err
@@ -42,7 +42,7 @@ func (c *serverRPCCLient) Dial(remote network.Addr) (uint16, error) {
 }
 
 // Listen sends `Listen` command to the server.
-func (c *serverRPCCLient) Listen(local network.Addr) (uint16, error) {
+func (c *rpcCLient) Listen(local network.Addr) (uint16, error) {
 	var lisID uint16
 	if err := c.rpc.Call("Listen", &local, &lisID); err != nil {
 		return 0, err
@@ -52,7 +52,7 @@ func (c *serverRPCCLient) Listen(local network.Addr) (uint16, error) {
 }
 
 // Accept sends `Accept` command to the server.
-func (c *serverRPCCLient) Accept(lisID uint16) (uint16, network.Addr, error) {
+func (c *rpcCLient) Accept(lisID uint16) (uint16, network.Addr, error) {
 	var acceptResp AcceptResp
 	if err := c.rpc.Call("Accept", &lisID, &acceptResp); err != nil {
 		return 0, network.Addr{}, err
@@ -62,7 +62,7 @@ func (c *serverRPCCLient) Accept(lisID uint16) (uint16, network.Addr, error) {
 }
 
 // Write sends `Write` command to the server.
-func (c *serverRPCCLient) Write(connID uint16, b []byte) (int, error) {
+func (c *rpcCLient) Write(connID uint16, b []byte) (int, error) {
 	req := WriteReq{
 		ConnID: connID,
 		B:      b,
@@ -77,7 +77,7 @@ func (c *serverRPCCLient) Write(connID uint16, b []byte) (int, error) {
 }
 
 // Read sends `Read` command to the server.
-func (c *serverRPCCLient) Read(connID uint16, b []byte) (int, []byte, error) {
+func (c *rpcCLient) Read(connID uint16, b []byte) (int, []byte, error) {
 	var resp ReadResp
 	if err := c.rpc.Call("Read", &connID, &resp); err != nil {
 		return 0, nil, err
@@ -87,11 +87,11 @@ func (c *serverRPCCLient) Read(connID uint16, b []byte) (int, []byte, error) {
 }
 
 // CloseConn sends `CloseConn` command to the server.
-func (c *serverRPCCLient) CloseConn(id uint16) error {
+func (c *rpcCLient) CloseConn(id uint16) error {
 	return c.rpc.Call("CloseConn", &id, nil)
 }
 
 // CloseListener sends `CloseListener` command to the server.
-func (c *serverRPCCLient) CloseListener(id uint16) error {
+func (c *rpcCLient) CloseListener(id uint16) error {
 	return c.rpc.Call("CloseListener", &id, nil)
 }

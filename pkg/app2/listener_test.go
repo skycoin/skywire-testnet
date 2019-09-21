@@ -4,16 +4,18 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/skycoin/dmsg/cipher"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skywire/pkg/app2/network"
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestListener_Accept(t *testing.T) {
 	lisID := uint16(1)
 	localPK, _ := cipher.GenerateKeyPair()
-	local := routing.Addr{
+	local := network.Addr{
+		Net:    network.TypeDMSG,
 		PubKey: localPK,
 		Port:   routing.Port(100),
 	}
@@ -21,13 +23,14 @@ func TestListener_Accept(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		acceptConnID := uint16(1)
 		remotePK, _ := cipher.GenerateKeyPair()
-		acceptRemote := routing.Addr{
+		acceptRemote := network.Addr{
+			Net:    network.TypeDMSG,
 			PubKey: remotePK,
 			Port:   routing.Port(100),
 		}
 		var acceptErr error
 
-		rpc := &MockServerRPCClient{}
+		rpc := &MockRPCClient{}
 		rpc.On("Accept", acceptConnID).Return(acceptConnID, acceptRemote, acceptErr)
 
 		lis := &Listener{
@@ -50,10 +53,10 @@ func TestListener_Accept(t *testing.T) {
 
 	t.Run("accept error", func(t *testing.T) {
 		acceptConnID := uint16(0)
-		acceptRemote := routing.Addr{}
+		acceptRemote := network.Addr{}
 		acceptErr := errors.New("accept error")
 
-		rpc := &MockServerRPCClient{}
+		rpc := &MockRPCClient{}
 		rpc.On("Accept", lisID).Return(acceptConnID, acceptRemote, acceptErr)
 
 		lis := &Listener{
@@ -71,7 +74,8 @@ func TestListener_Accept(t *testing.T) {
 func TestListener_Close(t *testing.T) {
 	lisID := uint16(1)
 	localPK, _ := cipher.GenerateKeyPair()
-	local := routing.Addr{
+	local := network.Addr{
+		Net:    network.TypeDMSG,
 		PubKey: localPK,
 		Port:   routing.Port(100),
 	}
@@ -91,7 +95,7 @@ func TestListener_Close(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			rpc := &MockServerRPCClient{}
+			rpc := &MockRPCClient{}
 			rpc.On("CloseListener", lisID).Return(tc.closeErr)
 
 			lis := &Listener{

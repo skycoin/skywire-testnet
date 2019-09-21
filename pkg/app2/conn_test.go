@@ -35,7 +35,7 @@ func TestConn_Read(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			rpc := &MockServerRPCClient{}
+			rpc := &MockRPCClient{}
 			rpc.On("Read", connID, tc.readBuff).Return(tc.readN, tc.readBytes, tc.readErr)
 
 			conn := &Conn{
@@ -74,7 +74,7 @@ func TestConn_Write(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			rpc := &MockServerRPCClient{}
+			rpc := &MockRPCClient{}
 			rpc.On("Write", connID, tc.writeBuff).Return(tc.writeN, tc.writeErr)
 
 			conn := &Conn{
@@ -107,7 +107,7 @@ func TestConn_Close(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			rpc := &MockServerRPCClient{}
+			rpc := &MockRPCClient{}
 			rpc.On("CloseConn", connID).Return(tc.closeErr)
 
 			conn := &Conn{
