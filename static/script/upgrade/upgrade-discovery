@@ -24,6 +24,9 @@ git clean -f -d
 # pull the changes with redundancy
 git pull || git pull
 
+# compile the new code
+cd cmd && go install ./...
+
 # reconfigure the custom MANAGER_IP
 NMIP=`cat $DEFAULTS | grep MANAGER_IP | grep '=' | cut -d '=' -f 2`
 if [ "$MIP" != "$NMIP" ] ; then
