@@ -47,6 +47,14 @@ func ResolveNetworker(t Type) (Networker, error) {
 	return n, nil
 }
 
+// ClearNetworkers removes all the stored networkers.
+func ClearNetworkers() {
+	networkersMx.Lock()
+	defer networkersMx.Unlock()
+
+	networkers = make(map[Type]Networker)
+}
+
 // Networker defines basic network operations, such as Dial/Listen.
 type Networker interface {
 	Dial(addr Addr) (net.Conn, error)

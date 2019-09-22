@@ -53,7 +53,7 @@ func (r *RPCGateway) Dial(remote *network.Addr, connID *uint16) error {
 
 // Listen starts listening.
 func (r *RPCGateway) Listen(local *network.Addr, lisID *uint16) error {
-	lisID, err := r.lm.nextKey()
+	nextLisID, err := r.lm.nextKey()
 	if err != nil {
 		return err
 	}
@@ -63,13 +63,15 @@ func (r *RPCGateway) Listen(local *network.Addr, lisID *uint16) error {
 		return err
 	}
 
-	if err := r.lm.set(*lisID, l); err != nil {
+	if err := r.lm.set(*nextLisID, l); err != nil {
 		if err := l.Close(); err != nil {
 			r.log.WithError(err).Error("error closing listener")
 		}
 
 		return err
 	}
+
+	*lisID = *nextLisID
 
 	return nil
 }

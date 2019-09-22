@@ -26,7 +26,12 @@ func (n *DMSGNetworker) Dial(addr Addr) (net.Conn, error) {
 
 // DialContext dials remote `addr` via dmsg network with context.
 func (n *DMSGNetworker) DialContext(ctx context.Context, addr Addr) (net.Conn, error) {
-	return n.dmsgC.Dial(ctx, addr.PubKey, uint16(addr.Port))
+	tp, err := n.dmsgC.Dial(ctx, addr.PubKey, uint16(addr.Port))
+	if err != nil {
+		return nil, err
+	}
+
+	return &DMSGConn{tp: tp}, nil
 }
 
 // Listen starts listening on local `addr` in the dmsg network.

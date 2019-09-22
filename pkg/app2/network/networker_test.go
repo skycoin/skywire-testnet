@@ -5,15 +5,14 @@ import (
 	"net"
 	"testing"
 
-	"github.com/skycoin/skywire/pkg/routing"
-
 	"github.com/skycoin/dmsg/cipher"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 func TestAddNetworker(t *testing.T) {
-	clearNetworkers()
+	ClearNetworkers()
 
 	nType := TypeDMSG
 	var n Networker
@@ -26,7 +25,7 @@ func TestAddNetworker(t *testing.T) {
 }
 
 func TestResolveNetworker(t *testing.T) {
-	clearNetworkers()
+	ClearNetworkers()
 
 	nType := TypeDMSG
 	var n Networker
@@ -46,14 +45,14 @@ func TestDial(t *testing.T) {
 	addr := prepAddr()
 
 	t.Run("no such networker", func(t *testing.T) {
-		clearNetworkers()
+		ClearNetworkers()
 
 		_, err := Dial(addr)
 		require.Equal(t, err, ErrNoSuchNetworker)
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		clearNetworkers()
+		ClearNetworkers()
 
 		dialCtx := context.Background()
 		var (
@@ -77,14 +76,14 @@ func TestListen(t *testing.T) {
 	addr := prepAddr()
 
 	t.Run("no such networker", func(t *testing.T) {
-		clearNetworkers()
+		ClearNetworkers()
 
 		_, err := Listen(addr)
 		require.Equal(t, err, ErrNoSuchNetworker)
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		clearNetworkers()
+		ClearNetworkers()
 
 		listenCtx := context.Background()
 		var (
@@ -113,11 +112,4 @@ func prepAddr() Addr {
 		PubKey: addrPK,
 		Port:   addrPort,
 	}
-}
-
-func clearNetworkers() {
-	networkersMx.Lock()
-	defer networkersMx.Unlock()
-
-	networkers = make(map[Type]Networker)
 }
