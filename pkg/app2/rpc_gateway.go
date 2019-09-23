@@ -12,16 +12,16 @@ import (
 
 // RPCGateway is a RPC interface for the app server.
 type RPCGateway struct {
-	lm  *manager
-	cm  *manager
+	lm  *idManager
+	cm  *idManager
 	log *logging.Logger
 }
 
 // newRPCGateway constructs new server RPC interface.
 func newRPCGateway(log *logging.Logger) *RPCGateway {
 	return &RPCGateway{
-		lm:  newManager(),
-		cm:  newManager(),
+		lm:  newIDManager(), // contains listeners associated with their IDs
+		cm:  newIDManager(), // contains connections associated with their IDs
 		log: log,
 	}
 }
@@ -141,6 +141,12 @@ func (r *RPCGateway) Write(req *WriteReq, n *int) error {
 	return nil
 }
 
+// ReadReq contains arguments for `Read`.
+type ReadReq struct {
+	ConnID uint16
+	BufLen int
+}
+
 // ReadResp contains response parameters for `Read`.
 type ReadResp struct {
 	B []byte
@@ -148,16 +154,20 @@ type ReadResp struct {
 }
 
 // Read reads data from connection specified by `connID`.
-func (r *RPCGateway) Read(connID *uint16, resp *ReadResp) error {
-	conn, err := r.getConn(*connID)
+func (r *RPCGateway) Read(req *ReadReq, resp *ReadResp) error {
+	conn, err := r.getConn(req.ConnID)
 	if err != nil {
 		return err
 	}
 
-	resp.N, err = conn.Read(resp.B)
+	buf := make([]byte, req.BufLen)
+	resp.N, err = conn.Read(buf)
 	if err != nil {
 		return err
 	}
+
+	resp.B = make([]byte, resp.N)
+	copy(resp.B, buf[:resp.N])
 
 	return nil
 }

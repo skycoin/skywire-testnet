@@ -12,7 +12,7 @@ import (
 type RPCClient interface {
 	Dial(remote network.Addr) (uint16, error)
 	Listen(local network.Addr) (uint16, error)
-	Accept(lisID uint16) (uint16, network.Addr, error)
+	Accept(lisID uint16) (connID uint16, remote network.Addr, err error)
 	Write(connID uint16, b []byte) (int, error)
 	Read(connID uint16, b []byte) (int, []byte, error)
 	CloseConn(id uint16) error
@@ -52,7 +52,7 @@ func (c *rpcCLient) Listen(local network.Addr) (uint16, error) {
 }
 
 // Accept sends `Accept` command to the server.
-func (c *rpcCLient) Accept(lisID uint16) (uint16, network.Addr, error) {
+func (c *rpcCLient) Accept(lisID uint16) (connID uint16, remote network.Addr, err error) {
 	var acceptResp AcceptResp
 	if err := c.rpc.Call("Accept", &lisID, &acceptResp); err != nil {
 		return 0, network.Addr{}, err
@@ -78,10 +78,17 @@ func (c *rpcCLient) Write(connID uint16, b []byte) (int, error) {
 
 // Read sends `Read` command to the server.
 func (c *rpcCLient) Read(connID uint16, b []byte) (int, []byte, error) {
+	req := ReadReq{
+		ConnID: connID,
+		BufLen: len(b),
+	}
+
 	var resp ReadResp
-	if err := c.rpc.Call("Read", &connID, &resp); err != nil {
+	if err := c.rpc.Call("Read", &req, &resp); err != nil {
 		return 0, nil, err
 	}
+
+	copy(b[:resp.N], resp.B[:resp.N])
 
 	return resp.N, resp.B, nil
 }

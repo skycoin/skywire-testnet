@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestManager_NextID(t *testing.T) {
+func TestIDManager_NextID(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		nextKey, err := m.nextKey()
 		require.NoError(t, err)
@@ -29,7 +29,7 @@ func TestManager_NextID(t *testing.T) {
 	})
 
 	t.Run("call on full manager", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 		for i := uint16(0); i < math.MaxUint16; i++ {
 			m.values[i] = nil
 		}
@@ -40,7 +40,7 @@ func TestManager_NextID(t *testing.T) {
 	})
 
 	t.Run("concurrent run", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		valsToReserve := 10000
 
@@ -66,9 +66,9 @@ func TestManager_NextID(t *testing.T) {
 	})
 }
 
-func TestManager_Pop(t *testing.T) {
+func TestIDManager_Pop(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		v := "value"
 
@@ -84,14 +84,14 @@ func TestManager_Pop(t *testing.T) {
 	})
 
 	t.Run("no value", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		_, err := m.pop(1)
 		require.Error(t, err)
 	})
 
 	t.Run("value not set", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		m.values[1] = nil
 
@@ -100,7 +100,7 @@ func TestManager_Pop(t *testing.T) {
 	})
 
 	t.Run("concurrent run", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		m.values[1] = "value"
 
@@ -128,9 +128,9 @@ func TestManager_Pop(t *testing.T) {
 	})
 }
 
-func TestManager_Set(t *testing.T) {
+func TestIDManager_Set(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		nextKey, err := m.nextKey()
 		require.NoError(t, err)
@@ -145,7 +145,7 @@ func TestManager_Set(t *testing.T) {
 	})
 
 	t.Run("key is not reserved", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		err := m.set(1, "value")
 		require.Error(t, err)
@@ -155,7 +155,7 @@ func TestManager_Set(t *testing.T) {
 	})
 
 	t.Run("value already exists", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		v := "value"
 
@@ -169,7 +169,7 @@ func TestManager_Set(t *testing.T) {
 	})
 
 	t.Run("concurrent run", func(t *testing.T) {
-		m := newManager()
+		m := newIDManager()
 
 		concurrency := 1000
 
@@ -208,9 +208,9 @@ func TestManager_Set(t *testing.T) {
 	})
 }
 
-func TestManager_Get(t *testing.T) {
-	prepManagerWithVal := func(v interface{}) (*manager, uint16) {
-		m := newManager()
+func TestIDManager_Get(t *testing.T) {
+	prepManagerWithVal := func(v interface{}) (*idManager, uint16) {
+		m := newIDManager()
 
 		nextKey, err := m.nextKey()
 		require.NoError(t, err)
