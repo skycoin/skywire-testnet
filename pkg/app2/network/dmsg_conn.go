@@ -13,6 +13,10 @@ type DMSGConn struct {
 	tp *dmsg.Transport
 }
 
+func NewDMSGConn(tp *dmsg.Transport) *DMSGConn {
+	return &DMSGConn{tp: tp}
+}
+
 func (c *DMSGConn) Read(b []byte) (n int, err error) {
 	return c.tp.Read(b)
 }

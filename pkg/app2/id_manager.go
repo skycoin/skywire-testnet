@@ -97,5 +97,8 @@ func (m *idManager) get(key uint16) (interface{}, bool) {
 	m.mx.RLock()
 	lis, ok := m.values[key]
 	m.mx.RUnlock()
+	if lis == nil {
+		return nil, false
+	}
 	return lis, ok
 }

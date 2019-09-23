@@ -31,7 +31,7 @@ func (n *DMSGNetworker) DialContext(ctx context.Context, addr Addr) (net.Conn, e
 		return nil, err
 	}
 
-	return &DMSGConn{tp: tp}, nil
+	return NewDMSGConn(tp), nil
 }
 
 // Listen starts listening on local `addr` in the dmsg network.
