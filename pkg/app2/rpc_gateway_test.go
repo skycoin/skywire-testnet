@@ -1,26 +1,6 @@
 package app2
 
-import (
-	"context"
-	"math"
-	"net"
-	"strings"
-	"testing"
-
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
-
-	"github.com/skycoin/dmsg"
-
-	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/skywire/pkg/routing"
-
-	"github.com/skycoin/skywire/pkg/app2/network"
-
-	"github.com/skycoin/skycoin/src/util/logging"
-)
-
-func TestRPCGateway_Dial(t *testing.T) {
+/*func TestRPCGateway_Dial(t *testing.T) {
 	l := logging.MustGetLogger("rpc_gateway")
 	nType := network.TypeDMSG
 
@@ -542,3 +522,4 @@ func addListener(t *testing.T, rpc *RPCGateway, lis net.Listener) uint16 {
 
 	return *lisID
 }
+*/

@@ -11,21 +11,22 @@ func TestIDManager_NextID(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
 		m := newIDManager()
 
-		nextKey, err := m.nextKey()
+		// TODO: use free
+		nextID, _, err := m.reserveNextID()
 		require.NoError(t, err)
-		v, ok := m.values[*nextKey]
+		v, ok := m.values[*nextID]
 		require.True(t, ok)
 		require.Nil(t, v)
-		require.Equal(t, *nextKey, uint16(1))
-		require.Equal(t, *nextKey, m.lstKey)
+		require.Equal(t, *nextID, uint16(1))
+		require.Equal(t, *nextID, m.lstID)
 
-		nextKey, err = m.nextKey()
+		nextID, _, err = m.reserveNextID()
 		require.NoError(t, err)
-		v, ok = m.values[*nextKey]
+		v, ok = m.values[*nextID]
 		require.True(t, ok)
 		require.Nil(t, v)
-		require.Equal(t, *nextKey, uint16(2))
-		require.Equal(t, *nextKey, m.lstKey)
+		require.Equal(t, *nextID, uint16(2))
+		require.Equal(t, *nextID, m.lstID)
 	})
 
 	t.Run("call on full manager", func(t *testing.T) {
@@ -35,7 +36,7 @@ func TestIDManager_NextID(t *testing.T) {
 		}
 		m.values[math.MaxUint16] = nil
 
-		_, err := m.nextKey()
+		_, _, err := m.reserveNextID()
 		require.Error(t, err)
 	})
 
@@ -47,7 +48,7 @@ func TestIDManager_NextID(t *testing.T) {
 		errs := make(chan error)
 		for i := 0; i < valsToReserve; i++ {
 			go func() {
-				_, err := m.nextKey()
+				_, _, err := m.reserveNextID()
 				errs <- err
 			}()
 		}
@@ -57,7 +58,7 @@ func TestIDManager_NextID(t *testing.T) {
 		}
 		close(errs)
 
-		require.Equal(t, m.lstKey, uint16(valsToReserve))
+		require.Equal(t, m.lstID, uint16(valsToReserve))
 		for i := uint16(1); i < uint16(valsToReserve); i++ {
 			v, ok := m.values[i]
 			require.True(t, ok)
@@ -132,7 +133,7 @@ func TestIDManager_Set(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
 		m := newIDManager()
 
-		nextKey, err := m.nextKey()
+		nextKey, _, err := m.reserveNextID()
 		require.NoError(t, err)
 
 		v := "value"
@@ -173,7 +174,7 @@ func TestIDManager_Set(t *testing.T) {
 
 		concurrency := 1000
 
-		nextKeyPtr, err := m.nextKey()
+		nextKeyPtr, _, err := m.reserveNextID()
 		require.NoError(t, err)
 
 		nextKey := *nextKeyPtr
@@ -212,7 +213,7 @@ func TestIDManager_Get(t *testing.T) {
 	prepManagerWithVal := func(v interface{}) (*idManager, uint16) {
 		m := newIDManager()
 
-		nextKey, err := m.nextKey()
+		nextKey, _, err := m.reserveNextID()
 		require.NoError(t, err)
 
 		err = m.set(*nextKey, v)

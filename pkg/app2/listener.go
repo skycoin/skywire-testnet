@@ -50,7 +50,9 @@ func (l *Listener) Accept() (net.Conn, error) {
 func (l *Listener) Close() error {
 	defer func() {
 		l.freePort()
-		l.freeLis()
+		if l.freeLis != nil {
+			l.freeLis()
+		}
 
 		var conns []net.Conn
 		l.cm.doRange(func(_ uint16, v interface{}) bool {

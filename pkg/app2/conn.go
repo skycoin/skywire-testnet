@@ -34,7 +34,11 @@ func (c *Conn) Write(b []byte) (int, error) {
 }
 
 func (c *Conn) Close() error {
-	defer c.freeConn()
+	defer func() {
+		if c.freeConn != nil {
+			c.freeConn()
+		}
+	}()
 
 	return c.rpc.CloseConn(c.id)
 }
