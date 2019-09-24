@@ -2,6 +2,7 @@ package app2
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,17 +12,18 @@ func TestIDManager_NextID(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
 		m := newIDManager()
 
-		// TODO: use free
-		nextID, _, err := m.reserveNextID()
+		nextID, free, err := m.reserveNextID()
 		require.NoError(t, err)
+		require.NotNil(t, free)
 		v, ok := m.values[*nextID]
 		require.True(t, ok)
 		require.Nil(t, v)
 		require.Equal(t, *nextID, uint16(1))
 		require.Equal(t, *nextID, m.lstID)
 
-		nextID, _, err = m.reserveNextID()
+		nextID, free, err = m.reserveNextID()
 		require.NoError(t, err)
+		require.NotNil(t, free)
 		v, ok = m.values[*nextID]
 		require.True(t, ok)
 		require.Nil(t, v)
@@ -89,6 +91,7 @@ func TestIDManager_Pop(t *testing.T) {
 
 		_, err := m.pop(1)
 		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), "no value"))
 	})
 
 	t.Run("value not set", func(t *testing.T) {
@@ -98,6 +101,7 @@ func TestIDManager_Pop(t *testing.T) {
 
 		_, err := m.pop(1)
 		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), "is not set"))
 	})
 
 	t.Run("concurrent run", func(t *testing.T) {
@@ -133,23 +137,24 @@ func TestIDManager_Set(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
 		m := newIDManager()
 
-		nextKey, _, err := m.reserveNextID()
+		nextID, _, err := m.reserveNextID()
 		require.NoError(t, err)
 
 		v := "value"
 
-		err = m.set(*nextKey, v)
+		err = m.set(*nextID, v)
 		require.NoError(t, err)
-		gotV, ok := m.values[*nextKey]
+		gotV, ok := m.values[*nextID]
 		require.True(t, ok)
 		require.Equal(t, gotV, v)
 	})
 
-	t.Run("key is not reserved", func(t *testing.T) {
+	t.Run("id is not reserved", func(t *testing.T) {
 		m := newIDManager()
 
 		err := m.set(1, "value")
 		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), "not reserved"))
 
 		_, ok := m.values[1]
 		require.False(t, ok)
@@ -174,16 +179,16 @@ func TestIDManager_Set(t *testing.T) {
 
 		concurrency := 1000
 
-		nextKeyPtr, _, err := m.reserveNextID()
+		nextIDPtr, _, err := m.reserveNextID()
 		require.NoError(t, err)
 
-		nextKey := *nextKeyPtr
+		nextID := *nextIDPtr
 
 		errs := make(chan error)
 		setV := make(chan int)
 		for i := 0; i < concurrency; i++ {
 			go func(v int) {
-				err := m.set(nextKey, v)
+				err := m.set(nextID, v)
 				errs <- err
 				if err == nil {
 					setV <- v
@@ -203,7 +208,7 @@ func TestIDManager_Set(t *testing.T) {
 		v := <-setV
 		close(setV)
 
-		gotV, ok := m.values[nextKey]
+		gotV, ok := m.values[nextID]
 		require.True(t, ok)
 		require.Equal(t, gotV, v)
 	})
@@ -213,32 +218,37 @@ func TestIDManager_Get(t *testing.T) {
 	prepManagerWithVal := func(v interface{}) (*idManager, uint16) {
 		m := newIDManager()
 
-		nextKey, _, err := m.reserveNextID()
+		nextID, _, err := m.reserveNextID()
 		require.NoError(t, err)
 
-		err = m.set(*nextKey, v)
+		err = m.set(*nextID, v)
 		require.NoError(t, err)
 
-		return m, *nextKey
+		return m, *nextID
 	}
 
 	t.Run("simple call", func(t *testing.T) {
 		v := "value"
 
-		m, key := prepManagerWithVal(v)
+		m, id := prepManagerWithVal(v)
 
-		gotV, ok := m.get(key)
+		gotV, ok := m.get(id)
 		require.True(t, ok)
 		require.Equal(t, gotV, v)
 
 		_, ok = m.get(100)
 		require.False(t, ok)
+
+		m.values[2] = nil
+		gotV, ok = m.get(2)
+		require.False(t, ok)
+		require.Nil(t, gotV)
 	})
 
 	t.Run("concurrent run", func(t *testing.T) {
 		v := "value"
 
-		m, key := prepManagerWithVal(v)
+		m, id := prepManagerWithVal(v)
 
 		concurrency := 1000
 		type getRes struct {
@@ -248,7 +258,7 @@ func TestIDManager_Get(t *testing.T) {
 		res := make(chan getRes)
 		for i := 0; i < concurrency; i++ {
 			go func() {
-				val, ok := m.get(key)
+				val, ok := m.get(id)
 				res <- getRes{
 					v:  val,
 					ok: ok,

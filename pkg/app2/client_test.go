@@ -3,10 +3,9 @@ package app2
 import (
 	"testing"
 
-	"github.com/skycoin/skycoin/src/util/logging"
-
 	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/app2/network"
