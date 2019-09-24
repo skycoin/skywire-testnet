@@ -31,7 +31,6 @@ func (l *Listener) Accept() (net.Conn, error) {
 	return conn, nil
 }
 
-// TODO: should unblock all called `Accept`s with errors
 func (l *Listener) Close() error {
 	defer l.freePort()
 

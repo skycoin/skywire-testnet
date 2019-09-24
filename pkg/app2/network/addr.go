@@ -1,11 +1,18 @@
 package network
 
 import (
+	"errors"
 	"fmt"
+	"net"
 
+	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 
 	"github.com/skycoin/skywire/pkg/routing"
+)
+
+var (
+	errUnknownAddrType = errors.New("addr type is unknown")
 )
 
 // Addr implements net.Addr for network addresses.
@@ -26,4 +33,19 @@ func (a Addr) String() string {
 		return fmt.Sprintf("%s:~", a.PubKey)
 	}
 	return fmt.Sprintf("%s:%d", a.PubKey, a.Port)
+}
+
+// wrapAddrs asserts type of the passed `net.Addr` and converts it
+// to `Addr` if possible.
+func wrapAddr(addr net.Addr) (Addr, error) {
+	switch a := addr.(type) {
+	case dmsg.Addr:
+		return Addr{
+			Net:    TypeDMSG,
+			PubKey: a.PK,
+			Port:   routing.Port(a.Port),
+		}, nil
+	default:
+		return Addr{}, errUnknownAddrType
+	}
 }
