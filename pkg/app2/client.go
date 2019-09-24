@@ -1,7 +1,6 @@
 package app2
 
 import (
-	"context"
 	"net"
 
 	"github.com/skycoin/dmsg/cipher"
@@ -34,14 +33,8 @@ func NewClient(localPK cipher.PubKey, pid ProcID, rpc RPCClient) *Client {
 
 // Dial dials the remote node using `remote`.
 func (c *Client) Dial(remote network.Addr) (net.Conn, error) {
-	localPort, free, err := c.porter.ReserveEphemeral(context.TODO(), nil)
+	connID, assignedPort, err := c.rpc.Dial(remote)
 	if err != nil {
-		return nil, err
-	}
-
-	connID, err := c.rpc.Dial(remote)
-	if err != nil {
-		free()
 		return nil, err
 	}
 
@@ -51,10 +44,9 @@ func (c *Client) Dial(remote network.Addr) (net.Conn, error) {
 		local: network.Addr{
 			Net:    remote.Net,
 			PubKey: c.pk,
-			Port:   routing.Port(localPort),
+			Port:   assignedPort,
 		},
-		remote:        remote,
-		freeLocalPort: free,
+		remote: remote,
 	}
 
 	return conn, nil

@@ -35,9 +35,9 @@ func (a Addr) String() string {
 	return fmt.Sprintf("%s:%d", a.PubKey, a.Port)
 }
 
-// wrapAddrs asserts type of the passed `net.Addr` and converts it
+// WrapAddr asserts type of the passed `net.Addr` and converts it
 // to `Addr` if possible.
-func wrapAddr(addr net.Addr) (Addr, error) {
+func WrapAddr(addr net.Addr) (Addr, error) {
 	switch a := addr.(type) {
 	case dmsg.Addr:
 		return Addr{

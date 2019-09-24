@@ -3,6 +3,8 @@ package app2
 import (
 	"net/rpc"
 
+	"github.com/skycoin/skywire/pkg/routing"
+
 	"github.com/skycoin/skywire/pkg/app2/network"
 )
 
@@ -10,7 +12,7 @@ import (
 
 // RPCClient describes RPC interface to communicate with the server.
 type RPCClient interface {
-	Dial(remote network.Addr) (uint16, error)
+	Dial(remote network.Addr) (connID uint16, assignedPort routing.Port, err error)
 	Listen(local network.Addr) (uint16, error)
 	Accept(lisID uint16) (connID uint16, remote network.Addr, err error)
 	Write(connID uint16, b []byte) (int, error)
@@ -32,13 +34,13 @@ func NewRPCClient(rpc *rpc.Client) RPCClient {
 }
 
 // Dial sends `Dial` command to the server.
-func (c *rpcCLient) Dial(remote network.Addr) (uint16, error) {
-	var connID uint16
-	if err := c.rpc.Call("Dial", &remote, &connID); err != nil {
-		return 0, err
+func (c *rpcCLient) Dial(remote network.Addr) (connID uint16, assignedPort routing.Port, err error) {
+	var resp DialResp
+	if err := c.rpc.Call("Dial", &remote, &resp); err != nil {
+		return 0, 0, err
 	}
 
-	return connID, nil
+	return resp.ConnID, resp.AssignedPort, nil
 }
 
 // Listen sends `Listen` command to the server.

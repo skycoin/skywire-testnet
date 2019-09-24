@@ -10,11 +10,10 @@ import (
 // Conn is a connection from app client to the server.
 // Implements `net.Conn`.
 type Conn struct {
-	id            uint16
-	rpc           RPCClient
-	local         network.Addr
-	remote        network.Addr
-	freeLocalPort func()
+	id     uint16
+	rpc    RPCClient
+	local  network.Addr
+	remote network.Addr
 }
 
 func (c *Conn) Read(b []byte) (int, error) {
@@ -34,12 +33,6 @@ func (c *Conn) Write(b []byte) (int, error) {
 }
 
 func (c *Conn) Close() error {
-	defer func() {
-		if c.freeLocalPort != nil {
-			c.freeLocalPort()
-		}
-	}()
-
 	return c.rpc.CloseConn(c.id)
 }
 

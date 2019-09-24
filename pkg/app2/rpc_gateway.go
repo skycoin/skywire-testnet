@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/skycoin/skywire/pkg/routing"
+
 	"github.com/pkg/errors"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -26,15 +28,28 @@ func newRPCGateway(log *logging.Logger) *RPCGateway {
 	}
 }
 
+// DialResp contains response parameters for `Dial`.
+type DialResp struct {
+	ConnID       uint16
+	AssignedPort routing.Port
+}
+
 // Dial dials to the remote.
-func (r *RPCGateway) Dial(remote *network.Addr, connID *uint16) error {
-	reservedConnID, err := r.cm.nextKey()
+func (r *RPCGateway) Dial(remote *network.Addr, resp *DialResp) error {
+	reservedConnID, free, err := r.cm.reserveNextID()
 	if err != nil {
 		return err
 	}
 
 	conn, err := network.Dial(*remote)
 	if err != nil {
+		free()
+		return err
+	}
+
+	localAddr, err := network.WrapAddr(conn.LocalAddr())
+	if err != nil {
+		free()
 		return err
 	}
 
@@ -43,23 +58,26 @@ func (r *RPCGateway) Dial(remote *network.Addr, connID *uint16) error {
 			r.log.WithError(err).Error("error closing conn")
 		}
 
+		free()
 		return err
 	}
 
-	*connID = *reservedConnID
+	resp.ConnID = *reservedConnID
+	resp.AssignedPort = localAddr.Port
 
 	return nil
 }
 
 // Listen starts listening.
 func (r *RPCGateway) Listen(local *network.Addr, lisID *uint16) error {
-	nextLisID, err := r.lm.nextKey()
+	nextLisID, free, err := r.lm.reserveNextID()
 	if err != nil {
 		return err
 	}
 
 	l, err := network.Listen(*local)
 	if err != nil {
+		free()
 		return err
 	}
 
@@ -68,6 +86,7 @@ func (r *RPCGateway) Listen(local *network.Addr, lisID *uint16) error {
 			r.log.WithError(err).Error("error closing listener")
 		}
 
+		free()
 		return err
 	}
 
@@ -89,13 +108,14 @@ func (r *RPCGateway) Accept(lisID *uint16, resp *AcceptResp) error {
 		return err
 	}
 
-	connID, err := r.cm.nextKey()
+	connID, free, err := r.cm.reserveNextID()
 	if err != nil {
 		return err
 	}
 
 	conn, err := lis.Accept()
 	if err != nil {
+		free()
 		return err
 	}
 
@@ -104,11 +124,13 @@ func (r *RPCGateway) Accept(lisID *uint16, resp *AcceptResp) error {
 			r.log.WithError(err).Error("error closing DMSG transport")
 		}
 
+		free()
 		return err
 	}
 
 	remote, ok := conn.RemoteAddr().(network.Addr)
 	if !ok {
+		free()
 		return errors.New("wrong type for remote addr")
 	}
 
