@@ -4,26 +4,25 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/skycoin/skywire/pkg/routing"
-
 	"github.com/pkg/errors"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app2/network"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 // RPCGateway is a RPC interface for the app server.
 type RPCGateway struct {
-	lm  *idManager
-	cm  *idManager
+	lm  *idManager // contains listeners associated with their IDs
+	cm  *idManager // contains connections associated with their IDs
 	log *logging.Logger
 }
 
 // newRPCGateway constructs new server RPC interface.
 func newRPCGateway(log *logging.Logger) *RPCGateway {
 	return &RPCGateway{
-		lm:  newIDManager(), // contains listeners associated with their IDs
-		cm:  newIDManager(), // contains connections associated with their IDs
+		lm:  newIDManager(),
+		cm:  newIDManager(),
 		log: log,
 	}
 }
@@ -220,7 +219,7 @@ func (r *RPCGateway) popListener(lisID uint16) (net.Listener, error) {
 		return nil, errors.Wrap(err, "no listener")
 	}
 
-	return r.assertListener(lisIfc)
+	return assertListener(lisIfc)
 }
 
 // popConn gets conn from the manager by `connID` and removes it.
@@ -231,7 +230,7 @@ func (r *RPCGateway) popConn(connID uint16) (net.Conn, error) {
 		return nil, errors.Wrap(err, "no conn")
 	}
 
-	return r.assertConn(connIfc)
+	return assertConn(connIfc)
 }
 
 // getListener gets listener from the manager by `lisID`. Handles type assertion.
@@ -241,7 +240,7 @@ func (r *RPCGateway) getListener(lisID uint16) (net.Listener, error) {
 		return nil, fmt.Errorf("no listener with key %d", lisID)
 	}
 
-	return r.assertListener(lisIfc)
+	return assertListener(lisIfc)
 }
 
 // getConn gets conn from the manager by `connID`. Handles type assertion.
@@ -251,25 +250,5 @@ func (r *RPCGateway) getConn(connID uint16) (net.Conn, error) {
 		return nil, fmt.Errorf("no conn with key %d", connID)
 	}
 
-	return r.assertConn(connIfc)
-}
-
-// assertListener asserts that `v` is of type `net.Listener`.
-func (r *RPCGateway) assertListener(v interface{}) (net.Listener, error) {
-	lis, ok := v.(net.Listener)
-	if !ok {
-		return nil, errors.New("wrong type of value stored for listener")
-	}
-
-	return lis, nil
-}
-
-// assertConn asserts that `v` is of type `net.Conn`.
-func (r *RPCGateway) assertConn(v interface{}) (net.Conn, error) {
-	conn, ok := v.(net.Conn)
-	if !ok {
-		return nil, errors.New("wrong type of value stored for conn")
-	}
-
-	return conn, nil
+	return assertConn(connIfc)
 }

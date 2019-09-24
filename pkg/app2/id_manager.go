@@ -9,6 +9,7 @@ import (
 
 var (
 	errNoMoreAvailableValues = errors.New("no more available values")
+	errValueAlreadyExists    = errors.New("value already exists")
 )
 
 // idManager manages allows to store and retrieve arbitrary values
@@ -71,6 +72,21 @@ func (m *idManager) pop(id uint16) (interface{}, error) {
 	return v, nil
 }
 
+// add adds the new value `v` associated with `id`.
+func (m *idManager) add(id uint16, v interface{}) (free func(), err error) {
+	m.mx.Lock()
+
+	if _, ok := m.values[id]; ok {
+		m.mx.Unlock()
+		return nil, errValueAlreadyExists
+	}
+
+	m.values[id] = v
+
+	m.mx.Unlock()
+	return m.constructFreeFunc(id), nil
+}
+
 // set sets value `v` associated with `id`.
 func (m *idManager) set(id uint16, v interface{}) error {
 	m.mx.Lock()
@@ -82,7 +98,7 @@ func (m *idManager) set(id uint16, v interface{}) error {
 	} else {
 		if l != nil {
 			m.mx.Unlock()
-			return errors.New("value already exists")
+			return errValueAlreadyExists
 		}
 	}
 
@@ -101,6 +117,18 @@ func (m *idManager) get(id uint16) (interface{}, bool) {
 		return nil, false
 	}
 	return lis, ok
+}
+
+// doRange performs range over the manager contents. Loop stops when
+// `next` returns false.
+func (m *idManager) doRange(next func(id uint16, v interface{}) bool) {
+	m.mx.RLock()
+	for id, v := range m.values {
+		if !next(id, v) {
+			break
+		}
+	}
+	m.mx.RUnlock()
 }
 
 // constructFreeFunc constructs new func responsible for clearing

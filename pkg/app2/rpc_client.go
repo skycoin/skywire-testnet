@@ -3,9 +3,8 @@ package app2
 import (
 	"net/rpc"
 
-	"github.com/skycoin/skywire/pkg/routing"
-
 	"github.com/skycoin/skywire/pkg/app2/network"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 //go:generate mockery -name RPCClient -case underscore -inpkg
