@@ -46,7 +46,7 @@ func (r *RPCGateway) Dial(remote *network.Addr, resp *DialResp) error {
 		return err
 	}
 
-	localAddr, err := network.WrapAddr(conn.LocalAddr())
+	localAddr, err := network.ConvertAddr(conn.LocalAddr())
 	if err != nil {
 		free()
 		return err
@@ -127,10 +127,10 @@ func (r *RPCGateway) Accept(lisID *uint16, resp *AcceptResp) error {
 		return err
 	}
 
-	remote, ok := conn.RemoteAddr().(network.Addr)
-	if !ok {
+	remote, err := network.ConvertAddr(conn.RemoteAddr())
+	if err != nil {
 		free()
-		return errors.New("wrong type for remote addr")
+		return err
 	}
 
 	resp.Remote = remote

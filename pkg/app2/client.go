@@ -38,7 +38,7 @@ func NewClient(log *logging.Logger, localPK cipher.PubKey, pid ProcID, rpc RPCCl
 
 // Dial dials the remote node using `remote`.
 func (c *Client) Dial(remote network.Addr) (net.Conn, error) {
-	connID, assignedPort, err := c.rpc.Dial(remote)
+	connID, localPort, err := c.rpc.Dial(remote)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *Client) Dial(remote network.Addr) (net.Conn, error) {
 		local: network.Addr{
 			Net:    remote.Net,
 			PubKey: c.pk,
-			Port:   assignedPort,
+			Port:   localPort,
 		},
 		remote: remote,
 	}

@@ -27,11 +27,11 @@ func TestClient_Dial(t *testing.T) {
 
 	t.Run("ok", func(t *testing.T) {
 		dialConnID := uint16(1)
-		dialAssignedPort := routing.Port(1)
+		dialLocalPort := routing.Port(1)
 		var dialErr error
 
 		rpc := &MockRPCClient{}
-		rpc.On("Dial", remote).Return(dialConnID, dialAssignedPort, dialErr)
+		rpc.On("Dial", remote).Return(dialConnID, dialLocalPort, dialErr)
 
 		cl := NewClient(l, localPK, pid, rpc)
 
@@ -41,7 +41,7 @@ func TestClient_Dial(t *testing.T) {
 			local: network.Addr{
 				Net:    remote.Net,
 				PubKey: localPK,
-				Port:   dialAssignedPort,
+				Port:   dialLocalPort,
 			},
 			remote: remote,
 		}
@@ -61,13 +61,13 @@ func TestClient_Dial(t *testing.T) {
 
 	t.Run("conn already exists", func(t *testing.T) {
 		dialConnID := uint16(1)
-		dialAssignedPort := routing.Port(1)
+		dialLocalPort := routing.Port(1)
 		var dialErr error
 
 		var closeErr error
 
 		rpc := &MockRPCClient{}
-		rpc.On("Dial", remote).Return(dialConnID, dialAssignedPort, dialErr)
+		rpc.On("Dial", remote).Return(dialConnID, dialLocalPort, dialErr)
 		rpc.On("CloseConn", dialConnID).Return(closeErr)
 
 		cl := NewClient(l, localPK, pid, rpc)
@@ -82,13 +82,13 @@ func TestClient_Dial(t *testing.T) {
 
 	t.Run("conn already exists, conn closed with error", func(t *testing.T) {
 		dialConnID := uint16(1)
-		dialAssignedPort := routing.Port(1)
+		dialLocalPort := routing.Port(1)
 		var dialErr error
 
 		closeErr := errors.New("close error")
 
 		rpc := &MockRPCClient{}
-		rpc.On("Dial", remote).Return(dialConnID, dialAssignedPort, dialErr)
+		rpc.On("Dial", remote).Return(dialConnID, dialLocalPort, dialErr)
 		rpc.On("CloseConn", dialConnID).Return(closeErr)
 
 		cl := NewClient(l, localPK, pid, rpc)

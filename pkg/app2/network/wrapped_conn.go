@@ -14,12 +14,12 @@ type WrappedConn struct {
 
 // WrapConn wraps passed `conn`. Handles `net.Addr` type assertion.
 func WrapConn(conn net.Conn) (net.Conn, error) {
-	l, err := WrapAddr(conn.LocalAddr())
+	l, err := ConvertAddr(conn.LocalAddr())
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := WrapAddr(conn.RemoteAddr())
+	r, err := ConvertAddr(conn.RemoteAddr())
 	if err != nil {
 		return nil, err
 	}
