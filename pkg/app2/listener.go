@@ -11,13 +11,12 @@ import (
 // Listener is a listener for app server connections.
 // Implements `net.Listener`.
 type Listener struct {
-	log      *logging.Logger
-	id       uint16
-	rpc      RPCClient
-	addr     network.Addr
-	cm       *idManager // contains conns associated with their IDs
-	freePort func()
-	freeLis  func()
+	log     *logging.Logger
+	id      uint16
+	rpc     RPCClient
+	addr    network.Addr
+	cm      *idManager // contains conns associated with their IDs
+	freeLis func()
 }
 
 func (l *Listener) Accept() (net.Conn, error) {
@@ -49,7 +48,6 @@ func (l *Listener) Accept() (net.Conn, error) {
 
 func (l *Listener) Close() error {
 	defer func() {
-		l.freePort()
 		if l.freeLis != nil {
 			l.freeLis()
 		}

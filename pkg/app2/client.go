@@ -4,7 +4,6 @@ import (
 	"net"
 
 	"github.com/skycoin/dmsg/cipher"
-	"github.com/skycoin/dmsg/netutil"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app2/network"
@@ -13,13 +12,12 @@ import (
 
 // Client is used by skywire apps.
 type Client struct {
-	log    *logging.Logger
-	pk     cipher.PubKey
-	pid    ProcID
-	rpc    RPCClient
-	lm     *idManager // contains listeners associated with their IDs
-	cm     *idManager // contains connections associated with their IDs
-	porter *netutil.Porter
+	log *logging.Logger
+	pk  cipher.PubKey
+	pid ProcID
+	rpc RPCClient
+	lm  *idManager // contains listeners associated with their IDs
+	cm  *idManager // contains connections associated with their IDs
 }
 
 // NewClient creates a new `Client`. The `Client` needs to be provided with:
@@ -29,13 +27,12 @@ type Client struct {
 // - rpc: RPC client to communicate with the server.
 func NewClient(log *logging.Logger, localPK cipher.PubKey, pid ProcID, rpc RPCClient) *Client {
 	return &Client{
-		log:    log,
-		pk:     localPK,
-		pid:    pid,
-		rpc:    rpc,
-		lm:     newIDManager(),
-		cm:     newIDManager(),
-		porter: netutil.NewPorter(netutil.PorterMinEphemeral),
+		log: log,
+		pk:  localPK,
+		pid: pid,
+		rpc: rpc,
+		lm:  newIDManager(),
+		cm:  newIDManager(),
 	}
 }
 
@@ -73,11 +70,6 @@ func (c *Client) Dial(remote network.Addr) (net.Conn, error) {
 
 // Listen listens on the specified `port` for the incoming connections.
 func (c *Client) Listen(n network.Type, port routing.Port) (net.Listener, error) {
-	ok, freePort := c.porter.Reserve(uint16(port), nil)
-	if !ok {
-		return nil, ErrPortAlreadyBound
-	}
-
 	local := network.Addr{
 		Net:    n,
 		PubKey: c.pk,
@@ -86,17 +78,15 @@ func (c *Client) Listen(n network.Type, port routing.Port) (net.Listener, error)
 
 	lisID, err := c.rpc.Listen(local)
 	if err != nil {
-		freePort()
 		return nil, err
 	}
 
 	listener := &Listener{
-		log:      c.log,
-		id:       lisID,
-		rpc:      c.rpc,
-		addr:     local,
-		cm:       newIDManager(),
-		freePort: freePort,
+		log:  c.log,
+		id:   lisID,
+		rpc:  c.rpc,
+		addr: local,
+		cm:   newIDManager(),
 	}
 
 	freeLis, err := c.lm.add(lisID, listener)
@@ -105,7 +95,6 @@ func (c *Client) Listen(n network.Type, port routing.Port) (net.Listener, error)
 			c.log.WithError(err).Error("error closing listener")
 		}
 
-		freePort()
 		return nil, err
 	}
 
