@@ -57,6 +57,14 @@ func TestClient_Dial(t *testing.T) {
 		require.Equal(t, wantConn.local, appConn.local)
 		require.Equal(t, wantConn.remote, appConn.remote)
 		require.NotNil(t, appConn.freeConn)
+
+		cmConnIfc, ok := cl.cm.values[appConn.id]
+		require.True(t, ok)
+		require.NotNil(t, cmConnIfc)
+
+		cmConn, ok := cmConnIfc.(*Conn)
+		require.True(t, ok)
+		require.NotNil(t, cmConn.freeConn)
 	})
 
 	t.Run("conn already exists", func(t *testing.T) {
@@ -105,7 +113,7 @@ func TestClient_Dial(t *testing.T) {
 		dialErr := errors.New("dial error")
 
 		rpc := &MockRPCClient{}
-		rpc.On("Dial", remote).Return(uint16(0), uint16(0), dialErr)
+		rpc.On("Dial", remote).Return(uint16(0), routing.Port(0), dialErr)
 
 		cl := NewClient(l, localPK, pid, rpc)
 
@@ -151,26 +159,7 @@ func TestClient_Listen(t *testing.T) {
 		require.Equal(t, wantListener.id, appListener.id)
 		require.Equal(t, wantListener.rpc, appListener.rpc)
 		require.Equal(t, wantListener.addr, appListener.addr)
-		require.NotNil(t, appListener.freePort)
 		require.NotNil(t, appListener.freeLis)
-		portVal, ok := cl.porter.PortValue(uint16(port))
-		require.True(t, ok)
-		require.Nil(t, portVal)
-	})
-
-	t.Run("port is already bound", func(t *testing.T) {
-		rpc := &MockRPCClient{}
-
-		cl := NewClient(l, localPK, pid, rpc)
-
-		ok, _ := cl.porter.Reserve(uint16(port), nil)
-		require.True(t, ok)
-
-		wantErr := ErrPortAlreadyBound
-
-		listener, err := cl.Listen(network.TypeDMSG, port)
-		require.Equal(t, wantErr, err)
-		require.Nil(t, listener)
 	})
 
 	t.Run("listener already exists", func(t *testing.T) {
@@ -224,7 +213,68 @@ func TestClient_Listen(t *testing.T) {
 		listener, err := cl.Listen(network.TypeDMSG, port)
 		require.Equal(t, listenErr, err)
 		require.Nil(t, listener)
-		_, ok := cl.porter.PortValue(uint16(port))
-		require.False(t, ok)
 	})
+}
+
+func TestClient_Close(t *testing.T) {
+	l := logging.MustGetLogger("app2_client")
+	localPK, _ := cipher.GenerateKeyPair()
+	pid := ProcID(1)
+
+	var closeNoErr error
+	closeErr := errors.New("close error")
+
+	rpc := &MockRPCClient{}
+
+	lisID1 := uint16(1)
+	lisID2 := uint16(2)
+
+	rpc.On("CloseListener", lisID1).Return(closeNoErr)
+	rpc.On("CloseListener", lisID2).Return(closeErr)
+
+	lm := newIDManager()
+
+	lis1 := &Listener{id: lisID1, rpc: rpc, cm: newIDManager()}
+	freeLis1, err := lm.add(lisID1, lis1)
+	require.NoError(t, err)
+	lis1.freeLis = freeLis1
+
+	lis2 := &Listener{id: lisID2, rpc: rpc, cm: newIDManager()}
+	freeLis2, err := lm.add(lisID2, lis2)
+	require.NoError(t, err)
+	lis2.freeLis = freeLis2
+
+	connID1 := uint16(1)
+	connID2 := uint16(2)
+
+	rpc.On("CloseConn", connID1).Return(closeNoErr)
+	rpc.On("CloseConn", connID2).Return(closeErr)
+
+	cm := newIDManager()
+
+	conn1 := &Conn{id: connID1, rpc: rpc}
+	freeConn1, err := cm.add(connID1, conn1)
+	require.NoError(t, err)
+	conn1.freeConn = freeConn1
+
+	conn2 := &Conn{id: connID2, rpc: rpc}
+	freeConn2, err := cm.add(connID2, conn2)
+	require.NoError(t, err)
+	conn2.freeConn = freeConn2
+
+	cl := NewClient(l, localPK, pid, rpc)
+	cl.cm = cm
+	cl.lm = lm
+
+	cl.Close()
+
+	_, ok := lm.values[lisID1]
+	require.False(t, ok)
+	_, ok = lm.values[lisID2]
+	require.False(t, ok)
+
+	_, ok = cm.values[connID1]
+	require.False(t, ok)
+	_, ok = cm.values[connID2]
+	require.False(t, ok)
 }

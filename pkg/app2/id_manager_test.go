@@ -2,13 +2,14 @@ package app2
 
 import (
 	"math"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestIDManager_NextID(t *testing.T) {
+func TestIDManager_ReserveNextID(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
 		m := newIDManager()
 
@@ -133,6 +134,70 @@ func TestIDManager_Pop(t *testing.T) {
 	})
 }
 
+func TestIDManager_Add(t *testing.T) {
+	t.Run("simple call", func(t *testing.T) {
+		m := newIDManager()
+
+		id := uint16(1)
+		v := "value"
+
+		free, err := m.add(id, v)
+		require.Nil(t, err)
+		require.NotNil(t, free)
+
+		gotV, ok := m.values[id]
+		require.True(t, ok)
+		require.Equal(t, gotV, v)
+
+		v2 := "value2"
+
+		free, err = m.add(id, v2)
+		require.Equal(t, err, errValueAlreadyExists)
+		require.Nil(t, free)
+
+		gotV, ok = m.values[id]
+		require.True(t, ok)
+		require.Equal(t, gotV, v)
+	})
+
+	t.Run("concurrent run", func(t *testing.T) {
+		m := newIDManager()
+
+		id := uint16(1)
+
+		concurrency := 1000
+
+		addV := make(chan int)
+		errs := make(chan error)
+		for i := 0; i < concurrency; i++ {
+			go func(v int) {
+				_, err := m.add(id, v)
+				errs <- err
+				if err == nil {
+					addV <- v
+				}
+			}(i)
+		}
+
+		errsCount := 0
+		for i := 0; i < concurrency; i++ {
+			if err := <-errs; err != nil {
+				errsCount++
+			}
+		}
+		close(errs)
+
+		v := <-addV
+		close(addV)
+
+		require.Equal(t, concurrency-1, errsCount)
+
+		gotV, ok := m.values[id]
+		require.True(t, ok)
+		require.Equal(t, gotV, v)
+	})
+}
+
 func TestIDManager_Set(t *testing.T) {
 	t.Run("simple call", func(t *testing.T) {
 		m := newIDManager()
@@ -208,6 +273,8 @@ func TestIDManager_Set(t *testing.T) {
 		v := <-setV
 		close(setV)
 
+		require.Equal(t, concurrency-1, errsCount)
+
 		gotV, ok := m.values[nextID]
 		require.True(t, ok)
 		require.Equal(t, gotV, v)
@@ -273,4 +340,76 @@ func TestIDManager_Get(t *testing.T) {
 		}
 		close(res)
 	})
+}
+
+func TestIDManager_DoRange(t *testing.T) {
+	m := newIDManager()
+
+	valsCount := 5
+
+	vals := make([]int, 0, valsCount)
+	for i := 0; i < valsCount; i++ {
+		vals = append(vals, i)
+	}
+
+	for i, v := range vals {
+		_, err := m.add(uint16(i), v)
+		require.NoError(t, err)
+	}
+
+	// run full range
+	gotVals := make([]int, 0, valsCount)
+	m.doRange(func(_ uint16, v interface{}) bool {
+		val, ok := v.(int)
+		require.True(t, ok)
+
+		gotVals = append(gotVals, val)
+
+		return true
+	})
+	sort.Ints(gotVals)
+	require.Equal(t, gotVals, vals)
+
+	// run part range
+	var gotVal int
+	gotValsCount := 0
+	m.doRange(func(_ uint16, v interface{}) bool {
+		if gotValsCount == 1 {
+			return false
+		}
+
+		val, ok := v.(int)
+		require.True(t, ok)
+
+		gotVal = val
+
+		gotValsCount++
+
+		return true
+	})
+
+	found := false
+	for _, v := range vals {
+		if v == gotVal {
+			found = true
+		}
+	}
+	require.True(t, found)
+}
+
+func TestIDManager_ConstructFreeFunc(t *testing.T) {
+	m := newIDManager()
+
+	id := uint16(1)
+	v := "value"
+
+	free, err := m.add(id, v)
+	require.NoError(t, err)
+	require.NotNil(t, free)
+
+	free()
+
+	gotV, ok := m.values[id]
+	require.False(t, ok)
+	require.Nil(t, gotV)
 }

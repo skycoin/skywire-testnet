@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	errUnknownAddrType = errors.New("addr type is unknown")
+	ErrUnknownAddrType = errors.New("addr type is unknown")
 )
 
 // Addr implements net.Addr for network addresses.
@@ -46,6 +46,6 @@ func ConvertAddr(addr net.Addr) (Addr, error) {
 			Port:   routing.Port(a.Port),
 		}, nil
 	default:
-		return Addr{}, errUnknownAddrType
+		return Addr{}, ErrUnknownAddrType
 	}
 }

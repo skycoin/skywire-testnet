@@ -1,6 +1,23 @@
 package app2
 
-/*func TestRPCGateway_Dial(t *testing.T) {
+import (
+	"context"
+	"math"
+	"net"
+	"strings"
+	"testing"
+
+	"github.com/pkg/errors"
+	"github.com/skycoin/dmsg"
+	"github.com/skycoin/dmsg/cipher"
+	"github.com/skycoin/skycoin/src/util/logging"
+	"github.com/stretchr/testify/require"
+
+	"github.com/skycoin/skywire/pkg/app2/network"
+	"github.com/skycoin/skywire/pkg/routing"
+)
+
+func TestRPCGateway_Dial(t *testing.T) {
 	l := logging.MustGetLogger("rpc_gateway")
 	nType := network.TypeDMSG
 
@@ -9,8 +26,10 @@ package app2
 	t.Run("ok", func(t *testing.T) {
 		network.ClearNetworkers()
 
+		localPort := routing.Port(100)
+
 		dialCtx := context.Background()
-		dialConn := &dmsg.Transport{}
+		dialConn := dmsg.NewTransport(nil, nil, dmsg.Addr{Port: uint16(localPort)}, dmsg.Addr{}, 0, func() {})
 		var dialErr error
 
 		n := &network.MockNetworker{}
@@ -21,11 +40,11 @@ package app2
 
 		rpc := newRPCGateway(l)
 
-		var connID uint16
-
-		err = rpc.Dial(&dialAddr, &connID)
+		var resp DialResp
+		err = rpc.Dial(&dialAddr, &resp)
 		require.NoError(t, err)
-		require.Equal(t, connID, uint16(1))
+		require.Equal(t, resp.ConnID, uint16(1))
+		require.Equal(t, resp.LocalPort, localPort)
 	})
 
 	t.Run("no more slots for a new conn", func(t *testing.T) {
@@ -35,9 +54,8 @@ package app2
 		}
 		rpc.cm.values[math.MaxUint16] = nil
 
-		var connID uint16
-
-		err := rpc.Dial(&dialAddr, &connID)
+		var resp DialResp
+		err := rpc.Dial(&dialAddr, &resp)
 		require.Equal(t, err, errNoMoreAvailableValues)
 	})
 
@@ -56,10 +74,31 @@ package app2
 
 		rpc := newRPCGateway(l)
 
-		var connID uint16
-
-		err = rpc.Dial(&dialAddr, &connID)
+		var resp DialResp
+		err = rpc.Dial(&dialAddr, &resp)
 		require.Equal(t, err, dialErr)
+	})
+
+	t.Run("error wrapping conn", func(t *testing.T) {
+		network.ClearNetworkers()
+
+		dialCtx := context.Background()
+		dialConn := &MockConn{}
+		dialConn.On("LocalAddr").Return(routing.Addr{})
+		dialConn.On("RemoteAddr").Return(routing.Addr{})
+		var dialErr error
+
+		n := &network.MockNetworker{}
+		n.On("DialContext", dialCtx, dialAddr).Return(dialConn, dialErr)
+
+		err := network.AddNetworker(nType, n)
+		require.NoError(t, err)
+
+		rpc := newRPCGateway(l)
+
+		var resp DialResp
+		err = rpc.Dial(&dialAddr, &resp)
+		require.Equal(t, err, network.ErrUnknownAddrType)
 	})
 }
 
@@ -132,7 +171,7 @@ func TestRPCGateway_Accept(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		rpc := newRPCGateway(l)
 
-		acceptConn := network.NewDMSGConn(&dmsg.Transport{})
+		acceptConn := &dmsg.Transport{}
 		var acceptErr error
 
 		lis := &MockListener{}
@@ -143,7 +182,7 @@ func TestRPCGateway_Accept(t *testing.T) {
 		var resp AcceptResp
 		err := rpc.Accept(&lisID, &resp)
 		require.NoError(t, err)
-		require.Equal(t, resp.Remote, acceptConn.RemoteAddr())
+		require.Equal(t, resp.Remote, network.Addr{Net: network.TypeDMSG})
 	})
 
 	t.Run("no such listener", func(t *testing.T) {
@@ -182,6 +221,24 @@ func TestRPCGateway_Accept(t *testing.T) {
 		require.Equal(t, err, errNoMoreAvailableValues)
 	})
 
+	t.Run("error wrapping conn", func(t *testing.T) {
+		rpc := newRPCGateway(l)
+
+		acceptConn := &MockConn{}
+		acceptConn.On("LocalAddr").Return(routing.Addr{})
+		acceptConn.On("RemoteAddr").Return(routing.Addr{})
+		var acceptErr error
+
+		lis := &MockListener{}
+		lis.On("Accept").Return(acceptConn, acceptErr)
+
+		lisID := addListener(t, rpc, lis)
+
+		var resp AcceptResp
+		err := rpc.Accept(&lisID, &resp)
+		require.Equal(t, err, network.ErrUnknownAddrType)
+	})
+
 	t.Run("accept error", func(t *testing.T) {
 		rpc := newRPCGateway(l)
 
@@ -196,23 +253,6 @@ func TestRPCGateway_Accept(t *testing.T) {
 		var resp AcceptResp
 		err := rpc.Accept(&lisID, &resp)
 		require.Equal(t, err, acceptErr)
-	})
-
-	t.Run("wrong type of remote addr", func(t *testing.T) {
-		rpc := newRPCGateway(l)
-
-		acceptConn := &dmsg.Transport{}
-		var acceptErr error
-
-		lis := &MockListener{}
-		lis.On("Accept").Return(acceptConn, acceptErr)
-
-		lisID := addListener(t, rpc, lis)
-
-		var resp AcceptResp
-		err := rpc.Accept(&lisID, &resp)
-		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), "wrong type"))
 	})
 }
 
@@ -504,7 +544,7 @@ func prepAddr(nType network.Type) network.Addr {
 }
 
 func addConn(t *testing.T, rpc *RPCGateway, conn net.Conn) uint16 {
-	connID, err := rpc.cm.nextKey()
+	connID, _, err := rpc.cm.reserveNextID()
 	require.NoError(t, err)
 
 	err = rpc.cm.set(*connID, conn)
@@ -514,7 +554,7 @@ func addConn(t *testing.T, rpc *RPCGateway, conn net.Conn) uint16 {
 }
 
 func addListener(t *testing.T, rpc *RPCGateway, lis net.Listener) uint16 {
-	lisID, err := rpc.lm.nextKey()
+	lisID, _, err := rpc.lm.reserveNextID()
 	require.NoError(t, err)
 
 	err = rpc.lm.set(*lisID, lis)
@@ -522,4 +562,3 @@ func addListener(t *testing.T, rpc *RPCGateway, lis net.Listener) uint16 {
 
 	return *lisID
 }
-*/

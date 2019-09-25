@@ -39,7 +39,7 @@ func (c *rpcCLient) Dial(remote network.Addr) (connID uint16, localPort routing.
 		return 0, 0, err
 	}
 
-	return resp.ConnID, resp.AssignedPort, nil
+	return resp.ConnID, resp.LocalPort, nil
 }
 
 // Listen sends `Listen` command to the server.

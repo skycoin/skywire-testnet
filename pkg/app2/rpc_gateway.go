@@ -29,8 +29,8 @@ func newRPCGateway(log *logging.Logger) *RPCGateway {
 
 // DialResp contains response parameters for `Dial`.
 type DialResp struct {
-	ConnID       uint16
-	AssignedPort routing.Port
+	ConnID    uint16
+	LocalPort routing.Port
 }
 
 // Dial dials to the remote.
@@ -46,14 +46,14 @@ func (r *RPCGateway) Dial(remote *network.Addr, resp *DialResp) error {
 		return err
 	}
 
-	localAddr, err := network.ConvertAddr(conn.LocalAddr())
+	wrappedConn, err := network.WrapConn(conn)
 	if err != nil {
 		free()
 		return err
 	}
 
-	if err := r.cm.set(*reservedConnID, conn); err != nil {
-		if err := conn.Close(); err != nil {
+	if err := r.cm.set(*reservedConnID, wrappedConn); err != nil {
+		if err := wrappedConn.Close(); err != nil {
 			r.log.WithError(err).Error("error closing conn")
 		}
 
@@ -61,8 +61,10 @@ func (r *RPCGateway) Dial(remote *network.Addr, resp *DialResp) error {
 		return err
 	}
 
+	localAddr := wrappedConn.LocalAddr().(network.Addr)
+
 	resp.ConnID = *reservedConnID
-	resp.AssignedPort = localAddr.Port
+	resp.LocalPort = localAddr.Port
 
 	return nil
 }
@@ -118,8 +120,14 @@ func (r *RPCGateway) Accept(lisID *uint16, resp *AcceptResp) error {
 		return err
 	}
 
-	if err := r.cm.set(*connID, conn); err != nil {
-		if err := conn.Close(); err != nil {
+	wrappedConn, err := network.WrapConn(conn)
+	if err != nil {
+		free()
+		return err
+	}
+
+	if err := r.cm.set(*connID, wrappedConn); err != nil {
+		if err := wrappedConn.Close(); err != nil {
 			r.log.WithError(err).Error("error closing DMSG transport")
 		}
 
@@ -127,11 +135,7 @@ func (r *RPCGateway) Accept(lisID *uint16, resp *AcceptResp) error {
 		return err
 	}
 
-	remote, err := network.ConvertAddr(conn.RemoteAddr())
-	if err != nil {
-		free()
-		return err
-	}
+	remote := wrappedConn.RemoteAddr().(network.Addr)
 
 	resp.Remote = remote
 	resp.ConnID = *connID
