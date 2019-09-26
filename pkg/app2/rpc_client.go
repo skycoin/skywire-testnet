@@ -15,7 +15,7 @@ type RPCClient interface {
 	Listen(local network.Addr) (uint16, error)
 	Accept(lisID uint16) (connID uint16, remote network.Addr, err error)
 	Write(connID uint16, b []byte) (int, error)
-	Read(connID uint16, b []byte) (int, []byte, error)
+	Read(connID uint16, b []byte) (int, error)
 	CloseConn(id uint16) error
 	CloseListener(id uint16) error
 }
@@ -35,7 +35,7 @@ func NewRPCClient(rpc *rpc.Client) RPCClient {
 // Dial sends `Dial` command to the server.
 func (c *rpcCLient) Dial(remote network.Addr) (connID uint16, localPort routing.Port, err error) {
 	var resp DialResp
-	if err := c.rpc.Call("Dial", &remote, &resp); err != nil {
+	if err := c.rpc.Call("RPCGateway.Dial", &remote, &resp); err != nil {
 		return 0, 0, err
 	}
 
@@ -45,7 +45,7 @@ func (c *rpcCLient) Dial(remote network.Addr) (connID uint16, localPort routing.
 // Listen sends `Listen` command to the server.
 func (c *rpcCLient) Listen(local network.Addr) (uint16, error) {
 	var lisID uint16
-	if err := c.rpc.Call("Listen", &local, &lisID); err != nil {
+	if err := c.rpc.Call("RPCGateway.Listen", &local, &lisID); err != nil {
 		return 0, err
 	}
 
@@ -55,7 +55,7 @@ func (c *rpcCLient) Listen(local network.Addr) (uint16, error) {
 // Accept sends `Accept` command to the server.
 func (c *rpcCLient) Accept(lisID uint16) (connID uint16, remote network.Addr, err error) {
 	var acceptResp AcceptResp
-	if err := c.rpc.Call("Accept", &lisID, &acceptResp); err != nil {
+	if err := c.rpc.Call("RPCGateway.Accept", &lisID, &acceptResp); err != nil {
 		return 0, network.Addr{}, err
 	}
 
@@ -70,7 +70,7 @@ func (c *rpcCLient) Write(connID uint16, b []byte) (int, error) {
 	}
 
 	var n int
-	if err := c.rpc.Call("Write", &req, &n); err != nil {
+	if err := c.rpc.Call("RPCGateway.Write", &req, &n); err != nil {
 		return n, err
 	}
 
@@ -78,28 +78,28 @@ func (c *rpcCLient) Write(connID uint16, b []byte) (int, error) {
 }
 
 // Read sends `Read` command to the server.
-func (c *rpcCLient) Read(connID uint16, b []byte) (int, []byte, error) {
+func (c *rpcCLient) Read(connID uint16, b []byte) (int, error) {
 	req := ReadReq{
 		ConnID: connID,
 		BufLen: len(b),
 	}
 
 	var resp ReadResp
-	if err := c.rpc.Call("Read", &req, &resp); err != nil {
-		return 0, nil, err
+	if err := c.rpc.Call("RPCGateway.Read", &req, &resp); err != nil {
+		return 0, err
 	}
 
 	copy(b[:resp.N], resp.B[:resp.N])
 
-	return resp.N, resp.B, nil
+	return resp.N, nil
 }
 
 // CloseConn sends `CloseConn` command to the server.
 func (c *rpcCLient) CloseConn(id uint16) error {
-	return c.rpc.Call("CloseConn", &id, nil)
+	return c.rpc.Call("RPCGateway.CloseConn", &id, nil)
 }
 
 // CloseListener sends `CloseListener` command to the server.
 func (c *rpcCLient) CloseListener(id uint16) error {
-	return c.rpc.Call("CloseListener", &id, nil)
+	return c.rpc.Call("RPCGateway.CloseListener", &id, nil)
 }

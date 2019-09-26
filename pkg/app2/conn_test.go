@@ -11,32 +11,27 @@ func TestConn_Read(t *testing.T) {
 	connID := uint16(1)
 
 	tt := []struct {
-		name      string
-		readBuff  []byte
-		readN     int
-		readBytes []byte
-		readErr   error
-		wantBuff  []byte
+		name     string
+		readBuff []byte
+		readN    int
+		readErr  error
 	}{
 		{
-			name:      "ok",
-			readBuff:  make([]byte, 10),
-			readN:     2,
-			readBytes: []byte{1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-			wantBuff:  []byte{1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+			name:     "ok",
+			readBuff: make([]byte, 10),
+			readN:    2,
 		},
 		{
 			name:     "read error",
 			readBuff: make([]byte, 10),
 			readErr:  errors.New("read error"),
-			wantBuff: make([]byte, 10),
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			rpc := &MockRPCClient{}
-			rpc.On("Read", connID, tc.readBuff).Return(tc.readN, tc.readBytes, tc.readErr)
+			rpc.On("Read", connID, tc.readBuff).Return(tc.readN, tc.readErr)
 
 			conn := &Conn{
 				id:  connID,
@@ -46,7 +41,6 @@ func TestConn_Read(t *testing.T) {
 			n, err := conn.Read(tc.readBuff)
 			require.Equal(t, tc.readErr, err)
 			require.Equal(t, tc.readN, n)
-			require.Equal(t, tc.wantBuff, tc.readBuff)
 		})
 	}
 }

@@ -117,7 +117,7 @@ func (_m *MockRPCClient) Listen(local network.Addr) (uint16, error) {
 }
 
 // Read provides a mock function with given fields: connID, b
-func (_m *MockRPCClient) Read(connID uint16, b []byte) (int, []byte, error) {
+func (_m *MockRPCClient) Read(connID uint16, b []byte) (int, error) {
 	ret := _m.Called(connID, b)
 
 	var r0 int
@@ -127,23 +127,14 @@ func (_m *MockRPCClient) Read(connID uint16, b []byte) (int, []byte, error) {
 		r0 = ret.Get(0).(int)
 	}
 
-	var r1 []byte
-	if rf, ok := ret.Get(1).(func(uint16, []byte) []byte); ok {
+	var r1 error
+	if rf, ok := ret.Get(1).(func(uint16, []byte) error); ok {
 		r1 = rf(connID, b)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
+		r1 = ret.Error(1)
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(uint16, []byte) error); ok {
-		r2 = rf(connID, b)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+	return r0, r1
 }
 
 // Write provides a mock function with given fields: connID, b
