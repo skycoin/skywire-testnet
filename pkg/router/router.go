@@ -51,6 +51,40 @@ func (c *Config) SetDefaults() {
 	}
 }
 
+type DialOptions struct {
+	MinForwardRts int
+	MaxForwardRts int
+	MinConsumeRts int
+	MaxConsumeRts int
+}
+
+var DefaultDialOptions = &DialOptions{
+	MinForwardRts: 1,
+	MaxForwardRts: 1,
+	MinConsumeRts: 1,
+	MaxConsumeRts: 1,
+}
+
+type Interface interface {
+	io.Closer
+
+	// DialRoutes dials to a given visor of 'rPK'.
+	// 'lPort'/'rPort' specifies the local/remote ports respectively.
+	// A nil 'opts' input results in a value of '1' for all DialOptions fields.
+	// A single call to DialRoutes should perform the following:
+	// - Find routes via RouteFinder (in one call).
+	// - Setup routes via SetupNode (in one call).
+	// - Save to routing.Table and internal RouteGroup map.
+	// - Return RouteGroup if successful.
+	DialRoutes(ctx context.Context, rPK cipher.PubKey, lPort, rPort routing.Port, opts *DialOptions) (*RouteGroup, error)
+
+	// AcceptRoutes should block until we receive an visorAddRules packet from SetupNode that contains ConsumeRule(s) or ForwardRule(s).
+	// Then the following should happen:
+	// - Save to routing.Table and internal RouteGroup map.
+	// - Return the RoutingGroup.
+	AcceptRoutes() (*RouteGroup, error)
+}
+
 // Router implements node.PacketRouter. It manages routing table by
 // communicating with setup nodes, forward packets according to local
 // rules and manages loops for apps.
