@@ -292,4 +292,6 @@ Open [http://localhost:8000](http://localhost:8000).
 Note: these images can only be run on [Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html).
 
 ### Skyflash & Skybian
-We developed our own custom flashing tool that prepares & flashes our custom OS [Skybian](#skybian) for operation on our Skyminers. Skybian is our custom OS built upon armbian. It comes with Skywire and its dependencies preinstalled and its IP configuration is adjusted by [Skyflash](#skyflash) according to your network environment. Please refer to the [installation guide](https://github.com/skycoin/skywire/wiki/Skyminer-Skywire-installation-guide#installation) on our wiki for more details & instructions.
+We developed our own custom flashing tool that prepares & flashes our custom OS [Skybian](https://github.com/skycoin/skybian) for operation on our Skyminers. Skybian is our custom OS built upon armbian. It comes with Skywire and its dependencies preinstalled and its IP configuration is adjusted by [Skyflash](https://github.com/skycoin/skyflash) according to your network environment. Please refer to the [installation guide](https://github.com/skycoin/skywire/wiki/Skyminer-Skywire-installation-guide#installation) on our wiki for more details & instructions.
+
+
