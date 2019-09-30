@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Script to upgrade the discovery address of the actual skyminers on the testnet
+# this must be run on each OrangePi Prime PC
+
+# vars
+SKYWIRE=/usr/local/skywire/go/src/github.com/skycoin/skywire/
+DEFAULTS=$SKYWIRE/static/script/skywire.defaults
+
+# get the MANAGER_IP configured
+MIP=`cat $DEFAULTS | grep MANAGER_IP | grep '=' | cut -d '=' -f 2`
+
+# stop the services prior to the upgrade
+systemctl stop skywire-manager.service &> /dev/null
+systemctl stop skywire-node.service &> /dev/null
+
+# do the git upgrade
+cd $SKYWIRE
+
+# clean the env for git
+git reset --hard
+git clean -f -d
+
+# pull the changes with redundancy
+git pull || git pull
+
+# compile the new code
+cd cmd && go install ./...
+
+# reconfigure the custom MANAGER_IP
+NMIP=`cat $DEFAULTS | grep MANAGER_IP | grep '=' | cut -d '=' -f 2`
+if [ "$MIP" != "$NMIP" ] ; then
+	sed -i s/"=$NMIP"/"=$MIP"/ $DEFAULTS
+fi
+
+# finish
+echo "Done, reboot the node to apply changes"
+echo "Type 'reboot' then hit enter"
+
