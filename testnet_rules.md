@@ -114,7 +114,7 @@ We are calculating the underlying Skycoin price for your rewards based on the mo
 #### Reward Details - September
 Rewards are being paid on a node by node basis. The total amount you may earn is 8 per node rewards for each miner.
 The per node rewards for September are as follows:
-- Skycoin price $0.66973720
+- Skycoin price $0.49133382
 - **21.192 (21.192312794588414) Skycoin per node reward; 169.539 Skycoin per 8 nodes**
 - Skycoin per node reward equals ~ $USD 10.4125 
 
