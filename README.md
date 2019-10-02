@@ -93,7 +93,7 @@ Open a new command window
 
 ```
 cd $GOPATH/bin
-./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 
+./skywire-node -connect-manager -manager-address 127.0.0.1:5998 -manager-web 127.0.0.1:8000 -discovery-address testnet.skywire.skycoin.com:5999-028ec969bdeb92a1991bb19c948645ac8150468a6919113061899051409de3f243 -address :5000 -web-port :6001 
 ```
 
 `tip: If you run with the above command, you will not be able to close the current window or you will close Skywire Node.`
@@ -101,7 +101,7 @@ cd $GOPATH/bin
 If you need to close the current window and continue to run Skywire Manager, you can use
 ```
 cd $GOPATH/bin
-nohup ./skywire-node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68 -address :5000 -web-port :6001 > /dev/null 2>&1 &cd /
+nohup ./skywire-node -connect-manager -manager-address :5998 -manager-web :8000 -discovery-address testnet.skywire.skycoin.com:5999-028ec969bdeb92a1991bb19c948645ac8150468a6919113061899051409de3f243 -address :5000 -web-port :6001 > /dev/null 2>&1 &cd /
 ```
 
 #### Stop Skywire Manager and Node.
@@ -274,7 +274,7 @@ docker run -ti --rm \
       -manager-web skywire-manager:8000 \
       -address :5000 \
       -web-port :6001 \
-      -discovery-address discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
+      -discovery-address testnet.skywire.skycoin.com:5999-028ec969bdeb92a1991bb19c948645ac8150468a6919113061899051409de3f243
 ```
 
 ### Docker Compose
@@ -291,44 +291,7 @@ Open [http://localhost:8000](http://localhost:8000).
 
 Note: these images can only be run on [Orange Pi Prime](http://www.orangepi.cn/OrangePiPrime/index_cn.html).
 
-### IP presetted system images
+### Skyflash & Skybian
+We developed our own custom flashing tool that prepares & flashes our custom OS [Skybian](https://github.com/skycoin/skybian) for operation on our Skyminers. Skybian is our custom OS built upon armbian. It comes with Skywire and its dependencies preinstalled and its IP configuration is adjusted by [Skyflash](https://github.com/skycoin/skyflash) according to your network environment. Please refer to the [installation guide](https://github.com/skycoin/skywire/wiki/Skyminer-Skywire-installation-guide#installation) on our wiki for more details & instructions.
 
-Default password is 'samos'.
 
-### Upgrade the presetted system images
-
-The base images has a few [known bugs](https://github.com/skycoin/skywire/issues/171), we have built a one time upgrade script to fix that until we upgrade the new presseted system images. 
-
-If you want to upgrade the presetted system images please see [this one time upgrade instructions](static/script/upgrade/).
-
-### Important:
-
-Manager system image package contains Skywire Manager and a Skywire Node, other Node system image package only launch a Node.
-
-1) Download [Manager](https://downloads.skycoin.net/skywire-images/manager.tar.gz) (IP:192.168.0.2)
-
-2) Download [Node1](https://downloads.skycoin.net/skywire-images/node-1-03.tar.gz) (IP:192.168.0.3)
-
-3) Download [Node2](https://downloads.skycoin.net/skywire-images/node-2-04.tar.gz) (IP:192.168.0.4)
-
-4) Download [Node3](https://downloads.skycoin.net/skywire-images/node-3-05.tar.gz) (IP:192.168.0.5)
-
-5) Download [Node4](https://downloads.skycoin.net/skywire-images/node-4-06.tar.gz) (IP:192.168.0.6)
-
-6) Download [Node5](https://downloads.skycoin.net/skywire-images/node-5-07.tar.gz) (IP:192.168.0.7)
-
-7) Download [Node6](https://downloads.skycoin.net/skywire-images/node-6-08.tar.gz) (IP:192.168.0.8)
-
-8) Download [Node7](https://downloads.skycoin.net/skywire-images/node-7-09.tar.gz) (IP:192.168.0.9)
-
-### Manually set IP system image
-
-`Note: This system image only contains the basic environment of Skywire, and it needs to set IP, etc.`
-
-Download [Pure Image](https://downloads.skycoin.net/skywire-images/skywire_pure.tar.gz)
-
-## Building the Orange Pi images yourself
-
-The images are in https://github.com/skycoin/Orange-Pi-H5
-
-Instructions for building the images are in https://github.com/skycoin/Orange-Pi-H5/wiki/How-to-build-the-images
