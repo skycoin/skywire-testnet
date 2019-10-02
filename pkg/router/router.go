@@ -22,7 +22,7 @@ import (
 
 const (
 	// DefaultRouteKeepAlive is the default expiration interval for routes
-	DefaultRouteKeepAlive = 2 * time.Hour // TODO: change
+	DefaultRouteKeepAlive = 2 * time.Hour // TODO(nkryuchkov): change
 	acceptSize            = 1024
 
 	minHops = 0
@@ -149,10 +149,6 @@ func New(n *snet.Network, config *Config) (*router, error) {
 // - Save to routing.Table and internal RouteGroup map.
 // - Return RouteGroup if successful.
 func (r *router) DialRoutes(ctx context.Context, rPK cipher.PubKey, lPort, rPort routing.Port, opts *DialOptions) (*RouteGroup, error) {
-	if opts == nil {
-		opts = DefaultDialOptions
-	}
-
 	lPK := r.conf.PubKey
 	forwardDesc := routing.NewRouteDescriptor(lPK, rPK, lPort, rPort)
 
@@ -262,14 +258,17 @@ func (r *router) saveRouteGroupRules(rules routing.EdgeRules) *RouteGroup {
 		rg = NewRouteGroup(r.rt, rules.Desc)
 		r.rgs[rules.Desc] = rg
 	}
+
 	rg.fwd = append(rg.fwd, rules.Forward)
 	rg.rvs = append(rg.fwd, rules.Reverse)
 
-	// TODO: fill transports
+	tp := r.tm.Transport(rules.Forward.NextTransportID())
+	rg.tps = append(rg.tps, tp)
+
 	return rg
 }
 
-// TODO: handle other packet types
+// TODO(nkryuchkov): handle other packet types
 func (r *router) handleTransportPacket(ctx context.Context, packet routing.Packet) error {
 	rule, err := r.GetRule(packet.RouteID())
 	if err != nil {
@@ -378,7 +377,10 @@ func (r *router) RemoveRouteDescriptor(desc routing.RouteDescriptor) {
 }
 
 func (r *router) fetchBestRoutes(source, destination cipher.PubKey, opts *DialOptions) (fwd routing.Path, rev routing.Path, err error) {
-	// TODO: use opts
+	// TODO(nkryuchkov): use opts
+	if opts == nil {
+		opts = DefaultDialOptions
+	}
 
 	r.logger.Infof("Requesting new routes from %s to %s", source, destination)
 

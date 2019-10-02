@@ -78,10 +78,10 @@ func (r *RouteGroup) Write(p []byte) (n int, err error) {
 	defer r.mu.Unlock()
 
 	if len(r.tps) == 0 {
-		return 0, errors.New("no transports") // TODO: proper error
+		return 0, errors.New("no transports") // TODO(nkryuchkov): proper error
 	}
 	if len(r.fwd) == 0 {
-		return 0, errors.New("no rules") // TODO: proper error
+		return 0, errors.New("no rules") // TODO(nkryuchkov): proper error
 	}
 
 	tp := r.tps[0]
@@ -97,13 +97,12 @@ func (r *RouteGroup) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// Close closes a RouteGroup:
+// - Send Close packet for all ForwardRules.
+// - Delete all rules (ForwardRules and ConsumeRules) from routing table.
+// - Close all go channels.
 func (r *RouteGroup) Close() error {
-	/*
-		Closing the RouteGroup
-		Send Close packet for all ForwardRules.
-		Delete all rules (ForwardRules and ConsumeRules) from routing table.
-		Close all go channels.
-	*/
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -125,7 +124,7 @@ func (r *RouteGroup) Close() error {
 	}
 	r.rt.DelRules(routeIDs)
 
-	// TODO: close readCh
+	close(r.readCh) // TODO(nkryuchkov): close readCh properly
 
 	return nil
 }
@@ -138,17 +137,17 @@ func (r *RouteGroup) RemoteAddr() net.Addr {
 	return r.desc.Dst()
 }
 
-// TODO: implement
+// TODO(nkryuchkov): implement
 func (r *RouteGroup) SetDeadline(t time.Time) error {
 	return nil
 }
 
-// TODO: implement
+// TODO(nkryuchkov): implement
 func (r *RouteGroup) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-// TODO: implement
+// TODO(nkryuchkov): implement
 func (r *RouteGroup) SetWriteDeadline(t time.Time) error {
 	return nil
 }

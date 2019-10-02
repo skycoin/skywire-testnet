@@ -9,7 +9,7 @@ import (
 
 type Gateway struct {
 	logger *logging.Logger
-	router *router // TODO: move part of Router methods to Gateway
+	router *router // TODO(nkryuchkov): move part of Router methods to Gateway
 }
 
 func NewGateway(router *router) *Gateway {

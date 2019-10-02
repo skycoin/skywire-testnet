@@ -41,7 +41,7 @@ const (
 	// FrameSend represents Send frame type.
 	FrameSend
 	// FrameClose represents Close frame type
-	FrameClose // TODO: decide whether this needs to be removed
+	FrameClose // TODO(nkryuchkov): decide whether this needs to be removed
 
 	// FrameFailure  represents frame type for failed requests.
 	FrameFailure = 0xfe

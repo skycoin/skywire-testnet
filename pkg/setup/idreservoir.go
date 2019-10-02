@@ -102,8 +102,8 @@ func (rm RulesMap) String() string {
 	return string(jb)
 }
 
-// TODO: fix comment, refactor
-// GenerateRules2 generates rules for a given route.
+// TODO(nkryuchkov): fix comment, refactor
+// GenerateRules generates rules for a given route.
 // The outputs are as follows:
 // - a map that relates a slice of routing rules to a given visor's public key.
 // - an error (if any).

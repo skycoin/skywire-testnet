@@ -87,7 +87,7 @@ func MakeDataPacket(id RouteID, payload []byte) Packet {
 }
 
 // MakeClosePacket constructs a new ClosePacket.
-func MakeClosePacket(id RouteID, code CloseCode) Packet { // TODO: use
+func MakeClosePacket(id RouteID, code CloseCode) Packet {
 	packet := make([]byte, PacketHeaderSize+1)
 
 	packet[PacketTypeOffset] = byte(ClosePacket)
@@ -99,7 +99,7 @@ func MakeClosePacket(id RouteID, code CloseCode) Packet { // TODO: use
 }
 
 // MakeKeepAlivePacket constructs a new KeepAlivePacket.
-func MakeKeepAlivePacket(id RouteID) Packet { // TODO: use
+func MakeKeepAlivePacket(id RouteID) Packet { // TODO(nkryuchkov): use it
 	packet := make([]byte, PacketHeaderSize)
 
 	packet[PacketTypeOffset] = byte(KeepAlivePacket)
