@@ -141,8 +141,7 @@ func (n *Network) Dmsg() *dmsg.Client { return n.dmsgC }
 func (n *Network) STcp() *stcp.Client { return n.stcpC }
 
 // Dial dials a node by its public key and returns a connection.
-func (n *Network) Dial(network string, pk cipher.PubKey, port uint16) (*Conn, error) {
-	ctx := context.Background()
+func (n *Network) Dial(ctx context.Context, network string, pk cipher.PubKey, port uint16) (*Conn, error) {
 	switch network {
 	case DmsgType:
 		conn, err := n.dmsgC.Dial(ctx, pk, port)

@@ -44,10 +44,10 @@ type App struct {
 	config Config
 	proto  *Protocol
 
-	acceptChan chan [2]routing.Addr
+	acceptChan chan routing.RouteDescriptor
 	doneChan   chan struct{}
 
-	conns map[routing.Loop]io.ReadWriteCloser
+	conns map[routing.RouteDescriptor]net.Conn
 	mu    sync.Mutex
 }
 
@@ -77,9 +77,9 @@ func SetupFromPipe(config *Config, inFD, outFD uintptr) (*App, error) {
 	app := &App{
 		config:     *config,
 		proto:      NewProtocol(pipeConn),
-		acceptChan: make(chan [2]routing.Addr),
+		acceptChan: make(chan routing.RouteDescriptor),
 		doneChan:   make(chan struct{}),
-		conns:      make(map[routing.Loop]io.ReadWriteCloser),
+		conns:      make(map[routing.RouteDescriptor]net.Conn),
 	}
 
 	go app.handleProto()
@@ -99,9 +99,9 @@ func New(conn net.Conn, conf *Config) (*App, error) {
 	app := &App{
 		config:     *conf,
 		proto:      NewProtocol(conn),
-		acceptChan: make(chan [2]routing.Addr),
+		acceptChan: make(chan routing.RouteDescriptor),
 		doneChan:   make(chan struct{}),
-		conns:      make(map[routing.Loop]io.ReadWriteCloser),
+		conns:      make(map[routing.RouteDescriptor]net.Conn),
 	}
 
 	go app.handleProto()
@@ -151,34 +151,32 @@ func (app *App) Close() error {
 // Accept awaits for incoming loop confirmation request from a Node and
 // returns net.Conn for received loop.
 func (app *App) Accept() (net.Conn, error) {
-	fmt.Println("!!! [ACCEPT] start !!!")
-	addrs := <-app.acceptChan
-	fmt.Println("!!! [ACCEPT] read from ch !!!")
-	laddr := addrs[0]
-	raddr := addrs[1]
+	desc := <-app.acceptChan
 
-	loop := routing.Loop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
 	conn, out := net.Pipe()
 	app.mu.Lock()
-	app.conns[loop] = conn
+	app.conns[desc] = conn
 	app.mu.Unlock()
-	go app.serveConn(loop, conn)
-	return newAppConn(out, laddr, raddr), nil
+	go app.serveConn(desc, conn)
+	return newAppConn(out, desc.Src(), desc.Dst()), nil
 }
 
 // Dial sends create loop request to a Node and returns net.Conn for created loop.
 func (app *App) Dial(raddr routing.Addr) (net.Conn, error) {
 	var laddr routing.Addr
-	err := app.proto.Send(FrameCreateLoop, raddr, &laddr)
+	err := app.proto.Send(FrameCreateRoutes, raddr, &laddr)
 	if err != nil {
 		return nil, err
 	}
-	loop := routing.Loop{Local: routing.Addr{Port: laddr.Port}, Remote: raddr}
+
+	desc := routing.NewRouteDescriptor(laddr.PubKey, raddr.PubKey, laddr.Port, raddr.Port)
 	conn, out := net.Pipe()
+
 	app.mu.Lock()
-	app.conns[loop] = conn
+	app.conns[desc] = conn
 	app.mu.Unlock()
-	go app.serveConn(loop, conn)
+
+	go app.serveConn(desc, conn)
 	return newAppConn(out, laddr, raddr), nil
 }
 
@@ -189,10 +187,15 @@ func (app *App) Addr() net.Addr {
 
 func (app *App) handleProto() {
 	err := app.proto.Serve(func(frame Frame, payload []byte) (res interface{}, err error) {
-		fmt.Printf("!!! app received frame: %s\n", frame)
 		switch frame {
-		case FrameConfirmLoop:
-			err = app.confirmLoop(payload)
+		case FrameRoutesCreated:
+			var routes []routing.Route
+			err = json.Unmarshal(payload, &routes)
+			if err != nil {
+				break
+			}
+
+			err = app.confirmRoutes(routes)
 		case FrameSend:
 			err = app.forwardPacket(payload)
 		case FrameClose:
@@ -209,7 +212,7 @@ func (app *App) handleProto() {
 	}
 }
 
-func (app *App) serveConn(loop routing.Loop, conn io.ReadWriteCloser) {
+func (app *App) serveConn(desc routing.RouteDescriptor, conn io.ReadWriteCloser) {
 	defer func() {
 		if err := conn.Close(); err != nil {
 			log.WithError(err).Warn("failed to close connection")
@@ -223,19 +226,19 @@ func (app *App) serveConn(loop routing.Loop, conn io.ReadWriteCloser) {
 			break
 		}
 
-		packet := &Packet{Loop: loop, Payload: buf[:n]}
+		packet := &Packet{Desc: desc, Payload: buf[:n]}
 		if err := app.proto.Send(FrameSend, packet, nil); err != nil {
 			break
 		}
 	}
 
 	app.mu.Lock()
-	if _, ok := app.conns[loop]; ok {
-		if err := app.proto.Send(FrameClose, &loop, nil); err != nil {
+	if _, ok := app.conns[desc]; ok {
+		if err := app.proto.Send(FrameClose, &desc, nil); err != nil {
 			log.WithError(err).Warn("Failed to send command frame")
 		}
 	}
-	delete(app.conns, loop)
+	delete(app.conns, desc)
 	app.mu.Unlock()
 }
 
@@ -245,10 +248,8 @@ func (app *App) forwardPacket(data []byte) error {
 		return err
 	}
 
-	fmt.Printf("!!! packet loop: %s\n", packet.Loop)
-
 	app.mu.Lock()
-	conn := app.conns[packet.Loop]
+	conn := app.conns[packet.Desc]
 	app.mu.Unlock()
 
 	if conn == nil {
@@ -260,14 +261,14 @@ func (app *App) forwardPacket(data []byte) error {
 }
 
 func (app *App) closeConn(data []byte) error {
-	var loop routing.Loop
-	if err := json.Unmarshal(data, &loop); err != nil {
+	var route routing.Route
+	if err := json.Unmarshal(data, &route); err != nil {
 		return err
 	}
 
 	app.mu.Lock()
-	conn := app.conns[loop]
-	delete(app.conns, loop)
+	conn := app.conns[route.Desc]
+	delete(app.conns, route.Desc)
 	app.mu.Unlock()
 
 	if conn != nil {
@@ -276,28 +277,20 @@ func (app *App) closeConn(data []byte) error {
 	return nil
 }
 
-func (app *App) confirmLoop(data []byte) error {
-	fmt.Println("!!! [confirmLoop] !!!")
-	var addrs [2]routing.Addr
-	if err := json.Unmarshal(data, &addrs); err != nil {
-		return err
-	}
+func (app *App) confirmRoutes(routes []routing.Route) error {
+	for _, route := range routes {
+		app.mu.Lock()
+		conn := app.conns[route.Desc]
+		app.mu.Unlock()
 
-	laddr := addrs[0]
-	raddr := addrs[1]
+		if conn != nil {
+			return errors.New("loop is already created")
+		}
 
-	app.mu.Lock()
-	conn := app.conns[routing.Loop{Local: laddr, Remote: raddr}]
-	app.mu.Unlock()
-
-	if conn != nil {
-		return errors.New("loop is already created")
-	}
-
-	fmt.Println("!!! [confirmLoop] selecting !!!")
-	select {
-	case app.acceptChan <- addrs:
-	default:
+		select {
+		case app.acceptChan <- route.Desc:
+		default:
+		}
 	}
 
 	return nil

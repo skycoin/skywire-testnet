@@ -227,7 +227,7 @@ func (mt *ManagedTransport) Dial(ctx context.Context) error {
 }
 
 func (mt *ManagedTransport) dial(ctx context.Context) error {
-	tp, err := mt.n.Dial(mt.netName, mt.rPK, snet.TransportPort)
+	tp, err := mt.n.Dial(ctx, mt.netName, mt.rPK, snet.TransportPort)
 	if err != nil {
 		return err
 	}
@@ -290,7 +290,7 @@ func (mt *ManagedTransport) clearConn(ctx context.Context) {
 }
 
 // WritePacket writes a packet to the remote.
-func (mt *ManagedTransport) WritePacket(ctx context.Context, rtID routing.RouteID, payload []byte) error {
+func (mt *ManagedTransport) WritePacket(ctx context.Context, packet routing.Packet) error {
 	mt.connMx.Lock()
 	defer mt.connMx.Unlock()
 
@@ -304,7 +304,7 @@ func (mt *ManagedTransport) WritePacket(ctx context.Context, rtID routing.RouteI
 		}
 	}
 
-	n, err := mt.conn.Write(routing.MakePacket(rtID, payload))
+	n, err := mt.conn.Write(packet)
 	if err != nil {
 		mt.clearConn(ctx)
 		return err
@@ -341,7 +341,7 @@ func (mt *ManagedTransport) readPacket() (packet routing.Packet, err error) {
 	if n := len(packet); n > routing.PacketHeaderSize {
 		mt.logRecv(uint64(n - routing.PacketHeaderSize))
 	}
-	mt.log.Infof("recv packet: rtID(%d) size(%d)", packet.RouteID(), packet.Size())
+	mt.log.Infof("recv packet: type (%s) rtID(%d) size(%d)", packet.Type().String(), packet.RouteID(), packet.Size())
 	return packet, nil
 }
 

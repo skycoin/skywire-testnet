@@ -27,7 +27,7 @@ import (
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app"
-	routeFinder "github.com/skycoin/skywire/pkg/route-finder/client"
+	"github.com/skycoin/skywire/pkg/routefinder/rfclient"
 	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -88,7 +88,7 @@ type PacketRouter interface {
 // necessary connections and performing messaging gateway functions.
 type Node struct {
 	config   *Config
-	router   PacketRouter
+	router   router.Router
 	n        *snet.Network
 	tm       *transport.Manager
 	rt       routing.Table
@@ -172,7 +172,7 @@ func NewNode(config *Config, masterLogger *logging.MasterLogger) (*Node, error) 
 		SecKey:           sk,
 		TransportManager: node.tm,
 		RoutingTable:     node.rt,
-		RouteFinder:      routeFinder.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
+		RouteFinder:      rfclient.NewHTTP(config.Routing.RouteFinder, time.Duration(config.Routing.RouteFinderTimeout)),
 		SetupNodes:       config.Routing.SetupNodes,
 	}
 	r, err := router.New(node.n, rConfig)
@@ -462,26 +462,14 @@ func (node *Node) SpawnApp(config *AppConfig, startCh chan<- struct{}) (err erro
 		appCh <- node.executer.Wait(cmd)
 	}()
 
-	srvCh := make(chan error)
-	go func() {
-		srvCh <- node.router.ServeApp(conn, config.Port, &app.Config{AppName: config.App, AppVersion: config.Version})
-	}()
-
 	if startCh != nil {
 		startCh <- struct{}{}
 	}
 
 	var appErr error
-	select {
-	case err := <-appCh:
-		if err != nil {
-			if _, ok := err.(*exec.ExitError); !ok {
-				appErr = fmt.Errorf("failed to run app executable: %s", err)
-			}
-		}
-	case err := <-srvCh:
-		if err != nil {
-			appErr = fmt.Errorf("failed to start communication server: %s", err)
+	if err := <-appCh; err != nil {
+		if _, ok := err.(*exec.ExitError); !ok {
+			appErr = fmt.Errorf("failed to run app executable: %s", err)
 		}
 	}
 

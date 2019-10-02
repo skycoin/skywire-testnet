@@ -6,9 +6,11 @@ import (
 
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/context"
 
 	"github.com/skycoin/skywire/cmd/skywire-cli/internal"
-	"github.com/skycoin/skywire/pkg/route-finder/client"
+	"github.com/skycoin/skywire/pkg/routefinder/rfclient"
+	"github.com/skycoin/skywire/pkg/routing"
 )
 
 var frAddr string
@@ -22,22 +24,25 @@ func init() {
 	RootCmd.Flags().DurationVar(&timeout, "timeout", 10*time.Second, "timeout for remote server requests")
 }
 
-// RootCmd is the command that queries the route-finder.
+// RootCmd is the command that queries the route finder.
 var RootCmd = &cobra.Command{
 	Use:   "rtfind <public-key-node-1> <public-key-node-2>",
 	Short: "Queries the Route Finder for available routes between two nodes",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(_ *cobra.Command, args []string) {
-		rfc := client.NewHTTP(frAddr, timeout)
+		rfc := rfclient.NewHTTP(frAddr, timeout)
 
 		var srcPK, dstPK cipher.PubKey
 		internal.Catch(srcPK.Set(args[0]))
 		internal.Catch(dstPK.Set(args[1]))
-
-		forward, reverse, err := rfc.PairedRoutes(srcPK, dstPK, frMinHops, frMaxHops)
+		forward := [2]cipher.PubKey{srcPK, dstPK}
+		backward := [2]cipher.PubKey{dstPK, srcPK}
+		ctx := context.Background()
+		routes, err := rfc.FindRoutes(ctx, []routing.PathEdges{forward, backward},
+			&rfclient.RouteOptions{MinHops: frMinHops, MaxHops: frMaxHops})
 		internal.Catch(err)
 
-		fmt.Println("forward: ", forward)
-		fmt.Println("reverse: ", reverse)
+		fmt.Println("forward: ", routes[forward][0])
+		fmt.Println("reverse: ", routes[backward][0])
 	},
 }

@@ -28,7 +28,7 @@ func TestProtocol(t *testing.T) {
 	errCh2 := make(chan error)
 	go func() {
 		errCh2 <- proto2.Serve(func(f Frame, _ []byte) (interface{}, error) {
-			if f != FrameCreateLoop {
+			if f != FrameCreateRoutes {
 				return nil, errors.New("unexpected frame")
 			}
 
@@ -38,7 +38,7 @@ func TestProtocol(t *testing.T) {
 
 	errCh3 := make(chan error)
 	go func() {
-		errCh3 <- proto1.Send(FrameCreateLoop, "foo", nil)
+		errCh3 <- proto1.Send(FrameCreateRoutes, "foo", nil)
 	}()
 
 	errCh4 := make(chan error)
@@ -73,18 +73,18 @@ func TestProtocolParallel(t *testing.T) {
 	errCh1 := make(chan error)
 	go func() {
 		errCh1 <- proto1.Serve(func(f Frame, _ []byte) (interface{}, error) {
-			if f != FrameCreateLoop {
+			if f != FrameCreateRoutes {
 				return nil, errors.New("unexpected frame")
 			}
 
-			return nil, proto1.Send(FrameConfirmLoop, "foo", nil)
+			return nil, proto1.Send(FrameRoutesCreated, "foo", nil)
 		})
 	}()
 
 	errCh2 := make(chan error)
 	go func() {
 		errCh2 <- proto2.Serve(func(f Frame, _ []byte) (interface{}, error) {
-			if f != FrameConfirmLoop {
+			if f != FrameRoutesCreated {
 				return nil, errors.New("unexpected frame")
 			}
 
@@ -92,7 +92,7 @@ func TestProtocolParallel(t *testing.T) {
 		})
 	}()
 
-	require.NoError(t, proto2.Send(FrameCreateLoop, "foo", nil))
+	require.NoError(t, proto2.Send(FrameCreateRoutes, "foo", nil))
 
 	require.NoError(t, proto1.Close())
 	require.NoError(t, proto2.Close())

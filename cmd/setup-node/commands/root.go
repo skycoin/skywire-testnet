@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -75,7 +74,7 @@ var rootCmd = &cobra.Command{
 			}
 		}()
 
-		logger.Fatal(sn.Serve(context.Background()))
+		logger.Fatal(sn.Serve())
 	},
 }
 

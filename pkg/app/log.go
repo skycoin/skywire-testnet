@@ -30,8 +30,8 @@ func TimestampFromLog(log string) string {
 	return log[1:36]
 }
 
-func (a *App) newPersistentLogger(path string) (*logging.MasterLogger, LogStore, error) {
-	db, err := newBoltDB(path, a.config.AppName)
+func (app *App) newPersistentLogger(path string) (*logging.MasterLogger, LogStore, error) {
+	db, err := newBoltDB(path, app.config.AppName)
 	if err != nil {
 		return nil, nil, err
 	}

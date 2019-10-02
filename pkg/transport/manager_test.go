@@ -89,7 +89,8 @@ func TestNewManager(t *testing.T) {
 			totalSent2 += i
 			rID := routing.RouteID(i)
 			payload := cipher.RandByte(i)
-			require.NoError(t, tp2.WritePacket(context.TODO(), rID, payload))
+			packet := routing.MakeDataPacket(rID, payload)
+			require.NoError(t, tp2.WritePacket(context.TODO(), packet))
 
 			recv, err := m0.ReadPacket()
 			require.NoError(t, err)
@@ -102,7 +103,8 @@ func TestNewManager(t *testing.T) {
 			totalSent1 += i
 			rID := routing.RouteID(i)
 			payload := cipher.RandByte(i)
-			require.NoError(t, tp1.WritePacket(context.TODO(), rID, payload))
+			packet := routing.MakeDataPacket(rID, payload)
+			require.NoError(t, tp1.WritePacket(context.TODO(), packet))
 
 			recv, err := m2.ReadPacket()
 			require.NoError(t, err)

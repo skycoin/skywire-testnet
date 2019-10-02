@@ -41,16 +41,17 @@ type Transport struct {
 	bufCh     chan struct{}          // chan for indicating whether this is a new FWD frame
 	bufSize   int                    // keeps track of the total size of 'buf'
 	bufMx     sync.Mutex             // protects fields responsible for handling FWD and ACK frames
+	rMx       sync.Mutex             // TODO: (WORKAROUND) concurrent reads seem problematic right now.
 
-	serving     chan struct{} // chan which closes when serving begins
-	servingOnce sync.Once     // ensures 'serving' only closes once
-	done        chan struct{} // chan which closes when transport stops serving
-	doneOnce    sync.Once     // ensures 'done' only closes once
-	doneFunc    func()        // contains a method that triggers when dmsg.Client closes
+	serving     chan struct{}   // chan which closes when serving begins
+	servingOnce sync.Once       // ensures 'serving' only closes once
+	done        chan struct{}   // chan which closes when transport stops serving
+	doneOnce    sync.Once       // ensures 'done' only closes once
+	doneFunc    func(id uint16) // contains a method to remove the transport from dmsg.Client
 }
 
 // NewTransport creates a new dms_tp.
-func NewTransport(conn net.Conn, log *logging.Logger, local, remote Addr, id uint16, doneFunc func()) *Transport {
+func NewTransport(conn net.Conn, log *logging.Logger, local, remote Addr, id uint16, doneFunc func(id uint16)) *Transport {
 	tp := &Transport{
 		Conn:      conn,
 		log:       log,
@@ -95,7 +96,7 @@ func (tp *Transport) close() (closed bool) {
 		closed = true
 
 		close(tp.done)
-		tp.doneFunc()
+		tp.doneFunc(tp.id)
 
 		tp.bufMx.Lock()
 		close(tp.bufCh)
@@ -169,11 +170,12 @@ func (tp *Transport) HandleFrame(f Frame) error {
 }
 
 // WriteRequest writes a REQUEST frame to dmsg_server to be forwarded to associated client.
-func (tp *Transport) WriteRequest() error {
+func (tp *Transport) WriteRequest(port uint16) error {
 	payload := HandshakePayload{
-		Version:  HandshakePayloadVersion,
-		InitAddr: tp.local,
-		RespAddr: tp.remote,
+		Version: HandshakePayloadVersion,
+		InitPK:  tp.local.PK,
+		RespPK:  tp.remote.PK,
+		Port:    port,
 	}
 	payloadBytes, err := marshalHandshakePayload(payload)
 	if err != nil {
@@ -357,6 +359,9 @@ func (tp *Transport) Serve() {
 // TODO(evanlinjin): read deadline.
 func (tp *Transport) Read(p []byte) (n int, err error) {
 	<-tp.serving
+
+	tp.rMx.Lock()
+	defer tp.rMx.Unlock()
 
 startRead:
 	tp.bufMx.Lock()

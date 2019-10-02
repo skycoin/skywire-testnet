@@ -40,7 +40,7 @@ func (rt RuleType) String() string {
 
 const (
 	// RuleConsume represents a hop to the route's destination node.
-	// A packet referencing this rule is to be consumed localy.
+	// A packet referencing this rule is to be consumed locally.
 	RuleConsume = RuleType(0)
 
 	// RuleForward represents a hop from the route's source node.
@@ -244,28 +244,84 @@ func (r Rule) setDstPort(port Port) {
 // RouteDescriptor describes a route (from the perspective of the source and destination edges).
 type RouteDescriptor [routeDescriptorSize]byte
 
+func NewRouteDescriptor(srcPK, dstPK cipher.PubKey, srcPort, dstPort Port) RouteDescriptor {
+	var desc RouteDescriptor
+
+	desc.setSrcPK(srcPK)
+	desc.setDstPK(dstPK)
+	desc.setSrcPort(srcPort)
+	desc.setDstPort(dstPort)
+
+	return desc
+}
+
+// Src returns source Addr from RouteDescriptor.
+func (rd RouteDescriptor) Src() Addr {
+	return Addr{
+		PubKey: rd.SrcPK(),
+		Port:   rd.SrcPort(),
+	}
+}
+
+// Dst returns destination Addr from RouteDescriptor.
+func (rd RouteDescriptor) Dst() Addr {
+	return Addr{
+		PubKey: rd.DstPK(),
+		Port:   rd.DstPort(),
+	}
+}
+
 // SrcPK returns source public key from RouteDescriptor.
-func (d RouteDescriptor) SrcPK() cipher.PubKey {
+func (rd RouteDescriptor) SrcPK() cipher.PubKey {
 	var pk cipher.PubKey
-	copy(pk[:], d[0:pkSize])
+	copy(pk[:], rd[0:pkSize])
 	return pk
+}
+
+// setSrcPK sets source public key of a rule.
+func (rd RouteDescriptor) setSrcPK(pk cipher.PubKey) {
+	copy(rd[:pkSize], pk[:])
 }
 
 // DstPK returns destination public key from RouteDescriptor.
-func (d RouteDescriptor) DstPK() cipher.PubKey {
+func (rd RouteDescriptor) DstPK() cipher.PubKey {
 	var pk cipher.PubKey
-	copy(pk[:], d[pkSize:pkSize*2])
+	copy(pk[:], rd[pkSize:pkSize*2])
 	return pk
 }
 
+// setDstPK sets destination public key of a rule.
+func (rd RouteDescriptor) setDstPK(pk cipher.PubKey) {
+	copy(rd[pkSize:pkSize*2], pk[:])
+}
+
 // SrcPort returns source port from RouteDescriptor.
-func (d RouteDescriptor) SrcPort() Port {
-	return Port(binary.BigEndian.Uint16(d[pkSize*2 : pkSize*2+2]))
+func (rd RouteDescriptor) SrcPort() Port {
+	return Port(binary.BigEndian.Uint16(rd[pkSize*2 : pkSize*2+2]))
+}
+
+// setSrcPort sets source port of a rule.
+func (rd RouteDescriptor) setSrcPort(port Port) {
+	binary.BigEndian.PutUint16(rd[pkSize*2:pkSize*2+2], uint16(port))
 }
 
 // DstPort returns destination port from RouteDescriptor.
-func (d RouteDescriptor) DstPort() Port {
-	return Port(binary.BigEndian.Uint16(d[pkSize*2+2 : pkSize*2+2*2]))
+func (rd RouteDescriptor) DstPort() Port {
+	return Port(binary.BigEndian.Uint16(rd[pkSize*2+2 : pkSize*2+2*2]))
+}
+
+// setDstPort sets destination port of a rule.
+func (rd RouteDescriptor) setDstPort(port Port) {
+	binary.BigEndian.PutUint16(rd[pkSize*2+2:pkSize*2+2*2], uint16(port))
+}
+
+// Invert inverts source and destination.
+func (rd RouteDescriptor) Invert() RouteDescriptor {
+	return NewRouteDescriptor(rd.DstPK(), rd.SrcPK(), rd.DstPort(), rd.SrcPort())
+}
+
+func (rd RouteDescriptor) String() string {
+	return fmt.Sprintf("rPK:%s, lPK:%s, rPort:%d, lPort:%d", rd.DstPK(), rd.SrcPK(), rd.DstPort(), rd.SrcPK())
 }
 
 // String returns rule's string representation.
@@ -273,12 +329,12 @@ func (r Rule) String() string {
 	switch t := r.Type(); t {
 	case RuleConsume:
 		rd := r.RouteDescriptor()
-		return fmt.Sprintf("APP(keyRtID:%d, resRtID:%d, rPK:%s, rPort:%d, lPort:%d)",
-			r.KeyRouteID(), r.NextRouteID(), rd.DstPK(), rd.DstPort(), rd.SrcPK())
+		return fmt.Sprintf("APP(keyRtID:%d, resRtID:%d, %s)",
+			r.KeyRouteID(), r.NextRouteID(), rd.String())
 	case RuleForward:
 		rd := r.RouteDescriptor()
-		return fmt.Sprintf("FWD(keyRtID:%d, nxtRtID:%d, nxtTpID:%s, rPK:%s, rPort:%d, lPort:%d)",
-			r.KeyRouteID(), r.NextRouteID(), r.NextTransportID(), rd.DstPK(), rd.DstPort(), rd.SrcPK())
+		return fmt.Sprintf("FWD(keyRtID:%d, nxtRtID:%d, nxtTpID:%s, %s)",
+			r.KeyRouteID(), r.NextRouteID(), r.NextTransportID(), rd.String())
 	case RuleIntermediaryForward:
 		return fmt.Sprintf("IFWD(keyRtID:%d, nxtRtID:%d, nxtTpID:%s)",
 			r.KeyRouteID(), r.NextRouteID(), r.NextTransportID())

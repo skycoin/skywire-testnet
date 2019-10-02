@@ -57,6 +57,7 @@ type Client struct {
 
 	pm *PortManager
 
+	// accept map[uint16]chan *transport
 	done chan struct{}
 	once sync.Once
 }
@@ -69,8 +70,10 @@ func NewClient(pk cipher.PubKey, sk cipher.SecKey, dc disc.APIClient, opts ...Cl
 		sk:    sk,
 		dc:    dc,
 		conns: make(map[cipher.PubKey]*ClientConn),
-		pm:    newPortManager(pk),
-		done:  make(chan struct{}),
+		pm:    newPortManager(),
+		// accept: make(chan *transport, AcceptBufferSize),
+		// accept: make(map[uint16]chan *transport),
+		done: make(chan struct{}),
 	}
 	for _, opt := range opts {
 		if err := opt(c); err != nil {
@@ -100,7 +103,7 @@ func (c *Client) updateDiscEntry(ctx context.Context) error {
 
 func (c *Client) setConn(ctx context.Context, conn *ClientConn) {
 	c.mx.Lock()
-	c.conns[conn.srvPK] = conn
+	c.conns[conn.remoteSrv] = conn
 	if err := c.updateDiscEntry(ctx); err != nil {
 		c.log.WithError(err).Warn("updateEntry: failed")
 	}
@@ -139,7 +142,7 @@ func (c *Client) InitiateServerConnections(ctx context.Context, min int) error {
 	if err != nil {
 		return err
 	}
-	c.log.Info("found dmsg.Server entries:", entries)
+	c.log.Info("found dms_server entries:", entries)
 	if err := c.findOrConnectToServers(ctx, entries, min); err != nil {
 		return err
 	}
@@ -210,7 +213,7 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 		return nil, err
 	}
 
-	conn := NewClientConn(c.log, c.pm, nc, c.pk, srvPK)
+	conn := NewClientConn(c.log, nc, c.pk, srvPK, c.pm)
 	if err := conn.readOK(); err != nil {
 		return nil, err
 	}
@@ -241,7 +244,7 @@ func (c *Client) findOrConnectToServer(ctx context.Context, srvPK cipher.PubKey)
 
 // Listen creates a listener on a given port, adds it to port manager and returns the listener.
 func (c *Client) Listen(port uint16) (*Listener, error) {
-	l, ok := c.pm.NewListener(port)
+	l, ok := c.pm.NewListener(c.pk, port)
 	if !ok {
 		return nil, errors.New("port is busy")
 	}
@@ -285,7 +288,7 @@ func (c *Client) Type() string {
 
 // Close closes the dms_client and associated connections.
 // TODO(evaninjin): proper error handling.
-func (c *Client) Close() (err error) {
+func (c *Client) Close() error {
 	if c == nil {
 		return nil
 	}
@@ -302,8 +305,13 @@ func (c *Client) Close() (err error) {
 		c.conns = make(map[cipher.PubKey]*ClientConn)
 		c.mx.Unlock()
 
-		err = c.pm.Close()
+		c.pm.mu.Lock()
+		defer c.pm.mu.Unlock()
+
+		for _, lis := range c.pm.listeners {
+			lis.close()
+		}
 	})
 
-	return err
+	return nil
 }

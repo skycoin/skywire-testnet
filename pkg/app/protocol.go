@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"strings"
 	"sync"
 )
@@ -17,10 +18,10 @@ func (f Frame) String() string {
 	switch f {
 	case FrameInit:
 		return "Init"
-	case FrameCreateLoop:
-		return "CreateLoop"
-	case FrameConfirmLoop:
-		return "OnConfirmLoop"
+	case FrameCreateRoutes:
+		return "CreateRoutes"
+	case FrameRoutesCreated:
+		return "OnRoutesCreated"
 	case FrameSend:
 		return "Send"
 	case FrameClose:
@@ -33,14 +34,14 @@ func (f Frame) String() string {
 const (
 	// FrameInit represents Init frame type.
 	FrameInit Frame = iota
-	// FrameCreateLoop represents CreateLoop request frame type.
-	FrameCreateLoop
-	// FrameConfirmLoop represents OnConfirmLoop request frame type.
-	FrameConfirmLoop
+	// FrameCreateRoutes represents CreateRoutes request frame type.
+	FrameCreateRoutes
+	// FrameRoutesCreated represents visorRoutesCreated request frame type.
+	FrameRoutesCreated
 	// FrameSend represents Send frame type.
 	FrameSend
 	// FrameClose represents Close frame type
-	FrameClose
+	FrameClose // TODO: decide whether this needs to be removed
 
 	// FrameFailure  represents frame type for failed requests.
 	FrameFailure = 0xfe
@@ -50,13 +51,13 @@ const (
 
 // Protocol implements full-duplex protocol for App to Node communication.
 type Protocol struct {
-	rw    io.ReadWriteCloser
+	conn  net.Conn
 	chans *chanList
 }
 
 // NewProtocol constructs a new Protocol.
-func NewProtocol(rw io.ReadWriteCloser) *Protocol {
-	return &Protocol{rw, &chanList{chans: map[byte]chan []byte{}}}
+func NewProtocol(conn net.Conn) *Protocol {
+	return &Protocol{conn, &chanList{chans: map[byte]chan []byte{}}}
 }
 
 // Send sends command Frame with payload and awaits for response.
@@ -136,7 +137,7 @@ func (p *Protocol) Close() error {
 		return nil
 	}
 	p.chans.closeAll()
-	return p.rw.Close()
+	return p.conn.Close()
 }
 
 func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err error) {
@@ -153,18 +154,18 @@ func (p *Protocol) writeFrame(frame Frame, id byte, payload interface{}) (err er
 	packet := append([]byte{byte(frame), id}, data...)
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, uint16(len(packet)))
-	_, err = p.rw.Write(append(buf, packet...))
+	_, err = p.conn.Write(append(buf, packet...))
 	return err
 }
 
 func (p *Protocol) readFrame() (frame []byte, err error) {
 	size := make([]byte, 2)
-	if _, err = io.ReadFull(p.rw, size); err != nil {
+	if _, err = io.ReadFull(p.conn, size); err != nil {
 		return
 	}
 
 	frame = make([]byte, binary.BigEndian.Uint16(size))
-	if _, err = io.ReadFull(p.rw, frame); err != nil {
+	if _, err = io.ReadFull(p.conn, frame); err != nil {
 		return
 	}
 

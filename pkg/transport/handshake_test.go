@@ -38,7 +38,7 @@ func TestSettlementHS(t *testing.T) {
 			require.NoError(t, <-errCh1)
 		}()
 
-		conn0, err := nEnv.Nets[0].Dial(dmsg.Type, keys[1].PK, snet.TransportPort)
+		conn0, err := nEnv.Nets[0].Dial(context.TODO(), dmsg.Type, keys[1].PK, snet.TransportPort)
 		require.NoError(t, err)
 		require.NoError(t, transport.MakeSettlementHS(true).Do(context.TODO(), tpDisc, conn0, keys[0].SK), "fucked up")
 	})

@@ -7,7 +7,7 @@ import (
 )
 
 func TestMakePacket(t *testing.T) {
-	packet := MakePacket(2, []byte("foo"))
+	packet := MakeDataPacket(2, []byte("foo"))
 	assert.Equal(
 		t,
 		[]byte{0x0, 0x3, 0x0, 0x0, 0x0, 0x2, 0x66, 0x6f, 0x6f},
