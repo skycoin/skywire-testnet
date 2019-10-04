@@ -1,9 +1,8 @@
 package app2
 
 import (
+	"errors"
 	"net"
-
-	"github.com/pkg/errors"
 )
 
 // assertListener asserts that `v` is of type `net.Listener`.

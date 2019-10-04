@@ -83,7 +83,7 @@ func (sn *Node) Serve() error {
 		sn.logger.WithField("requester", conn.RemotePK()).Infof("Received request.")
 
 		rpcS := rpc.NewServer()
-		if err := rpcS.Register(NewGateway(conn.RemotePK(), sn)); err != nil {
+		if err := rpcS.Register(NewRPCGateway(conn.RemotePK(), sn)); err != nil {
 			return err
 		}
 		go rpcS.ServeConn(conn)

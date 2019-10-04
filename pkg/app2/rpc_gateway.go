@@ -1,10 +1,10 @@
 package app2
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
-	"github.com/pkg/errors"
 	"github.com/skycoin/skycoin/src/util/logging"
 
 	"github.com/skycoin/skywire/pkg/app2/network"

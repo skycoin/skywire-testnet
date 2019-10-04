@@ -133,7 +133,7 @@ func New(n *snet.Network, config *Config) (*router, error) {
 		trustedNodes: trustedNodes,
 	}
 
-	if err := r.rpcSrv.Register(NewGateway(r)); err != nil {
+	if err := r.rpcSrv.Register(NewRPCGateway(r)); err != nil {
 		return nil, fmt.Errorf("failed to register RPC server")
 	}
 
@@ -276,7 +276,7 @@ func (r *router) handleTransportPacket(ctx context.Context, packet routing.Packe
 	}
 
 	desc := rule.RouteDescriptor()
-	rg, ok := r.rgs[desc]
+	rg, ok := r.routeGroup(desc)
 	if !ok {
 		return errors.New("route descriptor does not exist")
 	}
@@ -288,10 +288,23 @@ func (r *router) handleTransportPacket(ctx context.Context, packet routing.Packe
 	switch t := rule.Type(); t {
 	case routing.RuleForward, routing.RuleIntermediaryForward:
 		return r.forwardPacket(ctx, packet.Payload(), rule)
-	default:
-		rg.readCh <- packet.Payload()
-		return nil
+	default: // TODO(nkryuchkov): try to simplify
+		select {
+		case <-rg.done:
+			return io.ErrClosedPipe
+		default:
+			rg.mu.Lock()
+			defer rg.mu.Unlock()
+			select {
+			case rg.readCh <- packet.Payload():
+				return nil
+			case <-rg.done:
+				return io.ErrClosedPipe
+			}
+
+		}
 	}
+
 }
 
 // GetRule gets routing rule.
@@ -341,24 +354,6 @@ func (r *router) forwardPacket(ctx context.Context, payload []byte, rule routing
 	r.logger.Infof("Forwarded packet via Transport %s using rule %d", rule.NextTransportID(), rule.KeyRouteID())
 	return nil
 }
-
-// func (r *router) consumePacket(payload []byte, rule routing.Rule) error {
-// 	laddr := routing.Addr{Port: rule.RouteDescriptor().SrcPort()}
-// 	raddr := routing.Addr{PubKey: rule.RouteDescriptor().DstPK(), Port: rule.RouteDescriptor().DstPort()}
-//
-// 	route := routing.Route{Desc: routing.NewRouteDescriptor(laddr.PubKey, raddr.PubKey, laddr.Port, raddr.Port)}
-// 	p := &app.Packet{Desc: route.Desc, Payload: payload}
-// 	b, err := r.pm.Get(rule.RouteDescriptor().SrcPort())
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if err := b.conn.Send(app.FrameSend, p, nil); err != nil { // TODO: Stuck here.
-// 		return err
-// 	}
-//
-// 	r.logger.Infof("Forwarded packet to App on Port %d", rule.RouteDescriptor().SrcPort())
-// 	return nil
-// }
 
 // RemoveRouteDescriptor removes loop rule.
 func (r *router) RemoveRouteDescriptor(desc routing.RouteDescriptor) {

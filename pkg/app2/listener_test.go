@@ -1,9 +1,9 @@
 package app2
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/require"

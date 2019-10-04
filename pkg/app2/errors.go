@@ -1,6 +1,8 @@
 package app2
 
-import "github.com/pkg/errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrPortAlreadyBound is being returned when trying to bind to the port

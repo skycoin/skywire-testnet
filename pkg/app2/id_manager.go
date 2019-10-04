@@ -1,10 +1,9 @@
 package app2
 
 import (
+	"errors"
 	"fmt"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 var (

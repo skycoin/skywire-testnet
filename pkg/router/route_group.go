@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -41,6 +42,8 @@ type RouteGroup struct {
 	//      and push to the appropriate '(RouteGroup).readCh'.
 	readCh  chan []byte  // push reads from Router
 	readBuf bytes.Buffer // for read overflow
+	done    chan struct{}
+	once    sync.Once
 
 	rt routing.Table
 }
@@ -68,7 +71,12 @@ func (r *RouteGroup) Read(p []byte) (n int, err error) {
 		return r.readBuf.Read(p)
 	}
 
-	return ioutil.BufRead(&r.readBuf, <-r.readCh, p)
+	data, ok := <-r.readCh
+	if !ok {
+		return 0, io.ErrClosedPipe
+	}
+
+	return ioutil.BufRead(&r.readBuf, data, p)
 }
 
 // Write writes payload to a RouteGroup
@@ -102,7 +110,6 @@ func (r *RouteGroup) Write(p []byte) (n int, err error) {
 // - Delete all rules (ForwardRules and ConsumeRules) from routing table.
 // - Close all go channels.
 func (r *RouteGroup) Close() error {
-
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -124,7 +131,10 @@ func (r *RouteGroup) Close() error {
 	}
 	r.rt.DelRules(routeIDs)
 
-	close(r.readCh) // TODO(nkryuchkov): close readCh properly
+	r.once.Do(func() {
+		close(r.done)
+		close(r.readCh)
+	})
 
 	return nil
 }

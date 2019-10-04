@@ -13,21 +13,21 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
-type Gateway struct {
+type RPCGateway struct {
 	logger *logging.Logger
 	reqPK  cipher.PubKey
 	sn     *Node
 }
 
-func NewGateway(reqPK cipher.PubKey, sn *Node) *Gateway {
-	return &Gateway{
+func NewRPCGateway(reqPK cipher.PubKey, sn *Node) *RPCGateway {
+	return &RPCGateway{
 		logger: logging.MustGetLogger("setup-gateway"),
 		reqPK:  reqPK,
 		sn:     sn,
 	}
 }
 
-func (g *Gateway) DialRouteGroup(route routing.BidirectionalRoute, rules *routing.EdgeRules) (failure error) {
+func (g *RPCGateway) DialRouteGroup(route routing.BidirectionalRoute, rules *routing.EdgeRules) (failure error) {
 	startTime := time.Now()
 	defer func() {
 		g.sn.metrics.Record(time.Since(startTime), failure != nil)
@@ -107,7 +107,7 @@ func (g *Gateway) DialRouteGroup(route routing.BidirectionalRoute, rules *routin
 	return nil
 }
 
-func (g *Gateway) reserveRouteIDs(ctx context.Context, route routing.BidirectionalRoute) (*idReservoir, error) {
+func (g *RPCGateway) reserveRouteIDs(ctx context.Context, route routing.BidirectionalRoute) (*idReservoir, error) {
 	reservoir, total := newIDReservoir(route.Forward, route.Reverse)
 	g.logger.Infof("There are %d route IDs to reserve.", total)
 

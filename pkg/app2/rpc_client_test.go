@@ -2,11 +2,11 @@ package app2
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/rpc"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -47,7 +47,7 @@ func TestRPCClient_Dial(t *testing.T) {
 
 		dialCtx := context.Background()
 		dialConn := dmsg.NewTransport(&MockConn{}, logging.MustGetLogger("dmsg_tp"),
-			dmsgLocal, dmsgRemote, 0, func() {})
+			dmsgLocal, dmsgRemote, 0, func(_ uint16) {})
 		var noErr error
 
 		n := &network.MockNetworker{}
@@ -186,7 +186,7 @@ func TestRPCClient_Accept(t *testing.T) {
 			Port: remotePort,
 		}
 		lisConn := dmsg.NewTransport(&MockConn{}, logging.MustGetLogger("dmsg_tp"),
-			dmsgLocal, dmsgRemote, 0, func() {})
+			dmsgLocal, dmsgRemote, 0, func(_ uint16) {})
 		var noErr error
 
 		lis := &MockListener{}

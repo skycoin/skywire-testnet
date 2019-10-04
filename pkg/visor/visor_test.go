@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/skycoin/skywire/pkg/app"
+	"github.com/skycoin/skywire/pkg/router"
 	"github.com/skycoin/skywire/pkg/routing"
 	"github.com/skycoin/skywire/pkg/snet"
 	"github.com/skycoin/skywire/pkg/transport"
@@ -257,6 +258,14 @@ type mockRouter struct {
 	didClose bool
 
 	errChan chan error
+}
+
+func (r *mockRouter) DialRoutes(ctx context.Context, rPK cipher.PubKey, lPort, rPort routing.Port, opts *router.DialOptions) (*router.RouteGroup, error) {
+	panic("implement me")
+}
+
+func (r *mockRouter) AcceptRoutes() (*router.RouteGroup, error) {
+	panic("implement me")
 }
 
 func (r *mockRouter) Ports() []routing.Port {

@@ -2,12 +2,12 @@ package app2
 
 import (
 	"context"
+	"errors"
 	"math"
 	"net"
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/skycoin/dmsg"
 	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/skycoin/src/util/logging"
@@ -29,7 +29,7 @@ func TestRPCGateway_Dial(t *testing.T) {
 		localPort := routing.Port(100)
 
 		dialCtx := context.Background()
-		dialConn := dmsg.NewTransport(nil, nil, dmsg.Addr{Port: uint16(localPort)}, dmsg.Addr{}, 0, func() {})
+		dialConn := dmsg.NewTransport(nil, nil, dmsg.Addr{Port: uint16(localPort)}, dmsg.Addr{}, 0, func(_ uint16) {})
 		var dialErr error
 
 		n := &network.MockNetworker{}

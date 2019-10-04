@@ -7,19 +7,19 @@ import (
 	"github.com/skycoin/skywire/pkg/setup"
 )
 
-type Gateway struct {
+type RPCGateway struct {
 	logger *logging.Logger
-	router *router // TODO(nkryuchkov): move part of Router methods to Gateway
+	router *router // TODO(nkryuchkov): move part of Router methods to RPCGateway
 }
 
-func NewGateway(router *router) *Gateway {
-	return &Gateway{
+func NewRPCGateway(router *router) *RPCGateway {
+	return &RPCGateway{
 		logger: logging.MustGetLogger("router-gateway"),
 		router: router,
 	}
 }
 
-func (r *Gateway) AddEdgeRules(rules routing.EdgeRules, ok *bool) error {
+func (r *RPCGateway) AddEdgeRules(rules routing.EdgeRules, ok *bool) error {
 	go func() {
 		r.router.accept <- rules
 	}()
@@ -34,7 +34,7 @@ func (r *Gateway) AddEdgeRules(rules routing.EdgeRules, ok *bool) error {
 	return nil
 }
 
-func (r *Gateway) AddIntermediaryRules(rules []routing.Rule, ok *bool) error {
+func (r *RPCGateway) AddIntermediaryRules(rules []routing.Rule, ok *bool) error {
 	if err := r.router.saveRoutingRules(rules...); err != nil {
 		*ok = false
 		r.logger.WithError(err).Warnf("Request completed with error.")
@@ -45,7 +45,7 @@ func (r *Gateway) AddIntermediaryRules(rules []routing.Rule, ok *bool) error {
 	return nil
 }
 
-func (r *Gateway) ReserveIDs(n uint8, routeIDs *[]routing.RouteID) error {
+func (r *RPCGateway) ReserveIDs(n uint8, routeIDs *[]routing.RouteID) error {
 	ids, err := r.router.occupyRouteID(n)
 	if err != nil {
 		r.logger.WithError(err).Warnf("Request completed with error.")
