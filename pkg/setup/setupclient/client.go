@@ -15,18 +15,18 @@ import (
 const rpcName = "Gateway"
 
 type Client struct {
-	log   *logging.Logger
-	n     *snet.Network
-	nodes []cipher.PubKey
-	conn  *snet.Conn
-	rpc   *rpc.Client
+	log        *logging.Logger
+	n          *snet.Network
+	setupNodes []cipher.PubKey
+	conn       *snet.Conn
+	rpc        *rpc.Client
 }
 
-func NewClient(ctx context.Context, log *logging.Logger, n *snet.Network, nodes []cipher.PubKey) (*Client, error) {
+func NewClient(ctx context.Context, log *logging.Logger, n *snet.Network, setupNodes []cipher.PubKey) (*Client, error) {
 	client := &Client{
-		log:   log,
-		n:     n,
-		nodes: nodes,
+		log:        log,
+		n:          n,
+		setupNodes: setupNodes,
 	}
 
 	conn, err := client.dial(ctx)
@@ -41,7 +41,7 @@ func NewClient(ctx context.Context, log *logging.Logger, n *snet.Network, nodes 
 }
 
 func (c *Client) dial(ctx context.Context) (*snet.Conn, error) {
-	for _, sPK := range c.nodes {
+	for _, sPK := range c.setupNodes {
 		conn, err := c.n.Dial(ctx, snet.DmsgType, sPK, snet.SetupPort)
 		if err != nil {
 			c.log.WithError(err).Warnf("failed to dial to setup node: setupPK(%s)", sPK)

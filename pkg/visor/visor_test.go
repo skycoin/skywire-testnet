@@ -264,7 +264,7 @@ func (r *mockRouter) DialRoutes(ctx context.Context, rPK cipher.PubKey, lPort, r
 	panic("implement me")
 }
 
-func (r *mockRouter) AcceptRoutes() (*router.RouteGroup, error) {
+func (r *mockRouter) AcceptRoutes(ctx context.Context) (*router.RouteGroup, error) {
 	panic("implement me")
 }
 

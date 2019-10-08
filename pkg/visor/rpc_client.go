@@ -249,24 +249,24 @@ func NewMockRPCClient(r *rand.Rand, maxTps int, maxRules int) (cipher.PubKey, RP
 		}
 		lp := routing.Port(binary.BigEndian.Uint16(lpRaw[:]))
 		rp := routing.Port(binary.BigEndian.Uint16(rpRaw[:]))
-		fwdRID, err := rt.ReserveKey()
+		fwdRID, err := rt.ReserveKeys(1)
 		if err != nil {
 			panic(err)
 		}
-		fwdRule := routing.IntermediaryForwardRule(ruleKeepAlive, fwdRID, routing.RouteID(r.Uint32()), uuid.New())
+		fwdRule := routing.IntermediaryForwardRule(ruleKeepAlive, fwdRID[0], routing.RouteID(r.Uint32()), uuid.New())
 		if err := rt.SaveRule(fwdRule); err != nil {
 			panic(err)
 		}
-		appRID, err := rt.ReserveKey()
+		appRID, err := rt.ReserveKeys(1)
 		if err != nil {
 			panic(err)
 		}
-		consumeRule := routing.ConsumeRule(ruleKeepAlive, appRID, remotePK, lp, rp)
+		consumeRule := routing.ConsumeRule(ruleKeepAlive, appRID[0], remotePK, lp, rp)
 		if err := rt.SaveRule(consumeRule); err != nil {
 			panic(err)
 		}
 		log.Infof("rt[%2da]: %v %v", i, fwdRID, fwdRule.Summary().ForwardFields)
-		log.Infof("rt[%2db]: %v %v", i, appRID, consumeRule.Summary().ConsumeFields)
+		log.Infof("rt[%2db]: %v %v", i, appRID[0], consumeRule.Summary().ConsumeFields)
 	}
 	log.Printf("rtCount: %d", rt.Count())
 	client := &mockRPCClient{

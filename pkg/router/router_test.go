@@ -79,15 +79,15 @@ func TestRouter_Serve(t *testing.T) {
 		defer clearRules(r0, r1)
 
 		// Add a FWD rule for r0.
-		fwdRtID, err := r0.rt.ReserveKey()
+		fwdRtID, err := r0.rt.ReserveKeys(1)
 		require.NoError(t, err)
 
-		fwdRule := routing.IntermediaryForwardRule(1*time.Hour, fwdRtID, routing.RouteID(5), tp1.Entry.ID)
+		fwdRule := routing.IntermediaryForwardRule(1*time.Hour, fwdRtID[0], routing.RouteID(5), tp1.Entry.ID)
 		err = r0.rt.SaveRule(fwdRule)
 		require.NoError(t, err)
 
 		// Call handleTransportPacket for r0 (this should in turn, use the rule we added).
-		packet := routing.MakeDataPacket(fwdRtID, []byte("This is a test!"))
+		packet := routing.MakeDataPacket(fwdRtID[0], []byte("This is a test!"))
 		require.NoError(t, r0.handleTransportPacket(context.TODO(), packet))
 
 		// r1 should receive the packet handled by r0.
@@ -199,33 +199,33 @@ func TestRouter_Rules(t *testing.T) {
 	t.Run("GetRule", func(t *testing.T) {
 		clearRules()
 
-		expiredID, err := r.rt.ReserveKey()
+		expiredID, err := r.rt.ReserveKeys(1)
 		require.NoError(t, err)
 
-		expiredRule := routing.IntermediaryForwardRule(-10*time.Minute, expiredID, 3, uuid.New())
+		expiredRule := routing.IntermediaryForwardRule(-10*time.Minute, expiredID[0], 3, uuid.New())
 		err = r.rt.SaveRule(expiredRule)
 		require.NoError(t, err)
 
-		id, err := r.rt.ReserveKey()
+		id, err := r.rt.ReserveKeys(1)
 		require.NoError(t, err)
 
-		rule := routing.IntermediaryForwardRule(10*time.Minute, id, 3, uuid.New())
+		rule := routing.IntermediaryForwardRule(10*time.Minute, id[0], 3, uuid.New())
 		err = r.rt.SaveRule(rule)
 		require.NoError(t, err)
 
-		defer r.rt.DelRules([]routing.RouteID{id, expiredID})
+		defer r.rt.DelRules([]routing.RouteID{id[0], expiredID[0]})
 
 		// rule should already be expired at this point due to the execution time.
 		// However, we'll just a bit to be sure
 		time.Sleep(1 * time.Millisecond)
 
-		_, err = r.GetRule(expiredID)
+		_, err = r.GetRule(expiredID[0])
 		require.Error(t, err)
 
 		_, err = r.GetRule(123)
 		require.Error(t, err)
 
-		r, err := r.GetRule(id)
+		r, err := r.GetRule(id[0])
 		require.NoError(t, err)
 		assert.Equal(t, rule, r)
 	})
@@ -236,10 +236,10 @@ func TestRouter_Rules(t *testing.T) {
 
 		pk, _ := cipher.GenerateKeyPair()
 
-		id, err := r.rt.ReserveKey()
+		id, err := r.rt.ReserveKeys(1)
 		require.NoError(t, err)
 
-		rule := routing.ConsumeRule(10*time.Minute, id, pk, 2, 3)
+		rule := routing.ConsumeRule(10*time.Minute, id[0], pk, 2, 3)
 		err = r.rt.SaveRule(rule)
 		require.NoError(t, err)
 
@@ -323,17 +323,17 @@ func TestRouter_Rules(t *testing.T) {
 
 		proto := setup.NewSetupProtocol(in)
 
-		id, err := r.rt.ReserveKey()
+		id, err := r.rt.ReserveKeys(1)
 		require.NoError(t, err)
 
-		rule := routing.IntermediaryForwardRule(10*time.Minute, id, 3, uuid.New())
+		rule := routing.IntermediaryForwardRule(10*time.Minute, id[0], 3, uuid.New())
 
 		err = r.rt.SaveRule(rule)
 		require.NoError(t, err)
 
 		assert.Equal(t, 1, rt.Count())
 
-		require.NoError(t, setup.DeleteRule(context.TODO(), proto, id))
+		require.NoError(t, setup.DeleteRule(context.TODO(), proto, id[0]))
 		assert.Equal(t, 0, rt.Count())
 	})
 

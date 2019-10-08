@@ -20,9 +20,9 @@ func NewRPCGateway(router *router) *RPCGateway {
 }
 
 func (r *RPCGateway) AddEdgeRules(rules routing.EdgeRules, ok *bool) error {
-	go func() {
-		r.router.accept <- rules
-	}()
+	if err := r.router.IntroduceRules(rules); err != nil {
+		return err
+	}
 
 	if err := r.router.saveRoutingRules(rules.Forward, rules.Reverse); err != nil {
 		*ok = false
@@ -46,7 +46,7 @@ func (r *RPCGateway) AddIntermediaryRules(rules []routing.Rule, ok *bool) error 
 }
 
 func (r *RPCGateway) ReserveIDs(n uint8, routeIDs *[]routing.RouteID) error {
-	ids, err := r.router.occupyRouteID(n)
+	ids, err := r.router.rt.ReserveKeys(int(n))
 	if err != nil {
 		r.logger.WithError(err).Warnf("Request completed with error.")
 		return setup.Failure{Code: setup.FailureReserveRtIDs, Msg: err.Error()}

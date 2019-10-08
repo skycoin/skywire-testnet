@@ -20,8 +20,8 @@ var (
 
 // Table represents a routing table implementation.
 type Table interface {
-	// ReserveKey reserves a RouteID.
-	ReserveKey() (RouteID, error)
+	// ReserveKeys reserves n RouteIDs.
+	ReserveKeys(n int) ([]RouteID, error)
 
 	// SaveRule sets RoutingRule for a given RouteID.
 	SaveRule(Rule) error
@@ -80,16 +80,33 @@ func NewTable(config Config) Table {
 	return mt
 }
 
-func (mt *memTable) ReserveKey() (key RouteID, err error) {
+func (mt *memTable) ReserveKeys(n int) ([]RouteID, error) {
+	first, last, err := mt.reserveKeysImpl(n)
+	if err != nil {
+		return nil, err
+	}
+
+	routes := make([]RouteID, 0, n)
+	for id := first; id <= last; id++ {
+		routes = append(routes, id)
+	}
+
+	return routes, nil
+}
+
+func (mt *memTable) reserveKeysImpl(n int) (first, last RouteID, err error) {
 	mt.Lock()
 	defer mt.Unlock()
 
-	if mt.nextID == math.MaxUint32 {
-		return 0, ErrNoAvailableRoutes
+	if int64(mt.nextID)+int64(n) >= math.MaxUint32 {
+		return 0, 0, ErrNoAvailableRoutes
 	}
 
-	mt.nextID++
-	return mt.nextID, nil
+	first = mt.nextID + 1
+	mt.nextID += RouteID(n)
+	last = mt.nextID
+
+	return first, last, nil
 }
 
 func (mt *memTable) SaveRule(rule Rule) error {
