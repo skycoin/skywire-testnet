@@ -9,7 +9,7 @@ import (
 
 type RPCGateway struct {
 	logger *logging.Logger
-	router *router // TODO(nkryuchkov): move part of Router methods to RPCGateway
+	router *router
 }
 
 func NewRPCGateway(router *router) *RPCGateway {

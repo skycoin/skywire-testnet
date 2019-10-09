@@ -1,7 +1,6 @@
 package app2
 
 import (
-	"errors"
 	"fmt"
 	"net"
 
@@ -220,7 +219,7 @@ func (r *RPCGateway) CloseListener(lisID *uint16, _ *struct{}) error {
 func (r *RPCGateway) popListener(lisID uint16) (net.Listener, error) {
 	lisIfc, err := r.lm.pop(lisID)
 	if err != nil {
-		return nil, errors.Wrap(err, "no listener")
+		return nil, fmt.Errorf("no listener: %v", err)
 	}
 
 	return assertListener(lisIfc)
@@ -231,7 +230,7 @@ func (r *RPCGateway) popListener(lisID uint16) (net.Listener, error) {
 func (r *RPCGateway) popConn(connID uint16) (net.Conn, error) {
 	connIfc, err := r.cm.pop(connID)
 	if err != nil {
-		return nil, errors.Wrap(err, "no conn")
+		return nil, fmt.Errorf("no conn: %v", err)
 	}
 
 	return assertConn(connIfc)

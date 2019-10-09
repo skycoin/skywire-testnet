@@ -63,6 +63,7 @@ func (cc CloseCode) String() string {
 }
 
 const (
+	// CloseRequested is used when a closing is requested by visor.
 	CloseRequested CloseCode = iota
 )
 

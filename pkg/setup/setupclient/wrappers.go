@@ -11,6 +11,7 @@ import (
 	"github.com/skycoin/skywire/pkg/snet"
 )
 
+// DialRouteGroup is a wrapper for (*Client).DialRouteGroup.
 func DialRouteGroup(ctx context.Context, log *logging.Logger, n *snet.Network, setupNodes []cipher.PubKey,
 	req routing.BidirectionalRoute) (routing.EdgeRules, error) {
 

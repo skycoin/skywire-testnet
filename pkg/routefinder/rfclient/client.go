@@ -20,7 +20,7 @@ const defaultContextTimeout = 10 * time.Second
 
 var log = logging.MustGetLogger("routefinder")
 
-// GetRoutesRequest parses json body for /routes endpoint request
+// RouteOptions represents options for FindRoutesRequest
 type RouteOptions struct {
 	MinHops uint16
 	MaxHops uint16

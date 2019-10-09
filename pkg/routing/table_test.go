@@ -78,19 +78,19 @@ func TestRoutingTableCleanup(t *testing.T) {
 		config:   Config{GCInterval: DefaultGCInterval},
 	}
 
-	id0, err := rt.ReserveKey()
+	id0, err := rt.ReserveKeys(1)
 	require.NoError(t, err)
-	err = rt.SaveRule(IntermediaryForwardRule(1*time.Hour, id0, 3, uuid.New()))
-	require.NoError(t, err)
-
-	id1, err := rt.ReserveKey()
-	require.NoError(t, err)
-	err = rt.SaveRule(IntermediaryForwardRule(1*time.Hour, id1, 3, uuid.New()))
+	err = rt.SaveRule(IntermediaryForwardRule(1*time.Hour, id0[0], 3, uuid.New()))
 	require.NoError(t, err)
 
-	id2, err := rt.ReserveKey()
+	id1, err := rt.ReserveKeys(1)
 	require.NoError(t, err)
-	err = rt.SaveRule(IntermediaryForwardRule(-1*time.Hour, id2, 3, uuid.New()))
+	err = rt.SaveRule(IntermediaryForwardRule(1*time.Hour, id1[0], 3, uuid.New()))
+	require.NoError(t, err)
+
+	id2, err := rt.ReserveKeys(1)
+	require.NoError(t, err)
+	err = rt.SaveRule(IntermediaryForwardRule(-1*time.Hour, id2[0], 3, uuid.New()))
 	require.NoError(t, err)
 
 	// rule should already be expired at this point due to the execution time.
@@ -99,15 +99,15 @@ func TestRoutingTableCleanup(t *testing.T) {
 
 	assert.Equal(t, 3, rt.Count())
 
-	_, err = rt.Rule(id1)
+	_, err = rt.Rule(id1[0])
 	require.NoError(t, err)
 
-	assert.NotNil(t, rt.activity[id1])
+	assert.NotNil(t, rt.activity[id1[0]])
 
 	rt.gc()
 	assert.Equal(t, 2, rt.Count())
 
-	rule, err := rt.Rule(id2)
+	rule, err := rt.Rule(id2[0])
 	require.Error(t, err)
 	assert.Nil(t, rule)
 }

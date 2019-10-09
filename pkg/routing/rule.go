@@ -244,6 +244,7 @@ func (r Rule) setDstPort(port Port) {
 // RouteDescriptor describes a route (from the perspective of the source and destination edges).
 type RouteDescriptor [routeDescriptorSize]byte
 
+// NewRouteDescriptor returns a new RouteDescriptor.
 func NewRouteDescriptor(srcPK, dstPK cipher.PubKey, srcPort, dstPort Port) RouteDescriptor {
 	var desc RouteDescriptor
 

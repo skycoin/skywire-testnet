@@ -33,7 +33,7 @@ func (g *RPCGateway) DialRouteGroup(route routing.BidirectionalRoute, rules *rou
 
 	g.logger.Infof("Received RPC DialRouteGroup request")
 
-	// TODO: Is there a better way to do timeout?
+	// TODO(nkryuchkov): Is there a better way to do timeout?
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 

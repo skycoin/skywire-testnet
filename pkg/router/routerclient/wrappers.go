@@ -11,6 +11,7 @@ import (
 	"github.com/skycoin/skywire/pkg/routing"
 )
 
+// AddEdgeRules is a wrapper for (*Client).AddEdgeRules.
 func AddEdgeRules(ctx context.Context, log *logging.Logger, dmsgC *dmsg.Client, pk cipher.PubKey, rules routing.EdgeRules) (bool, error) {
 	client, err := NewClient(ctx, dmsgC, pk)
 	if err != nil {
@@ -26,6 +27,7 @@ func AddEdgeRules(ctx context.Context, log *logging.Logger, dmsgC *dmsg.Client, 
 	return ok, nil
 }
 
+// AddIntermediaryRules is a wrapper for (*Client).AddIntermediaryRules.
 func AddIntermediaryRules(ctx context.Context, log *logging.Logger, dmsgC *dmsg.Client, pk cipher.PubKey, rules []routing.Rule) (bool, error) {
 	client, err := NewClient(ctx, dmsgC, pk)
 	if err != nil {
@@ -41,6 +43,7 @@ func AddIntermediaryRules(ctx context.Context, log *logging.Logger, dmsgC *dmsg.
 	return routeIDs, nil
 }
 
+// ReserveIDs is a wrapper for (*Client).ReserveIDs.
 func ReserveIDs(ctx context.Context, log *logging.Logger, dmsgC *dmsg.Client, pk cipher.PubKey, n uint8) ([]routing.RouteID, error) {
 	client, err := NewClient(ctx, dmsgC, pk)
 	if err != nil {

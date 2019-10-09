@@ -73,6 +73,7 @@ func (r Route) String() string {
 	return res
 }
 
+// BidirectionalRoute is a Route with both forward and reverse Paths.
 type BidirectionalRoute struct {
 	Desc      RouteDescriptor
 	KeepAlive time.Duration
@@ -80,6 +81,7 @@ type BidirectionalRoute struct {
 	Reverse   Path
 }
 
+// EdgeRules represents edge forward and reverse rules. Edge rules are forward and consume rules.
 type EdgeRules struct {
 	Desc    RouteDescriptor
 	Forward Rule
