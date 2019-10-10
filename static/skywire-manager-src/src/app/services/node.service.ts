@@ -63,14 +63,14 @@ export class NodeService {
   getAllNodes(): Observable<NodeStatusInfo[]> {
     return this.apiService.get('conn/getAll').pipe(
       flatMap(nodes => {
-          if (nodes.length === 0) {
-            return of([]);
-          }
+        if (nodes.length === 0) {
+          return of([]);
+        }
 
-          return forkJoin(nodes.map(node => this.node(node.key).pipe(
-            map(nodeWithAddress => ({...node, ...nodeWithAddress})),
-            catchError(() => of({...node}))
-          )));
+        return forkJoin(nodes.map(node => this.node(node.key).pipe(
+          map(nodeWithAddress => ({...node, ...nodeWithAddress})),
+          catchError(() => of({...node}))
+        )));
       }),
       flatMap(nodes => {
         if (nodes.length === 0) {
@@ -84,9 +84,18 @@ export class NodeService {
       }),
       map((nodes: Node[]) => {
         let storedNodes = this.storageService.getNodes();
+        const storedNodesMap = new Map<string, boolean>();
+        storedNodes.forEach(node => storedNodesMap.set(node, true));
 
-        if (storedNodes.length === 0) {
-          nodes.forEach(node => this.storageService.addNode(node.key));
+        let nodesAdded = false;
+        nodes.forEach(node => {
+          if (!storedNodesMap.has(node.key)) {
+            this.storageService.addNode(node.key);
+            nodesAdded = true;
+          }
+        });
+
+        if (nodesAdded) {
           storedNodes = this.storageService.getNodes();
         }
 
