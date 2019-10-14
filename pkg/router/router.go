@@ -65,6 +65,7 @@ func DefaultDialOptions() DialOptions {
 	}
 }
 
+// TODO(nkryuchkov): consider moving to visor package
 type Router interface {
 	io.Closer
 
@@ -111,7 +112,7 @@ type router struct {
 }
 
 // New constructs a new Router.
-func New(n *snet.Network, config *Config) (*router, error) {
+func New(n *snet.Network, config *Config) (Router, error) {
 	config.SetDefaults()
 
 	sl, err := n.Listen(snet.DmsgType, snet.AwaitSetupPort)
@@ -278,8 +279,20 @@ func (r *router) saveRouteGroupRules(rules routing.EdgeRules) *RouteGroup {
 	return rg
 }
 
-// TODO(nkryuchkov): handle other packet types
 func (r *router) handleTransportPacket(ctx context.Context, packet routing.Packet) error {
+	switch packet.Type() {
+	case routing.DataPacket:
+		return r.handleDataPacket(ctx, packet)
+	case routing.ClosePacket:
+		return r.handleClosePacket(ctx, packet)
+	case routing.KeepAlivePacket:
+		return r.handleKeepAlivePacket(ctx, packet)
+	default:
+		return errors.New("unknown packet type")
+	}
+}
+
+func (r *router) handleDataPacket(ctx context.Context, packet routing.Packet) error {
 	rule, err := r.GetRule(packet.RouteID())
 	if err != nil {
 		return err
@@ -311,10 +324,18 @@ func (r *router) handleTransportPacket(ctx context.Context, packet routing.Packe
 			case <-rg.done:
 				return io.ErrClosedPipe
 			}
-
 		}
 	}
+}
 
+func (r *router) handleClosePacket(ctx context.Context, packet routing.Packet) error {
+	// TODO(nkryuchkov): implement
+	return nil
+}
+
+func (r *router) handleKeepAlivePacket(ctx context.Context, packet routing.Packet) error {
+	// TODO(nkryuchkov): implement
+	return nil
 }
 
 // GetRule gets routing rule.

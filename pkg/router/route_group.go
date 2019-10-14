@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/skycoin/dmsg/ioutil"
@@ -46,10 +47,12 @@ type RouteGroup struct {
 	once    sync.Once
 
 	rt routing.Table
+
+	lastSent int64
 }
 
 func NewRouteGroup(rt routing.Table, desc routing.RouteDescriptor) *RouteGroup {
-	return &RouteGroup{
+	rg := &RouteGroup{
 		desc:    desc,
 		fwd:     make([]routing.Rule, 0),
 		rvs:     make([]routing.Rule, 0),
@@ -58,6 +61,10 @@ func NewRouteGroup(rt routing.Table, desc routing.RouteDescriptor) *RouteGroup {
 		readBuf: bytes.Buffer{},
 		rt:      rt,
 	}
+
+	go rg.keepAliveLoop()
+
+	return rg
 }
 
 // Read reads the next packet payload of a RouteGroup.
@@ -98,10 +105,14 @@ func (r *RouteGroup) Write(p []byte) (n int, err error) {
 	if tp == nil {
 		return 0, errors.New("unknown transport")
 	}
+
 	packet := routing.MakeDataPacket(rule.KeyRouteID(), p)
 	if err := tp.WritePacket(context.Background(), packet); err != nil {
 		return 0, err
 	}
+
+	atomic.StoreInt64(&r.lastSent, time.Now().UnixNano())
+
 	return len(p), nil
 }
 
@@ -159,5 +170,49 @@ func (r *RouteGroup) SetReadDeadline(t time.Time) error {
 
 // TODO(nkryuchkov): implement
 func (r *RouteGroup) SetWriteDeadline(t time.Time) error {
+	return nil
+}
+
+func (r *RouteGroup) keepAliveLoop() {
+	keepAlive := 1 * time.Minute // TODO: proper value
+
+	ticker := time.NewTicker(keepAlive / 2)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		lastSent := time.Unix(0, atomic.LoadInt64(&r.lastSent))
+
+		if time.Since(lastSent) < keepAlive/2 {
+			continue
+		}
+
+		if err := r.sendKeepAlive(); err != nil {
+			// TODO: handle error
+		}
+	}
+}
+
+func (r *RouteGroup) sendKeepAlive() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if len(r.tps) == 0 {
+		return errors.New("no transports") // TODO(nkryuchkov): proper error
+	}
+	if len(r.fwd) == 0 {
+		return errors.New("no rules") // TODO(nkryuchkov): proper error
+	}
+
+	tp := r.tps[0]
+	rule := r.fwd[0]
+
+	if tp == nil {
+		return errors.New("unknown transport")
+	}
+
+	packet := routing.MakeKeepAlivePacket(rule.KeyRouteID())
+	if err := tp.WritePacket(context.Background(), packet); err != nil {
+		return err
+	}
 	return nil
 }

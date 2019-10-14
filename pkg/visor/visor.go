@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/rpc"
 	"os"
@@ -22,7 +21,6 @@ import (
 	"github.com/skycoin/skywire/pkg/snet"
 
 	"github.com/skycoin/dmsg"
-	"github.com/skycoin/dmsg/cipher"
 	"github.com/skycoin/dmsg/noise"
 	"github.com/skycoin/skycoin/src/util/logging"
 
@@ -74,14 +72,6 @@ type appExecuter interface {
 type appBind struct {
 	conn net.Conn
 	pid  int
-}
-
-// PacketRouter performs routing of the skywire packets.
-type PacketRouter interface {
-	io.Closer
-	Serve(ctx context.Context) error
-	ServeApp(conn net.Conn, port routing.Port, appConf *app.Config) error
-	SetupIsTrusted(sPK cipher.PubKey) bool
 }
 
 // Node provides messaging runtime for Apps by setting up all
