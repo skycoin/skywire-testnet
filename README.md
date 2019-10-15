@@ -1,5 +1,7 @@
 ![skywire logo](https://user-images.githubusercontent.com/26845312/32426764-3495e3d8-c282-11e7-8fe8-8e60e90cb906.png)
 
+**NOTE**: This repo is no longer actively maintained. Please check out the new Skywire [Testnet](https://github.com/SkycoinProject/skywire) and [Mainnet](https://github.com/SkycoinProject/skywire-mainnet) repos. 
+
 # Skywire
 
 Other languages:
