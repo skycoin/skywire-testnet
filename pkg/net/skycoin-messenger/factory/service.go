@@ -3,7 +3,7 @@ package factory
 import (
 	"sync"
 
-	"github.com/skycoin/skycoin/src/cipher"
+	"github.com/SkycoinProject/skycoin/src/cipher"
 )
 
 type Service struct {

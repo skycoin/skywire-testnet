@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 )
 
 const (

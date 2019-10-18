@@ -1,6 +1,6 @@
 package factory
 
-import "github.com/skycoin/skycoin/src/cipher"
+import "github.com/SkycoinProject/skycoin/src/cipher"
 
 const VERSION = "0.1.0"
 

@@ -6,8 +6,8 @@ import (
 	"hash/crc32"
 	"net"
 
-	"github.com/skycoin/skywire/pkg/net/conn"
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/conn"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 )
 
 type ClientUDPConn struct {

@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/google/btree"
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 )
 
 type UDPPendingMap struct {

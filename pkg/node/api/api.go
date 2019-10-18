@@ -18,9 +18,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/cipher"
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/factory"
-	"github.com/skycoin/skywire/pkg/node"
+	"github.com/SkycoinProject/skycoin/src/cipher"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/factory"
+	"github.com/SkycoinProject/skywire/pkg/node"
 )
 
 type NodeApi struct {
@@ -437,7 +437,7 @@ func (na *NodeApi) startSockss() (err error) {
 	return
 }
 
-var scriptPath = "/src/github.com/skycoin/skywire/static/script/"
+var scriptPath = "/src/github.com/SkycoinProject/skywire/static/script/"
 
 func (na *NodeApi) checkUpdate(w http.ResponseWriter, r *http.Request) (result []byte, err error) {
 	var cmd *exec.Cmd

@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/net/conn"
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/conn"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 )
 
 type ServerUDPConn struct {

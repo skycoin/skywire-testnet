@@ -17,9 +17,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/cipher"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/factory"
+	"github.com/SkycoinProject/skycoin/src/cipher"
+	"github.com/SkycoinProject/skycoin/src/util/file"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/factory"
 )
 
 var globalSessions *session.Manager

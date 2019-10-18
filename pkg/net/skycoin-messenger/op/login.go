@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/factory"
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/msg"
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/websocket/data"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/factory"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/websocket/data"
 )
 
 type Login struct {

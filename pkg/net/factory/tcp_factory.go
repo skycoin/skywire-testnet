@@ -5,8 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/skycoin/skywire/pkg/net/client"
-	"github.com/skycoin/skywire/pkg/net/server"
+	"github.com/SkycoinProject/skywire/pkg/net/client"
+	"github.com/SkycoinProject/skywire/pkg/net/server"
 )
 
 type TCPFactory struct {

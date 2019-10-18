@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"github.com/skycoin/skycoin/src/cipher"
+	"github.com/SkycoinProject/skycoin/src/cipher"
 )
 
 func GenRegMsg() []byte {

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/klauspost/reedsolomon"
-	"github.com/skycoin/skywire/pkg/net/util"
+	"github.com/SkycoinProject/skywire/pkg/net/util"
 )
 
 type fecDecoder struct {

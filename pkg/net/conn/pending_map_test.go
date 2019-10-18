@@ -3,7 +3,7 @@ package conn
 import (
 	"testing"
 
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 )
 
 func newUdp(seq uint32) *msg.UDPMessage {

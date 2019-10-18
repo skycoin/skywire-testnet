@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 
-	"github.com/skycoin/skywire/pkg/net/client"
-	"github.com/skycoin/skywire/pkg/net/conn"
-	"github.com/skycoin/skywire/pkg/net/server"
+	"github.com/SkycoinProject/skywire/pkg/net/client"
+	"github.com/SkycoinProject/skywire/pkg/net/conn"
+	"github.com/SkycoinProject/skywire/pkg/net/server"
 )
 
 type UDPFactory struct {

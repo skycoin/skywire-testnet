@@ -10,10 +10,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/cipher"
-	net "github.com/skycoin/skywire/pkg/net/skycoin-messenger/factory"
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/msg"
-	_ "github.com/skycoin/skywire/pkg/net/skycoin-messenger/op"
+	"github.com/SkycoinProject/skycoin/src/cipher"
+	net "github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/factory"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/msg"
+	_ "github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/op"
 )
 
 type Client struct {

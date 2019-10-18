@@ -9,10 +9,10 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/cipher"
-	"github.com/skycoin/skywire/pkg/net/conn"
-	"github.com/skycoin/skywire/pkg/net/factory"
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skycoin/src/cipher"
+	"github.com/SkycoinProject/skywire/pkg/net/conn"
+	"github.com/SkycoinProject/skywire/pkg/net/factory"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 )
 
 type MessengerFactory struct {

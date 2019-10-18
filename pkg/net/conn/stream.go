@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/btree"
 	"github.com/sirupsen/logrus"
-	"github.com/skycoin/skywire/pkg/net/msg"
+	"github.com/SkycoinProject/skywire/pkg/net/msg"
 )
 
 type streamQueue interface {

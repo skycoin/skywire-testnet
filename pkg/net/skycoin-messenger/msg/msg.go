@@ -3,7 +3,7 @@ package msg
 import (
 	"sync"
 
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/factory"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/factory"
 )
 
 var (

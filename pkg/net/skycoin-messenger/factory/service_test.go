@@ -3,7 +3,7 @@ package factory
 import (
 	"testing"
 
-	"github.com/skycoin/skycoin/src/cipher"
+	"github.com/SkycoinProject/skycoin/src/cipher"
 	"sync"
 )
 

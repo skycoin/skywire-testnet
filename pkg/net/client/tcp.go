@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/skycoin/skywire/pkg/net/conn"
+	"github.com/SkycoinProject/skywire/pkg/net/conn"
 )
 
 type ClientTCPConn struct {

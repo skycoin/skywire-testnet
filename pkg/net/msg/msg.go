@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/btree"
-	"github.com/skycoin/skywire/pkg/net/util"
+	"github.com/SkycoinProject/skywire/pkg/net/util"
 
-	"github.com/skycoin/skycoin/src/cipher"
+	"github.com/SkycoinProject/skycoin/src/cipher"
 )
 
 type Interface interface {

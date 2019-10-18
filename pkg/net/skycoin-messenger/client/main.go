@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/browser"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/websocket"
-	"github.com/skycoin/skywire/pkg/net/skycoin-messenger/websocket/data"
+	"github.com/SkycoinProject/skycoin/src/util/browser"
+	"github.com/SkycoinProject/skycoin/src/util/file"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/websocket"
+	"github.com/SkycoinProject/skywire/pkg/net/skycoin-messenger/websocket/data"
 )
 
 var (

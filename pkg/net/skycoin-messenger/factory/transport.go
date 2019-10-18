@@ -14,8 +14,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/cipher"
-	cn "github.com/skycoin/skywire/pkg/net/conn"
+	"github.com/SkycoinProject/skycoin/src/cipher"
+	cn "github.com/SkycoinProject/skywire/pkg/net/conn"
 )
 
 type Transport struct {

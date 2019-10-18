@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/skycoin/skywire/pkg/net/util"
+	"github.com/SkycoinProject/skywire/pkg/net/util"
 )
 
 func init() {
