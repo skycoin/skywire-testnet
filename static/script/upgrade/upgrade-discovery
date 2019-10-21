@@ -4,7 +4,7 @@
 # this must be run on each OrangePi Prime PC
 
 # vars
-SKYWIRE=/usr/local/skywire/go/src/github.com/skycoin/skywire/
+SKYWIRE=/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/
 DEFAULTS=$SKYWIRE/static/script/skywire.defaults
 
 # get the MANAGER_IP configured

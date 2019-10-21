@@ -5,8 +5,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/manager_start
-ExecStop=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script/stop
+ExecStart=/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/static/script/manager_start
+ExecStop=/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/static/script/stop
 RemainAfterExit=yes
 
 [Install]

@@ -3,7 +3,7 @@
 # Script to start the skywire apps, depending on the IPs of the miner.
 
 # local vars
-SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/static/script
 
 # check for the env vars
 if [ ! -f /etc/default/skywire ] ; then

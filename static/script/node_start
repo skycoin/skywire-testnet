@@ -3,7 +3,7 @@
 ### SkyWire Start script, only node
 
 # local vars
-SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/static/script
 
 # check for the env vars
 if [ ! -f /etc/default/skywire ] ; then
@@ -38,7 +38,7 @@ fi
 # check if we have the bins in place, otherwise compile it from source and if old bins are found remove them
 command -v "${GOPATH}/bin/manager" && command -v "${GOPATH}/bin/node" && command -v "${GOPATH}/bin/socksc" && command -v "${GOPATH}/bin/sockss" && command -v "${GOPATH}/bin/sshc" && command -v "${GOPATH}/bin/sshs" > /dev/null || {
 	  [[ -d ${GOPATH}/pkg/linux_arm64/github.com/skycoin ]] && rm -rf ${GOPATH}/pkg/linux_arm64/github.com/skycoin
-			  cd ${GOPATH}/src/github.com/skycoin/skywire/cmd
+			  cd ${GOPATH}/src/github.com/SkycoinProject/skywire/cmd
 			  ${GOROOT}/bin/go install ./... 2>> /tmp/skywire_install_errors.log
 }
 

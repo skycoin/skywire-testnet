@@ -28,7 +28,7 @@ Please understand that adjusting the discovery address is mandatory if you want 
 
 If you do not feel confident in performing these steps, please backup your data. 
 Two backups may be performed:
-- [use this guide to backup your public keys](https://github.com/skycoin/skywire/wiki/Backup-Public-Keys) before you proceed.
+- [use this guide to backup your public keys](https://github.com/SkycoinProject/skywire/wiki/Backup-Public-Keys) before you proceed.
 Restoring public keys is always a quick option in case something goes wrong. 
 - perform an image backup following [this guide](https://www.raspberrypi.org/magpi/back-up-raspberry-pi/) (follow *option #1*). This guide applies to any SBC and not just Raspberry Pi.
 
@@ -38,7 +38,7 @@ Please read the following steps of this guide very carefully and make sure you u
 
 These steps must be performed on each node of the Skyminer (8 nodes in total). The following are the 'requirements':
 - You need a ssh client like [Putty](https://www.putty.org/) if you're on Windows to connect to the nodes (Linux/OSX users may just use the regular terminal/console)
-- You must have performed the one-time-upgrade at one point (see [this article](https://github.com/skycoin/skywire/#upgrade-the-presetted-system-images) for details)
+- You must have performed the one-time-upgrade at one point (see [this article](https://github.com/SkycoinProject/skywire/#upgrade-the-presetted-system-images) for details)
 - You need to know the `root` credentials of each node 
   - the default `root` password depends on the prepared image you are using:
     - official images *without* the one-time-upgrade -> `samos` (**You must perform the upgrade!**)
@@ -49,11 +49,11 @@ These steps must be performed on each node of the Skyminer (8 nodes in total). T
 
 0. Access a node (try manager node first) as root via the network: ```ssh root@your-node-ip``` and provide the root password
 0. Move to a temp folder: ```cd /tmp```
-0. Get the update script: ```wget https://github.com/skycoin/skywire/raw/master/static/script/upgrade/upgrade-discovery```
+0. Get the update script: ```wget https://github.com/SkycoinProject/skywire/raw/master/static/script/upgrade/upgrade-discovery```
 0. Run the script: ```bash upgrade-discovery```
 0. Reboot: ```reboot```
 
-If everything goes well you will be kicked from the terminal SSH session. Please connect to the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/skycoin/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
+If everything goes well you will be kicked from the terminal SSH session. Please connect to the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/SkycoinProject/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
 
 ## DIY Skyminers
 
@@ -61,7 +61,7 @@ The following sections contain update instructions for our most popular DIY user
 
 ### Skywire Systemd Service - Skywire systemd service setup guide
 
-Taken from: [https://github.com/skycoin/skywire/wiki/Skywire-Systemd-Service](https://github.com/skycoin/skywire/wiki/Skywire-Systemd-Service)
+Taken from: [https://github.com/SkycoinProject/skywire/wiki/Skywire-Systemd-Service](https://github.com/SkycoinProject/skywire/wiki/Skywire-Systemd-Service)
 
 Please recall that you must perform these steps on every single one of your Skyminer nodes!
 
@@ -77,12 +77,12 @@ Please recall that you must perform these steps on every single one of your Skym
 0. Modify Skywire's environment path file on the nodes and manager, edit the environment path file via: ```sudo nano /etc/default/skywire```
 0. Locate the old discovery address, erase it and paste the new discovery address (refer to the top of this post to identify each one, and see below for an example)
 0. Once you made the change press 'ctrl+x' and then 'y' and hit enter to confirm and save the changes you made
-0. Modify Skywire's systemd units on the nodes and manager, edit the service files via: ```sudo nano $GOPATH/src/github.com/skycoin/skywire/static/script/node_start```
+0. Modify Skywire's systemd units on the nodes and manager, edit the service files via: ```sudo nano $GOPATH/src/github.com/SkycoinProject/skywire/static/script/node_start```
 0. Locate the old discovery address, erase it and paste the new discovery address environment path variable `${DISCOVERY_ADDR}`
 0. Once you made the change press 'ctrl+x' and then 'y' and hit enter to confirm and save the changes you made
 0. Reboot the node: ```sudo reboot```
 
-If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/skycoin/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
+If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/SkycoinProject/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
 
 #### Example
 
@@ -91,7 +91,7 @@ Your original ```/etc/default/skywire``` file's relevant lines look like the fol
 ```
 SKYWIRE_START_CMD=${SKYWIRE_DIR}/static/script/start
 Web_Dir=${SKYWIRE_DIR}/static/skywire-manager
-SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
+SKYWIRE_GIT_URL="https://github.com/SkycoinProject/skywire.git"
 DISCOVERY_ADDR=discovery.skycoin.net:5999-034b1cd4ebad163e457fb805b3ba43779958bba49f2c5e1e8b062482904bacdb68
 ```
 
@@ -100,7 +100,7 @@ Modified lines must look like this:
 ```
 SKYWIRE_START_CMD=${SKYWIRE_DIR}/static/script/start
 Web_Dir=${SKYWIRE_DIR}/static/skywire-manager
-SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
+SKYWIRE_GIT_URL="https://github.com/SkycoinProject/skywire.git"
 DISCOVERY_ADDR=testnet.skywire.skycoin.com:5999-028ec969bdeb92a1991bb19c948645ac8150468a6919113061899051409de3f243
 ```
 
@@ -136,16 +136,16 @@ Please recall that you must perform these steps on every single one of your Skym
 #### Instructions
 
 0. Access a node (try the manager node first) as user `pi` via the network: ```ssh pi@your-node-ip``` and enter the password
-0. Change to the Skywire folder: ```cd /home/pi/go/src/github.com/skycoin/skywire```
+0. Change to the Skywire folder: ```cd /home/pi/go/src/github.com/SkycoinProject/skywire```
 0. Clean any local modified files and reset to default version: ```git checkout master && git reset --hard && git clean -f -d```
-0. Update Skywire to the latest version: ```git pull https://github.com/skycoin/skywire.git```
+0. Update Skywire to the latest version: ```git pull https://github.com/SkycoinProject/skywire.git```
 0. Compile and install the latest changes in the sources: ```cd cmd && go install ./...```
 0. Locate and edit the file 'startsecond.sh', issuing this command will suffice: ```cd ~/ && nano startsecond.sh```
 0. Locate the old discovery address, erase it and paste the new discovery address (refer to the top of this post to identify each one, and see below for an example)
 0. Once you made the change press 'ctrl+x' and then 'y' and hit enter to confirm and save the changes you made
 0. Reboot the node: ```sudo reboot```
 
-If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/skycoin/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
+If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/SkycoinProject/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
 
 #### Example
 
@@ -179,16 +179,16 @@ Please recall that you must perform these steps on every single one of your Skym
 
 0. Access a node (try the manager node first) as user `pi` via the network: ```ssh pi@your-node-ip``` and enter the password
 0. Change to `root`: ```sudo bash```
-0. Change to the Skywire folder: ```cd $GOPATH/src/github.com/skycoin/skywire/```
+0. Change to the Skywire folder: ```cd $GOPATH/src/github.com/SkycoinProject/skywire/```
 0. Clean any local modified files and reset to default version: ```git checkout master && git reset --hard && git clean -f -d```
-0. Update Skywire to the latest version: ```git pull https://github.com/skycoin/skywire.git```
+0. Update Skywire to the latest version: ```git pull https://github.com/SkycoinProject/skywire.git```
 0. Compile and install the latest changes in the sources: ```cd cmd && go install ./...```
 0. Modify Skywire's systemd units on the nodes (not manager), edit the service file via: ```nano /etc/systemd/system/skynode.service```
 0. Locate the old discovery address, erase it and paste the new discovery address (refer to the top of this post to identify each one, and see below for an example)
 0. Once you made the change press 'ctrl+x' and then 'y' and hit enter to confirm and save the changes you made
 0. Reboot the node: ```sudo reboot```
 
-If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/skycoin/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
+If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/SkycoinProject/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
 
 #### Example
 
@@ -226,16 +226,16 @@ The steps of this guide are just for one singular node that runs both, the node 
 
 0. Access the node as user `pi` via the network: ```ssh pi@your-node-ip``` and enter the password
 0. Change to `root`: ```sudo bash```
-0. Change to the Skywire folder: ```cd $GOPATH/src/github.com/skycoin/skywire/```
+0. Change to the Skywire folder: ```cd $GOPATH/src/github.com/SkycoinProject/skywire/```
 0. Clean any local modified files and reset to default version: ```git checkout master && git reset --hard && git clean -f -d```
-0. Update Skywire to the latest version: ```git pull https://github.com/skycoin/skywire.git```
+0. Update Skywire to the latest version: ```git pull https://github.com/SkycoinProject/skywire.git```
 0. Compile and install the latest changes in the sources: ```cd cmd && go install ./...```
 0. Modify Skywire's start script open it for edit: ```nano /etc/init.d/MyScript.sh```
 0. Locate the old discovery address, erase it and paste the new discovery address (refer to the top of this post to identify each one, and see below for an example)
 0. Once you made the change press 'ctrl+x' and then 'y' and hit enter to confirm and save the changes you made
 0. Reboot the node: ```sudo reboot```
 
-If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/skycoin/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
+If everything goes well you will be kicked from the terminal SSH session. Please continue with the next node and repeat these steps. Once you've performed the steps on all nodes, login to your manager and check if all of your nodes display a green status LED thus being connected and you are done. Manual confirmation of your nodes being online can be achieved by following the steps of the [Online Status Verification User Guide](https://github.com/SkycoinProject/skywire/wiki/Online-Status-Verification-User-Guide) and replacing http://discovery.skycoin.net:8001/ with http://testnet.skywire.skycoin.com:8001/#.
 
 #### Example
 

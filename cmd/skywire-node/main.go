@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/skycoin/skycoin/src/util/file"
-	"github.com/skycoin/skywire/pkg/node"
-	"github.com/skycoin/skywire/pkg/node/api"
+	"github.com/SkycoinProject/skycoin/src/util/file"
+	"github.com/SkycoinProject/skywire/pkg/node"
+	"github.com/SkycoinProject/skywire/pkg/node/api"
 )
 
 var (

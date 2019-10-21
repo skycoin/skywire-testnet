@@ -31,12 +31,12 @@ Skywire当前还处于开发阶段，如果没有太多技术背景，请等待�
 ```
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
-git clone https://github.com/skycoin/skywire.git
+git clone https://github.com/SkycoinProject/skywire.git
 ```
 
 ### 编译Skywire
 ```
-cd $GOPATH/src/github.com/skycoin/skywire/cmd
+cd $GOPATH/src/github.com/SkycoinProject/skywire/cmd
 go install ./...
 ```
 编译好的Skywire程序在$GOPATH/bin
@@ -50,7 +50,7 @@ go install ./...
 #### 运行 Skywire Manager
 ```
 cd $GOPATH/bin
-./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+./skywire-manager -web-dir ${GOPATH}/src/github.com/SkycoinProject/skywire/static/skywire-manager
 ```
 `提示:如果使用以上命令运行,您将不可以关闭当前窗口,否则将会关闭 Skywire Manger。`
 
@@ -58,7 +58,7 @@ cd $GOPATH/bin
 
 ```
 cd $GOPATH/bin
-nohup ./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
+nohup ./skywire-manager -web-dir ${GOPATH}/src/github.com/SkycoinProject/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
 ```
 
 `注意：不要同时执行以上两个命令，只需要选择其中一种方式即可`
@@ -152,7 +152,7 @@ Port: 可用端口
 ## Docker
 
 ```
-docker build -t skycoin/skywire .
+docker build -t SkycoinProject/skywire .
 ```
 
 ### 启动Skywire Manager
@@ -162,7 +162,7 @@ docker run -ti --rm \
   --name=skywire-manager \
   -p 5998:5998 \
   -p 8000:8000 \
-  skycoin/skywire
+  SkycoinProject/skywire
 ```
 
 浏览器打开 [http://localhost:8000](http://localhost:8000).
@@ -178,7 +178,7 @@ docker run -ti --rm \
   --link skywire-manager \
   -p 5000:5000 \
   -p 6001:6001 \
-  skycoin/skywire \
+  SkycoinProject/skywire \
     node \
       -connect-manager \
       -manager-address skywire-manager:5998 \

@@ -22,7 +22,7 @@ SKYWIRE_DIR=${SKYCOIN_DIR}/skywire
 SKYWIRE_STOP_CMD=${SKYWIRE_DIR}/static/script/stop
 SKYWIRE_START_CMD=${SKYWIRE_DIR}/static/script/start
 Web_Dir=${SKYWIRE_DIR}/static/skywire-manager
-SKYWIRE_GIT_URL="https://github.com/skycoin/skywire.git"
+SKYWIRE_GIT_URL="https://github.com/SkycoinProject/skywire.git"
 DISCOVERY_ADDR=testnet.skywire.skycoin.com:5999-028ec969bdeb92a1991bb19c948645ac8150468a6919113061899051409de3f243
 
 # export them all

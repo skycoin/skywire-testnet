@@ -4,7 +4,7 @@ This are the instructions to upgrade the official Skyminers with the official ha
 
 ## Improvements & details
 
-On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https://github.com/skycoin/skywire/issues/171) for a list of them; also you get this:
+On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https://github.com/SkycoinProject/skywire/issues/171) for a list of them; also you get this:
 
 * New version of the webUI
 * Improved start/stop scripts, handled now by systemd the mainstream solution
@@ -16,7 +16,7 @@ On this upgrade we will clear a bunch of identified bugs, see [Issue #171](https
 
 ## Provisions
 
-* Your hardware must be configured with the default network config or you must know your manager and nodes IPs if you changed them; see the [networking guide](https://github.com/skycoin/skywire/wiki/Networking-guide-for-the-official-router) if you need to know more.
+* Your hardware must be configured with the default network config or you must know your manager and nodes IPs if you changed them; see the [networking guide](https://github.com/SkycoinProject/skywire/wiki/Networking-guide-for-the-official-router) if you need to know more.
 * You must have access to your manager node via a linux shell (using plain ssh on Linux/Mac or Putty on Windows)
 * Your skyminer must be connected to the internet (all nodes need to be able to communicate with the outside world) or the script will fail, as we will update a few thing online.
 * You must know the root password of each node (if you don't changed it, then it's ```samos```)
@@ -29,7 +29,7 @@ Once you opened the terminal, please enter the following commands to start the u
 
 ```
 cd /tmp
-git clone https://github.com/skycoin/skywire.git
+git clone https://github.com/SkycoinProject/skywire.git
 cd skywire/static/script
 cd upgrade
 ```
@@ -46,7 +46,7 @@ In the same console, run now the update script, like this:
 
 Please make sure to change the root password afterwards via `passwd` command of all boards!
 
-And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your pc you can [follow this procedure](https://github.com/skycoin/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
+And follow the instructions in the dialog boxes, at the end you will have a file named log.txt on that folder with the log of all the operations, if you need to get that file on your pc you can [follow this procedure](https://github.com/SkycoinProject/skywire/wiki/Backup-.skywire-folders-(public-keys)#download-backup-folders-to-your-computer-using-filezilla) to make it happen.
 
 ***
 
@@ -81,11 +81,11 @@ sudo apt-get install git gcc
 ```
 Then manually execute the update on the node via 
 ```
-cd /usr/local/skywire/go/src/github.com/skycoin/skywire
+cd /usr/local/skywire/go/src/github.com/SkycoinProject/skywire
 
 git reset --hard
 
-git remote set-url origin https://github.com/skycoin/skywire.git
+git remote set-url origin https://github.com/SkycoinProject/skywire.git
 
 git pull
 

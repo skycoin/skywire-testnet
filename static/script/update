@@ -3,7 +3,7 @@
 # Script to update the skywire apps, beware it will stop and start them. 
 
 # local vars
-SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/static/script
 
 # check for the env vars
 if [ ! -f /etc/default/skywire ] ; then

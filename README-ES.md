@@ -40,13 +40,13 @@ Se lees este documento te darás cuenta que si usas un segmento de IP diferente 
 ```
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
-git clone https://github.com/skycoin/skywire.git
+git clone https://github.com/SkycoinProject/skywire.git
 ```
 
 Construya los binarios para skywire
 
 ```
-cd $GOPATH/src/github.com/skycoin/skywire/cmd
+cd $GOPATH/src/github.com/SkycoinProject/skywire/cmd
 go install ./...
 ```
 
@@ -67,7 +67,7 @@ Solo por precaución y luego de modificar este fichero debes fijarte si existe e
 Abra una ventana de comandos en una PC que será administrador y siga las instrucciones de instalación, entonces para ejecutar el administrador escriba:
 
 ```
-${GOPATH}/src/github.com/skycoin/skywire/static/script/manager_start
+${GOPATH}/src/github.com/SkycoinProject/skywire/static/script/manager_start
 ```
 
 `tip: al ejecutar el administrador mediante este script estará ejecutando a la vez un nodo, por lo que no necesita ejecutar un nodo en la misma PC.`
@@ -77,7 +77,7 @@ ${GOPATH}/src/github.com/skycoin/skywire/static/script/manager_start
 Abra una ventana de comandos en una PC que será solo un nodo y siga las instrucciones de instalación, entonces para ejecutar un nodo escriba:
 
 ```
-${GOPATH}/src/github.com/skycoin/skywire/static/script/node_start
+${GOPATH}/src/github.com/SkycoinProject/skywire/static/script/node_start
 ```
 
 #### Detener el administrador y nodo de Skywire
@@ -85,7 +85,7 @@ ${GOPATH}/src/github.com/skycoin/skywire/static/script/node_start
 Si inició el administrador o el nodo por la vía anteriormente descrita puedes deternerlo en cada PC con un simple comando en una ventana de comandos:
 
 ```
-${GOPATH}/src/github.com/skycoin/skywire/static/script/stop
+${GOPATH}/src/github.com/SkycoinProject/skywire/static/script/stop
 ```
 
 Esto verifica el pid de los procesos creados con los scripts de inicio (manager_start y node_start) y los detendrá. Si ejecutaste tanto el administrador como el nodo llamando a los binarios epecíficos y no usando el script sugerido, puedes matar los procesos usando estos comandos:
@@ -104,7 +104,7 @@ Por favor ten en cuenta que una instancia administradora inicia su propio nodo e
 ###### Instalando los fichero unit de systemd para el administrador
 
 ```
-cp ${GOPATH}/src/github.com/skycoin/skywire/static/script/upgrade/data/skywire-manager.service /etc/systemd/system/
+cp ${GOPATH}/src/github.com/SkycoinProject/skywire/static/script/upgrade/data/skywire-manager.service /etc/systemd/system/
 systemctl enable skywire-manager
 systemctl start skywire-manager
 ```
@@ -112,7 +112,7 @@ systemctl start skywire-manager
 ###### Instalando los fichero unit de systemd para los nodos
 
 ```
-cp ${GOPATH}/src/github.com/skycoin/skywire/static/script/upgrade/data/skywire-node.service /etc/systemd/system/
+cp ${GOPATH}/src/github.com/SkycoinProject/skywire/static/script/upgrade/data/skywire-node.service /etc/systemd/system/
 systemctl enable skywire-node
 systemctl start skywire-node
 ```
@@ -172,7 +172,7 @@ Ingrese la clave del nodo y la clave de la aplicación. Después de que la conex
 ## Docker
 
 ```
-docker build -t skycoin/skywire .
+docker build -t SkycoinProject/skywire .
 ```
 
 ### Arranque el administrador
@@ -182,7 +182,7 @@ docker run -ti --rm \
   --name=skywire-manager \
   -p 5998:5998 \
   -p 8000:8000 \
-  skycoin/skywire
+  SkycoinProject/skywire
 ```
 
 **Nota:**
@@ -201,7 +201,7 @@ docker run -ti --rm \
   --link skywire-manager \
   -p 5000:5000 \
   -p 6001:6001 \
-  skycoin/skywire \
+  SkycoinProject/skywire \
     node \
       -connect-manager \
       -manager-address skywire-manager:5998 \
@@ -233,8 +233,8 @@ La contraseña predeterminada es 'samos'.
 Ejecuta esto **una vez si estás usando las imágenes oficiales** para actualizar a la última versión del código:
 
 ```
-cd $GOPATH/src/github.com/skycoin/skywire
-git remote set-url origin https://github.com/skycoin/skywire.git
+cd $GOPATH/src/github.com/SkycoinProject/skywire
+git remote set-url origin https://github.com/SkycoinProject/skywire.git
 git reset --hard
 git clean -f -d
 git pull origin master
@@ -243,7 +243,7 @@ go install -v ./...
 
 ### Importante:
 
-Estas imágenes bases (todas) tienen un fallo conocido, por favor [lee aquí](https://github.com/skycoin/skywire/issues/80) una vez que hallas actualizado el código para saber como solucionarlo hasta tanto se actualizan las imágenes.
+Estas imágenes bases (todas) tienen un fallo conocido, por favor [lee aquí](https://github.com/SkycoinProject/skywire/issues/80) una vez que hallas actualizado el código para saber como solucionarlo hasta tanto se actualizan las imágenes.
 
 El paquete de imagen del sistema administrador contiene un administrador Skywire y un nodo Skywire, otro paquete de imagen del sistema Nodo solo inicia un nodo.
 

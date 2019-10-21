@@ -37,12 +37,12 @@
 ```
 mkdir -p $GOPATH/src/github.com/skycoin
 cd $GOPATH/src/github.com/skycoin
-git clone https://github.com/skycoin/skywire.git
+git clone https://github.com/SkycoinProject/skywire.git
 ```
 
 스카이와이어를 위한 바이너리 설치
 ```
-cd $GOPATH/src/github.com/skycoin/skywire/cmd
+cd $GOPATH/src/github.com/SkycoinProject/skywire/cmd
 go install ./...
 ```
 
@@ -53,7 +53,7 @@ go install ./...
 #### 스카이매니저구동
 ```
 cd $GOPATH/bin
-./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager
+./skywire-manager -web-dir ${GOPATH}/src/github.com/SkycoinProject/skywire/static/skywire-manager
 ```
 `팁:  만약 당신이 위의 명령어를 사용한다면, 현재 열려있는 윈도우를 닫지 못하거나 윈도우 창을 종료할 시 스카이와이어 매니저가 종료될 것입니다.`
 
@@ -61,7 +61,7 @@ cd $GOPATH/bin
 
 ```
 cd $GOPATH/bin
-nohup ./skywire-manager -web-dir ${GOPATH}/src/github.com/skycoin/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
+nohup ./skywire-manager -web-dir ${GOPATH}/src/github.com/SkycoinProject/skywire/static/skywire-manager > /dev/null 2>&1 & echo $! > manager.pid
 
 ```
 `주의: 위의 두 명령어는 동시에 구동할 수 없으며, 둘 중 하나만 사용해야 합니다.`
@@ -142,7 +142,7 @@ Port: 가용포트
 ## 도커
 
 ```
-docker build -t skycoin/skywire .
+docker build -t SkycoinProject/skywire .
 ```
 
 ### 매니저 실행
@@ -152,7 +152,7 @@ docker run -ti --rm \
   --name=skywire-manager \
   -p 5998:5998 \
   -p 8000:8000 \
-  skycoin/skywire
+  SkycoinProject/skywire
 ```
 열기 [http://localhost:8000](http://localhost:8000).
 스카이와이어 매니저의 초기 패스워드는 **1234** 입니다.
@@ -168,7 +168,7 @@ docker run -ti --rm \
   --link skywire-manager \
   -p 5000:5000 \
   -p 6001:6001 \
-  skycoin/skywire \
+  SkycoinProject/skywire \
     node \
       -connect-manager \
       -manager-address skywire-manager:5998 \

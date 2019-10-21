@@ -2,111 +2,152 @@
 
 
 [[projects]]
+  digest = "1:d58e77a7fe69f3b6a6152e9a24050e3f0bc9cd9503a21cc9e6351d28d404f0b5"
+  name = "github.com/SkycoinProject/skycoin"
+  packages = [
+    "src/cipher",
+    "src/cipher/go-bip39",
+    "src/util/browser",
+    "src/util/file",
+  ]
+  pruneopts = "UT"
+  revision = "b200e2c40ebbce316ae2f40e68d9dd7ff907da33"
+  version = "v0.20.3"
+
+[[projects]]
   branch = "master"
+  digest = "1:8fa55a6e302771a90a86ceae1ca3c0df4ef15d21092198e8313f61dde9eea963"
   name = "github.com/Yawning/chacha20"
   packages = ["."]
+  pruneopts = "UT"
   revision = "e3b1f968fc6397b51d963fee8ec8711a47bc0ce8"
 
 [[projects]]
+  digest = "1:2bd5a34827cfd262150e002954e51a387d6d5122aafb4bed2fc31ad7b1c25dc8"
   name = "github.com/astaxie/beego"
   packages = [
     "session",
-    "utils"
+    "utils",
   ]
+  pruneopts = "UT"
   revision = "bf5c5626ab429e66d88602e1ab1ab5fbf4629a01"
   version = "v1.9.2"
 
 [[projects]]
   branch = "master"
+  digest = "1:5c9ee5d71eb6d4422377cd7d1db03c80d9858bf19ae0c91a53034157e7f2ca51"
   name = "github.com/google/btree"
   packages = ["."]
+  pruneopts = "UT"
   revision = "316fb6d3f031ae8f4d457c6c5186b9e3ded70435"
 
 [[projects]]
+  digest = "1:43dd08a10854b2056e615d1b1d22ac94559d822e1f8b6fcc92c1a1057e85188e"
   name = "github.com/gorilla/websocket"
   packages = ["."]
+  pruneopts = "UT"
   revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:4ea0668d490ca32a38366453a486e2e8c60fbdaf1f2607c96b4a093d8a5c8de7"
   name = "github.com/klauspost/cpuid"
   packages = ["."]
+  pruneopts = "UT"
   revision = "ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da"
   version = "v1.1"
 
 [[projects]]
+  digest = "1:a863aa8e37dcea3224abebd5f92bb38ca985db0599748bd2b36dd26007679dd8"
   name = "github.com/klauspost/reedsolomon"
   packages = ["."]
+  pruneopts = "UT"
   revision = "6bb6130ff6a76a904c1841707d65603aec9cc288"
   version = "v1.6"
 
 [[projects]]
+  digest = "1:f6b82ed403c30a49dccca6f9fad2b1ecd16fbb0b75a251848041d0b73c33ab8b"
   name = "github.com/kr/pty"
   packages = ["."]
+  pruneopts = "UT"
   revision = "282ce0e5322c82529687d609ee670fac7c7d917c"
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:5b3b29ce0e569f62935d9541dff2e16cc09df981ebde48e82259076a73a3d0c7"
   name = "github.com/op/go-logging"
   packages = ["."]
+  pruneopts = "UT"
   revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
   version = "v1"
 
 [[projects]]
+  digest = "1:07e8589503b7ec22430dae6eed6f2c17e4249ab245574f4fd0ba8fc9c597d138"
   name = "github.com/oschwald/maxminddb-golang"
   packages = ["."]
+  pruneopts = "UT"
   revision = "c5bec84d1963260297932a1b7a1753c8420717a7"
   version = "v1.3.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:3bf17a6e6eaa6ad24152148a631d18662f7212e21637c2699bff3369b7f00fa2"
   name = "github.com/petar/GoLLRB"
   packages = ["llrb"]
+  pruneopts = "UT"
   revision = "53be0d36a84c2a886ca057d34b6aa4468df9ccb4"
 
 [[projects]]
+  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
+  pruneopts = "UT"
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:3690b4169ace25bf5fc1fe319d64fc463d4759975fadd34b73489a5a4c1c7cd4"
   name = "github.com/shadowsocks/shadowsocks-go"
   packages = ["shadowsocks"]
+  pruneopts = "UT"
   revision = "97a5c71f80ba5f5b3e549f14a619fe557ff4f3c9"
   version = "1.2.1"
 
 [[projects]]
+  digest = "1:5f2aaa360f48d1711795bd88c7e45a38f86cf81e4bc01453d20983baa67e2d51"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
+  pruneopts = "UT"
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
   version = "v1.0.3"
 
 [[projects]]
+  digest = "1:f3f8f876f1ad70e8f0600ec98d63ff01b2c3cad59991acf0e052f3b88dabeff5"
   name = "github.com/skycoin/skycoin"
   packages = [
     "src/cipher",
     "src/cipher/base58",
     "src/cipher/chacha20",
-    "src/cipher/go-bip39",
     "src/cipher/ripemd160",
     "src/cipher/secp256k1-go",
     "src/cipher/secp256k1-go/secp256k1-go2",
-    "src/util/browser",
-    "src/util/file",
-    "src/util/logging"
+    "src/util/logging",
   ]
-  revision = "b200e2c40ebbce316ae2f40e68d9dd7ff907da33"
-  version = "v0.20.3"
+  pruneopts = "UT"
+  revision = "84098d9ef5cdfa86d325509cf200dd7e45b4a1b4"
+  version = "v0.22.0"
 
 [[projects]]
+  digest = "1:e1cd343b3883ced86b6873fe4d2f76799259fba3d1656df6ac0a7fa92644c049"
   name = "github.com/toqueteos/webbrowser"
   packages = ["."]
+  pruneopts = "UT"
   revision = "3232c91b8ede8ca86e8962981d881af78875542f"
   version = "v1.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:9a6e7d001f5e248e113584c1eb8b05e686e4d4567a5796d1a9246999e3bc7e9e"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
@@ -114,22 +155,40 @@
     "cast5",
     "pbkdf2",
     "salsa20/salsa",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
+  pruneopts = "UT"
   revision = "edd5e9b0879d13ee6970a50153d85b8fec9f7686"
 
 [[projects]]
   branch = "master"
+  digest = "1:b7f856b203353cc60a001f662243c1a894dc3c4118c8ac3a44ad0d8d1aa66615"
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
   ]
+  pruneopts = "UT"
   revision = "8dbc5d05d6edcc104950cc299a1ce6641235bc86"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "31f35cf4054c0f85b1b72e9684a99d7148b4d569902c32c1d9972c0661032834"
+  input-imports = [
+    "github.com/SkycoinProject/skycoin/src/cipher",
+    "github.com/SkycoinProject/skycoin/src/cipher/go-bip39",
+    "github.com/SkycoinProject/skycoin/src/util/browser",
+    "github.com/SkycoinProject/skycoin/src/util/file",
+    "github.com/astaxie/beego/session",
+    "github.com/google/btree",
+    "github.com/gorilla/websocket",
+    "github.com/klauspost/reedsolomon",
+    "github.com/kr/pty",
+    "github.com/oschwald/maxminddb-golang",
+    "github.com/pkg/errors",
+    "github.com/shadowsocks/shadowsocks-go/shadowsocks",
+    "github.com/sirupsen/logrus",
+    "golang.org/x/crypto/bcrypt",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -183,7 +183,7 @@ function check_namager_ip() {
             dialog_advice "Post upgrade configs - Setting IP of MANAGER" "The node $node is reachable. Setting MANAGER_IP to the correct value"
 
             # set working dir on dest ip
-            local WD="/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script"
+            local WD="/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/static/script"
 
             # parse
             ssh "root@$node" "cat ${WD}/skywire.defaults | sed s/'192.168.0.2'/'${MANAGER_IP}'/g > /tmp/skywire.defaults"

@@ -1,17 +1,17 @@
 # skywire build binaries
-# reference https://github.com/skycoin/skywire
+# reference https://github.com/SkycoinProject/skywire
 ARG IMAGE_FROM=busybox:1.29-glibc
 FROM golang:1.10-stretch AS build-go
 ARG ARCH=amd64
 ARG GOARM
 ARG CC=gcc
 
-COPY . $GOPATH/src/github.com/skycoin/skywire
+COPY . $GOPATH/src/github.com/SkycoinProject/skywire
 
 RUN apt-get update \
     && apt-get -y install build-essential crossbuild-essential-armhf crossbuild-essential-arm64 automake gcc-arm-linux-gnueabihf
 
-RUN cd $GOPATH/src/github.com/skycoin/skywire && \
+RUN cd $GOPATH/src/github.com/SkycoinProject/skywire && \
     GOARCH=$ARCH GOARM=$GOARM GOOS=linux CGO_ENABLED=1 CC=$CC \
     go install -a -installsuffix cgo ./... && \
     sh -c "if test -d $GOPATH/bin/linux_arm ; then mv $GOPATH/bin/linux_arm/* $GOPATH/bin/; fi; \

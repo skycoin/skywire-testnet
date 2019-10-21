@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # TODO needs revision, see:
-# https://github.com/skycoin/skywire/issues/161
+# https://github.com/SkycoinProject/skywire/issues/161
 
 # local vars
-SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/skycoin/skywire/static/script
+SKYWIRE_UNIX_SCRIPTS=/usr/local/skywire/go/src/github.com/SkycoinProject/skywire/static/script
 
 # check for the env vars
 if [ ! -f /etc/default/skywire ] ; then

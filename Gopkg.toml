@@ -33,5 +33,5 @@
   version = "1.0.3"
 
 [[constraint]]
-  name = "github.com/skycoin/skycoin"
+  name = "github.com/SkycoinProject/skycoin"
   version = "0.20.3"
