@@ -1,6 +1,6 @@
 ![skywire logo](https://user-images.githubusercontent.com/26845312/32426764-3495e3d8-c282-11e7-8fe8-8e60e90cb906.png)
 
-**NOTE**: This repo is no longer actively maintained. Please check out the new Skywire [Testnet](https://github.com/SkycoinProject/skywire) and [Mainnet](https://github.com/SkycoinProject/skywire-mainnet) repos. 
+## NOTE: This repo is no longer actively maintained. Please check out the new Skywire [Testnet](https://github.com/SkycoinProject/skywire) and [Mainnet](https://github.com/SkycoinProject/skywire-mainnet) repos. 
 
 # Skywire
 
@@ -296,4 +296,17 @@ Note: these images can only be run on [Orange Pi Prime](http://www.orangepi.cn/O
 ### Skyflash & Skybian
 We developed our own custom flashing tool that prepares & flashes our custom OS [Skybian](https://github.com/skycoin/skybian) for operation on our Skyminers. Skybian is our custom OS built upon armbian. It comes with Skywire and its dependencies preinstalled and its IP configuration is adjusted by [Skyflash](https://github.com/skycoin/skyflash) according to your network environment. Please refer to the [installation guide](https://github.com/skycoin/skywire/wiki/Skyminer-Skywire-installation-guide#installation) on our wiki for more details & instructions.
 
+### Official Skyminer Skybian Images
+We are hosting eight (8) prepared Skybian images which are ready to use, i.e. you only need to flash them. They come with the default official Skyminer IP ranges:
+- manager: 192.168.0.2
+- node 1: 192.168.0.3
+- node 2: 192.168.0.4
+- node 3: 192.168.0.5
+- node 4: 192.168.0.6
+- node 5: 192.168.0.7
+- node 6: 192.168.0.8
+- node 7: 192.168.0.9
 
+In case you cannot operate the official Skyminer in its default IP configuration you must use Skyflash to change the IP addresses on the images. 
+
+The images are hosted [here](https://skybian.skycoin.com/). Make sure to select the most recent Skybian version, please refer to the [Skybian releases](https://github.com/skycoin/skybian/releases).
