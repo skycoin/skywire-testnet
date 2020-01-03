@@ -12,7 +12,7 @@ The rewards in this post are subject to change. Updates in this post will be fol
    * [Official Skyminers ](#official-skyminers)
    * [Official Skyminers - New Batches](#official-skyminers---new-batches)
    * [DIY Skyminers](#diy-skyminers)   
-* [Requirements](#Requirements)
+* [Requirements](#requirements)
 * [Hardware ](#hardware)
 * [Whitelist](#whitelist)
    * [Facts](#facts)
@@ -24,7 +24,7 @@ This article represents the central source of information for the ongoing Skywir
 * Please join [SkywirePSA](https://t.me/SkywirePSA) as well to get structured public service announcements (PSA) about the Skywire project & testnet.
 * In case you bought an official Skyminer in the [Skycoin hardware store](https://store.skycoin.com/) please read [the Official Skyminer Guide](https://github.com/skycoin/skywire/wiki/Skyminer-Official-Guide) if you haven't done that already. 
 * Participants will contacted at the beginning of every month via the so called *Skywire testnet status update emails* including details of their last month's Skywire testnet participation.
-* You can contact support at store.skycoin.com/pages/support
+* You can contact support at [store.skycoin.com/pages/support](store.skycoin.com/pages/support)
 
 ***
 
@@ -72,16 +72,14 @@ There are two different reward categories for official miners:
 <em>Faulty orange pi prime's/routers of official Skyminers will be rewarded regardless of your uptime until you receive a replacement. If the replacement doesn't arrive in time for you to make the uptime requirement because it arrived on short notice or not on the schedule at all you will be rewarded as well. Since we are taking care of this manually you are requested to contact one of our team members on Telegram (@Paperstream @asxtree) or at store.skycoin.com/pages/support</em>
 
 <h4>Official Skyminers -  First & Second Batch</h4>
-<div align="center"><em><u>We are currently revising the reward strucure for our early supporters. Details of the rewards going forward will be announced very soon. </u></em></div><br/>
-
 Rewards are being paid on a node by node basis. The total amount of rewards is limited by a pool size that is subject to change:
 * You can receive a maximum of 12 Skycoin per node
 * Rewards are being calculated on a node by node basis
 * The total pool size is being divided evenly between all nodes eligible for receiving rewards. This implies that you will receive less than 12 Skycoin per-node rewards in case the pool size would be surpassed. 
 
-#### Reward Details - September
-The official reward pool size for September was 24,000 Skycoin:
-* **7.95 (7.949652202716131) Skycoin / node ; 63.597 Skycoin per 8 nodes**
+#### Reward Details - December
+The official reward pool size for December was 24,000 Skycoin:
+* **12.0 (12.0) Skycoin / node ; 96 Skycoin per 8 nodes**
 </div>
 <br>
 
@@ -111,22 +109,22 @@ We are calculating the underlying Skycoin price for your rewards based on the mo
 - 30 day length
 - starting on the 1st day of the subsequent month at 00:00
 
-#### Reward Details - September
+#### Reward Details - December
 Rewards are being paid on a node by node basis. The total amount you may earn is 8 per node rewards for each miner.
-The per node rewards for September are as follows:
-- Skycoin price $0.49133382
-- **21.192 (21.192312794588414) Skycoin per node reward; 169.539 Skycoin per 8 nodes**
+The per node rewards for December are as follows:
+- Skycoin price $0.41828076
+- **24.894 (24.893566703856997) Skycoin per node reward; 199.149 Skycoin per 8 nodes**
 - Skycoin per node reward equals ~ $USD 10.4125 
 
 ***
 
 ### DIY Skyminers
 
-Rewards are being paid on a node by node basis. The total amount of rewards is limited by a pool size that is subject to change. The DIY pool size for September was 16,000 Skycoin:
-* **2.102 (2.1022204703718304) Skycoin / node with a maximum of 8 nodes; 16.818 Skycoin maximum**
+Rewards are being paid on a node by node basis. The total amount of rewards is limited by a pool size that is subject to change. The DIY pool size for December was 16,000 Skycoin:
+* **4.961 (4.961240310077519) Skycoin / node with a maximum of 8 nodes; 39.69 Skycoin maximum**
 * As soon as the total amount of rewards of all eligible nodes would be surpassed the pool size, we will adjust the rewards as follows: 
-	* The Skycoin in the pool will be evenly split up between all nodes which are eligible for rewards. 
-	* The maximum amount of Skycoin that any node can receive is 6 (six) Skycoin.
+* The Skycoin in the pool will be evenly split up between all nodes which are eligible for rewards. 
+* The maximum amount of Skycoin that any node can receive is 6 (six) Skycoin.
 
 ***
 
